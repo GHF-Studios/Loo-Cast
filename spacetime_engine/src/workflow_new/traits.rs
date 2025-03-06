@@ -2,6 +2,7 @@
 pub trait WorkflowStageEcs___ {
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_ecs(&mut self, world: &mut World);
 }
 pub trait WorkflowStageEcs__E {
@@ -9,6 +10,7 @@ pub trait WorkflowStageEcs__E {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_ecs(&mut self, world: &mut World) -> Result<(), Self::Error>;
 }
 pub trait WorkflowStageEcs_O_ {
@@ -16,6 +18,7 @@ pub trait WorkflowStageEcs_O_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_ecs(&mut self, world: &mut World) -> Self::Output;
 }
 pub trait WorkflowStageEcs_OE {
@@ -24,6 +27,7 @@ pub trait WorkflowStageEcs_OE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_ecs(&mut self, world: &mut World) -> Result<Self::Output, Self::Error>;
 }
 pub trait WorkflowStageEcsI__ {
@@ -31,6 +35,7 @@ pub trait WorkflowStageEcsI__ {
 
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_ecs(&mut self, input: Self::Input, world: &mut World);
 }
 pub trait WorkflowStageEcsI_E {
@@ -39,6 +44,7 @@ pub trait WorkflowStageEcsI_E {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_ecs(&mut self, input: Self::Input, world: &mut World) -> Result<(), Self::Error>;
 }
 pub trait WorkflowStageEcsIO_ {
@@ -47,6 +53,7 @@ pub trait WorkflowStageEcsIO_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_ecs(&mut self, input: Self::Input, world: &mut World) -> Self::Output;
 }
 pub trait WorkflowStageEcsIOE {
@@ -56,6 +63,7 @@ pub trait WorkflowStageEcsIOE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_ecs(&mut self, input: Self::Input, world: &mut World) -> Result<Self::Output, Self::Error>;
 }
 
@@ -65,6 +73,7 @@ pub trait WorkflowStageEcsIOE {
 pub trait WorkflowStageRender___ {
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, world: &mut World);
 }
 pub trait WorkflowStageRender__E {
@@ -72,6 +81,7 @@ pub trait WorkflowStageRender__E {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, world: &mut World) -> Result<(), Self::Error>;
 }
 pub trait WorkflowStageRender_O_ {
@@ -79,6 +89,7 @@ pub trait WorkflowStageRender_O_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, world: &mut World) -> Self::Output;
 }
 pub trait WorkflowStageRender_OE {
@@ -87,6 +98,7 @@ pub trait WorkflowStageRender_OE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, world: &mut World) -> Result<Self::Output, Self::Error>;
 }
 pub trait WorkflowStageRenderI__ {
@@ -94,6 +106,7 @@ pub trait WorkflowStageRenderI__ {
 
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, input: Self::Input, world: &mut World);
 }
 pub trait WorkflowStageRenderI_E {
@@ -102,6 +115,7 @@ pub trait WorkflowStageRenderI_E {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, input: Self::Input, world: &mut World) -> Result<(), Self::Error>;
 }
 pub trait WorkflowStageRenderIO_ {
@@ -110,6 +124,7 @@ pub trait WorkflowStageRenderIO_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, input: Self::Input, world: &mut World) -> Self::Output;
 }
 pub trait WorkflowStageRenderIOE {
@@ -119,6 +134,7 @@ pub trait WorkflowStageRenderIOE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, input: Self::Input, world: &mut World) -> Result<Self::Output, Self::Error>;
 }
 
@@ -128,6 +144,7 @@ pub trait WorkflowStageRenderIOE {
 pub trait WorkflowStageRender___ {
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, world: &mut World);
 }
 pub trait WorkflowStageRender__E {
@@ -135,6 +152,7 @@ pub trait WorkflowStageRender__E {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, world: &mut World) -> Result<(), Self::Error>;
 }
 pub trait WorkflowStageRender_O_ {
@@ -142,6 +160,7 @@ pub trait WorkflowStageRender_O_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, world: &mut World) -> Self::Output;
 }
 pub trait WorkflowStageRender_OE {
@@ -150,6 +169,7 @@ pub trait WorkflowStageRender_OE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, world: &mut World) -> Result<Self::Output, Self::Error>;
 }
 pub trait WorkflowStageRenderI__ {
@@ -157,6 +177,7 @@ pub trait WorkflowStageRenderI__ {
 
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, input: Self::Input, world: &mut World);
 }
 pub trait WorkflowStageRenderI_E {
@@ -165,6 +186,7 @@ pub trait WorkflowStageRenderI_E {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, input: Self::Input, world: &mut World) -> Result<(), Self::Error>;
 }
 pub trait WorkflowStageRenderIO_ {
@@ -173,6 +195,7 @@ pub trait WorkflowStageRenderIO_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, input: Self::Input, world: &mut World) -> Self::Output;
 }
 pub trait WorkflowStageRenderIOE {
@@ -182,6 +205,7 @@ pub trait WorkflowStageRenderIOE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn run_render(&mut self, input: Self::Input, world: &mut World) -> Result<Self::Output, Self::Error>;
 }
 
@@ -191,6 +215,7 @@ pub trait WorkflowStageRenderIOE {
 pub trait WorkflowStageEcsWhile____ {
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World);
     fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), ()>;
 }
@@ -199,6 +224,7 @@ pub trait WorkflowStageEcsWhile___E {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World);
     fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
 }
@@ -207,6 +233,7 @@ pub trait WorkflowStageEcsWhile__O_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World);
     fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
 }
@@ -216,6 +243,7 @@ pub trait WorkflowStageEcsWhile__OE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World);
     fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), Self::Output>, Self::Error>;
 }
@@ -224,6 +252,7 @@ pub trait WorkflowStageEcsWhile_S__ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World) -> Self::State;
     fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
 }
@@ -233,6 +262,7 @@ pub trait WorkflowStageEcsWhile_S_E {
 
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World) -> Result<Self::State, Self::Error>;
     fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, ()>, Self::Error>;
 }
@@ -242,6 +272,7 @@ pub trait WorkflowStageEcsWhile_SO_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World) -> Self::State;
     fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, Self::Output>;
 }
@@ -252,6 +283,7 @@ pub trait WorkflowStageEcsWhile_SOE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World) -> Result<Self::State, Self::Error>;
     fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
 }
@@ -260,6 +292,7 @@ pub trait WorkflowStageEcsWhileI___ {
 
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World);
     fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), ()>;
 }
@@ -269,6 +302,7 @@ pub trait WorkflowStageEcsWhileI__E {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World);
     fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
 }
@@ -278,6 +312,7 @@ pub trait WorkflowStageEcsWhileI_O_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World);
     fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
 }
@@ -288,6 +323,7 @@ pub trait WorkflowStageEcsWhileI_OE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World);
     fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), Self::Output>, Self::Error>;
 }
@@ -297,6 +333,7 @@ pub trait WorkflowStageEcsWhileIS__ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World) -> Self::State;
     fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
 }
@@ -307,6 +344,7 @@ pub trait WorkflowStageEcsWhileIS_E {
 
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World) -> Result<Self::State, Self::Error>;
     fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, ()>, Self::Error>;
 }
@@ -317,6 +355,7 @@ pub trait WorkflowStageEcsWhileISO_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World) -> Self::State;
     fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, Self::Output>;
 }
@@ -328,6 +367,7 @@ pub trait WorkflowStageEcsWhileISOE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World) -> Result<Self::State, Self::Error>;
     fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
 }
@@ -338,6 +378,7 @@ pub trait WorkflowStageEcsWhileISOE {
 pub trait WorkflowStageRenderWhile____ {
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World);
     fn run_render_while(&mut self, world: &mut World) -> Outcome<(), ()>;
 }
@@ -346,6 +387,7 @@ pub trait WorkflowStageRenderWhile___E {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World);
     fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
 }
@@ -354,6 +396,7 @@ pub trait WorkflowStageRenderWhile__O_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World);
     fn run_render_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
 }
@@ -363,6 +406,7 @@ pub trait WorkflowStageRenderWhile__OE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World);
     fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), Self::Output>, Self::Error>;
 }
@@ -371,6 +415,7 @@ pub trait WorkflowStageRenderWhile_S__ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World) -> Self::State;
     fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
 }
@@ -380,6 +425,7 @@ pub trait WorkflowStageRenderWhile_S_E {
 
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World) -> Result<Self::State, Self::Error>;
     fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, ()>, Self::Error>;
 }
@@ -389,6 +435,7 @@ pub trait WorkflowStageRenderWhile_SO_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World) -> Self::State;
     fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, Self::Output>;
 }
@@ -399,6 +446,7 @@ pub trait WorkflowStageRenderWhile_SOE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World) -> Result<Self::State, Self::Error>;
     fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
 }
@@ -407,6 +455,7 @@ pub trait WorkflowStageRenderWhileI___ {
 
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World);
     fn run_render_while(&mut self, world: &mut World) -> Outcome<(), ()>;
 }
@@ -416,6 +465,7 @@ pub trait WorkflowStageRenderWhileI__E {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World);
     fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
 }
@@ -425,6 +475,7 @@ pub trait WorkflowStageRenderWhileI_O_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World);
     fn run_render_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
 }
@@ -435,6 +486,7 @@ pub trait WorkflowStageRenderWhileI_OE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World);
     fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), Self::Output>, Self::Error>;
 }
@@ -444,6 +496,7 @@ pub trait WorkflowStageRenderWhileIS__ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World) -> Self::State;
     fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
 }
@@ -454,6 +507,7 @@ pub trait WorkflowStageRenderWhileIS_E {
 
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World) -> Result<Self::State, Self::Error>;
     fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, ()>, Self::Error>;
 }
@@ -464,6 +518,7 @@ pub trait WorkflowStageRenderWhileISO_ {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World) -> Self::State;
     fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, Self::Output>;
 }
@@ -475,6 +530,7 @@ pub trait WorkflowStageRenderWhileISOE {
     
     fn module_name(&self) -> &'static str;
     fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World) -> Result<Self::State, Self::Error>;
     fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
 }

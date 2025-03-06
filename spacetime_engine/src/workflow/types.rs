@@ -70,44 +70,6 @@ pub struct Workflow {
     pub workflow_type: WorkflowType,
 }
 
-pub struct WorkflowInstance {
-    pub module_name: String,
-    pub workflow_name: String,
-    pub state: WorkflowState,
-    pub data_buffer: RawWorkflowData,
-    pub callback: Option<Box<dyn FnOnce(&mut World, WorkflowIO<CallbackState>) + Send + Sync>>,
-    pub num_stages: usize,
-    pub timeout_frames: usize,
-}
-impl std::fmt::Debug for WorkflowInstance{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, 
-            "WorkflowInstance(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})", 
-            self.module_name, self.workflow_name, self.state, self.num_stages, self.timeout_frames)
-    }
-}
-impl WorkflowInstance {
-    pub(in super) fn new_request(
-        module_name: String, 
-        workflow_name: String, 
-        input_params: RawWorkflowData, 
-        output_callback: Option<Box<dyn FnOnce(&mut World, WorkflowIO<CallbackState>) + Send + Sync>>,
-        num_stages: usize,
-    ) -> Self {
-        let timeout_frames = num_stages * CONFIG.get::<usize>("workflow/timeout_frames_per_stage");
-
-        Self {
-            module_name,
-            workflow_name,
-            state: WorkflowState::Requested,
-            data_buffer: input_params,
-            callback: output_callback,
-            num_stages,
-            timeout_frames
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Outcome<S, O> {
     Wait(S),

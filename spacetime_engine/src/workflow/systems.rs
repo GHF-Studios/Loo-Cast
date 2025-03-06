@@ -2,12 +2,15 @@ use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
 use bevy::render::MainWorld;
 use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
+use crossbeam_channel::Receiver;
 
 use crate::statics::TOKIO_RUNTIME;
 
 use super::{
-    events::{WorkflowStageCompletionEvent, WorkflowStageInitializationEvent}, resources::{WorkflowMap, WorkflowTypeModuleRegistry}, stage::{WorkflowStage, WorkflowStageEcs, WorkflowStageWhileOutcome}, io::{InputState, WorkflowIO}, types::{RawWorkflowData, WorkflowState}, AsyncStageBuffer, AsyncStageCompletionEventReceiver, AsyncStageCompletionEventSender, EcsStageBuffer, EcsStageCompletionEventReceiver, EcsStageCompletionEventSender, EcsWhileStageBuffer, EcsWhileStageCompletionEventReceiver, EcsWhileStageCompletionEventSender, RenderStageBuffer, RenderStageCompletionEventReceiver, RenderStageCompletionEventSender, RenderWhileStageBuffer, RenderWhileStageCompletionEventReceiver, RenderWhileStageCompletionEventSender, DEBUG_ACTION_MODULE, DEBUG_ACTION_NAME, DEBUG_LOGGING_ENABLED
+    events::{WorkflowStageCompletionEvent, WorkflowStageInitializationEvent}, io::{InputState, WorkflowIO}, resources::{WorkflowMap, WorkflowTypeModuleRegistry}, stage::{WorkflowStage, WorkflowStageEcs, WorkflowStageWhileOutcome}, types::*, AsyncStageBuffer, AsyncStageCompletionEventReceiver, AsyncStageCompletionEventSender, EcsStageBuffer, EcsStageCompletionEventReceiver, EcsStageCompletionEventSender, EcsWhileStageBuffer, EcsWhileStageCompletionEventReceiver, EcsWhileStageCompletionEventSender, RenderStageBuffer, RenderStageCompletionEventReceiver, RenderStageCompletionEventSender, RenderWhileStageBuffer, RenderWhileStageCompletionEventReceiver, RenderWhileStageCompletionEventSender
 };
+use super::instance::*;
+use super::request::*;
 
 pub(in super) fn extract_render_stage_buffer_system(world: &mut World) {
     let mut main_world = SystemState::<ResMut<MainWorld>>::new(world).get_mut(world);
@@ -299,6 +302,76 @@ pub(in super) fn handle_async_stage_completion_event_system(
         });
     }
 }
+
+
+
+
+pub(in super) fn request_workflow_relay_system(
+    world: &mut World,
+) {
+    let mut system_state: SystemState<(
+        ResMut<WorkflowTypeModuleRegistry>,
+        ResMut<WorkflowMap>,
+        ResMut<Receiver<TypedWorkflowRequest>>
+    )> = SystemState::new(world);
+    let (mut workflow_registry, mut workflow_map, mut workflow_request_receiver) = system_state.get_mut(world);
+
+    for request in workflow_request_receiver.try_iter() {
+        let module_name = request.module_name;
+        let workflow_name = request.workflow_name;
+
+        if workflow_map.has_workflow(module_name, workflow_name) {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active.",
+                workflow_name, module_name
+            );
+        }
+
+        workflow_map.insert_workflow(WorkflowInstance::new_request(
+            module_name.to_owned(),
+            workflow_name.to_owned(),
+            Some(Box::new(move || {
+                request.response_sender.send(()).unwrap();
+            })),
+        ));
+    }
+}
+
+pub(in super) fn request_workflow_isoe_relay_system(
+    world: &mut World,
+) {
+    let mut system_state: SystemState<(
+        ResMut<WorkflowTypeModuleRegistry>,
+        ResMut<WorkflowMap>,
+        ResMut<Receiver<TypedWorkflowRequestISOE>>
+    )> = SystemState::new(world);
+    let (mut workflow_registry, mut workflow_map, mut workflow_request_receiver) = system_state.get_mut(world);
+
+    for request in workflow_request_receiver.try_iter() {
+        let module_name = request.module_name;
+        let workflow_name = request.workflow_name;
+
+        if workflow_map.has_workflow(module_name, workflow_name) {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active.",
+                workflow_name, module_name
+            );
+        }
+
+        workflow_map.insert_workflow(WorkflowInstance::new_request(
+            module_name.to_owned(),
+            workflow_name.to_owned(),
+            Some(request.input),
+            Some(Box::new(move |result| {
+                request.response_sender.send(result).unwrap();
+            })),
+        ));
+    }
+}
+
+
+
+
 
 // TODO: Maybe: While resources are stolen, validation can not access those resources! Maybe we just literally remove and reinsert them? Or it's just the case that they are not available at secondary validation due to this exact reasons, but then we need to explicitly document that somewhere/somehow.
 pub(in super) fn workflow_request_system(world: &mut World) {

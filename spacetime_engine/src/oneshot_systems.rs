@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use bevy::{ecs::system::SystemId, prelude::*};
 use crate::statics::TOKIO_RUNTIME;
-use crate::workflow::functions::request_workflow;
+use crate::workflow::functions::request_workflow_OLD;
 use crate::workflow::resources::WorkflowTypeModuleRegistry;
 use crate::workflow::types::RawWorkflowData;
 use crate::camera::components::MainCamera;
@@ -55,7 +55,7 @@ fn test_workflow_framework_oneshot_system(world: &mut World) {
     use crate::gpu::workflows::generate_texture;
     use crate::chunk::workflows::spawn;
 
-    if let Err(err) = request_workflow(
+    if let Err(err) = request_workflow_OLD(
         world,
         "GPU",
         "SetupTextureGenerator",
@@ -67,7 +67,7 @@ fn test_workflow_framework_oneshot_system(world: &mut World) {
             io.consume_cast::<setup_texture_generator::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to setup texture generator: {}", err) });
             debug!("Setup texture generator");
     
-            if let Err(err) = request_workflow(
+            if let Err(err) = request_workflow_OLD(
                 world,
                 "GPU",
                 "GenerateTexture",
@@ -79,7 +79,7 @@ fn test_workflow_framework_oneshot_system(world: &mut World) {
                     let output = io.consume_cast::<generate_texture::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to generate texture: {}", err) });
                     debug!("Generated texture");
         
-                    if let Err(err) = request_workflow(
+                    if let Err(err) = request_workflow_OLD(
                         world,
                         "Chunk",
                         "Spawn",

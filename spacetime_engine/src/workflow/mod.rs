@@ -5,8 +5,11 @@ pub mod resources;
 pub mod systems;
 pub mod types;
 
+pub mod instance;
 pub mod io;
 pub mod stage;
+pub mod request;
+pub mod response;
 
 use bevy::{prelude::*, render::{Render, RenderApp, MainWorld}, ecs::system::SystemState};
 use bevy_consumable_event::ConsumableEventApp;
