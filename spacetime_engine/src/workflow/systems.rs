@@ -6,7 +6,7 @@ use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 use crate::statics::TOKIO_RUNTIME;
 
 use super::{
-    events::{WorkflowStageCompletionEvent, WorkflowStageInitializationEvent}, io::{InputState, WorkflowIO}, resources::*, instance::*, stage::{WorkflowStage, WorkflowStageEcs, WorkflowStageWhileOutcome}, types::*, AsyncStageBuffer, AsyncStageCompletionEventReceiver, AsyncStageCompletionEventSender, EcsStageBuffer, EcsStageCompletionEventReceiver, EcsStageCompletionEventSender, EcsWhileStageBuffer, EcsWhileStageCompletionEventReceiver, EcsWhileStageCompletionEventSender, RenderStageBuffer, RenderStageCompletionEventReceiver, RenderStageCompletionEventSender, RenderWhileStageBuffer, RenderWhileStageCompletionEventReceiver, RenderWhileStageCompletionEventSender
+    channels::*, events::{WorkflowStageCompletionEvent, WorkflowStageInitializationEvent}, instance::*, io::{InputState, WorkflowIO}, resources::*, stage::{WorkflowStage, WorkflowStageEcs, WorkflowStageWhileOutcome}, types::*, AsyncStageBuffer, AsyncStageCompletionEventReceiver, AsyncStageCompletionEventSender, EcsStageBuffer, EcsStageCompletionEventReceiver, EcsStageCompletionEventSender, EcsWhileStageBuffer, EcsWhileStageCompletionEventReceiver, EcsWhileStageCompletionEventSender, RenderStageBuffer, RenderStageCompletionEventReceiver, RenderStageCompletionEventSender, RenderWhileStageBuffer, RenderWhileStageCompletionEventReceiver, RenderWhileStageCompletionEventSender
 };
 
 pub(in super) fn extract_render_stage_buffer_system(world: &mut World) {
@@ -309,11 +309,12 @@ pub(in super) fn workflow_request_relay_system(
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<WorkflowRequestChannel>
+        ResMut<WorkflowRequestReceiver>,
+        ResMut<WorkflowResponseSender>,
     )> = SystemState::new(world);
-    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
+    let (workflow_registry, mut workflow_map, mut workflow_request_receiver, mut workflow_response_sender) = system_state.get_mut(world);
 
-    for request in workflow_request_channel.receiver.try_iter() {
+    for request in workflow_request_receiver.0.try_iter() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
 
@@ -332,7 +333,7 @@ pub(in super) fn workflow_request_relay_system(
             workflow_name,
             num_stages,
             Box::new(move || {
-                request.response_sender.send(()).unwrap();
+                workflow_response_sender.send(()).unwrap();
             }),
         ));
     }
@@ -343,11 +344,12 @@ pub(in super) fn workflow_request_e_relay_system(
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<WorkflowRequestEChannel>
+        ResMut<WorkflowRequestEReceiver>,
+        ResMut<WorkflowResponseESender>,
     )> = SystemState::new(world);
-    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
+    let (workflow_registry, mut workflow_map, mut workflow_request_receiver, mut workflow_response_sender) = system_state.get_mut(world);
 
-    for request in workflow_request_channel.receiver.try_iter() {
+    for request in workflow_request_receiver.0.try_iter() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
 
@@ -366,7 +368,7 @@ pub(in super) fn workflow_request_e_relay_system(
             workflow_name,
             num_stages,
             Box::new(move |response| {
-                request.response_sender.send(response).unwrap();
+                workflow_response_sender.send(response).unwrap();
             }),
         ));
     }
@@ -377,11 +379,12 @@ pub(in super) fn workflow_request_o_relay_system(
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<WorkflowRequestOChannel>
+        ResMut<WorkflowRequestOReceiver>,
+        ResMut<WorkflowResponseOSender>,
     )> = SystemState::new(world);
-    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
+    let (workflow_registry, mut workflow_map, mut workflow_request_receiver, mut workflow_response_sender) = system_state.get_mut(world);
 
-    for request in workflow_request_channel.receiver.try_iter() {
+    for request in workflow_request_receiver.0.try_iter() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
 
@@ -400,7 +403,7 @@ pub(in super) fn workflow_request_o_relay_system(
             workflow_name,
             num_stages,
             Box::new(move |response| {
-                request.response_sender.send(response).unwrap();
+                workflow_response_sender.send(response).unwrap();
             }),
         ));
     }
@@ -411,11 +414,12 @@ pub(in super) fn workflow_request_oe_relay_system(
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<WorkflowRequestOEChannel>
+        ResMut<WorkflowRequestOEReceiver>,
+        ResMut<WorkflowResponseOESender>,
     )> = SystemState::new(world);
-    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
+    let (workflow_registry, mut workflow_map, mut workflow_request_receiver, mut workflow_response_sender) = system_state.get_mut(world);
 
-    for request in workflow_request_channel.receiver.try_iter() {
+    for request in workflow_request_receiver.0.try_iter() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
 
@@ -434,7 +438,7 @@ pub(in super) fn workflow_request_oe_relay_system(
             workflow_name,
             num_stages,
             Box::new(move |response| {
-                request.response_sender.send(response).unwrap();
+                workflow_response_sender.send(response).unwrap();
             }),
         ));
     }
@@ -445,11 +449,12 @@ pub(in super) fn workflow_request_i_relay_system(
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<WorkflowRequestIChannel>
+        ResMut<WorkflowRequestIReceiver>,
+        ResMut<WorkflowResponseISender>,
     )> = SystemState::new(world);
-    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
+    let (workflow_registry, mut workflow_map, mut workflow_request_receiver, mut workflow_response_sender) = system_state.get_mut(world);
 
-    for request in workflow_request_channel.receiver.try_iter() {
+    for request in workflow_request_receiver.0.try_iter() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
 
@@ -469,7 +474,7 @@ pub(in super) fn workflow_request_i_relay_system(
             request.input,
             num_stages,
             Box::new(move || {
-                request.response_sender.send(()).unwrap();
+                workflow_response_sender.send(()).unwrap();
             }),
         ));
     }
@@ -480,11 +485,12 @@ pub(in super) fn workflow_request_ie_relay_system(
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<WorkflowRequestIEChannel>
+        ResMut<WorkflowRequestIEReceiver>,
+        ResMut<WorkflowResponseIESender>,
     )> = SystemState::new(world);
-    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
+    let (workflow_registry, mut workflow_map, mut workflow_request_receiver, mut workflow_response_sender) = system_state.get_mut(world);
 
-    for request in workflow_request_channel.receiver.try_iter() {
+    for request in workflow_request_receiver.0.try_iter() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
 
@@ -504,7 +510,7 @@ pub(in super) fn workflow_request_ie_relay_system(
             request.input,
             num_stages,
             Box::new(move |response| {
-                request.response_sender.send(response).unwrap();
+                workflow_response_sender.send(response).unwrap();
             }),
         ));
     }
@@ -515,11 +521,12 @@ pub(in super) fn workflow_request_io_relay_system(
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<WorkflowRequestIOChannel>
+        ResMut<WorkflowRequestIOReceiver>,
+        ResMut<WorkflowResponseIOSender>,
     )> = SystemState::new(world);
-    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
+    let (workflow_registry, mut workflow_map, mut workflow_request_receiver, mut workflow_response_sender) = system_state.get_mut(world);
 
-    for request in workflow_request_channel.receiver.try_iter() {
+    for request in workflow_request_receiver.0.try_iter() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
 
@@ -539,7 +546,7 @@ pub(in super) fn workflow_request_io_relay_system(
             request.input,
             num_stages,
             Box::new(move |response| {
-                request.response_sender.send(response).unwrap();
+                workflow_response_sender.send(response).unwrap();
             }),
         ));
     }
@@ -550,11 +557,12 @@ pub(in super) fn workflow_request_ioe_relay_system(
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<WorkflowRequestIOEChannel>
+        ResMut<WorkflowRequestIOEReceiver>,
+        ResMut<WorkflowResponseIOESender>,
     )> = SystemState::new(world);
-    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
+    let (workflow_registry, mut workflow_map, mut workflow_request_receiver, mut workflow_response_sender) = system_state.get_mut(world);
 
-    for request in workflow_request_channel.receiver.try_iter() {
+    for request in workflow_request_receiver.0.try_iter() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
 
@@ -574,7 +582,7 @@ pub(in super) fn workflow_request_ioe_relay_system(
             request.input,
             num_stages,
             Box::new(move |response| {
-                request.response_sender.send(response).unwrap();
+                workflow_response_sender.send(response).unwrap();
             }),
         ));
     }

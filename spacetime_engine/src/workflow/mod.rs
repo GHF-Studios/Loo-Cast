@@ -1,3 +1,4 @@
+pub mod channels;
 pub mod errors;
 pub mod events;
 pub mod functions;
@@ -17,10 +18,6 @@ use bevy_consumable_event::ConsumableEventApp;
 use events::*;
 use resources::*;
 use systems::*;
-
-pub const DEBUG_ACTION_MODULE: &str = "GPU";
-pub const DEBUG_ACTION_NAME: &str = "SetupTextureGenerator";
-pub const DEBUG_LOGGING_ENABLED: bool = true;
 
 pub(in crate) struct WorkflowPlugin;
 impl Plugin for WorkflowPlugin {
