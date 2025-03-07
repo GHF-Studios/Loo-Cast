@@ -75,3 +75,8 @@ pub enum Outcome<S, O> {
     Wait(S),
     Done(O)
 }
+
+pub enum WorkflowResult<T> {
+    Ok(T),
+    Err(String)
+}

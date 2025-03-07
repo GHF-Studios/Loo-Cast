@@ -1,4 +1,4 @@
-use spacetime_engine_macros::workflow_mod;
+use spacetime_engine_macros::define_workflow_mod;
 
 pub mod chunk {
     pub const NAME: &str = stringify!("Chunk");

@@ -1,6 +1,6 @@
-use spacetime_engine_macros::workflow_mod;
+use spacetime_engine_macros::define_workflow_mod;
 
-workflow_mod! {
+define_workflow_mod! {
     name: "Chunk",
     workflows: [
         SpawnChunk {

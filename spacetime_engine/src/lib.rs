@@ -41,8 +41,7 @@ pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use iyes_perf_ui::{entries::{PerfUiFramerateEntries, PerfUiSystemEntries}, prelude::{PerfUiEntryEntityCount, PerfUiRoot}};
-use statics::TOKIO_RUNTIME;
-use workflow::WorkflowPlugin;
+use workflow::{resources::*, WorkflowPlugin};
 use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;
@@ -121,42 +120,74 @@ fn startup_system() {
 }
 
 fn post_startup_system() {
-    ASYNC_RUNTIME.spawn_task(|| async move {
-        workflow!(gpu, setup_texture_generator, Input {
-            shader_name: "texture_generators/example_compute_uv",
-            shader_path: "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string(),
-        }).await?;
+    define_workflow_task!(TestWorkflowFramework {
+        let shader_name = "texture_generators/example_compute_uv";
+        let shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl";
 
-        let texture = workflow!(gpu, generate_texture, Input {
-            shader_name: "texture_generators/example_compute_uv",
+        run_workflow!(Gpu, SetupTextureGenerator, Input {
+            shader_name,
+            shader_path: shader_path.to_string(),
+        });
+        
+        let texture = run_workflow!(Gpu, GenerateTexture, Input {
+            shader_name,
             texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize
-        }).await?;
-
-        workflow!(chunk, spawn, Input {
+        });
+    
+        run_workflow!(Chunk, Spawn, Input {
             chunk_coord: (0, 0),
             chunk_owner: None,
             metric_texture: texture,
-        }).await?;
-
+        });
+    
         Ok(())
-    });
+    })
+    
+    WORKFLOW_TASK_RUNTIME.spawn_task(task);
 }
 
-fn update_system() {
-    use crossbeam_channel::Receiver;
+fn post_startup_system_expanded() {
+    #[derive(Debug, thiserror::Error)]
+    pub enum TestWorkflowFrameworkError {
+        #[error("{0}")]
+        SetupTextureGeneratorError(crate::gpu::workflows::setup_texture_generator::Type::Error),
 
-    fn poll_workflow_ecs_ioe(request_rx: Receiver<WorkflowRequest>) {
-        while let Ok(request) = request_rx.0.try_recv() {
-            tokio::spawn(async move {
-                match resolve_workflow!(request.workflow).await {
-                    Ok(response) => {
-                        request.response_tx.send(result).unwrap();
-                    }
-                    Err(e) => {
-                        panic!("Failed to execute workflow: {:?}", e);
-                    }
-                };
-            });
+        #[error("{0}")]
+        GenerateTextureError(crate::gpu::workflows::generate_texture::Type::Error),
+
+        #[error("{0}")]
+        SpawnChunkError(crate::chunk::workflows::spawn::Type::Error),
+    }
+
+    pub async fn test_workflow_framework() -> Result<(), TestWorkflowFrameworkError> {
+        let shader_name = "texture_generators/example_compute_uv";
+        let shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl";
+
+        {
+            type T = crate::gpu::workflows::setup_texture_generator::Type;
+            crate::workflow::functions::run_workflow_i::<T>(T::Input {
+                shader_name,
+                shader_path: shader_path.to_string(),
+            }).await.map_err(Into::into)?;
         }
+
+        let texture = {
+            type T = crate::gpu::workflows::generate_texture::Type;
+            crate::workflow::functions::run_workflow_ioe::<T>(T::Input {
+                shader_name,
+                texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize
+            }).await.map_err(Into::into)?;
+        };
+
+        {
+            type T = crate::chunk::workflows::spawn::Type;
+            crate::workflow::functions::run_workflow_ie::<T>(T::Input {
+                chunk_coord: (0, 0),
+                chunk_owner: None,
+                metric_texture: texture,
+            }).await.map_err(Into::into)?;
+        }
+
+        Ok(())
     }
 }

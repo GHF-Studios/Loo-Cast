@@ -56,88 +56,88 @@ pub struct WorkflowRequestBuffer {
 
 // --- Workflow Request Channels ---
 #[derive(Resource)]
-pub struct TypedWorkflowRequestChannel {
+pub struct WorkflowRequestChannel {
     pub sender: Sender<TypedWorkflowRequest>,
     pub receiver: Receiver<TypedWorkflowRequest>,
 }
-impl Default for TypedWorkflowRequestChannel {
+impl Default for WorkflowRequestChannel {
     fn default() -> Self {
         let (sender, receiver) = crossbeam_channel::bounded(1);
         Self { sender, receiver }
     }
 }
 #[derive(Resource)]
-pub struct TypedWorkflowRequestEChannel {
+pub struct WorkflowRequestEChannel {
     pub sender: Sender<TypedWorkflowRequestE>,
     pub receiver: Receiver<TypedWorkflowRequestE>,
 }
-impl Default for TypedWorkflowRequestEChannel {
+impl Default for WorkflowRequestEChannel {
     fn default() -> Self {
         let (sender, receiver) = crossbeam_channel::bounded(1);
         Self { sender, receiver }
     }
 }
 #[derive(Resource)]
-pub struct TypedWorkflowRequestOChannel {
+pub struct WorkflowRequestOChannel {
     pub sender: Sender<TypedWorkflowRequestO>,
     pub receiver: Receiver<TypedWorkflowRequestO>,
 }
-impl Default for TypedWorkflowRequestOChannel {
+impl Default for WorkflowRequestOChannel {
     fn default() -> Self {
         let (sender, receiver) = crossbeam_channel::bounded(1);
         Self { sender, receiver }
     }
 }
 #[derive(Resource)]
-pub struct TypedWorkflowRequestOEChannel {
+pub struct WorkflowRequestOEChannel {
     pub sender: Sender<TypedWorkflowRequestOE>,
     pub receiver: Receiver<TypedWorkflowRequestOE>,
 }
-impl Default for TypedWorkflowRequestOEChannel {
+impl Default for WorkflowRequestOEChannel {
     fn default() -> Self {
         let (sender, receiver) = crossbeam_channel::bounded(1);
         Self { sender, receiver }
     }
 }
 #[derive(Resource)]
-pub struct TypedWorkflowRequestIChannel {
+pub struct WorkflowRequestIChannel {
     pub sender: Sender<TypedWorkflowRequestI>,
     pub receiver: Receiver<TypedWorkflowRequestI>,
 }
-impl Default for TypedWorkflowRequestIChannel {
+impl Default for WorkflowRequestIChannel {
     fn default() -> Self {
         let (sender, receiver) = crossbeam_channel::bounded(1);
         Self { sender, receiver }
     }
 }
 #[derive(Resource)]
-pub struct TypedWorkflowRequestIEChannel {
+pub struct WorkflowRequestIEChannel {
     pub sender: Sender<TypedWorkflowRequestIE>,
     pub receiver: Receiver<TypedWorkflowRequestIE>,
 }
-impl Default for TypedWorkflowRequestIEChannel {
+impl Default for WorkflowRequestIEChannel {
     fn default() -> Self {
         let (sender, receiver) = crossbeam_channel::bounded(1);
         Self { sender, receiver }
     }
 }
 #[derive(Resource)]
-pub struct TypedWorkflowRequestIOChannel {
+pub struct WorkflowRequestIOChannel {
     pub sender: Sender<TypedWorkflowRequestIO>,
     pub receiver: Receiver<TypedWorkflowRequestIO>,
 }
-impl Default for TypedWorkflowRequestIOChannel {
+impl Default for WorkflowRequestIOChannel {
     fn default() -> Self {
         let (sender, receiver) = crossbeam_channel::bounded(1);
         Self { sender, receiver }
     }
 }
 #[derive(Resource)]
-pub struct TypedWorkflowRequestIOEChannel {
+pub struct WorkflowRequestIOEChannel {
     pub sender: Sender<TypedWorkflowRequestIOE>,
     pub receiver: Receiver<TypedWorkflowRequestIOE>,
 }
-impl Default for TypedWorkflowRequestIOEChannel {
+impl Default for WorkflowRequestIOEChannel {
     fn default() -> Self {
         let (sender, receiver) = crossbeam_channel::bounded(1);
         Self { sender, receiver }
@@ -147,8 +147,8 @@ impl Default for TypedWorkflowRequestIOEChannel {
 // --- Workflow Response Channels ---
 #[derive(Resource)]
 pub struct WorkflowResponseChannel {
-    pub sender: Sender<TypedWorkflowResponse>,
-    pub receiver: Receiver<TypedWorkflowResponse>,
+    pub sender: Sender<()>,
+    pub receiver: Receiver<()>,
 }
 impl Default for WorkflowResponseChannel {
     fn default() -> Self {
@@ -191,8 +191,8 @@ impl Default for WorkflowResponseOEChannel {
 }
 #[derive(Resource)]
 pub struct WorkflowResponseIChannel {
-    pub sender: Sender<TypedWorkflowResponse>,
-    pub receiver: Receiver<TypedWorkflowResponse>,
+    pub sender: Sender<()>,
+    pub receiver: Receiver<()>,
 }
 impl Default for WorkflowResponseIChannel {
     fn default() -> Self {
@@ -298,6 +298,16 @@ impl WorkflowMap {
             .flatten()
             .next()
             .is_some()
+    }
+
+    pub fn had_workflow(&self, module_name: &str, workflow_name: &str) -> bool {
+        self.map
+            .get(module_name)
+            .and_then(|workflows| workflows.get(workflow_name))
+            .into_iter()
+            .flatten()
+            .next()
+            .is_none()
     }
 
     pub fn remove_workflow(&mut self, module_name: &str, workflow_name: &str) {

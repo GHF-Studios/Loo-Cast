@@ -17,7 +17,7 @@ pub enum WorkflowRequest {
 pub struct TypedWorkflowRequest {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
-    pub response_sender: UnboundedSender<TypedWorkflowResponse>,
+    pub response_sender: UnboundedSender<()>,
 }
 pub struct TypedWorkflowRequestE {
     pub module_name: &'static str,
@@ -38,23 +38,23 @@ pub struct TypedWorkflowRequestI {
     pub input: Box<dyn Any + Send + Sync>,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
-    pub response_sender: UnboundedSender<TypedWorkflowResponseI>,
+    pub response_sender: UnboundedSender<()>,
 }
 pub struct TypedWorkflowRequestIE {
     pub input: Box<dyn Any + Send + Sync>,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
-    pub response_sender: UnboundedSender<TypedWorkflowResponseIE>,
+    pub response_sender: UnboundedSender<TypedWorkflowResponseE>,
 }
 pub struct TypedWorkflowRequestIO {
     pub input: Box<dyn Any + Send + Sync>,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
-    pub response_sender: UnboundedSender<TypedWorkflowResponseIO>,
+    pub response_sender: UnboundedSender<TypedWorkflowResponseO>,
 }
 pub struct TypedWorkflowRequestIOE {
     pub input: Box<dyn Any + Send + Sync>,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
-    pub response_sender: UnboundedSender<TypedWorkflowResponseIOE>,
+    pub response_sender: UnboundedSender<TypedWorkflowResponseOE>,
 }

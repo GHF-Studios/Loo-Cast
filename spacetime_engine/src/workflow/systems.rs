@@ -2,15 +2,12 @@ use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
 use bevy::render::MainWorld;
 use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
-use crossbeam_channel::Receiver;
 
 use crate::statics::TOKIO_RUNTIME;
 
 use super::{
-    events::{WorkflowStageCompletionEvent, WorkflowStageInitializationEvent}, io::{InputState, WorkflowIO}, resources::{WorkflowMap, WorkflowTypeModuleRegistry}, stage::{WorkflowStage, WorkflowStageEcs, WorkflowStageWhileOutcome}, types::*, AsyncStageBuffer, AsyncStageCompletionEventReceiver, AsyncStageCompletionEventSender, EcsStageBuffer, EcsStageCompletionEventReceiver, EcsStageCompletionEventSender, EcsWhileStageBuffer, EcsWhileStageCompletionEventReceiver, EcsWhileStageCompletionEventSender, RenderStageBuffer, RenderStageCompletionEventReceiver, RenderStageCompletionEventSender, RenderWhileStageBuffer, RenderWhileStageCompletionEventReceiver, RenderWhileStageCompletionEventSender
+    events::{WorkflowStageCompletionEvent, WorkflowStageInitializationEvent}, io::{InputState, WorkflowIO}, resources::*, instance::*, stage::{WorkflowStage, WorkflowStageEcs, WorkflowStageWhileOutcome}, types::*, AsyncStageBuffer, AsyncStageCompletionEventReceiver, AsyncStageCompletionEventSender, EcsStageBuffer, EcsStageCompletionEventReceiver, EcsStageCompletionEventSender, EcsWhileStageBuffer, EcsWhileStageCompletionEventReceiver, EcsWhileStageCompletionEventSender, RenderStageBuffer, RenderStageCompletionEventReceiver, RenderStageCompletionEventSender, RenderWhileStageBuffer, RenderWhileStageCompletionEventReceiver, RenderWhileStageCompletionEventSender
 };
-use super::instance::*;
-use super::request::*;
 
 pub(in super) fn extract_render_stage_buffer_system(world: &mut World) {
     let mut main_world = SystemState::<ResMut<MainWorld>>::new(world).get_mut(world);
@@ -306,17 +303,17 @@ pub(in super) fn handle_async_stage_completion_event_system(
 
 
 
-pub(in super) fn request_workflow_relay_system(
+pub(in super) fn workflow_request_relay_system(
     world: &mut World,
 ) {
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<Receiver<TypedWorkflowRequest>>
+        ResMut<WorkflowRequestChannel>
     )> = SystemState::new(world);
-    let (mut workflow_registry, mut workflow_map, mut workflow_request_receiver) = system_state.get_mut(world);
+    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
 
-    for request in workflow_request_receiver.try_iter() {
+    for request in workflow_request_channel.receiver.try_iter() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
 
@@ -327,26 +324,30 @@ pub(in super) fn request_workflow_relay_system(
             );
         }
 
+        let workflow_type = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap();
+        let num_stages = workflow_type.stages.len();
+
         workflow_map.insert_workflow(WorkflowInstance::new_request(
-            module_name.to_owned(),
-            workflow_name.to_owned(),
+            module_name,
+            workflow_name,
+            num_stages,
             Box::new(move || {
                 request.response_sender.send(()).unwrap();
             }),
         ));
     }
 }
-pub(in super) fn request_workflow_e_relay_system(
+pub(in super) fn workflow_request_e_relay_system(
     world: &mut World,
 ) {
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<Receiver<TypedWorkflowRequestE>>
+        ResMut<WorkflowRequestEChannel>
     )> = SystemState::new(world);
-    let (mut workflow_registry, mut workflow_map, mut workflow_request_receiver) = system_state.get_mut(world);
+    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
 
-    for request in workflow_request_receiver.try_iter() {
+    for request in workflow_request_channel.receiver.try_iter() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
 
@@ -357,26 +358,30 @@ pub(in super) fn request_workflow_e_relay_system(
             );
         }
 
-        workflow_map.insert_workflow(WorkflowInstance::new_request(
-            module_name.to_owned(),
-            workflow_name.to_owned(),
-            Box::new(move |result| {
-                request.response_sender.send(result).unwrap();
+        let workflow_type = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap();
+        let num_stages = workflow_type.stages.len();
+
+        workflow_map.insert_workflow(WorkflowInstance::new_request_e(
+            module_name,
+            workflow_name,
+            num_stages,
+            Box::new(move |response| {
+                request.response_sender.send(response).unwrap();
             }),
         ));
     }
 }
-pub(in super) fn request_workflow_ioe_relay_system(
+pub(in super) fn workflow_request_o_relay_system(
     world: &mut World,
 ) {
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<Receiver<TypedWorkflowRequestIOE>>
+        ResMut<WorkflowRequestOChannel>
     )> = SystemState::new(world);
-    let (mut workflow_registry, mut workflow_map, mut workflow_request_receiver) = system_state.get_mut(world);
+    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
 
-    for request in workflow_request_receiver.try_iter() {
+    for request in workflow_request_channel.receiver.try_iter() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
 
@@ -387,12 +392,189 @@ pub(in super) fn request_workflow_ioe_relay_system(
             );
         }
 
-        workflow_map.insert_workflow(WorkflowInstance::new_request(
-            module_name.to_owned(),
-            workflow_name.to_owned(),
-            Some(request.input),
-            Box::new(move |result| {
-                request.response_sender.send(result).unwrap();
+        let workflow_type = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap();
+        let num_stages = workflow_type.stages.len();
+
+        workflow_map.insert_workflow(WorkflowInstance::new_request_o(
+            module_name,
+            workflow_name,
+            num_stages,
+            Box::new(move |response| {
+                request.response_sender.send(response).unwrap();
+            }),
+        ));
+    }
+}
+pub(in super) fn workflow_request_oe_relay_system(
+    world: &mut World,
+) {
+    let mut system_state: SystemState<(
+        ResMut<WorkflowTypeModuleRegistry>,
+        ResMut<WorkflowMap>,
+        ResMut<WorkflowRequestOEChannel>
+    )> = SystemState::new(world);
+    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
+
+    for request in workflow_request_channel.receiver.try_iter() {
+        let module_name = request.module_name;
+        let workflow_name = request.workflow_name;
+
+        if workflow_map.has_workflow(module_name, workflow_name) {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active.",
+                workflow_name, module_name
+            );
+        }
+
+        let workflow_type = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap();
+        let num_stages = workflow_type.stages.len();
+
+        workflow_map.insert_workflow(WorkflowInstance::new_request_oe(
+            module_name,
+            workflow_name,
+            num_stages,
+            Box::new(move |response| {
+                request.response_sender.send(response).unwrap();
+            }),
+        ));
+    }
+}
+pub(in super) fn workflow_request_i_relay_system(
+    world: &mut World,
+) {
+    let mut system_state: SystemState<(
+        ResMut<WorkflowTypeModuleRegistry>,
+        ResMut<WorkflowMap>,
+        ResMut<WorkflowRequestIChannel>
+    )> = SystemState::new(world);
+    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
+
+    for request in workflow_request_channel.receiver.try_iter() {
+        let module_name = request.module_name;
+        let workflow_name = request.workflow_name;
+
+        if workflow_map.has_workflow(module_name, workflow_name) {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active.",
+                workflow_name, module_name
+            );
+        }
+
+        let workflow_type = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap();
+        let num_stages = workflow_type.stages.len();
+
+        workflow_map.insert_workflow(WorkflowInstance::new_request_i(
+            module_name,
+            workflow_name,
+            request.input,
+            num_stages,
+            Box::new(move || {
+                request.response_sender.send(()).unwrap();
+            }),
+        ));
+    }
+}
+pub(in super) fn workflow_request_ie_relay_system(
+    world: &mut World,
+) {
+    let mut system_state: SystemState<(
+        ResMut<WorkflowTypeModuleRegistry>,
+        ResMut<WorkflowMap>,
+        ResMut<WorkflowRequestIEChannel>
+    )> = SystemState::new(world);
+    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
+
+    for request in workflow_request_channel.receiver.try_iter() {
+        let module_name = request.module_name;
+        let workflow_name = request.workflow_name;
+
+        if workflow_map.has_workflow(module_name, workflow_name) {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active.",
+                workflow_name, module_name
+            );
+        }
+
+        let workflow_type = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap();
+        let num_stages = workflow_type.stages.len();
+
+        workflow_map.insert_workflow(WorkflowInstance::new_request_ie(
+            module_name,
+            workflow_name,
+            request.input,
+            num_stages,
+            Box::new(move |response| {
+                request.response_sender.send(response).unwrap();
+            }),
+        ));
+    }
+}
+pub(in super) fn workflow_request_io_relay_system(
+    world: &mut World,
+) {
+    let mut system_state: SystemState<(
+        ResMut<WorkflowTypeModuleRegistry>,
+        ResMut<WorkflowMap>,
+        ResMut<WorkflowRequestIOChannel>
+    )> = SystemState::new(world);
+    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
+
+    for request in workflow_request_channel.receiver.try_iter() {
+        let module_name = request.module_name;
+        let workflow_name = request.workflow_name;
+
+        if workflow_map.has_workflow(module_name, workflow_name) {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active.",
+                workflow_name, module_name
+            );
+        }
+
+        let workflow_type = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap();
+        let num_stages = workflow_type.stages.len();
+
+        workflow_map.insert_workflow(WorkflowInstance::new_request_io(
+            module_name,
+            workflow_name,
+            request.input,
+            num_stages,
+            Box::new(move |response| {
+                request.response_sender.send(response).unwrap();
+            }),
+        ));
+    }
+}
+pub(in super) fn workflow_request_ioe_relay_system(
+    world: &mut World,
+) {
+    let mut system_state: SystemState<(
+        ResMut<WorkflowTypeModuleRegistry>,
+        ResMut<WorkflowMap>,
+        ResMut<WorkflowRequestIOEChannel>
+    )> = SystemState::new(world);
+    let (workflow_registry, mut workflow_map, workflow_request_channel) = system_state.get_mut(world);
+
+    for request in workflow_request_channel.receiver.try_iter() {
+        let module_name = request.module_name;
+        let workflow_name = request.workflow_name;
+
+        if workflow_map.has_workflow(module_name, workflow_name) {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active.",
+                workflow_name, module_name
+            );
+        }
+
+        let workflow_type = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap();
+        let num_stages = workflow_type.stages.len();
+
+        workflow_map.insert_workflow(WorkflowInstance::new_request_ioe(
+            module_name,
+            workflow_name,
+            request.input,
+            num_stages,
+            Box::new(move |response| {
+                request.response_sender.send(response).unwrap();
             }),
         ));
     }

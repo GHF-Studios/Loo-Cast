@@ -12,7 +12,7 @@ pub mod stage;
 pub mod request;
 pub mod response;
 
-use bevy::{prelude::*, render::{Render, RenderApp, MainWorld}, ecs::system::SystemState};
+use bevy::{prelude::*, render::{Render, RenderApp}};
 use bevy_consumable_event::ConsumableEventApp;
 use events::*;
 use resources::*;
@@ -66,6 +66,22 @@ impl Plugin for WorkflowPlugin {
             .insert_resource(RenderStageBuffer::default())
             .insert_resource(RenderWhileStageBuffer::default())
             .insert_resource(AsyncStageBuffer::default())
+            .insert_resource(WorkflowRequestChannel::default())
+            .insert_resource(WorkflowRequestEChannel::default())
+            .insert_resource(WorkflowRequestOChannel::default())
+            .insert_resource(WorkflowRequestOEChannel::default())
+            .insert_resource(WorkflowRequestIChannel::default())
+            .insert_resource(WorkflowRequestIEChannel::default())
+            .insert_resource(WorkflowRequestIOChannel::default())
+            .insert_resource(WorkflowRequestIOEChannel::default())
+            .insert_resource(WorkflowResponseChannel::default())
+            .insert_resource(WorkflowResponseEChannel::default())
+            .insert_resource(WorkflowResponseOChannel::default())
+            .insert_resource(WorkflowResponseOEChannel::default())
+            .insert_resource(WorkflowResponseIChannel::default())
+            .insert_resource(WorkflowResponseIEChannel::default())
+            .insert_resource(WorkflowResponseIOChannel::default())
+            .insert_resource(WorkflowResponseIOEChannel::default())
             .add_systems(PreUpdate, (
                 handle_ecs_stage_completion_event_system,
                 handle_ecs_while_stage_completion_event_system,
@@ -79,6 +95,16 @@ impl Plugin for WorkflowPlugin {
                 poll_async_stage_buffer_system
             ))
             .add_systems(PostUpdate, (
+                (
+                    workflow_request_relay_system, 
+                    workflow_request_e_relay_system,
+                    workflow_request_o_relay_system,
+                    workflow_request_oe_relay_system,
+                    workflow_request_i_relay_system,
+                    workflow_request_ie_relay_system,
+                    workflow_request_io_relay_system,
+                    workflow_request_ioe_relay_system
+                ).before(workflow_request_system),
                 workflow_request_system,
                 workflow_execution_system.after(workflow_request_system),
                 workflow_completion_handling_system.after(workflow_execution_system)
