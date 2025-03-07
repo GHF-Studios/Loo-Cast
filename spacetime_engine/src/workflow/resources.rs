@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 
-use super::{stage::{WorkflowStageAsync, WorkflowStageEcs, WorkflowStageRender, WorkflowStageRenderWhile, WorkflowStageEcsWhile}, types::WorkflowTypeModule, types::{WorkflowInstance, WorkflowState, WorkflowType, RawWorkflowData}};
+use super::{instance::*, stage::*, types::*};
 
 #[derive(Resource, Default)]
 pub struct WorkflowTypeModuleRegistry {

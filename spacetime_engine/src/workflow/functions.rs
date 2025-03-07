@@ -15,11 +15,11 @@ pub async fn request_workflow<W: WorkflowInstance>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_e<W: WorkflowInstanceE>(
-    request_sender: Sender<WorkflowRequestE>,
+    request_sender: Sender<WorkflowRequest>,
 ) -> Result<(), W::Error> {
     let module_name = W::module_name();
     let workflow_name = W::workflow_name();
@@ -31,11 +31,11 @@ pub async fn request_workflow_e<W: WorkflowInstanceE>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_o<W: WorkflowInstanceO>(
-    request_sender: Sender<WorkflowRequestO>,
+    request_sender: Sender<WorkflowRequest>,
 ) -> Result<W::Output, ()> {
     let module_name = W::module_name();
     let workflow_name = W::workflow_name();
@@ -47,11 +47,11 @@ pub async fn request_workflow_o<W: WorkflowInstanceO>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_oe<W: WorkflowInstanceOE>(
-    request_sender: Sender<WorkflowRequestOE>,
+    request_sender: Sender<WorkflowRequest>,
 ) -> Result<W::Output, W::Error> {
     let module_name = W::module_name();
     let workflow_name = W::workflow_name();
@@ -63,11 +63,11 @@ pub async fn request_workflow_oe<W: WorkflowInstanceOE>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_s<W: WorkflowInstanceS>(
-    request_sender: Sender<WorkflowRequestS>,
+    request_sender: Sender<WorkflowRequest>,
 ) -> Result<W::Output, W::Error> {
     let module_name = W::module_name();
     let workflow_name = W::workflow_name();
@@ -79,11 +79,11 @@ pub async fn request_workflow_s<W: WorkflowInstanceS>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_se<W: WorkflowInstanceSE>(
-    request_sender: Sender<WorkflowRequestSE>,
+    request_sender: Sender<WorkflowRequest>,
 ) -> Result<W::Output, W::Error> {
     let module_name = W::module_name();
     let workflow_name = W::workflow_name();
@@ -95,11 +95,11 @@ pub async fn request_workflow_se<W: WorkflowInstanceSE>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_so<W: WorkflowInstanceSO>(
-    request_sender: Sender<WorkflowRequestSO>,
+    request_sender: Sender<WorkflowRequest>,
 ) -> Result<W::Output, ()> {
     let module_name = W::module_name();
     let workflow_name = W::workflow_name();
@@ -111,11 +111,11 @@ pub async fn request_workflow_so<W: WorkflowInstanceSO>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_soe<W: WorkflowInstanceSOE>(
-    request_sender: Sender<WorkflowRequestSOE>,
+    request_sender: Sender<WorkflowRequest>,
 ) -> Result<W::Output, W::Error> {
     let module_name = W::module_name();
     let workflow_name = W::workflow_name();
@@ -127,11 +127,11 @@ pub async fn request_workflow_soe<W: WorkflowInstanceSOE>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_i<W: WorkflowInstanceI>(
-    request_sender: Sender<WorkflowRequestI>,
+    request_sender: Sender<WorkflowRequest>,
     input: W::Input,
 ) {
     let module_name = W::module_name();
@@ -145,11 +145,11 @@ pub async fn request_workflow_i<W: WorkflowInstanceI>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_ie<W: WorkflowInstanceIE>(
-    request_sender: Sender<WorkflowRequestIE>,
+    request_sender: Sender<WorkflowRequest>,
     input: W::Input,
 ) -> Result<(), W::Error> {
     let module_name = W::module_name();
@@ -163,11 +163,11 @@ pub async fn request_workflow_ie<W: WorkflowInstanceIE>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_io<W: WorkflowInstanceIO>(
-    request_sender: Sender<WorkflowRequestO>,
+    request_sender: Sender<WorkflowRequest>,
     input: W::Input,
 ) -> Result<W::Output, ()> {
     let module_name = W::module_name();
@@ -181,11 +181,11 @@ pub async fn request_workflow_io<W: WorkflowInstanceIO>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_ioe<W: WorkflowInstanceIOE>(
-    request_sender: Sender<WorkflowRequestIOE>,
+    request_sender: Sender<WorkflowRequest>,
     input: W::Input,
 ) -> Result<W::Output, W::Error> {
     let module_name = W::module_name();
@@ -199,11 +199,11 @@ pub async fn request_workflow_ioe<W: WorkflowInstanceIOE>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_is<W: WorkflowInstanceIS>(
-    request_sender: Sender<WorkflowRequestIS>,
+    request_sender: Sender<WorkflowRequest>,
     input: W::Input,
 ) -> Result<W::Output, W::Error> {
     let module_name = W::module_name();
@@ -217,11 +217,11 @@ pub async fn request_workflow_is<W: WorkflowInstanceIS>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_ise<W: WorkflowInstanceISE>(
-    request_sender: Sender<WorkflowRequestISE>,
+    request_sender: Sender<WorkflowRequest>,
     input: W::Input,
 ) -> Result<W::Output, W::Error> {
     let module_name = W::module_name();
@@ -235,11 +235,11 @@ pub async fn request_workflow_ise<W: WorkflowInstanceISE>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_iso<W: WorkflowInstanceISO>(
-    request_sender: Sender<WorkflowRequestISO>,
+    request_sender: Sender<WorkflowRequest>,
     input: W::Input,
 ) -> Result<W::Output, ()> {
     let module_name = W::module_name();
@@ -253,11 +253,11 @@ pub async fn request_workflow_iso<W: WorkflowInstanceISO>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }
 
 pub async fn request_workflow_isoe<W: WorkflowInstanceISOE>(
-    request_sender: Sender<WorkflowRequestISOE>,
+    request_sender: Sender<WorkflowRequest>,
     input: W::Input,
 ) -> Result<W::Output, W::Error> {
     let module_name = W::module_name();
@@ -271,5 +271,5 @@ pub async fn request_workflow_isoe<W: WorkflowInstanceISOE>(
         response_sender,
     })).unwrap();
 
-    response_receiver.recv_async().await.unwrap()
+    response_receiver.recv_async().await.unwrap().unpack()
 }

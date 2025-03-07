@@ -312,7 +312,7 @@ pub(in super) fn request_workflow_relay_system(
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<Receiver<TypedWorkflowRequest>>
+        ResMut<Receiver<WorkflowRequest>>
     )> = SystemState::new(world);
     let (mut workflow_registry, mut workflow_map, mut workflow_request_receiver) = system_state.get_mut(world);
 
