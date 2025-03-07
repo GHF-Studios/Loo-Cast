@@ -1,4 +1,4 @@
-use crossbeam_channel::Sender;
+use tokio::sync::mpsc::UnboundedSender;
 use std::any::Any;
 
 use super::response::*;
@@ -8,105 +8,53 @@ pub enum WorkflowRequest {
     E(TypedWorkflowRequestE),
     O(TypedWorkflowRequestO),
     OE(TypedWorkflowRequestOE),
-    S(TypedWorkflowRequestS),
-    SE(TypedWorkflowRequestSE),
-    SO(TypedWorkflowRequestSO),
-    SOE(TypedWorkflowRequestSOE),
     I(TypedWorkflowRequestI),
     IE(TypedWorkflowRequestIE),
     IO(TypedWorkflowRequestIO),
     IOE(TypedWorkflowRequestIOE),
-    IS(TypedWorkflowRequestIS),
-    ISE(TypedWorkflowRequestISE),
-    ISO(TypedWorkflowRequestISO),
-    ISOE(TypedWorkflowRequestISOE),
 }
 
 pub struct TypedWorkflowRequest {
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponse>,
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub response_sender: UnboundedSender<TypedWorkflowResponse>,
 }
 pub struct TypedWorkflowRequestE {
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseE>,
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub response_sender: UnboundedSender<TypedWorkflowResponseE>,
 }
 pub struct TypedWorkflowRequestO {
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseO>,
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub response_sender: UnboundedSender<TypedWorkflowResponseO>,
 }
 pub struct TypedWorkflowRequestOE {
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseOE>,
-}
-pub struct TypedWorkflowRequestS {
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseS>,
-}
-pub struct TypedWorkflowRequestSE {
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseSE>,
-}
-pub struct TypedWorkflowRequestSO {
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseSO>,
-}
-pub struct TypedWorkflowRequestSOE {
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseSOE>,
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub response_sender: UnboundedSender<TypedWorkflowResponseOE>,
 }
 pub struct TypedWorkflowRequestI {
     pub input: Box<dyn Any + Send + Sync>,
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseI>,
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub response_sender: UnboundedSender<TypedWorkflowResponseI>,
 }
 pub struct TypedWorkflowRequestIE {
     pub input: Box<dyn Any + Send + Sync>,
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseIE>,
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub response_sender: UnboundedSender<TypedWorkflowResponseIE>,
 }
 pub struct TypedWorkflowRequestIO {
     pub input: Box<dyn Any + Send + Sync>,
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseIO>,
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub response_sender: UnboundedSender<TypedWorkflowResponseIO>,
 }
 pub struct TypedWorkflowRequestIOE {
     pub input: Box<dyn Any + Send + Sync>,
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseIOE>,
-}
-pub struct TypedWorkflowRequestIS {
-    pub input: Box<dyn Any + Send + Sync>,
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseIS>,
-}
-pub struct TypedWorkflowRequestISE {
-    pub input: Box<dyn Any + Send + Sync>,
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseISE>,
-}
-pub struct TypedWorkflowRequestISO {
-    pub input: Box<dyn Any + Send + Sync>,
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseISO>,
-}
-pub struct TypedWorkflowRequestISOE {
-    pub input: Box<dyn Any + Send + Sync>,
-    pub module_name: String,
-    pub workflow_name: String,
-    pub response_sender: Sender<WorkflowResponseISOE>,
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub response_sender: UnboundedSender<TypedWorkflowResponseIOE>,
 }

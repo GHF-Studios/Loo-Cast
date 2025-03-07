@@ -3,6 +3,7 @@ pub mod events;
 pub mod functions;
 pub mod resources;
 pub mod systems;
+pub mod traits;
 pub mod types;
 
 pub mod instance;

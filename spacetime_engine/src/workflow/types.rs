@@ -25,7 +25,7 @@ impl RawWorkflowData {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum WorkflowState {
     Requested,
     Processing {

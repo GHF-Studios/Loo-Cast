@@ -312,7 +312,7 @@ pub(in super) fn request_workflow_relay_system(
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<Receiver<WorkflowRequest>>
+        ResMut<Receiver<TypedWorkflowRequest>>
     )> = SystemState::new(world);
     let (mut workflow_registry, mut workflow_map, mut workflow_request_receiver) = system_state.get_mut(world);
 
@@ -330,20 +330,49 @@ pub(in super) fn request_workflow_relay_system(
         workflow_map.insert_workflow(WorkflowInstance::new_request(
             module_name.to_owned(),
             workflow_name.to_owned(),
-            Some(Box::new(move || {
+            Box::new(move || {
                 request.response_sender.send(()).unwrap();
-            })),
+            }),
         ));
     }
 }
-
-pub(in super) fn request_workflow_isoe_relay_system(
+pub(in super) fn request_workflow_e_relay_system(
     world: &mut World,
 ) {
     let mut system_state: SystemState<(
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
-        ResMut<Receiver<TypedWorkflowRequestISOE>>
+        ResMut<Receiver<TypedWorkflowRequestE>>
+    )> = SystemState::new(world);
+    let (mut workflow_registry, mut workflow_map, mut workflow_request_receiver) = system_state.get_mut(world);
+
+    for request in workflow_request_receiver.try_iter() {
+        let module_name = request.module_name;
+        let workflow_name = request.workflow_name;
+
+        if workflow_map.has_workflow(module_name, workflow_name) {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active.",
+                workflow_name, module_name
+            );
+        }
+
+        workflow_map.insert_workflow(WorkflowInstance::new_request(
+            module_name.to_owned(),
+            workflow_name.to_owned(),
+            Box::new(move |result| {
+                request.response_sender.send(result).unwrap();
+            }),
+        ));
+    }
+}
+pub(in super) fn request_workflow_ioe_relay_system(
+    world: &mut World,
+) {
+    let mut system_state: SystemState<(
+        ResMut<WorkflowTypeModuleRegistry>,
+        ResMut<WorkflowMap>,
+        ResMut<Receiver<TypedWorkflowRequestIOE>>
     )> = SystemState::new(world);
     let (mut workflow_registry, mut workflow_map, mut workflow_request_receiver) = system_state.get_mut(world);
 
@@ -362,9 +391,9 @@ pub(in super) fn request_workflow_isoe_relay_system(
             module_name.to_owned(),
             workflow_name.to_owned(),
             Some(request.input),
-            Some(Box::new(move |result| {
+            Box::new(move |result| {
                 request.response_sender.send(result).unwrap();
-            })),
+            }),
         ));
     }
 }

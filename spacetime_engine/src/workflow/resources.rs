@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 
-use super::{instance::*, stage::*, types::*};
+use super::{instance::*, request::*, response::*, stage::*, types::*};
 
 #[derive(Resource, Default)]
 pub struct WorkflowTypeModuleRegistry {
@@ -54,7 +54,187 @@ pub struct WorkflowRequestBuffer {
     pub requests: Vec<WorkflowInstance>,
 }
 
-// -- Stage Buffers --
+// --- Workflow Request Channels ---
+#[derive(Resource)]
+pub struct TypedWorkflowRequestChannel {
+    pub sender: Sender<TypedWorkflowRequest>,
+    pub receiver: Receiver<TypedWorkflowRequest>,
+}
+impl Default for TypedWorkflowRequestChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct TypedWorkflowRequestEChannel {
+    pub sender: Sender<TypedWorkflowRequestE>,
+    pub receiver: Receiver<TypedWorkflowRequestE>,
+}
+impl Default for TypedWorkflowRequestEChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct TypedWorkflowRequestOChannel {
+    pub sender: Sender<TypedWorkflowRequestO>,
+    pub receiver: Receiver<TypedWorkflowRequestO>,
+}
+impl Default for TypedWorkflowRequestOChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct TypedWorkflowRequestOEChannel {
+    pub sender: Sender<TypedWorkflowRequestOE>,
+    pub receiver: Receiver<TypedWorkflowRequestOE>,
+}
+impl Default for TypedWorkflowRequestOEChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct TypedWorkflowRequestIChannel {
+    pub sender: Sender<TypedWorkflowRequestI>,
+    pub receiver: Receiver<TypedWorkflowRequestI>,
+}
+impl Default for TypedWorkflowRequestIChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct TypedWorkflowRequestIEChannel {
+    pub sender: Sender<TypedWorkflowRequestIE>,
+    pub receiver: Receiver<TypedWorkflowRequestIE>,
+}
+impl Default for TypedWorkflowRequestIEChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct TypedWorkflowRequestIOChannel {
+    pub sender: Sender<TypedWorkflowRequestIO>,
+    pub receiver: Receiver<TypedWorkflowRequestIO>,
+}
+impl Default for TypedWorkflowRequestIOChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct TypedWorkflowRequestIOEChannel {
+    pub sender: Sender<TypedWorkflowRequestIOE>,
+    pub receiver: Receiver<TypedWorkflowRequestIOE>,
+}
+impl Default for TypedWorkflowRequestIOEChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+
+// --- Workflow Response Channels ---
+#[derive(Resource)]
+pub struct WorkflowResponseChannel {
+    pub sender: Sender<TypedWorkflowResponse>,
+    pub receiver: Receiver<TypedWorkflowResponse>,
+}
+impl Default for WorkflowResponseChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct WorkflowResponseEChannel {
+    pub sender: Sender<TypedWorkflowResponseE>,
+    pub receiver: Receiver<TypedWorkflowResponseE>,
+}
+impl Default for WorkflowResponseEChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct WorkflowResponseOChannel {
+    pub sender: Sender<TypedWorkflowResponseO>,
+    pub receiver: Receiver<TypedWorkflowResponseO>,
+}
+impl Default for WorkflowResponseOChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct WorkflowResponseOEChannel {
+    pub sender: Sender<TypedWorkflowResponseOE>,
+    pub receiver: Receiver<TypedWorkflowResponseOE>,
+}
+impl Default for WorkflowResponseOEChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct WorkflowResponseIChannel {
+    pub sender: Sender<TypedWorkflowResponse>,
+    pub receiver: Receiver<TypedWorkflowResponse>,
+}
+impl Default for WorkflowResponseIChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct WorkflowResponseIEChannel {
+    pub sender: Sender<TypedWorkflowResponseE>,
+    pub receiver: Receiver<TypedWorkflowResponseE>,
+}
+impl Default for WorkflowResponseIEChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct WorkflowResponseIOChannel {
+    pub sender: Sender<TypedWorkflowResponseO>,
+    pub receiver: Receiver<TypedWorkflowResponseO>,
+}
+impl Default for WorkflowResponseIOChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+#[derive(Resource)]
+pub struct WorkflowResponseIOEChannel {
+    pub sender: Sender<TypedWorkflowResponseOE>,
+    pub receiver: Receiver<TypedWorkflowResponseOE>,
+}
+impl Default for WorkflowResponseIOEChannel {
+    fn default() -> Self {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        Self { sender, receiver }
+    }
+}
+
+// --- Stage Buffers ---
 #[derive(Resource, Default)]
 pub(in super) struct EcsStageBuffer(pub Vec<(String, String, usize, WorkflowStageEcs, RawWorkflowData)>);
 #[derive(Resource, Default)]
@@ -66,7 +246,7 @@ pub(in super) struct RenderWhileStageBuffer(pub Vec<(String, String, usize, Work
 #[derive(Resource, Default)]
 pub(in super) struct AsyncStageBuffer(pub Vec<(String, String, usize, WorkflowStageAsync, RawWorkflowData)>);
 
-// -- Stage Completion Event Senders --
+// --- Stage Completion Event Senders ---
 #[derive(Resource)]
 pub(in super) struct EcsStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageEcs, RawWorkflowData)>);
 #[derive(Resource)]
@@ -78,7 +258,7 @@ pub(in super) struct RenderWhileStageCompletionEventSender(pub Sender<(String, S
 #[derive(Resource)]
 pub(in super) struct AsyncStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageAsync, RawWorkflowData)>);
 
-// -- Stage Completion Event Receivers --
+// --- Stage Completion Event Receivers ---
 #[derive(Resource)]
 pub(in super) struct EcsStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageEcs, RawWorkflowData)>);
 #[derive(Resource)]
@@ -97,12 +277,12 @@ pub struct WorkflowMap {
 
 impl WorkflowMap {
     pub fn insert_workflow(&mut self, workflow_instance: WorkflowInstance) {
-        let module_name = workflow_instance.module_name.clone();
-        let workflow_name = workflow_instance.workflow_name.clone();
+        let module_name = workflow_instance.module_name();
+        let workflow_name = workflow_instance.workflow_name();
 
-        let module_entry = self.map.entry(module_name.clone()).or_default();
+        let module_entry = self.map.entry(module_name.to_string()).or_default();
 
-        if module_entry.insert(workflow_name.clone(), Some(workflow_instance)).is_some() {
+        if module_entry.insert(workflow_name.to_string(), Some(workflow_instance)).is_some() {
             unreachable!(
                 "Workflow insertion error: Workflow '{}' in module '{}' is already active.",
                 workflow_name, module_name
@@ -128,7 +308,7 @@ impl WorkflowMap {
 
     pub fn advance_stage(&mut self, module_name: &str, workflow_name: &str) {
         if let Some(Some(instance)) = self.map.get_mut(module_name).and_then(|workflows| workflows.get_mut(workflow_name)) {
-            match &mut instance.state {
+            match &mut instance.state_mut() {
                 WorkflowState::Processing { current_stage , stage_completed: completed } => {
                     if !*completed {
                         unreachable!(
