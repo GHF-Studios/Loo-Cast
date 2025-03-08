@@ -66,6 +66,56 @@ impl Stage {
             Stage::Async(stage) => stage.generate(),
         }
     }
+
+    pub fn name(&self) -> &Ident {
+        match self {
+            Stage::Ecs(stage) => stage.name(),
+            Stage::EcsWhile(stage) => stage.name(),
+            Stage::Render(stage) => stage.name(),
+            Stage::RenderWhile(stage) => stage.name(),
+            Stage::Async(stage) => stage.name(),
+        }
+    }
+
+    pub fn has_input(&self) -> bool {
+        match self {
+            Stage::Ecs(stage) => stage.core_types.has_input(),
+            Stage::EcsWhile(stage) => stage.core_types.has_input(),
+            Stage::Render(stage) => stage.core_types.has_input(),
+            Stage::RenderWhile(stage) => stage.core_types.has_input(),
+            Stage::Async(stage) => stage.core_types.has_input(),
+        }
+    }
+
+    pub fn has_state(&self) -> bool {
+        match self {
+            Stage::Ecs(stage) => stage.core_types.has_state(),
+            Stage::EcsWhile(stage) => stage.core_types.has_state(),
+            Stage::Render(stage) => stage.core_types.has_state(),
+            Stage::RenderWhile(stage) => stage.core_types.has_state(),
+            Stage::Async(stage) => stage.core_types.has_state(),
+        }
+    }
+
+    pub fn has_output(&self) -> bool {
+        match self {
+            Stage::Ecs(stage) => stage.core_types.has_output(),
+            Stage::EcsWhile(stage) => stage.core_types.has_output(),
+            Stage::Render(stage) => stage.core_types.has_output(),
+            Stage::RenderWhile(stage) => stage.core_types.has_output(),
+            Stage::Async(stage) => stage.core_types.has_output(),
+        }
+    }
+
+    pub fn has_error(&self) -> bool {
+        match self {
+            Stage::Ecs(stage) => stage.core_types.has_error(),
+            Stage::EcsWhile(stage) => stage.core_types.has_error(),
+            Stage::Render(stage) => stage.core_types.has_error(),
+            Stage::RenderWhile(stage) => stage.core_types.has_error(),
+            Stage::Async(stage) => stage.core_types.has_error(),
+        }
+    }
 }
 
 impl Parse for TypedStage<Ecs> {
@@ -215,6 +265,10 @@ impl Parse for Stages {
             }
         }
 
+        if stages.is_empty() {
+            return Err(input.error("No stages found"));
+        }
+
         Ok(Stages(stages))
     }
 }
@@ -246,6 +300,10 @@ impl TypedStage<Ecs> {
             }
         }
     }
+
+    pub fn name(&self) -> &Ident {
+        &self.name
+    }
 }
 
 impl TypedStage<EcsWhile> {
@@ -274,6 +332,10 @@ impl TypedStage<EcsWhile> {
                 }
             }
         }
+    }
+
+    pub fn name(&self) -> &Ident {
+        &self.name
     }
 }
 
@@ -304,6 +366,10 @@ impl TypedStage<Render> {
             }
         }
     }
+
+    pub fn name(&self) -> &Ident {
+        &self.name
+    }
 }
 
 impl TypedStage<RenderWhile> {
@@ -333,6 +399,10 @@ impl TypedStage<RenderWhile> {
             }
         }
     }
+
+    pub fn name(&self) -> &Ident {
+        &self.name
+    }
 }
 
 impl TypedStage<Async> {
@@ -361,5 +431,9 @@ impl TypedStage<Async> {
                 }
             }
         }
+    }
+
+    pub fn name(&self) -> &Ident {
+        &self.name
     }
 }

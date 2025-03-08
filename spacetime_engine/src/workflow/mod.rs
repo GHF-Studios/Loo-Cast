@@ -15,6 +15,7 @@ pub mod response;
 
 use bevy::{prelude::*, render::{Render, RenderApp}};
 use bevy_consumable_event::ConsumableEventApp;
+use channels::*;
 use events::*;
 use resources::*;
 use systems::*;
@@ -42,19 +43,20 @@ impl Plugin for WorkflowPlugin {
         let async_completion_sender = AsyncStageCompletionEventSender(async_completion_sender);
         let async_completion_receiver = AsyncStageCompletionEventReceiver(async_completion_receiver);
 
+        let (workflow_request_receiver, workflow_response_sender) = initialize_channels();
+        let (workflow_request_e_receiver, workflow_response_e_sender) = initialize_e_channels();
+        let (workflow_request_o_receiver, workflow_response_o_sender) = initialize_o_channels();
+        let (workflow_request_oe_receiver, workflow_response_oe_sender) = initialize_oe_channels();
+        let (workflow_request_i_receiver, workflow_response_i_sender) = initialize_i_channels();
+        let (workflow_request_ie_receiver, workflow_response_ie_sender) = initialize_ie_channels();
+        let (workflow_request_io_receiver, workflow_response_io_sender) = initialize_io_channels();
+        let (workflow_request_ioe_receiver, workflow_response_ioe_sender) = initialize_ioe_channels();
+
         app
             .add_event::<WorkflowStageInitializationEvent>()
             .add_event::<WorkflowStageCompletionEvent>()
             .add_persistent_consumable_event::<WorkflowStageInitializationEvent>()
             .add_persistent_consumable_event::<WorkflowStageCompletionEvent>()
-            .insert_resource(ecs_completion_sender)
-            .insert_resource(ecs_completion_receiver)
-            .insert_resource(ecs_while_completion_sender)
-            .insert_resource(ecs_while_completion_receiver)
-            .insert_resource(render_completion_receiver)
-            .insert_resource(render_while_completion_receiver)
-            .insert_resource(async_completion_sender)
-            .insert_resource(async_completion_receiver)
             .insert_resource(WorkflowTypeModuleRegistry::default())
             .insert_resource(WorkflowRequestBuffer::default())
             .insert_resource(WorkflowMap::default())
@@ -63,22 +65,30 @@ impl Plugin for WorkflowPlugin {
             .insert_resource(RenderStageBuffer::default())
             .insert_resource(RenderWhileStageBuffer::default())
             .insert_resource(AsyncStageBuffer::default())
-            .insert_resource(WorkflowRequestChannel::default())
-            .insert_resource(WorkflowRequestEChannel::default())
-            .insert_resource(WorkflowRequestOChannel::default())
-            .insert_resource(WorkflowRequestOEChannel::default())
-            .insert_resource(WorkflowRequestIChannel::default())
-            .insert_resource(WorkflowRequestIEChannel::default())
-            .insert_resource(WorkflowRequestIOChannel::default())
-            .insert_resource(WorkflowRequestIOEChannel::default())
-            .insert_resource(WorkflowResponseChannel::default())
-            .insert_resource(WorkflowResponseEChannel::default())
-            .insert_resource(WorkflowResponseOChannel::default())
-            .insert_resource(WorkflowResponseOEChannel::default())
-            .insert_resource(WorkflowResponseIChannel::default())
-            .insert_resource(WorkflowResponseIEChannel::default())
-            .insert_resource(WorkflowResponseIOChannel::default())
-            .insert_resource(WorkflowResponseIOEChannel::default())
+            .insert_resource(ecs_completion_sender)
+            .insert_resource(ecs_completion_receiver)
+            .insert_resource(ecs_while_completion_sender)
+            .insert_resource(ecs_while_completion_receiver)
+            .insert_resource(render_completion_receiver)
+            .insert_resource(render_while_completion_receiver)
+            .insert_resource(async_completion_sender)
+            .insert_resource(async_completion_receiver)
+            .insert_resource(WorkflowRequestReceiver(workflow_request_receiver))
+            .insert_resource(WorkflowRequestEReceiver(workflow_request_e_receiver))
+            .insert_resource(WorkflowRequestOReceiver(workflow_request_o_receiver))
+            .insert_resource(WorkflowRequestOEReceiver(workflow_request_oe_receiver))
+            .insert_resource(WorkflowRequestIReceiver(workflow_request_i_receiver))
+            .insert_resource(WorkflowRequestIEReceiver(workflow_request_ie_receiver))
+            .insert_resource(WorkflowRequestIOReceiver(workflow_request_io_receiver))
+            .insert_resource(WorkflowRequestIOEReceiver(workflow_request_ioe_receiver))
+            .insert_resource(WorkflowResponseSender(workflow_response_sender))
+            .insert_resource(WorkflowResponseESender(workflow_response_e_sender))
+            .insert_resource(WorkflowResponseOSender(workflow_response_o_sender))
+            .insert_resource(WorkflowResponseOESender(workflow_response_oe_sender))
+            .insert_resource(WorkflowResponseISender(workflow_response_i_sender))
+            .insert_resource(WorkflowResponseIESender(workflow_response_ie_sender))
+            .insert_resource(WorkflowResponseIOSender(workflow_response_io_sender))
+            .insert_resource(WorkflowResponseIOESender(workflow_response_ioe_sender))
             .add_systems(PreUpdate, (
                 handle_ecs_stage_completion_event_system,
                 handle_ecs_while_stage_completion_event_system,

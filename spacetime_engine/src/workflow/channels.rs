@@ -1,4 +1,4 @@
-use once_cell::sync::OnceCell;
+use std::sync::{Mutex, MutexGuard, OnceLock};
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
 use bevy::prelude::*;
 
@@ -9,66 +9,66 @@ pub struct ChannelsPlugin;
 
 // --- Workflow Request Receivers ---
 #[derive(Resource)]
-pub struct WorkflowRequestReceiver(pub UnboundedReceiver<TypedWorkflowRequest>);
+pub(in super) struct WorkflowRequestReceiver(pub UnboundedReceiver<TypedWorkflowRequest>);
 #[derive(Resource)]
-pub struct WorkflowRequestEReceiver(pub UnboundedReceiver<TypedWorkflowRequestE>);
+pub(in super) struct WorkflowRequestEReceiver(pub UnboundedReceiver<TypedWorkflowRequestE>);
 #[derive(Resource)]
-pub struct WorkflowRequestOReceiver(pub UnboundedReceiver<TypedWorkflowRequestO>);
+pub(in super) struct WorkflowRequestOReceiver(pub UnboundedReceiver<TypedWorkflowRequestO>);
 #[derive(Resource)]
-pub struct WorkflowRequestOEReceiver(pub UnboundedReceiver<TypedWorkflowRequestOE>);
+pub(in super) struct WorkflowRequestOEReceiver(pub UnboundedReceiver<TypedWorkflowRequestOE>);
 #[derive(Resource)]
-pub struct WorkflowRequestIReceiver(pub UnboundedReceiver<TypedWorkflowRequestI>);
+pub(in super) struct WorkflowRequestIReceiver(pub UnboundedReceiver<TypedWorkflowRequestI>);
 #[derive(Resource)]
-pub struct WorkflowRequestIEReceiver(pub UnboundedReceiver<TypedWorkflowRequestIE>);
+pub(in super) struct WorkflowRequestIEReceiver(pub UnboundedReceiver<TypedWorkflowRequestIE>);
 #[derive(Resource)]
-pub struct WorkflowRequestIOReceiver(pub UnboundedReceiver<TypedWorkflowRequestIO>);
+pub(in super) struct WorkflowRequestIOReceiver(pub UnboundedReceiver<TypedWorkflowRequestIO>);
 #[derive(Resource)]
-pub struct WorkflowRequestIOEReceiver(pub UnboundedReceiver<TypedWorkflowRequestIOE>);
+pub(in super) struct WorkflowRequestIOEReceiver(pub UnboundedReceiver<TypedWorkflowRequestIOE>);
 
 // --- Workflow Response Senders ---
 #[derive(Resource)]
-pub struct WorkflowResponseSender(pub UnboundedSender<()>);
+pub(in super) struct WorkflowResponseSender(pub UnboundedSender<()>);
 #[derive(Resource)]
-pub struct WorkflowResponseESender(pub UnboundedSender<TypedWorkflowResponseE>);
+pub(in super) struct WorkflowResponseESender(pub UnboundedSender<TypedWorkflowResponseE>);
 #[derive(Resource)]
-pub struct WorkflowResponseOSender(pub UnboundedSender<TypedWorkflowResponseO>);
+pub(in super) struct WorkflowResponseOSender(pub UnboundedSender<TypedWorkflowResponseO>);
 #[derive(Resource)]
-pub struct WorkflowResponseOESender(pub UnboundedSender<TypedWorkflowResponseOE>);
+pub(in super) struct WorkflowResponseOESender(pub UnboundedSender<TypedWorkflowResponseOE>);
 #[derive(Resource)]
-pub struct WorkflowResponseISender(pub UnboundedSender<()>);
+pub(in super) struct WorkflowResponseISender(pub UnboundedSender<()>);
 #[derive(Resource)]
-pub struct WorkflowResponseIESender(pub UnboundedSender<TypedWorkflowResponseE>);
+pub(in super) struct WorkflowResponseIESender(pub UnboundedSender<TypedWorkflowResponseE>);
 #[derive(Resource)]
-pub struct WorkflowResponseIOSender(pub UnboundedSender<TypedWorkflowResponseO>);
+pub(in super) struct WorkflowResponseIOSender(pub UnboundedSender<TypedWorkflowResponseO>);
 #[derive(Resource)]
-pub struct WorkflowResponseIOESender(pub UnboundedSender<TypedWorkflowResponseOE>);
+pub(in super) struct WorkflowResponseIOESender(pub UnboundedSender<TypedWorkflowResponseOE>);
 
-static REQUEST_SENDER: OnceCell<UnboundedSender<TypedWorkflowRequest>> = OnceCell::new();
-static RESPONSE_RECEIVER: OnceCell<UnboundedReceiver<()>> = OnceCell::new();
-static REQUEST_E_SENDER: OnceCell<UnboundedSender<TypedWorkflowRequestE>> = OnceCell::new();
-static RESPONSE_E_RECEIVER: OnceCell<UnboundedReceiver<TypedWorkflowResponseE>> = OnceCell::new();
-static REQUEST_O_SENDER: OnceCell<UnboundedSender<TypedWorkflowRequestO>> = OnceCell::new();
-static RESPONSE_O_RECEIVER: OnceCell<UnboundedReceiver<TypedWorkflowResponseO>> = OnceCell::new();
-static REQUEST_OE_SENDER: OnceCell<UnboundedSender<TypedWorkflowRequestOE>> = OnceCell::new();
-static RESPONSE_OE_RECEIVER: OnceCell<UnboundedReceiver<TypedWorkflowResponseOE>> = OnceCell::new();
-static REQUEST_I_SENDER: OnceCell<UnboundedSender<TypedWorkflowRequestI>> = OnceCell::new();
-static RESPONSE_I_RECEIVER: OnceCell<UnboundedReceiver<()>> = OnceCell::new();
-static REQUEST_IE_SENDER: OnceCell<UnboundedSender<TypedWorkflowRequestIE>> = OnceCell::new();
-static RESPONSE_IE_RECEIVER: OnceCell<UnboundedReceiver<TypedWorkflowResponseE>> = OnceCell::new();
-static REQUEST_IO_SENDER: OnceCell<UnboundedSender<TypedWorkflowRequestIO>> = OnceCell::new();
-static RESPONSE_IO_RECEIVER: OnceCell<UnboundedReceiver<TypedWorkflowResponseO>> = OnceCell::new();
-static REQUEST_IOE_SENDER: OnceCell<UnboundedSender<TypedWorkflowRequestIOE>> = OnceCell::new();
-static RESPONSE_IOE_RECEIVER: OnceCell<UnboundedReceiver<TypedWorkflowResponseOE>> = OnceCell::new();
+static REQUEST_SENDER: OnceLock<Mutex<UnboundedSender<TypedWorkflowRequest>>> = OnceLock::new();
+static RESPONSE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<()>>> = OnceLock::new();
+static REQUEST_E_SENDER: OnceLock<Mutex<UnboundedSender<TypedWorkflowRequestE>>> = OnceLock::new();
+static RESPONSE_E_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseE>>> = OnceLock::new();
+static REQUEST_O_SENDER: OnceLock<Mutex<UnboundedSender<TypedWorkflowRequestO>>> = OnceLock::new();
+static RESPONSE_O_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseO>>> = OnceLock::new();
+static REQUEST_OE_SENDER: OnceLock<Mutex<UnboundedSender<TypedWorkflowRequestOE>>> = OnceLock::new();
+static RESPONSE_OE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseOE>>> = OnceLock::new();
+static REQUEST_I_SENDER: OnceLock<Mutex<UnboundedSender<TypedWorkflowRequestI>>> = OnceLock::new();
+static RESPONSE_I_RECEIVER: OnceLock<Mutex<UnboundedReceiver<()>>> = OnceLock::new();
+static REQUEST_IE_SENDER: OnceLock<Mutex<UnboundedSender<TypedWorkflowRequestIE>>> = OnceLock::new();
+static RESPONSE_IE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseE>>> = OnceLock::new();
+static REQUEST_IO_SENDER: OnceLock<Mutex<UnboundedSender<TypedWorkflowRequestIO>>> = OnceLock::new();
+static RESPONSE_IO_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseO>>> = OnceLock::new();
+static REQUEST_IOE_SENDER: OnceLock<Mutex<UnboundedSender<TypedWorkflowRequestIOE>>> = OnceLock::new();
+static RESPONSE_IOE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseOE>>> = OnceLock::new();
 
-pub(in crate) fn initialize_channels() -> (
+pub(in super) fn initialize_channels() -> (
     UnboundedReceiver<TypedWorkflowRequest>,
     UnboundedSender<()>,
 ) {
     let (request_tx, request_rx) = unbounded_channel();
     let (response_tx, response_rx) = unbounded_channel();
 
-    let request_err = REQUEST_SENDER.set(request_tx).is_err();
-    let response_err = RESPONSE_RECEIVER.set(response_rx).is_err();
+    let request_err = REQUEST_SENDER.set(Mutex::new(request_tx)).is_err();
+    let response_err = RESPONSE_RECEIVER.set(Mutex::new(response_rx)).is_err();
 
     if request_err {
         panic!("Request sender already initialized!");
@@ -79,15 +79,15 @@ pub(in crate) fn initialize_channels() -> (
 
     (request_rx, response_tx)
 }
-pub(in crate) fn initialize_e_channels() -> (
+pub(in super) fn initialize_e_channels() -> (
     UnboundedReceiver<TypedWorkflowRequestE>,
     UnboundedSender<TypedWorkflowResponseE>,
 ) {
     let (request_tx, request_rx) = unbounded_channel();
     let (response_tx, response_rx) = unbounded_channel();
 
-    let request_err = REQUEST_E_SENDER.set(request_tx).is_err();
-    let response_err = RESPONSE_E_RECEIVER.set(response_rx).is_err();
+    let request_err = REQUEST_E_SENDER.set(Mutex::new(request_tx)).is_err();
+    let response_err = RESPONSE_E_RECEIVER.set(Mutex::new(response_rx)).is_err();
 
     if request_err {
         panic!("Request sender already initialized!");
@@ -98,15 +98,15 @@ pub(in crate) fn initialize_e_channels() -> (
 
     (request_rx, response_tx)
 }
-pub(in crate) fn initialize_o_channels() -> (
+pub(in super) fn initialize_o_channels() -> (
     UnboundedReceiver<TypedWorkflowRequestO>,
     UnboundedSender<TypedWorkflowResponseO>,
 ) {
     let (request_tx, request_rx) = unbounded_channel();
     let (response_tx, response_rx) = unbounded_channel();
 
-    let request_err = REQUEST_O_SENDER.set(request_tx).is_err();
-    let response_err = RESPONSE_O_RECEIVER.set(response_rx).is_err();
+    let request_err = REQUEST_O_SENDER.set(Mutex::new(request_tx)).is_err();
+    let response_err = RESPONSE_O_RECEIVER.set(Mutex::new(response_rx)).is_err();
 
     if request_err {
         panic!("Request sender already initialized!");
@@ -117,15 +117,15 @@ pub(in crate) fn initialize_o_channels() -> (
 
     (request_rx, response_tx)
 }
-pub(in crate) fn initialize_oe_channels() -> (
+pub(in super) fn initialize_oe_channels() -> (
     UnboundedReceiver<TypedWorkflowRequestOE>,
     UnboundedSender<TypedWorkflowResponseOE>,
 ) {
     let (request_tx, request_rx) = unbounded_channel();
     let (response_tx, response_rx) = unbounded_channel();
 
-    let request_err = REQUEST_OE_SENDER.set(request_tx).is_err();
-    let response_err = RESPONSE_OE_RECEIVER.set(response_rx).is_err();
+    let request_err = REQUEST_OE_SENDER.set(Mutex::new(request_tx)).is_err();
+    let response_err = RESPONSE_OE_RECEIVER.set(Mutex::new(response_rx)).is_err();
 
     if request_err {
         panic!("Request sender already initialized!");
@@ -136,15 +136,15 @@ pub(in crate) fn initialize_oe_channels() -> (
 
     (request_rx, response_tx)
 }
-pub(in crate) fn initialize_i_channels() -> (
+pub(in super) fn initialize_i_channels() -> (
     UnboundedReceiver<TypedWorkflowRequestI>,
     UnboundedSender<()>,
 ) {
     let (request_tx, request_rx) = unbounded_channel();
     let (response_tx, response_rx) = unbounded_channel();
 
-    let request_err = REQUEST_I_SENDER.set(request_tx).is_err();
-    let response_err = RESPONSE_I_RECEIVER.set(response_rx).is_err();
+    let request_err = REQUEST_I_SENDER.set(Mutex::new(request_tx)).is_err();
+    let response_err = RESPONSE_I_RECEIVER.set(Mutex::new(response_rx)).is_err();
 
     if request_err {
         panic!("Request sender already initialized!");
@@ -155,15 +155,15 @@ pub(in crate) fn initialize_i_channels() -> (
 
     (request_rx, response_tx)
 }
-pub(in crate) fn initialize_ie_channels() -> (
+pub(in super) fn initialize_ie_channels() -> (
     UnboundedReceiver<TypedWorkflowRequestIE>,
     UnboundedSender<TypedWorkflowResponseE>,
 ) {
     let (request_tx, request_rx) = unbounded_channel();
     let (response_tx, response_rx) = unbounded_channel();
 
-    let request_err = REQUEST_IE_SENDER.set(request_tx).is_err();
-    let response_err = RESPONSE_IE_RECEIVER.set(response_rx).is_err();
+    let request_err = REQUEST_IE_SENDER.set(Mutex::new(request_tx)).is_err();
+    let response_err = RESPONSE_IE_RECEIVER.set(Mutex::new(response_rx)).is_err();
 
     if request_err {
         panic!("Request sender already initialized!");
@@ -174,15 +174,15 @@ pub(in crate) fn initialize_ie_channels() -> (
 
     (request_rx, response_tx)
 }
-pub(in crate) fn initialize_io_channels() -> (
+pub(in super) fn initialize_io_channels() -> (
     UnboundedReceiver<TypedWorkflowRequestIO>,
     UnboundedSender<TypedWorkflowResponseO>,
 ) {
     let (request_tx, request_rx) = unbounded_channel();
     let (response_tx, response_rx) = unbounded_channel();
 
-    let request_err = REQUEST_IO_SENDER.set(request_tx).is_err();
-    let response_err = RESPONSE_IO_RECEIVER.set(response_rx).is_err();
+    let request_err = REQUEST_IO_SENDER.set(Mutex::new(request_tx)).is_err();
+    let response_err = RESPONSE_IO_RECEIVER.set(Mutex::new(response_rx)).is_err();
 
     if request_err {
         panic!("Request sender already initialized!");
@@ -193,15 +193,15 @@ pub(in crate) fn initialize_io_channels() -> (
 
     (request_rx, response_tx)
 }
-pub(in crate) fn initialize_ioe_channels() -> (
+pub(in super) fn initialize_ioe_channels() -> (
     UnboundedReceiver<TypedWorkflowRequestIOE>,
     UnboundedSender<TypedWorkflowResponseOE>,
 ) {
     let (request_tx, request_rx) = unbounded_channel();
     let (response_tx, response_rx) = unbounded_channel();
 
-    let request_err = REQUEST_IOE_SENDER.set(request_tx).is_err();
-    let response_err = RESPONSE_IOE_RECEIVER.set(response_rx).is_err();
+    let request_err = REQUEST_IOE_SENDER.set(Mutex::new(request_tx)).is_err();
+    let response_err = RESPONSE_IOE_RECEIVER.set(Mutex::new(response_rx)).is_err();
 
     if request_err {
         panic!("Request sender already initialized!");
@@ -213,51 +213,51 @@ pub(in crate) fn initialize_ioe_channels() -> (
     (request_rx, response_tx)
 }
 
-pub fn get_request_sender() -> &'static UnboundedSender<TypedWorkflowRequest> {
-    REQUEST_SENDER.get().expect("Request sender accessed before initialization!")
+pub fn get_request_sender() -> MutexGuard<'static, UnboundedSender<TypedWorkflowRequest>>  {
+    REQUEST_SENDER.get().expect("Request sender accessed before initialization!").lock().unwrap()
 }
-pub fn get_response_receiver() -> &'static UnboundedReceiver<()> {
-    RESPONSE_RECEIVER.get().expect("Response receiver accessed before initialization!")
+pub fn get_response_receiver() -> MutexGuard<'static, UnboundedReceiver<()>> {
+    RESPONSE_RECEIVER.get().expect("Response receiver accessed before initialization!").lock().unwrap()
 }
-pub fn get_request_e_sender() -> &'static UnboundedSender<TypedWorkflowRequestE> {
-    REQUEST_E_SENDER.get().expect("Request sender accessed before initialization!")
+pub fn get_request_e_sender() -> MutexGuard<'static, UnboundedSender<TypedWorkflowRequestE>> {
+    REQUEST_E_SENDER.get().expect("Request sender accessed before initialization!").lock().unwrap()
 }
-pub fn get_response_e_receiver() -> &'static UnboundedReceiver<TypedWorkflowResponseE> {
-    RESPONSE_E_RECEIVER.get().expect("Response receiver accessed before initialization!")
+pub fn get_response_e_receiver() -> MutexGuard<'static, UnboundedReceiver<TypedWorkflowResponseE>> {
+    RESPONSE_E_RECEIVER.get().expect("Response receiver accessed before initialization!").lock().unwrap()
 }
-pub fn get_request_o_sender() -> &'static UnboundedSender<TypedWorkflowRequestO> {
-    REQUEST_O_SENDER.get().expect("Request sender accessed before initialization!")
+pub fn get_request_o_sender() -> MutexGuard<'static, UnboundedSender<TypedWorkflowRequestO>> {
+    REQUEST_O_SENDER.get().expect("Request sender accessed before initialization!").lock().unwrap()
 }
-pub fn get_response_o_receiver() -> &'static UnboundedReceiver<TypedWorkflowResponseO> {
-    RESPONSE_O_RECEIVER.get().expect("Response receiver accessed before initialization!")
+pub fn get_response_o_receiver() -> MutexGuard<'static, UnboundedReceiver<TypedWorkflowResponseO>> {
+    RESPONSE_O_RECEIVER.get().expect("Response receiver accessed before initialization!").lock().unwrap()
 }
-pub fn get_request_oe_sender() -> &'static UnboundedSender<TypedWorkflowRequestOE> {
-    REQUEST_OE_SENDER.get().expect("Request sender accessed before initialization!")
+pub fn get_request_oe_sender() -> MutexGuard<'static, UnboundedSender<TypedWorkflowRequestOE>> {
+    REQUEST_OE_SENDER.get().expect("Request sender accessed before initialization!").lock().unwrap()
 }
-pub fn get_response_oe_receiver() -> &'static UnboundedReceiver<TypedWorkflowResponseOE> {
-    RESPONSE_OE_RECEIVER.get().expect("Response receiver accessed before initialization!")
+pub fn get_response_oe_receiver() -> MutexGuard<'static, UnboundedReceiver<TypedWorkflowResponseOE>> {
+    RESPONSE_OE_RECEIVER.get().expect("Response receiver accessed before initialization!").lock().unwrap()
 }
-pub fn get_request_i_sender() -> &'static UnboundedSender<TypedWorkflowRequestI> {
-    REQUEST_I_SENDER.get().expect("Request sender accessed before initialization!")
+pub fn get_request_i_sender() -> MutexGuard<'static, UnboundedSender<TypedWorkflowRequestI>> {
+    REQUEST_I_SENDER.get().expect("Request sender accessed before initialization!").lock().unwrap()
 }
-pub fn get_response_i_receiver() -> &'static UnboundedReceiver<()> {
-    RESPONSE_I_RECEIVER.get().expect("Response receiver accessed before initialization!")
+pub fn get_response_i_receiver() -> MutexGuard<'static, UnboundedReceiver<()>> {
+    RESPONSE_I_RECEIVER.get().expect("Response receiver accessed before initialization!").lock().unwrap()
 }
-pub fn get_request_ie_sender() -> &'static UnboundedSender<TypedWorkflowRequestIE> {
-    REQUEST_IE_SENDER.get().expect("Request sender accessed before initialization!")
+pub fn get_request_ie_sender() -> MutexGuard<'static, UnboundedSender<TypedWorkflowRequestIE>> {
+    REQUEST_IE_SENDER.get().expect("Request sender accessed before initialization!").lock().unwrap()
 }
-pub fn get_response_ie_receiver() -> &'static UnboundedReceiver<TypedWorkflowResponseE> {
-    RESPONSE_IE_RECEIVER.get().expect("Response receiver accessed before initialization!")
+pub fn get_response_ie_receiver() -> MutexGuard<'static, UnboundedReceiver<TypedWorkflowResponseE>> {
+    RESPONSE_IE_RECEIVER.get().expect("Response receiver accessed before initialization!").lock().unwrap()
 }
-pub fn get_request_io_sender() -> &'static UnboundedSender<TypedWorkflowRequestIO> {
-    REQUEST_IO_SENDER.get().expect("Request sender accessed before initialization!")
+pub fn get_request_io_sender() -> MutexGuard<'static, UnboundedSender<TypedWorkflowRequestIO>> {
+    REQUEST_IO_SENDER.get().expect("Request sender accessed before initialization!").lock().unwrap()
 }
-pub fn get_response_io_receiver() -> &'static UnboundedReceiver<TypedWorkflowResponseO> {
-    RESPONSE_IO_RECEIVER.get().expect("Response receiver accessed before initialization!")
+pub fn get_response_io_receiver() -> MutexGuard<'static, UnboundedReceiver<TypedWorkflowResponseO>> {
+    RESPONSE_IO_RECEIVER.get().expect("Response receiver accessed before initialization!").lock().unwrap()
 }
-pub fn get_request_ioe_sender() -> &'static UnboundedSender<TypedWorkflowRequestIOE> {
-    REQUEST_IOE_SENDER.get().expect("Request sender accessed before initialization!")
+pub fn get_request_ioe_sender() -> MutexGuard<'static, UnboundedSender<TypedWorkflowRequestIOE>> {
+    REQUEST_IOE_SENDER.get().expect("Request sender accessed before initialization!").lock().unwrap()
 }
-pub fn get_response_ioe_receiver() -> &'static UnboundedReceiver<TypedWorkflowResponseOE> {
-    RESPONSE_IOE_RECEIVER.get().expect("Response receiver accessed before initialization!")
+pub fn get_response_ioe_receiver() -> MutexGuard<'static, UnboundedReceiver<TypedWorkflowResponseOE>> {
+    RESPONSE_IOE_RECEIVER.get().expect("Response receiver accessed before initialization!").lock().unwrap()
 }

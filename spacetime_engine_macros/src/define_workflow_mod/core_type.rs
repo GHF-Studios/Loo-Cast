@@ -40,11 +40,60 @@ pub enum CoreType<T> {
     Enum(ItemEnum, PhantomData<T>),
 }
 
-impl<T> CoreType<T> {
+impl CoreType<Input> {
     pub fn generate(&self) -> TokenStream {
         match self {
             CoreType::Struct(item, _) => item.to_token_stream(),
             CoreType::Enum(item, _) => item.to_token_stream(),
+        }
+    }
+}
+
+impl CoreType<State> {
+    pub fn generate(&self) -> TokenStream {
+        match self {
+            CoreType::Struct(item, _) => item.to_token_stream(),
+            CoreType::Enum(item, _) => item.to_token_stream(),
+        }
+    }
+}
+
+impl CoreType<Output> {
+    pub fn generate(&self) -> TokenStream {
+        match self {
+            CoreType::Struct(item, _) => item.to_token_stream(),
+            CoreType::Enum(item, _) => item.to_token_stream(),
+        }
+    }
+}
+
+impl CoreType<Error> {
+    pub fn generate(&self) -> TokenStream {
+        match self {
+            CoreType::Struct(item, _) => {
+                let item = item.to_token_stream();
+                quote! { 
+                    #[derive(std::fmt::Debug, Error)]
+                    #item
+                    impl std::fmt::Display for Error {
+                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                            write!(f, "{:?}", self)
+                        }
+                    }
+                }
+            },
+            CoreType::Enum(item, _) => {
+                let item = item.to_token_stream();
+                quote! { 
+                    #[derive(std::fmt::Debug, Error)]
+                    #item
+                    impl std::fmt::Display for Error {
+                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                            write!(f, "{:?}", self)
+                        }
+                    }
+                }
+            },
         }
     }
 }
@@ -330,11 +379,38 @@ impl<T> CoreTypes<T> {
         let output = self.output.as_ref().map(|t| t.generate());
         let error = self.error.as_ref().map(|t| t.generate());
 
-        quote! {
-            #input
-            #state
-            #output
-            #error
+        // TODO: Replace this with pattern matching if the need arises for handling more than one core type's optionality, that of `Error` that is.
+        if self.error.is_some() {
+            quote! {
+                use thiserror::Error;
+
+                #input
+                #state
+                #output
+                #error
+            }
+        } else {
+            quote! {
+                #input
+                #state
+                #output
+            }
         }
+    }
+
+    pub fn has_input(&self) -> bool {
+        self.input.is_some()
+    }
+
+    pub fn has_state(&self) -> bool {
+        self.state.is_some()
+    }
+
+    pub fn has_output(&self) -> bool {
+        self.output.is_some()
+    }
+
+    pub fn has_error(&self) -> bool {
+        self.error.is_some()
     }
 }

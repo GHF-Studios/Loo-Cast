@@ -1,132 +1,112 @@
 use tokio::sync::mpsc::{Sender, unbounded_channel};
 
-use super::{request::*, traits::*};
+use super::{channels::*, request::*, traits::*};
 
-pub async fn run_workflow<W: WorkflowType>(
-    request_sender: Sender<WorkflowRequest>,
-) {
+pub async fn run_workflow<W: WorkflowType>() {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
-    let (response_sender, mut response_receiver) = unbounded_channel();
+    let request_sender = get_request_sender();
+    let mut response_receiver = get_response_receiver();
 
-    request_sender.send(WorkflowRequest::None(TypedWorkflowRequest {
+    request_sender.send(TypedWorkflowRequest {
         module_name,
         workflow_name,
-        response_sender,
-    })).await.unwrap();
+    }).unwrap();
 
     response_receiver.recv().await.unwrap()
 }
-pub async fn run_workflow_e<W: WorkflowTypeE>(
-    request_sender: Sender<WorkflowRequest>,
-) -> Result<(), W::Error> {
+pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
-    let (response_sender, mut response_receiver) = unbounded_channel();
+    let request_sender = get_request_e_sender();
+    let mut response_receiver = get_response_e_receiver();
 
-    request_sender.send(WorkflowRequest::E(TypedWorkflowRequestE {
+    request_sender.send(TypedWorkflowRequestE {
         module_name,
         workflow_name,
-        response_sender,
-    })).await.unwrap();
+    }).unwrap();
 
     response_receiver.recv().await.unwrap().unpack()
 }
-pub async fn run_workflow_o<W: WorkflowTypeO>(
-    request_sender: Sender<WorkflowRequest>,
-) -> Result<W::Output, ()> {
+pub async fn run_workflow_o<W: WorkflowTypeO>() -> Result<W::Output, ()> {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
-    let (response_sender, mut response_receiver) = unbounded_channel();
+    let request_sender = get_request_o_sender();
+    let mut response_receiver = get_response_o_receiver();
 
-    request_sender.send(WorkflowRequest::O(TypedWorkflowRequestO {
+    request_sender.send(TypedWorkflowRequestO {
         module_name,
         workflow_name,
-        response_sender,
-    })).await.unwrap();
+    }).unwrap();
 
     response_receiver.recv().await.unwrap().unpack()
 }
-pub async fn run_workflow_oe<W: WorkflowTypeOE>(
-    request_sender: Sender<WorkflowRequest>,
-) -> Result<W::Output, W::Error> {
+pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error> {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
-    let (response_sender, mut response_receiver) = unbounded_channel();
+    let request_sender = get_request_oe_sender();
+    let mut response_receiver = get_response_oe_receiver();
 
-    request_sender.send(WorkflowRequest::OE(TypedWorkflowRequestOE {
+    request_sender.send(TypedWorkflowRequestOE {
         module_name,
         workflow_name,
-        response_sender,
-    })).await.unwrap();
+    }).unwrap();
 
     response_receiver.recv().await.unwrap().unpack()
 }
-pub async fn run_workflow_i<W: WorkflowTypeI>(
-    request_sender: Sender<WorkflowRequest>,
-    input: W::Input,
-) {
+pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
-    let (response_sender, mut response_receiver) = unbounded_channel();
+    let request_sender = get_request_i_sender();
+    let mut response_receiver = get_response_i_receiver();
 
-    request_sender.send(WorkflowRequest::I(TypedWorkflowRequestI {
+    request_sender.send(TypedWorkflowRequestI {
         input: Box::new(input),
         module_name,
         workflow_name,
-        response_sender,
-    })).await.unwrap();
+    }).unwrap();
 
     response_receiver.recv().await.unwrap()
 }
-pub async fn run_workflow_ie<W: WorkflowTypeIE>(
-    request_sender: Sender<WorkflowRequest>,
-    input: W::Input,
-) -> Result<(), W::Error> {
+pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W::Error> {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
-    let (response_sender, mut response_receiver) = unbounded_channel();
+    let request_sender = get_request_ie_sender();
+    let mut response_receiver = get_response_ie_receiver();
 
-    request_sender.send(WorkflowRequest::IE(TypedWorkflowRequestIE {
+    request_sender.send(TypedWorkflowRequestIE {
         input: Box::new(input),
         module_name,
         workflow_name,
-        response_sender,
-    })).await.unwrap();
+    }).unwrap();
 
     response_receiver.recv().await.unwrap().unpack()
 }
-pub async fn run_workflow_io<W: WorkflowTypeIO>(
-    request_sender: Sender<WorkflowRequest>,
-    input: W::Input,
-) -> Result<W::Output, ()> {
+pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> Result<W::Output, ()> {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
-    let (response_sender, mut response_receiver) = unbounded_channel();
+    let request_sender = get_request_io_sender();
+    let mut response_receiver = get_response_io_receiver();
 
-    request_sender.send(WorkflowRequest::IO(TypedWorkflowRequestIO {
+    request_sender.send(TypedWorkflowRequestIO {
         input: Box::new(input),
         module_name,
         workflow_name,
-        response_sender,
-    })).await.unwrap();
+    }).unwrap();
 
     response_receiver.recv().await.unwrap().unpack()
 }
-pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(
-    request_sender: Sender<WorkflowRequest>,
-    input: W::Input,
-) -> Result<W::Output, W::Error> {
+pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::Output, W::Error> {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
-    let (response_sender, mut response_receiver) = unbounded_channel();
+    let request_sender = get_request_ioe_sender();
+    let mut response_receiver = get_response_ioe_receiver();
 
-    request_sender.send(WorkflowRequest::IOE(TypedWorkflowRequestIOE {
+    request_sender.send(TypedWorkflowRequestIOE {
         input: Box::new(input),
         module_name,
         workflow_name,
-        response_sender,
-    })).await.unwrap();
+    }).unwrap();
 
     response_receiver.recv().await.unwrap().unpack()
 }

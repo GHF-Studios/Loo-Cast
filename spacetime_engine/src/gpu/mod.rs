@@ -2,7 +2,6 @@ pub mod resources;
 
 pub mod workflows;
 pub mod vorkflows;
-pub mod vorkflows_expanded;
 
 use bevy::prelude::*;
 use resources::*;
