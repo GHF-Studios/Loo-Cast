@@ -112,7 +112,7 @@ impl Parse for Workflow {
                 let first_stage = stages.first().unwrap();
                 let last_stage = stages.last().unwrap();
 
-                (first_stage.has_input(), last_stage.has_output(), last_stage.has_error())
+                (first_stage.has_input(), last_stage.has_output(), stages.iter().any(|s| s.has_error()))
             };
 
             match (has_input, has_output, has_error) {
@@ -189,7 +189,6 @@ impl Workflow {
                         let stage_error_path: TokenStream = parse_str(format!("self::stages::{}::core_types::Error", stage_name_snake_case).as_str()).unwrap();
                         
                         Some(quote! { 
-                            #[error("{0}")]
                             #stage_error_name(#stage_error_path)
                         })
                     });
@@ -199,6 +198,11 @@ impl Workflow {
                             #[derive(std::fmt::Debug, thiserror::Error)]
                             pub enum Error {
                                 #(#workflow_errors),*
+                            }
+                            impl std::fmt::Display for Error {
+                                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                                    write!(f, "{:?}", self)
+                                }
                             }
                         }
                     } else {
@@ -217,7 +221,7 @@ impl Workflow {
                         
                         pub struct Type;
                         impl crate::workflow::traits::WorkflowTypeE for Type {
-                            type Error = self::stages::#last_stage_ident::core_types::Error;
+                            type Error = Error;
                         
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
@@ -298,7 +302,6 @@ impl Workflow {
                         let stage_error_path: TokenStream = parse_str(format!("self::stages::{}::core_types::Error", stage_name_snake_case).as_str()).unwrap();
                         
                         Some(quote! { 
-                            #[error("{0}")]
                             #stage_error_name(#stage_error_path)
                         })
                     });
@@ -308,6 +311,11 @@ impl Workflow {
                             #[derive(std::fmt::Debug, thiserror::Error)]
                             pub enum Error {
                                 #(#workflow_errors),*
+                            }
+                            impl std::fmt::Display for Error {
+                                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                                    write!(f, "{:?}", self)
+                                }
                             }
                         }
                     } else {
@@ -327,7 +335,7 @@ impl Workflow {
                         pub struct Type;
                         impl crate::workflow::traits::WorkflowTypeOE for Type {
                             type Output = self::stages::#last_stage_ident::core_types::Output;
-                            type Error = self::stages::#last_stage_ident::core_types::Error;
+                            type Error = Error;
                         
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
@@ -389,14 +397,11 @@ impl Workflow {
                 }
             },
             WorkflowSignature::IE => {
-                let (first_stage_ident, last_stage_ident) = {
+                let first_stage_ident = {
                     let first_stage_ident = self.stages.0.first().unwrap().name();
-                    let last_stage_ident = self.stages.0.last().unwrap().name();
                     let first_stage_name = first_stage_ident.to_string().to_snake_case();
-                    let last_stage_name = last_stage_ident.to_string().to_snake_case();
                     let first_stage_ident = Ident::new(first_stage_name.as_str(), first_stage_ident.span());
-                    let last_stage_ident = Ident::new(last_stage_name.as_str(), last_stage_ident.span());
-                    (first_stage_ident, last_stage_ident)
+                    first_stage_ident
                 };
                 let error_enum = {
                     let workflow_errors = self.stages.0.iter().filter_map(|s| {
@@ -411,7 +416,6 @@ impl Workflow {
                         let stage_error_path: TokenStream = parse_str(format!("self::stages::{}::core_types::Error", stage_name_snake_case).as_str()).unwrap();
                         
                         Some(quote! { 
-                            #[error("{0}")]
                             #stage_error_name(#stage_error_path)
                         })
                     });
@@ -421,6 +425,11 @@ impl Workflow {
                             #[derive(std::fmt::Debug, thiserror::Error)]
                             pub enum Error {
                                 #(#workflow_errors),*
+                            }
+                            impl std::fmt::Display for Error {
+                                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                                    write!(f, "{:?}", self)
+                                }
                             }
                         }
                     } else {
@@ -440,7 +449,7 @@ impl Workflow {
                         pub struct Type;
                         impl crate::workflow::traits::WorkflowTypeIE for Type {
                             type Input = self::stages::#first_stage_ident::core_types::Input;
-                            type Error = self::stages::#last_stage_ident::core_types::Error;
+                            type Error = Error;
                         
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
@@ -528,7 +537,6 @@ impl Workflow {
                         let stage_error_path: TokenStream = parse_str(format!("self::stages::{}::core_types::Error", stage_name_snake_case).as_str()).unwrap();
                         
                         Some(quote! { 
-                            #[error("{0}")]
                             #stage_error_name(#stage_error_path)
                         })
                     });
@@ -538,6 +546,11 @@ impl Workflow {
                             #[derive(std::fmt::Debug, thiserror::Error)]
                             pub enum Error {
                                 #(#workflow_errors),*
+                            }
+                            impl std::fmt::Display for Error {
+                                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                                    write!(f, "{:?}", self)
+                                }
                             }
                         }
                     } else {
@@ -558,7 +571,7 @@ impl Workflow {
                         impl crate::workflow::traits::WorkflowTypeIOE for Type {
                             type Input = self::stages::#first_stage_ident::core_types::Input;
                             type Output = self::stages::#last_stage_ident::core_types::Output;
-                            type Error = self::stages::#last_stage_ident::core_types::Error;
+                            type Error = Error;
                         
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
