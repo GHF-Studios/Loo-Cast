@@ -1,9 +1,9 @@
-use std::any::{type_name, Any};
 use bevy::prelude::*;
+use futures::future::BoxFuture;
+use std::any::{type_name, Any};
+use tokio::{runtime::Runtime, task::JoinHandle};
 
-use crate::config::statics::CONFIG;
-
-use super::{stage::WorkflowStage, io::{WorkflowIO, CallbackState, InputState, OutputState}};
+use super::{io::{InputState, WorkflowIO}, stage::WorkflowStage, statics::TOKIO_RUNTIME};
 
 pub struct RawWorkflowData {
     pub data: Box<dyn Any + Send + Sync>,
@@ -22,6 +22,20 @@ impl RawWorkflowData {
         }
 
         wrapped_value
+    }
+}
+
+pub struct WorkflowTaskRuntime(tokio::runtime::Handle);
+impl WorkflowTaskRuntime {
+    pub fn new() -> Self {
+        Self(TOKIO_RUNTIME.lock().unwrap().handle().clone())
+    }
+
+    pub fn spawn_composite_workflow<T: 'static + Send>(
+        &mut self, 
+        future: BoxFuture<'static, T>
+    ) -> JoinHandle<T> {
+        self.0.spawn(future)
     }
 }
 

@@ -41,7 +41,7 @@ pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use iyes_perf_ui::{entries::{PerfUiFramerateEntries, PerfUiSystemEntries}, prelude::{PerfUiEntryEntityCount, PerfUiRoot}};
-use workflow::{resources::*, WorkflowPlugin};
+use workflow::WorkflowPlugin;
 use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;
@@ -121,7 +121,7 @@ fn startup_system() {
 }
 
 fn post_startup_system() {
-    define_workflow_task!(TestWorkflowFramework {
+    define_composite_workflow!(TestWorkflowFramework {
         let shader_name = "texture_generators/example_compute_uv";
         let shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl";
 
@@ -144,7 +144,7 @@ fn post_startup_system() {
         Ok(())
     })
     
-    WORKFLOW_TASK_RUNTIME.spawn_task(test_workflow_framework);
+    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_composite_workflow(Box::pin(test_workflow_framework()));
 }
 
 fn post_startup_system_expanded() {
@@ -213,5 +213,5 @@ fn post_startup_system_expanded() {
         Ok(())
     }
     
-    WORKFLOW_TASK_RUNTIME.spawn_task(test_workflow_framework);
+    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_composite_workflow(Box::pin(test_workflow_framework()));
 }
