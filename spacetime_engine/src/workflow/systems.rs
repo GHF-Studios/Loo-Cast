@@ -302,7 +302,7 @@ pub(in super) fn handle_async_stage_completion_event_system(
 
 
 
-
+// NEW CODE, NOT PART OF THE OLD FRAMEWORK
 pub(in super) fn workflow_request_relay_system(
     world: &mut World,
 ) {
@@ -595,12 +595,10 @@ pub(in super) fn workflow_request_ioe_relay_system(
         ));
     }
 }
+// NEW CODE, NOT PART OF THE OLD FRAMEWORK
 
 
 
-
-
-// TODO: Maybe: While resources are stolen, validation can not access those resources! Maybe we just literally remove and reinsert them? Or it's just the case that they are not available at secondary validation due to this exact reasons, but then we need to explicitly document that somewhere/somehow.
 pub(in super) fn workflow_request_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>, 

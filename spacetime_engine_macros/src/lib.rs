@@ -1,7 +1,10 @@
 mod define_workflow_mod;
+mod define_composite_workflow;
+mod run_workflow;
 
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
+
 use define_workflow_mod::workflow::WorkflowModule;
 
 #[proc_macro]
