@@ -132,7 +132,8 @@ fn post_startup_system() {
         
         let generate_texture_output = run_workflow!(Gpu, GenerateTexture, Input {
             shader_name,
-            texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize
+            texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
+            param_data: vec![]
         });
     
         run_workflow!(Chunk, SpawnChunk, Input {
@@ -153,13 +154,13 @@ fn post_startup_system_expanded() {
     #[derive(Debug, Error)]
     pub enum TestWorkflowFrameworkError {
         #[error("SetupTextureGeneratorError{0}")]
-        SetupTextureGeneratorError(<crate::gpu::vorkflows::gpu::setup_texture_generator::Type as workflow::traits::WorkflowTypeIE>::Error),
+        SetupTextureGeneratorError(<crate::gpu::vorkflows::gpu::setup_texture_generator::TypeIE as workflow::traits::WorkflowTypeIE>::Error),
 
         #[error("GenerateTextureError{0}")]
-        GenerateTextureError(<crate::gpu::vorkflows::gpu::generate_texture::Type as workflow::traits::WorkflowTypeIOE>::Error),
+        GenerateTextureError(<crate::gpu::vorkflows::gpu::generate_texture::TypeIOE as workflow::traits::WorkflowTypeIOE>::Error),
 
         #[error("SpawnChunkError{0}")]
-        SpawnChunkError(<crate::chunk::vorkflows::chunk::spawn_chunk::Type as workflow::traits::WorkflowTypeIE>::Error),
+        SpawnChunkError(<crate::chunk::vorkflows::chunk::spawn_chunk::TypeIE as workflow::traits::WorkflowTypeIE>::Error),
     }
     impl std::convert::From<gpu::vorkflows::gpu::generate_texture::Error> for TestWorkflowFrameworkError {
         fn from(e: gpu::vorkflows::gpu::generate_texture::Error) -> Self {
@@ -182,18 +183,20 @@ fn post_startup_system_expanded() {
         let shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl";
 
         {
-            type T = crate::gpu::vorkflows::gpu::setup_texture_generator::Type;
+            type T = crate::gpu::vorkflows::gpu::setup_texture_generator::TypeIE;
             type I = <T as crate::workflow::traits::WorkflowTypeIE>::Input;
-            crate::workflow::functions::run_workflow_ie::<T>(I {
+
+            crate::gpu::vorkflows::gpu::setup_texture_generator::run(I {
                 shader_name,
                 shader_path: shader_path.to_string(),
             }).await.map_err(Into::<TestWorkflowFrameworkError>::into)
         }?;
 
         let generate_texture_output = {
-            type T = crate::gpu::vorkflows::gpu::generate_texture::Type;
+            type T = crate::gpu::vorkflows::gpu::generate_texture::TypeIOE;
             type I = <T as crate::workflow::traits::WorkflowTypeIOE>::Input;
-            crate::workflow::functions::run_workflow_ioe::<T>(I {
+
+            crate::gpu::vorkflows::gpu::generate_texture::run(I {
                 shader_name,
                 texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
                 param_data: vec![]
@@ -201,9 +204,10 @@ fn post_startup_system_expanded() {
         }?;
 
         {
-            type T = crate::chunk::vorkflows::chunk::spawn_chunk::Type;
+            type T = crate::chunk::vorkflows::chunk::spawn_chunk::TypeIE;
             type I = <T as crate::workflow::traits::WorkflowTypeIE>::Input;
-            crate::workflow::functions::run_workflow_ie::<T>(I {
+
+            crate::chunk::vorkflows::chunk::spawn_chunk::run(I {
                 chunk_coord: (0, 0),
                 chunk_owner: None,
                 metric_texture: generate_texture_output.texture_handle,
