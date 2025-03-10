@@ -140,7 +140,7 @@ impl WorkflowMap {
     pub fn advance_stage(&mut self, module_name: &'static str, workflow_name: &'static str) {
         if let Some(instance) = self.map.get_mut(module_name).and_then(|workflows| workflows.get_mut(workflow_name)) {
             match &mut instance.state_mut() {
-                WorkflowState::Processing { current_stage , stage_completed: completed } => {
+                WorkflowState::Processing { current_stage , stage_initialized: initialized, stage_completed: completed } => {
                     if !*completed {
                         unreachable!(
                             "Workflow stage advancement error: Workflow '{}' in module '{}' is already completed.",
@@ -148,6 +148,7 @@ impl WorkflowMap {
                         );
                     }
                     *current_stage += 1;
+                    *initialized = false;
                     *completed = false;
                 },
                 _ => unreachable!("Workflow stage advancement error: Invalid state."),

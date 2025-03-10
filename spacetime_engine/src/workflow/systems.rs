@@ -153,20 +153,30 @@ pub(in super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
     let mut waiting_buffer = Vec::new();
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let run_ecs_while = &mut stage.run_ecs_while;
-        let outcome = (run_ecs_while)(data_buffer, world);
+        let mut workflow_map = SystemState::<ResMut<WorkflowMap>>::new(world).get_mut(world);
+        let workflow_instance = workflow_map.map.get_mut(module_name).and_then(|workflows| workflows.get_mut(workflow_name)).unwrap();
 
-        let mut system_state: SystemState<(
-            ResMut<WorkflowMap>, 
-            ResMut<WorkflowTypeModuleRegistry>,
-        )> = SystemState::new(world);
-        let (
-            mut workflow_map, 
-            mut workflow_type_module_registry,
-        ) = system_state.get_mut(world);
-        
-        let workflow_type = workflow_type_module_registry.get_workflow_type_mut(&module_name, &workflow_name).unwrap();
-        let workflow_instance = &mut workflow_map.map.get_mut(module_name).and_then(|workflows| workflows.get_mut(workflow_name)).unwrap();
+        let state = if let WorkflowState::Processing {
+            current_stage: _,
+            stage_initialized,
+            stage_completed: _,
+        } = &mut workflow_instance.state() {
+            if !*stage_initialized {
+                let setup_ecs_while = &mut stage.setup_ecs_while;
+                let state = (setup_ecs_while)(data_buffer, world);
+                
+                *stage_initialized = true;
+
+                state
+            } else {
+                data_buffer
+            }
+        } else {
+            unreachable!("Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'", workflow_instance.state());
+        };
+
+        let run_ecs_while = &mut stage.run_ecs_while;
+        let outcome = (run_ecs_while)(state, world);
 
         match outcome {
             WorkflowStageWhileOutcome::Waiting(state_data) => {
@@ -204,20 +214,30 @@ pub(in super) fn poll_render_while_stage_buffer_system(world: &mut World) {
     let mut waiting_buffer = Vec::new();
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let run_render_while = &mut stage.run_render_while;
-        let outcome = (run_render_while)(data_buffer, world);
+        let mut workflow_map = SystemState::<ResMut<WorkflowMap>>::new(world).get_mut(world);
+        let workflow_instance = workflow_map.map.get_mut(module_name).and_then(|workflows| workflows.get_mut(workflow_name)).unwrap();
 
-        let mut system_state: SystemState<(
-            ResMut<WorkflowTypeModuleRegistry>,
-            ResMut<WorkflowMap>, 
-        )> = SystemState::new(world);
-        let (
-            mut workflow_type_module_registry,
-            mut workflow_map, 
-        ) = system_state.get_mut(world);
-        
-        let workflow_type = workflow_type_module_registry.get_workflow_type_mut(&module_name, &workflow_name).unwrap();
-        let workflow_instance = &mut workflow_map.map.get_mut(module_name).and_then(|workflows| workflows.get_mut(workflow_name)).unwrap();
+        let state = if let WorkflowState::Processing {
+            current_stage: _,
+            stage_initialized,
+            stage_completed: _,
+        } = &mut workflow_instance.state() {
+            if !*stage_initialized {
+                let setup_render_while = &mut stage.setup_render_while;
+                let state = (setup_render_while)(data_buffer, world);
+                
+                *stage_initialized = true;
+
+                state
+            } else {
+                data_buffer
+            }
+        } else {
+            unreachable!("Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'", workflow_instance.state());
+        };
+
+        let run_render_while = &mut stage.run_render_while;
+        let outcome = (run_render_while)(state, world);
 
         match outcome {
             WorkflowStageWhileOutcome::Waiting(state_data) => {
@@ -651,7 +671,7 @@ pub(in super) fn workflow_request_system(world: &mut World) {
                 WorkflowState::Requested => {
                     let input = instance.take_data_buffer();
 
-                    *instance.state_mut() = WorkflowState::Processing { current_stage: 0, stage_completed: false };
+                    *instance.state_mut() = WorkflowState::Processing { current_stage: 0, stage_initialized: false, stage_completed: false };
 
                     stage_initialization_events.push(WorkflowStageInitializationEvent {
                         module_name,
@@ -777,7 +797,7 @@ pub(in super) fn workflow_completion_handling_system(world: &mut World) {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
                 match instance.state_mut() {
-                    WorkflowState::Processing { current_stage: other_current_stage, stage_completed: completed } => {
+                    WorkflowState::Processing { current_stage: other_current_stage, stage_completed: completed, .. } => {
                         if current_stage != *other_current_stage {
                             unreachable!("Unexpected workflow state. Completion event is at stage '{}', but the workflow instance is at stage '{}'", current_stage, other_current_stage);
                         }
@@ -809,7 +829,7 @@ pub(in super) fn workflow_completion_handling_system(world: &mut World) {
     for (module_name, workflow_name, current_stage, stage_output) in intermediate_stage_completions {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
-                *instance.state_mut() = WorkflowState::Processing { current_stage: current_stage + 1, stage_completed: false };
+                *instance.state_mut() = WorkflowState::Processing { current_stage: current_stage + 1, stage_initialized: false, stage_completed: false };
 
                 stage_initialization_event_writer.send(WorkflowStageInitializationEvent {
                     module_name: module_name.clone(),

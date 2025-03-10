@@ -22,6 +22,7 @@ pub enum WorkflowState {
     Requested,
     Processing {
         current_stage: usize,
+        stage_initialized: bool,
         stage_completed: bool,
     },
 }
@@ -29,7 +30,11 @@ impl std::fmt::Display for WorkflowState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Requested => write!(f, "WorkflowState::Requested"),
-            Self::Processing { current_stage, stage_completed: completed } => write!(f, "WorkflowState::Processing(current_stage: {}, completed: {})", current_stage, completed),
+            Self::Processing { 
+                current_stage, 
+                stage_initialized: initialized, 
+                stage_completed: completed 
+            } => write!(f, "WorkflowState::Processing(current_stage: {}, initialized: {}, completed: {})", current_stage, initialized, completed),
         }
     }
 }
