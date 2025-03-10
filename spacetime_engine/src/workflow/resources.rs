@@ -93,7 +93,7 @@ pub(in super) struct AsyncStageCompletionEventReceiver(pub Receiver<(&'static st
 
 #[derive(Resource, Default, Debug)]
 pub struct WorkflowMap {
-    pub(in super) map: HashMap<&'static str, HashMap<&'static str, Option<WorkflowInstance>>>,
+    pub(in super) map: HashMap<&'static str, HashMap<&'static str, WorkflowInstance>>,
 }
 
 impl WorkflowMap {
@@ -103,7 +103,7 @@ impl WorkflowMap {
 
         let module_entry = self.map.entry(module_name).or_default();
 
-        if module_entry.insert(workflow_name, Some(workflow_instance)).is_some() {
+        if module_entry.insert(workflow_name, workflow_instance).is_some() {
             unreachable!(
                 "Workflow insertion error: Workflow '{}' in module '{}' is already active.",
                 workflow_name, module_name
@@ -111,34 +111,34 @@ impl WorkflowMap {
         }
     }
 
-    pub fn has_workflow(&self, module_name: &'static str, workflow_name: &'static str) -> bool {
-        self.map
-            .get(module_name)
-            .and_then(|workflows| workflows.get(workflow_name))
-            .into_iter()
-            .flatten()
-            .next()
-            .is_some()
+    pub fn get_workflow_module(&self, module_name: &'static str) -> Option<&HashMap<&'static str, WorkflowInstance>> {
+        self.map.get(module_name)
     }
 
-    pub fn had_workflow(&self, module_name: &'static str, workflow_name: &'static str) -> bool {
-        self.map
-            .get(module_name)
-            .and_then(|workflows| workflows.get(workflow_name))
-            .into_iter()
-            .flatten()
-            .next()
-            .is_none()
+    pub fn get_workflow_module_mut(&mut self, module_name: &'static str) -> Option<&mut HashMap<&'static str, WorkflowInstance>> {
+        self.map.get_mut(module_name)
+    }
+
+    pub fn get_workflow(&self, module_name: &'static str, workflow_name: &'static str) -> Option<&WorkflowInstance> {
+        self.map.get(module_name)?.get(workflow_name)
+    }
+
+    pub fn get_workflow_mut(&mut self, module_name: &'static str, workflow_name: &'static str) -> Option<&mut WorkflowInstance> {
+        self.map.get_mut(module_name)?.get_mut(workflow_name)
+    }
+
+    pub fn has_workflow(&self, module_name: &'static str, workflow_name: &'static str) -> bool {
+        self.get_workflow(module_name, workflow_name).is_some()
     }
 
     pub fn remove_workflow(&mut self, module_name: &'static str, workflow_name: &'static str) {
         if let Some(workflows) = self.map.get_mut(module_name) {
-            workflows.insert(workflow_name, None);
+            workflows.remove(workflow_name);
         }
     }
 
     pub fn advance_stage(&mut self, module_name: &'static str, workflow_name: &'static str) {
-        if let Some(Some(instance)) = self.map.get_mut(module_name).and_then(|workflows| workflows.get_mut(workflow_name)) {
+        if let Some(instance) = self.map.get_mut(module_name).and_then(|workflows| workflows.get_mut(workflow_name)) {
             match &mut instance.state_mut() {
                 WorkflowState::Processing { current_stage , stage_completed: completed } => {
                     if !*completed {

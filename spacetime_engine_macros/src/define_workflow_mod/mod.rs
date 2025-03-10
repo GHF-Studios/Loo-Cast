@@ -275,6 +275,18 @@ impl Workflow {
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
+                        impl Type {
+                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
+                                workflow_type_module_registry.register(
+                                    WorkflowType {
+                                        name: super::NAME,
+                                        stages: vec![
+                                            #(#stage_literals),*
+                                        ],
+                                    },
+                                );
+                            }
+                        }
                         
                         pub mod workflow_imports {
                             #imports
@@ -321,6 +333,18 @@ impl Workflow {
                         
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
+                        }
+                        impl Type {
+                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
+                                workflow_type_module_registry.register(
+                                    WorkflowType {
+                                        name: super::NAME,
+                                        stages: vec![
+                                            #(#stage_literals),*
+                                        ],
+                                    },
+                                );
+                            }
                         }
                         
                         pub mod workflow_imports {
@@ -405,6 +429,18 @@ impl Workflow {
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
+                        impl Type {
+                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
+                                workflow_type_module_registry.register(
+                                    WorkflowType {
+                                        name: super::NAME,
+                                        stages: vec![
+                                            #(#stage_literals),*
+                                        ],
+                                    },
+                                );
+                            }
+                        }
                         
                         pub mod workflow_imports {
                             #imports
@@ -451,6 +487,18 @@ impl Workflow {
                         
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
+                        }
+                        impl Type {
+                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
+                                workflow_type_module_registry.register(
+                                    WorkflowType {
+                                        name: super::NAME,
+                                        stages: vec![
+                                            #(#stage_literals),*
+                                        ],
+                                    },
+                                );
+                            }
                         }
                         
                         pub mod workflow_imports {
@@ -535,6 +583,18 @@ impl Workflow {
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
+                        impl Type {
+                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
+                                workflow_type_module_registry.register(
+                                    WorkflowType {
+                                        name: super::NAME,
+                                        stages: vec![
+                                            #(#stage_literals),*
+                                        ],
+                                    },
+                                );
+                            }
+                        }
                         
                         pub mod workflow_imports {
                             #imports
@@ -585,6 +645,18 @@ impl Workflow {
                         
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
+                        }
+                        impl Type {
+                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
+                                workflow_type_module_registry.register(
+                                    WorkflowType {
+                                        name: super::NAME,
+                                        stages: vec![
+                                            #(#stage_literals),*
+                                        ],
+                                    },
+                                );
+                            }
                         }
                         
                         pub mod workflow_imports {
@@ -672,6 +744,18 @@ impl Workflow {
                         
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
+                        }
+                        impl Type {
+                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
+                                workflow_type_module_registry.register(
+                                    WorkflowType {
+                                        name: super::NAME,
+                                        stages: vec![
+                                            #(#stage_literals),*
+                                        ],
+                                    },
+                                );
+                            }
                         }
                         
                         pub mod workflow_imports {
