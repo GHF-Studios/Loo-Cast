@@ -6,7 +6,7 @@ use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 use crate::statics::TOKIO_RUNTIME;
 
 use super::{
-    channels::*, events::{WorkflowStageCompletionEvent, WorkflowStageInitializationEvent}, instance::*, io::{InputState, WorkflowIO}, resources::*, stage::{WorkflowStage, WorkflowStageEcs, WorkflowStageWhileOutcome}, types::*, AsyncStageBuffer, AsyncStageCompletionEventReceiver, AsyncStageCompletionEventSender, EcsStageBuffer, EcsStageCompletionEventReceiver, EcsStageCompletionEventSender, EcsWhileStageBuffer, EcsWhileStageCompletionEventReceiver, EcsWhileStageCompletionEventSender, RenderStageBuffer, RenderStageCompletionEventReceiver, RenderStageCompletionEventSender, RenderWhileStageBuffer, RenderWhileStageCompletionEventReceiver, RenderWhileStageCompletionEventSender
+    channels::*, events::{WorkflowStageCompletionEvent, WorkflowStageInitializationEvent}, instance::*, resources::*, stage::{WorkflowStage, WorkflowStageEcs, WorkflowStageWhileOutcome}, types::*, AsyncStageBuffer, AsyncStageCompletionEventReceiver, AsyncStageCompletionEventSender, EcsStageBuffer, EcsStageCompletionEventReceiver, EcsStageCompletionEventSender, EcsWhileStageBuffer, EcsWhileStageCompletionEventReceiver, EcsWhileStageCompletionEventSender, RenderStageBuffer, RenderStageCompletionEventReceiver, RenderStageCompletionEventSender, RenderWhileStageBuffer, RenderWhileStageCompletionEventReceiver, RenderWhileStageCompletionEventSender
 };
 
 pub(in super) fn extract_render_stage_buffer_system(world: &mut World) {
@@ -54,9 +54,8 @@ pub(in super) fn poll_ecs_stage_buffer_system(world: &mut World) {
     };
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let io = WorkflowIO::new_input(data_buffer);
         let function = &mut stage.function;
-        let output = (function)(io, world).consume_raw();
+        let output = (function)(data_buffer, world);
 
         let sender = world
             .get_resource::<EcsStageCompletionEventSender>()
@@ -84,17 +83,14 @@ pub(in super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
     let mut waiting_buffer = Vec::new();
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let io = WorkflowIO::new_input(data_buffer);
         let function = &mut stage.function;
-        let outcome = (function)(io, world);
+        let outcome = (function)(data_buffer, world);
 
         match outcome {
-            WorkflowStageWhileOutcome::Waiting(io) => {
-                waiting_buffer.push((module_name, workflow_name, current_stage, stage, io.consume_raw()));
+            WorkflowStageWhileOutcome::Waiting(state_data) => {
+                waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
             },
-            WorkflowStageWhileOutcome::Completed(io) => {
-                let output = io.consume_raw();
-
+            WorkflowStageWhileOutcome::Completed(output_data) => {
                 let sender = world
                     .get_resource::<EcsWhileStageCompletionEventSender>()
                     .unwrap()
@@ -104,9 +100,9 @@ pub(in super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
                 let cloned_module_name = module_name.clone();
                 let cloned_workflow_name = workflow_name.clone();
 
-                let output_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output));
+                let response_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output_data));
 
-                if let Err(err) = output_send_result {
+                if let Err(err) = response_send_result {
                     unreachable!("Ecs while stage completion error: Output send error: {}", err);
                 }
             }
@@ -124,9 +120,8 @@ pub(in super) fn poll_render_stage_buffer_system(world: &mut World) {
     };
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let io = WorkflowIO::new_input(data_buffer);
         let function = &mut stage.function;
-        let output = (function)(io, world).consume_raw();
+        let output = (function)(data_buffer, world);
 
         let sender = world
             .get_resource::<RenderStageCompletionEventSender>()
@@ -154,17 +149,14 @@ pub(in super) fn poll_render_while_stage_buffer_system(world: &mut World) {
     let mut waiting_buffer = Vec::new();
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let io = WorkflowIO::new_input(data_buffer);
         let function = &mut stage.function;
-        let outcome = (function)(io, world);
+        let outcome = (function)(data_buffer, world);
 
         match outcome {
-            WorkflowStageWhileOutcome::Waiting(io) => {
-                waiting_buffer.push((module_name, workflow_name, current_stage, stage, io.consume_raw()));
+            WorkflowStageWhileOutcome::Waiting(state_data) => {
+                waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
             },
-            WorkflowStageWhileOutcome::Completed(io) => {
-                let output = io.consume_raw();
-
+            WorkflowStageWhileOutcome::Completed(output_data) => {
                 let sender = world
                     .get_resource::<RenderWhileStageCompletionEventSender>()
                     .unwrap()
@@ -174,9 +166,9 @@ pub(in super) fn poll_render_while_stage_buffer_system(world: &mut World) {
                 let cloned_module_name = module_name.clone();
                 let cloned_workflow_name = workflow_name.clone();
 
-                let output_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output));
+                let response_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output_data));
 
-                if let Err(err) = output_send_result {
+                if let Err(err) = response_send_result {
                     unreachable!("Render while stage completion error: Output send error: {}", err);
                 }
             }
@@ -194,9 +186,8 @@ pub(in super) fn poll_async_stage_buffer_system(world: &mut World) {
     };
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let io = WorkflowIO::new_input(data_buffer);
         let function = &mut stage.function;
-        let future = (function)(io);
+        let future = (function)(data_buffer);
 
         let sender = world
             .get_resource::<AsyncStageCompletionEventSender>()
@@ -209,7 +200,7 @@ pub(in super) fn poll_async_stage_buffer_system(world: &mut World) {
 
         let task_spawn_result = TOKIO_RUNTIME.lock().unwrap().block_on(async {
             tokio::spawn(async move {
-                let output = future.await.consume_raw();
+                let output = future.await;
                 
                 let output_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output));
 
@@ -370,7 +361,8 @@ pub(in super) fn workflow_request_e_relay_system(
             workflow_name,
             num_stages,
             Box::new(move |response| {
-                workflow_response_sender.send(response).unwrap();
+                let response = response.downcast().unwrap();
+                workflow_response_sender.send(*response).unwrap();
             }),
         ));
     }
@@ -406,7 +398,8 @@ pub(in super) fn workflow_request_o_relay_system(
             workflow_name,
             num_stages,
             Box::new(move |response| {
-                workflow_response_sender.send(response).unwrap();
+                let response = response.downcast().unwrap();
+                workflow_response_sender.send(*response).unwrap();
             }),
         ));
     }
@@ -442,7 +435,8 @@ pub(in super) fn workflow_request_oe_relay_system(
             workflow_name,
             num_stages,
             Box::new(move |response| {
-                workflow_response_sender.send(response).unwrap();
+                let response = response.downcast().unwrap();
+                workflow_response_sender.send(*response).unwrap();
             }),
         ));
     }
@@ -516,7 +510,8 @@ pub(in super) fn workflow_request_ie_relay_system(
             request.input,
             num_stages,
             Box::new(move |response| {
-                workflow_response_sender.send(response).unwrap();
+                let response = response.downcast().unwrap();
+                workflow_response_sender.send(*response).unwrap();
             }),
         ));
     }
@@ -553,7 +548,8 @@ pub(in super) fn workflow_request_io_relay_system(
             request.input,
             num_stages,
             Box::new(move |response| {
-                workflow_response_sender.send(response).unwrap();
+                let response = response.downcast().unwrap();
+                workflow_response_sender.send(*response).unwrap();
             }),
         ));
     }
@@ -590,7 +586,8 @@ pub(in super) fn workflow_request_ioe_relay_system(
             request.input,
             num_stages,
             Box::new(move |response| {
-                workflow_response_sender.send(response).unwrap();
+                let response = response.downcast().unwrap();
+                workflow_response_sender.send(*response).unwrap();
             }),
         ));
     }
@@ -622,22 +619,11 @@ pub(in super) fn workflow_request_system(world: &mut World) {
             let workflow_type = stolen_workflow_type_module_registry.get_workflow_type_mut(module_name, workflow_name).unwrap();
             
             if let Some(instance) = instance {
-                match instance.state {
+                match instance.state_mut() {
                     WorkflowState::Requested => {
-                        let input = std::mem::replace(&mut instance.data_buffer, RawWorkflowData::new(()));
-                        let input = match (workflow_type.secondary_validation)(WorkflowIO::<InputState>::new_input(input), world) {
-                            Ok(input) => {
-                                input.consume_raw()
-                            },
-                            Err(err) => {
-                                unreachable!(
-                                    "Workflow validation error: Workflow '{}' in module '{}' failed secondary validation: {}",
-                                    workflow_name, module_name, err
-                                );
-                            }
-                        };
+                        let input = instance.take_data_buffer();
 
-                        instance.state = WorkflowState::Processing { current_stage: 0, stage_completed: false };
+                        *instance.state_mut() = WorkflowState::Processing { current_stage: 0, stage_completed: false };
                         stage_initialization_events.push(WorkflowStageInitializationEvent {
                             module_name: module_name.clone(),
                             workflow_name: workflow_name.clone(),
@@ -695,7 +681,7 @@ pub(in super) fn workflow_execution_system(world: &mut World) {
 
         if let Some(workflows) = workflow_map.map.get_mut(&module_name) {
             if let Some(instance) = workflows.get_mut(&workflow_name).and_then(|a| a.as_mut()) {
-                let current_stage = instance.state.current_stage();
+                let current_stage = instance.state().current_stage();
 
                 let workflow_type = workflow_type_module_registry
                     .get_workflow_type_mut(&module_name, &workflow_name)
@@ -759,7 +745,7 @@ pub(in super) fn workflow_completion_handling_system(world: &mut World) {
 
         if let Some(workflows) = workflow_map.map.get_mut(&module_name) {
             if let Some(instance) = workflows.get_mut(&workflow_name).and_then(|a| a.as_mut()) {
-                match &mut instance.state {
+                match instance.state_mut() {
                     WorkflowState::Processing { current_stage: other_current_stage, stage_completed: completed } => {
                         if current_stage != *other_current_stage {
                             unreachable!("Unexpected workflow state. Completion event is at stage '{}', but the workflow instance is at stage '{}'", current_stage, other_current_stage);
@@ -782,7 +768,7 @@ pub(in super) fn workflow_completion_handling_system(world: &mut World) {
                 if current_stage + 1 < workflow_type.stages.len() {
                     intermediate_stage_completions.push((module_name.clone(), workflow_name.clone(), current_stage, stage_output));
                 } else {
-                    final_stage_completions.push((module_name.clone(), workflow_name.clone(), std::mem::take(&mut instance.callback), stage_output));
+                    final_stage_completions.push((module_name.clone(), workflow_name.clone(), instance.take_callback(), stage_output));
                 }
             }
         }
@@ -792,7 +778,7 @@ pub(in super) fn workflow_completion_handling_system(world: &mut World) {
     for (module_name, workflow_name, current_stage, stage_output) in intermediate_stage_completions {
         if let Some(workflows) = workflow_map.map.get_mut(&module_name) {
             if let Some(instance) = workflows.get_mut(&workflow_name).and_then(|a| a.as_mut()) {
-                instance.state = WorkflowState::Processing { current_stage: current_stage + 1, stage_completed: false };
+                *instance.state_mut() = WorkflowState::Processing { current_stage: current_stage + 1, stage_completed: false };
 
                 stage_initialization_event_writer.send(WorkflowStageInitializationEvent {
                     module_name: module_name.clone(),
@@ -812,9 +798,55 @@ pub(in super) fn workflow_completion_handling_system(world: &mut World) {
         }
     }
     for (callback, data) in callbacks {
-        if let Some(callback) = callback {
-            let io = WorkflowIO::new_callback_data(data);
-            callback(world, io);
+        match callback {
+            WorkflowCallback::None(callback) => {
+                match data {
+                    None => (callback)(),
+                    Some(_) => unreachable!("Unexpected workflow completion state. Expected None data, got Some data.")
+                }
+            },
+            WorkflowCallback::E(callback) => {
+                match data {
+                    None => unreachable!("Unexpected workflow completion state. Expected Some data, got None data."),
+                    Some(result) => (callback)(Box::new(result)),
+                }
+            },
+            WorkflowCallback::O(callback) => {
+                match data {
+                    None => unreachable!("Unexpected workflow completion state. Expected Some data, got None data."),
+                    Some(output) => (callback)(Box::new(output)),
+                }
+            },
+            WorkflowCallback::OE(callback) => {
+                match data {
+                    None => unreachable!("Unexpected workflow completion state. Expected Some data, got None data."),
+                    Some(result) => (callback)(Box::new(result)),
+                }
+            },
+            WorkflowCallback::I(callback) => {
+                match data {
+                    None => (callback)(),
+                    Some(_) => unreachable!("Unexpected workflow completion state. Expected None data, got Some data.")
+                }
+            },
+            WorkflowCallback::IE(callback) => {
+                match data {
+                    None => unreachable!("Unexpected workflow completion state. Expected Some data, got None data."),
+                    Some(result) => (callback)(Box::new(result)),
+                }
+            },
+            WorkflowCallback::IO(callback) => {
+                match data {
+                    None => unreachable!("Unexpected workflow completion state. Expected Some data, got None data."),
+                    Some(output) => (callback)(Box::new(output)),
+                }
+            },
+            WorkflowCallback::IOE(callback) => {
+                match data {
+                    None => unreachable!("Unexpected workflow completion state. Expected Some data, got None data."),
+                    Some(result) => (callback)(Box::new(result)),
+                }
+            },
         }
     }
 }

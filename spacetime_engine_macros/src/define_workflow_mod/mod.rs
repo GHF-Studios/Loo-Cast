@@ -168,6 +168,13 @@ impl Workflow {
             WorkflowSignature::None => {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
+                let stage_types = self.stages.0.iter().map(|s| {
+                    quote! {
+                        crate::workflow::stage::WorkflowStage {
+                            
+                        }
+                    }
+                });
                 let stages = self.stages.0.into_iter().map(|s| s.generate());
 
                 quote! {
@@ -182,6 +189,14 @@ impl Workflow {
                         impl crate::workflow::traits::WorkflowType for Type {
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
+                        }
+                        impl Type {
+                            pub fn create_workflow_type() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
+                                    name: self::NAME,
+                                    stages: vec![#(#stage_types)*],
+                                }
+                            }
                         }
                         
                         pub mod workflow_imports {

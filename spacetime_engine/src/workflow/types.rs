@@ -5,26 +5,6 @@ use tokio::{runtime::Runtime, task::JoinHandle};
 
 use super::{io::{InputState, WorkflowIO}, stage::WorkflowStage, statics::TOKIO_RUNTIME};
 
-pub struct RawWorkflowData {
-    pub data: Box<dyn Any + Send + Sync>,
-    pub data_type_name: &'static str,
-}
-impl RawWorkflowData {
-    pub fn new<D: Any + Send + Sync>(value: D) -> Self {
-        let wrapped_value = Self {
-            data: Box::new(value),
-            data_type_name: type_name::<D>(),
-        };
-
-        // TODO: Inefficient! Cache the type name.
-        if wrapped_value.data_type_name == type_name::<RawWorkflowData>() {
-            panic!("Attempted to create a RawWorkflowData with a RawWorkflowData data type.")
-        }
-
-        wrapped_value
-    }
-}
-
 pub struct WorkflowTaskRuntime(tokio::runtime::Handle);
 impl WorkflowTaskRuntime {
     pub fn new() -> Self {
@@ -69,28 +49,17 @@ impl WorkflowState {
 }
 
 pub struct WorkflowTypeModule {
-    pub name: String,
+    pub name: &'static str,
     pub workflow_types: Vec<WorkflowType>
 }
 
 pub struct WorkflowType {
-    pub name: String,
-    pub primary_validation: Box<dyn Fn(WorkflowIO<InputState>) -> Result<WorkflowIO<InputState>, String> + Send + Sync>,
-    pub secondary_validation: Box<dyn Fn(WorkflowIO<InputState>, &mut World) -> Result<WorkflowIO<InputState>, String> + Send + Sync>,
+    pub name: &'static str,
     pub stages: Vec<WorkflowStage>
 }
 
-pub struct Workflow {
-    pub workflow_type: WorkflowType,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Outcome<S, O> {
+pub enum WorkflowStageOutcome<S, O> {
     Wait(S),
     Done(O)
-}
-
-pub enum WorkflowResult<T> {
-    Ok(T),
-    Err(String)
 }

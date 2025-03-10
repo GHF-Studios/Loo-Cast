@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::any::Any;
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 
@@ -56,39 +57,39 @@ pub struct WorkflowRequestBuffer {
 
 // --- Stage Buffers ---
 #[derive(Resource, Default)]
-pub(in super) struct EcsStageBuffer(pub Vec<(String, String, usize, WorkflowStageEcs, RawWorkflowData)>);
+pub(in super) struct EcsStageBuffer(pub Vec<(String, String, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource, Default)]
-pub(in super) struct EcsWhileStageBuffer(pub Vec<(String, String, usize, WorkflowStageEcsWhile, RawWorkflowData)>);
+pub(in super) struct EcsWhileStageBuffer(pub Vec<(String, String, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource, Default)]
-pub(in super) struct RenderStageBuffer(pub Vec<(String, String, usize, WorkflowStageRender, RawWorkflowData)>);
+pub(in super) struct RenderStageBuffer(pub Vec<(String, String, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource, Default)]
-pub(in super) struct RenderWhileStageBuffer(pub Vec<(String, String, usize, WorkflowStageRenderWhile, RawWorkflowData)>);
+pub(in super) struct RenderWhileStageBuffer(pub Vec<(String, String, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource, Default)]
-pub(in super) struct AsyncStageBuffer(pub Vec<(String, String, usize, WorkflowStageAsync, RawWorkflowData)>);
+pub(in super) struct AsyncStageBuffer(pub Vec<(String, String, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>);
 
 // --- Stage Completion Event Senders ---
 #[derive(Resource)]
-pub(in super) struct EcsStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageEcs, RawWorkflowData)>);
+pub(in super) struct EcsStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct EcsWhileStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageEcsWhile, RawWorkflowData)>);
+pub(in super) struct EcsWhileStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct RenderStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageRender, RawWorkflowData)>);
+pub(in super) struct RenderStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct RenderWhileStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageRenderWhile, RawWorkflowData)>);
+pub(in super) struct RenderWhileStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct AsyncStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageAsync, RawWorkflowData)>);
+pub(in super) struct AsyncStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>);
 
 // --- Stage Completion Event Receivers ---
 #[derive(Resource)]
-pub(in super) struct EcsStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageEcs, RawWorkflowData)>);
+pub(in super) struct EcsStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct EcsWhileStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageEcsWhile, RawWorkflowData)>);
+pub(in super) struct EcsWhileStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct RenderStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageRender, RawWorkflowData)>);
+pub(in super) struct RenderStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct RenderWhileStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageRenderWhile, RawWorkflowData)>);
+pub(in super) struct RenderWhileStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct AsyncStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageAsync, RawWorkflowData)>);
+pub(in super) struct AsyncStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>);
 
 #[derive(Resource, Default, Debug)]
 pub struct WorkflowMap {

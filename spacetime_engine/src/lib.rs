@@ -41,7 +41,7 @@ pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use iyes_perf_ui::{entries::{PerfUiFramerateEntries, PerfUiSystemEntries}, prelude::{PerfUiEntryEntityCount, PerfUiRoot}};
-use spacetime_engine_macros::*;
+use spacetime_engine_macros::{get_workflow_path, run_workflow};
 use workflow::WorkflowPlugin;
 use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
@@ -121,93 +121,98 @@ fn startup_system() {
     
 }
 
-fn post_startup_system() {
-    define_composite_workflow!(TestWorkflowFramework {
-        let shader_name = "texture_generators/example_compute_uv";
-        let shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl";
 
-        run_workflow_ie!(Gpu, SetupTextureGenerator, Input {
-            shader_name,
-            shader_path: shader_path.to_string(),
-        });
-        
-        let generate_texture_output = run_workflow_ioe!(Gpu, GenerateTexture, Input {
-            shader_name,
-            texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
-            param_data: vec![]
-        });
-    
-        run_workflow_ie!(Chunk, SpawnChunk, Input {
-            chunk_coord: (0, 0),
-            chunk_owner: None,
-            metric_texture: generate_texture_output.texture_handle,
-        });
-    
-        Ok(())
-    })
-    
-    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_composite_workflow(Box::pin(test_workflow_framework()));
+
+
+//fn post_startup_system() {
+    //define_composite_workflow!(TestWorkflowFramework {
+    //    let shader_name = "texture_generators/example_compute_uv";
+    //    let shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl";
+//
+    //    run_workflow!(get_workflow_path!(Gpu::SetupTextureGenerator, IE), Input {
+    //        shader_name,
+    //        shader_path: shader_path.to_string(),
+    //    });
+    //    
+    //    let generate_texture_output = run_workflow!(get_workflow_path!(Gpu::GenerateTexture, IOE), Input {
+    //        shader_name,
+    //        texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
+    //        param_data: vec![]
+    //    });
+    //
+    //    run_workflow!(get_workflow_path!(Chunk::SpawnChunk, IE), Input {
+    //        chunk_coord: (0, 0),
+    //        chunk_owner: None,
+    //        metric_texture: generate_texture_output.texture_handle,
+    //    });
+    //
+    //    Ok(())
+    //})
+    //
+    //crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_composite_workflow(Box::pin(test_workflow_framework()));
 }
 
-fn post_startup_system_outter_expanded() {
-    use thiserror::Error;
 
-    #[derive(Debug, Error)]
-    pub enum TestWorkflowFrameworkError {
-        #[error("SetupTextureGeneratorError{0}")]
-        SetupTextureGeneratorError(<crate::gpu::vorkflows::gpu::setup_texture_generator::TypeIE as workflow::traits::WorkflowTypeIE>::Error),
 
-        #[error("GenerateTextureError{0}")]
-        GenerateTextureError(<crate::gpu::vorkflows::gpu::generate_texture::TypeIOE as workflow::traits::WorkflowTypeIOE>::Error),
+//fn post_startup_system_outter_expanded() {
+//    use thiserror::Error;
+//
+//    #[derive(Debug, Error)]
+//    pub enum TestWorkflowFrameworkError {
+//        #[error("SetupTextureGeneratorError{0}")]
+//        SetupTextureGeneratorError(<crate::gpu::vorkflows::gpu::setup_texture_generator::TypeIE as workflow::traits::WorkflowTypeIE>::Error),
+//
+//        #[error("GenerateTextureError{0}")]
+//        GenerateTextureError(<crate::gpu::vorkflows::gpu::generate_texture::TypeIOE as workflow::traits::WorkflowTypeIOE>::Error),
+//
+//        #[error("SpawnChunkError{0}")]
+//        SpawnChunkError(<crate::chunk::vorkflows::chunk::spawn_chunk::TypeIE as workflow::traits::WorkflowTypeIE>::Error),
+//    }
+//    impl std::convert::From<gpu::vorkflows::gpu::generate_texture::Error> for TestWorkflowFrameworkError {
+//        fn from(e: gpu::vorkflows::gpu::generate_texture::Error) -> Self {
+//            Self::GenerateTextureError(e)
+//        }
+//    }
+//    impl std::convert::From<gpu::vorkflows::gpu::setup_texture_generator::Error> for TestWorkflowFrameworkError {
+//        fn from(e: gpu::vorkflows::gpu::setup_texture_generator::Error) -> Self {
+//            Self::SetupTextureGeneratorError(e)
+//        }
+//    }
+//    impl std::convert::From<chunk::vorkflows::chunk::spawn_chunk::Error> for TestWorkflowFrameworkError {
+//        fn from(e: chunk::vorkflows::chunk::spawn_chunk::Error) -> Self {
+//            Self::SpawnChunkError(e)
+//        }
+//    }
+//
+//    pub async fn test_workflow_framework() -> Result<(), TestWorkflowFrameworkError> {
+//        let shader_name = "texture_generators/example_compute_uv";
+//        let shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl";
+//
+//        run_workflow!(get_workflow_path!(Gpu::SetupTextureGenerator, IE), Input {
+//            shader_name,
+//            shader_path: shader_path.to_string(),
+//        });
+//        
+//        let generate_texture_output = run_workflow!(get_workflow_path!(Gpu::GenerateTexture, IOE), Input {
+//            shader_name,
+//            texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
+//            param_data: vec![]
+//        });
+//    
+//        run_workflow!(get_workflow_path!(Chunk::SpawnChunk, IE), Input {
+//            chunk_coord: (0, 0),
+//            chunk_owner: None,
+//            metric_texture: generate_texture_output.texture_handle,
+//        });
+//    
+//        Ok(())
+//    }
+//    
+//    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_composite_workflow(Box::pin(test_workflow_framework()));
+//}
 
-        #[error("SpawnChunkError{0}")]
-        SpawnChunkError(<crate::chunk::vorkflows::chunk::spawn_chunk::TypeIE as workflow::traits::WorkflowTypeIE>::Error),
-    }
-    impl std::convert::From<gpu::vorkflows::gpu::generate_texture::Error> for TestWorkflowFrameworkError {
-        fn from(e: gpu::vorkflows::gpu::generate_texture::Error) -> Self {
-            Self::GenerateTextureError(e)
-        }
-    }
-    impl std::convert::From<gpu::vorkflows::gpu::setup_texture_generator::Error> for TestWorkflowFrameworkError {
-        fn from(e: gpu::vorkflows::gpu::setup_texture_generator::Error) -> Self {
-            Self::SetupTextureGeneratorError(e)
-        }
-    }
-    impl std::convert::From<chunk::vorkflows::chunk::spawn_chunk::Error> for TestWorkflowFrameworkError {
-        fn from(e: chunk::vorkflows::chunk::spawn_chunk::Error) -> Self {
-            Self::SpawnChunkError(e)
-        }
-    }
 
-    pub async fn test_workflow_framework() -> Result<(), TestWorkflowFrameworkError> {
-        let shader_name = "texture_generators/example_compute_uv";
-        let shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl";
 
-        run_workflow_ie!(Gpu, SetupTextureGenerator, Input {
-            shader_name,
-            shader_path: shader_path.to_string(),
-        });
-        
-        let generate_texture_output = run_workflow_ioe!(Gpu, GenerateTexture, Input {
-            shader_name,
-            texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
-            param_data: vec![]
-        });
-    
-        run_workflow_ie!(Chunk, SpawnChunk, Input {
-            chunk_coord: (0, 0),
-            chunk_owner: None,
-            metric_texture: generate_texture_output.texture_handle,
-        });
-    
-        Ok(())
-    }
-    
-    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_composite_workflow(Box::pin(test_workflow_framework()));
-}
-
-fn post_startup_system_inner_expanded() {
-}
 
 fn post_startup_system_full_expanded() {
     use thiserror::Error;

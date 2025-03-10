@@ -1,6 +1,6 @@
 use bevy::ecs::world::World;
 
-use super::types::Outcome;
+use super::types::WorkflowStageOutcome;
 
 // --- Workflow Types ---
 pub trait WorkflowType {
@@ -272,7 +272,7 @@ pub trait WorkflowStageEcsWhile {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World);
-    fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), ()>;
+    fn run_ecs_while(&mut self, world: &mut World) -> WorkflowStageOutcome<(), ()>;
 }
 pub trait WorkflowStageEcsWhileE {
     type Error: 'static + Send + Sync;
@@ -281,7 +281,7 @@ pub trait WorkflowStageEcsWhileE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World);
-    fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
+    fn run_ecs_while(&mut self, world: &mut World) -> Result<WorkflowStageOutcome<(), ()>, Self::Error>;
 }
 pub trait WorkflowStageEcsWhileO {
     type Output: 'static + Send + Sync;
@@ -290,7 +290,7 @@ pub trait WorkflowStageEcsWhileO {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World);
-    fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
+    fn run_ecs_while(&mut self, world: &mut World) -> WorkflowStageOutcome<(), Self::Output>;
 }
 pub trait WorkflowStageEcsWhileOE {
     type Output: 'static + Send + Sync;
@@ -300,7 +300,7 @@ pub trait WorkflowStageEcsWhileOE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World);
-    fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), Self::Output>, Self::Error>;
+    fn run_ecs_while(&mut self, world: &mut World) -> Result<WorkflowStageOutcome<(), Self::Output>, Self::Error>;
 }
 pub trait WorkflowStageEcsWhileS {
     type State: 'static + Send + Sync;
@@ -309,7 +309,7 @@ pub trait WorkflowStageEcsWhileS {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World) -> Self::State;
-    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> WorkflowStageOutcome<Self::State, ()>;
 }
 pub trait WorkflowStageEcsWhileSE {
     type State: 'static + Send + Sync;
@@ -319,7 +319,7 @@ pub trait WorkflowStageEcsWhileSE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World) -> Result<Self::State, Self::Error>;
-    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, ()>, Self::Error>;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<WorkflowStageOutcome<Self::State, ()>, Self::Error>;
 }
 pub trait WorkflowStageEcsWhileSO {
     type State: 'static + Send + Sync;
@@ -329,7 +329,7 @@ pub trait WorkflowStageEcsWhileSO {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World) -> Self::State;
-    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, Self::Output>;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> WorkflowStageOutcome<Self::State, Self::Output>;
 }
 pub trait WorkflowStageEcsWhileSOE {
     type State: 'static + Send + Sync;
@@ -340,7 +340,7 @@ pub trait WorkflowStageEcsWhileSOE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, world: &mut World) -> Result<Self::State, Self::Error>;
-    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<WorkflowStageOutcome<Self::State, Self::Output>, Self::Error>;
 }
 pub trait WorkflowStageEcsWhileI {
     type Input: 'static + Send + Sync;
@@ -349,7 +349,7 @@ pub trait WorkflowStageEcsWhileI {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World);
-    fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), ()>;
+    fn run_ecs_while(&mut self, world: &mut World) -> WorkflowStageOutcome<(), ()>;
 }
 pub trait WorkflowStageEcsWhileIE {
     type Input: 'static + Send + Sync;
@@ -359,7 +359,7 @@ pub trait WorkflowStageEcsWhileIE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World);
-    fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
+    fn run_ecs_while(&mut self, world: &mut World) -> Result<WorkflowStageOutcome<(), ()>, Self::Error>;
 }
 pub trait WorkflowStageEcsWhileIO {
     type Input: 'static + Send + Sync;
@@ -369,7 +369,7 @@ pub trait WorkflowStageEcsWhileIO {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World);
-    fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
+    fn run_ecs_while(&mut self, world: &mut World) -> WorkflowStageOutcome<(), Self::Output>;
 }
 pub trait WorkflowStageEcsWhileIOE {
     type Input: 'static + Send + Sync;
@@ -380,7 +380,7 @@ pub trait WorkflowStageEcsWhileIOE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World);
-    fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), Self::Output>, Self::Error>;
+    fn run_ecs_while(&mut self, world: &mut World) -> Result<WorkflowStageOutcome<(), Self::Output>, Self::Error>;
 }
 pub trait WorkflowStageEcsWhileIS {
     type Input: 'static + Send + Sync;
@@ -390,7 +390,7 @@ pub trait WorkflowStageEcsWhileIS {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World) -> Self::State;
-    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> WorkflowStageOutcome<Self::State, ()>;
 }
 pub trait WorkflowStageEcsWhileISE {
     type Input: 'static + Send + Sync;
@@ -401,7 +401,7 @@ pub trait WorkflowStageEcsWhileISE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World) -> Result<Self::State, Self::Error>;
-    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, ()>, Self::Error>;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<WorkflowStageOutcome<Self::State, ()>, Self::Error>;
 }
 pub trait WorkflowStageEcsWhileISO {
     type Input: 'static + Send + Sync;
@@ -412,7 +412,7 @@ pub trait WorkflowStageEcsWhileISO {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World) -> Self::State;
-    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, Self::Output>;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> WorkflowStageOutcome<Self::State, Self::Output>;
 }
 pub trait WorkflowStageEcsWhileISOE {
     type Input: 'static + Send + Sync;
@@ -424,7 +424,7 @@ pub trait WorkflowStageEcsWhileISOE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World) -> Result<Self::State, Self::Error>;
-    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<WorkflowStageOutcome<Self::State, Self::Output>, Self::Error>;
 }
 
 
@@ -435,7 +435,7 @@ pub trait WorkflowStageRenderWhile {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World);
-    fn run_render_while(&mut self, world: &mut World) -> Outcome<(), ()>;
+    fn run_render_while(&mut self, world: &mut World) -> WorkflowStageOutcome<(), ()>;
 }
 pub trait WorkflowStageRenderWhileE {
     type Error: 'static + Send + Sync;
@@ -444,7 +444,7 @@ pub trait WorkflowStageRenderWhileE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World);
-    fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
+    fn run_render_while(&mut self, world: &mut World) -> Result<WorkflowStageOutcome<(), ()>, Self::Error>;
 }
 pub trait WorkflowStageRenderWhileO {
     type Output: 'static + Send + Sync;
@@ -453,7 +453,7 @@ pub trait WorkflowStageRenderWhileO {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World);
-    fn run_render_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
+    fn run_render_while(&mut self, world: &mut World) -> WorkflowStageOutcome<(), Self::Output>;
 }
 pub trait WorkflowStageRenderWhileOE {
     type Output: 'static + Send + Sync;
@@ -463,7 +463,7 @@ pub trait WorkflowStageRenderWhileOE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World);
-    fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), Self::Output>, Self::Error>;
+    fn run_render_while(&mut self, world: &mut World) -> Result<WorkflowStageOutcome<(), Self::Output>, Self::Error>;
 }
 pub trait WorkflowStageRenderWhileS {
     type State: 'static + Send + Sync;
@@ -472,7 +472,7 @@ pub trait WorkflowStageRenderWhileS {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World) -> Self::State;
-    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> WorkflowStageOutcome<Self::State, ()>;
 }
 pub trait WorkflowStageRenderWhileSE {
     type State: 'static + Send + Sync;
@@ -482,7 +482,7 @@ pub trait WorkflowStageRenderWhileSE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World) -> Result<Self::State, Self::Error>;
-    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, ()>, Self::Error>;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<WorkflowStageOutcome<Self::State, ()>, Self::Error>;
 }
 pub trait WorkflowStageRenderWhileSO {
     type State: 'static + Send + Sync;
@@ -492,7 +492,7 @@ pub trait WorkflowStageRenderWhileSO {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World) -> Self::State;
-    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, Self::Output>;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> WorkflowStageOutcome<Self::State, Self::Output>;
 }
 pub trait WorkflowStageRenderWhileSOE {
     type State: 'static + Send + Sync;
@@ -503,7 +503,7 @@ pub trait WorkflowStageRenderWhileSOE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, world: &mut World) -> Result<Self::State, Self::Error>;
-    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<WorkflowStageOutcome<Self::State, Self::Output>, Self::Error>;
 }
 pub trait WorkflowStageRenderWhileI {
     type Input: 'static + Send + Sync;
@@ -512,7 +512,7 @@ pub trait WorkflowStageRenderWhileI {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World);
-    fn run_render_while(&mut self, world: &mut World) -> Outcome<(), ()>;
+    fn run_render_while(&mut self, world: &mut World) -> WorkflowStageOutcome<(), ()>;
 }
 pub trait WorkflowStageRenderWhileIE {
     type Input: 'static + Send + Sync;
@@ -522,7 +522,7 @@ pub trait WorkflowStageRenderWhileIE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World);
-    fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
+    fn run_render_while(&mut self, world: &mut World) -> Result<WorkflowStageOutcome<(), ()>, Self::Error>;
 }
 pub trait WorkflowStageRenderWhileIO {
     type Input: 'static + Send + Sync;
@@ -532,7 +532,7 @@ pub trait WorkflowStageRenderWhileIO {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World);
-    fn run_render_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
+    fn run_render_while(&mut self, world: &mut World) -> WorkflowStageOutcome<(), Self::Output>;
 }
 pub trait WorkflowStageRenderWhileIOE {
     type Input: 'static + Send + Sync;
@@ -543,7 +543,7 @@ pub trait WorkflowStageRenderWhileIOE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World);
-    fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), Self::Output>, Self::Error>;
+    fn run_render_while(&mut self, world: &mut World) -> Result<WorkflowStageOutcome<(), Self::Output>, Self::Error>;
 }
 pub trait WorkflowStageRenderWhileIS {
     type Input: 'static + Send + Sync;
@@ -553,7 +553,7 @@ pub trait WorkflowStageRenderWhileIS {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World) -> Self::State;
-    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> WorkflowStageOutcome<Self::State, ()>;
 }
 pub trait WorkflowStageRenderWhileISE {
     type Input: 'static + Send + Sync;
@@ -564,7 +564,7 @@ pub trait WorkflowStageRenderWhileISE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World) -> Result<Self::State, Self::Error>;
-    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, ()>, Self::Error>;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<WorkflowStageOutcome<Self::State, ()>, Self::Error>;
 }
 pub trait WorkflowStageRenderWhileISO {
     type Input: 'static + Send + Sync;
@@ -575,7 +575,7 @@ pub trait WorkflowStageRenderWhileISO {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World) -> Self::State;
-    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, Self::Output>;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> WorkflowStageOutcome<Self::State, Self::Output>;
 }
 pub trait WorkflowStageRenderWhileISOE {
     type Input: 'static + Send + Sync;
@@ -587,5 +587,5 @@ pub trait WorkflowStageRenderWhileISOE {
     fn name(&self) -> &'static str;
     fn index(&self) -> usize;
     fn setup_render_while(&mut self, input: Self::Input, world: &mut World) -> Result<Self::State, Self::Error>;
-    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<WorkflowStageOutcome<Self::State, Self::Output>, Self::Error>;
 }
