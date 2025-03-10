@@ -7,7 +7,7 @@ use super::{instance::*, stage::*, types::*};
 
 #[derive(Resource, Default)]
 pub struct WorkflowTypeModuleRegistry {
-    pub(in super) registry: HashMap<String, HashMap<String, WorkflowType>>,
+    pub(in super) registry: HashMap<&'static str, HashMap<&'static str, WorkflowType>>,
 }
 
 impl WorkflowTypeModuleRegistry {
@@ -15,7 +15,7 @@ impl WorkflowTypeModuleRegistry {
         let workflow_type_module_name = workflow_type_module.name.clone();
 
 
-        let mut registered_workflows: HashMap<String, WorkflowType> = match self.registry.get(&workflow_type_module_name) {
+        let mut registered_workflows: HashMap<&'static str, WorkflowType> = match self.registry.get(workflow_type_module_name) {
             Some(_) => {
                 unreachable!("Attempted to register workflow type module '{}' that is already in use.", workflow_type_module_name)
             },
@@ -25,7 +25,7 @@ impl WorkflowTypeModuleRegistry {
         while let Some(workflow_type) = workflow_type_module.workflow_types.pop() {
             let workflow_type_name = workflow_type.name.clone();
 
-            if registered_workflows.insert(workflow_type.name.clone(), workflow_type).is_some() {
+            if registered_workflows.insert(workflow_type_name, workflow_type).is_some() {
                 unreachable!("Attempted to register workflow type with name '{}' that is already in use.", workflow_type_name)
             }
         }
@@ -33,19 +33,19 @@ impl WorkflowTypeModuleRegistry {
         self.registry.insert(workflow_type_module_name.clone(), registered_workflows);
     }
 
-    pub fn get_workflow_module_type(&self, module_name: &str) -> Option<&HashMap<String, WorkflowType>> {
+    pub fn get_workflow_module_type(&self, module_name: &'static str) -> Option<&HashMap<&'static str, WorkflowType>> {
         self.registry.get(module_name)
     }
 
-    pub fn get_workflow_module_type_mut(&mut self, module_name: &str) -> Option<&mut HashMap<String, WorkflowType>> {
+    pub fn get_workflow_module_type_mut(&mut self, module_name: &'static str) -> Option<&mut HashMap<&'static str, WorkflowType>> {
         self.registry.get_mut(module_name)
     }
 
-    pub fn get_workflow_type(&self, module_name: &str, workflow_name: &str) -> Option<&WorkflowType> {
+    pub fn get_workflow_type(&self, module_name: &'static str, workflow_name: &'static str) -> Option<&WorkflowType> {
         self.registry.get(module_name)?.get(workflow_name)
     }
 
-    pub fn get_workflow_type_mut(&mut self, module_name: &str, workflow_name: &str) -> Option<&mut WorkflowType> {
+    pub fn get_workflow_type_mut(&mut self, module_name: &'static str, workflow_name: &'static str) -> Option<&mut WorkflowType> {
         self.registry.get_mut(module_name)?.get_mut(workflow_name)
     }
 }
@@ -57,43 +57,43 @@ pub struct WorkflowRequestBuffer {
 
 // --- Stage Buffers ---
 #[derive(Resource, Default)]
-pub(in super) struct EcsStageBuffer(pub Vec<(String, String, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct EcsStageBuffer(pub Vec<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource, Default)]
-pub(in super) struct EcsWhileStageBuffer(pub Vec<(String, String, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct EcsWhileStageBuffer(pub Vec<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource, Default)]
-pub(in super) struct RenderStageBuffer(pub Vec<(String, String, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct RenderStageBuffer(pub Vec<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource, Default)]
-pub(in super) struct RenderWhileStageBuffer(pub Vec<(String, String, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct RenderWhileStageBuffer(pub Vec<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource, Default)]
-pub(in super) struct AsyncStageBuffer(pub Vec<(String, String, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct AsyncStageBuffer(pub Vec<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>);
 
 // --- Stage Completion Event Senders ---
 #[derive(Resource)]
-pub(in super) struct EcsStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct EcsStageCompletionEventSender(pub Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct EcsWhileStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct EcsWhileStageCompletionEventSender(pub Sender<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct RenderStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct RenderStageCompletionEventSender(pub Sender<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct RenderWhileStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct RenderWhileStageCompletionEventSender(pub Sender<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct AsyncStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct AsyncStageCompletionEventSender(pub Sender<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>);
 
 // --- Stage Completion Event Receivers ---
 #[derive(Resource)]
-pub(in super) struct EcsStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct EcsStageCompletionEventReceiver(pub Receiver<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct EcsWhileStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct EcsWhileStageCompletionEventReceiver(pub Receiver<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct RenderStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct RenderStageCompletionEventReceiver(pub Receiver<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct RenderWhileStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct RenderWhileStageCompletionEventReceiver(pub Receiver<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>);
 #[derive(Resource)]
-pub(in super) struct AsyncStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>);
+pub(in super) struct AsyncStageCompletionEventReceiver(pub Receiver<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>);
 
 #[derive(Resource, Default, Debug)]
 pub struct WorkflowMap {
-    pub(in super) map: HashMap<String, HashMap<String, Option<WorkflowInstance>>>,
+    pub(in super) map: HashMap<&'static str, HashMap<&'static str, Option<WorkflowInstance>>>,
 }
 
 impl WorkflowMap {
@@ -101,9 +101,9 @@ impl WorkflowMap {
         let module_name = workflow_instance.module_name();
         let workflow_name = workflow_instance.workflow_name();
 
-        let module_entry = self.map.entry(module_name.to_string()).or_default();
+        let module_entry = self.map.entry(module_name).or_default();
 
-        if module_entry.insert(workflow_name.to_string(), Some(workflow_instance)).is_some() {
+        if module_entry.insert(workflow_name, Some(workflow_instance)).is_some() {
             unreachable!(
                 "Workflow insertion error: Workflow '{}' in module '{}' is already active.",
                 workflow_name, module_name
@@ -111,7 +111,7 @@ impl WorkflowMap {
         }
     }
 
-    pub fn has_workflow(&self, module_name: &str, workflow_name: &str) -> bool {
+    pub fn has_workflow(&self, module_name: &'static str, workflow_name: &'static str) -> bool {
         self.map
             .get(module_name)
             .and_then(|workflows| workflows.get(workflow_name))
@@ -121,7 +121,7 @@ impl WorkflowMap {
             .is_some()
     }
 
-    pub fn had_workflow(&self, module_name: &str, workflow_name: &str) -> bool {
+    pub fn had_workflow(&self, module_name: &'static str, workflow_name: &'static str) -> bool {
         self.map
             .get(module_name)
             .and_then(|workflows| workflows.get(workflow_name))
@@ -131,13 +131,13 @@ impl WorkflowMap {
             .is_none()
     }
 
-    pub fn remove_workflow(&mut self, module_name: &str, workflow_name: &str) {
+    pub fn remove_workflow(&mut self, module_name: &'static str, workflow_name: &'static str) {
         if let Some(workflows) = self.map.get_mut(module_name) {
-            workflows.insert(workflow_name.to_owned(), None);
+            workflows.insert(workflow_name, None);
         }
     }
 
-    pub fn advance_stage(&mut self, module_name: &str, workflow_name: &str) {
+    pub fn advance_stage(&mut self, module_name: &'static str, workflow_name: &'static str) {
         if let Some(Some(instance)) = self.map.get_mut(module_name).and_then(|workflows| workflows.get_mut(workflow_name)) {
             match &mut instance.state_mut() {
                 WorkflowState::Processing { current_stage , stage_completed: completed } => {

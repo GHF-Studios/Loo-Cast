@@ -54,8 +54,8 @@ pub(in super) fn poll_ecs_stage_buffer_system(world: &mut World) {
     };
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let function = &mut stage.function;
-        let output = (function)(data_buffer, world);
+        let run_ecs = &mut stage.run_ecs;
+        let output = (run_ecs)(data_buffer, world);
 
         let sender = world
             .get_resource::<EcsStageCompletionEventSender>()
@@ -70,6 +70,70 @@ pub(in super) fn poll_ecs_stage_buffer_system(world: &mut World) {
 
         if let Err(err) = output_send_result {
             unreachable!("Ecs stage completion error: Output send error: {}", err);
+        }
+    }
+}
+
+pub(in super) fn poll_render_stage_buffer_system(world: &mut World) {
+    let drained_buffer = {
+        let mut buffer = world.resource_mut::<RenderStageBuffer>();
+        std::mem::take(&mut buffer.0)
+    };
+
+    for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
+        let run_render = &mut stage.run_render;
+        let output = (run_render)(data_buffer, world);
+
+        let sender = world
+            .get_resource::<RenderStageCompletionEventSender>()
+            .unwrap()
+            .0
+            .clone();
+
+        let cloned_module_name = module_name.clone();
+        let cloned_workflow_name = workflow_name.clone();
+
+        let output_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output));
+
+        if let Err(err) = output_send_result {
+            unreachable!("Render stage completion error: Output send error: {}", err);
+        }
+    }
+}
+
+pub(in super) fn poll_async_stage_buffer_system(world: &mut World) {
+    let drained_buffer = {
+        let mut buffer = world.resource_mut::<AsyncStageBuffer>();
+        std::mem::take(&mut buffer.0)
+    };
+
+    for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
+        let run_async = &mut stage.run_async;
+        let future = (run_async)(data_buffer);
+
+        let sender = world
+            .get_resource::<AsyncStageCompletionEventSender>()
+            .unwrap()
+            .0
+            .clone();
+
+        let cloned_module_name = module_name.clone();
+        let cloned_workflow_name = workflow_name.clone();
+
+        let task_spawn_result = TOKIO_RUNTIME.lock().unwrap().block_on(async {
+            tokio::spawn(async move {
+                let output = future.await;
+                
+                let output_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output));
+
+                if let Err(err) = output_send_result {
+                    unreachable!("Async stage completion error: Output send error: {}", err);
+                }
+            }).await
+        });
+
+        if let Err(err) = task_spawn_result {
+            unreachable!("Async stage execution error: Task spawn error: {}", err);
         }
     }
 }
@@ -113,33 +177,6 @@ pub(in super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
     buffer.0 = waiting_buffer;
 }
 
-pub(in super) fn poll_render_stage_buffer_system(world: &mut World) {
-    let drained_buffer = {
-        let mut buffer = world.resource_mut::<RenderStageBuffer>();
-        std::mem::take(&mut buffer.0)
-    };
-
-    for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let function = &mut stage.function;
-        let output = (function)(data_buffer, world);
-
-        let sender = world
-            .get_resource::<RenderStageCompletionEventSender>()
-            .unwrap()
-            .0
-            .clone();
-
-        let cloned_module_name = module_name.clone();
-        let cloned_workflow_name = workflow_name.clone();
-
-        let output_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output));
-
-        if let Err(err) = output_send_result {
-            unreachable!("Render stage completion error: Output send error: {}", err);
-        }
-    }
-}
-
 pub(in super) fn poll_render_while_stage_buffer_system(world: &mut World) {
     let drained_buffer = {
         let mut buffer = world.resource_mut::<RenderWhileStageBuffer>();
@@ -177,43 +214,6 @@ pub(in super) fn poll_render_while_stage_buffer_system(world: &mut World) {
 
     let mut buffer = world.resource_mut::<RenderWhileStageBuffer>();
     buffer.0 = waiting_buffer;
-}
-
-pub(in super) fn poll_async_stage_buffer_system(world: &mut World) {
-    let drained_buffer = {
-        let mut buffer = world.resource_mut::<AsyncStageBuffer>();
-        std::mem::take(&mut buffer.0)
-    };
-
-    for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let function = &mut stage.function;
-        let future = (function)(data_buffer);
-
-        let sender = world
-            .get_resource::<AsyncStageCompletionEventSender>()
-            .unwrap()
-            .0
-            .clone();
-
-        let cloned_module_name = module_name.clone();
-        let cloned_workflow_name = workflow_name.clone();
-
-        let task_spawn_result = TOKIO_RUNTIME.lock().unwrap().block_on(async {
-            tokio::spawn(async move {
-                let output = future.await;
-                
-                let output_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output));
-
-                if let Err(err) = output_send_result {
-                    unreachable!("Async stage completion error: Output send error: {}", err);
-                }
-            }).await
-        });
-
-        if let Err(err) = task_spawn_result {
-            unreachable!("Async stage execution error: Task spawn error: {}", err);
-        }
-    }
 }
 
 pub(in super) fn handle_ecs_stage_completion_event_system(
@@ -625,8 +625,8 @@ pub(in super) fn workflow_request_system(world: &mut World) {
 
                         *instance.state_mut() = WorkflowState::Processing { current_stage: 0, stage_completed: false };
                         stage_initialization_events.push(WorkflowStageInitializationEvent {
-                            module_name: module_name.clone(),
-                            workflow_name: workflow_name.clone(),
+                            module_name,
+                            workflow_name,
                             stage_input: input,
                         });
                     },
@@ -679,34 +679,34 @@ pub(in super) fn workflow_execution_system(world: &mut World) {
         let workflow_name = event.workflow_name;
         let stage_input = event.stage_input;
 
-        if let Some(workflows) = workflow_map.map.get_mut(&module_name) {
-            if let Some(instance) = workflows.get_mut(&workflow_name).and_then(|a| a.as_mut()) {
+        if let Some(workflows) = workflow_map.map.get_mut(module_name) {
+            if let Some(instance) = workflows.get_mut(workflow_name).and_then(|a| a.as_mut()) {
                 let current_stage = instance.state().current_stage();
 
                 let workflow_type = workflow_type_module_registry
-                    .get_workflow_type_mut(&module_name, &workflow_name)
+                    .get_workflow_type_mut(module_name, workflow_name)
                     .unwrap();
 
                 let stage = std::mem::replace(&mut workflow_type.stages[current_stage], WorkflowStage::Ecs(WorkflowStageEcs {
-                    name: "placeholder".to_string(),
-                    function: Box::new(|_, _| unreachable!()),
+                    name: "placeholder",
+                    run_ecs: Box::new(|_, _| unreachable!()),
                 }));
 
                 match stage {
                     WorkflowStage::Ecs(stage) => {
-                        ecs_stage_buffer.0.push((module_name.clone(), workflow_name.clone(), current_stage, stage, stage_input));
+                        ecs_stage_buffer.0.push((module_name, workflow_name, current_stage, stage, stage_input));
                     },
                     WorkflowStage::EcsWhile(stage) => {
-                        ecs_while_stage_buffer.0.push((module_name.clone(), workflow_name.clone(), current_stage, stage, stage_input));
+                        ecs_while_stage_buffer.0.push((module_name, workflow_name, current_stage, stage, stage_input));
                     },
                     WorkflowStage::Render(stage) => {
-                        render_stage_buffer.0.push((module_name.clone(), workflow_name.clone(), current_stage, stage, stage_input));
+                        render_stage_buffer.0.push((module_name, workflow_name, current_stage, stage, stage_input));
                     },
                     WorkflowStage::RenderWhile(stage) => {
-                        render_while_stage_buffer.0.push((module_name.clone(), workflow_name.clone(), current_stage, stage, stage_input));
+                        render_while_stage_buffer.0.push((module_name, workflow_name, current_stage, stage, stage_input));
                     },
                     WorkflowStage::Async(stage) => {
-                        async_stage_buffer.0.push((module_name.clone(), workflow_name.clone(), current_stage, stage, stage_input));
+                        async_stage_buffer.0.push((module_name, workflow_name, current_stage, stage, stage_input));
                     },
                 }
             } else {
@@ -743,8 +743,8 @@ pub(in super) fn workflow_completion_handling_system(world: &mut World) {
         let stage_output = event.stage_output;
         let stage_return = event.stage_return;
 
-        if let Some(workflows) = workflow_map.map.get_mut(&module_name) {
-            if let Some(instance) = workflows.get_mut(&workflow_name).and_then(|a| a.as_mut()) {
+        if let Some(workflows) = workflow_map.map.get_mut(module_name) {
+            if let Some(instance) = workflows.get_mut(workflow_name).and_then(|a| a.as_mut()) {
                 match instance.state_mut() {
                     WorkflowState::Processing { current_stage: other_current_stage, stage_completed: completed } => {
                         if current_stage != *other_current_stage {
@@ -766,9 +766,9 @@ pub(in super) fn workflow_completion_handling_system(world: &mut World) {
                 workflow_type.stages[current_stage] = stage_return;
 
                 if current_stage + 1 < workflow_type.stages.len() {
-                    intermediate_stage_completions.push((module_name.clone(), workflow_name.clone(), current_stage, stage_output));
+                    intermediate_stage_completions.push((module_name, workflow_name, current_stage, stage_output));
                 } else {
-                    final_stage_completions.push((module_name.clone(), workflow_name.clone(), instance.take_callback(), stage_output));
+                    final_stage_completions.push((module_name, workflow_name, instance.take_callback(), stage_output));
                 }
             }
         }
@@ -776,8 +776,8 @@ pub(in super) fn workflow_completion_handling_system(world: &mut World) {
 
     // Handle intermediate stage completions
     for (module_name, workflow_name, current_stage, stage_output) in intermediate_stage_completions {
-        if let Some(workflows) = workflow_map.map.get_mut(&module_name) {
-            if let Some(instance) = workflows.get_mut(&workflow_name).and_then(|a| a.as_mut()) {
+        if let Some(workflows) = workflow_map.map.get_mut(module_name) {
+            if let Some(instance) = workflows.get_mut(workflow_name).and_then(|a| a.as_mut()) {
                 *instance.state_mut() = WorkflowState::Processing { current_stage: current_stage + 1, stage_completed: false };
 
                 stage_initialization_event_writer.send(WorkflowStageInitializationEvent {
@@ -792,8 +792,8 @@ pub(in super) fn workflow_completion_handling_system(world: &mut World) {
     // Handle final stage completions
     let mut callbacks = Vec::new();
     for (module_name, workflow_name, callback, stage_output) in final_stage_completions {
-        if let Some(workflows) = workflow_map.map.get_mut(&module_name) {
-            workflows.remove(&workflow_name);
+        if let Some(workflows) = workflow_map.map.get_mut(module_name) {
+            workflows.remove(workflow_name);
             callbacks.push((callback, stage_output));
         }
     }

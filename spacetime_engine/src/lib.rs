@@ -150,7 +150,7 @@ fn startup_system() {
     //})
     //
     //crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_composite_workflow(Box::pin(test_workflow_framework()));
-}
+//}
 
 
 

@@ -9,7 +9,6 @@ pub mod traits;
 pub mod types;
 
 pub mod instance;
-pub mod io;
 pub mod stage;
 pub mod request;
 pub mod response;

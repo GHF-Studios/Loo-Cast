@@ -168,15 +168,12 @@ impl Workflow {
             WorkflowSignature::None => {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let stage_types = self.stages.0.iter().map(|s| {
-                    quote! {
-                        crate::workflow::stage::WorkflowStage {
-                            
-                        }
-                    }
-                });
-                let stages = self.stages.0.into_iter().map(|s| s.generate());
-
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                    .stages.0
+                    .into_iter()
+                    .map(|s| s.generate())
+                    .unzip();
+                
                 quote! {
                     pub mod #workflow_ident {
                         pub const NAME: &str = stringify!(#workflow_name);
@@ -191,11 +188,15 @@ impl Workflow {
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
                         impl Type {
-                            pub fn create_workflow_type() -> crate::workflow::types::WorkflowType {
-                                crate::workflow::types::WorkflowType {
-                                    name: self::NAME,
-                                    stages: vec![#(#stage_types)*],
-                                }
+                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
+                                workflow_type_module_registry.register(
+                                    WorkflowType {
+                                        name: super::NAME,
+                                        stages: vec![
+                                            #(#stage_literals),*
+                                        ],
+                                    },
+                                );
                             }
                         }
                         
@@ -210,7 +211,7 @@ impl Workflow {
                         }
         
                         pub mod stages {
-                            #(#stages)*
+                            #(#stage_modules)*
                         }
                     }
                 }
@@ -251,7 +252,11 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let stages = self.stages.0.into_iter().map(|s| s.generate());
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                    .stages.0
+                    .into_iter()
+                    .map(|s| s.generate())
+                    .unzip();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -282,7 +287,7 @@ impl Workflow {
                         }
         
                         pub mod stages {
-                            #(#stages)*
+                            #(#stage_modules)*
                         }
                     }
                 }
@@ -296,7 +301,11 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let stages = self.stages.0.into_iter().map(|s| s.generate());
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                    .stages.0
+                    .into_iter()
+                    .map(|s| s.generate())
+                    .unzip();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -325,7 +334,7 @@ impl Workflow {
                         }
         
                         pub mod stages {
-                            #(#stages)*
+                            #(#stage_modules)*
                         }
                     }
                 }
@@ -372,7 +381,11 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let stages = self.stages.0.into_iter().map(|s| s.generate());
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                    .stages.0
+                    .into_iter()
+                    .map(|s| s.generate())
+                    .unzip();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -404,7 +417,7 @@ impl Workflow {
                         }
         
                         pub mod stages {
-                            #(#stages)*
+                            #(#stage_modules)*
                         }
                     }
                 }
@@ -418,7 +431,11 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let stages = self.stages.0.into_iter().map(|s| s.generate());
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                    .stages.0
+                    .into_iter()
+                    .map(|s| s.generate())
+                    .unzip();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -447,7 +464,7 @@ impl Workflow {
                         }
         
                         pub mod stages {
-                            #(#stages)*
+                            #(#stage_modules)*
                         }
                     }
                 }
@@ -494,7 +511,11 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let stages = self.stages.0.into_iter().map(|s| s.generate());
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                    .stages.0
+                    .into_iter()
+                    .map(|s| s.generate())
+                    .unzip();
         
                 quote! {
                     pub mod #workflow_ident {
@@ -526,7 +547,7 @@ impl Workflow {
                         }
         
                         pub mod stages {
-                            #(#stages)*
+                            #(#stage_modules)*
                         }
                     }
                 }
@@ -543,7 +564,11 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let stages = self.stages.0.into_iter().map(|s| s.generate());
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                    .stages.0
+                    .into_iter()
+                    .map(|s| s.generate())
+                    .unzip();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -573,7 +598,7 @@ impl Workflow {
                         }
         
                         pub mod stages {
-                            #(#stages)*
+                            #(#stage_modules)*
                         }
                     }
                 }
@@ -623,7 +648,11 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let stages = self.stages.0.into_iter().map(|s| s.generate());
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                    .stages.0
+                    .into_iter()
+                    .map(|s| s.generate())
+                    .unzip();
         
                 quote! {
                     pub mod #workflow_ident {
@@ -656,7 +685,7 @@ impl Workflow {
                         }
         
                         pub mod stages {
-                            #(#stages)*
+                            #(#stage_modules)*
                         }
                     }
                 }
