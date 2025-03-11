@@ -87,35 +87,35 @@ impl TypedWorkflowPath {
         match self {
             TypedWorkflowPath::None(path) => {
                 let (workflow_module, workflow) = TypedWorkflowPath::convert_to_raw(path);
-                quote! { crate::#workflow_module::vorkflows::#workflow_module::#workflow::Type }
+                quote! { crate::#workflow_module::workflows::#workflow_module::#workflow::Type }
             },
             TypedWorkflowPath::E(path) => {
                 let (workflow_module, workflow) = TypedWorkflowPath::convert_to_raw(path);
-                quote! { crate::#workflow_module::vorkflows::#workflow_module::#workflow::TypeE }
+                quote! { crate::#workflow_module::workflows::#workflow_module::#workflow::TypeE }
             },
             TypedWorkflowPath::O(path) => {
                 let (workflow_module, workflow) = TypedWorkflowPath::convert_to_raw(path);
-                quote! { crate::#workflow_module::vorkflows::#workflow_module::#workflow::TypeO }
+                quote! { crate::#workflow_module::workflows::#workflow_module::#workflow::TypeO }
             },
             TypedWorkflowPath::OE(path) => {
                 let (workflow_module, workflow) = TypedWorkflowPath::convert_to_raw(path);
-                quote! { crate::#workflow_module::vorkflows::#workflow_module::#workflow::TypeOE }
+                quote! { crate::#workflow_module::workflows::#workflow_module::#workflow::TypeOE }
             },
             TypedWorkflowPath::I(path) => {
                 let (workflow_module, workflow) = TypedWorkflowPath::convert_to_raw(path);
-                quote! { crate::#workflow_module::vorkflows::#workflow_module::#workflow::TypeI }
+                quote! { crate::#workflow_module::workflows::#workflow_module::#workflow::TypeI }
             },
             TypedWorkflowPath::IE(path) => {
                 let (workflow_module, workflow) = TypedWorkflowPath::convert_to_raw(path);
-                quote! { crate::#workflow_module::vorkflows::#workflow_module::#workflow::TypeIE }
+                quote! { crate::#workflow_module::workflows::#workflow_module::#workflow::TypeIE }
             },
             TypedWorkflowPath::IO(path) => {
                 let (workflow_module, workflow) = TypedWorkflowPath::convert_to_raw(path);
-                quote! { crate::#workflow_module::vorkflows::#workflow_module::#workflow::TypeIO }
+                quote! { crate::#workflow_module::workflows::#workflow_module::#workflow::TypeIO }
             },
             TypedWorkflowPath::IOE(path) => {
                 let (workflow_module, workflow) = TypedWorkflowPath::convert_to_raw(path);
-                quote! { crate::#workflow_module::vorkflows::#workflow_module::#workflow::TypeIOE }
+                quote! { crate::#workflow_module::workflows::#workflow_module::#workflow::TypeIOE }
             },
         }
     }

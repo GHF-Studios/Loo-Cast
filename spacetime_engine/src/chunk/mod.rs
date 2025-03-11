@@ -7,7 +7,6 @@ pub mod resources;
 pub mod systems;
 
 pub mod workflows;
-pub mod vorkflows;
 
 use bevy::prelude::*;
 use resources::{ChunkWorkflowBuffer, ChunkManager};

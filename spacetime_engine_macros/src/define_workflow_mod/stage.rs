@@ -319,8 +319,8 @@ impl TypedStage<Ecs> {
         };
         let stage_literal = quote! {
             crate::workflow::stage::WorkflowStage::Ecs(crate::workflow::stage::WorkflowStageEcs {
-                name: super::NAME,
-                run: self::stages::#stage_name::core_functions::run
+                name: stringify!(#stage_name),
+                run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
             })
         };
 
@@ -360,8 +360,8 @@ impl TypedStage<Render> {
         };
         let stage_literal = quote! {
             crate::workflow::stage::WorkflowStage::Render(crate::workflow::stage::WorkflowStageRender {
-                name: super::NAME,
-                run: self::stages::#stage_name::core_functions::run
+                name: stringify!(#stage_name),
+                run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
             })
         };
 
@@ -401,8 +401,8 @@ impl TypedStage<Async> {
         };
         let stage_literal = quote! {
             crate::workflow::stage::WorkflowStage::Async(crate::workflow::stage::WorkflowStageAsync {
-                name: super::NAME,
-                run: self::stages::#stage_name::core_functions::run
+                name: stringify!(#stage_name),
+                run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
             })
         };
 
@@ -442,9 +442,9 @@ impl TypedStage<EcsWhile> {
         };
         let stage_literal = quote! {
             crate::workflow::stage::WorkflowStage::EcsWhile(crate::workflow::stage::WorkflowStageEcsWhile {
-                name: super::NAME,
-                setup: self::stages::#stage_name::core_functions::setup,
-                run: self::stages::#stage_name::core_functions::run
+                name: stringify!(#stage_name),
+                setup_ecs_while: Box::new(self::stages::#stage_ident::core_functions::setup_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
             })
         };
 
@@ -484,9 +484,9 @@ impl TypedStage<RenderWhile> {
         };
         let stage_literal = quote! {
             crate::workflow::stage::WorkflowStage::RenderWhile(crate::workflow::stage::WorkflowStageRenderWhile {
-                name: super::NAME,
-                setup: self::stages::#stage_name::core_functions::setup,
-                run: self::stages::#stage_name::core_functions::run
+                name: stringify!(#stage_name),
+                setup_render_while: Box::new(self::stages::#stage_ident::core_functions::setup_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
             })
         };
 

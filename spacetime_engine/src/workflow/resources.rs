@@ -12,8 +12,7 @@ pub struct WorkflowTypeModuleRegistry {
 
 impl WorkflowTypeModuleRegistry {
     pub fn register(&mut self, mut workflow_type_module: WorkflowTypeModule) {
-        let workflow_type_module_name = workflow_type_module.name.clone();
-
+        let workflow_type_module_name = workflow_type_module.name;
 
         let mut registered_workflows: HashMap<&'static str, WorkflowType> = match self.registry.get(workflow_type_module_name) {
             Some(_) => {
@@ -23,14 +22,14 @@ impl WorkflowTypeModuleRegistry {
         };
 
         while let Some(workflow_type) = workflow_type_module.workflow_types.pop() {
-            let workflow_type_name = workflow_type.name.clone();
+            let workflow_type_name = workflow_type.name;
 
             if registered_workflows.insert(workflow_type_name, workflow_type).is_some() {
                 unreachable!("Attempted to register workflow type with name '{}' that is already in use.", workflow_type_name)
             }
         }
 
-        self.registry.insert(workflow_type_module_name.clone(), registered_workflows);
+        self.registry.insert(workflow_type_module_name, registered_workflows);
     }
 
     pub fn get_workflow_module_type(&self, module_name: &'static str) -> Option<&HashMap<&'static str, WorkflowType>> {

@@ -66,12 +66,35 @@ impl WorkflowModule {
         let module_ident = &self.name;
         let module_name = module_ident.to_string();
         let module_ident = Ident::new(module_name.as_str().to_snake_case().as_str(), module_ident.span());
-        let workflows = self.workflows.into_iter().map(|w| w.generate());
+        let (workflow_modules, workflow_data): (Vec<_>, Vec<_>) = self.workflows.into_iter().map(|w| w.generate()).unzip();
+
+        let workflow_literals = workflow_data.into_iter().map(|(signature, ident)| match (signature, ident) {
+            (WorkflowSignature::None, ident) => quote! { #ident::Type::create_workflow() },
+            (WorkflowSignature::E, ident) => quote! { #ident::TypeE::create_workflow() },
+            (WorkflowSignature::O, ident) => quote! { #ident::TypeO::create_workflow() },
+            (WorkflowSignature::OE, ident) => quote! { #ident::TypeOE::create_workflow() },
+            (WorkflowSignature::I, ident) => quote! { #ident::TypeI::create_workflow() },
+            (WorkflowSignature::IE, ident) => quote! { #ident::TypeIE::create_workflow() },
+            (WorkflowSignature::IO, ident) => quote! { #ident::TypeIO::create_workflow() },
+            (WorkflowSignature::IOE, ident) => quote! { #ident::TypeIOE::create_workflow() },
+        }).collect::<Vec<_>>();
 
         quote! {
             pub mod #module_ident {
                 pub const NAME: &str = stringify!(#module_name);
-                #(#workflows)*
+
+                pub fn register_workflow_type_module(workflow_type_module_registry: &mut crate::workflow::resources::WorkflowTypeModuleRegistry) {
+                    workflow_type_module_registry.register(
+                        crate::workflow::types::WorkflowTypeModule {
+                            name: stringify!(#module_name),
+                            workflow_types: vec![
+                                #(#workflow_literals),*
+                            ],
+                        }
+                    );
+                }
+                
+                #(#workflow_modules)*
             }
         }
     }
@@ -159,12 +182,12 @@ impl Parse for Workflow {
 }
 
 impl Workflow {
-    pub fn generate(self) -> TokenStream {
+    pub fn generate(self) -> (TokenStream, (WorkflowSignature, Ident)) {
         let workflow_ident = &self.name;
         let workflow_name = workflow_ident.to_string();
         let workflow_ident = Ident::new(workflow_name.as_str().to_snake_case().as_str(), workflow_ident.span());
 
-        match self.signature {
+        let workflow_module = match self.signature {
             WorkflowSignature::None => {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
@@ -188,15 +211,13 @@ impl Workflow {
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
                         impl Type {
-                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
-                                workflow_type_module_registry.register(
-                                    WorkflowType {
-                                        name: super::NAME,
-                                        stages: vec![
-                                            #(#stage_literals),*
-                                        ],
-                                    },
-                                );
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
+                                    name: self::NAME,
+                                    stages: vec![
+                                        #(#stage_literals),*
+                                    ],
+                                }
                             }
                         }
                         
@@ -275,16 +296,14 @@ impl Workflow {
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
-                        impl Type {
-                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
-                                workflow_type_module_registry.register(
-                                    WorkflowType {
-                                        name: super::NAME,
-                                        stages: vec![
-                                            #(#stage_literals),*
-                                        ],
-                                    },
-                                );
+                        impl TypeE {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
+                                    name: self::NAME,
+                                    stages: vec![
+                                        #(#stage_literals),*
+                                    ],
+                                }
                             }
                         }
                         
@@ -334,16 +353,14 @@ impl Workflow {
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
-                        impl Type {
-                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
-                                workflow_type_module_registry.register(
-                                    WorkflowType {
-                                        name: super::NAME,
-                                        stages: vec![
-                                            #(#stage_literals),*
-                                        ],
-                                    },
-                                );
+                        impl TypeO {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
+                                    name: self::NAME,
+                                    stages: vec![
+                                        #(#stage_literals),*
+                                    ],
+                                }
                             }
                         }
                         
@@ -429,16 +446,14 @@ impl Workflow {
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
-                        impl Type {
-                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
-                                workflow_type_module_registry.register(
-                                    WorkflowType {
-                                        name: super::NAME,
-                                        stages: vec![
-                                            #(#stage_literals),*
-                                        ],
-                                    },
-                                );
+                        impl TypeOE {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
+                                    name: self::NAME,
+                                    stages: vec![
+                                        #(#stage_literals),*
+                                    ],
+                                }
                             }
                         }
                         
@@ -488,16 +503,14 @@ impl Workflow {
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
-                        impl Type {
-                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
-                                workflow_type_module_registry.register(
-                                    WorkflowType {
-                                        name: super::NAME,
-                                        stages: vec![
-                                            #(#stage_literals),*
-                                        ],
-                                    },
-                                );
+                        impl TypeI {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
+                                    name: self::NAME,
+                                    stages: vec![
+                                        #(#stage_literals),*
+                                    ],
+                                }
                             }
                         }
                         
@@ -583,16 +596,14 @@ impl Workflow {
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
-                        impl Type {
-                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
-                                workflow_type_module_registry.register(
-                                    WorkflowType {
-                                        name: super::NAME,
-                                        stages: vec![
-                                            #(#stage_literals),*
-                                        ],
-                                    },
-                                );
+                        impl TypeIE {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
+                                    name: self::NAME,
+                                    stages: vec![
+                                        #(#stage_literals),*
+                                    ],
+                                }
                             }
                         }
                         
@@ -646,16 +657,14 @@ impl Workflow {
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
-                        impl Type {
-                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
-                                workflow_type_module_registry.register(
-                                    WorkflowType {
-                                        name: super::NAME,
-                                        stages: vec![
-                                            #(#stage_literals),*
-                                        ],
-                                    },
-                                );
+                        impl TypeIO {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
+                                    name: self::NAME,
+                                    stages: vec![
+                                        #(#stage_literals),*
+                                    ],
+                                }
                             }
                         }
                         
@@ -745,16 +754,14 @@ impl Workflow {
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
-                        impl Type {
-                            pub fn create_workflow(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
-                                workflow_type_module_registry.register(
-                                    WorkflowType {
-                                        name: super::NAME,
-                                        stages: vec![
-                                            #(#stage_literals),*
-                                        ],
-                                    },
-                                );
+                        impl TypeIOE {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
+                                    name: self::NAME,
+                                    stages: vec![
+                                        #(#stage_literals),*
+                                    ],
+                                }
                             }
                         }
                         
@@ -774,6 +781,8 @@ impl Workflow {
                     }
                 }
             },
-        }
+        };
+
+        (workflow_module, (self.signature, workflow_ident))
     }
 }

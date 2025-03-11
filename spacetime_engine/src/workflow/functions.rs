@@ -12,11 +12,11 @@ pub async fn run_workflow<W: WorkflowType>() {
     }).unwrap();
 
     loop {
-        if let Some(response) = {
+        if let Some(Some(response)) = {
             let mut receiver = get_response_receiver();
             receiver.recv().now_or_never()
         } {
-            return response.unwrap();
+            return response;
         }
         tokio::task::yield_now().await;
     }
@@ -31,11 +31,11 @@ pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
     }).unwrap();
 
     loop {
-        if let Some(response) = {
+        if let Some(Some(response)) = {
             let mut receiver = get_response_e_receiver();
             receiver.recv().now_or_never()
         } {
-            return response.unwrap().unpack();
+            return response.unpack();
         }
         tokio::task::yield_now().await;
     }
@@ -50,11 +50,11 @@ pub async fn run_workflow_o<W: WorkflowTypeO>() -> Result<W::Output, ()> {
     }).unwrap();
 
     loop {
-        if let Some(response) = {
+        if let Some(Some(response)) = {
             let mut receiver = get_response_o_receiver();
             receiver.recv().now_or_never()
         } {
-            return response.unwrap().unpack();
+            return response.unpack();
         }
         tokio::task::yield_now().await;
     }
@@ -69,11 +69,11 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error>
     }).unwrap();
 
     loop {
-        if let Some(response) = {
+        if let Some(Some(response)) = {
             let mut receiver = get_response_oe_receiver();
             receiver.recv().now_or_never()
         } {
-            return response.unwrap().unpack();
+            return response.unpack();
         }
         tokio::task::yield_now().await;
     }
@@ -89,11 +89,11 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
     }).unwrap();
 
     loop {
-        if let Some(response) = {
+        if let Some(Some(response)) = {
             let mut receiver = get_response_i_receiver();
             receiver.recv().now_or_never()
         } {
-            return response.unwrap();
+            return response;
         }
         tokio::task::yield_now().await;
     }
@@ -109,11 +109,11 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W
     }).unwrap();
 
     loop {
-        if let Some(response) = {
+        if let Some(Some(response)) = {
             let mut receiver = get_response_ie_receiver();
             receiver.recv().now_or_never()
         } {
-            return response.unwrap().unpack();
+            return response.unpack();
         }
         tokio::task::yield_now().await;
     }
@@ -129,11 +129,11 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> Result<W::Ou
     }).unwrap();
 
     loop {
-        if let Some(response) = {
+        if let Some(Some(response)) = {
             let mut response_receiver = get_response_io_receiver();
             response_receiver.recv().now_or_never()
         } {
-            return response.unwrap().unpack();
+            return response.unpack();
         }
         tokio::task::yield_now().await;
     }
@@ -149,11 +149,11 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
     }).unwrap();
 
     loop {
-        if let Some(response) = {
+        if let Some(Some(response)) = {
             let mut receiver = get_response_ioe_receiver();
             receiver.recv().now_or_never()
         } {
-            return response.unwrap().unpack();
+            return response.unpack();
         }
         tokio::task::yield_now().await;
     }

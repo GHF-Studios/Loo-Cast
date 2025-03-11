@@ -1,424 +1,529 @@
-use crate::workflow::{resources::WorkflowTypeModuleRegistry, types::WorkflowTypeModule};
+use spacetime_engine_macros::define_workflow_mod;
 
-pub fn initialize_workflow_type_module(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
-    workflow_type_module_registry.register(
-        WorkflowTypeModule {
-            name: "GPU".to_owned(),
-            workflow_types: vec![
-                setup_texture_generator::create_workflow_type(),
-                generate_texture::create_workflow_type(),
-            ],
-        },
-    );
-}
-
-pub mod setup_texture_generator {
-    use bevy::{prelude::*, render::renderer::RenderDevice};
-    use bevy::ecs::system::SystemState;
-    use bevy::render::render_resource::*;
-
-    use crate::workflow::stage::*;
-    use crate::workflow::types::RawWorkflowData;
-    use crate::gpu::resources::ShaderRegistry;
-    use crate::workflow::{stage::WorkflowStage, io::{WorkflowIO, InputState, OutputState}, types::WorkflowType};
-
-    pub struct Input(pub SetupPipelineInput);
-
-    pub struct SetupPipelineInput {
-        pub shader_name: &'static str,
-        pub shader_path: String,
-    }
-
-    pub struct Output(pub Result<(), String>);
-
-    pub fn create_workflow_type() -> WorkflowType {
-        WorkflowType {
-            name: "SetupTextureGenerator".to_owned(),
-            primary_validation: Box::new(|io: WorkflowIO<InputState>| -> Result<WorkflowIO<InputState>, String> {
-                let (workflow_input, _) = io.get_input::<Input>();
-                let stage_input = workflow_input.0;
-
-                Ok(WorkflowIO::new_input(RawWorkflowData::new(stage_input)))
-            }),
-            secondary_validation: Box::new(|io: WorkflowIO<InputState>, _world: &mut World| -> Result<WorkflowIO<InputState>, String> {
-                Ok(io)
-            }),
-            stages: vec![
-                WorkflowStage::Ecs(WorkflowStageEcs {
-                    name: "SetupPhase1".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
-                        let (input, io) = io.get_input::<SetupPipelineInput>();
-                        let shader_name = input.shader_name;
-                        let shader_path = input.shader_path.clone();
-
-                        let mut system_state: SystemState<(
-                            ResMut<Assets<Shader>>,
-                            Res<ShaderRegistry>,
-                        )> = SystemState::new(world);
-                        let (
-                            mut shader_assets, 
-                            shader_registry,
-                        ) = system_state.get_mut(world);
-
-                        if shader_registry.shaders.contains_key(shader_name) {
-                            unreachable!("Failed to setup texture generator: Shader '{}' already registered", shader_name)
+define_workflow_mod! {
+    name: "Gpu",
+    workflows: [
+        SetupTextureGenerator {
+            user_imports: {
+                use bevy::prelude::{Handle, Shader, Res, ResMut, Assets};
+                use bevy::ecs::system::SystemState;
+                use bevy::render::render_resource::{
+                    BindGroupLayout, CachedComputePipelineId, 
+                    PipelineCache, BindGroupLayoutEntry, ShaderStages, 
+                    BindingType, StorageTextureAccess, TextureFormat, 
+                    TextureViewDimension, BufferBindingType, PushConstantRange, 
+                    CachedPipelineState, Pipeline, ComputePipelineDescriptor
+                };
+                use bevy::render::render_asset::RenderAssets;
+                use bevy::render::texture::GpuImage;
+                use bevy::render::renderer::RenderDevice;
+                
+                use crate::gpu::resources::ShaderRegistry;
+            },
+            user_items: {},
+            stages: [
+                SetupPhase1: Ecs {
+                    core_types: [
+                        struct Input { 
+                            shader_name: &'static str, 
+                            shader_path: String 
                         }
-
-                        let shader_source = match std::fs::read_to_string(&shader_path) {
-                            Ok(source) => source,
-                            Err(e) => {
-                                unreachable!("Failed to read shader: {}", e)
-                            },
-                        };
-
-                        let shader = Shader::from_wgsl(shader_source, shader_path.clone());
-                        let shader_handle = shader_assets.add(shader);
-
-                        io.set_output(RawWorkflowData::new((input, shader_handle)))
-                    })
-                }),
-                WorkflowStage::Render(WorkflowStageRender {
-                    name: "SetupPhase2".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
-                        let ((input, shader_handle), io) = io.get_input::<(SetupPipelineInput, Handle<Shader>)>();
-                        let shader_name = input.shader_name;
-
-                        let mut system_state: SystemState<(
-                            Res<RenderDevice>,
-                            Res<PipelineCache>,
-                        )> = SystemState::new(world);
-                        let (
-                            render_device, 
-                            pipeline_cache, 
-                        ) = system_state.get(world);
-
-                        let bind_group_layout = render_device.create_bind_group_layout(
-                            Some("Compute Bind Group Layout"),
-                            &[
-                                // Storage Texture
-                                BindGroupLayoutEntry {
-                                    binding: 0,
-                                    visibility: ShaderStages::COMPUTE,
-                                    ty: BindingType::StorageTexture {
-                                        access: StorageTextureAccess::WriteOnly,
-                                        format: TextureFormat::Rgba8Unorm,
-                                        view_dimension: TextureViewDimension::D2,
-                                    },
-                                    count: None,
-                                },
-                                // Parameter Buffer
-                                BindGroupLayoutEntry {
-                                    binding: 1,
-                                    visibility: ShaderStages::COMPUTE,
-                                    ty: BindingType::Buffer {
-                                        ty: BufferBindingType::Storage { read_only: false },
-                                        has_dynamic_offset: false,
-                                        min_binding_size: None,
-                                    },
-                                    count: None,
-                                },
-                            ],
-                        );
-
-                        let pipeline_id = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
-                            label: Some(format!("Pipeline for {}",shader_name).into()),
-                            layout: vec![bind_group_layout.clone()],
-                            shader: shader_handle.clone(),
-                            shader_defs: vec![],
-                            entry_point: "main".into(),
-                            push_constant_ranges: vec![PushConstantRange {
-                                stages: ShaderStages::COMPUTE,
-                                range: 0..4, // Example: A single 4-byte (u32) push constant
-                            }],
-                        });
-
-                        io.set_output(RawWorkflowData::new((input, shader_handle, bind_group_layout, pipeline_id)))
-                    })
-                }),
-                WorkflowStage::Ecs(WorkflowStageEcs {
-                    name: "SetupPhase3".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
-                        let ((
-                            input, 
-                            shader_handle, 
-                            bind_group_layout, 
-                            pipeline_id
-                        ), io) = io.get_input::<(
-                            SetupPipelineInput, 
-                            Handle<Shader>, 
-                            BindGroupLayout, 
-                            CachedComputePipelineId
-                        )>();
-
-                        let shader_name = input.shader_name;
-
-                        let mut shader_registry = SystemState::<ResMut<ShaderRegistry>>::new(world).get_mut(world);
-
-                        shader_registry.shaders.insert(shader_name.to_string(), shader_handle);
-                        shader_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
-                        shader_registry.bind_group_layouts.insert(shader_name.to_string(), bind_group_layout);
-
-                        io.set_output(RawWorkflowData::new(Output(Ok(()))))
-                    })
-                }),
-            ]
-        }
-    }
-}
-
-pub mod generate_texture {
-    use bevy::{prelude::*, render::{renderer::{RenderDevice, RenderQueue}, texture::GpuImage}};
-    use bevy::ecs::system::SystemState;
-    use bevy::render::render_resource::*;
-    use bevy::render::render_asset::RenderAssets;
-    use crossbeam_channel::{unbounded, Receiver};
-    use crate::{gpu::resources::ShaderRegistry, workflow::{stage::{WorkflowStageRender, WorkflowStageRenderWhile, WorkflowStageWhileOutcome}, types::RawWorkflowData}};
-    use crate::workflow::{stage::{WorkflowStage, WorkflowStageEcsWhile, WorkflowStageEcs}, 
-        io::{WorkflowIO, InputState, OutputState}, types::WorkflowType};
-
-    /// Input to the workflow
-    pub struct Input(pub GenerateTextureInput);
-
-    /// Data needed for texture generation
-    pub struct GenerateTextureInput {
-        pub shader_name: &'static str,
-        pub texture_size: usize,
-    }
-
-    /// Data passed from ECS to EcsWhile (waiting for pipeline)
-    pub struct PreparedPipeline {
-        pub pipeline_id: CachedComputePipelineId,
-        pub texture: Handle<Image>,
-        pub param_buffer: Buffer,
-    }
-
-    /// Data passed after pipeline is ready, before dispatch
-    pub struct DispatchData {
-        pub pipeline_id: CachedComputePipelineId,
-        pub bind_group_layout: BindGroupLayout,
-        pub texture: Handle<Image>,
-        pub param_buffer: Buffer,
-    }
-
-    /// Data passed after dispatching compute
-    pub struct ComputePending {
-        pub texture: Handle<Image>,
-    }
-
-    /// Output (final texture handle)
-    pub struct Output(pub Result<Handle<Image>, String>);
-
-    pub fn create_workflow_type() -> WorkflowType {
-        WorkflowType {
-            name: "GenerateTexture".to_owned(),
-            primary_validation: Box::new(|io: WorkflowIO<InputState>| -> Result<WorkflowIO<InputState>, String> {
-                let (workflow_input, _) = io.get_input::<Input>();
-                let stage_input = workflow_input.0;
-
-                Ok(WorkflowIO::new_input(RawWorkflowData::new(stage_input)))
-            }),
-            secondary_validation: Box::new(|io: WorkflowIO<InputState>, _world: &mut World| -> Result<WorkflowIO<InputState>, String> {
-                Ok(io)
-            }),
-            stages: vec![
-                WorkflowStage::Ecs(WorkflowStageEcs {
-                    name: "PrepareCompute".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
-                        let (input, io) = io.get_input::<GenerateTextureInput>();
-                        let shader_name = input.shader_name;
-                        let texture_size = input.texture_size;
-
-                        let mut system_state: SystemState<(
-                            Res<RenderDevice>,
-                            ResMut<Assets<Image>>,
-                            Res<ShaderRegistry>,
-                        )> = SystemState::new(world);
-                        let (render_device, mut images, shader_registry) = system_state.get_mut(world);
-
-                        let pipeline_id = match shader_registry.pipelines.get(shader_name) {
-                            Some(&id) => { 
-                                id 
-                            },
-                            None => {
-                                unreachable!("Failed to generate texture: Pipeline not found for shader: {}", shader_name)
-                            },
-                        };
-
-                        let texture = Image {
-                            texture_descriptor: TextureDescriptor {
-                                label: Some("Compute Shader Output Texture"),
-                                size: Extent3d {
-                                    width: texture_size as u32,
-                                    height: texture_size as u32,
-                                    depth_or_array_layers: 1,
-                                },
-                                mip_level_count: 1,
-                                sample_count: 1,
-                                dimension: TextureDimension::D2,
-                                format: TextureFormat::Rgba8Unorm,
-                                usage: TextureUsages::COPY_DST 
-                                    | TextureUsages::TEXTURE_BINDING 
-                                    | TextureUsages::STORAGE_BINDING,
-                                view_formats: &[],
-                            },
-                            data: vec![0; texture_size * texture_size * 4],
-                            ..Default::default()
-                        };
-
-                        let texture_handle = images.add(texture);
-
-                        // Create a buffer for parameters
-                        let param_data: Vec<f32> = vec![1.0, 2.0, 3.0, 4.0]; // Example data, should come from input
-                        let param_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-                            label: Some("Parameter Buffer"),
-                            contents: bytemuck::cast_slice(&param_data),
-                            usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
-                        });
-                        
-                        io.set_output(RawWorkflowData::new(PreparedPipeline {
-                            pipeline_id,
-                            texture: texture_handle,
-                            param_buffer,
-                        }))
-                    }),
-                }),
-
-                WorkflowStage::RenderWhile(WorkflowStageRenderWhile {
-                    name: "WaitForPipeline".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
-                        let input = io.get_input_ref::<PreparedPipeline>();
-                        let pipeline_id = input.pipeline_id;
-                
-                        let mut system_state: SystemState<Res<PipelineCache>> = SystemState::new(world);
-                        let pipeline_cache = system_state.get(world);
-                
-                        match pipeline_cache.get_compute_pipeline_state(pipeline_id) {
-                            CachedPipelineState::Queued => {
-                                WorkflowStageWhileOutcome::Waiting(io)
-                            },
-                            CachedPipelineState::Creating(_) => {
-                                WorkflowStageWhileOutcome::Waiting(io)
-                            },
-                            CachedPipelineState::Ok(pipeline) => {
-                                let (input, io) = io.get_input::<PreparedPipeline>();
-                                let compute_pipeline = match pipeline {
-                                    Pipeline::RenderPipeline(_) => unreachable!("Failed to generate texture: Expected a compute pipeline"),
-                                    Pipeline::ComputePipeline(compute_pipeline) => compute_pipeline
-                                };
-                                WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new(DispatchData {
-                                    pipeline_id,
-                                    bind_group_layout: compute_pipeline.get_bind_group_layout(0).into(),
-                                    texture: input.texture.clone(),
-                                    param_buffer: input.param_buffer,
-                                })))
-                            },
-                            CachedPipelineState::Err(e) => {
-                                unreachable!("Failed to generate texture: Failed to create pipeline: {}", e);
-                            },
+                        struct Output {
+                            shader_name: &'static str, 
+                            shader_handle: Handle<Shader>,
                         }
-                    }),
-                }),
-
-                WorkflowStage::RenderWhile(WorkflowStageRenderWhile {
-                    name: "WaitForTextureView".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
-                        let input = io.get_input_ref::<DispatchData>();
-                
-                        let gpu_images = SystemState::<Res<RenderAssets<GpuImage>>>::new(world).get(world);
-                
-                        if let Some(gpu_image) = gpu_images.get(&input.texture) {
-                            let texture_view = gpu_image.texture_view.clone();
-                
-                            let (input, io) = io.get_input::<DispatchData>();
-                            return WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new((input, texture_view))));
-                        }
-                
-                        WorkflowStageWhileOutcome::Waiting(io)
-                    }),
-                }),
-                
-                WorkflowStage::Render(WorkflowStageRender {
-                    name: "DispatchCompute".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
-                        let ((input, texture_view), io) = io.get_input::<(DispatchData, TextureView)>();
-                        let pipeline_id = input.pipeline_id;
-                        let bind_group_layout = input.bind_group_layout.clone();
-                        let texture = input.texture;
-                        let param_buffer = input.param_buffer;
-
-                        let mut system_state: SystemState<(
-                            Res<RenderDevice>,
-                            Res<RenderQueue>,
-                            Res<PipelineCache>,
-                        )> = SystemState::new(world);
-
-                        let (render_device, queue, pipeline_cache) = system_state.get_mut(world);
-
-                        let pipeline = pipeline_cache.get_compute_pipeline(pipeline_id).unwrap();
-
-                        let bind_group = render_device.create_bind_group(
-                            Some("Compute Bind Group"),
-                            &bind_group_layout,
-                            &[
-                                BindGroupEntry {
-                                    binding: 0,
-                                    resource: BindingResource::TextureView(&texture_view),
-                                },
-                                BindGroupEntry {
-                                    binding: 1,
-                                    resource: param_buffer.as_entire_binding(),
-                                },
-                            ],
-                        );
-
-                        let mut encoder = render_device.create_command_encoder(&CommandEncoderDescriptor { label: None });
-                        let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor { label: None, timestamp_writes: None });
-
-                        compute_pass.set_pipeline(pipeline);
-                        compute_pass.set_bind_group(0, &bind_group, &[]);
-                        compute_pass.dispatch_workgroups(8, 8, 1);
-
-                        drop(compute_pass);
-
-                        queue.submit(Some(encoder.finish()));
-
-                        let (sender, receiver) = unbounded();
-                        queue.on_submitted_work_done(move || {
-                            let _ = sender.send(());
-                        });
-
-                        io.set_output(RawWorkflowData::new((ComputePending { texture }, receiver)))
-                    }),
-                }),
-
-                WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
-                    name: "WaitForCompute".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, _world: &mut World| -> WorkflowStageWhileOutcome {
-                        let (_, receiver) = io.get_input_ref::<(ComputePending, Receiver<()>)>();
-
-                        match receiver.try_recv() {
-                            Ok(_) => {
-                                let ((input, _), io) = io.get_input::<(ComputePending, Receiver<()>)>();
-                                let io = io.set_output(RawWorkflowData::new(Output(Ok(input.texture))));
-                                WorkflowStageWhileOutcome::Completed(io)
+                        enum Error {
+                            ShaderAlreadyRegistered { 
+                                shader_name: &'static str 
                             },
-                            Err(e) => {
-                                match e {
-                                    crossbeam_channel::TryRecvError::Empty => {
-                                        WorkflowStageWhileOutcome::Waiting(io)
-                                    },
-                                    crossbeam_channel::TryRecvError::Disconnected => {
-                                        unreachable!("Failed to generate texture: Compute pass receiver disconnected");
-                                    },
-                                }
+                            FailedToReadShader { 
+                                shader_name: &'static str, 
+                                error: std::io::Error 
                             }
                         }
-
-                    }),
-                }),
-            ],
+                    ],
+                    core_functions: [
+                        fn RunEcs |input, world| -> Result<Output, Error> {
+                            let shader_name = input.shader_name;
+                            let shader_path = &input.shader_path;
+        
+                            let mut system_state: SystemState<(
+                                ResMut<Assets<Shader>>,
+                                Res<ShaderRegistry>,
+                            )> = SystemState::new(world);
+                            let (mut shader_assets, shader_registry) = system_state.get_mut(world);
+        
+                            if shader_registry.shaders.contains_key(shader_name) {
+                                return Err(Error::ShaderAlreadyRegistered { shader_name })
+                            }
+        
+                            let shader_source = std::fs::read_to_string(shader_path)
+                                .map_err(|e| Error::FailedToReadShader { shader_name, error: e })?;
+                            
+                            let shader = Shader::from_wgsl(shader_source, shader_path.clone());
+                            let shader_handle = shader_assets.add(shader);
+        
+                            Ok(Output { shader_name, shader_handle })
+                        }
+                    ]
+                }
+    
+                SetupPhase2: RenderWhile {
+                    core_types: [
+                        struct Input {
+                            shader_name: &'static str, 
+                            shader_handle: Handle<Shader>
+                        }
+                        struct State {
+                            shader_name: &'static str, 
+                            shader_handle: Handle<Shader>,
+                            bind_group_layout: BindGroupLayout, 
+                            pipeline_id: CachedComputePipelineId,
+                        }
+                        struct Output { 
+                            shader_name: &'static str, 
+                            shader_handle: Handle<Shader>, 
+                            pipeline_id: CachedComputePipelineId,
+                            bind_group_layout: BindGroupLayout, 
+                        }
+                        enum Error {
+                            ExpectedComputePipelineGotRenderPipeline {
+                                shader_name: String,
+                                pipeline_id: CachedComputePipelineId,
+                            },
+                            FailedToCreatePipeline {
+                                shader_name: &'static str,
+                                pipeline_cache_err: String,
+                            }
+                        }
+                    ],
+                    core_functions: [
+                        fn SetupRenderWhile |input, world| -> Result<State, Error> {
+                            let shader_name = input.shader_name;
+                            let shader_handle = input.shader_handle;
+    
+                            let mut system_state: SystemState<(
+                                Res<RenderDevice>,
+                                Res<PipelineCache>,
+                                Res<RenderAssets<GpuImage>>
+                            )> = SystemState::new(world);
+                            let (render_device, pipeline_cache, gpu_images) = system_state.get(world);
+    
+                            let bind_group_layout = render_device.create_bind_group_layout(
+                                None,
+                                &[
+                                    // Texture buffer
+                                    BindGroupLayoutEntry {
+                                        binding: 0,
+                                        visibility: ShaderStages::COMPUTE,
+                                        ty: BindingType::StorageTexture {
+                                            access: StorageTextureAccess::WriteOnly,
+                                            format: TextureFormat::Rgba8Unorm,
+                                            view_dimension: TextureViewDimension::D2,
+                                        },
+                                        count: None,
+                                    },
+                                    // Param buffer
+                                    BindGroupLayoutEntry {
+                                        binding: 1,
+                                        visibility: ShaderStages::COMPUTE,
+                                        ty: BindingType::Buffer {
+                                            ty: BufferBindingType::Storage { read_only: false },
+                                            has_dynamic_offset: false,
+                                            min_binding_size: None,
+                                        },
+                                        count: None,
+                                    },
+                                ],
+                            );
+    
+                            let pipeline_id = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+                                label: None,
+                                layout: vec![bind_group_layout.clone()],
+                                shader: shader_handle.clone(),
+                                shader_defs: vec![],
+                                entry_point: "main".into(),
+                                push_constant_ranges: vec![PushConstantRange {
+                                    stages: ShaderStages::COMPUTE,
+                                    range: 0..4,
+                                }],
+                            });
+    
+                            Ok(State { shader_name, shader_handle, bind_group_layout, pipeline_id })
+                        }
+                        fn RunRenderWhile |state, world| -> Result<Outcome<State, Output>, Error> {
+                            let shader_name = state.shader_name;
+                            let shader_handle = state.shader_handle.clone();
+                            let bind_group_layout = state.bind_group_layout.clone();
+                            let pipeline_id = state.pipeline_id.clone();
+    
+                            let pipeline_cache = SystemState::<Res::<PipelineCache>>::new(world).get(world);
+    
+                            match pipeline_cache.get_compute_pipeline_state(pipeline_id) {
+                                CachedPipelineState::Queued | CachedPipelineState::Creating(_) => {
+                                    Ok(Wait(state))
+                                },
+                                CachedPipelineState::Err(err) => {
+                                    Err(Error::FailedToCreatePipeline { 
+                                        shader_name, 
+                                        pipeline_cache_err: format!("{}", err)
+                                    })
+                                },
+                                CachedPipelineState::Ok(pipeline) => {
+                                    match pipeline {
+                                        Pipeline::RenderPipeline(_) => Err(Error::ExpectedComputePipelineGotRenderPipeline {
+                                            shader_name: state.shader_name.to_string(),
+                                            pipeline_id: state.pipeline_id
+                                        }),
+                                        Pipeline::ComputePipeline(_) => Ok(Done(Output { 
+                                            shader_name, 
+                                            shader_handle, 
+                                            pipeline_id, 
+                                            bind_group_layout
+                                        }))
+                                    }
+                                },
+                            }
+                        }
+                    ]
+                }
+    
+                SetupPhase3: Ecs {
+                    core_types: [
+                        struct Input { 
+                            shader_name: &'static str, 
+                            shader_handle: Handle<Shader>, 
+                            pipeline_id: CachedComputePipelineId,
+                            bind_group_layout: BindGroupLayout, 
+                        }
+                    ],
+                    core_functions: [
+                        fn RunEcs |input, world| {
+                            let shader_name = input.shader_name;
+                            let shader_handle = input.shader_handle;
+                            let bind_group_layout = input.bind_group_layout;
+                            let pipeline_id = input.pipeline_id;
+        
+                            let mut shader_registry = SystemState::<ResMut<ShaderRegistry>>::new(world).get_mut(world);
+                            
+                            shader_registry.shaders.insert(shader_name.to_string(), shader_handle);
+                            shader_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
+                            shader_registry.bind_group_layouts.insert(shader_name.to_string(), bind_group_layout);
+                        }
+                    ]
+                }
+            ]
         }
-    }
+
+        GenerateTexture {
+            user_imports: {
+                use bevy::prelude::{Handle, Res, ResMut, Assets, Image};
+                use bevy::render::render_resource::{
+                    CachedComputePipelineId, BindGroupLayout, 
+                    Buffer, TextureView, TextureDescriptor, Extent3d, 
+                    TextureDimension, TextureFormat, TextureUsages, 
+                    BufferInitDescriptor, BufferUsages, CommandEncoderDescriptor,
+                    ComputePassDescriptor
+                };
+                use bevy::ecs::system::SystemState;
+                use bevy::render::render_asset::RenderAssets;
+                use bevy::render::texture::GpuImage;
+                use bevy::render::renderer::{RenderDevice, RenderQueue};
+                use bevy::render::render_resource::{PipelineCache, BindGroupEntry, BindingResource};
+                use crossbeam_channel::Receiver;
+
+                use crate::gpu::resources::ShaderRegistry;
+            },
+            user_items: {
+                pub struct GeneratorRequest<T> {
+                    pub inner: T
+                }
+                
+                pub struct GeneratorParams {
+                    pub shader_name: &'static str,
+                    pub pipeline_id: CachedComputePipelineId,
+                    pub bind_group_layout: BindGroupLayout,
+                    pub texture_handle: Handle<Image>,
+                    pub param_buffer: Buffer,
+                }
+                impl GeneratorRequest<GeneratorParams> {
+                    pub fn new(
+                        shader_name: &'static str,
+                        pipeline_id: CachedComputePipelineId,
+                        bind_group_layout: BindGroupLayout,
+                        texture_handle: Handle<Image>,
+                        param_buffer: Buffer,
+                    ) -> Self {
+                        Self {
+                            inner: GeneratorParams {
+                                shader_name,
+                                pipeline_id,
+                                bind_group_layout,
+                                texture_handle,
+                                param_buffer,
+                            }
+                        }
+                    }
+
+                    pub fn set_texture_view(self, texture_view: TextureView) -> GeneratorRequest<PreparedGenerator> {
+                        GeneratorRequest {
+                            inner: PreparedGenerator {
+                                shader_name: self.inner.shader_name,
+                                pipeline_id: self.inner.pipeline_id,
+                                bind_group_layout: self.inner.bind_group_layout,
+                                texture_handle: self.inner.texture_handle,
+                                texture_view,
+                                param_buffer: self.inner.param_buffer,
+                            }
+                        }
+                    }
+                }
+                
+                pub struct PreparedGenerator {
+                    pub shader_name: &'static str,
+                    pub pipeline_id: CachedComputePipelineId,
+                    pub bind_group_layout: BindGroupLayout,
+                    pub texture_handle: Handle<Image>,
+                    pub texture_view: TextureView,
+                    pub param_buffer: Buffer,
+                }
+                impl GeneratorRequest<PreparedGenerator> {
+                    pub fn track_dispatch(self, texture_handle: Handle<Image>, receiver: Receiver<()>) -> GeneratorRequest<DispatchedCompute> {
+                        GeneratorRequest {
+                            inner: DispatchedCompute {
+                                shader_name: self.inner.shader_name,
+                                texture_handle,
+                                receiver,
+                            }
+                        }
+                    }
+                }
+                
+                pub struct DispatchedCompute {
+                    pub shader_name: &'static str,
+                    pub texture_handle: Handle<Image>,
+                    pub receiver: Receiver<()>
+                }
+                impl GeneratorRequest<DispatchedCompute> {
+                    pub fn consume(self) -> (&'static str, Handle<Image>) {
+                        (self.inner.shader_name, self.inner.texture_handle)
+                    }
+                }
+            },
+            stages: [
+                PrepareRequest: Ecs {
+                    core_types: [
+                        struct Input {
+                            shader_name: &'static str,
+                            texture_size: usize,
+                            param_data: Vec<f32>,
+                        }
+                        struct Output {
+                            request: GeneratorRequest<GeneratorParams>,
+                        }
+                        enum Error {
+                            GeneratorNotFound {
+                                shader_name: &'static str,
+                            },
+                        }
+                    ],
+                    core_functions: [
+                        fn RunEcs |input, world| -> Result<Output, Error> {
+                            let shader_name = input.shader_name;
+                            let texture_size = input.texture_size;
+                            let param_data = input.param_data;
+
+                            let mut system_state: SystemState<(
+                                Res<RenderDevice>,
+                                ResMut<Assets<Image>>,
+                                Res<ShaderRegistry>,
+                            )> = SystemState::new(world);
+                            let (render_device, mut images, shader_registry) = system_state.get_mut(world);
+
+                            if shader_registry.shaders.get(shader_name).is_none() {
+                                return Err(Error::GeneratorNotFound { shader_name })
+                            }
+
+                            let pipeline_id = shader_registry.pipelines.get(shader_name).unwrap().clone();
+                            let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name).unwrap().clone();
+
+                            let texture = Image {
+                                texture_descriptor: TextureDescriptor {
+                                    label: Some("Compute Shader Outputput Texture"),
+                                    size: Extent3d {
+                                        width: texture_size as u32,
+                                        height: texture_size as u32,
+                                        depth_or_array_layers: 1,
+                                    },
+                                    mip_level_count: 1,
+                                    sample_count: 1,
+                                    dimension: TextureDimension::D2,
+                                    format: TextureFormat::Rgba8Unorm,
+                                    usage: TextureUsages::COPY_DST 
+                                        | TextureUsages::TEXTURE_BINDING 
+                                        | TextureUsages::STORAGE_BINDING,
+                                    view_formats: &[],
+                                },
+                                data: vec![0; texture_size * texture_size * 4],
+                                ..Default::default()
+                            };
+                            let texture_handle = images.add(texture);
+
+                            let param_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+                                label: Some("Parameter Buffer"),
+                                contents: bytemuck::cast_slice(&param_data),
+                                usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
+                            });
+
+                            let request = GeneratorRequest::new(
+                                shader_name, 
+                                pipeline_id, 
+                                bind_group_layout, 
+                                texture_handle, 
+                                param_buffer
+                            );
+
+                            Ok(Output { request })
+                        }
+                    ]
+                }
+    
+                GetTextureView: RenderWhile {
+                    core_types: [
+                        struct Input {
+                            request: GeneratorRequest<GeneratorParams>,
+                        }
+                        struct State {
+                            request: GeneratorRequest<GeneratorParams>,
+                        }
+                        struct Output {
+                            request: GeneratorRequest<PreparedGenerator>,
+                        }
+                    ],
+                    core_functions: [
+                        fn SetupRenderWhile |input, world| -> State {
+                            State { request: input.request }
+                        }
+                        fn RunRenderWhile |state, world| -> Outcome<State, Output> {
+                            let gpu_images = SystemState::<Res<RenderAssets<GpuImage>>>::new(world).get(world);
+                
+                            if let Some(gpu_image) = gpu_images.get(&state.request.inner.texture_handle) {
+                                let texture_view = gpu_image.texture_view.clone();
+                
+                                let prepared_request = state.request.set_texture_view(texture_view);
+                                Done(Output { request: prepared_request })
+                            } else {
+                                Wait(state)
+                            }
+                        }
+                    ]
+                }
+    
+                DispatchCompute: Render {
+                    core_types: [
+                        struct Input {
+                            request: GeneratorRequest<PreparedGenerator>,
+                        }
+                        struct Output {
+                            request: GeneratorRequest<DispatchedCompute>,
+                        }
+                    ],
+                    core_functions: [
+                        fn RunRender |input, world| -> Output {
+                            let prepared = &input.request.inner;
+                            let pipeline_id = prepared.pipeline_id.clone();
+                            let bind_group_layout = &prepared.bind_group_layout;
+                            let texture_handle = prepared.texture_handle.clone();
+                            let texture_view = &prepared.texture_view;
+                            let param_buffer = &prepared.param_buffer;
+                
+                            let mut system_state: SystemState<(
+                                Res<RenderDevice>,
+                                Res<RenderQueue>,
+                                Res<PipelineCache>,
+                            )> = SystemState::new(world);
+                            let (render_device, queue, pipeline_cache) = system_state.get_mut(world);
+                
+                            let pipeline = pipeline_cache.get_compute_pipeline(pipeline_id)
+                                .expect("Compute pipeline not found");
+                
+                            let bind_group = render_device.create_bind_group(
+                                Some("Compute Bind Group"),
+                                bind_group_layout,
+                                &[
+                                    BindGroupEntry {
+                                        binding: 0,
+                                        resource: BindingResource::TextureView(texture_view),
+                                    },
+                                    BindGroupEntry {
+                                        binding: 1,
+                                        resource: param_buffer.as_entire_binding(),
+                                    },
+                                ],
+                            );
+                
+                            let mut encoder = render_device.create_command_encoder(&CommandEncoderDescriptor { label: None });
+                            let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor { label: None, timestamp_writes: None });
+                
+                            compute_pass.set_pipeline(pipeline);
+                            compute_pass.set_bind_group(0, &bind_group, &[]);
+                            compute_pass.dispatch_workgroups(8, 8, 1);
+                            drop(compute_pass);
+                
+                            queue.submit(Some(encoder.finish()));
+                
+                            let (sender, receiver) = crossbeam_channel::unbounded();
+                            queue.on_submitted_work_done(move || {
+                                let _ = sender.send(());
+                            });
+                
+                            let dispatched_request = input.request.track_dispatch(texture_handle, receiver);
+                            Output { request: dispatched_request }
+                        }
+                    ]
+                }
+    
+                WaitForCompute: EcsWhile {
+                    core_types: [
+                        struct Input {
+                            request: GeneratorRequest<DispatchedCompute>,
+                        }
+                        struct State {
+                            request: GeneratorRequest<DispatchedCompute>,
+                        }
+                        struct Output {
+                            shader_name: &'static str,
+                            texture_handle: Handle<Image>,
+                        }
+                        enum Error {
+                            ComputePassReceiverDisconnected {
+                                shader_name: &'static str,
+                            },
+                        }
+                    ],
+                    core_functions: [
+                        fn SetupEcsWhile |input, world| -> Result<State, Error> {
+                            Ok(State { request: input.request })
+                        }
+                        fn RunEcsWhile |state, world| -> Result<Outcome<State, Output>, Error> {
+                            let receiver = &state.request.inner.receiver;
+                
+                            match receiver.try_recv() {
+                                Ok(_) => {
+                                    let (shader_name, texture_handle) = state.request.consume();
+                                    Ok(Done(Output { shader_name, texture_handle }))
+                                },
+                                Err(crossbeam_channel::TryRecvError::Empty) => {
+                                    Ok(Wait(state))
+                                },
+                                Err(crossbeam_channel::TryRecvError::Disconnected) => {
+                                    Err(Error::ComputePassReceiverDisconnected { shader_name: state.request.inner.shader_name })
+                                },
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
 }
-
-

@@ -379,7 +379,6 @@ impl<T> CoreTypes<T> {
         let output = self.output.as_ref().map(|t| t.generate());
         let error = self.error.as_ref().map(|t| t.generate());
 
-        // TODO: Replace this with pattern matching if the need arises for handling more than one core type's optionality, that of `Error` that is.
         if self.error.is_some() {
             quote! {
                 use thiserror::Error;

@@ -73,11 +73,6 @@ pub struct CoreFunctionSignature {
     pub has_outcome: bool,
 }
 
-pub struct CoreFunctionParam {
-    pub name: Ident,
-    pub ty: TokenStream,
-}
-
 pub struct CoreFunction {
     pub signature: CoreFunctionSignature,
     pub body: TokenStream,
@@ -324,8 +319,6 @@ impl Parse for CoreFunction {
 
 impl CoreFunction {
     pub fn generate(&self) -> TokenStream {
-        let function_name = format!("{}", self.signature.function_type);
-        let function_name: Ident = Ident::new(&function_name, self.signature.function_type.span());
         let has_input = self.signature.has_input;
         let has_state = self.signature.has_state;
         let has_output = self.signature.has_output;
@@ -333,134 +326,730 @@ impl CoreFunction {
         let body = &self.body;
 
         match self.signature.function_type {
-            CoreFunctionType::RunEcs { .. } | CoreFunctionType::RunRender { .. } | CoreFunctionType::RunAsync { .. } => {
+            CoreFunctionType::RunEcs { .. } => {
                 match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) #body
+                            pub fn run_ecs(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                run_ecs_inner(world);
+                                None
+                            }
+
+                            fn run_ecs_inner(world: &mut World) #body
                         }
                     }
                     (false, false, true) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Result<(), Error> #body
+                            pub fn run_ecs(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let result = run_ecs_inner(world);
+                                Some(Box::new(result))
+                            }
+
+                            fn run_ecs_inner(world: &mut World) -> Result<(), Error> #body
                         }
                     }
                     (false, true, false) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Output #body
+                            pub fn run_ecs(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let output = run_ecs_inner(world);
+                                Some(Box::new(output))
+                            }
+
+                            fn run_ecs_inner(world: &mut World) -> Output #body
                         }
                     }
                     (false, true, true) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Result<Output, Error> #body
+                            pub fn run_ecs(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let result = run_ecs_inner(world);
+                                Some(Box::new(result))
+                            }
+                            
+                            fn run_ecs_inner(world: &mut World) -> Result<Output, Error> #body
                         }
                     }
                     (true, false, false) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) #body
+                            pub fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                run_ecs_inner(*input, world);
+                                None
+                            }
+
+                            fn run_ecs_inner(input: Input, world: &mut World) #body
                         }
                     }
                     (true, false, true) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) -> Result<(), Error> #body
+                            pub fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let result = run_ecs_inner(*input, world);
+                                Some(Box::new(result))
+                            }
+
+                            fn run_ecs_inner(input: Input, world: &mut World) -> Result<(), Error> #body
                         }
                     }
                     (true, true, false) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) -> Output #body
+                            pub fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let output = run_ecs_inner(*input, world);
+                                Some(Box::new(output))
+                            }
+
+                            fn run_ecs_inner(input: Input, world: &mut World) -> Output #body
                         }
                     }
                     (true, true, true) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) -> Result<Output, Error> #body
+                            pub fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let result = run_ecs_inner(*input, world);
+                                Some(Box::new(result))
+                            }
+
+                            fn run_ecs_inner(input: Input, world: &mut World) -> Result<Output, Error> #body
                         }
                     }
                 }
             },
-            CoreFunctionType::SetupEcsWhile { .. } | CoreFunctionType::SetupRenderWhile { .. } => {
+            CoreFunctionType::RunRender { .. } => {
+                match (has_input, has_output, has_error) {
+                    (false, false, false) => {
+                        quote!{
+                            pub fn run_render(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                run_render_inner(world);
+                                None
+                            }
+
+                            fn run_render_inner(world: &mut World) #body
+                        }
+                    }
+                    (false, false, true) => {
+                        quote!{
+                            pub fn run_render(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let result = run_render_inner(world);
+                                Some(Box::new(result))
+                            }
+
+                            fn run_render_inner(world: &mut World) -> Result<(), Error> #body
+                        }
+                    }
+                    (false, true, false) => {
+                        quote!{
+                            pub fn run_render(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let output = run_render_inner(world);
+                                Some(Box::new(output))
+                            }
+
+                            fn run_render_inner(world: &mut World) -> Output #body
+                        }
+                    }
+                    (false, true, true) => {
+                        quote!{
+                            pub fn run_render(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let result = run_render_inner(world);
+                                Some(Box::new(result))
+                            }
+                            
+                            fn run_render_inner(world: &mut World) -> Result<Output, Error> #body
+                        }
+                    }
+                    (true, false, false) => {
+                        quote!{
+                            pub fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                run_render_inner(*input, world);
+                                None
+                            }
+
+                            fn run_render_inner(input: Input, world: &mut World) #body
+                        }
+                    }
+                    (true, false, true) => {
+                        quote!{
+                            pub fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let result = run_render_inner(*input, world);
+                                Some(Box::new(result))
+                            }
+
+                            fn run_render_inner(input: Input, world: &mut World) -> Result<(), Error> #body
+                        }
+                    }
+                    (true, true, false) => {
+                        quote!{
+                            pub fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let output = run_render_inner(*input, world);
+                                Some(Box::new(output))
+                            }
+
+                            fn run_render_inner(input: Input, world: &mut World) -> Output #body
+                        }
+                    }
+                    (true, true, true) => {
+                        quote!{
+                            pub fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let result = run_render_inner(*input, world);
+                                Some(Box::new(result))
+                            }
+
+                            fn run_render_inner(input: Input, world: &mut World) -> Result<Output, Error> #body
+                        }
+                    }
+                }
+            },
+            CoreFunctionType::RunAsync { .. } => {
+                match (has_input, has_output, has_error) {
+                    (false, false, false) => {
+                        quote!{
+                            pub fn run_async(_input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                run_async_inner();
+                                None
+                            }
+
+                            fn run_async_inner() #body
+                        }
+                    }
+                    (false, false, true) => {
+                        quote!{
+                            pub fn run_async(_input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let result = run_async_inner();
+                                Some(Box::new(result))
+                            }
+
+                            fn run_async_inner() -> Result<(), Error> #body
+                        }
+                    }
+                    (false, true, false) => {
+                        quote!{
+                            pub fn run_async(_input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let output = run_async_inner();
+                                Some(Box::new(output))
+                            }
+
+                            fn run_async_inner() -> Output #body
+                        }
+                    }
+                    (false, true, true) => {
+                        quote!{
+                            pub fn run_async(_input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let result = run_async_inner();
+                                Some(Box::new(result))
+                            }
+                            
+                            fn run_async_inner() -> Result<Output, Error> #body
+                        }
+                    }
+                    (true, false, false) => {
+                        quote!{
+                            pub fn run_async(input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                run_async_inner(*input);
+                                None
+                            }
+
+                            fn run_async_inner(input: Input) #body
+                        }
+                    }
+                    (true, false, true) => {
+                        quote!{
+                            pub fn run_async(input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let result = run_async_inner(*input);
+                                Some(Box::new(result))
+                            }
+
+                            fn run_async_inner(input: Input) -> Result<(), Error> #body
+                        }
+                    }
+                    (true, true, false) => {
+                        quote!{
+                            pub fn run_async(input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let output = run_async_inner(*input);
+                                Some(Box::new(output))
+                            }
+
+                            fn run_async_inner(input: Input) -> Output #body
+                        }
+                    }
+                    (true, true, true) => {
+                        quote!{
+                            pub fn run_async(input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let result = run_async_inner(*input);
+                                Some(Box::new(result))
+                            }
+
+                            fn run_async_inner(input: Input) -> Result<Output, Error> #body
+                        }
+                    }
+                }
+            },
+            CoreFunctionType::SetupEcsWhile { .. } => {
                 match (has_input, has_state, has_error) {
                     (false, false, false) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) #body
+                            pub fn setup_ecs_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                setup_ecs_while_inner(world);
+                                None
+                            }
+
+                            fn setup_ecs_while_inner(world: &mut World) #body
                         }
                     }
                     (false, false, true) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Result<(), Error> #body
+                            pub fn setup_ecs_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let result = setup_ecs_while_inner(world);
+                                Some(Box::new(result))
+                            }
+
+                            fn setup_ecs_while_inner(world: &mut World) -> Result<(), Error> #body
                         }
                     }
                     (false, true, false) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> State #body
+                            pub fn setup_ecs_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let state = setup_ecs_while_inner(world);
+                                Some(Box::new(state))
+                            }
+                            
+                            fn setup_ecs_while_inner(world: &mut World) -> State #body
                         }
                     }
                     (false, true, true) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Result<State, Error> #body
+                            pub fn setup_ecs_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let result = setup_ecs_while_inner(world);
+                                Some(Box::new(result))
+                            }
+                            
+                            fn setup_ecs_while_inner(world: &mut World) -> Result<State, Error> #body
                         }
                     }
                     (true, false, false) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) #body
+                            pub fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                setup_ecs_while_inner(*input, world);
+                                None
+                            }
+                            
+                            fn setup_ecs_while_inner(input: Input, world: &mut World) #body
                         }
                     }
                     (true, false, true) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) -> Result<(), Error> #body
+                            pub fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let result = setup_ecs_while_inner(*input, world);
+                                Some(Box::new(result))
+                            }
+
+                            fn setup_ecs_while_inner(input: Input, world: &mut World) -> Result<(), Error> #body
                         }
                     }
                     (true, true, false) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) -> State #body
+                            pub fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let state = setup_ecs_while_inner(*input, world);
+                                Some(Box::new(state))
+                            }
+                            
+                            fn setup_ecs_while_inner(input: Input, world: &mut World) -> State #body
                         }
                     }
                     (true, true, true) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) -> Result<State, Error> #body
+                            pub fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let result = setup_ecs_while_inner(*input, world);
+                                Some(Box::new(result))
+                            }
+                            
+                            fn setup_ecs_while_inner(input: Input, world: &mut World) -> Result<State, Error> #body
                         }
                     }
                 }
             },
-            CoreFunctionType::RunEcsWhile { .. } | CoreFunctionType::RunRenderWhile { .. } => {
-                match (has_state, has_output, has_error) {
+            CoreFunctionType::SetupRenderWhile { .. } => {
+                match (has_input, has_state, has_error) {
                     (false, false, false) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Outcome<(), ()> #body
+                            pub fn setup_render_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                setup_render_while_inner(world);
+                                None
+                            }
+
+                            fn setup_render_while_inner(world: &mut World) #body
                         }
                     }
                     (false, false, true) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Result<Outcome<(), ()>, Error> #body
+                            pub fn setup_render_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let result = setup_render_while_inner(world);
+                                Some(Box::new(result))
+                            }
+
+                            fn setup_render_while_inner(world: &mut World) -> Result<(), Error> #body
                         }
                     }
                     (false, true, false) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Outcome<(), Output> #body
+                            pub fn setup_render_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let state = setup_render_while_inner(world);
+                                Some(Box::new(state))
+                            }
+                            
+                            fn setup_render_while_inner(world: &mut World) -> State #body
                         }
                     }
                     (false, true, true) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Result<Outcome<(), Output>, Error> #body
+                            pub fn setup_render_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let result = setup_render_while_inner(world);
+                                Some(Box::new(result))
+                            }
+                            
+                            fn setup_render_while_inner(world: &mut World) -> Result<State, Error> #body
                         }
                     }
                     (true, false, false) => {
                         quote!{
-                            pub fn #function_name(state: State, world: &mut World) -> Outcome<State, ()> #body
+                            pub fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                setup_render_while_inner(*input, world);
+                                None
+                            }
+                            
+                            fn setup_render_while_inner(input: Input, world: &mut World) #body
                         }
                     }
                     (true, false, true) => {
                         quote!{
-                            pub fn #function_name(state: State, world: &mut World) -> Result<Outcome<State, ()>, Error> #body
+                            pub fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let result = setup_render_while_inner(*input, world);
+                                Some(Box::new(result))
+                            }
+
+                            fn setup_render_while_inner(input: Input, world: &mut World) -> Result<(), Error> #body
                         }
                     }
                     (true, true, false) => {
                         quote!{
-                            pub fn #function_name(state: State, world: &mut World) -> Outcome<State, Output> #body
+                            pub fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let state = setup_render_while_inner(*input, world);
+                                Some(Box::new(state))
+                            }
+                            
+                            fn setup_render_while_inner(input: Input, world: &mut World) -> State #body
                         }
                     }
                     (true, true, true) => {
                         quote!{
-                            pub fn #function_name(state: State, world: &mut World) -> Result<Outcome<State, Output>, Error> #body
+                            pub fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                let input = input.unwrap().downcast::<Input>().unwrap();
+                                let result = setup_render_while_inner(*input, world);
+                                Some(Box::new(result))
+                            }
+                            
+                            fn setup_render_while_inner(input: Input, world: &mut World) -> Result<State, Error> #body
+                        }
+                    }
+                }
+            },
+            CoreFunctionType::RunEcsWhile { .. } => {
+                match (has_state, has_output, has_error) {
+                    (false, false, false) => {
+                        quote!{
+                            pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let outcome = run_ecs_while_inner(world);
+                                let outcome = match outcome {
+                                    Wait(_) => Wait(None),
+                                    Done(_) => Done(None),
+                                };
+                                Box::new(outcome)
+                            }
+
+                            fn run_ecs_while_inner(world: &mut World) -> WorkflowStageOutcome<(), ()> #body
+                        }
+                    }
+                    (false, false, true) => {
+                        quote!{
+                            pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let outcome_result = run_ecs_while_inner(world);
+                                let outcome_result = match outcome_result {
+                                    Ok(outcome) => {
+                                        let outcome = match outcome {
+                                            Wait(_) => Wait(None),
+                                            Done(_) => Done(None),
+                                        };
+                                        Ok(outcome)
+                                    },
+                                    Err(error) => Err(error),
+                                };
+                                Box::new(outcome_result)
+                            }
+
+                            fn run_ecs_while_inner(world: &mut World) -> Result<WorkflowStageOutcome<(), ()>, Error> #body
+                        }
+                    }
+                    (false, true, false) => {
+                        quote!{
+                            pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let outcome = run_ecs_while_inner(world);
+                                let outcome = match outcome {
+                                    Wait(_) => Wait(None),
+                                    Done(output) => Done(Some(Box::new(output))),
+                                };
+                                Box::new(outcome)
+                            }
+
+                            fn run_ecs_while_inner(world: &mut World) -> WorkflowStageOutcome<(), Output> #body
+                        }
+                    }
+                    (false, true, true) => {
+                        quote!{
+                            pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let outcome_result = run_ecs_while_inner(world);
+                                let outcome_result = match outcome_result {
+                                    Ok(outcome) => {
+                                        let outcome = match outcome {
+                                            Wait(_) => Wait(None),
+                                            Done(output) => Done(Some(Box::new(output))),
+                                        };
+                                        Ok(outcome)
+                                    },
+                                    Err(error) => Err(error),
+                                };
+                                Box::new(outcome_result)
+                            }
+
+                            fn run_ecs_while_inner(world: &mut World) -> Result<WorkflowStageOutcome<(), Output>, Error> #body
+                        }
+                    }
+                    (true, false, false) => {
+                        quote!{
+                            pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let state = state.unwrap().downcast::<State>().unwrap();
+                                let outcome = run_ecs_while_inner(*state, world);
+                                let outcome = match outcome {
+                                    Wait(state) => Wait(Some(Box::new(state))),
+                                    Done(_) => Done(None),
+                                };
+                                Box::new(outcome)
+                            }
+
+                            fn run_ecs_while_inner(state: State, world: &mut World) -> WorkflowStageOutcome<State, ()> #body
+                        }
+                    }
+                    (true, false, true) => {
+                        quote!{
+                            pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let state = state.unwrap().downcast::<State>().unwrap();
+                                let outcome_result = run_ecs_while_inner(*state, world);
+                                let outcome_result = match outcome_result {
+                                    Ok(outcome) => {
+                                        let outcome = match outcome {
+                                            Wait(state) => Wait(Some(Box::new(state))),
+                                            Done(_) => Done(None),
+                                        };
+                                        Ok(outcome)
+                                    },
+                                    Err(error) => Err(error),
+                                };
+                                Box::new(outcome_result)
+                            }
+
+                            fn run_ecs_while_inner(state: State, world: &mut World) -> Result<WorkflowStageOutcome<State, ()>, Error> #body
+                        }
+                    }
+                    (true, true, false) => {
+                        quote!{
+                            pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let state = state.unwrap().downcast::<State>().unwrap();
+                                let outcome = run_ecs_while_inner(*state, world);
+                                let outcome = match outcome {
+                                    Wait(state) => Wait(Some(Box::new(state))),
+                                    Done(output) => Done(Some(Box::new(output))),
+                                };
+                                Box::new(outcome)
+                            }
+
+                            fn run_ecs_while_inner(state: State, world: &mut World) -> WorkflowStageOutcome<State, Output> #body
+                        }
+                    }
+                    (true, true, true) => {
+                        quote!{
+                            pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let state = state.unwrap().downcast::<State>().unwrap();
+                                let outcome_result = run_ecs_while_inner(*state, world);
+                                let outcome_result = match outcome_result {
+                                    Ok(outcome) => {
+                                        let outcome = match outcome {
+                                            Wait(state) => Wait(Some(Box::new(state))),
+                                            Done(output) => Done(Some(Box::new(output))),
+                                        };
+                                        Ok(outcome)
+                                    },
+                                    Err(error) => Err(error),
+                                };
+                                Box::new(outcome_result)
+                            }
+
+                            fn run_ecs_while_inner(state: State, world: &mut World) -> Result<WorkflowStageOutcome<State, Output>, Error> #body
+                        }
+                    }
+                }
+            },
+            CoreFunctionType::RunRenderWhile { .. } => {
+                match (has_state, has_output, has_error) {
+                    (false, false, false) => {
+                        quote!{
+                            pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let outcome = run_render_while_inner(world);
+                                let outcome = match outcome {
+                                    Wait(_) => Wait(None),
+                                    Done(_) => Done(None),
+                                };
+                                Box::new(outcome)
+                            }
+
+                            fn run_render_while_inner(world: &mut World) -> WorkflowStageOutcome<(), ()> #body
+                        }
+                    }
+                    (false, false, true) => {
+                        quote!{
+                            pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let outcome_result = run_render_while_inner(world);
+                                let outcome_result = match outcome_result {
+                                    Ok(outcome) => {
+                                        let outcome = match outcome {
+                                            Wait(_) => Wait(None),
+                                            Done(_) => Done(None),
+                                        };
+                                        Ok(outcome)
+                                    },
+                                    Err(error) => Err(error),
+                                };
+                                Box::new(outcome_result)
+                            }
+
+                            fn run_render_while_inner(world: &mut World) -> Result<WorkflowStageOutcome<(), ()>, Error> #body
+                        }
+                    }
+                    (false, true, false) => {
+                        quote!{
+                            pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let outcome = run_render_while_inner(world);
+                                let outcome = match outcome {
+                                    Wait(_) => Wait(None),
+                                    Done(output) => Done(Some(Box::new(output))),
+                                };
+                                Box::new(outcome)
+                            }
+
+                            fn run_render_while_inner(world: &mut World) -> WorkflowStageOutcome<(), Output> #body
+                        }
+                    }
+                    (false, true, true) => {
+                        quote!{
+                            pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let outcome_result = run_render_while_inner(world);
+                                let outcome_result = match outcome_result {
+                                    Ok(outcome) => {
+                                        let outcome = match outcome {
+                                            Wait(_) => Wait(None),
+                                            Done(output) => Done(Some(Box::new(output))),
+                                        };
+                                        Ok(outcome)
+                                    },
+                                    Err(error) => Err(error),
+                                };
+                                Box::new(outcome_result)
+                            }
+
+                            fn run_render_while_inner(world: &mut World) -> Result<WorkflowStageOutcome<(), Output>, Error> #body
+                        }
+                    }
+                    (true, false, false) => {
+                        quote!{
+                            pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let state = state.unwrap().downcast::<State>().unwrap();
+                                let outcome = run_render_while_inner(*state, world);
+                                let outcome = match outcome {
+                                    Wait(state) => Wait(Some(Box::new(state))),
+                                    Done(_) => Done(None),
+                                };
+                                Box::new(outcome)
+                            }
+
+                            fn run_render_while_inner(state: State, world: &mut World) -> WorkflowStageOutcome<State, ()> #body
+                        }
+                    }
+                    (true, false, true) => {
+                        quote!{
+                            pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let state = state.unwrap().downcast::<State>().unwrap();
+                                let outcome_result = run_render_while_inner(*state, world);
+                                let outcome_result = match outcome_result {
+                                    Ok(outcome) => {
+                                        let outcome = match outcome {
+                                            Wait(state) => Wait(Some(Box::new(state))),
+                                            Done(_) => Done(None),
+                                        };
+                                        Ok(outcome)
+                                    },
+                                    Err(error) => Err(error),
+                                };
+                                Box::new(outcome_result)
+                            }
+
+                            fn run_render_while_inner(state: State, world: &mut World) -> Result<WorkflowStageOutcome<State, ()>, Error> #body
+                        }
+                    }
+                    (true, true, false) => {
+                        quote!{
+                            pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let state = state.unwrap().downcast::<State>().unwrap();
+                                let outcome = run_render_while_inner(*state, world);
+                                let outcome = match outcome {
+                                    Wait(state) => Wait(Some(Box::new(state))),
+                                    Done(output) => Done(Some(Box::new(output))),
+                                };
+                                Box::new(outcome)
+                            }
+
+                            fn run_render_while_inner(state: State, world: &mut World) -> WorkflowStageOutcome<State, Output> #body
+                        }
+                    }
+                    (true, true, true) => {
+                        quote!{
+                            pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
+                                let state = state.unwrap().downcast::<State>().unwrap();
+                                let outcome_result = run_render_while_inner(*state, world);
+                                let outcome_result = match outcome_result {
+                                    Ok(outcome) => {
+                                        let outcome = match outcome {
+                                            Wait(state) => Wait(Some(Box::new(state))),
+                                            Done(output) => Done(Some(Box::new(output))),
+                                        };
+                                        Ok(outcome)
+                                    },
+                                    Err(error) => Err(error),
+                                };
+                                Box::new(outcome_result)
+                            }
+
+                            fn run_render_while_inner(state: State, world: &mut World) -> Result<WorkflowStageOutcome<State, Output>, Error> #body
                         }
                     }
                 }

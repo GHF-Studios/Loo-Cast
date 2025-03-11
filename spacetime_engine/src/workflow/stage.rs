@@ -65,11 +65,11 @@ pub struct WorkflowStageAsync {
 pub struct WorkflowStageEcsWhile {
     pub name: &'static str,
     pub setup_ecs_while: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> Option<Box<dyn Any + Send + Sync>> + Send + Sync>,
-    pub run_ecs_while: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> WorkflowStageWhileOutcome + Send + Sync>,
+    pub run_ecs_while: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> Box<dyn Any + Send + Sync> + Send + Sync>,
 }
 
 pub struct WorkflowStageRenderWhile {
     pub name: &'static str,
     pub setup_render_while: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> Option<Box<dyn Any + Send + Sync>> + Send + Sync>,
-    pub run_render_while: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> WorkflowStageWhileOutcome + Send + Sync>,
+    pub run_render_while: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> Box<dyn Any + Send + Sync> + Send + Sync>,
 }

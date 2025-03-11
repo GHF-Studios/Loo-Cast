@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
 use bevy::render::MainWorld;
@@ -63,8 +65,8 @@ pub(in super) fn poll_ecs_stage_buffer_system(world: &mut World) {
         let run_ecs = &mut stage.run_ecs;
         let output = (run_ecs)(data_buffer, world);
 
-        let cloned_module_name = module_name.clone();
-        let cloned_workflow_name = workflow_name.clone();
+        let cloned_module_name = module_name;
+        let cloned_workflow_name = workflow_name;
 
         let output_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output));
 
@@ -90,8 +92,8 @@ pub(in super) fn poll_render_stage_buffer_system(world: &mut World) {
         let run_render = &mut stage.run_render;
         let output = (run_render)(data_buffer, world);
 
-        let cloned_module_name = module_name.clone();
-        let cloned_workflow_name = workflow_name.clone();
+        let cloned_module_name = module_name;
+        let cloned_workflow_name = workflow_name;
 
         let output_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output));
 
@@ -116,8 +118,8 @@ pub(in super) fn poll_async_stage_buffer_system(world: &mut World) {
         let run_async = &mut stage.run_async;
         let future = (run_async)(data_buffer);
 
-        let cloned_module_name = module_name.clone();
-        let cloned_workflow_name = workflow_name.clone();
+        let cloned_module_name = module_name;
+        let cloned_workflow_name = workflow_name;
 
         let sender = sender.clone();
         let task_spawn_result = TOKIO_RUNTIME.lock().unwrap().block_on(async {
@@ -153,6 +155,7 @@ pub(in super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
     let mut waiting_buffer = Vec::new();
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
+        // TODO: FUN: NOT: Fix: WorkflowMap is not available in the render world! 
         let mut workflow_map = SystemState::<ResMut<WorkflowMap>>::new(world).get_mut(world);
         let workflow_instance = workflow_map.map.get_mut(module_name).and_then(|workflows| workflows.get_mut(workflow_name)).unwrap();
 
@@ -177,14 +180,15 @@ pub(in super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
 
         let run_ecs_while = &mut stage.run_ecs_while;
         let outcome = (run_ecs_while)(state, world);
+        let outcome = *outcome.downcast().unwrap();
 
         match outcome {
             WorkflowStageWhileOutcome::Waiting(state_data) => {
                 waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
             },
             WorkflowStageWhileOutcome::Completed(output_data) => {
-                let cloned_module_name = module_name.clone();
-                let cloned_workflow_name = workflow_name.clone();
+                let cloned_module_name = module_name;
+                let cloned_workflow_name = workflow_name;
 
                 let response_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output_data));
 
@@ -214,6 +218,7 @@ pub(in super) fn poll_render_while_stage_buffer_system(world: &mut World) {
     let mut waiting_buffer = Vec::new();
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
+        // TODO: FUN: NOT: Fix: WorkflowMap is not available in the render world! 
         let mut workflow_map = SystemState::<ResMut<WorkflowMap>>::new(world).get_mut(world);
         let workflow_instance = workflow_map.map.get_mut(module_name).and_then(|workflows| workflows.get_mut(workflow_name)).unwrap();
 
@@ -238,14 +243,15 @@ pub(in super) fn poll_render_while_stage_buffer_system(world: &mut World) {
 
         let run_render_while = &mut stage.run_render_while;
         let outcome = (run_render_while)(state, world);
+        let outcome = *outcome.downcast().unwrap();
 
         match outcome {
             WorkflowStageWhileOutcome::Waiting(state_data) => {
                 waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
             },
             WorkflowStageWhileOutcome::Completed(output_data) => {
-                let cloned_module_name = module_name.clone();
-                let cloned_workflow_name = workflow_name.clone();
+                let cloned_module_name = module_name;
+                let cloned_workflow_name = workflow_name;
 
                 let response_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output_data));
 
