@@ -23,6 +23,10 @@ use systems::*;
 pub(in crate) struct WorkflowPlugin;
 impl Plugin for WorkflowPlugin {
     fn build(&self, app: &mut App) {
+        let (render_workflow_state_extract_reintegration_event_sender, render_workflow_state_extract_reintegration_event_receiver) = crossbeam_channel::unbounded();
+        let render_while_workflow_state_extract_reintegration_event_sender = RenderWhileWorkflowStateExtractReintegrationEventSender(render_workflow_state_extract_reintegration_event_sender);
+        let render_while_workflow_state_extract_reintegration_event_receiver = RenderWhileWorkflowStateExtractReintegrationEventReceiver(render_workflow_state_extract_reintegration_event_receiver);
+
         let (ecs_completion_sender, ecs_completion_receiver) = crossbeam_channel::unbounded();
         let ecs_completion_sender = EcsStageCompletionEventSender(ecs_completion_sender);
         let ecs_completion_receiver = EcsStageCompletionEventReceiver(ecs_completion_receiver);
@@ -70,6 +74,7 @@ impl Plugin for WorkflowPlugin {
             .insert_resource(ecs_while_completion_sender)
             .insert_resource(ecs_while_completion_receiver)
             .insert_resource(render_completion_receiver)
+            .insert_resource(render_while_workflow_state_extract_reintegration_event_receiver)
             .insert_resource(render_while_completion_receiver)
             .insert_resource(async_completion_sender)
             .insert_resource(async_completion_receiver)
@@ -103,6 +108,7 @@ impl Plugin for WorkflowPlugin {
             ))
             .add_systems(PostUpdate, (
                 (
+                    render_while_workflow_state_extract_reintegration_system,
                     workflow_request_relay_system, 
                     workflow_request_e_relay_system,
                     workflow_request_o_relay_system,
@@ -119,10 +125,12 @@ impl Plugin for WorkflowPlugin {
 
         let render_app = app.sub_app_mut(RenderApp);
         render_app
+            .insert_resource(render_while_workflow_state_extract_reintegration_event_sender)
             .insert_resource(render_completion_sender)
             .insert_resource(render_while_completion_sender)
             .add_systems(ExtractSchedule, (
                 extract_render_stage_buffer_system,
+                extract_render_while_workflow_state_extract_system,
                 extract_render_while_stage_buffer_system
             ))
             .add_systems(Render, (

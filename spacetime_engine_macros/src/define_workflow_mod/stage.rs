@@ -321,6 +321,7 @@ impl TypedStage<Ecs> {
             crate::workflow::stage::WorkflowStage::Ecs(crate::workflow::stage::WorkflowStageEcs {
                 name: stringify!(#stage_name),
                 run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                transform_response: Box::new(self::stages::#stage_ident::core_functions::advance_workflow_data_type) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, usize) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
             })
         };
 
@@ -362,6 +363,7 @@ impl TypedStage<Render> {
             crate::workflow::stage::WorkflowStage::Render(crate::workflow::stage::WorkflowStageRender {
                 name: stringify!(#stage_name),
                 run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                transform_response: Box::new(self::stages::#stage_ident::core_functions::advance_workflow_data_type) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, usize) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
             })
         };
 
@@ -403,6 +405,7 @@ impl TypedStage<Async> {
             crate::workflow::stage::WorkflowStage::Async(crate::workflow::stage::WorkflowStageAsync {
                 name: stringify!(#stage_name),
                 run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                transform_response: Box::new(self::stages::#stage_ident::core_functions::advance_workflow_data_type) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, usize) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
             })
         };
 
@@ -445,6 +448,7 @@ impl TypedStage<EcsWhile> {
                 name: stringify!(#stage_name),
                 setup_ecs_while: Box::new(self::stages::#stage_ident::core_functions::setup_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                 run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
+                transform_response: Box::new(self::stages::#stage_ident::core_functions::advance_workflow_data_type) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, usize) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
             })
         };
 
@@ -487,6 +491,7 @@ impl TypedStage<RenderWhile> {
                 name: stringify!(#stage_name),
                 setup_render_while: Box::new(self::stages::#stage_ident::core_functions::setup_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                 run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
+                transform_response: Box::new(self::stages::#stage_ident::core_functions::advance_workflow_data_type) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, usize) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
             })
         };
 

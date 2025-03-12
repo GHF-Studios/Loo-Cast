@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use bevy::{ecs::system::SystemId, prelude::*};
-use crate::workflow::resources::WorkflowTypeModuleRegistry;
 use crate::camera::components::MainCamera;
 use crate::config::statics::CONFIG;
 use crate::debug::components::TestObjectMovement;

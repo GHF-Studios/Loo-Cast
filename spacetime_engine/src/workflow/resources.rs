@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::any::Any;
-use bevy::prelude::*;
+use bevy::{prelude::*, ui::debug};
 use crossbeam_channel::{Receiver, Sender};
 
 use super::{instance::*, stage::*, types::*};
@@ -53,6 +53,33 @@ impl WorkflowTypeModuleRegistry {
 pub struct WorkflowRequestBuffer {
     pub requests: Vec<WorkflowInstance>,
 }
+
+// --- RenderWhile Workflow State Extraction Resources ---
+#[derive(Resource, Default, Debug)]
+pub(in super) struct RenderWhileWorkflowStateExtract(pub Vec<(&'static str, &'static str, WorkflowStageType, bool)>);
+impl From<&WorkflowMap> for RenderWhileWorkflowStateExtract {
+    fn from(value: &WorkflowMap) -> Self {
+        let workflow_map: &WorkflowMap = value;
+        let mut render_workflow_state_extract = RenderWhileWorkflowStateExtract::default();
+
+        for (module_name, workflows) in &workflow_map.map {
+            for (workflow_name, workflow_instance) in workflows {
+                if let WorkflowState::Processing { current_stage_type, stage_initialized, .. } = workflow_instance.state() {
+                    if matches!(current_stage_type, WorkflowStageType::RenderWhile) {
+                        render_workflow_state_extract.0.push((module_name, workflow_name, current_stage_type, stage_initialized));
+                    }
+                }
+            }
+        }
+
+        render_workflow_state_extract
+    }
+}
+#[derive(Resource)]
+// TODO: Rename these two resources to be more descriptive.
+pub(in super) struct RenderWhileWorkflowStateExtractReintegrationEventSender(pub Sender<(&'static str, &'static str)>);
+#[derive(Resource)]
+pub(in super) struct RenderWhileWorkflowStateExtractReintegrationEventReceiver(pub Receiver<(&'static str, &'static str)>);
 
 // --- Stage Buffers ---
 #[derive(Resource, Default)]
@@ -133,30 +160,6 @@ impl WorkflowMap {
     pub fn remove_workflow(&mut self, module_name: &'static str, workflow_name: &'static str) {
         if let Some(workflows) = self.map.get_mut(module_name) {
             workflows.remove(workflow_name);
-        }
-    }
-
-    pub fn advance_stage(&mut self, module_name: &'static str, workflow_name: &'static str) {
-        if let Some(instance) = self.map.get_mut(module_name).and_then(|workflows| workflows.get_mut(workflow_name)) {
-            match &mut instance.state_mut() {
-                WorkflowState::Processing { current_stage , stage_initialized: initialized, stage_completed: completed } => {
-                    if !*completed {
-                        unreachable!(
-                            "Workflow stage advancement error: Workflow '{}' in module '{}' is already completed.",
-                            workflow_name, module_name
-                        );
-                    }
-                    *current_stage += 1;
-                    *initialized = false;
-                    *completed = false;
-                },
-                _ => unreachable!("Workflow stage advancement error: Invalid state."),
-            }
-        } else {
-            unreachable!(
-                "Workflow stage advancement error: No active workflow '{}' found in module '{}'.",
-                workflow_name, module_name
-            );
         }
     }
 }

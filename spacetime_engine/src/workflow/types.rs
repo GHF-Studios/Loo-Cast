@@ -1,7 +1,7 @@
 use futures::future::BoxFuture;
 use tokio::task::JoinHandle;
 
-use super::{stage::WorkflowStage, statics::TOKIO_RUNTIME};
+use super::{stage::{WorkflowStage, WorkflowStageType}, statics::TOKIO_RUNTIME};
 
 pub struct WorkflowTaskRuntime(tokio::runtime::Handle);
 impl WorkflowTaskRuntime {
@@ -22,6 +22,7 @@ pub enum WorkflowState {
     Requested,
     Processing {
         current_stage: usize,
+        current_stage_type: WorkflowStageType,
         stage_initialized: bool,
         stage_completed: bool,
     },
@@ -32,9 +33,10 @@ impl std::fmt::Display for WorkflowState {
             Self::Requested => write!(f, "WorkflowState::Requested"),
             Self::Processing { 
                 current_stage, 
+                current_stage_type,
                 stage_initialized: initialized, 
                 stage_completed: completed 
-            } => write!(f, "WorkflowState::Processing(current_stage: {}, initialized: {}, completed: {})", current_stage, initialized, completed),
+            } => write!(f, "WorkflowState::Processing(current_stage: {}, current_stage_type: {}, initialized: {}, completed: {})", current_stage, current_stage_type, initialized, completed),
         }
     }
 }

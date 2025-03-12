@@ -40,6 +40,16 @@ impl WorkflowStage {
             WorkflowStage::RenderWhile(_) => WorkflowStageType::RenderWhile,
         }
     }
+
+    pub fn transform_response(&mut self) -> &mut Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, usize) -> Option<Box<dyn Any + Send + Sync>> + Send + Sync> {
+        match self {
+            WorkflowStage::Ecs(stage) => &mut stage.transform_response,
+            WorkflowStage::Render(stage) => &mut stage.transform_response,
+            WorkflowStage::Async(stage) => &mut stage.transform_response,
+            WorkflowStage::EcsWhile(stage) => &mut stage.transform_response,
+            WorkflowStage::RenderWhile(stage) => &mut stage.transform_response,
+        }
+    }
 }
 
 pub enum WorkflowStageWhileOutcome {
@@ -50,26 +60,31 @@ pub enum WorkflowStageWhileOutcome {
 pub struct WorkflowStageEcs {
     pub name: &'static str,
     pub run_ecs: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> Option<Box<dyn Any + Send + Sync>> + Send + Sync>,
+    pub transform_response: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, usize) -> Option<Box<dyn Any + Send + Sync>> + Send + Sync>,
 }
 
 pub struct WorkflowStageRender {
     pub name: &'static str,
     pub run_render: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> Option<Box<dyn Any + Send + Sync>> + Send + Sync>,
+    pub transform_response: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, usize) -> Option<Box<dyn Any + Send + Sync>> + Send + Sync>,
 }
 
 pub struct WorkflowStageAsync {
     pub name: &'static str,
     pub run_async: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>) -> BoxFuture<'static, Option<Box<dyn Any + Send + Sync>>> + Send + Sync>,
+    pub transform_response: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, usize) -> Option<Box<dyn Any + Send + Sync>> + Send + Sync>,
 }
 
 pub struct WorkflowStageEcsWhile {
     pub name: &'static str,
     pub setup_ecs_while: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> Option<Box<dyn Any + Send + Sync>> + Send + Sync>,
     pub run_ecs_while: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> Box<dyn Any + Send + Sync> + Send + Sync>,
+    pub transform_response: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, usize) -> Option<Box<dyn Any + Send + Sync>> + Send + Sync>,
 }
 
 pub struct WorkflowStageRenderWhile {
     pub name: &'static str,
     pub setup_render_while: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> Option<Box<dyn Any + Send + Sync>> + Send + Sync>,
     pub run_render_while: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> Box<dyn Any + Send + Sync> + Send + Sync>,
+    pub transform_response: Box<dyn FnMut(Option<Box<dyn Any + Send + Sync>>, usize) -> Option<Box<dyn Any + Send + Sync>> + Send + Sync>,
 }
