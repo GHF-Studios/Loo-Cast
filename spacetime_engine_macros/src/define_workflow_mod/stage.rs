@@ -388,6 +388,7 @@ impl TypedStage<Ecs> {
                     |data: Option<Box<dyn std::any::Any + Send + Sync>>| -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         match data {
                             Some(data) => {
+                                bevy::prelude::debug!("Trying to downcast type `{:?}` to type `{:?}`", data.type_id(), std::any::TypeId::of::<#this_out_path>());
                                 let data: #this_out_path = *data.downcast().expect("Failed to downcast data");
                                 let data: #next_in_path = unsafe { std::mem::transmute(data) };
                                 Some(Box::new(data) as Box<dyn std::any::Any + Send + Sync>)
@@ -495,6 +496,7 @@ impl TypedStage<Render> {
                     |data: Option<Box<dyn std::any::Any + Send + Sync>>| -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         match data {
                             Some(data) => {
+                                bevy::prelude::debug!("Trying to downcast type `{:?}` to type `{:?}`", data.type_id(), std::any::TypeId::of::<#this_out_path>());
                                 let data: #this_out_path = *data.downcast().expect("Failed to downcast data");
                                 let data: #next_in_path = unsafe { std::mem::transmute(data) };
                                 Some(Box::new(data) as Box<dyn std::any::Any + Send + Sync>)
@@ -602,6 +604,7 @@ impl TypedStage<Async> {
                     |data: Option<Box<dyn std::any::Any + Send + Sync>>| -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         match data {
                             Some(data) => {
+                                bevy::prelude::debug!("Trying to downcast type `{:?}` to type `{:?}`", data.type_id(), std::any::TypeId::of::<#this_out_path>());
                                 let data: #this_out_path = *data.downcast().expect("Failed to downcast data");
                                 let data: #next_in_path = unsafe { std::mem::transmute(data) };
                                 Some(Box::new(data) as Box<dyn std::any::Any + Send + Sync>)
@@ -711,6 +714,7 @@ impl TypedStage<EcsWhile> {
                     |data: Option<Box<dyn std::any::Any + Send + Sync>>| -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         match data {
                             Some(data) => {
+                                bevy::prelude::debug!("Trying to downcast type `{:?}` to type `{:?}`", data.type_id(), std::any::TypeId::of::<#this_out_path>());
                                 let data: #this_out_path = *data.downcast().expect("Failed to downcast data");
                                 let data: #next_in_path = unsafe { std::mem::transmute(data) };
                                 Some(Box::new(data) as Box<dyn std::any::Any + Send + Sync>)
@@ -820,6 +824,7 @@ impl TypedStage<RenderWhile> {
                     |data: Option<Box<dyn std::any::Any + Send + Sync>>| -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         match data {
                             Some(data) => {
+                                bevy::prelude::debug!("Trying to downcast type `{:?}` to type `{:?}`", data.type_id(), std::any::TypeId::of::<#this_out_path>());
                                 let data: #this_out_path = *data.downcast().expect("Failed to downcast data");
                                 let data: #next_in_path = unsafe { std::mem::transmute(data) };
                                 Some(Box::new(data) as Box<dyn std::any::Any + Send + Sync>)
