@@ -267,11 +267,11 @@ impl Workflow {
                             }
 
                             pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                static STAGE_DATA_TYPE_TRANSMUTERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#stage_data_type_transmuters),*
-                                ];
+                                ])});
 
-                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
+                                STAGE_DATA_TYPE_TRANSMUTERS.lock().expect("Failed to lock mutex")[new_stage](data)
                             }
                         }
                         
@@ -384,11 +384,11 @@ impl Workflow {
                             }
 
                             pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                static STAGE_DATA_TYPE_TRANSMUTERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#stage_data_type_transmuters),*
-                                ];
+                                ])});
 
-                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
+                                STAGE_DATA_TYPE_TRANSMUTERS.lock().expect("Failed to lock mutex")[new_stage](data)
                             }
                         }
                         
@@ -472,11 +472,11 @@ impl Workflow {
                             }
 
                             pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                static STAGE_DATA_TYPE_TRANSMUTERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#stage_data_type_transmuters),*
-                                ];
+                                ])});
 
-                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
+                                STAGE_DATA_TYPE_TRANSMUTERS.lock().expect("Failed to lock mutex")[new_stage](data)
                             }
                         }
                         
@@ -596,11 +596,11 @@ impl Workflow {
                             }
 
                             pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                static STAGE_DATA_TYPE_TRANSMUTERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#stage_data_type_transmuters),*
-                                ];
+                                ])});
 
-                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
+                                STAGE_DATA_TYPE_TRANSMUTERS.lock().expect("Failed to lock mutex")[new_stage](data)
                             }
                         }
                         
@@ -684,11 +684,11 @@ impl Workflow {
                             }
 
                             pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                static STAGE_DATA_TYPE_TRANSMUTERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#stage_data_type_transmuters),*
-                                ];
+                                ])});
 
-                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
+                                STAGE_DATA_TYPE_TRANSMUTERS.lock().expect("Failed to lock mutex")[new_stage](data)
                             }
                         }
                         
@@ -808,11 +808,11 @@ impl Workflow {
                             }
 
                             pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                static STAGE_DATA_TYPE_TRANSMUTERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#stage_data_type_transmuters),*
-                                ];
+                                ])});
 
-                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
+                                STAGE_DATA_TYPE_TRANSMUTERS.lock().expect("Failed to lock mutex")[new_stage](data)
                             }
                         }
                         
@@ -900,11 +900,11 @@ impl Workflow {
                             }
 
                             pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                static STAGE_DATA_TYPE_TRANSMUTERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#stage_data_type_transmuters),*
-                                ];
+                                ])});
 
-                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
+                                STAGE_DATA_TYPE_TRANSMUTERS.lock().expect("Failed to lock mutex")[new_stage](data)
                             }
                         }
                         
@@ -1028,11 +1028,11 @@ impl Workflow {
                             }
 
                             pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                static STAGE_DATA_TYPE_TRANSMUTERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#stage_data_type_transmuters),*
-                                ];
+                                ])});
 
-                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
+                                STAGE_DATA_TYPE_TRANSMUTERS.lock().expect("Failed to lock mutex")[new_stage](data)
                             }
                         }
                         

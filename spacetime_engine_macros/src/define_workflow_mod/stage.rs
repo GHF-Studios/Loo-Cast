@@ -340,7 +340,7 @@ impl TypedStage<Ecs> {
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
-        let next_index_literal = LitInt::new(&(self.index + 1).to_string(), stage_ident.span());
+        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -360,14 +360,27 @@ impl TypedStage<Ecs> {
                 }
             }
         };
-        let stage_literal = quote! {
-            crate::workflow::stage::WorkflowStage::Ecs(crate::workflow::stage::WorkflowStageEcs {
-                name: stringify!(#stage_name),
-                run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                data_type_transmuter: Box::new(|data| {
-                    Self::advance_workflow_data_type(data, #next_index_literal)
-                }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
-            })
+        let stage_literal = if !is_last {
+            quote! {
+                crate::workflow::stage::WorkflowStage::Ecs(crate::workflow::stage::WorkflowStageEcs {
+                    name: stringify!(#stage_name),
+                    run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                    data_type_transmuter: Box::new(|data| {
+                        Self::advance_workflow_data_type(data, #index_literal)
+                    }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
+                })
+            }
+        } else {
+            quote! {
+                crate::workflow::stage::WorkflowStage::Ecs(crate::workflow::stage::WorkflowStageEcs {
+                    name: stringify!(#stage_name),
+                    run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                    data_type_transmuter: Box::new(|_| {
+                        unreachable!("Tried to call placeholder data type transmuter");
+                        None
+                    }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
+                })
+            }
         };
         let stage_data_type_transmuter = match (this_stage_output_type_path, next_stage_input_type_path) {
             (Some(this_out_path), Some(next_in_path)) => {
@@ -434,7 +447,7 @@ impl TypedStage<Render> {
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
-        let next_index_literal = LitInt::new(&(self.index + 1).to_string(), stage_ident.span());
+        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -454,14 +467,27 @@ impl TypedStage<Render> {
                 }
             }
         };
-        let stage_literal = quote! {
-            crate::workflow::stage::WorkflowStage::Render(crate::workflow::stage::WorkflowStageRender {
-                name: stringify!(#stage_name),
-                run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                data_type_transmuter: Box::new(|data| {
-                    Self::advance_workflow_data_type(data, #next_index_literal)
-                }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
-            })
+        let stage_literal = if !is_last {
+            quote! {
+                crate::workflow::stage::WorkflowStage::Render(crate::workflow::stage::WorkflowStageRender {
+                    name: stringify!(#stage_name),
+                    run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                    data_type_transmuter: Box::new(|data| {
+                        Self::advance_workflow_data_type(data, #index_literal)
+                    }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
+                })
+            }
+        } else {
+            quote! {
+                crate::workflow::stage::WorkflowStage::Render(crate::workflow::stage::WorkflowStageRender {
+                    name: stringify!(#stage_name),
+                    run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                    data_type_transmuter: Box::new(|_| {
+                        unreachable!("Tried to call placeholder data type transmuter");
+                        None
+                    }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
+                })
+            }
         };
         let stage_data_type_transmuter = match (this_stage_output_type_path, next_stage_input_type_path) {
             (Some(this_out_path), Some(next_in_path)) => {
@@ -528,7 +554,7 @@ impl TypedStage<Async> {
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
-        let next_index_literal = LitInt::new(&(self.index + 1).to_string(), stage_ident.span());
+        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -548,14 +574,27 @@ impl TypedStage<Async> {
                 }
             }
         };
-        let stage_literal = quote! {
-            crate::workflow::stage::WorkflowStage::Async(crate::workflow::stage::WorkflowStageAsync {
-                name: stringify!(#stage_name),
-                run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                data_type_transmuter: Box::new(|data| {
-                    Self::advance_workflow_data_type(data, #next_index_literal)
-                }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
-            })
+        let stage_literal = if !is_last {
+            quote! {
+                crate::workflow::stage::WorkflowStage::Async(crate::workflow::stage::WorkflowStageAsync {
+                    name: stringify!(#stage_name),
+                    run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                    data_type_transmuter: Box::new(|data| {
+                        Self::advance_workflow_data_type(data, #index_literal)
+                    }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
+                })
+            }
+        } else {
+            quote! {
+                crate::workflow::stage::WorkflowStage::Async(crate::workflow::stage::WorkflowStageAsync {
+                    name: stringify!(#stage_name),
+                    run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                    data_type_transmuter: Box::new(|data| {
+                        unreachable!("Tried to call placeholder data type transmuter");
+                        None
+                    }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
+                })
+            }
         };
         let stage_data_type_transmuter = match (this_stage_output_type_path, next_stage_input_type_path) {
             (Some(this_out_path), Some(next_in_path)) => {
@@ -622,7 +661,7 @@ impl TypedStage<EcsWhile> {
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
-        let next_index_literal = LitInt::new(&(self.index + 1).to_string(), stage_ident.span());
+        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -642,15 +681,29 @@ impl TypedStage<EcsWhile> {
                 }
             }
         };
-        let stage_literal = quote! {
-            crate::workflow::stage::WorkflowStage::EcsWhile(crate::workflow::stage::WorkflowStageEcsWhile {
-                name: stringify!(#stage_name),
-                setup_ecs_while: Box::new(self::stages::#stage_ident::core_functions::setup_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
-                data_type_transmuter: Box::new(|data| {
-                    Self::advance_workflow_data_type(data, #next_index_literal)
-                }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
-            })
+        let stage_literal = if !is_last {
+            quote! {
+                crate::workflow::stage::WorkflowStage::EcsWhile(crate::workflow::stage::WorkflowStageEcsWhile {
+                    name: stringify!(#stage_name),
+                    setup_ecs_while: Box::new(self::stages::#stage_ident::core_functions::setup_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                    run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
+                    data_type_transmuter: Box::new(|data| {
+                        Self::advance_workflow_data_type(data, #index_literal)
+                    }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
+                })
+            }
+        } else {
+            quote! {
+                crate::workflow::stage::WorkflowStage::EcsWhile(crate::workflow::stage::WorkflowStageEcsWhile {
+                    name: stringify!(#stage_name),
+                    setup_ecs_while: Box::new(self::stages::#stage_ident::core_functions::setup_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                    run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
+                    data_type_transmuter: Box::new(|data| {
+                        unreachable!("Tried to call placeholder data type transmuter");
+                        None
+                    }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
+                })
+            }
         };
         let stage_data_type_transmuter = match (this_stage_output_type_path, next_stage_input_type_path) {
             (Some(this_out_path), Some(next_in_path)) => {
@@ -717,7 +770,7 @@ impl TypedStage<RenderWhile> {
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
-        let next_index_literal = LitInt::new(&(self.index + 1).to_string(), stage_ident.span());
+        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -737,15 +790,29 @@ impl TypedStage<RenderWhile> {
                 }
             }
         };
-        let stage_literal = quote! {
-            crate::workflow::stage::WorkflowStage::RenderWhile(crate::workflow::stage::WorkflowStageRenderWhile {
-                name: stringify!(#stage_name),
-                setup_render_while: Box::new(self::stages::#stage_ident::core_functions::setup_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
-                data_type_transmuter: Box::new(|data| {
-                    Self::advance_workflow_data_type(data, #next_index_literal)
-                }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
-            })
+        let stage_literal = if !is_last {
+            quote! {
+                crate::workflow::stage::WorkflowStage::RenderWhile(crate::workflow::stage::WorkflowStageRenderWhile {
+                    name: stringify!(#stage_name),
+                    setup_render_while: Box::new(self::stages::#stage_ident::core_functions::setup_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                    run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
+                    data_type_transmuter: Box::new(|data| {
+                        Self::advance_workflow_data_type(data, #index_literal)
+                    }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
+                })
+            }
+        } else {
+            quote! {
+                crate::workflow::stage::WorkflowStage::RenderWhile(crate::workflow::stage::WorkflowStageRenderWhile {
+                    name: stringify!(#stage_name),
+                    setup_render_while: Box::new(self::stages::#stage_ident::core_functions::setup_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                    run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
+                    data_type_transmuter: Box::new(|data| {
+                        unreachable!("Tried to call placeholder data type transmuter");
+                        None
+                    }) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>
+                })
+            }
         };
         let stage_data_type_transmuter = match (this_stage_output_type_path, next_stage_input_type_path) {
             (Some(this_out_path), Some(next_in_path)) => {
