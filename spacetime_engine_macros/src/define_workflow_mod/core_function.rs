@@ -1126,33 +1126,13 @@ impl Parse for CoreFunctions<Async> {
 }
 
 impl CoreFunctions<Ecs> {
-    pub fn generate(&self, stage_types: Vec<TokenStream>) -> TokenStream {
+    pub fn generate(&self) -> TokenStream {
         match self {
             CoreFunctions::Default { run, .. } => {
                 let run_fn = run.generate();
 
-                let advance_workflow_data_type_match_cases = (0..stage_types.len() - 1).into_iter().map(|i| {
-                    let this_stage_type = &stage_types[i];
-                    let next_stage_type = &stage_types[i + 1];
-
-                    quote! {
-                        #i => {
-                            let data: #this_stage_type = data.downcast();
-                            let data: #next_stage_type = unsafe { std::mem::transmute(data) };
-                            Box::new(data)
-                        }
-                    }
-                }).collect::<Vec<TokenStream>>();
-
                 quote! {
                     #run_fn
-
-                    pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, current_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                        match current_stage {
-                            #(#advance_workflow_data_type_match_cases),*
-                            _ => unreachable!()
-                        }
-                    }
                 }
             }
             _ => unreachable!()
@@ -1161,35 +1141,15 @@ impl CoreFunctions<Ecs> {
 }
 
 impl CoreFunctions<EcsWhile> {
-    pub fn generate(&self, stage_types: Vec<TokenStream>) -> TokenStream {
+    pub fn generate(&self) -> TokenStream {
         match self {
             CoreFunctions::While { setup, run, .. } => {
                 let setup_fn = setup.generate();
                 let run_fn = run.generate();
 
-                let advance_workflow_data_type_match_cases = (0..stage_types.len() - 1).into_iter().map(|i| {
-                    let this_stage_type = &stage_types[i];
-                    let next_stage_type = &stage_types[i + 1];
-
-                    quote! {
-                        #i => {
-                            let data: #this_stage_type = data.downcast();
-                            let data: #next_stage_type = unsafe { std::mem::transmute(data) };
-                            Box::new(data)
-                        }
-                    }
-                }).collect::<Vec<TokenStream>>();
-
                 quote! {
                     #setup_fn
                     #run_fn
-
-                    pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, current_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                        match current_stage {
-                            #(#advance_workflow_data_type_match_cases),*
-                            _ => unreachable!()
-                        }
-                    }
                 }
             }
             _ => unreachable!()
@@ -1198,33 +1158,13 @@ impl CoreFunctions<EcsWhile> {
 }
 
 impl CoreFunctions<Render> {
-    pub fn generate(&self, stage_types: Vec<TokenStream>) -> TokenStream {
+    pub fn generate(&self) -> TokenStream {
         match self {
             CoreFunctions::Default { run, .. } => {
                 let run_fn = run.generate();
 
-                let advance_workflow_data_type_match_cases = (0..stage_types.len() - 1).into_iter().map(|i| {
-                    let this_stage_type = &stage_types[i];
-                    let next_stage_type = &stage_types[i + 1];
-
-                    quote! {
-                        #i => {
-                            let data: #this_stage_type = data.downcast();
-                            let data: #next_stage_type = unsafe { std::mem::transmute(data) };
-                            Box::new(data)
-                        }
-                    }
-                }).collect::<Vec<TokenStream>>();
-
                 quote! {
                     #run_fn
-
-                    pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, current_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                        match current_stage {
-                            #(#advance_workflow_data_type_match_cases),*
-                            _ => unreachable!()
-                        }
-                    }
                 }
             }
             _ => unreachable!()
@@ -1233,35 +1173,15 @@ impl CoreFunctions<Render> {
 }
 
 impl CoreFunctions<RenderWhile> {
-    pub fn generate(&self, stage_types: Vec<TokenStream>) -> TokenStream {
+    pub fn generate(&self) -> TokenStream {
         match self {
             CoreFunctions::While { setup, run, .. } => {
                 let setup_fn = setup.generate();
                 let run_fn = run.generate();
 
-                let advance_workflow_data_type_match_cases = (0..stage_types.len() - 1).into_iter().map(|i| {
-                    let this_stage_type = &stage_types[i];
-                    let next_stage_type = &stage_types[i + 1];
-
-                    quote! {
-                        #i => {
-                            let data: #this_stage_type = data.downcast();
-                            let data: #next_stage_type = unsafe { std::mem::transmute(data) };
-                            Box::new(data)
-                        }
-                    }
-                }).collect::<Vec<TokenStream>>();
-
                 quote! {
                     #setup_fn
                     #run_fn
-
-                    pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, current_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                        match current_stage {
-                            #(#advance_workflow_data_type_match_cases),*
-                            _ => unreachable!()
-                        }
-                    }
                 }
             }
             _ => unreachable!()
@@ -1270,33 +1190,13 @@ impl CoreFunctions<RenderWhile> {
 }
 
 impl CoreFunctions<Async> {
-    pub fn generate(&self, stage_types: Vec<TokenStream>) -> TokenStream {
+    pub fn generate(&self) -> TokenStream {
         match self {
             CoreFunctions::Default { run, .. } => {
                 let run_fn = run.generate();
 
-                let advance_workflow_data_type_match_cases = (0..stage_types.len() - 1).into_iter().map(|i| {
-                    let this_stage_type = &stage_types[i];
-                    let next_stage_type = &stage_types[i + 1];
-
-                    quote! {
-                        #i => {
-                            let data: #this_stage_type = data.downcast();
-                            let data: #next_stage_type = unsafe { std::mem::transmute(data) };
-                            Box::new(data)
-                        }
-                    }
-                }).collect::<Vec<TokenStream>>();
-
                 quote! {
                     #run_fn
-
-                    pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, current_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                        match current_stage {
-                            #(#advance_workflow_data_type_match_cases),*
-                            _ => unreachable!()
-                        }
-                    }
                 }
             }
             _ => unreachable!()

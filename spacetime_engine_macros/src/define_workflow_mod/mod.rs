@@ -66,7 +66,7 @@ impl WorkflowModule {
         let module_ident = &self.name;
         let module_name = module_ident.to_string();
         let module_ident = Ident::new(module_name.as_str().to_snake_case().as_str(), module_ident.span());
-        let (workflow_modules, workflow_data): (Vec<_>, Vec<_>) = self.workflows.into_iter().map(|w| w.generate()).unzip();
+        let (workflow_modules, workflow_data): (Vec<_>, Vec<_>) = self.workflows.into_iter().map(|w| w.generate(module_ident.clone())).unzip();
 
         let workflow_literals = workflow_data.into_iter().map(|(signature, ident)| match (signature, ident) {
             (WorkflowSignature::None, ident) => quote! { #ident::Type::create_workflow() },
@@ -115,7 +115,7 @@ pub struct Workflow {
     pub signature: WorkflowSignature,              
     pub user_imports: UseStatements,  
     pub user_items: UserItems,      
-    pub stages: Stages,         
+    pub stages: Stages,
 }
 
 impl Parse for Workflow {
@@ -181,8 +181,31 @@ impl Parse for Workflow {
     }
 }
 
+trait IteratorExt: Iterator {
+    fn unzip3<A, B, C, IA, IB, IC>(self) -> (IA, IB, IC)
+    where
+        Self: Sized + Iterator<Item = (A, B, C)>,
+        IA: FromIterator<A>,
+        IB: FromIterator<B>,
+        IC: FromIterator<C>,
+    {
+        let mut a = Vec::new();
+        let mut b = Vec::new();
+        let mut c = Vec::new();
+
+        for (x, y, z) in self {
+            a.push(x);
+            b.push(y);
+            c.push(z);
+        }
+
+        (a.into_iter().collect(), b.into_iter().collect(), c.into_iter().collect())
+    }
+}
+impl<T: ?Sized> IteratorExt for T where T: Iterator {}
+
 impl Workflow {
-    pub fn generate(self) -> (TokenStream, (WorkflowSignature, Ident)) {
+    pub fn generate(self, workflow_module_ident: Ident) -> (TokenStream, (WorkflowSignature, Ident)) {
         let workflow_ident = &self.name;
         let workflow_name = workflow_ident.to_string();
         let workflow_ident = Ident::new(workflow_name.as_str().to_snake_case().as_str(), workflow_ident.span());
@@ -191,11 +214,34 @@ impl Workflow {
             WorkflowSignature::None => {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                let stage_count = self.stages.0.len();
+                let (
+                    stage_output_type_paths,
+                    stage_input_type_paths 
+                ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
+                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                )).unzip();
+                let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
-                    .map(|s| s.generate())
-                    .unzip();
+                    .map(|stage| {
+                        let index = stage.get_index();
+                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
+                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        } else {
+                            (None, true)
+                        };
+                        
+                        stage.generate(
+                            this_stage_output_type_path,
+                            next_stage_input_type_path,
+                            is_last,
+                        )
+                    })
+                    .unzip3();
+                let stage_data_type_transmuters: Vec<TokenStream> = stage_data_type_transmuters.into_iter().flatten().collect();
                 
                 quote! {
                     pub mod #workflow_ident {
@@ -218,6 +264,14 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
+                            }
+
+                            pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                    #(#stage_data_type_transmuters),*
+                                ];
+
+                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
                             }
                         }
                         
@@ -273,11 +327,34 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                let stage_count = self.stages.0.len();
+                let (
+                    stage_output_type_paths,
+                    stage_input_type_paths 
+                ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
+                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                )).unzip();
+                let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
-                    .map(|s| s.generate())
-                    .unzip();
+                    .map(|stage| {
+                        let index = stage.get_index();
+                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
+                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        } else {
+                            (None, true)
+                        };
+                        
+                        stage.generate(
+                            this_stage_output_type_path,
+                            next_stage_input_type_path,
+                            is_last,
+                        )
+                    })
+                    .unzip3();
+                let stage_data_type_transmuters: Vec<TokenStream> = stage_data_type_transmuters.into_iter().flatten().collect();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -304,6 +381,14 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
+                            }
+
+                            pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                    #(#stage_data_type_transmuters),*
+                                ];
+
+                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
                             }
                         }
                         
@@ -332,11 +417,34 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                let stage_count = self.stages.0.len();
+                let (
+                    stage_output_type_paths,
+                    stage_input_type_paths 
+                ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
+                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                )).unzip();
+                let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
-                    .map(|s| s.generate())
-                    .unzip();
+                    .map(|stage| {
+                        let index = stage.get_index();
+                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
+                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        } else {
+                            (None, true)
+                        };
+                        
+                        stage.generate(
+                            this_stage_output_type_path,
+                            next_stage_input_type_path,
+                            is_last,
+                        )
+                    })
+                    .unzip3();
+                let stage_data_type_transmuters: Vec<TokenStream> = stage_data_type_transmuters.into_iter().flatten().collect();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -361,6 +469,14 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
+                            }
+
+                            pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                    #(#stage_data_type_transmuters),*
+                                ];
+
+                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
                             }
                         }
                         
@@ -422,11 +538,34 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                let stage_count = self.stages.0.len();
+                let (
+                    stage_output_type_paths,
+                    stage_input_type_paths 
+                ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
+                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                )).unzip();
+                let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
-                    .map(|s| s.generate())
-                    .unzip();
+                    .map(|stage| {
+                        let index = stage.get_index();
+                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
+                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        } else {
+                            (None, true)
+                        };
+                        
+                        stage.generate(
+                            this_stage_output_type_path,
+                            next_stage_input_type_path,
+                            is_last,
+                        )
+                    })
+                    .unzip3();
+                let stage_data_type_transmuters: Vec<TokenStream> = stage_data_type_transmuters.into_iter().flatten().collect();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -455,6 +594,14 @@ impl Workflow {
                                     ],
                                 }
                             }
+
+                            pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                    #(#stage_data_type_transmuters),*
+                                ];
+
+                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
+                            }
                         }
                         
                         pub mod workflow_imports {
@@ -482,11 +629,34 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                let stage_count = self.stages.0.len();
+                let (
+                    stage_output_type_paths,
+                    stage_input_type_paths 
+                ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
+                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                )).unzip();
+                let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
-                    .map(|s| s.generate())
-                    .unzip();
+                    .map(|stage| {
+                        let index = stage.get_index();
+                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
+                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        } else {
+                            (None, true)
+                        };
+                        
+                        stage.generate(
+                            this_stage_output_type_path,
+                            next_stage_input_type_path,
+                            is_last,
+                        )
+                    })
+                    .unzip3();
+                let stage_data_type_transmuters: Vec<TokenStream> = stage_data_type_transmuters.into_iter().flatten().collect();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -511,6 +681,14 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
+                            }
+
+                            pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                    #(#stage_data_type_transmuters),*
+                                ];
+
+                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
                             }
                         }
                         
@@ -572,11 +750,34 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                let stage_count = self.stages.0.len();
+                let (
+                    stage_output_type_paths,
+                    stage_input_type_paths 
+                ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
+                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                )).unzip();
+                let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
-                    .map(|s| s.generate())
-                    .unzip();
+                    .map(|stage| {
+                        let index = stage.get_index();
+                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
+                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        } else {
+                            (None, true)
+                        };
+                        
+                        stage.generate(
+                            this_stage_output_type_path,
+                            next_stage_input_type_path,
+                            is_last,
+                        )
+                    })
+                    .unzip3();
+                let stage_data_type_transmuters: Vec<TokenStream> = stage_data_type_transmuters.into_iter().flatten().collect();
         
                 quote! {
                     pub mod #workflow_ident {
@@ -604,6 +805,14 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
+                            }
+
+                            pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                    #(#stage_data_type_transmuters),*
+                                ];
+
+                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
                             }
                         }
                         
@@ -635,11 +844,34 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                let stage_count = self.stages.0.len();
+                let (
+                    stage_output_type_paths,
+                    stage_input_type_paths 
+                ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
+                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                )).unzip();
+                let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
-                    .map(|s| s.generate())
-                    .unzip();
+                    .map(|stage| {
+                        let index = stage.get_index();
+                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
+                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        } else {
+                            (None, true)
+                        };
+                        
+                        stage.generate(
+                            this_stage_output_type_path,
+                            next_stage_input_type_path,
+                            is_last,
+                        )
+                    })
+                    .unzip3();
+                let stage_data_type_transmuters: Vec<TokenStream> = stage_data_type_transmuters.into_iter().flatten().collect();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -665,6 +897,14 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
+                            }
+
+                            pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                    #(#stage_data_type_transmuters),*
+                                ];
+
+                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
                             }
                         }
                         
@@ -729,11 +969,34 @@ impl Workflow {
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
-                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
+                let stage_count = self.stages.0.len();
+                let (
+                    stage_output_type_paths,
+                    stage_input_type_paths 
+                ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
+                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                )).unzip();
+                let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
-                    .map(|s| s.generate())
-                    .unzip();
+                    .map(|stage| {
+                        let index = stage.get_index();
+                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
+                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        } else {
+                            (None, true)
+                        };
+                        
+                        stage.generate(
+                            this_stage_output_type_path,
+                            next_stage_input_type_path,
+                            is_last,
+                        )
+                    })
+                    .unzip3();
+                let stage_data_type_transmuters: Vec<TokenStream> = stage_data_type_transmuters.into_iter().flatten().collect();
         
                 quote! {
                     pub mod #workflow_ident {
@@ -762,6 +1025,14 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
+                            }
+
+                            pub fn advance_workflow_data_type(data: Option<Box<dyn std::any::Any + Send + Sync>>, new_stage: usize) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                                static mut STAGE_DATA_TYPE_TRANSMUTERS: Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>> = vec![
+                                    #(#stage_data_type_transmuters),*
+                                ];
+
+                                (&mut unsafe{STAGE_DATA_TYPE_TRANSMUTERS}[new_stage])(data)
                             }
                         }
                         

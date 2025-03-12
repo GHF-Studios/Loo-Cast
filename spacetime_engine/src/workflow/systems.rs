@@ -789,6 +789,7 @@ pub(in super) fn workflow_execution_system(world: &mut World) {
                 let stage = std::mem::replace(&mut workflow_type.stages[current_stage], WorkflowStage::Ecs(WorkflowStageEcs {
                     name: "placeholder",
                     run_ecs: Box::new(|_, _| unreachable!()),
+                    data_type_transmuter: Box::new(|_| unreachable!()),
                 }));
 
                 match stage {
@@ -840,7 +841,7 @@ pub(in super) fn workflow_completion_handling_system(world: &mut World) {
         let workflow_name = event.workflow_name;
         let current_stage = event.current_stage;
         let stage_output = event.stage_output;
-        let stage = event.stage_return;
+        let mut stage = event.stage_return;
 
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
@@ -866,11 +867,7 @@ pub(in super) fn workflow_completion_handling_system(world: &mut World) {
                     .unwrap();
 
                 if current_stage + 1 < workflow_type.stages.len() {
-                    let stage_input = if let Some(stage_output) = stage_output {
-                        let stage_input = stage.transform_response()(stage_output, current_stage);
-
-                        Some(stage_input)
-                    } else { None };
+                    let stage_input = stage.get_stage_data_type_transmuter()(stage_output);
 
                     intermediate_stage_completions.push((module_name, workflow_name, current_stage, current_stage_type, stage_input));
                 } else {
