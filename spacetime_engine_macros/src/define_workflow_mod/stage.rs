@@ -64,22 +64,22 @@ impl Stage {
         }
     }
 
-    pub fn generate(self, this_stage_output_type_path: Option<&TokenStream>, next_stage_input_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
+    pub fn generate(self, this_stage_out_type_path: Option<&TokenStream>, next_stage_in_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
         match self {
             Stage::Ecs(stage) => {
-                stage.generate(this_stage_output_type_path, next_stage_input_type_path, is_last)
+                stage.generate(this_stage_out_type_path, next_stage_in_type_path, is_last)
             },
             Stage::EcsWhile(stage) => {
-                stage.generate(this_stage_output_type_path, next_stage_input_type_path, is_last)
+                stage.generate(this_stage_out_type_path, next_stage_in_type_path, is_last)
             },
             Stage::Render(stage) => {
-                stage.generate(this_stage_output_type_path, next_stage_input_type_path, is_last)
+                stage.generate(this_stage_out_type_path, next_stage_in_type_path, is_last)
             },
             Stage::RenderWhile(stage) => {
-                stage.generate(this_stage_output_type_path, next_stage_input_type_path, is_last)
+                stage.generate(this_stage_out_type_path, next_stage_in_type_path, is_last)
             },
             Stage::Async(stage) => {
-                stage.generate(this_stage_output_type_path, next_stage_input_type_path, is_last)
+                stage.generate(this_stage_out_type_path, next_stage_in_type_path, is_last)
             },
         }
     }
@@ -154,23 +154,23 @@ impl Stage {
         }
     }
 
-    pub fn get_input_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         match self {
-            Stage::Ecs(stage) => stage.get_input_type_path(workflow_module_ident, workflow_ident),
-            Stage::EcsWhile(stage) => stage.get_input_type_path(workflow_module_ident, workflow_ident),
-            Stage::Render(stage) => stage.get_input_type_path(workflow_module_ident, workflow_ident),
-            Stage::RenderWhile(stage) => stage.get_input_type_path(workflow_module_ident, workflow_ident),
-            Stage::Async(stage) => stage.get_input_type_path(workflow_module_ident, workflow_ident),
+            Stage::Ecs(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
+            Stage::EcsWhile(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
+            Stage::Render(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
+            Stage::RenderWhile(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
+            Stage::Async(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
         }
     }
 
-    pub fn get_output_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         match self {
-            Stage::Ecs(stage) => stage.get_output_type_path(workflow_module_ident, workflow_ident),
-            Stage::EcsWhile(stage) => stage.get_output_type_path(workflow_module_ident, workflow_ident),
-            Stage::Render(stage) => stage.get_output_type_path(workflow_module_ident, workflow_ident),
-            Stage::RenderWhile(stage) => stage.get_output_type_path(workflow_module_ident, workflow_ident),
-            Stage::Async(stage) => stage.get_output_type_path(workflow_module_ident, workflow_ident),
+            Stage::Ecs(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
+            Stage::EcsWhile(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
+            Stage::Render(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
+            Stage::RenderWhile(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
+            Stage::Async(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
         }
     }
 }
@@ -334,7 +334,7 @@ impl Parse for Stages {
 }
 
 impl TypedStage<Ecs> {
-    pub fn generate(self, this_stage_output_type_path: Option<&TokenStream>, next_stage_input_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
+    pub fn generate(self, this_stage_out_type_path: Option<&TokenStream>, next_stage_in_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
@@ -382,12 +382,14 @@ impl TypedStage<Ecs> {
                 })
             }
         };
-        let stage_data_type_transmuter = match (this_stage_output_type_path, next_stage_input_type_path) {
+        let stage_data_type_transmuter = match (this_stage_out_type_path, next_stage_in_type_path) {
             (Some(this_out_path), Some(next_in_path)) => {
                 Some(quote! { Box::new(
                     |data: Option<Box<dyn std::any::Any + Send + Sync>>| -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         match data {
                             Some(data) => {
+                                // TODO: FIX: Properly handle the potential error case and properly divert the control flow and propagate the error in that case.
+                                // A.K.A.: We need to implement a way to abort workflows after failing a stage
                                 bevy::prelude::debug!("Trying to downcast type `{:?}` to type `{:?}`", data.type_id(), std::any::TypeId::of::<#this_out_path>());
                                 let data: #this_out_path = *data.downcast().expect("Failed to downcast data");
                                 let data: #next_in_path = unsafe { std::mem::transmute(data) };
@@ -424,7 +426,7 @@ impl TypedStage<Ecs> {
         self.index
     }
 
-    pub fn get_input_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -432,17 +434,33 @@ impl TypedStage<Ecs> {
         core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_output_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        if core_types.has_error() {
+            if core_types.has_output() {
+                Some(quote! { Result<
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output, 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
+                    > 
+                })
+            } else {
+                Some(quote! { Result<
+                    (), 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
+                    > 
+                })
+            }
+        } else {
+            core_types.output.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        }
     }
 }
 
 impl TypedStage<Render> {
-    pub fn generate(self, this_stage_output_type_path: Option<&TokenStream>, next_stage_input_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
+    pub fn generate(self, this_stage_out_type_path: Option<&TokenStream>, next_stage_in_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
@@ -490,12 +508,14 @@ impl TypedStage<Render> {
                 })
             }
         };
-        let stage_data_type_transmuter = match (this_stage_output_type_path, next_stage_input_type_path) {
+        let stage_data_type_transmuter = match (this_stage_out_type_path, next_stage_in_type_path) {
             (Some(this_out_path), Some(next_in_path)) => {
                 Some(quote! { Box::new(
                     |data: Option<Box<dyn std::any::Any + Send + Sync>>| -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         match data {
                             Some(data) => {
+                                // TODO: FIX: Properly handle the potential error case and properly divert the control flow and propagate the error in that case.
+                                // A.K.A.: We need to implement a way to abort workflows after failing a stage
                                 bevy::prelude::debug!("Trying to downcast type `{:?}` to type `{:?}`", data.type_id(), std::any::TypeId::of::<#this_out_path>());
                                 let data: #this_out_path = *data.downcast().expect("Failed to downcast data");
                                 let data: #next_in_path = unsafe { std::mem::transmute(data) };
@@ -532,7 +552,7 @@ impl TypedStage<Render> {
         self.index
     }
 
-    pub fn get_input_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -540,17 +560,33 @@ impl TypedStage<Render> {
         core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_output_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        if core_types.has_error() {
+            if core_types.has_output() {
+                Some(quote! { Result<
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output, 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
+                    > 
+                })
+            } else {
+                Some(quote! { Result<
+                    (), 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
+                    > 
+                })
+            }
+        } else {
+            core_types.output.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        }
     }
 }
 
 impl TypedStage<Async> {
-    pub fn generate(self, this_stage_output_type_path: Option<&TokenStream>, next_stage_input_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
+    pub fn generate(self, this_stage_out_type_path: Option<&TokenStream>, next_stage_in_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
@@ -598,12 +634,14 @@ impl TypedStage<Async> {
                 })
             }
         };
-        let stage_data_type_transmuter = match (this_stage_output_type_path, next_stage_input_type_path) {
+        let stage_data_type_transmuter = match (this_stage_out_type_path, next_stage_in_type_path) {
             (Some(this_out_path), Some(next_in_path)) => {
                 Some(quote! { Box::new(
                     |data: Option<Box<dyn std::any::Any + Send + Sync>>| -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         match data {
                             Some(data) => {
+                                // TODO: FIX: Properly handle the potential error case and properly divert the control flow and propagate the error in that case.
+                                // A.K.A.: We need to implement a way to abort workflows after failing a stage
                                 bevy::prelude::debug!("Trying to downcast type `{:?}` to type `{:?}`", data.type_id(), std::any::TypeId::of::<#this_out_path>());
                                 let data: #this_out_path = *data.downcast().expect("Failed to downcast data");
                                 let data: #next_in_path = unsafe { std::mem::transmute(data) };
@@ -640,7 +678,7 @@ impl TypedStage<Async> {
         self.index
     }
 
-    pub fn get_input_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -648,17 +686,33 @@ impl TypedStage<Async> {
         core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_output_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        if core_types.has_error() {
+            if core_types.has_output() {
+                Some(quote! { Result<
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output, 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
+                    > 
+                })
+            } else {
+                Some(quote! { Result<
+                    (), 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
+                    > 
+                })
+            }
+        } else {
+            core_types.output.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        }
     }
 }
 
 impl TypedStage<EcsWhile> {
-    pub fn generate(self, this_stage_output_type_path: Option<&TokenStream>, next_stage_input_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
+    pub fn generate(self, this_stage_out_type_path: Option<&TokenStream>, next_stage_in_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
@@ -708,12 +762,14 @@ impl TypedStage<EcsWhile> {
                 })
             }
         };
-        let stage_data_type_transmuter = match (this_stage_output_type_path, next_stage_input_type_path) {
+        let stage_data_type_transmuter = match (this_stage_out_type_path, next_stage_in_type_path) {
             (Some(this_out_path), Some(next_in_path)) => {
                 Some(quote! { Box::new(
                     |data: Option<Box<dyn std::any::Any + Send + Sync>>| -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         match data {
                             Some(data) => {
+                                // TODO: FIX: Properly handle the potential error case and properly divert the control flow and propagate the error in that case.
+                                // A.K.A.: We need to implement a way to abort workflows after failing a stage
                                 bevy::prelude::debug!("Trying to downcast type `{:?}` to type `{:?}`", data.type_id(), std::any::TypeId::of::<#this_out_path>());
                                 let data: #this_out_path = *data.downcast().expect("Failed to downcast data");
                                 let data: #next_in_path = unsafe { std::mem::transmute(data) };
@@ -750,7 +806,7 @@ impl TypedStage<EcsWhile> {
         self.index
     }
 
-    pub fn get_input_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -758,17 +814,33 @@ impl TypedStage<EcsWhile> {
         core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_output_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        if core_types.has_error() {
+            if core_types.has_output() {
+                Some(quote! { Result<
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output, 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
+                    > 
+                })
+            } else {
+                Some(quote! { Result<
+                    (), 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
+                    > 
+                })
+            }
+        } else {
+            core_types.output.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        }
     }
 }
 
 impl TypedStage<RenderWhile> {
-    pub fn generate(self, this_stage_output_type_path: Option<&TokenStream>, next_stage_input_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
+    pub fn generate(self, this_stage_out_type_path: Option<&TokenStream>, next_stage_in_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
@@ -818,12 +890,14 @@ impl TypedStage<RenderWhile> {
                 })
             }
         };
-        let stage_data_type_transmuter = match (this_stage_output_type_path, next_stage_input_type_path) {
+        let stage_data_type_transmuter = match (this_stage_out_type_path, next_stage_in_type_path) {
             (Some(this_out_path), Some(next_in_path)) => {
                 Some(quote! { Box::new(
                     |data: Option<Box<dyn std::any::Any + Send + Sync>>| -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         match data {
                             Some(data) => {
+                                // TODO: FIX: Properly handle the potential error case and properly divert the control flow and propagate the error in that case.
+                                // A.K.A.: We need to implement a way to abort workflows after failing a stage
                                 bevy::prelude::debug!("Trying to downcast type `{:?}` to type `{:?}`", data.type_id(), std::any::TypeId::of::<#this_out_path>());
                                 let data: #this_out_path = *data.downcast().expect("Failed to downcast data");
                                 let data: #next_in_path = unsafe { std::mem::transmute(data) };
@@ -860,7 +934,7 @@ impl TypedStage<RenderWhile> {
         self.index
     }
 
-    pub fn get_input_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -868,11 +942,27 @@ impl TypedStage<RenderWhile> {
         core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_output_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        if core_types.has_error() {
+            if core_types.has_output() {
+                Some(quote! { Result<
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output, 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
+                    > 
+                })
+            } else {
+                Some(quote! { Result<
+                    (), 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
+                    > 
+                })
+            }
+        } else {
+            core_types.output.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        }
     }
 }

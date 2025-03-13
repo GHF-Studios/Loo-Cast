@@ -216,27 +216,27 @@ impl Workflow {
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
                 let (
-                    stage_output_type_paths,
-                    stage_input_type_paths 
+                    stage_out_type_paths,
+                    stage_in_type_paths 
                 ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
-                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                    stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone())
                 )).unzip();
                 let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
                     .map(|stage| {
                         let index = stage.get_index();
-                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
-                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
-                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        let this_stage_out_type_path = stage_out_type_paths[index].as_ref();
+                        let (next_stage_in_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_in_type_paths[index + 1].as_ref(), false)
                         } else {
                             (None, true)
                         };
                         
                         stage.generate(
-                            this_stage_output_type_path,
-                            next_stage_input_type_path,
+                            this_stage_out_type_path,
+                            next_stage_in_type_path,
                             is_last,
                         )
                     })
@@ -329,27 +329,27 @@ impl Workflow {
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
                 let (
-                    stage_output_type_paths,
-                    stage_input_type_paths 
+                    stage_out_type_paths,
+                    stage_in_type_paths 
                 ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
-                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                    stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone())
                 )).unzip();
                 let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
                     .map(|stage| {
                         let index = stage.get_index();
-                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
-                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
-                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        let this_stage_out_type_path = stage_out_type_paths[index].as_ref();
+                        let (next_stage_in_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_in_type_paths[index + 1].as_ref(), false)
                         } else {
                             (None, true)
                         };
                         
                         stage.generate(
-                            this_stage_output_type_path,
-                            next_stage_input_type_path,
+                            this_stage_out_type_path,
+                            next_stage_in_type_path,
                             is_last,
                         )
                     })
@@ -419,27 +419,27 @@ impl Workflow {
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
                 let (
-                    stage_output_type_paths,
-                    stage_input_type_paths 
+                    stage_out_type_paths,
+                    stage_in_type_paths 
                 ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
-                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                    stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone())
                 )).unzip();
                 let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
                     .map(|stage| {
                         let index = stage.get_index();
-                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
-                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
-                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        let this_stage_out_type_path = stage_out_type_paths[index].as_ref();
+                        let (next_stage_in_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_in_type_paths[index + 1].as_ref(), false)
                         } else {
                             (None, true)
                         };
                         
                         stage.generate(
-                            this_stage_output_type_path,
-                            next_stage_input_type_path,
+                            this_stage_out_type_path,
+                            next_stage_in_type_path,
                             is_last,
                         )
                     })
@@ -540,27 +540,27 @@ impl Workflow {
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
                 let (
-                    stage_output_type_paths,
-                    stage_input_type_paths 
+                    stage_out_type_paths,
+                    stage_in_type_paths 
                 ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
-                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                    stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone())
                 )).unzip();
                 let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
                     .map(|stage| {
                         let index = stage.get_index();
-                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
-                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
-                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        let this_stage_out_type_path = stage_out_type_paths[index].as_ref();
+                        let (next_stage_in_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_in_type_paths[index + 1].as_ref(), false)
                         } else {
                             (None, true)
                         };
                         
                         stage.generate(
-                            this_stage_output_type_path,
-                            next_stage_input_type_path,
+                            this_stage_out_type_path,
+                            next_stage_in_type_path,
                             is_last,
                         )
                     })
@@ -631,27 +631,27 @@ impl Workflow {
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
                 let (
-                    stage_output_type_paths,
-                    stage_input_type_paths 
+                    stage_out_type_paths,
+                    stage_in_type_paths 
                 ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
-                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                    stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone())
                 )).unzip();
                 let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
                     .map(|stage| {
                         let index = stage.get_index();
-                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
-                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
-                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        let this_stage_out_type_path = stage_out_type_paths[index].as_ref();
+                        let (next_stage_in_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_in_type_paths[index + 1].as_ref(), false)
                         } else {
                             (None, true)
                         };
                         
                         stage.generate(
-                            this_stage_output_type_path,
-                            next_stage_input_type_path,
+                            this_stage_out_type_path,
+                            next_stage_in_type_path,
                             is_last,
                         )
                     })
@@ -752,27 +752,27 @@ impl Workflow {
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
                 let (
-                    stage_output_type_paths,
-                    stage_input_type_paths 
+                    stage_out_type_paths,
+                    stage_in_type_paths 
                 ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
-                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                    stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone())
                 )).unzip();
                 let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
                     .map(|stage| {
                         let index = stage.get_index();
-                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
-                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
-                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        let this_stage_out_type_path = stage_out_type_paths[index].as_ref();
+                        let (next_stage_in_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_in_type_paths[index + 1].as_ref(), false)
                         } else {
                             (None, true)
                         };
                         
                         stage.generate(
-                            this_stage_output_type_path,
-                            next_stage_input_type_path,
+                            this_stage_out_type_path,
+                            next_stage_in_type_path,
                             is_last,
                         )
                     })
@@ -846,27 +846,27 @@ impl Workflow {
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
                 let (
-                    stage_output_type_paths,
-                    stage_input_type_paths 
+                    stage_out_type_paths,
+                    stage_in_type_paths 
                 ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
-                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                    stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone())
                 )).unzip();
                 let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
                     .map(|stage| {
                         let index = stage.get_index();
-                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
-                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
-                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        let this_stage_out_type_path = stage_out_type_paths[index].as_ref();
+                        let (next_stage_in_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_in_type_paths[index + 1].as_ref(), false)
                         } else {
                             (None, true)
                         };
                         
                         stage.generate(
-                            this_stage_output_type_path,
-                            next_stage_input_type_path,
+                            this_stage_out_type_path,
+                            next_stage_in_type_path,
                             is_last,
                         )
                     })
@@ -971,27 +971,27 @@ impl Workflow {
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
                 let (
-                    stage_output_type_paths,
-                    stage_input_type_paths 
+                    stage_out_type_paths,
+                    stage_in_type_paths 
                 ): (Vec<_>, Vec<_>) = self.stages.0.iter().map(|stage| (
-                    stage.get_output_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                    stage.get_input_type_path(workflow_module_ident.clone(), workflow_ident.clone())
+                    stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                    stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone())
                 )).unzip();
                 let (stage_modules, stage_literals, stage_data_type_transmuters): (Vec<_>, Vec<_>, Vec<_>) = self
                     .stages.0
                     .into_iter()
                     .map(|stage| {
                         let index = stage.get_index();
-                        let this_stage_output_type_path = stage_output_type_paths[index].as_ref();
-                        let (next_stage_input_type_path, is_last) = if index < stage_count - 1 {
-                            (stage_input_type_paths[index + 1].as_ref(), false)
+                        let this_stage_out_type_path = stage_out_type_paths[index].as_ref();
+                        let (next_stage_in_type_path, is_last) = if index < stage_count - 1 {
+                            (stage_in_type_paths[index + 1].as_ref(), false)
                         } else {
                             (None, true)
                         };
                         
                         stage.generate(
-                            this_stage_output_type_path,
-                            next_stage_input_type_path,
+                            this_stage_out_type_path,
+                            next_stage_in_type_path,
                             is_last,
                         )
                     })
