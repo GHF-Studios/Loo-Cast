@@ -188,7 +188,7 @@ fn startup_system() {
         Ok(())
     }
     
-    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_composite_workflow(Box::pin(test_workflow_framework()));
+    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(test_workflow_framework()));
 }
 
 
@@ -219,7 +219,7 @@ fn startup_system() {
 //        Ok(())
 //    })
 //    
-//    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_composite_workflow(Box::pin(test_workflow_framework()));
+//    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(test_workflow_framework()));
 //}
 
 
@@ -278,7 +278,7 @@ fn startup_system() {
 //        Ok(())
 //    }
 //    
-//    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_composite_workflow(Box::pin(test_workflow_framework()));
+//    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(test_workflow_framework()));
 //}
 
 
@@ -353,5 +353,5 @@ fn startup_system() {
 //        Ok(())
 //    }
 //    
-//    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_composite_workflow(Box::pin(test_workflow_framework()));
+//    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(test_workflow_framework()));
 //}

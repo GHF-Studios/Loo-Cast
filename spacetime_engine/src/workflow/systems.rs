@@ -67,8 +67,13 @@ pub(in super) fn poll_ecs_stage_buffer_system(world: &mut World) {
         std::mem::take(&mut buffer.0)
     };
 
-    let sender = world
+    let completion_sender = world
         .get_resource::<EcsStageCompletionEventSender>()
+        .unwrap()
+        .0
+        .clone();
+    let failure_sender = world
+        .get_resource::<EcsStageFailureEventSender>()
         .unwrap()
         .0
         .clone();
@@ -76,11 +81,14 @@ pub(in super) fn poll_ecs_stage_buffer_system(world: &mut World) {
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
         let run_ecs = &mut stage.run_ecs;
         let output = (run_ecs)(data_buffer, world);
+        
+        // TODO: Figure out output permutation, and if it has an error, handle the error using the failure_sender
+        // TODO: Then implement for the other 4 polling systems, and implement the receiving end of failure handling
 
         let cloned_module_name = module_name;
         let cloned_workflow_name = workflow_name;
 
-        let output_send_result = sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output));
+        let output_send_result = completion_sender.send((cloned_module_name, cloned_workflow_name, current_stage, stage, output));
 
         if let Err(err) = output_send_result {
             unreachable!("Ecs stage completion error: Output send error: {}", err);

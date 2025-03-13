@@ -3,17 +3,35 @@ use tokio::task::JoinHandle;
 
 use super::{stage::{WorkflowStage, WorkflowStageType}, statics::TOKIO_RUNTIME};
 
-pub struct WorkflowTaskRuntime(tokio::runtime::Handle);
-impl WorkflowTaskRuntime {
+pub struct CompositeWorkflowRuntime(tokio::runtime::Handle);
+impl CompositeWorkflowRuntime {
     pub fn new() -> Self {
         Self(TOKIO_RUNTIME.lock().unwrap().handle().clone())
     }
 
-    pub fn spawn_composite_workflow<T: 'static + Send>(
+    pub fn spawn(
         &mut self, 
-        future: BoxFuture<'static, T>
-    ) -> JoinHandle<T> {
+        future: BoxFuture<'static, ()>
+    ) -> JoinHandle<()> {
         self.0.spawn(future)
+    }
+
+    pub fn spawn_fallible<E: 'static + Send + std::error::Error>(
+        &mut self,
+        future: BoxFuture<'static, Result<(), E>>
+    ) -> JoinHandle<()> {
+        self.0.spawn(Self::wrap_fallible_with_error_handler(future))
+    }
+
+    fn wrap_fallible_with_error_handler<E: 'static + Send + std::error::Error>(
+        future: BoxFuture<'static, Result<(), E>>
+    ) -> BoxFuture<'static, ()> {
+        Box::pin(async move {
+            match future.await {
+                Ok(_) => bevy::prelude::debug!("Composite workflow `test_workflow_framework` completed successfully"),
+                Err(e) => unreachable!("Composite workflow `test_workflow_framework` failed: {}", e),
+            };
+        })
     }
 }
 
