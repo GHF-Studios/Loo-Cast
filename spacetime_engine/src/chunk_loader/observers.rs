@@ -5,13 +5,13 @@ use bevy::prelude::*;
 use crate::chunk::components::ChunkComponent;
 use crate::chunk::enums::ChunkWorkflow;
 use crate::chunk::functions::*;
-use crate::chunk::resources::{ChunkWorkflowBuffer, ChunkManager};
+use crate::chunk::resources::{ChunkManager, ChunkWorkflowBuffer};
 
 use super::components::ChunkLoaderComponent;
 use super::functions::{load_chunk, unload_chunk};
 
 // TODO: Re-Validate chunk workflows before the chunk unloading logic
-pub(in crate) fn observe_on_add_chunk_loader(
+pub(crate) fn observe_on_add_chunk_loader(
     trigger: Trigger<OnAdd, ChunkLoaderComponent>,
     chunk_loader_query: Query<(Entity, &Transform, &mut ChunkLoaderComponent)>,
     chunk_manager: Res<ChunkManager>,
@@ -21,15 +21,17 @@ pub(in crate) fn observe_on_add_chunk_loader(
 
     // Phase 1: Re-Validate chunk workflows
 
-
     // Phase 2: Perform chunk loading logic
     let (loader_entity, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
         Ok(value) => value,
         Err(_) => {
-            panic!("Failed to add chunk loader {:?}: Chunk Loader Query did not include it", loader_entity);
+            panic!(
+                "Failed to add chunk loader {:?}: Chunk Loader Query did not include it",
+                loader_entity
+            );
         }
     };
-    
+
     let position = loader_transform.translation.truncate();
     let radius = loader.radius;
 
@@ -37,22 +39,30 @@ pub(in crate) fn observe_on_add_chunk_loader(
         .into_iter()
         .collect::<HashSet<(i32, i32)>>();
 
-    let current_chunks: HashSet<(i32, i32)> = chunk_manager.owned_chunks
+    let current_chunks: HashSet<(i32, i32)> = chunk_manager
+        .owned_chunks
         .iter()
-        .filter_map(|(chunk, &owner)| if owner == loader_entity { Some(*chunk) } else { None })
+        .filter_map(|(chunk, &owner)| {
+            if owner == loader_entity {
+                Some(*chunk)
+            } else {
+                None
+            }
+        })
         .collect();
 
     let chunks_to_spawn: Vec<&(i32, i32)> = target_chunks.difference(&current_chunks).collect();
-    
+
     for chunk_coord in chunks_to_spawn {
-        let chunk_loader_distance_squared = calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
+        let chunk_loader_distance_squared =
+            calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
         let chunk_loader_radius_squared = radius * radius;
 
         load_chunk(
-            &chunk_manager, 
-            &mut chunk_workflow_buffer, 
+            &chunk_manager,
+            &mut chunk_workflow_buffer,
             loader.id,
-            *chunk_coord, 
+            *chunk_coord,
             Some(loader_entity),
             chunk_loader_distance_squared,
             chunk_loader_radius_squared,
@@ -61,7 +71,7 @@ pub(in crate) fn observe_on_add_chunk_loader(
 }
 
 // TODO: Re-Validate chunk workflows before the chunk unloading logic
-pub(in crate) fn observe_on_remove_chunk_loader(
+pub(crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
     chunk_query: Query<(Entity, &ChunkComponent)>,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
@@ -83,7 +93,10 @@ pub(in crate) fn observe_on_remove_chunk_loader(
     // Phase 1: Re-Validate chunk workflows
 
     let mut invalid_workflows = vec![];
-    for (chunk_coord, workflow) in chunk_workflow_buffer.iter().filter(|(_, workflow)| workflow.get_requester_id() == loader.id) {
+    for (chunk_coord, workflow) in chunk_workflow_buffer
+        .iter()
+        .filter(|(_, workflow)| workflow.get_requester_id() == loader.id)
+    {
         match workflow {
             ChunkWorkflow::Spawn { .. } => {
                 invalid_workflows.push(*chunk_coord);
@@ -106,21 +119,19 @@ pub(in crate) fn observe_on_remove_chunk_loader(
         .owned_chunks
         .iter()
         .filter_map(|(chunk, &owner)| {
-            if owner == loader_entity { 
+            if owner == loader_entity {
                 chunk_workflow_buffer.remove_workflow(chunk);
 
-                Some(chunk) 
-            } else { 
-                None 
+                Some(chunk)
+            } else {
+                None
             }
         })
         .collect();
 
     for &chunk_coord in chunks_to_despawn {
-        let chunk_loader_distance_squared = calculate_chunk_distance_from_owner(
-            &chunk_coord,
-            &world_pos_to_chunk(position),
-        );
+        let chunk_loader_distance_squared =
+            calculate_chunk_distance_from_owner(&chunk_coord, &world_pos_to_chunk(position));
         let chunk_loader_radius_squared = radius * radius;
 
         unload_chunk(

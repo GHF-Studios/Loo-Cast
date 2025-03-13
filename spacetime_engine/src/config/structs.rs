@@ -20,7 +20,7 @@ impl Config {
         let mut data = HashMap::new();
         Self::flatten("", &raw_data, &mut data)?;
 
-        Ok(Self { 
+        Ok(Self {
             data,
             cache: RwLock::new(HashMap::new()),
         })
@@ -66,7 +66,7 @@ impl Config {
     // Change this design somehow, or like, add to it, to allow more "inlined" or actually "static" config values
     // The current design does a fair amount of stuff just to get a value that should effectively be static and constant.
     // Maybe we can perform some build.rs/macro trickery.
-    
+
     /// Generic getter with caching
     pub fn get<T>(&self, path: &str) -> T
     where
@@ -77,7 +77,8 @@ impl Config {
             let cache = self.cache.read().unwrap();
             if let Some(type_map) = cache.get(path) {
                 if let Some(cached_value) = type_map.get(&TypeId::of::<T>()) {
-                    return cached_value.downcast_ref::<T>()
+                    return cached_value
+                        .downcast_ref::<T>()
                         .expect("Cached value type mismatch")
                         .clone();
                 }
@@ -91,8 +92,8 @@ impl Config {
             .unwrap_or_else(|| panic!("Config key not found: {}", path))
             .clone();
 
-        let typed_value: T = T::try_from(value)
-            .unwrap_or_else(|err| panic!("Type conversion error: {}", err));
+        let typed_value: T =
+            T::try_from(value).unwrap_or_else(|err| panic!("Type conversion error: {}", err));
 
         // Cache the computed value
         {

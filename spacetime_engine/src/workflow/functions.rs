@@ -6,10 +6,12 @@ pub async fn run_workflow<W: WorkflowType>() {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
 
-    get_request_sender().send(TypedWorkflowRequest {
-        module_name,
-        workflow_name,
-    }).unwrap();
+    get_request_sender()
+        .send(TypedWorkflowRequest {
+            module_name,
+            workflow_name,
+        })
+        .unwrap();
 
     loop {
         if let Some(Some(response)) = {
@@ -25,10 +27,12 @@ pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
 
-    get_request_e_sender().send(TypedWorkflowRequestE {
-        module_name,
-        workflow_name,
-    }).unwrap();
+    get_request_e_sender()
+        .send(TypedWorkflowRequestE {
+            module_name,
+            workflow_name,
+        })
+        .unwrap();
 
     loop {
         if let Some(Some(response)) = {
@@ -44,10 +48,12 @@ pub async fn run_workflow_o<W: WorkflowTypeO>() -> Result<W::Output, ()> {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
 
-    get_request_o_sender().send(TypedWorkflowRequestO {
-        module_name,
-        workflow_name,
-    }).unwrap();
+    get_request_o_sender()
+        .send(TypedWorkflowRequestO {
+            module_name,
+            workflow_name,
+        })
+        .unwrap();
 
     loop {
         if let Some(Some(response)) = {
@@ -63,10 +69,12 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error>
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
 
-    get_request_oe_sender().send(TypedWorkflowRequestOE {
-        module_name,
-        workflow_name,
-    }).unwrap();
+    get_request_oe_sender()
+        .send(TypedWorkflowRequestOE {
+            module_name,
+            workflow_name,
+        })
+        .unwrap();
 
     loop {
         if let Some(Some(response)) = {
@@ -82,11 +90,13 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
 
-    get_request_i_sender().send(TypedWorkflowRequestI {
-        input: Box::new(input),
-        module_name,
-        workflow_name,
-    }).unwrap();
+    get_request_i_sender()
+        .send(TypedWorkflowRequestI {
+            input: Box::new(input),
+            module_name,
+            workflow_name,
+        })
+        .unwrap();
 
     loop {
         if let Some(Some(response)) = {
@@ -102,11 +112,13 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
 
-    get_request_ie_sender().send(TypedWorkflowRequestIE {
-        input: Box::new(input),
-        module_name,
-        workflow_name,
-    }).unwrap();
+    get_request_ie_sender()
+        .send(TypedWorkflowRequestIE {
+            input: Box::new(input),
+            module_name,
+            workflow_name,
+        })
+        .unwrap();
 
     loop {
         if let Some(Some(response)) = {
@@ -122,11 +134,13 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> Result<W::Ou
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
 
-    get_request_io_sender().send(TypedWorkflowRequestIO {
-        input: Box::new(input),
-        module_name,
-        workflow_name,
-    }).unwrap();
+    get_request_io_sender()
+        .send(TypedWorkflowRequestIO {
+            input: Box::new(input),
+            module_name,
+            workflow_name,
+        })
+        .unwrap();
 
     loop {
         if let Some(Some(response)) = {
@@ -142,11 +156,13 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
 
-    get_request_ioe_sender().send(TypedWorkflowRequestIOE {
-        input: Box::new(input),
-        module_name,
-        workflow_name,
-    }).unwrap();
+    get_request_ioe_sender()
+        .send(TypedWorkflowRequestIOE {
+            input: Box::new(input),
+            module_name,
+            workflow_name,
+        })
+        .unwrap();
 
     loop {
         if let Some(Some(response)) = {

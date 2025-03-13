@@ -1,6 +1,12 @@
-use syn::{parse::Parse, punctuated::Punctuated, spanned::Spanned, token::{In, Paren, Pub}, Ident, ItemUse, Path, PathSegment, Result, Token, VisRestricted, Visibility};
-use quote::{quote, ToTokens};
 use proc_macro2::TokenStream;
+use quote::{quote, ToTokens};
+use syn::{
+    parse::Parse,
+    punctuated::Punctuated,
+    spanned::Spanned,
+    token::{In, Paren, Pub},
+    Ident, ItemUse, Path, PathSegment, Result, Token, VisRestricted, Visibility,
+};
 
 pub struct UseStatements(pub Vec<UseStatement>);
 
@@ -31,22 +37,16 @@ impl Parse for UseStatement {
 
                 Ok(UseStatement { use_statement })
             }
-            Visibility::Restricted(vis) => {
-                Err(syn::Error::new(
-                    vis.span(), 
-                        "Use statements may not have an explicit visibility, 
-                        because the visibility is automatically set to `pub(super)`."
-                    )
-                )
-            },
-            Visibility::Public(vis) => {
-                Err(syn::Error::new(
-                    vis.span(), 
-                        "Use statements may not have an explicit visibility, 
-                        because the visibility is automatically set to `pub(super)`."
-                    )
-                )
-            }
+            Visibility::Restricted(vis) => Err(syn::Error::new(
+                vis.span(),
+                "Use statements may not have an explicit visibility, 
+                        because the visibility is automatically set to `pub(super)`.",
+            )),
+            Visibility::Public(vis) => Err(syn::Error::new(
+                vis.span(),
+                "Use statements may not have an explicit visibility, 
+                        because the visibility is automatically set to `pub(super)`.",
+            )),
         }
     }
 }
@@ -60,7 +60,7 @@ impl UseStatements {
             pub use super::user_items::*;
             pub use crate::workflow::types::{WorkflowStageOutcome, WorkflowStageOutcome::Wait, WorkflowStageOutcome::Done};
             pub use bevy::prelude::World;
-            
+
             // User imports
             #(#imports)*
         }

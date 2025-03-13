@@ -4,7 +4,7 @@ use crate::chunk::{
     components::ChunkComponent,
     enums::{ChunkWorkflow, ChunkWorkflowPriority},
     functions::world_pos_to_chunk,
-    resources::{ChunkWorkflowBuffer, ChunkManager},
+    resources::{ChunkManager, ChunkWorkflowBuffer},
 };
 
 use super::components::ChunkLoaderComponent;
@@ -32,7 +32,7 @@ fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) -> Chu
 
 fn is_chunk_in_loader_range(
     chunk_coord: &(i32, i32),
-    loader_position: Vec2, 
+    loader_position: Vec2,
     loader_radius: u32,
 ) -> bool {
     let (loader_chunk_x, loader_chunk_y) = world_pos_to_chunk(loader_position);
@@ -45,7 +45,7 @@ fn is_chunk_in_loader_range(
     distance_squared <= radius_squared
 }
 
-pub(in crate) fn load_chunk(
+pub(crate) fn load_chunk(
     chunk_manager: &ChunkManager,
     chunk_workflow_buffer: &mut ChunkWorkflowBuffer,
     requester_id: u32,
@@ -56,7 +56,8 @@ pub(in crate) fn load_chunk(
 ) {
     let is_loaded = chunk_manager.loaded_chunks.contains(&chunk_coord);
     let is_owned = chunk_manager.owned_chunks.contains_key(&chunk_coord);
-    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_workflow_buffer.get_workflow_states(&chunk_coord);
+    let (is_spawning, is_despawning, is_transfering_ownership) =
+        chunk_workflow_buffer.get_workflow_states(&chunk_coord);
 
     if !is_loaded {
         if !is_spawning && !is_despawning && !is_transfering_ownership {
@@ -83,7 +84,7 @@ pub(in crate) fn load_chunk(
     }
 }
 
-pub(in crate) fn unload_chunk(
+pub(crate) fn unload_chunk(
     chunk_manager: &ChunkManager,
     chunk_workflow_buffer: &mut ChunkWorkflowBuffer,
     chunk_query: &Query<(Entity, &ChunkComponent)>,
@@ -94,10 +95,14 @@ pub(in crate) fn unload_chunk(
     chunk_loader_radius_squared: u32,
 ) {
     let is_loaded = chunk_manager.is_loaded(&chunk_coord);
-    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_workflow_buffer.get_workflow_states(&chunk_coord);
+    let (is_spawning, is_despawning, is_transfering_ownership) =
+        chunk_workflow_buffer.get_workflow_states(&chunk_coord);
 
     if is_loaded && !is_spawning && !is_despawning && !is_transfering_ownership {
-        let chunk = match chunk_query.iter().find(|(_, chunk)| chunk.coord == chunk_coord) {
+        let chunk = match chunk_query
+            .iter()
+            .find(|(_, chunk)| chunk.coord == chunk_coord)
+        {
             Some((_, chunk)) => chunk,
             None => {
                 error!(
@@ -108,17 +113,22 @@ pub(in crate) fn unload_chunk(
             }
         };
 
-        match chunk_loader_query.iter().find(|(loader_entity, transform, loader)| {
-            if chunk.owner.is_some_and(|chunk_owner| chunk_owner == *loader_entity) {
-                return false;
-            }
+        match chunk_loader_query
+            .iter()
+            .find(|(loader_entity, transform, loader)| {
+                if chunk
+                    .owner
+                    .is_some_and(|chunk_owner| chunk_owner == *loader_entity)
+                {
+                    return false;
+                }
 
-            is_chunk_in_loader_range(
-                &chunk_coord,
-                transform.translation.truncate(),
-                loader.radius,
-            )
-        }) {
+                is_chunk_in_loader_range(
+                    &chunk_coord,
+                    transform.translation.truncate(),
+                    loader.radius,
+                )
+            }) {
             Some((new_owner, _, _)) => {
                 chunk_workflow_buffer.add_workflow(ChunkWorkflow::TransferOwnership {
                     requester_id,
@@ -131,7 +141,10 @@ pub(in crate) fn unload_chunk(
                 chunk_workflow_buffer.add_workflow(ChunkWorkflow::Despawn {
                     requester_id,
                     coord: chunk_coord,
-                    priority: calculate_despawn_priority(chunk_loader_distance_squared, chunk_loader_radius_squared),
+                    priority: calculate_despawn_priority(
+                        chunk_loader_distance_squared,
+                        chunk_loader_radius_squared,
+                    ),
                 });
             }
         };

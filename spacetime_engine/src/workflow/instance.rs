@@ -1,7 +1,7 @@
 use std::any::Any;
 
-use crate::workflow::types::*;
 use crate::config::statics::CONFIG;
+use crate::workflow::types::*;
 
 use super::response::*;
 
@@ -29,115 +29,115 @@ pub enum WorkflowInstance {
 }
 impl WorkflowInstance {
     pub fn new_request(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
+        module_name: &'static str,
+        workflow_name: &'static str,
         num_stages: usize,
-        callback: Box<dyn FnOnce() + Send + Sync>, 
+        callback: Box<dyn FnOnce() + Send + Sync>,
     ) -> Self {
         WorkflowInstance::None(TypedWorkflowInstance::new_request(
             module_name,
             workflow_name,
             callback,
-            num_stages
+            num_stages,
         ))
     }
     pub fn new_request_e(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
+        module_name: &'static str,
+        workflow_name: &'static str,
         num_stages: usize,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>, 
+        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::E(TypedWorkflowInstanceE::new_request(
             module_name,
             workflow_name,
             callback,
-            num_stages
+            num_stages,
         ))
     }
     pub fn new_request_o(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
+        module_name: &'static str,
+        workflow_name: &'static str,
         num_stages: usize,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>, 
+        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::O(TypedWorkflowInstanceO::new_request(
             module_name,
             workflow_name,
             callback,
-            num_stages
+            num_stages,
         ))
     }
     pub fn new_request_oe(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
+        module_name: &'static str,
+        workflow_name: &'static str,
         num_stages: usize,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>, 
+        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::OE(TypedWorkflowInstanceOE::new_request(
             module_name,
             workflow_name,
             callback,
-            num_stages
+            num_stages,
         ))
     }
     pub fn new_request_i(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
-        input: Box<dyn Any + Send + Sync>, 
+        module_name: &'static str,
+        workflow_name: &'static str,
+        input: Box<dyn Any + Send + Sync>,
         num_stages: usize,
-        callback: Box<dyn FnOnce() + Send + Sync>, 
+        callback: Box<dyn FnOnce() + Send + Sync>,
     ) -> Self {
         WorkflowInstance::I(TypedWorkflowInstanceI::new_request(
-            module_name, 
+            module_name,
             workflow_name,
             input,
             callback,
-            num_stages
+            num_stages,
         ))
     }
     pub fn new_request_ie(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
-        input: Box<dyn Any + Send + Sync>, 
+        module_name: &'static str,
+        workflow_name: &'static str,
+        input: Box<dyn Any + Send + Sync>,
         num_stages: usize,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>, 
+        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::IE(TypedWorkflowInstanceIE::new_request(
-            module_name, 
+            module_name,
             workflow_name,
             input,
             callback,
-            num_stages
+            num_stages,
         ))
     }
     pub fn new_request_io(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
-        input: Box<dyn Any + Send + Sync>, 
+        module_name: &'static str,
+        workflow_name: &'static str,
+        input: Box<dyn Any + Send + Sync>,
         num_stages: usize,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>, 
+        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::IO(TypedWorkflowInstanceIO::new_request(
-            module_name, 
+            module_name,
             workflow_name,
             input,
             callback,
-            num_stages
+            num_stages,
         ))
     }
     pub fn new_request_ioe(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
-        input: Box<dyn Any + Send + Sync>, 
+        module_name: &'static str,
+        workflow_name: &'static str,
+        input: Box<dyn Any + Send + Sync>,
         num_stages: usize,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>, 
+        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::IOE(TypedWorkflowInstanceIOE::new_request(
-            module_name, 
+            module_name,
             workflow_name,
             input,
             callback,
-            num_stages
+            num_stages,
         ))
     }
 
@@ -236,19 +236,35 @@ impl WorkflowInstance {
         match self {
             WorkflowInstance::None(_) => None,
             WorkflowInstance::E(_) => None,
-            WorkflowInstance::O(instance) => Some(std::mem::replace(&mut instance.data_buffer, Box::new(()))),
-            WorkflowInstance::OE(instance) => Some(std::mem::replace(&mut instance.data_buffer, Box::new(()))),
-            WorkflowInstance::I(instance) => Some(std::mem::replace(&mut instance.data_buffer, Box::new(()))),
-            WorkflowInstance::IE(instance) => Some(std::mem::replace(&mut instance.data_buffer, Box::new(()))),
-            WorkflowInstance::IO(instance) => Some(std::mem::replace(&mut instance.data_buffer, Box::new(()))),
-            WorkflowInstance::IOE(instance) => Some(std::mem::replace(&mut instance.data_buffer, Box::new(()))),
+            WorkflowInstance::O(instance) => {
+                Some(std::mem::replace(&mut instance.data_buffer, Box::new(())))
+            }
+            WorkflowInstance::OE(instance) => {
+                Some(std::mem::replace(&mut instance.data_buffer, Box::new(())))
+            }
+            WorkflowInstance::I(instance) => {
+                Some(std::mem::replace(&mut instance.data_buffer, Box::new(())))
+            }
+            WorkflowInstance::IE(instance) => {
+                Some(std::mem::replace(&mut instance.data_buffer, Box::new(())))
+            }
+            WorkflowInstance::IO(instance) => {
+                Some(std::mem::replace(&mut instance.data_buffer, Box::new(())))
+            }
+            WorkflowInstance::IOE(instance) => {
+                Some(std::mem::replace(&mut instance.data_buffer, Box::new(())))
+            }
         }
     }
 
     pub fn set_data_buffer(&mut self, data_buffer: Box<dyn Any + Send + Sync>) {
         match self {
-            WorkflowInstance::None(_) => unreachable!("Cannot set data buffer for WorkflowInstance::None"),
-            WorkflowInstance::E(_) => unreachable!("Cannot set data buffer for WorkflowInstance::E"),
+            WorkflowInstance::None(_) => {
+                unreachable!("Cannot set data buffer for WorkflowInstance::None")
+            }
+            WorkflowInstance::E(_) => {
+                unreachable!("Cannot set data buffer for WorkflowInstance::E")
+            }
             WorkflowInstance::O(instance) => instance.data_buffer = data_buffer,
             WorkflowInstance::OE(instance) => instance.data_buffer = data_buffer,
             WorkflowInstance::I(instance) => instance.data_buffer = data_buffer,
@@ -260,54 +276,54 @@ impl WorkflowInstance {
 
     pub fn take_callback(&mut self) -> WorkflowCallback {
         match self {
-            WorkflowInstance::None(instance) => {
-                WorkflowCallback::None(std::mem::replace(
-                    &mut instance.callback,
-                    Box::new(|| { unreachable!("Called invalid callback: WorkflowCallback::None(PLACEHOLDER)") })
-                ))
-            },
-            WorkflowInstance::E(instance) => {
-                WorkflowCallback::E(std::mem::replace(
-                    &mut instance.callback,
-                    Box::new(|_| { unreachable!("Called invalid callback: WorkflowCallback::E(PLACEHOLDER)") })
-                ))
-            },
-            WorkflowInstance::O(instance) => {
-                WorkflowCallback::O(std::mem::replace(
-                    &mut instance.callback,
-                    Box::new(|_| { unreachable!("Called invalid callback: WorkflowCallback::O(PLACEHOLDER)") })
-                ))
-            },
-            WorkflowInstance::OE(instance) => {
-                WorkflowCallback::OE(std::mem::replace(
-                    &mut instance.callback,
-                    Box::new(|_| { unreachable!("Called invalid callback: WorkflowCallback::OE(PLACEHOLDER)") })
-                ))
-            },
-            WorkflowInstance::I(instance) => {
-                WorkflowCallback::I(std::mem::replace(
-                    &mut instance.callback,
-                    Box::new(|| { unreachable!("Called invalid callback: WorkflowCallback::I(PLACEHOLDER)") })
-                ))
-            },
-            WorkflowInstance::IE(instance) => {
-                WorkflowCallback::IE(std::mem::replace(
-                    &mut instance.callback,
-                    Box::new(|_| { unreachable!("Called invalid callback: WorkflowCallback::IE(PLACEHOLDER)") })
-                ))
-            },
-            WorkflowInstance::IO(instance) => {
-                WorkflowCallback::IO(std::mem::replace(
-                    &mut instance.callback,
-                    Box::new(|_| { unreachable!("Called invalid callback: WorkflowCallback::IO(PLACEHOLDER)") })
-                ))
-            },
-            WorkflowInstance::IOE(instance) => {
-                WorkflowCallback::IOE(std::mem::replace(
-                    &mut instance.callback,
-                    Box::new(|_| { unreachable!("Called invalid callback: WorkflowCallback::IOE(PLACEHOLDER)") })
-                ))
-            },
+            WorkflowInstance::None(instance) => WorkflowCallback::None(std::mem::replace(
+                &mut instance.callback,
+                Box::new(|| {
+                    unreachable!("Called invalid callback: WorkflowCallback::None(PLACEHOLDER)")
+                }),
+            )),
+            WorkflowInstance::E(instance) => WorkflowCallback::E(std::mem::replace(
+                &mut instance.callback,
+                Box::new(|_| {
+                    unreachable!("Called invalid callback: WorkflowCallback::E(PLACEHOLDER)")
+                }),
+            )),
+            WorkflowInstance::O(instance) => WorkflowCallback::O(std::mem::replace(
+                &mut instance.callback,
+                Box::new(|_| {
+                    unreachable!("Called invalid callback: WorkflowCallback::O(PLACEHOLDER)")
+                }),
+            )),
+            WorkflowInstance::OE(instance) => WorkflowCallback::OE(std::mem::replace(
+                &mut instance.callback,
+                Box::new(|_| {
+                    unreachable!("Called invalid callback: WorkflowCallback::OE(PLACEHOLDER)")
+                }),
+            )),
+            WorkflowInstance::I(instance) => WorkflowCallback::I(std::mem::replace(
+                &mut instance.callback,
+                Box::new(|| {
+                    unreachable!("Called invalid callback: WorkflowCallback::I(PLACEHOLDER)")
+                }),
+            )),
+            WorkflowInstance::IE(instance) => WorkflowCallback::IE(std::mem::replace(
+                &mut instance.callback,
+                Box::new(|_| {
+                    unreachable!("Called invalid callback: WorkflowCallback::IE(PLACEHOLDER)")
+                }),
+            )),
+            WorkflowInstance::IO(instance) => WorkflowCallback::IO(std::mem::replace(
+                &mut instance.callback,
+                Box::new(|_| {
+                    unreachable!("Called invalid callback: WorkflowCallback::IO(PLACEHOLDER)")
+                }),
+            )),
+            WorkflowInstance::IOE(instance) => WorkflowCallback::IOE(std::mem::replace(
+                &mut instance.callback,
+                Box::new(|_| {
+                    unreachable!("Called invalid callback: WorkflowCallback::IOE(PLACEHOLDER)")
+                }),
+            )),
         }
     }
 
@@ -317,45 +333,45 @@ impl WorkflowInstance {
                 if let WorkflowCallback::None(callback) = callback {
                     instance.callback = callback
                 }
-            },
+            }
             WorkflowInstance::E(instance) => {
                 if let WorkflowCallback::E(callback) = callback {
                     instance.callback = callback
                 }
-            },
+            }
             WorkflowInstance::O(instance) => {
                 if let WorkflowCallback::O(callback) = callback {
                     instance.callback = callback
                 }
-            },
+            }
             WorkflowInstance::OE(instance) => {
                 if let WorkflowCallback::OE(callback) = callback {
                     instance.callback = callback
                 }
-            },
+            }
             WorkflowInstance::I(instance) => {
                 if let WorkflowCallback::I(callback) = callback {
                     instance.callback = callback
                 }
-            },
+            }
             WorkflowInstance::IE(instance) => {
                 if let WorkflowCallback::IE(callback) = callback {
                     instance.callback = callback
                 }
-            },
+            }
             WorkflowInstance::IO(instance) => {
                 if let WorkflowCallback::IO(callback) = callback {
                     instance.callback = callback
                 }
-            },
+            }
             WorkflowInstance::IOE(instance) => {
                 if let WorkflowCallback::IOE(callback) = callback {
                     instance.callback = callback
                 }
-            },
+            }
         }
     }
-    
+
     pub fn num_stages(&self) -> usize {
         match self {
             WorkflowInstance::None(instance) => instance.num_stages,
@@ -395,7 +411,7 @@ pub struct TypedWorkflowInstanceE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
-    pub callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>, 
+    pub callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
@@ -456,65 +472,65 @@ pub struct TypedWorkflowInstanceIOE {
 
 impl std::fmt::Debug for TypedWorkflowInstance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, 
-            "TypedWorkflowInstance(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})", 
+        write!(f,
+            "TypedWorkflowInstance(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})",
             self.module_name, self.workflow_name, self.state, self.num_stages, self.timeout_frames)
     }
 }
 impl std::fmt::Debug for TypedWorkflowInstanceE {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, 
-            "TypedWorkflowInstanceE(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})", 
+        write!(f,
+            "TypedWorkflowInstanceE(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})",
             self.module_name, self.workflow_name, self.state, self.num_stages, self.timeout_frames)
     }
 }
 impl std::fmt::Debug for TypedWorkflowInstanceO {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, 
-            "TypedWorkflowInstanceO(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})", 
+        write!(f,
+            "TypedWorkflowInstanceO(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})",
             self.module_name, self.workflow_name, self.state, self.num_stages, self.timeout_frames)
     }
 }
 impl std::fmt::Debug for TypedWorkflowInstanceOE {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, 
-            "TypedWorkflowInstanceOE(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})", 
+        write!(f,
+            "TypedWorkflowInstanceOE(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})",
             self.module_name, self.workflow_name, self.state, self.num_stages, self.timeout_frames)
     }
 }
 impl std::fmt::Debug for TypedWorkflowInstanceI {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, 
-            "TypedWorkflowInstanceI(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})", 
+        write!(f,
+            "TypedWorkflowInstanceI(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})",
             self.module_name, self.workflow_name, self.state, self.num_stages, self.timeout_frames)
     }
 }
 impl std::fmt::Debug for TypedWorkflowInstanceIE {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, 
-            "TypedWorkflowInstanceIE(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})", 
+        write!(f,
+            "TypedWorkflowInstanceIE(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})",
             self.module_name, self.workflow_name, self.state, self.num_stages, self.timeout_frames)
     }
 }
 impl std::fmt::Debug for TypedWorkflowInstanceIO {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, 
-            "TypedWorkflowInstanceIO(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})", 
+        write!(f,
+            "TypedWorkflowInstanceIO(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})",
             self.module_name, self.workflow_name, self.state, self.num_stages, self.timeout_frames)
     }
 }
 impl std::fmt::Debug for TypedWorkflowInstanceIOE {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, 
-            "TypedWorkflowInstanceIOE(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})", 
+        write!(f,
+            "TypedWorkflowInstanceIOE(module_name: {}, workflow_name: {}, state: {}, num_stages: {}, timeout_frames: {})",
             self.module_name, self.workflow_name, self.state, self.num_stages, self.timeout_frames)
     }
 }
 
 impl TypedWorkflowInstance {
-    pub(in super) fn new_request(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
+    pub(super) fn new_request(
+        module_name: &'static str,
+        workflow_name: &'static str,
         callback: Box<dyn FnOnce() + Send + Sync>,
         num_stages: usize,
     ) -> Self {
@@ -526,14 +542,14 @@ impl TypedWorkflowInstance {
             state: WorkflowState::Requested,
             callback,
             num_stages,
-            timeout_frames
+            timeout_frames,
         }
     }
 }
 impl TypedWorkflowInstanceE {
-    pub(in super) fn new_request(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
+    pub(super) fn new_request(
+        module_name: &'static str,
+        workflow_name: &'static str,
         callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
@@ -545,14 +561,14 @@ impl TypedWorkflowInstanceE {
             state: WorkflowState::Requested,
             callback,
             num_stages,
-            timeout_frames
+            timeout_frames,
         }
     }
 }
 impl TypedWorkflowInstanceO {
-    pub(in super) fn new_request(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
+    pub(super) fn new_request(
+        module_name: &'static str,
+        workflow_name: &'static str,
         callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
@@ -565,14 +581,14 @@ impl TypedWorkflowInstanceO {
             data_buffer: Box::new(()),
             callback,
             num_stages,
-            timeout_frames
+            timeout_frames,
         }
     }
 }
 impl TypedWorkflowInstanceOE {
-    pub(in super) fn new_request(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
+    pub(super) fn new_request(
+        module_name: &'static str,
+        workflow_name: &'static str,
         callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
@@ -585,15 +601,15 @@ impl TypedWorkflowInstanceOE {
             data_buffer: Box::new(()),
             callback,
             num_stages,
-            timeout_frames
+            timeout_frames,
         }
     }
 }
 impl TypedWorkflowInstanceI {
-    pub(in super) fn new_request(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
-        input: Box<dyn Any + Send + Sync>, 
+    pub(super) fn new_request(
+        module_name: &'static str,
+        workflow_name: &'static str,
+        input: Box<dyn Any + Send + Sync>,
         callback: Box<dyn FnOnce() + Send + Sync>,
         num_stages: usize,
     ) -> Self {
@@ -606,15 +622,15 @@ impl TypedWorkflowInstanceI {
             data_buffer: input,
             callback,
             num_stages,
-            timeout_frames
+            timeout_frames,
         }
     }
 }
 impl TypedWorkflowInstanceIE {
-    pub(in super) fn new_request(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
-        input: Box<dyn Any + Send + Sync>, 
+    pub(super) fn new_request(
+        module_name: &'static str,
+        workflow_name: &'static str,
+        input: Box<dyn Any + Send + Sync>,
         callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
@@ -627,15 +643,15 @@ impl TypedWorkflowInstanceIE {
             data_buffer: input,
             callback,
             num_stages,
-            timeout_frames
+            timeout_frames,
         }
     }
 }
 impl TypedWorkflowInstanceIO {
-    pub(in super) fn new_request(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
-        input: Box<dyn Any + Send + Sync>, 
+    pub(super) fn new_request(
+        module_name: &'static str,
+        workflow_name: &'static str,
+        input: Box<dyn Any + Send + Sync>,
         callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
@@ -648,15 +664,15 @@ impl TypedWorkflowInstanceIO {
             data_buffer: input,
             callback,
             num_stages,
-            timeout_frames
+            timeout_frames,
         }
     }
 }
 impl TypedWorkflowInstanceIOE {
-    pub(in super) fn new_request(
-        module_name: &'static str, 
-        workflow_name: &'static str, 
-        input: Box<dyn Any + Send + Sync>, 
+    pub(super) fn new_request(
+        module_name: &'static str,
+        workflow_name: &'static str,
+        input: Box<dyn Any + Send + Sync>,
         callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
@@ -669,7 +685,7 @@ impl TypedWorkflowInstanceIOE {
             data_buffer: input,
             callback,
             num_stages,
-            timeout_frames
+            timeout_frames,
         }
     }
 }

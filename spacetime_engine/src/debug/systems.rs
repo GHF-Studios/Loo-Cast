@@ -1,9 +1,13 @@
+use crate::{
+    camera::components::MainCamera,
+    chunk::{components::ChunkComponent, functions::world_pos_to_chunk},
+    chunk_loader::components::ChunkLoaderComponent,
+};
 use bevy::{prelude::*, window::PrimaryWindow};
-use crate::{camera::components::MainCamera, chunk::{components::ChunkComponent, functions::world_pos_to_chunk}, chunk_loader::components::ChunkLoaderComponent};
 
 use super::components::{TestObjectComponent, TestObjectMovement};
 
-pub(in crate) fn test_object_movement_system(
+pub(crate) fn test_object_movement_system(
     time: Res<Time>,
     mut query: Query<(&mut Transform, &TestObjectComponent)>,
 ) {
@@ -24,7 +28,7 @@ pub(in crate) fn test_object_movement_system(
     }
 }
 
-pub(in crate) fn chunk_inspection_system(
+pub(crate) fn chunk_inspection_system(
     window_query: Query<&Window, With<PrimaryWindow>>,
     camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     chunk_query: Query<&ChunkComponent>,
@@ -47,7 +51,7 @@ pub(in crate) fn chunk_inspection_system(
     }
 }
 
-pub(in crate) fn chunk_loader_inspection_system(
+pub(crate) fn chunk_loader_inspection_system(
     chunk_loader_query: Query<Entity, With<ChunkLoaderComponent>>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(in crate) enum ChunkWorkflow {
+pub(crate) enum ChunkWorkflow {
     Spawn {
         requester_id: u32,
         coord: (i32, i32),
@@ -18,7 +18,7 @@ pub(in crate) enum ChunkWorkflow {
         coord: (i32, i32),
         new_owner: Entity,
         priority: ChunkWorkflowPriority,
-    }
+    },
 }
 impl ChunkWorkflow {
     pub fn is_spawn(&self) -> bool {
@@ -37,7 +37,7 @@ impl ChunkWorkflow {
         match self {
             ChunkWorkflow::Spawn { requester_id, .. }
             | ChunkWorkflow::Despawn { requester_id, .. }
-            | ChunkWorkflow::TransferOwnership { requester_id, .. } => *requester_id
+            | ChunkWorkflow::TransferOwnership { requester_id, .. } => *requester_id,
         }
     }
 
@@ -45,7 +45,7 @@ impl ChunkWorkflow {
         match self {
             ChunkWorkflow::Spawn { coord, .. }
             | ChunkWorkflow::Despawn { coord, .. }
-            | ChunkWorkflow::TransferOwnership { coord, .. } => *coord
+            | ChunkWorkflow::TransferOwnership { coord, .. } => *coord,
         }
     }
 
@@ -53,7 +53,7 @@ impl ChunkWorkflow {
         match self {
             ChunkWorkflow::Spawn { priority, .. } => *priority,
             ChunkWorkflow::Despawn { priority, .. } => *priority,
-            ChunkWorkflow::TransferOwnership { priority, .. } => *priority
+            ChunkWorkflow::TransferOwnership { priority, .. } => *priority,
         }
     }
 }
@@ -73,7 +73,9 @@ impl PartialOrd for ChunkWorkflowPriority {
 impl Ord for ChunkWorkflowPriority {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match (self, other) {
-            (ChunkWorkflowPriority::Realtime, ChunkWorkflowPriority::Realtime) => std::cmp::Ordering::Equal,
+            (ChunkWorkflowPriority::Realtime, ChunkWorkflowPriority::Realtime) => {
+                std::cmp::Ordering::Equal
+            }
             (ChunkWorkflowPriority::Realtime, _) => std::cmp::Ordering::Greater,
             (_, ChunkWorkflowPriority::Realtime) => std::cmp::Ordering::Less,
             (ChunkWorkflowPriority::Deferred(a), ChunkWorkflowPriority::Deferred(b)) => b.cmp(a),

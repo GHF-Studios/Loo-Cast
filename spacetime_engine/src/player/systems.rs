@@ -2,9 +2,12 @@ use bevy::prelude::*;
 
 use crate::{config::statics::CONFIG, oneshot_systems::MainOneshotSystems};
 
-use super::{components::PlayerComponent, resources::{PlayerWorkflow, PlayerWorkflowQueue}};
+use super::{
+    components::PlayerComponent,
+    resources::{PlayerWorkflow, PlayerWorkflowQueue},
+};
 
-pub(in crate) fn update_player_system(
+pub(crate) fn update_player_system(
     mut queue: ResMut<PlayerWorkflowQueue>,
     mut player_query: Query<(Entity, &mut Transform), With<PlayerComponent>>,
     keys: Res<ButtonInput<KeyCode>>,
@@ -37,7 +40,8 @@ pub(in crate) fn update_player_system(
             direction = direction.normalize();
         }
 
-        transform.translation += direction * CONFIG.get::<f32>("player/movement_speed") * time.delta_seconds();
+        transform.translation +=
+            direction * CONFIG.get::<f32>("player/movement_speed") * time.delta_seconds();
 
         if keys.just_pressed(KeyCode::Space) {
             queue.0.push(PlayerWorkflow::Despawn(player_entity));
@@ -45,7 +49,7 @@ pub(in crate) fn update_player_system(
     }
 }
 
-pub(in crate) fn process_player_workflow_queue(
+pub(crate) fn process_player_workflow_queue(
     mut commands: Commands,
     mut queue: ResMut<PlayerWorkflowQueue>,
     main_oneshot_systems: Res<MainOneshotSystems>,

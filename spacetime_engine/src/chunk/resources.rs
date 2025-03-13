@@ -1,10 +1,10 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
 use bevy::prelude::*;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use super::enums::{ChunkWorkflow, ChunkWorkflowPriority};
 
 #[derive(Resource, Default)]
-pub(in crate) struct ChunkWorkflowBuffer {
+pub(crate) struct ChunkWorkflowBuffer {
     pub workflows: HashMap<(i32, i32), ChunkWorkflow>,
     pub priority_buckets: BTreeMap<ChunkWorkflowPriority, HashSet<(i32, i32)>>,
 }
@@ -100,7 +100,10 @@ impl ChunkWorkflowBuffer {
     }
 
     pub fn is_transfering_ownership(&self, chunk_coord: &(i32, i32)) -> bool {
-        matches!(self.get(chunk_coord), Some(ChunkWorkflow::TransferOwnership { .. }))
+        matches!(
+            self.get(chunk_coord),
+            Some(ChunkWorkflow::TransferOwnership { .. })
+        )
     }
 
     pub fn has_spawns(&self) -> bool {
@@ -108,7 +111,9 @@ impl ChunkWorkflowBuffer {
     }
 
     pub fn has_despawns(&self) -> bool {
-        self.workflows.values().any(|workflow| workflow.is_despawn())
+        self.workflows
+            .values()
+            .any(|workflow| workflow.is_despawn())
     }
 
     pub fn has_ownership_transfers(&self) -> bool {
@@ -126,13 +131,16 @@ impl ChunkWorkflowBuffer {
 }
 
 #[derive(Resource, Default, Debug)]
-pub(in crate) struct ChunkManager {
+pub(crate) struct ChunkManager {
     pub loaded_chunks: HashSet<(i32, i32)>,
     pub owned_chunks: HashMap<(i32, i32), Entity>,
 }
 impl ChunkManager {
     pub fn get_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool) {
-        (self.loaded_chunks.contains(chunk_coord), self.owned_chunks.contains_key(chunk_coord))
+        (
+            self.loaded_chunks.contains(chunk_coord),
+            self.owned_chunks.contains_key(chunk_coord),
+        )
     }
 
     pub fn is_loaded(&self, chunk_coord: &(i32, i32)) -> bool {
@@ -145,7 +153,7 @@ impl ChunkManager {
 }
 
 #[derive(Resource)]
-pub(in crate) struct ChunkRenderHandles {
+pub(crate) struct ChunkRenderHandles {
     pub quad: Handle<Mesh>,
     pub light_material: Handle<ColorMaterial>,
     pub dark_material: Handle<ColorMaterial>,

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use super::components::{FollowerComponent, FollowerTargetComponent};
 
-pub(in crate) fn observe_on_add_follower(
+pub(crate) fn observe_on_add_follower(
     trigger: Trigger<OnAdd, FollowerComponent>,
     mut param_set: ParamSet<(
         Query<(Entity, &mut FollowerComponent)>,
@@ -24,9 +24,9 @@ pub(in crate) fn observe_on_add_follower(
     };
 
     let target_query = param_set.p1();
-    let matching_target = target_query.iter().find(|(_, target_component, _)| {
-        target_component.id == follow_id
-    });
+    let matching_target = target_query
+        .iter()
+        .find(|(_, target_component, _)| target_component.id == follow_id);
 
     if let Some((target_entity, _, _)) = matching_target {
         let mut follower_query = param_set.p0();
@@ -38,9 +38,6 @@ pub(in crate) fn observe_on_add_follower(
             );
         }
     } else {
-        warn!(
-            "No matching target found for new follower '{}'.",
-            follow_id
-        );
+        warn!("No matching target found for new follower '{}'.", follow_id);
     }
 }

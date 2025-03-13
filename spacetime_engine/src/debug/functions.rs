@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 
-use crate::{chunk_actor::components::ChunkActorComponent, chunk_loader::components::ChunkLoaderComponent};
+use crate::{
+    chunk_actor::components::ChunkActorComponent, chunk_loader::components::ChunkLoaderComponent,
+};
 
 use super::components::{TestObjectComponent, TestObjectMovement};
 
@@ -14,9 +16,7 @@ pub fn spawn_test_object(
     commands.spawn((
         ChunkActorComponent,
         ChunkLoaderComponent::default(),
-        TestObjectComponent {
-            movement
-        },
+        TestObjectComponent { movement },
         SpriteBundle {
             sprite: Sprite {
                 color: Color::srgb(0.0, 0.0, 1.0),
@@ -26,7 +26,7 @@ pub fn spawn_test_object(
             transform: Transform {
                 translation: position.extend(0.0),
                 rotation: Quat::from_rotation_z(rotation),
-                scale: scale.extend(1.0)
+                scale: scale.extend(1.0),
             },
             ..Default::default()
         },

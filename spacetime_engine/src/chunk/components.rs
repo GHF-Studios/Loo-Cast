@@ -13,16 +13,19 @@ impl Component for ChunkComponent {
         hooks.on_add(|world, entity, _component_id| {
             let chunk = match world.get::<ChunkComponent>(entity) {
                 Some(chunk) => chunk,
-                None => return
+                None => return,
             };
 
             let chunk_owner = match chunk.owner {
                 Some(owner) => owner,
-                None => return
+                None => return,
             };
 
             if world.get_entity(chunk_owner).is_none() {
-                error!("Spawned chunk {:?} with invalid owner {}", chunk.coord, chunk_owner);
+                error!(
+                    "Spawned chunk {:?} with invalid owner {}",
+                    chunk.coord, chunk_owner
+                );
             }
         });
     }

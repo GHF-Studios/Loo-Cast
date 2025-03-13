@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use bevy::prelude::*;
 use bevy::render::render_resource::{BindGroupLayout, CachedComputePipelineId};
+use std::collections::HashMap;
 
 #[derive(Resource, Default)]
 pub struct ShaderRegistry {

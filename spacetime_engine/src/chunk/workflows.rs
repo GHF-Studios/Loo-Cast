@@ -7,7 +7,7 @@ define_workflow_mod! {
             user_imports: {
                 use bevy::prelude::{Entity, Handle, Image, Query, ResMut, Transform, SpriteBundle};
                 use bevy::ecs::system::SystemState;
-    
+
                 use crate::chunk::{components::ChunkComponent, resources::ChunkManager, functions::chunk_pos_to_world};
                 use crate::config::statics::CONFIG;
             },
@@ -15,10 +15,10 @@ define_workflow_mod! {
             stages: [
                 ValidateAndSpawn: Ecs {
                     core_types: [
-                        struct Input { 
-                            chunk_coord: (i32, i32), 
-                            chunk_owner: Option<Entity>, 
-                            metric_texture: Handle<Image> 
+                        struct Input {
+                            chunk_coord: (i32, i32),
+                            chunk_owner: Option<Entity>,
+                            metric_texture: Handle<Image>
                         }
                         enum Error {
                             ChunkAlreadyLoaded { chunk_coord: (i32, i32) },
@@ -29,20 +29,20 @@ define_workflow_mod! {
                             let chunk_coord = input.chunk_coord;
                             let chunk_owner = input.chunk_owner;
                             let metric_texture = input.metric_texture.clone();
-    
+
                             let mut system_state = SystemState::<Query::<&ChunkComponent>>::new(world);
                             let chunk_query = system_state.get(world);
-    
+
                             if chunk_query.iter().any(|chunk| chunk.coord == chunk_coord) {
                                 return Err(Error::ChunkAlreadyLoaded { chunk_coord });
                             }
-    
+
                             let default_chunk_z = CONFIG.get::<f32>("chunk/default_z");
                             let chunk_transform = Transform {
                                 translation: chunk_pos_to_world(chunk_coord).extend(default_chunk_z),
                                 ..Default::default()
                             };
-    
+
                             world.spawn((
                                 SpriteBundle {
                                     texture: metric_texture,
@@ -54,13 +54,13 @@ define_workflow_mod! {
                                     owner: chunk_owner,
                                 },
                             ));
-    
+
                             let mut chunk_manager = SystemState::<ResMut::<ChunkManager>>::new(world).get_mut(world);
                             chunk_manager.loaded_chunks.insert(chunk_coord);
                             if let Some(owner) = chunk_owner {
                                 chunk_manager.owned_chunks.insert(chunk_coord, owner);
                             }
-    
+
                             Ok(())
                         }
                     ]
@@ -72,15 +72,15 @@ define_workflow_mod! {
             user_imports: {
                 use bevy::prelude::{Entity, Query, ResMut, DespawnRecursiveExt};
                 use bevy::ecs::system::SystemState;
-    
+
                 use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
             },
             user_items: {},
             stages: [
                 FindAndDespawn: Ecs {
                     core_types: [
-                        struct Input { 
-                            chunk_coord: (i32, i32) 
+                        struct Input {
+                            chunk_coord: (i32, i32)
                         }
                         enum Error {
                             ChunkNotLoaded { chunk_coord: (i32, i32) },
@@ -116,16 +116,16 @@ define_workflow_mod! {
             user_imports: {
                 use bevy::prelude::{Entity, Query, ResMut};
                 use bevy::ecs::system::SystemState;
-    
+
                 use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
             },
             user_items: {},
             stages: [
                 FindAndTransferOwnership: Ecs {
                     core_types: [
-                        struct Input { 
-                            chunk_coord: (i32, i32), 
-                            new_owner: Entity 
+                        struct Input {
+                            chunk_coord: (i32, i32),
+                            new_owner: Entity
                         }
                         enum Error {
                             ChunkNotLoaded { chunk_coord: (i32, i32) },

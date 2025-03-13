@@ -8,37 +8,37 @@ define_workflow_mod! {
                 use bevy::prelude::{Handle, Shader, Res, ResMut, Assets};
                 use bevy::ecs::system::SystemState;
                 use bevy::render::render_resource::{
-                    BindGroupLayout, CachedComputePipelineId, 
-                    PipelineCache, BindGroupLayoutEntry, ShaderStages, 
-                    BindingType, StorageTextureAccess, TextureFormat, 
-                    TextureViewDimension, BufferBindingType, PushConstantRange, 
+                    BindGroupLayout, CachedComputePipelineId,
+                    PipelineCache, BindGroupLayoutEntry, ShaderStages,
+                    BindingType, StorageTextureAccess, TextureFormat,
+                    TextureViewDimension, BufferBindingType, PushConstantRange,
                     CachedPipelineState, Pipeline, ComputePipelineDescriptor
                 };
                 use bevy::render::render_asset::RenderAssets;
                 use bevy::render::texture::GpuImage;
                 use bevy::render::renderer::RenderDevice;
-                
+
                 use crate::gpu::resources::ShaderRegistry;
             },
             user_items: {},
             stages: [
                 SetupPhase1: Ecs {
                     core_types: [
-                        struct Input { 
-                            shader_name: &'static str, 
-                            shader_path: String 
+                        struct Input {
+                            shader_name: &'static str,
+                            shader_path: String
                         }
                         struct Output {
-                            shader_name: &'static str, 
+                            shader_name: &'static str,
                             shader_handle: Handle<Shader>,
                         }
                         enum Error {
-                            ShaderAlreadyRegistered { 
-                                shader_name: &'static str 
+                            ShaderAlreadyRegistered {
+                                shader_name: &'static str
                             },
-                            FailedToReadShader { 
-                                shader_name: &'static str, 
-                                error: std::io::Error 
+                            FailedToReadShader {
+                                shader_name: &'static str,
+                                error: std::io::Error
                             }
                         }
                     ],
@@ -46,45 +46,45 @@ define_workflow_mod! {
                         fn RunEcs |input, world| -> Result<Output, Error> {
                             let shader_name = input.shader_name;
                             let shader_path = &input.shader_path;
-        
+
                             let mut system_state: SystemState<(
                                 ResMut<Assets<Shader>>,
                                 Res<ShaderRegistry>,
                             )> = SystemState::new(world);
                             let (mut shader_assets, shader_registry) = system_state.get_mut(world);
-        
+
                             if shader_registry.shaders.contains_key(shader_name) {
                                 return Err(Error::ShaderAlreadyRegistered { shader_name })
                             }
-        
+
                             let shader_source = std::fs::read_to_string(shader_path)
                                 .map_err(|e| Error::FailedToReadShader { shader_name, error: e })?;
-                            
+
                             let shader = Shader::from_wgsl(shader_source, shader_path.clone());
                             let shader_handle = shader_assets.add(shader);
-        
+
                             Ok(Output { shader_name, shader_handle })
                         }
                     ]
                 }
-    
+
                 SetupPhase2: RenderWhile {
                     core_types: [
                         struct Input {
-                            shader_name: &'static str, 
+                            shader_name: &'static str,
                             shader_handle: Handle<Shader>
                         }
                         struct State {
-                            shader_name: &'static str, 
+                            shader_name: &'static str,
                             shader_handle: Handle<Shader>,
-                            bind_group_layout: BindGroupLayout, 
+                            bind_group_layout: BindGroupLayout,
                             pipeline_id: CachedComputePipelineId,
                         }
-                        struct Output { 
-                            shader_name: &'static str, 
-                            shader_handle: Handle<Shader>, 
+                        struct Output {
+                            shader_name: &'static str,
+                            shader_handle: Handle<Shader>,
                             pipeline_id: CachedComputePipelineId,
-                            bind_group_layout: BindGroupLayout, 
+                            bind_group_layout: BindGroupLayout,
                         }
                         enum Error {
                             ExpectedComputePipelineGotRenderPipeline {
@@ -101,14 +101,14 @@ define_workflow_mod! {
                         fn SetupRenderWhile |input, world| -> Result<State, Error> {
                             let shader_name = input.shader_name;
                             let shader_handle = input.shader_handle;
-    
+
                             let mut system_state: SystemState<(
                                 Res<RenderDevice>,
                                 Res<PipelineCache>,
                                 Res<RenderAssets<GpuImage>>
                             )> = SystemState::new(world);
                             let (render_device, pipeline_cache, gpu_images) = system_state.get(world);
-    
+
                             let bind_group_layout = render_device.create_bind_group_layout(
                                 None,
                                 &[
@@ -136,7 +136,7 @@ define_workflow_mod! {
                                     },
                                 ],
                             );
-    
+
                             let pipeline_id = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
                                 label: None,
                                 layout: vec![bind_group_layout.clone()],
@@ -148,7 +148,7 @@ define_workflow_mod! {
                                     range: 0..4,
                                 }],
                             });
-    
+
                             Ok(State { shader_name, shader_handle, bind_group_layout, pipeline_id })
                         }
                         fn RunRenderWhile |state, world| -> Result<Outcome<State, Output>, Error> {
@@ -156,16 +156,16 @@ define_workflow_mod! {
                             let shader_handle = state.shader_handle.clone();
                             let bind_group_layout = state.bind_group_layout.clone();
                             let pipeline_id = state.pipeline_id.clone();
-    
+
                             let pipeline_cache = SystemState::<Res::<PipelineCache>>::new(world).get(world);
-    
+
                             match pipeline_cache.get_compute_pipeline_state(pipeline_id) {
                                 CachedPipelineState::Queued | CachedPipelineState::Creating(_) => {
                                     Ok(Wait(state))
                                 },
                                 CachedPipelineState::Err(err) => {
-                                    Err(Error::FailedToCreatePipeline { 
-                                        shader_name, 
+                                    Err(Error::FailedToCreatePipeline {
+                                        shader_name,
                                         pipeline_cache_err: format!("{}", err)
                                     })
                                 },
@@ -175,10 +175,10 @@ define_workflow_mod! {
                                             shader_name: state.shader_name.to_string(),
                                             pipeline_id: state.pipeline_id
                                         }),
-                                        Pipeline::ComputePipeline(_) => Ok(Done(Output { 
-                                            shader_name, 
-                                            shader_handle, 
-                                            pipeline_id, 
+                                        Pipeline::ComputePipeline(_) => Ok(Done(Output {
+                                            shader_name,
+                                            shader_handle,
+                                            pipeline_id,
                                             bind_group_layout
                                         }))
                                     }
@@ -187,14 +187,14 @@ define_workflow_mod! {
                         }
                     ]
                 }
-    
+
                 SetupPhase3: Ecs {
                     core_types: [
-                        struct Input { 
-                            shader_name: &'static str, 
-                            shader_handle: Handle<Shader>, 
+                        struct Input {
+                            shader_name: &'static str,
+                            shader_handle: Handle<Shader>,
                             pipeline_id: CachedComputePipelineId,
-                            bind_group_layout: BindGroupLayout, 
+                            bind_group_layout: BindGroupLayout,
                         }
                     ],
                     core_functions: [
@@ -203,9 +203,9 @@ define_workflow_mod! {
                             let shader_handle = input.shader_handle;
                             let bind_group_layout = input.bind_group_layout;
                             let pipeline_id = input.pipeline_id;
-        
+
                             let mut shader_registry = SystemState::<ResMut<ShaderRegistry>>::new(world).get_mut(world);
-                            
+
                             shader_registry.shaders.insert(shader_name.to_string(), shader_handle);
                             shader_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
                             shader_registry.bind_group_layouts.insert(shader_name.to_string(), bind_group_layout);
@@ -219,9 +219,9 @@ define_workflow_mod! {
             user_imports: {
                 use bevy::prelude::{Handle, Res, ResMut, Assets, Image};
                 use bevy::render::render_resource::{
-                    CachedComputePipelineId, BindGroupLayout, 
-                    Buffer, TextureView, TextureDescriptor, Extent3d, 
-                    TextureDimension, TextureFormat, TextureUsages, 
+                    CachedComputePipelineId, BindGroupLayout,
+                    Buffer, TextureView, TextureDescriptor, Extent3d,
+                    TextureDimension, TextureFormat, TextureUsages,
                     BufferInitDescriptor, BufferUsages, CommandEncoderDescriptor,
                     ComputePassDescriptor
                 };
@@ -238,7 +238,7 @@ define_workflow_mod! {
                 pub struct GeneratorRequest<T> {
                     pub inner: T
                 }
-                
+
                 pub struct GeneratorParams {
                     pub shader_name: &'static str,
                     pub pipeline_id: CachedComputePipelineId,
@@ -278,7 +278,7 @@ define_workflow_mod! {
                         }
                     }
                 }
-                
+
                 pub struct PreparedGenerator {
                     pub shader_name: &'static str,
                     pub pipeline_id: CachedComputePipelineId,
@@ -298,7 +298,7 @@ define_workflow_mod! {
                         }
                     }
                 }
-                
+
                 pub struct DispatchedCompute {
                     pub shader_name: &'static str,
                     pub texture_handle: Handle<Image>,
@@ -359,8 +359,8 @@ define_workflow_mod! {
                                     sample_count: 1,
                                     dimension: TextureDimension::D2,
                                     format: TextureFormat::Rgba8Unorm,
-                                    usage: TextureUsages::COPY_DST 
-                                        | TextureUsages::TEXTURE_BINDING 
+                                    usage: TextureUsages::COPY_DST
+                                        | TextureUsages::TEXTURE_BINDING
                                         | TextureUsages::STORAGE_BINDING,
                                     view_formats: &[],
                                 },
@@ -376,10 +376,10 @@ define_workflow_mod! {
                             });
 
                             let request = GeneratorRequest::new(
-                                shader_name, 
-                                pipeline_id, 
-                                bind_group_layout, 
-                                texture_handle, 
+                                shader_name,
+                                pipeline_id,
+                                bind_group_layout,
+                                texture_handle,
                                 param_buffer
                             );
 
@@ -387,7 +387,7 @@ define_workflow_mod! {
                         }
                     ]
                 }
-    
+
                 GetTextureView: RenderWhile {
                     core_types: [
                         struct Input {
@@ -406,10 +406,10 @@ define_workflow_mod! {
                         }
                         fn RunRenderWhile |state, world| -> Outcome<State, Output> {
                             let gpu_images = SystemState::<Res<RenderAssets<GpuImage>>>::new(world).get(world);
-                
+
                             if let Some(gpu_image) = gpu_images.get(&state.request.inner.texture_handle) {
                                 let texture_view = gpu_image.texture_view.clone();
-                
+
                                 let prepared_request = state.request.set_texture_view(texture_view);
                                 Done(Output { request: prepared_request })
                             } else {
@@ -418,7 +418,7 @@ define_workflow_mod! {
                         }
                     ]
                 }
-    
+
                 DispatchCompute: Render {
                     core_types: [
                         struct Input {
@@ -436,17 +436,17 @@ define_workflow_mod! {
                             let texture_handle = prepared.texture_handle.clone();
                             let texture_view = &prepared.texture_view;
                             let param_buffer = &prepared.param_buffer;
-                
+
                             let mut system_state: SystemState<(
                                 Res<RenderDevice>,
                                 Res<RenderQueue>,
                                 Res<PipelineCache>,
                             )> = SystemState::new(world);
                             let (render_device, queue, pipeline_cache) = system_state.get_mut(world);
-                
+
                             let pipeline = pipeline_cache.get_compute_pipeline(pipeline_id)
                                 .expect("Compute pipeline not found");
-                
+
                             let bind_group = render_device.create_bind_group(
                                 Some("Compute Bind Group"),
                                 bind_group_layout,
@@ -461,28 +461,28 @@ define_workflow_mod! {
                                     },
                                 ],
                             );
-                
+
                             let mut encoder = render_device.create_command_encoder(&CommandEncoderDescriptor { label: None });
                             let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor { label: None, timestamp_writes: None });
-                
+
                             compute_pass.set_pipeline(pipeline);
                             compute_pass.set_bind_group(0, &bind_group, &[]);
                             compute_pass.dispatch_workgroups(8, 8, 1);
                             drop(compute_pass);
-                
+
                             queue.submit(Some(encoder.finish()));
-                
+
                             let (sender, receiver) = crossbeam_channel::unbounded();
                             queue.on_submitted_work_done(move || {
                                 let _ = sender.send(());
                             });
-                
+
                             let dispatched_request = input.request.track_dispatch(texture_handle, receiver);
                             Output { request: dispatched_request }
                         }
                     ]
                 }
-    
+
                 WaitForCompute: EcsWhile {
                     core_types: [
                         struct Input {
@@ -507,7 +507,7 @@ define_workflow_mod! {
                         }
                         fn RunEcsWhile |state, world| -> Result<Outcome<State, Output>, Error> {
                             let receiver = &state.request.inner.receiver;
-                
+
                             match receiver.try_recv() {
                                 Ok(_) => {
                                     let (shader_name, texture_handle) = state.request.consume();

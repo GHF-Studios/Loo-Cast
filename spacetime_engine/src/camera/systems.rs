@@ -1,16 +1,16 @@
-use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy::input::mouse::MouseScrollUnit;
+use bevy::{input::mouse::MouseWheel, prelude::*};
 
 use crate::config::statics::CONFIG;
 
-pub(in crate) struct ZoomFactor(pub f32);
+pub(crate) struct ZoomFactor(pub f32);
 impl Default for ZoomFactor {
     fn default() -> Self {
         Self(CONFIG.get::<f32>("camera/default_zoom"))
     }
 }
 
-pub(in crate) fn main_camera_zoom_system(
+pub(crate) fn main_camera_zoom_system(
     mut projection_query: Query<&mut OrthographicProjection, With<Camera>>,
     mut scroll_event_reader: EventReader<MouseWheel>,
     time: Res<Time>,

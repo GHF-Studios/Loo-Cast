@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
-use syn::{parse::Parse, Item, Result};
 use quote::{quote, ToTokens};
+use syn::{parse::Parse, Item, Result};
 
 pub struct UserItems(pub Vec<UserItem>);
 

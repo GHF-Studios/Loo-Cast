@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use super::components::ChunkComponent;
+use bevy::prelude::*;
 
 #[derive(Bundle, Default)]
 pub struct ChunkBundle {

@@ -1,7 +1,7 @@
-mod define_workflow_mod;
 mod define_composite_workflow;
-mod run_workflow;
+mod define_workflow_mod;
 mod get_workflow_path;
+mod run_workflow;
 
 use define_workflow_mod::WorkflowModule;
 //use define_composite_workflow::CompositeWorkflow;
@@ -9,8 +9,8 @@ use define_workflow_mod::WorkflowModule;
 use get_workflow_path::TypedWorkflowPath;
 
 use proc_macro::TokenStream;
-use syn::parse_macro_input;
 use quote::quote;
+use syn::parse_macro_input;
 
 #[proc_macro]
 pub fn define_workflow_mod(input: TokenStream) -> TokenStream {

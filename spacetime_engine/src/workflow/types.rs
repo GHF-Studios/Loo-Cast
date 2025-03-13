@@ -1,7 +1,10 @@
 use futures::future::BoxFuture;
 use tokio::task::JoinHandle;
 
-use super::{stage::{WorkflowStage, WorkflowStageType}, statics::TOKIO_RUNTIME};
+use super::{
+    stage::{WorkflowStage, WorkflowStageType},
+    statics::TOKIO_RUNTIME,
+};
 
 pub struct CompositeWorkflowRuntime(tokio::runtime::Handle);
 impl CompositeWorkflowRuntime {
@@ -9,27 +12,28 @@ impl CompositeWorkflowRuntime {
         Self(TOKIO_RUNTIME.lock().unwrap().handle().clone())
     }
 
-    pub fn spawn(
-        &mut self, 
-        future: BoxFuture<'static, ()>
-    ) -> JoinHandle<()> {
+    pub fn spawn(&mut self, future: BoxFuture<'static, ()>) -> JoinHandle<()> {
         self.0.spawn(future)
     }
 
     pub fn spawn_fallible<E: 'static + Send + std::error::Error>(
         &mut self,
-        future: BoxFuture<'static, Result<(), E>>
+        future: BoxFuture<'static, Result<(), E>>,
     ) -> JoinHandle<()> {
         self.0.spawn(Self::wrap_fallible_with_error_handler(future))
     }
 
     fn wrap_fallible_with_error_handler<E: 'static + Send + std::error::Error>(
-        future: BoxFuture<'static, Result<(), E>>
+        future: BoxFuture<'static, Result<(), E>>,
     ) -> BoxFuture<'static, ()> {
         Box::pin(async move {
             match future.await {
-                Ok(_) => bevy::prelude::debug!("Composite workflow `test_workflow_framework` completed successfully"),
-                Err(e) => unreachable!("Composite workflow `test_workflow_framework` failed: {}", e),
+                Ok(_) => bevy::prelude::debug!(
+                    "Composite workflow `test_workflow_framework` completed successfully"
+                ),
+                Err(e) => {
+                    unreachable!("Composite workflow `test_workflow_framework` failed: {}", e)
+                }
             };
         })
     }
@@ -49,11 +53,11 @@ impl std::fmt::Display for WorkflowState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Requested => write!(f, "WorkflowState::Requested"),
-            Self::Processing { 
-                current_stage, 
+            Self::Processing {
+                current_stage,
                 current_stage_type,
-                stage_initialized: initialized, 
-                stage_completed: completed 
+                stage_initialized: initialized,
+                stage_completed: completed
             } => write!(f, "WorkflowState::Processing(current_stage: {}, current_stage_type: {}, initialized: {}, completed: {})", current_stage, current_stage_type, initialized, completed),
         }
     }
@@ -73,16 +77,16 @@ impl WorkflowState {
 
 pub struct WorkflowTypeModule {
     pub name: &'static str,
-    pub workflow_types: Vec<WorkflowType>
+    pub workflow_types: Vec<WorkflowType>,
 }
 
 pub struct WorkflowType {
     pub name: &'static str,
-    pub stages: Vec<WorkflowStage>
+    pub stages: Vec<WorkflowStage>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WorkflowStageOutcome<S, O> {
     Wait(S),
-    Done(O)
+    Done(O),
 }

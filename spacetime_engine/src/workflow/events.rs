@@ -1,17 +1,17 @@
 use bevy::prelude::*;
 use std::any::Any;
 
-use super::stage::{WorkflowStageType, WorkflowStage};
+use super::stage::{WorkflowStage, WorkflowStageType};
 
 #[derive(Event)]
-pub(in crate) struct WorkflowStageInitializationEvent {
+pub(crate) struct WorkflowStageInitializationEvent {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub stage_input: Option<Box<dyn Any + Send + Sync>>,
 }
 
 #[derive(Event)]
-pub(in crate) struct WorkflowStageCompletionEvent {
+pub(crate) struct WorkflowStageCompletionEvent {
     pub ty: WorkflowStageType,
     pub module_name: &'static str,
     pub workflow_name: &'static str,

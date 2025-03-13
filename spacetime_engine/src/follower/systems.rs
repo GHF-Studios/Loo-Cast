@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use super::components::{FollowerComponent, FollowerTargetComponent};
 use super::events::FollowerTargetLifecycleEvent;
 
-pub(in crate) fn update_follower_system(
+pub(crate) fn update_follower_system(
     mut follower_target_lifecycle_event_reader: EventReader<FollowerTargetLifecycleEvent>,
     mut param_set: ParamSet<(
         Query<(Entity, &mut Transform, &mut FollowerComponent)>,
@@ -12,7 +12,10 @@ pub(in crate) fn update_follower_system(
     )>,
     time: Res<Time>,
 ) {
-    process_lifecycle_events(&mut follower_target_lifecycle_event_reader, &mut param_set.p0());
+    process_lifecycle_events(
+        &mut follower_target_lifecycle_event_reader,
+        &mut param_set.p0(),
+    );
     let targets = collect_target_positions(&mut param_set.p1());
     update_followers(&mut param_set.p0(), &targets, &time);
 }
@@ -23,7 +26,10 @@ fn process_lifecycle_events(
 ) {
     for event in events.read() {
         match event {
-            FollowerTargetLifecycleEvent::Add { follow_id, followed_entity } => {
+            FollowerTargetLifecycleEvent::Add {
+                follow_id,
+                followed_entity,
+            } => {
                 assign_follower(followers_query, follow_id, followed_entity);
             }
             FollowerTargetLifecycleEvent::Remove { follow_id, .. } => {
@@ -85,7 +91,12 @@ fn update_followers(
             .get_followed_entity()
             .and_then(|_| targets.get(&follower.follow_id))
         {
-            update_follower_position(&mut follower, &mut follower_transform, target_position.truncate(), time);
+            update_follower_position(
+                &mut follower,
+                &mut follower_transform,
+                target_position.truncate(),
+                time,
+            );
         }
     }
 }
@@ -112,10 +123,8 @@ fn update_follower_position(
 
     let target_position_2d = target_position + follower.offset;
 
-    follower_transform.translation = follower_transform
-        .translation
-        .lerp(
-            target_position_2d.extend(follower_transform.translation.z),
-            interpolation_factor,
-        );
+    follower_transform.translation = follower_transform.translation.lerp(
+        target_position_2d.extend(follower_transform.translation.z),
+        interpolation_factor,
+    );
 }

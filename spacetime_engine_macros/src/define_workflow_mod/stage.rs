@@ -1,9 +1,9 @@
-use syn::{parse::Parse, Ident, Result, Token, braced, bracketed, parse::ParseStream, LitInt};
-use quote::quote;
-use proc_macro2::TokenStream;
-use heck::ToSnakeCase;
-use super::core_type::CoreTypes;
 use super::core_function::CoreFunctions;
+use super::core_type::CoreTypes;
+use heck::ToSnakeCase;
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::{braced, bracketed, parse::Parse, parse::ParseStream, Ident, LitInt, Result, Token};
 
 pub struct Ecs;
 pub struct Render;
@@ -45,42 +45,37 @@ impl Stage {
         let stage_type: Ident = lookahead.parse()?;
 
         match stage_type.to_string().as_str() {
-            "Ecs" => {
-                TypedStage::<Ecs>::parse(input, index).map(Stage::Ecs)
-            },
-            "EcsWhile" => {
-                TypedStage::<EcsWhile>::parse(input, index).map(Stage::EcsWhile)
-            },
-            "Render" => {
-                TypedStage::<Render>::parse(input, index).map(Stage::Render)
-            },
-            "RenderWhile" => {
-                TypedStage::<RenderWhile>::parse(input, index).map(Stage::RenderWhile)
-            },
-            "Async" => {
-                TypedStage::<Async>::parse(input, index).map(Stage::Async)
-            },
+            "Ecs" => TypedStage::<Ecs>::parse(input, index).map(Stage::Ecs),
+            "EcsWhile" => TypedStage::<EcsWhile>::parse(input, index).map(Stage::EcsWhile),
+            "Render" => TypedStage::<Render>::parse(input, index).map(Stage::Render),
+            "RenderWhile" => TypedStage::<RenderWhile>::parse(input, index).map(Stage::RenderWhile),
+            "Async" => TypedStage::<Async>::parse(input, index).map(Stage::Async),
             _ => Err(input.error("Invalid stage type")),
         }
     }
 
-    pub fn generate(self, this_stage_out_type_path: Option<&TokenStream>, next_stage_in_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
+    pub fn generate(
+        self,
+        this_stage_out_type_path: Option<&TokenStream>,
+        next_stage_in_type_path: Option<&TokenStream>,
+        is_last: bool,
+    ) -> (TokenStream, TokenStream, Option<TokenStream>) {
         match self {
             Stage::Ecs(stage) => {
                 stage.generate(this_stage_out_type_path, next_stage_in_type_path, is_last)
-            },
+            }
             Stage::EcsWhile(stage) => {
                 stage.generate(this_stage_out_type_path, next_stage_in_type_path, is_last)
-            },
+            }
             Stage::Render(stage) => {
                 stage.generate(this_stage_out_type_path, next_stage_in_type_path, is_last)
-            },
+            }
             Stage::RenderWhile(stage) => {
                 stage.generate(this_stage_out_type_path, next_stage_in_type_path, is_last)
-            },
+            }
             Stage::Async(stage) => {
                 stage.generate(this_stage_out_type_path, next_stage_in_type_path, is_last)
-            },
+            }
         }
     }
 
@@ -154,22 +149,36 @@ impl Stage {
         }
     }
 
-    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
         match self {
             Stage::Ecs(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
             Stage::EcsWhile(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
             Stage::Render(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
-            Stage::RenderWhile(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
+            Stage::RenderWhile(stage) => {
+                stage.get_in_type_path(workflow_module_ident, workflow_ident)
+            }
             Stage::Async(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
         }
     }
 
-    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
         match self {
             Stage::Ecs(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
-            Stage::EcsWhile(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
+            Stage::EcsWhile(stage) => {
+                stage.get_out_type_path(workflow_module_ident, workflow_ident)
+            }
             Stage::Render(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
-            Stage::RenderWhile(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
+            Stage::RenderWhile(stage) => {
+                stage.get_out_type_path(workflow_module_ident, workflow_ident)
+            }
             Stage::Async(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
         }
     }
@@ -191,14 +200,19 @@ impl TypedStage<Ecs> {
         let core_types: CoreTypes<Ecs> = core_types_content.parse()?;
 
         let _: Token![,] = stage_content.parse()?;
-        
+
         let _: super::kw::core_functions = stage_content.parse()?;
         stage_content.parse::<Token![:]>()?;
         let core_functions_content;
         bracketed!(core_functions_content in stage_content);
         let core_functions: CoreFunctions<Ecs> = core_functions_content.parse()?;
 
-        Ok(TypedStage { name: stage_name, index, core_types, core_functions })
+        Ok(TypedStage {
+            name: stage_name,
+            index,
+            core_types,
+            core_functions,
+        })
     }
 }
 
@@ -218,14 +232,19 @@ impl TypedStage<Render> {
         let core_types: CoreTypes<Render> = core_types_content.parse()?;
 
         let _: Token![,] = stage_content.parse()?;
-        
+
         let _: super::kw::core_functions = stage_content.parse()?;
         stage_content.parse::<Token![:]>()?;
         let core_functions_content;
         bracketed!(core_functions_content in stage_content);
         let core_functions: CoreFunctions<Render> = core_functions_content.parse()?;
 
-        Ok(TypedStage { name: stage_name, index, core_types, core_functions })
+        Ok(TypedStage {
+            name: stage_name,
+            index,
+            core_types,
+            core_functions,
+        })
     }
 }
 
@@ -245,14 +264,19 @@ impl TypedStage<Async> {
         let core_types: CoreTypes<Async> = core_types_content.parse()?;
 
         let _: Token![,] = stage_content.parse()?;
-        
+
         let _: super::kw::core_functions = stage_content.parse()?;
         stage_content.parse::<Token![:]>()?;
         let core_functions_content;
         bracketed!(core_functions_content in stage_content);
         let core_functions: CoreFunctions<Async> = core_functions_content.parse()?;
 
-        Ok(TypedStage { name: stage_name, index, core_types, core_functions })
+        Ok(TypedStage {
+            name: stage_name,
+            index,
+            core_types,
+            core_functions,
+        })
     }
 }
 
@@ -272,14 +296,19 @@ impl TypedStage<EcsWhile> {
         let core_types: CoreTypes<EcsWhile> = core_types_content.parse()?;
 
         let _: Token![,] = stage_content.parse()?;
-        
+
         let _: super::kw::core_functions = stage_content.parse()?;
         stage_content.parse::<Token![:]>()?;
         let core_functions_content;
         bracketed!(core_functions_content in stage_content);
         let core_functions: CoreFunctions<EcsWhile> = core_functions_content.parse()?;
 
-        Ok(TypedStage { name: stage_name, index, core_types, core_functions })
+        Ok(TypedStage {
+            name: stage_name,
+            index,
+            core_types,
+            core_functions,
+        })
     }
 }
 
@@ -299,14 +328,19 @@ impl TypedStage<RenderWhile> {
         let core_types: CoreTypes<RenderWhile> = core_types_content.parse()?;
 
         let _: Token![,] = stage_content.parse()?;
-        
+
         let _: super::kw::core_functions = stage_content.parse()?;
         stage_content.parse::<Token![:]>()?;
         let core_functions_content;
         bracketed!(core_functions_content in stage_content);
         let core_functions: CoreFunctions<RenderWhile> = core_functions_content.parse()?;
 
-        Ok(TypedStage { name: stage_name, index, core_types, core_functions })
+        Ok(TypedStage {
+            name: stage_name,
+            index,
+            core_types,
+            core_functions,
+        })
     }
 }
 
@@ -334,18 +368,26 @@ impl Parse for Stages {
 }
 
 impl TypedStage<Ecs> {
-    pub fn generate(self, this_stage_out_type_path: Option<&TokenStream>, next_stage_in_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
+    pub fn generate(
+        self,
+        this_stage_out_type_path: Option<&TokenStream>,
+        next_stage_in_type_path: Option<&TokenStream>,
+        is_last: bool,
+    ) -> (TokenStream, TokenStream, Option<TokenStream>) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
-        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_name.as_str().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        
+
         let stage_module = quote! {
             pub mod #stage_ident {
                 pub const NAME: &str = stringify!(#stage_name);
-                
+
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
 
@@ -399,20 +441,18 @@ impl TypedStage<Ecs> {
                         }
                     }
                 )})
-            },
+            }
             (Some(_), None) => {
                 if is_last {
                     None
                 } else {
                     unreachable!("This stage has input, but the next stage has no output, or this stage is the last stage!")
                 }
-            },
+            }
             (None, Some(_)) => {
                 unreachable!("This stage has no input, but the next stage has output!")
-            },
-            (None, None) => {
-                None
             }
+            (None, None) => None,
         };
 
         (stage_module, stage_literal, stage_data_type_transmuter)
@@ -426,31 +466,45 @@ impl TypedStage<Ecs> {
         self.index
     }
 
-    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_ident.to_string().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = &self.core_types;
 
         core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_ident.to_string().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = &self.core_types;
 
         if core_types.has_error() {
             if core_types.has_output() {
                 Some(quote! { Result<
-                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output, 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output,
                     crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
-                    > 
+                    >
                 })
             } else {
                 Some(quote! { Result<
-                    (), 
+                    (),
                     crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
-                    > 
+                    >
                 })
             }
         } else {
@@ -460,10 +514,18 @@ impl TypedStage<Ecs> {
 }
 
 impl TypedStage<Render> {
-    pub fn generate(self, this_stage_out_type_path: Option<&TokenStream>, next_stage_in_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
+    pub fn generate(
+        self,
+        this_stage_out_type_path: Option<&TokenStream>,
+        next_stage_in_type_path: Option<&TokenStream>,
+        is_last: bool,
+    ) -> (TokenStream, TokenStream, Option<TokenStream>) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
-        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_name.as_str().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
@@ -471,7 +533,7 @@ impl TypedStage<Render> {
         let stage_module = quote! {
             pub mod #stage_ident {
                 pub const NAME: &str = stringify!(#stage_name);
-                
+
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
 
@@ -525,20 +587,18 @@ impl TypedStage<Render> {
                         }
                     }
                 )})
-            },
+            }
             (Some(_), None) => {
                 if is_last {
                     None
                 } else {
                     unreachable!("This stage has input, but the next stage has no output, or this stage is the last stage!")
                 }
-            },
+            }
             (None, Some(_)) => {
                 unreachable!("This stage has no input, but the next stage has output!")
-            },
-            (None, None) => {
-                None
             }
+            (None, None) => None,
         };
 
         (stage_module, stage_literal, stage_data_type_transmuter)
@@ -552,31 +612,45 @@ impl TypedStage<Render> {
         self.index
     }
 
-    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_ident.to_string().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = &self.core_types;
 
         core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_ident.to_string().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = &self.core_types;
 
         if core_types.has_error() {
             if core_types.has_output() {
                 Some(quote! { Result<
-                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output, 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output,
                     crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
-                    > 
+                    >
                 })
             } else {
                 Some(quote! { Result<
-                    (), 
+                    (),
                     crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
-                    > 
+                    >
                 })
             }
         } else {
@@ -586,10 +660,18 @@ impl TypedStage<Render> {
 }
 
 impl TypedStage<Async> {
-    pub fn generate(self, this_stage_out_type_path: Option<&TokenStream>, next_stage_in_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
+    pub fn generate(
+        self,
+        this_stage_out_type_path: Option<&TokenStream>,
+        next_stage_in_type_path: Option<&TokenStream>,
+        is_last: bool,
+    ) -> (TokenStream, TokenStream, Option<TokenStream>) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
-        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_name.as_str().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
@@ -597,7 +679,7 @@ impl TypedStage<Async> {
         let stage_module = quote! {
             pub mod #stage_ident {
                 pub const NAME: &str = stringify!(#stage_name);
-                
+
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
 
@@ -651,20 +733,18 @@ impl TypedStage<Async> {
                         }
                     }
                 )})
-            },
+            }
             (Some(_), None) => {
                 if is_last {
                     None
                 } else {
                     unreachable!("This stage has input, but the next stage has no output, or this stage is the last stage!")
                 }
-            },
+            }
             (None, Some(_)) => {
                 unreachable!("This stage has no input, but the next stage has output!")
-            },
-            (None, None) => {
-                None
             }
+            (None, None) => None,
         };
 
         (stage_module, stage_literal, stage_data_type_transmuter)
@@ -678,31 +758,45 @@ impl TypedStage<Async> {
         self.index
     }
 
-    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_ident.to_string().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = &self.core_types;
 
         core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_ident.to_string().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = &self.core_types;
 
         if core_types.has_error() {
             if core_types.has_output() {
                 Some(quote! { Result<
-                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output, 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output,
                     crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
-                    > 
+                    >
                 })
             } else {
                 Some(quote! { Result<
-                    (), 
+                    (),
                     crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
-                    > 
+                    >
                 })
             }
         } else {
@@ -712,10 +806,18 @@ impl TypedStage<Async> {
 }
 
 impl TypedStage<EcsWhile> {
-    pub fn generate(self, this_stage_out_type_path: Option<&TokenStream>, next_stage_in_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
+    pub fn generate(
+        self,
+        this_stage_out_type_path: Option<&TokenStream>,
+        next_stage_in_type_path: Option<&TokenStream>,
+        is_last: bool,
+    ) -> (TokenStream, TokenStream, Option<TokenStream>) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
-        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_name.as_str().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
@@ -723,7 +825,7 @@ impl TypedStage<EcsWhile> {
         let stage_module = quote! {
             pub mod #stage_ident {
                 pub const NAME: &str = stringify!(#stage_name);
-                
+
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
 
@@ -779,20 +881,18 @@ impl TypedStage<EcsWhile> {
                         }
                     }
                 )})
-            },
+            }
             (Some(_), None) => {
                 if is_last {
                     None
                 } else {
                     unreachable!("This stage has input, but the next stage has no output, or this stage is the last stage!")
                 }
-            },
+            }
             (None, Some(_)) => {
                 unreachable!("This stage has no input, but the next stage has output!")
-            },
-            (None, None) => {
-                None
             }
+            (None, None) => None,
         };
 
         (stage_module, stage_literal, stage_data_type_transmuter)
@@ -806,31 +906,45 @@ impl TypedStage<EcsWhile> {
         self.index
     }
 
-    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_ident.to_string().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = &self.core_types;
 
         core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_ident.to_string().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = &self.core_types;
 
         if core_types.has_error() {
             if core_types.has_output() {
                 Some(quote! { Result<
-                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output, 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output,
                     crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
-                    > 
+                    >
                 })
             } else {
                 Some(quote! { Result<
-                    (), 
+                    (),
                     crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
-                    > 
+                    >
                 })
             }
         } else {
@@ -840,10 +954,18 @@ impl TypedStage<EcsWhile> {
 }
 
 impl TypedStage<RenderWhile> {
-    pub fn generate(self, this_stage_out_type_path: Option<&TokenStream>, next_stage_in_type_path: Option<&TokenStream>, is_last: bool) -> (TokenStream, TokenStream, Option<TokenStream>) {
+    pub fn generate(
+        self,
+        this_stage_out_type_path: Option<&TokenStream>,
+        next_stage_in_type_path: Option<&TokenStream>,
+        is_last: bool,
+    ) -> (TokenStream, TokenStream, Option<TokenStream>) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
-        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_name.as_str().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
@@ -851,7 +973,7 @@ impl TypedStage<RenderWhile> {
         let stage_module = quote! {
             pub mod #stage_ident {
                 pub const NAME: &str = stringify!(#stage_name);
-                
+
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
 
@@ -907,20 +1029,18 @@ impl TypedStage<RenderWhile> {
                         }
                     }
                 )})
-            },
+            }
             (Some(_), None) => {
                 if is_last {
                     None
                 } else {
                     unreachable!("This stage has input, but the next stage has no output, or this stage is the last stage!")
                 }
-            },
+            }
             (None, Some(_)) => {
                 unreachable!("This stage has no input, but the next stage has output!")
-            },
-            (None, None) => {
-                None
             }
+            (None, None) => None,
         };
 
         (stage_module, stage_literal, stage_data_type_transmuter)
@@ -934,31 +1054,45 @@ impl TypedStage<RenderWhile> {
         self.index
     }
 
-    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_ident.to_string().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = &self.core_types;
 
         core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
+        let stage_ident = Ident::new(
+            stage_ident.to_string().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
         let core_types = &self.core_types;
 
         if core_types.has_error() {
             if core_types.has_output() {
                 Some(quote! { Result<
-                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output, 
+                    crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output,
                     crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
-                    > 
+                    >
                 })
             } else {
                 Some(quote! { Result<
-                    (), 
+                    (),
                     crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error
-                    > 
+                    >
                 })
             }
         } else {
