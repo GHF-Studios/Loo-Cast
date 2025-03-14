@@ -19,3 +19,13 @@ pub(crate) struct WorkflowStageCompletionEvent {
     pub stage_output: Option<Box<dyn Any + Send + Sync>>,
     pub stage_return: WorkflowStage,
 }
+
+#[derive(Event)]
+pub(crate) struct WorkflowStageFailureEvent {
+    pub ty: WorkflowStageType,
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub current_stage: usize,
+    pub stage_error: Option<Box<dyn Any + Send + Sync>>,
+    pub stage_return: WorkflowStage,
+}

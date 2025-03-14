@@ -278,6 +278,112 @@ pub(super) struct AsyncStageCompletionEventReceiver(
     )>,
 );
 
+// --- Stage Failure Event Senders ---
+#[derive(Resource)]
+pub(super) struct EcsStageFailureEventSender(
+    pub  Sender<(
+        &'static str,
+        &'static str,
+        usize,
+        WorkflowStageEcs,
+        Option<Box<dyn Any + Send + Sync>>,
+    )>,
+);
+#[derive(Resource)]
+pub(super) struct EcsWhileStageFailureEventSender(
+    pub  Sender<(
+        &'static str,
+        &'static str,
+        usize,
+        WorkflowStageEcsWhile,
+        Option<Box<dyn Any + Send + Sync>>,
+    )>,
+);
+#[derive(Resource)]
+pub(super) struct RenderStageFailureEventSender(
+    pub  Sender<(
+        &'static str,
+        &'static str,
+        usize,
+        WorkflowStageRender,
+        Option<Box<dyn Any + Send + Sync>>,
+    )>,
+);
+#[derive(Resource)]
+pub(super) struct RenderWhileStageFailureEventSender(
+    pub  Sender<(
+        &'static str,
+        &'static str,
+        usize,
+        WorkflowStageRenderWhile,
+        Option<Box<dyn Any + Send + Sync>>,
+    )>,
+);
+#[derive(Resource)]
+pub(super) struct AsyncStageFailureEventSender(
+    pub  Sender<(
+        &'static str,
+        &'static str,
+        usize,
+        WorkflowStageAsync,
+        Option<Box<dyn Any + Send + Sync>>,
+    )>,
+);
+
+
+// --- Stage Failure Event Receivers ---
+#[derive(Resource)]
+pub(super) struct EcsStageFailureEventReceiver(
+    pub  Receiver<(
+        &'static str,
+        &'static str,
+        usize,
+        WorkflowStageEcs,
+        Option<Box<dyn Any + Send + Sync>>,
+    )>,
+);
+#[derive(Resource)]
+pub(super) struct EcsWhileStageFailureEventReceiver(
+    pub  Receiver<(
+        &'static str,
+        &'static str,
+        usize,
+        WorkflowStageEcsWhile,
+        Option<Box<dyn Any + Send + Sync>>,
+    )>,
+);
+#[derive(Resource)]
+pub(super) struct RenderStageFailureEventReceiver(
+    pub  Receiver<(
+        &'static str,
+        &'static str,
+        usize,
+        WorkflowStageRender,
+        Option<Box<dyn Any + Send + Sync>>,
+    )>,
+);
+#[derive(Resource)]
+pub(super) struct RenderWhileStageFailureEventReceiver(
+    pub  Receiver<(
+        &'static str,
+        &'static str,
+        usize,
+        WorkflowStageRenderWhile,
+        Option<Box<dyn Any + Send + Sync>>,
+    )>,
+);
+#[derive(Resource)]
+pub(super) struct AsyncStageFailureEventReceiver(
+    pub  Receiver<(
+        &'static str,
+        &'static str,
+        usize,
+        WorkflowStageAsync,
+        Option<Box<dyn Any + Send + Sync>>,
+    )>,
+);
+
+
 #[derive(Resource, Default, Debug)]
 pub struct WorkflowMap {
     pub(super) map: HashMap<&'static str, HashMap<&'static str, WorkflowInstance>>,

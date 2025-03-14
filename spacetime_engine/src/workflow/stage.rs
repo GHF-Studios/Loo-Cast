@@ -3,6 +3,18 @@ use futures::future::BoxFuture;
 use std::any::Any;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum WorkflowStageSignature {
+    None,
+    E,
+    O,
+    OE,
+    I,
+    IE,
+    IO,
+    IOE,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WorkflowStageType {
     Ecs,
     Render,
@@ -65,6 +77,7 @@ pub enum WorkflowStageWhileOutcome {
 
 pub struct WorkflowStageEcs {
     pub name: &'static str,
+    pub signature_permutation: WorkflowStageSignature,
     pub run_ecs: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -82,6 +95,7 @@ pub struct WorkflowStageEcs {
 
 pub struct WorkflowStageRender {
     pub name: &'static str,
+    pub signature_permutation: WorkflowStageSignature,
     pub run_render: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -99,6 +113,7 @@ pub struct WorkflowStageRender {
 
 pub struct WorkflowStageAsync {
     pub name: &'static str,
+    pub signature_permutation: WorkflowStageSignature,
     pub run_async: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -115,6 +130,7 @@ pub struct WorkflowStageAsync {
 
 pub struct WorkflowStageEcsWhile {
     pub name: &'static str,
+    pub signature_permutation: WorkflowStageSignature,
     pub setup_ecs_while: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -137,6 +153,7 @@ pub struct WorkflowStageEcsWhile {
 
 pub struct WorkflowStageRenderWhile {
     pub name: &'static str,
+    pub signature_permutation: WorkflowStageSignature,
     pub setup_render_while: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
