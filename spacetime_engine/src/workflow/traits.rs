@@ -66,6 +66,7 @@ pub trait WorkflowStageEcs {
     fn run_ecs(&mut self, world: &mut World);
     fn handle_ecs_response(
         &mut self,
+        // TODO: DROPOFF 2: A lot of traits affected
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
         completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
         failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>

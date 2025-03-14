@@ -61,8 +61,9 @@ impl WorkflowStage {
             &'static str, 
             &'static str, 
             Option<Box<dyn Any + Send + Sync>>, 
-            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>)
+            Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+            Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+        ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     > {
@@ -107,11 +108,15 @@ pub struct WorkflowStageEcs {
             &'static str, 
             &'static str, 
             Option<Box<dyn Any + Send + Sync>>, 
-            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>)
+            // TODO: DROPOFF 1: 5 other cases here
+            Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+            Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+        ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,
+    pub completion_sender: Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>,
+    pub failure_sender: Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>,
 }
 
 pub struct WorkflowStageRender {
@@ -130,11 +135,14 @@ pub struct WorkflowStageRender {
             &'static str, 
             &'static str, 
             Option<Box<dyn Any + Send + Sync>>, 
-            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>)
+            Sender<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
+            Sender<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+        ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,
+    pub completion_sender: Sender<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>,
+    pub failure_sender: Sender<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>,
 }
 
 pub struct WorkflowStageAsync {
@@ -152,11 +160,14 @@ pub struct WorkflowStageAsync {
             &'static str, 
             &'static str, 
             Option<Box<dyn Any + Send + Sync>>, 
-            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>)
+            Sender<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
+            Sender<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+        ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,
+    pub completion_sender: Sender<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>,
+    pub failure_sender: Sender<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>,
 }
 
 pub struct WorkflowStageEcsWhile {
@@ -180,11 +191,14 @@ pub struct WorkflowStageEcsWhile {
             &'static str, 
             &'static str, 
             Option<Box<dyn Any + Send + Sync>>, 
-            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>)
+            Sender<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+            Sender<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,
+    pub completion_sender: Sender<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>,
+    pub failure_sender: Sender<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>,
 }
 
 pub struct WorkflowStageRenderWhile {
@@ -208,9 +222,11 @@ pub struct WorkflowStageRenderWhile {
             &'static str, 
             &'static str, 
             Option<Box<dyn Any + Send + Sync>>, 
-            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>)
+            Sender<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+            Sender<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,
+    pub completion_sender: Sender<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>,
+    pub failure_sender: Sender<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>,
 }

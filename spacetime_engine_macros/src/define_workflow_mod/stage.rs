@@ -1786,13 +1786,16 @@ impl TypedStage<RenderWhile> {
                         response.map(|response| {
                             let result: Result<#this_out_path, #this_error_path> = *response.downcast().expect("Failed to downcast response result data");
                             match result {
-                                Ok(_) => {
+                                Ok(output) => {
+                                    let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
+                                    let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>)
+        
                                     if let Err(send_err) = completion_sender.send((
                                         cloned_module_name,
                                         cloned_workflow_name,
                                         current_stage,
                                         stage,
-                                        None,
+                                        output,
                                     )) {
                                         unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
                                     }
@@ -1812,7 +1815,7 @@ impl TypedStage<RenderWhile> {
                         })
                     })}
                 } else {
-                    unreachable!("This stage has output, but the next stage has no input!")
+                    unreachable!("This stage has output, but the next stage has no input, so this stage must be the last stage, but it is not flagged as such!")
                 }
             }
             (Some(this_out_path), None, Some(next_in_path)) => {
@@ -1839,7 +1842,7 @@ impl TypedStage<RenderWhile> {
                     })
                 })}
             }
-            (Some(_), None, None) => {
+            (Some(this_out_path), None, None) => {
                 if is_last {
                     quote! { Box::new(|
                         stage: crate::workflow::stage::WorkflowStage,
@@ -1848,19 +1851,22 @@ impl TypedStage<RenderWhile> {
                         failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
                     | {
                         response.map(|response| {
+                            let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
+                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>)
+
                             if let Err(send_err) = completion_sender.send((
                                 cloned_module_name,
                                 cloned_workflow_name,
                                 current_stage,
                                 stage,
-                                None,
+                                output,
                             )) {
                                 unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
                             }
                         })
                     })}
                 } else {
-                    unreachable!("This stage has output, but the next stage has no input!")
+                    unreachable!("This stage has output, but the next stage has no input, so this stage must be the last stage, but it is not flagged as such!")
                 }
             }
             (None, Some(_), Some(_)) => {

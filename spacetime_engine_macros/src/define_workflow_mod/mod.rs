@@ -1266,6 +1266,7 @@ impl Workflow {
                                 completion_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
                                 failure_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
                             ) {
+                                // TODO: DROPOFF 3: A lot of other cases here
                                 static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#response_handlers),*
                                 ])});

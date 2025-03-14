@@ -1078,6 +1078,11 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
 
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
+                let workflow_type = workflow_type_module_registry
+                    .get_workflow_type_mut(module_name, workflow_name)
+                    .unwrap();
+                let stage_count = workflow_type.stages.len();
+
                 let current_stage_type = match instance.state_mut() {
                     WorkflowState::Processing { current_stage: other_current_stage, current_stage_type, stage_completed: completed, .. } => {
                         if current_stage != *other_current_stage {
@@ -1094,26 +1099,45 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                     state => unreachable!("Unexpected workflow state. Expected 'WorkflowState::Processing(_)', got '{:?}'", state),
                 };
 
-                let workflow_type = workflow_type_module_registry
-                    .get_workflow_type_mut(module_name, workflow_name)
-                    .unwrap();
+                // TODO: DROPOFF 5: Workflow completion handling
 
-                if current_stage + 1 < workflow_type.stages.len() {
-                    let stage_input = stage.get_stage_response_handler()(module_name, workflow_name, stage_output, completion_sender, failure_sender);
+                let response = match stage {
+                    WorkflowStage::Ecs(stage) => {
+                        let response_handler = stage.handle_ecs_response;
+                        response_handler(module_name, workflow_name, stage_output, completion_sender, failure_sender)
+                    }
+                    WorkflowStage::Render(stage) => {
+                        let response_handler = stage.handle_render_response;
+                        response_handler(module_name, workflow_name, stage_output, completion_sender, failure_sender)
+                    }
+                    WorkflowStage::Async(stage) => {
+                        let response_handler = stage.handle_async_response;
+                        response_handler(module_name, workflow_name, stage_output, completion_sender, failure_sender)
+                    }
+                    WorkflowStage::EcsWhile(stage) => {
+                        let response_handler = stage.handle_ecs_while_response;
+                        response_handler(module_name, workflow_name, stage_output, completion_sender, failure_sender)
+                    }
+                    WorkflowStage::RenderWhile(stage) => {
+                        let response_handler = stage.handle_render_while_response;
+                        response_handler(module_name, workflow_name, stage_output, completion_sender, failure_sender)
+                    }
+                };
 
+                if current_stage + 1 < stage_count {
                     intermediate_stage_completions.push((
                         module_name,
                         workflow_name,
                         current_stage,
                         current_stage_type,
-                        stage_input,
+                        response,
                     ));
                 } else {
                     final_stage_completions.push((
                         module_name,
                         workflow_name,
                         instance.take_callback(),
-                        stage_output,
+                        response,
                     ));
                 }
 
