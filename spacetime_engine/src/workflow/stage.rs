@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use crossbeam_channel::Sender;
 use futures::future::BoxFuture;
 use std::any::Any;
 
@@ -53,19 +54,34 @@ impl WorkflowStage {
         }
     }
 
-    pub fn get_stage_data_type_transmuter(
+    pub fn get_stage_response_handler(
         &mut self,
     ) -> &mut Box<
-        dyn FnMut(Option<Box<dyn Any + Send + Sync>>) -> Option<Box<dyn Any + Send + Sync>>
+        dyn FnMut(
+            &'static str, 
+            &'static str, 
+            Option<Box<dyn Any + Send + Sync>>, 
+            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>)
             + Send
             + Sync,
     > {
         match self {
-            WorkflowStage::Ecs(stage) => &mut stage.data_type_transmuter,
-            WorkflowStage::Render(stage) => &mut stage.data_type_transmuter,
-            WorkflowStage::Async(stage) => &mut stage.data_type_transmuter,
-            WorkflowStage::EcsWhile(stage) => &mut stage.data_type_transmuter,
-            WorkflowStage::RenderWhile(stage) => &mut stage.data_type_transmuter,
+            WorkflowStage::Ecs(stage) => &mut stage.handle_ecs_response,
+            WorkflowStage::Render(stage) => &mut stage.handle_render_response,
+            WorkflowStage::Async(stage) => &mut stage.handle_async_response,
+            WorkflowStage::EcsWhile(stage) => &mut stage.handle_ecs_while_response,
+            WorkflowStage::RenderWhile(stage) => &mut stage.handle_render_while_response,
+        }
+    }
+
+    pub fn get_signature(&self) -> WorkflowStageSignature {
+        match self {
+            WorkflowStage::Ecs(stage) => stage.signature,
+            WorkflowStage::Render(stage) => stage.signature,
+            WorkflowStage::Async(stage) => stage.signature,
+            WorkflowStage::EcsWhile(stage) => stage.signature,
+            WorkflowStage::RenderWhile(stage) => stage.signature,
         }
     }
 }
@@ -77,7 +93,7 @@ pub enum WorkflowStageWhileOutcome {
 
 pub struct WorkflowStageEcs {
     pub name: &'static str,
-    pub signature_permutation: WorkflowStageSignature,
+    pub signature: WorkflowStageSignature,
     pub run_ecs: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -86,8 +102,13 @@ pub struct WorkflowStageEcs {
             + Send
             + Sync,
     >,
-    pub data_type_transmuter: Box<
-        dyn FnMut(Option<Box<dyn Any + Send + Sync>>) -> Option<Box<dyn Any + Send + Sync>>
+    pub handle_ecs_response: Box<
+        dyn FnMut(
+            &'static str, 
+            &'static str, 
+            Option<Box<dyn Any + Send + Sync>>, 
+            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>)
             + Send
             + Sync,
     >,
@@ -95,7 +116,7 @@ pub struct WorkflowStageEcs {
 
 pub struct WorkflowStageRender {
     pub name: &'static str,
-    pub signature_permutation: WorkflowStageSignature,
+    pub signature: WorkflowStageSignature,
     pub run_render: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -104,8 +125,13 @@ pub struct WorkflowStageRender {
             + Send
             + Sync,
     >,
-    pub data_type_transmuter: Box<
-        dyn FnMut(Option<Box<dyn Any + Send + Sync>>) -> Option<Box<dyn Any + Send + Sync>>
+    pub handle_render_response: Box<
+        dyn FnMut(
+            &'static str, 
+            &'static str, 
+            Option<Box<dyn Any + Send + Sync>>, 
+            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>)
             + Send
             + Sync,
     >,
@@ -113,7 +139,7 @@ pub struct WorkflowStageRender {
 
 pub struct WorkflowStageAsync {
     pub name: &'static str,
-    pub signature_permutation: WorkflowStageSignature,
+    pub signature: WorkflowStageSignature,
     pub run_async: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -121,8 +147,13 @@ pub struct WorkflowStageAsync {
             + Send
             + Sync,
     >,
-    pub data_type_transmuter: Box<
-        dyn FnMut(Option<Box<dyn Any + Send + Sync>>) -> Option<Box<dyn Any + Send + Sync>>
+    pub handle_async_response: Box<
+        dyn FnMut(
+            &'static str, 
+            &'static str, 
+            Option<Box<dyn Any + Send + Sync>>, 
+            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>)
             + Send
             + Sync,
     >,
@@ -130,7 +161,7 @@ pub struct WorkflowStageAsync {
 
 pub struct WorkflowStageEcsWhile {
     pub name: &'static str,
-    pub signature_permutation: WorkflowStageSignature,
+    pub signature: WorkflowStageSignature,
     pub setup_ecs_while: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -144,8 +175,13 @@ pub struct WorkflowStageEcsWhile {
             + Send
             + Sync,
     >,
-    pub data_type_transmuter: Box<
-        dyn FnMut(Option<Box<dyn Any + Send + Sync>>) -> Option<Box<dyn Any + Send + Sync>>
+    pub handle_ecs_while_response: Box<
+        dyn FnMut(
+            &'static str, 
+            &'static str, 
+            Option<Box<dyn Any + Send + Sync>>, 
+            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>)
             + Send
             + Sync,
     >,
@@ -153,7 +189,7 @@ pub struct WorkflowStageEcsWhile {
 
 pub struct WorkflowStageRenderWhile {
     pub name: &'static str,
-    pub signature_permutation: WorkflowStageSignature,
+    pub signature: WorkflowStageSignature,
     pub setup_render_while: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -167,8 +203,13 @@ pub struct WorkflowStageRenderWhile {
             + Send
             + Sync,
     >,
-    pub data_type_transmuter: Box<
-        dyn FnMut(Option<Box<dyn Any + Send + Sync>>) -> Option<Box<dyn Any + Send + Sync>>
+    pub handle_render_while_response: Box<
+        dyn FnMut(
+            &'static str, 
+            &'static str, 
+            Option<Box<dyn Any + Send + Sync>>, 
+            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+            Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>)
             + Send
             + Sync,
     >,

@@ -87,19 +87,11 @@ pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
         let cloned_module_name = module_name;
         let cloned_workflow_name = workflow_name;
-
         let run_ecs = &mut stage.run_ecs;
-        let output = (run_ecs)(data_buffer, world);
+        let handle_ecs_response = &mut stage.handle_ecs_response;
 
-        if let Err(err) = completion_sender.send((
-            cloned_module_name,
-            cloned_workflow_name,
-            current_stage,
-            stage,
-            output,
-        )) {
-            unreachable!("Ecs stage completion error: Output send error: {}", err);
-        }
+        let output = (run_ecs)(data_buffer, world);
+        (handle_ecs_response)(cloned_module_name, cloned_workflow_name, output, completion_sender.clone(), failure_sender.clone());
 
         // TODO: Figure out output permutation, and if it has an error, handle the error using the failure_sender
         // TODO: Then implement for the other 4 polling systems, and implement the receiving end of failure handling
@@ -1107,7 +1099,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                     .unwrap();
 
                 if current_stage + 1 < workflow_type.stages.len() {
-                    let stage_input = stage.get_stage_data_type_transmuter()(stage_output);
+                    let stage_input = stage.get_stage_response_handler()(module_name, workflow_name, stage_output, completion_sender, failure_sender);
 
                     intermediate_stage_completions.push((
                         module_name,
