@@ -95,9 +95,9 @@ pub struct WorkflowStageEcs {
         dyn FnMut(
             &'static str, 
             &'static str, 
-            Option<Box<dyn Any + Send + Sync>>, 
-            Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-            Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+            Option<Box<dyn Any + Send + Sync>>,
+            Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>,
+            Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>,
         ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
@@ -121,9 +121,9 @@ pub struct WorkflowStageRender {
         dyn FnMut(
             &'static str, 
             &'static str, 
-            Option<Box<dyn Any + Send + Sync>>, 
-            Sender<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-            Sender<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+            Option<Box<dyn Any + Send + Sync>>,
+            Sender<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>,
+            Sender<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>,
         ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
@@ -146,9 +146,9 @@ pub struct WorkflowStageAsync {
         dyn FnMut(
             &'static str, 
             &'static str, 
-            Option<Box<dyn Any + Send + Sync>>, 
-            Sender<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-            Sender<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+            Option<Box<dyn Any + Send + Sync>>,
+            Sender<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>,
+            Sender<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>,
         ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
@@ -177,9 +177,9 @@ pub struct WorkflowStageEcsWhile {
         dyn FnMut(
             &'static str, 
             &'static str, 
-            Option<Box<dyn Any + Send + Sync>>, 
-            Sender<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-            Sender<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+            Option<Box<dyn Any + Send + Sync>>,
+            Sender<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>,
+            Sender<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>,
         ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
@@ -208,9 +208,10 @@ pub struct WorkflowStageRenderWhile {
         dyn FnMut(
             &'static str, 
             &'static str, 
-            Option<Box<dyn Any + Send + Sync>>, 
-            Sender<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-            Sender<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>) -> Option<Box<dyn Any + Send + Sync>>
+            Option<Box<dyn Any + Send + Sync>>,
+            Sender<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>,
+            Sender<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>,
+        ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,

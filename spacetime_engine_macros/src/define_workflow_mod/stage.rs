@@ -1711,6 +1711,7 @@ impl TypedStage<RenderWhile> {
                 }
             }
         };
+        // TODO: Clone the changes to this entire 'stage_literal' section to all 'generate' methods
         let stage_literal = if !is_last {
             quote! {
                 crate::workflow::stage::WorkflowStage::RenderWhile(crate::workflow::stage::WorkflowStageRenderWhile {
