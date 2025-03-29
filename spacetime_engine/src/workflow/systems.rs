@@ -896,7 +896,7 @@ pub(super) fn workflow_request_system(world: &mut World) {
     )> = SystemState::new(world);
     let (mut workflow_map, workflow_type_module_registry, _) = system_state.get_mut(world);
 
-    // TODO: Duplicate to other relevant places: Rely less on std::mem::take/replace and more on optional resource queries
+    // TODO: Minor: Duplicate to other relevant places: Rely less on std::mem::take/replace and more on optional resource queries
     let mut stolen_workflow_map = std::mem::take(&mut *workflow_map);
 
     let mut stage_initialization_events = Vec::new();

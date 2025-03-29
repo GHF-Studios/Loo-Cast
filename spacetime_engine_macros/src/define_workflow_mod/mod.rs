@@ -229,34 +229,6 @@ trait IteratorExt: Iterator {
             c.into_iter().collect(),
         )
     }
-
-    fn unzip4<A, B, C, D, IA, IB, IC, ID>(self) -> (IA, IB, IC, ID)
-    where
-        Self: Sized + Iterator<Item = (A, B, C, D)>,
-        IA: FromIterator<A>,
-        IB: FromIterator<B>,
-        IC: FromIterator<C>,
-        ID: FromIterator<D>,
-    {
-        let mut a = Vec::new();
-        let mut b = Vec::new();
-        let mut c = Vec::new();
-        let mut d = Vec::new();
-
-        for (x, y, z, w) in self {
-            a.push(x);
-            b.push(y);
-            c.push(z);
-            d.push(w);
-        }
-
-        (
-            a.into_iter().collect(),
-            b.into_iter().collect(),
-            c.into_iter().collect(),
-            d.into_iter().collect(),
-        )
-    }
 }
 impl<T: ?Sized> IteratorExt for T where T: Iterator {}
 
@@ -348,14 +320,22 @@ impl Workflow {
                             pub fn handle_response(
                                 stage: crate::workflow::stage::WorkflowStage,
                                 response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                                completion_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-                                failure_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+                                completion_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                                failure_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
                             ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
+                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
+                                    crate::workflow::stage::WorkflowStage,
+                                    Option<Box<dyn std::any::Any+Send+Sync>>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
+                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#response_handlers),*
                                 ])});
 
-                                RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[new_stage](response)
+                                let stage_index = stage.get_index();
+
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -489,17 +469,25 @@ impl Workflow {
                                 }
                             }
 
-                            pub fn handle_stage_response(
+                            pub fn handle_response(
                                 stage: crate::workflow::stage::WorkflowStage,
                                 response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                                completion_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-                                failure_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+                                completion_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                                failure_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
                             ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
+                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
+                                    crate::workflow::stage::WorkflowStage,
+                                    Option<Box<dyn std::any::Any+Send+Sync>>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
+                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#response_handlers),*
                                 ])});
 
-                                RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[new_stage](response)
+                                let stage_index = stage.get_index();
+
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -603,14 +591,22 @@ impl Workflow {
                             pub fn handle_response(
                                 stage: crate::workflow::stage::WorkflowStage,
                                 response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                                completion_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-                                failure_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+                                completion_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                                failure_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
                             ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
+                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
+                                    crate::workflow::stage::WorkflowStage,
+                                    Option<Box<dyn std::any::Any+Send+Sync>>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
+                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#response_handlers),*
                                 ])});
 
-                                RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[new_stage](response)
+                                let stage_index = stage.get_index();
+
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -755,14 +751,22 @@ impl Workflow {
                             pub fn handle_response(
                                 stage: crate::workflow::stage::WorkflowStage,
                                 response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                                completion_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-                                failure_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+                                completion_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                                failure_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
                             ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
+                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
+                                    crate::workflow::stage::WorkflowStage,
+                                    Option<Box<dyn std::any::Any+Send+Sync>>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
+                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#response_handlers),*
                                 ])});
 
-                                RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[new_stage](response)
+                                let stage_index = stage.get_index();
+
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -866,14 +870,22 @@ impl Workflow {
                             pub fn handle_response(
                                 stage: crate::workflow::stage::WorkflowStage,
                                 response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                                completion_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-                                failure_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+                                completion_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                                failure_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
                             ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
+                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
+                                    crate::workflow::stage::WorkflowStage,
+                                    Option<Box<dyn std::any::Any+Send+Sync>>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
+                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#response_handlers),*
                                 ])});
 
-                                RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[new_stage](response)
+                                let stage_index = stage.get_index();
+
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -1018,14 +1030,22 @@ impl Workflow {
                             pub fn handle_response(
                                 stage: crate::workflow::stage::WorkflowStage,
                                 response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                                completion_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-                                failure_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+                                completion_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                                failure_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
                             ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
+                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
+                                    crate::workflow::stage::WorkflowStage,
+                                    Option<Box<dyn std::any::Any+Send+Sync>>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
+                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#response_handlers),*
                                 ])});
 
-                                RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[new_stage](response)
+                                let stage_index = stage.get_index();
+
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -1134,14 +1154,22 @@ impl Workflow {
                             pub fn handle_response(
                                 stage: crate::workflow::stage::WorkflowStage,
                                 response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                                completion_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-                                failure_sender: Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+                                completion_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                                failure_sender: Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
                             ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(Option<Box<dyn std::any::Any+Send+Sync>>)->Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>>>> = once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
+                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
+                                    crate::workflow::stage::WorkflowStage,
+                                    Option<Box<dyn std::any::Any+Send+Sync>>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
+                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
+                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
                                     #(#response_handlers),*
                                 ])});
 
-                                RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[new_stage](response)
+                                let stage_index = stage.get_index();
+
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -1235,8 +1263,7 @@ impl Workflow {
                         )
                     })
                     .unzip3();
-                let (stage_types, stage_modules, stage_literals, response_handlers): (
-                    Vec<_>,
+                let (stage_modules, stage_literals, response_handlers): (
                     Vec<_>,
                     Vec<_>,
                     Vec<_>,
@@ -1256,7 +1283,7 @@ impl Workflow {
 
                         stage.generate(this_stage_out_type_path, this_err_type_path, next_stage_in_type_path, is_last)
                     })
-                    .unzip4();
+                    .unzip3();
                 let response_handlers: Vec<_> =
                     response_handlers.into_iter().flatten().collect();
 
@@ -1289,8 +1316,6 @@ impl Workflow {
                                 }
                             }
 
-                            // TODO: DROPOFF 3: 7 other cases to implement
-                            // Note: The code for gathering the variables used in this quote block needs to be re-implemented as well
                             pub fn handle_response(
                                 stage: crate::workflow::stage::WorkflowStage,
                                 response: Option<Box<dyn std::any::Any + Send + Sync>>, 

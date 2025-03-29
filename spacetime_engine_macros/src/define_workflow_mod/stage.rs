@@ -61,7 +61,7 @@ impl Stage {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-    ) -> (StageType, TokenStream, TokenStream, TokenStream) {
+    ) -> (TokenStream, TokenStream, TokenStream) {
         match self {
             Stage::Ecs(stage) => {
                 stage.generate(this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path, is_last)
@@ -384,7 +384,7 @@ impl TypedStage<Ecs> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-    ) -> (StageType, TokenStream, TokenStream, TokenStream) {
+    ) -> (TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(
@@ -628,7 +628,7 @@ impl TypedStage<Ecs> {
             },
         };
 
-        (StageType::Ecs, stage_module, stage_literal, ecs_response_handler)
+        (stage_module, stage_literal, ecs_response_handler)
     }
 
     pub fn name(&self) -> &Ident {
@@ -708,7 +708,7 @@ impl TypedStage<Render> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-    ) -> (StageType, TokenStream, TokenStream, TokenStream) {
+    ) -> (TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(
@@ -952,7 +952,7 @@ impl TypedStage<Render> {
             },
         };
 
-        (StageType::Render, stage_module, stage_literal, render_response_handler)
+        (stage_module, stage_literal, render_response_handler)
     }
 
     pub fn name(&self) -> &Ident {
@@ -1032,7 +1032,7 @@ impl TypedStage<Async> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-    ) -> (StageType, TokenStream, TokenStream, TokenStream) {
+    ) -> (TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(
@@ -1276,7 +1276,7 @@ impl TypedStage<Async> {
             },
         };
 
-        (StageType::Async, stage_module, stage_literal, async_response_handler)
+        (stage_module, stage_literal, async_response_handler)
     }
 
     pub fn name(&self) -> &Ident {
@@ -1356,7 +1356,7 @@ impl TypedStage<EcsWhile> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-    ) -> (StageType, TokenStream, TokenStream, TokenStream) {
+    ) -> (TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(
@@ -1602,7 +1602,7 @@ impl TypedStage<EcsWhile> {
             },
         };
 
-        (StageType::EcsWhile, stage_module, stage_literal, ecs_while_response_handler)
+        (stage_module, stage_literal, ecs_while_response_handler)
     }
 
     pub fn name(&self) -> &Ident {
@@ -1682,7 +1682,7 @@ impl TypedStage<RenderWhile> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-    ) -> (StageType, TokenStream, TokenStream, TokenStream) {
+    ) -> (TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(
@@ -1935,7 +1935,7 @@ impl TypedStage<RenderWhile> {
             },
         };
 
-        (StageType::RenderWhile, stage_module, stage_literal, render_while_response_handler)
+        (stage_module, stage_literal, render_while_response_handler)
     }
 
     pub fn name(&self) -> &Ident {
