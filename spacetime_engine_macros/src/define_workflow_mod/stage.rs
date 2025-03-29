@@ -13,6 +13,7 @@ pub struct RenderWhile;
 
 pub struct Stages(pub Vec<Stage>);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StageType {
     Ecs,
     Render,
@@ -60,7 +61,7 @@ impl Stage {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-    ) -> (TokenStream, TokenStream, TokenStream) {
+    ) -> (StageType, TokenStream, TokenStream, TokenStream) {
         match self {
             Stage::Ecs(stage) => {
                 stage.generate(this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path, is_last)
@@ -383,7 +384,7 @@ impl TypedStage<Ecs> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-    ) -> (TokenStream, TokenStream, TokenStream) {
+    ) -> (StageType, TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(
@@ -439,8 +440,8 @@ impl TypedStage<Ecs> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -453,7 +454,7 @@ impl TypedStage<Ecs> {
                                 if let Err(send_err) = completion_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     output,
                                 )) {
@@ -464,7 +465,7 @@ impl TypedStage<Ecs> {
                                 if let Err(send_err) = failure_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     error,
                                 )) {
@@ -480,8 +481,8 @@ impl TypedStage<Ecs> {
                     quote! { Box::new(|
                         stage: crate::workflow::stage::WorkflowStage,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                     | {
                         response.map(|response| {
                             let result: Result<#this_out_path, #this_error_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -490,7 +491,7 @@ impl TypedStage<Ecs> {
                                     if let Err(send_err) = completion_sender.send((
                                         cloned_module_name,
                                         cloned_workflow_name,
-                                        current_stage,
+                                        #index_literal,
                                         stage,
                                         None,
                                     )) {
@@ -501,7 +502,7 @@ impl TypedStage<Ecs> {
                                     if let Err(send_err) = failure_sender.send((
                                         cloned_module_name,
                                         cloned_workflow_name,
-                                        current_stage,
+                                        #index_literal,
                                         stage,
                                         error,
                                     )) {
@@ -519,8 +520,8 @@ impl TypedStage<Ecs> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
@@ -530,7 +531,7 @@ impl TypedStage<Ecs> {
                         if let Err(send_err) = completion_sender.send((
                             cloned_module_name,
                             cloned_workflow_name,
-                            current_stage,
+                            #index_literal,
                             stage,
                             output,
                         )) {
@@ -544,14 +545,14 @@ impl TypedStage<Ecs> {
                     quote! { Box::new(|
                         stage: crate::workflow::stage::WorkflowStage,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                     | {
                         response.map(|response| {
                             if let Err(send_err) = completion_sender.send((
                                 cloned_module_name,
                                 cloned_workflow_name,
-                                current_stage,
+                                #index_literal,
                                 stage,
                                 None,
                             )) {
@@ -570,8 +571,8 @@ impl TypedStage<Ecs> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -580,7 +581,7 @@ impl TypedStage<Ecs> {
                                 if let Err(send_err) = completion_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     None,
                                 )) {
@@ -591,7 +592,7 @@ impl TypedStage<Ecs> {
                                 if let Err(send_err) = failure_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     error,
                                 )) {
@@ -609,14 +610,14 @@ impl TypedStage<Ecs> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         if let Err(send_err) = completion_sender.send((
                             cloned_module_name,
                             cloned_workflow_name,
-                            current_stage,
+                            #index_literal,
                             stage,
                             None,
                         )) {
@@ -627,7 +628,7 @@ impl TypedStage<Ecs> {
             },
         };
 
-        (stage_module, stage_literal, ecs_response_handler)
+        (StageType::Ecs, stage_module, stage_literal, ecs_response_handler)
     }
 
     pub fn name(&self) -> &Ident {
@@ -707,7 +708,7 @@ impl TypedStage<Render> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-    ) -> (TokenStream, TokenStream, TokenStream) {
+    ) -> (StageType, TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(
@@ -763,8 +764,8 @@ impl TypedStage<Render> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -777,7 +778,7 @@ impl TypedStage<Render> {
                                 if let Err(send_err) = completion_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     output,
                                 )) {
@@ -788,7 +789,7 @@ impl TypedStage<Render> {
                                 if let Err(send_err) = failure_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     error,
                                 )) {
@@ -804,8 +805,8 @@ impl TypedStage<Render> {
                     quote! { Box::new(|
                         stage: crate::workflow::stage::WorkflowStage,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                     | {
                         response.map(|response| {
                             let result: Result<#this_out_path, #this_error_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -814,7 +815,7 @@ impl TypedStage<Render> {
                                     if let Err(send_err) = completion_sender.send((
                                         cloned_module_name,
                                         cloned_workflow_name,
-                                        current_stage,
+                                        #index_literal,
                                         stage,
                                         None,
                                     )) {
@@ -825,7 +826,7 @@ impl TypedStage<Render> {
                                     if let Err(send_err) = failure_sender.send((
                                         cloned_module_name,
                                         cloned_workflow_name,
-                                        current_stage,
+                                        #index_literal,
                                         stage,
                                         error,
                                     )) {
@@ -843,8 +844,8 @@ impl TypedStage<Render> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
@@ -854,7 +855,7 @@ impl TypedStage<Render> {
                         if let Err(send_err) = completion_sender.send((
                             cloned_module_name,
                             cloned_workflow_name,
-                            current_stage,
+                            #index_literal,
                             stage,
                             output,
                         )) {
@@ -868,14 +869,14 @@ impl TypedStage<Render> {
                     quote! { Box::new(|
                         stage: crate::workflow::stage::WorkflowStage,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                     | {
                         response.map(|response| {
                             if let Err(send_err) = completion_sender.send((
                                 cloned_module_name,
                                 cloned_workflow_name,
-                                current_stage,
+                                #index_literal,
                                 stage,
                                 None,
                             )) {
@@ -894,8 +895,8 @@ impl TypedStage<Render> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -904,7 +905,7 @@ impl TypedStage<Render> {
                                 if let Err(send_err) = completion_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     None,
                                 )) {
@@ -915,7 +916,7 @@ impl TypedStage<Render> {
                                 if let Err(send_err) = failure_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     error,
                                 )) {
@@ -933,14 +934,14 @@ impl TypedStage<Render> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         if let Err(send_err) = completion_sender.send((
                             cloned_module_name,
                             cloned_workflow_name,
-                            current_stage,
+                            #index_literal,
                             stage,
                             None,
                         )) {
@@ -950,7 +951,8 @@ impl TypedStage<Render> {
                 })}
             },
         };
-        (stage_module, stage_literal, render_response_handler)
+
+        (StageType::Render, stage_module, stage_literal, render_response_handler)
     }
 
     pub fn name(&self) -> &Ident {
@@ -1030,7 +1032,7 @@ impl TypedStage<Async> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-    ) -> (TokenStream, TokenStream, TokenStream) {
+    ) -> (StageType, TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(
@@ -1086,8 +1088,8 @@ impl TypedStage<Async> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -1100,7 +1102,7 @@ impl TypedStage<Async> {
                                 if let Err(send_err) = completion_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     output,
                                 )) {
@@ -1111,7 +1113,7 @@ impl TypedStage<Async> {
                                 if let Err(send_err) = failure_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     error,
                                 )) {
@@ -1127,8 +1129,8 @@ impl TypedStage<Async> {
                     quote! { Box::new(|
                         stage: crate::workflow::stage::WorkflowStage,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                     | {
                         response.map(|response| {
                             let result: Result<#this_out_path, #this_error_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -1137,7 +1139,7 @@ impl TypedStage<Async> {
                                     if let Err(send_err) = completion_sender.send((
                                         cloned_module_name,
                                         cloned_workflow_name,
-                                        current_stage,
+                                        #index_literal,
                                         stage,
                                         None,
                                     )) {
@@ -1148,7 +1150,7 @@ impl TypedStage<Async> {
                                     if let Err(send_err) = failure_sender.send((
                                         cloned_module_name,
                                         cloned_workflow_name,
-                                        current_stage,
+                                        #index_literal,
                                         stage,
                                         error,
                                     )) {
@@ -1166,8 +1168,8 @@ impl TypedStage<Async> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
@@ -1177,7 +1179,7 @@ impl TypedStage<Async> {
                         if let Err(send_err) = completion_sender.send((
                             cloned_module_name,
                             cloned_workflow_name,
-                            current_stage,
+                            #index_literal,
                             stage,
                             output,
                         )) {
@@ -1191,14 +1193,14 @@ impl TypedStage<Async> {
                     quote! { Box::new(|
                         stage: crate::workflow::stage::WorkflowStage,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                     | {
                         response.map(|response| {
                             if let Err(send_err) = completion_sender.send((
                                 cloned_module_name,
                                 cloned_workflow_name,
-                                current_stage,
+                                #index_literal,
                                 stage,
                                 None,
                             )) {
@@ -1217,8 +1219,8 @@ impl TypedStage<Async> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -1227,7 +1229,7 @@ impl TypedStage<Async> {
                                 if let Err(send_err) = completion_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     None,
                                 )) {
@@ -1238,7 +1240,7 @@ impl TypedStage<Async> {
                                 if let Err(send_err) = failure_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     error,
                                 )) {
@@ -1256,14 +1258,14 @@ impl TypedStage<Async> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         if let Err(send_err) = completion_sender.send((
                             cloned_module_name,
                             cloned_workflow_name,
-                            current_stage,
+                            #index_literal,
                             stage,
                             None,
                         )) {
@@ -1274,7 +1276,7 @@ impl TypedStage<Async> {
             },
         };
 
-        (stage_module, stage_literal, async_response_handler)
+        (StageType::Async, stage_module, stage_literal, async_response_handler)
     }
 
     pub fn name(&self) -> &Ident {
@@ -1354,7 +1356,7 @@ impl TypedStage<EcsWhile> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-    ) -> (TokenStream, TokenStream, TokenStream) {
+    ) -> (StageType, TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(
@@ -1412,8 +1414,8 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -1426,7 +1428,7 @@ impl TypedStage<EcsWhile> {
                                 if let Err(send_err) = completion_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     output,
                                 )) {
@@ -1437,7 +1439,7 @@ impl TypedStage<EcsWhile> {
                                 if let Err(send_err) = failure_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     error,
                                 )) {
@@ -1453,8 +1455,8 @@ impl TypedStage<EcsWhile> {
                     quote! { Box::new(|
                         stage: crate::workflow::stage::WorkflowStage,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                     | {
                         response.map(|response| {
                             let result: Result<#this_out_path, #this_error_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -1463,7 +1465,7 @@ impl TypedStage<EcsWhile> {
                                     if let Err(send_err) = completion_sender.send((
                                         cloned_module_name,
                                         cloned_workflow_name,
-                                        current_stage,
+                                        #index_literal,
                                         stage,
                                         None,
                                     )) {
@@ -1474,7 +1476,7 @@ impl TypedStage<EcsWhile> {
                                     if let Err(send_err) = failure_sender.send((
                                         cloned_module_name,
                                         cloned_workflow_name,
-                                        current_stage,
+                                        #index_literal,
                                         stage,
                                         error,
                                     )) {
@@ -1492,8 +1494,8 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
@@ -1503,7 +1505,7 @@ impl TypedStage<EcsWhile> {
                         if let Err(send_err) = completion_sender.send((
                             cloned_module_name,
                             cloned_workflow_name,
-                            current_stage,
+                            #index_literal,
                             stage,
                             output,
                         )) {
@@ -1517,14 +1519,14 @@ impl TypedStage<EcsWhile> {
                     quote! { Box::new(|
                         stage: crate::workflow::stage::WorkflowStage,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                     | {
                         response.map(|response| {
                             if let Err(send_err) = completion_sender.send((
                                 cloned_module_name,
                                 cloned_workflow_name,
-                                current_stage,
+                                #index_literal,
                                 stage,
                                 None,
                             )) {
@@ -1543,8 +1545,8 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -1553,7 +1555,7 @@ impl TypedStage<EcsWhile> {
                                 if let Err(send_err) = completion_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     None,
                                 )) {
@@ -1564,7 +1566,7 @@ impl TypedStage<EcsWhile> {
                                 if let Err(send_err) = failure_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     error,
                                 )) {
@@ -1582,14 +1584,14 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         if let Err(send_err) = completion_sender.send((
                             cloned_module_name,
                             cloned_workflow_name,
-                            current_stage,
+                            #index_literal,
                             stage,
                             None,
                         )) {
@@ -1600,7 +1602,7 @@ impl TypedStage<EcsWhile> {
             },
         };
 
-        (stage_module, stage_literal, ecs_while_response_handler)
+        (StageType::EcsWhile, stage_module, stage_literal, ecs_while_response_handler)
     }
 
     pub fn name(&self) -> &Ident {
@@ -1680,7 +1682,7 @@ impl TypedStage<RenderWhile> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-    ) -> (TokenStream, TokenStream, TokenStream) {
+    ) -> (StageType, TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(
@@ -1739,8 +1741,8 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -1753,7 +1755,7 @@ impl TypedStage<RenderWhile> {
                                 if let Err(send_err) = completion_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     output,
                                 )) {
@@ -1764,7 +1766,7 @@ impl TypedStage<RenderWhile> {
                                 if let Err(send_err) = failure_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     error,
                                 )) {
@@ -1780,8 +1782,8 @@ impl TypedStage<RenderWhile> {
                     quote! { Box::new(|
                         stage: crate::workflow::stage::WorkflowStage,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                     | {
                         response.map(|response| {
                             let result: Result<#this_out_path, #this_error_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -1793,7 +1795,7 @@ impl TypedStage<RenderWhile> {
                                     if let Err(send_err) = completion_sender.send((
                                         cloned_module_name,
                                         cloned_workflow_name,
-                                        current_stage,
+                                        #index_literal,
                                         stage,
                                         output,
                                     )) {
@@ -1804,7 +1806,7 @@ impl TypedStage<RenderWhile> {
                                     if let Err(send_err) = failure_sender.send((
                                         cloned_module_name,
                                         cloned_workflow_name,
-                                        current_stage,
+                                        #index_literal,
                                         stage,
                                         error,
                                     )) {
@@ -1822,8 +1824,8 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
@@ -1833,7 +1835,7 @@ impl TypedStage<RenderWhile> {
                         if let Err(send_err) = completion_sender.send((
                             cloned_module_name,
                             cloned_workflow_name,
-                            current_stage,
+                            #index_literal,
                             stage,
                             output,
                         )) {
@@ -1847,8 +1849,8 @@ impl TypedStage<RenderWhile> {
                     quote! { Box::new(|
                         stage: crate::workflow::stage::WorkflowStage,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+                        completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                        failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                     | {
                         response.map(|response| {
                             let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
@@ -1857,7 +1859,7 @@ impl TypedStage<RenderWhile> {
                             if let Err(send_err) = completion_sender.send((
                                 cloned_module_name,
                                 cloned_workflow_name,
-                                current_stage,
+                                #index_literal,
                                 stage,
                                 output,
                             )) {
@@ -1876,8 +1878,8 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -1886,7 +1888,7 @@ impl TypedStage<RenderWhile> {
                                 if let Err(send_err) = completion_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     None,
                                 )) {
@@ -1897,7 +1899,7 @@ impl TypedStage<RenderWhile> {
                                 if let Err(send_err) = failure_sender.send((
                                     cloned_module_name,
                                     cloned_workflow_name,
-                                    current_stage,
+                                    #index_literal,
                                     stage,
                                     error,
                                 )) {
@@ -1915,14 +1917,14 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     stage: crate::workflow::stage::WorkflowStage,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>, 
-                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+                    completion_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>, 
+                    failure_sender: crossbeam_channel::channel::Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>
                 | {
                     response.map(|response| {
                         if let Err(send_err) = completion_sender.send((
                             cloned_module_name,
                             cloned_workflow_name,
-                            current_stage,
+                            #index_literal,
                             stage,
                             None,
                         )) {
@@ -1933,7 +1935,7 @@ impl TypedStage<RenderWhile> {
             },
         };
 
-        (stage_module, stage_literal, render_while_response_handler)
+        (StageType::RenderWhile, stage_module, stage_literal, render_while_response_handler)
     }
 
     pub fn name(&self) -> &Ident {

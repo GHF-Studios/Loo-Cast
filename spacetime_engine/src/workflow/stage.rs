@@ -54,25 +54,13 @@ impl WorkflowStage {
         }
     }
 
-    pub fn get_stage_response_handler(
-        &mut self,
-    ) -> &mut Box<
-        dyn FnMut(
-            &'static str, 
-            &'static str, 
-            Option<Box<dyn Any + Send + Sync>>, 
-            Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-            Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
-        ) -> Option<Box<dyn Any + Send + Sync>>
-            + Send
-            + Sync,
-    > {
+    pub fn get_index(&self) -> usize {
         match self {
-            WorkflowStage::Ecs(stage) => &mut stage.handle_ecs_response,
-            WorkflowStage::Render(stage) => &mut stage.handle_render_response,
-            WorkflowStage::Async(stage) => &mut stage.handle_async_response,
-            WorkflowStage::EcsWhile(stage) => &mut stage.handle_ecs_while_response,
-            WorkflowStage::RenderWhile(stage) => &mut stage.handle_render_while_response,
+            WorkflowStage::Ecs(stage) => stage.signature as usize,
+            WorkflowStage::Render(stage) => stage.signature as usize,
+            WorkflowStage::Async(stage) => stage.signature as usize,
+            WorkflowStage::EcsWhile(stage) => stage.signature as usize,
+            WorkflowStage::RenderWhile(stage) => stage.signature as usize,
         }
     }
 
@@ -108,7 +96,6 @@ pub struct WorkflowStageEcs {
             &'static str, 
             &'static str, 
             Option<Box<dyn Any + Send + Sync>>, 
-            // TODO: DROPOFF 1: 5 other cases here
             Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
             Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
         ) -> Option<Box<dyn Any + Send + Sync>>

@@ -113,7 +113,6 @@ impl From<&WorkflowMap> for RenderWhileWorkflowStateExtract {
     }
 }
 #[derive(Resource)]
-// TODO: Rename these two resources to be more descriptive.
 pub(super) struct RenderWhileWorkflowStateExtractReintegrationEventSender(
     pub Sender<(&'static str, &'static str)>,
 );
