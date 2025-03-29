@@ -332,10 +332,10 @@ impl Workflow {
                                 ])});
 
                                 let stage_index = stage.get_index();
-                                let completion_sender = stage.completion_sender.clone();
-                                let failure_sender = stage.failure_sender.clone();
+                                let completion_sender = stage.get_completion_sender();
+                                let failure_sender = stage.get_failure_sender();
 
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -484,10 +484,10 @@ impl Workflow {
                                 ])});
 
                                 let stage_index = stage.get_index();
-                                let completion_sender = stage.completion_sender.clone();
-                                let failure_sender = stage.failure_sender.clone();
+                                let completion_sender = stage.get_completion_sender();
+                                let failure_sender = stage.get_failure_sender();
 
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -603,10 +603,10 @@ impl Workflow {
                                 ])});
 
                                 let stage_index = stage.get_index();
-                                let completion_sender = stage.completion_sender.clone();
-                                let failure_sender = stage.failure_sender.clone();
+                                let completion_sender = stage.get_completion_sender();
+                                let failure_sender = stage.get_failure_sender();
 
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -763,10 +763,10 @@ impl Workflow {
                                 ])});
 
                                 let stage_index = stage.get_index();
-                                let completion_sender = stage.completion_sender.clone();
-                                let failure_sender = stage.failure_sender.clone();
+                                let completion_sender = stage.get_completion_sender();
+                                let failure_sender = stage.get_failure_sender();
 
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -882,10 +882,10 @@ impl Workflow {
                                 ])});
 
                                 let stage_index = stage.get_index();
-                                let completion_sender = stage.completion_sender.clone();
-                                let failure_sender = stage.failure_sender.clone();
+                                let completion_sender = stage.get_completion_sender();
+                                let failure_sender = stage.get_failure_sender();
 
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -1042,10 +1042,10 @@ impl Workflow {
                                 ])});
 
                                 let stage_index = stage.get_index();
-                                let completion_sender = stage.completion_sender.clone();
-                                let failure_sender = stage.failure_sender.clone();
+                                let completion_sender = stage.get_completion_sender();
+                                let failure_sender = stage.get_failure_sender();
 
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -1166,10 +1166,10 @@ impl Workflow {
                                 ])});
 
                                 let stage_index = stage.get_index();
-                                let completion_sender = stage.completion_sender.clone();
-                                let failure_sender = stage.failure_sender.clone();
+                                let completion_sender = stage.get_completion_sender();
+                                let failure_sender = stage.get_failure_sender();
 
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -1331,10 +1331,10 @@ impl Workflow {
                                 ])});
 
                                 let stage_index = stage.get_index();
-                                let completion_sender = stage.completion_sender.clone();
-                                let failure_sender = stage.failure_sender.clone();
+                                let completion_sender = stage.get_completion_sender();
+                                let failure_sender = stage.get_failure_sender();
 
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index] as crate::workflow::traits::WorkflowTypeIOE)(stage, response, completion_sender, failure_sender)
+                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 

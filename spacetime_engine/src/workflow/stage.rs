@@ -73,6 +73,26 @@ impl WorkflowStage {
             WorkflowStage::RenderWhile(stage) => stage.signature,
         }
     }
+
+    pub fn get_completion_sender(&self) -> Sender<(&'static str, &'static str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)> {
+        match self {
+            WorkflowStage::Ecs(stage) => stage.completion_sender.clone(),
+            WorkflowStage::Render(stage) => stage.completion_sender.clone(),
+            WorkflowStage::Async(stage) => stage.completion_sender.clone(),
+            WorkflowStage::EcsWhile(stage) => stage.completion_sender.clone(),
+            WorkflowStage::RenderWhile(stage) => stage.completion_sender.clone(),
+        }
+    }
+
+    pub fn get_failure_sender(&self) -> Sender<(&'static str, &'static str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)> {
+        match self {
+            WorkflowStage::Ecs(stage) => stage.failure_sender.clone(),
+            WorkflowStage::Render(stage) => stage.failure_sender.clone(),
+            WorkflowStage::Async(stage) => stage.failure_sender.clone(),
+            WorkflowStage::EcsWhile(stage) => stage.failure_sender.clone(),
+            WorkflowStage::RenderWhile(stage) => stage.failure_sender.clone(),
+        }
+    }
 }
 
 pub enum WorkflowStageWhileOutcome {
