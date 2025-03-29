@@ -22,6 +22,32 @@ pub enum StageType {
     RenderWhile,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum StageSignature {
+    None,
+    E,
+    O,
+    OE,
+    I,
+    IE,
+    IO,
+    IOE,
+}
+impl StageSignature {
+    pub fn generate(self) -> TokenStream {
+        match self {
+            StageSignature::None => quote! { crate::workflow::stage::WorkflowStageSignature::None },
+            StageSignature::E => quote! { crate::workflow::stage::WorkflowStageSignature::E },
+            StageSignature::O => quote! { crate::workflow::stage::WorkflowStageSignature::O },
+            StageSignature::OE => quote! { crate::workflow::stage::WorkflowStageSignature::OE },
+            StageSignature::I => quote! { crate::workflow::stage::WorkflowStageSignature::I },
+            StageSignature::IE => quote! { crate::workflow::stage::WorkflowStageSignature::IE },
+            StageSignature::IO => quote! { crate::workflow::stage::WorkflowStageSignature::IO },
+            StageSignature::IOE => quote! { crate::workflow::stage::WorkflowStageSignature::IOE },
+        }
+    }
+}
+
 pub enum Stage {
     Ecs(TypedStage<Ecs>),
     Render(TypedStage<Render>),
@@ -64,19 +90,24 @@ impl Stage {
     ) -> (TokenStream, TokenStream, TokenStream) {
         match self {
             Stage::Ecs(stage) => {
-                stage.generate(this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path, is_last)
+                let signature = stage.core_types.get_signature();
+                stage.generate(this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path, is_last, signature)
             }
             Stage::EcsWhile(stage) => {
-                stage.generate(this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path, is_last)
+                let signature = stage.core_types.get_signature();
+                stage.generate(this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path, is_last, signature)
             }
             Stage::Render(stage) => {
-                stage.generate(this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path, is_last)
+                let signature = stage.core_types.get_signature();
+                stage.generate(this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path, is_last, signature)
             }
             Stage::RenderWhile(stage) => {
-                stage.generate(this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path, is_last)
+                let signature = stage.core_types.get_signature();
+                stage.generate(this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path, is_last, signature)
             }
             Stage::Async(stage) => {
-                stage.generate(this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path, is_last)
+                let signature = stage.core_types.get_signature();
+                stage.generate(this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path, is_last, signature)
             }
         }
     }
@@ -384,6 +415,7 @@ impl TypedStage<Ecs> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
+        signature: StageSignature,
     ) -> (TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
@@ -391,9 +423,10 @@ impl TypedStage<Ecs> {
             stage_name.as_str().to_snake_case().as_str(),
             stage_ident.span(),
         );
+        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
+        let signature = signature.generate();
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
-        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -417,6 +450,7 @@ impl TypedStage<Ecs> {
             quote! {
                 crate::workflow::stage::WorkflowStage::Ecs(crate::workflow::stage::WorkflowStageEcs {
                     name: stringify!(#stage_name),
+                    signature: #signature,
                     run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     data_type_transmuter: Box::new(|data| {
                         Self::advance_workflow_data_type(data, #index_literal)
@@ -427,6 +461,7 @@ impl TypedStage<Ecs> {
             quote! {
                 crate::workflow::stage::WorkflowStage::Ecs(crate::workflow::stage::WorkflowStageEcs {
                     name: stringify!(#stage_name),
+                    signature: #signature,
                     run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     data_type_transmuter: Box::new(|_| {
                         unreachable!("Tried to call placeholder data type transmuter");
@@ -708,6 +743,7 @@ impl TypedStage<Render> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
+        signature: StageSignature,
     ) -> (TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
@@ -715,9 +751,10 @@ impl TypedStage<Render> {
             stage_name.as_str().to_snake_case().as_str(),
             stage_ident.span(),
         );
+        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
+        let signature = signature.generate();
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
-        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -741,6 +778,7 @@ impl TypedStage<Render> {
             quote! {
                 crate::workflow::stage::WorkflowStage::Render(crate::workflow::stage::WorkflowStageRender {
                     name: stringify!(#stage_name),
+                    signature: #signature,
                     run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     data_type_transmuter: Box::new(|data| {
                         Self::advance_workflow_data_type(data, #index_literal)
@@ -751,6 +789,7 @@ impl TypedStage<Render> {
             quote! {
                 crate::workflow::stage::WorkflowStage::Render(crate::workflow::stage::WorkflowStageRender {
                     name: stringify!(#stage_name),
+                    signature: #signature,
                     run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     data_type_transmuter: Box::new(|_| {
                         unreachable!("Tried to call placeholder data type transmuter");
@@ -1032,6 +1071,7 @@ impl TypedStage<Async> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
+        signature: StageSignature,
     ) -> (TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
@@ -1039,9 +1079,10 @@ impl TypedStage<Async> {
             stage_name.as_str().to_snake_case().as_str(),
             stage_ident.span(),
         );
+        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
+        let signature = signature.generate();
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
-        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -1065,6 +1106,7 @@ impl TypedStage<Async> {
             quote! {
                 crate::workflow::stage::WorkflowStage::Async(crate::workflow::stage::WorkflowStageAsync {
                     name: stringify!(#stage_name),
+                    signature: #signature,
                     run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     data_type_transmuter: Box::new(|data| {
                         Self::advance_workflow_data_type(data, #index_literal)
@@ -1075,6 +1117,7 @@ impl TypedStage<Async> {
             quote! {
                 crate::workflow::stage::WorkflowStage::Async(crate::workflow::stage::WorkflowStageAsync {
                     name: stringify!(#stage_name),
+                    signature: #signature,
                     run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     data_type_transmuter: Box::new(|data| {
                         unreachable!("Tried to call placeholder data type transmuter");
@@ -1356,6 +1399,7 @@ impl TypedStage<EcsWhile> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
+        signature: StageSignature,
     ) -> (TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
@@ -1363,9 +1407,10 @@ impl TypedStage<EcsWhile> {
             stage_name.as_str().to_snake_case().as_str(),
             stage_ident.span(),
         );
+        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
+        let signature = signature.generate();
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
-        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -1389,6 +1434,7 @@ impl TypedStage<EcsWhile> {
             quote! {
                 crate::workflow::stage::WorkflowStage::EcsWhile(crate::workflow::stage::WorkflowStageEcsWhile {
                     name: stringify!(#stage_name),
+                    signature: #signature,
                     setup_ecs_while: Box::new(self::stages::#stage_ident::core_functions::setup_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
                     data_type_transmuter: Box::new(|data| {
@@ -1400,6 +1446,7 @@ impl TypedStage<EcsWhile> {
             quote! {
                 crate::workflow::stage::WorkflowStage::EcsWhile(crate::workflow::stage::WorkflowStageEcsWhile {
                     name: stringify!(#stage_name),
+                    signature: #signature,
                     setup_ecs_while: Box::new(self::stages::#stage_ident::core_functions::setup_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
                     data_type_transmuter: Box::new(|data| {
@@ -1682,6 +1729,7 @@ impl TypedStage<RenderWhile> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
+        signature: StageSignature,
     ) -> (TokenStream, TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
@@ -1689,9 +1737,10 @@ impl TypedStage<RenderWhile> {
             stage_name.as_str().to_snake_case().as_str(),
             stage_ident.span(),
         );
+        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
+        let signature = signature.generate();
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
-        let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -1711,11 +1760,12 @@ impl TypedStage<RenderWhile> {
                 }
             }
         };
-        // TODO: Clone the changes to this entire 'stage_literal' section to all 'generate' methods
+        // TODO: Make the changes to this entire 'stage_literal' section also to all other 'generate' methods
         let stage_literal = if !is_last {
             quote! {
                 crate::workflow::stage::WorkflowStage::RenderWhile(crate::workflow::stage::WorkflowStageRenderWhile {
                     name: stringify!(#stage_name),
+                    signature: #signature,
                     setup_render_while: Box::new(self::stages::#stage_ident::core_functions::setup_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
                     data_type_transmuter: Box::new(|data| {
@@ -1727,6 +1777,7 @@ impl TypedStage<RenderWhile> {
             quote! {
                 crate::workflow::stage::WorkflowStage::RenderWhile(crate::workflow::stage::WorkflowStageRenderWhile {
                     name: stringify!(#stage_name),
+                    signature: #signature,
                     setup_render_while: Box::new(self::stages::#stage_ident::core_functions::setup_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
                     data_type_transmuter: Box::new(|data| {

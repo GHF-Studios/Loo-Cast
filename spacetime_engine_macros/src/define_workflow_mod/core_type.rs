@@ -1,4 +1,4 @@
-use super::stage::{Async, Ecs, EcsWhile, Render, RenderWhile};
+use super::stage::{Async, Ecs, EcsWhile, Render, RenderWhile, StageSignature};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use std::marker::PhantomData;
@@ -522,5 +522,22 @@ impl<T> CoreTypes<T> {
 
     pub fn has_error(&self) -> bool {
         self.error.is_some()
+    }
+
+    pub fn get_signature(&self) -> StageSignature {
+        let has_input = self.has_input();
+        let has_output = self.has_output();
+        let has_error = self.has_error();
+
+        match (has_input, has_output, has_error) {
+            (false, false, false) => StageSignature::None,
+            (false, false, true) => StageSignature::E,
+            (false, true, false) => StageSignature::O,
+            (false, true, true) => StageSignature::OE,
+            (true, false, false) => StageSignature::I,
+            (true, false, true) => StageSignature::IE,
+            (true, true, false) => StageSignature::IO,
+            (true, true, true) => StageSignature::IOE,
+        }
     }
 }
