@@ -29,7 +29,7 @@ use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
 use quote::quote;
 use stage::Stages;
-use syn::{braced, bracketed, parse::Parse, parse_str, Ident, LitStr, Result, Token};
+use syn::{braced, bracketed, parse::Parse, parse_str, Ident, Path, LitStr, Result, Token};
 use use_statement::UseStatements;
 use user_item::UserItems;
 
@@ -243,6 +243,22 @@ impl Workflow {
             workflow_name.as_str().to_snake_case().as_str(),
             workflow_ident.span(),
         );
+        let workflow_path = format!(
+            "crate::{}::workflows::{}::{}",
+            workflow_module_ident, workflow_module_ident, workflow_ident
+        );
+        let workflow_path = Path {
+            leading_colon: None,
+            segments: workflow_path
+                .split("::")
+                .map(|s| Ident::new(s, workflow_ident.span()))
+                .map(|s| syn::PathSegment {
+                    ident: s,
+                    arguments: syn::PathArguments::None,
+                })
+                .collect(),
+        };
+        let workflow_path = quote! { #workflow_path };
 
         let workflow_module = match self.signature {
             WorkflowSignature::None => {
@@ -289,6 +305,7 @@ impl Workflow {
                         };
 
                         stage.generate(
+                            &workflow_path,
                             this_stage_out_type_path,
                             this_err_type_path,
                             next_stage_in_type_path,
@@ -419,6 +436,7 @@ impl Workflow {
                         };
 
                         stage.generate(
+                            &workflow_path,
                             this_stage_out_type_path,
                             this_err_type_path,
                             next_stage_in_type_path,
@@ -522,6 +540,7 @@ impl Workflow {
                         };
 
                         stage.generate(
+                            &workflow_path,
                             this_stage_out_type_path,
                             this_err_type_path,
                             next_stage_in_type_path,
@@ -661,6 +680,7 @@ impl Workflow {
                         };
 
                         stage.generate(
+                            &workflow_path,
                             this_stage_out_type_path,
                             this_err_type_path,
                             next_stage_in_type_path,
@@ -765,6 +785,7 @@ impl Workflow {
                         };
 
                         stage.generate(
+                            &workflow_path,
                             this_stage_out_type_path,
                             this_err_type_path,
                             next_stage_in_type_path,
@@ -904,6 +925,7 @@ impl Workflow {
                         };
 
                         stage.generate(
+                            &workflow_path,
                             this_stage_out_type_path,
                             this_err_type_path,
                             next_stage_in_type_path,
@@ -1012,6 +1034,7 @@ impl Workflow {
                         };
 
                         stage.generate(
+                            &workflow_path,
                             this_stage_out_type_path,
                             this_err_type_path,
                             next_stage_in_type_path,
@@ -1156,6 +1179,7 @@ impl Workflow {
                         };
 
                         stage.generate(
+                            &workflow_path,
                             this_stage_out_type_path,
                             this_err_type_path,
                             next_stage_in_type_path,

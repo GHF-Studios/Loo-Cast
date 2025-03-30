@@ -39,15 +39,9 @@ impl Plugin for WorkflowPlugin {
                 render_workflow_state_extract_reintegration_event_receiver,
             );
 
-        let (completion_sender, completion_receiver) = crossbeam_channel::unbounded();
-        let completion_sender = StageCompletionEventSender(completion_sender);
-        let completion_receiver = StageCompletionEventReceiver(completion_receiver);
-
-        let (failure_sender, failure_receiver) = crossbeam_channel::unbounded();
-        let failure_sender = StageFailureEventSender(failure_sender);
-        let failure_receiver = StageFailureEventReceiver(failure_receiver);
-
         let (completion_receiver, failure_receiver) = initialize_stage_channels();
+        let completion_receiver = StageCompletionEventReceiver(completion_receiver);
+        let failure_receiver = StageFailureEventReceiver(failure_receiver);
 
         let (workflow_request_receiver, workflow_response_sender) = initialize_channels();
         let (workflow_request_e_receiver, workflow_response_e_sender) = initialize_e_channels();
