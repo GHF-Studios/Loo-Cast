@@ -1,9 +1,9 @@
-use bevy::{prelude::*, ui::debug};
+use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 use std::any::Any;
 use std::collections::HashMap;
 
-use super::{instance::*, stage::*, types::*};
+use super::{instance::*, stage::*, types::*, events::*};
 
 #[derive(Resource, Default)]
 pub struct WorkflowTypeModuleRegistry {
@@ -82,7 +82,7 @@ pub struct WorkflowRequestBuffer {
 // --- RenderWhile Workflow State Extraction Resources ---
 #[derive(Resource, Default, Debug)]
 pub(super) struct RenderWhileWorkflowStateExtract(
-    pub Vec<(&'static str, &'static str, WorkflowStageType, bool)>,
+    pub Vec<(&'static str, &'static str, StageType, bool)>,
 );
 impl From<&WorkflowMap> for RenderWhileWorkflowStateExtract {
     fn from(value: &WorkflowMap) -> Self {
@@ -97,7 +97,7 @@ impl From<&WorkflowMap> for RenderWhileWorkflowStateExtract {
                     ..
                 } = workflow_instance.state()
                 {
-                    if matches!(current_stage_type, WorkflowStageType::RenderWhile) {
+                    if matches!(current_stage_type, StageType::RenderWhile) {
                         render_workflow_state_extract.0.push((
                             module_name,
                             workflow_name,
@@ -124,264 +124,72 @@ pub(super) struct RenderWhileWorkflowStateExtractReintegrationEventReceiver(
 // --- Stage Buffers ---
 #[derive(Resource, Default)]
 pub(super) struct EcsStageBuffer(
-    pub  Vec<(
+    pub Vec<(
         &'static str,
         &'static str,
         usize,
-        WorkflowStageEcs,
+        StageEcs,
         Option<Box<dyn Any + Send + Sync>>,
     )>,
 );
 #[derive(Resource, Default)]
 pub(super) struct EcsWhileStageBuffer(
-    pub  Vec<(
+    pub Vec<(
         &'static str,
         &'static str,
         usize,
-        WorkflowStageEcsWhile,
+        StageEcsWhile,
         Option<Box<dyn Any + Send + Sync>>,
     )>,
 );
 #[derive(Resource, Default)]
 pub(super) struct RenderStageBuffer(
-    pub  Vec<(
+    pub Vec<(
         &'static str,
         &'static str,
         usize,
-        WorkflowStageRender,
+        StageRender,
         Option<Box<dyn Any + Send + Sync>>,
     )>,
 );
 #[derive(Resource, Default)]
 pub(super) struct RenderWhileStageBuffer(
-    pub  Vec<(
+    pub Vec<(
         &'static str,
         &'static str,
         usize,
-        WorkflowStageRenderWhile,
+        StageRenderWhile,
         Option<Box<dyn Any + Send + Sync>>,
     )>,
 );
 #[derive(Resource, Default)]
 pub(super) struct AsyncStageBuffer(
-    pub  Vec<(
+    pub Vec<(
         &'static str,
         &'static str,
         usize,
-        WorkflowStageAsync,
+        StageAsync,
         Option<Box<dyn Any + Send + Sync>>,
     )>,
 );
 
-// --- Stage Completion Event Senders ---
-#[derive(Resource)]
-pub(super) struct EcsStageCompletionEventSender(
-    pub  Sender<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageEcs,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
+// --- Stage Event Senders & Receivers ---
+#[derive(Resource, Clone)]
+pub(super) struct StageCompletionEventSender(
+    pub Sender<StageCompletionEvent>,
+);
+#[derive(Resource, Clone)]
+pub(super) struct StageFailureEventSender(
+    pub Sender<StageFailureEvent>,
 );
 #[derive(Resource)]
-pub(super) struct EcsWhileStageCompletionEventSender(
-    pub  Sender<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageEcsWhile,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
+pub(super) struct StageCompletionEventReceiver(
+    pub Receiver<StageCompletionEvent>,
 );
 #[derive(Resource)]
-pub(super) struct RenderStageCompletionEventSender(
-    pub  Sender<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageRender,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
+pub(super) struct StageFailureEventReceiver(
+    pub Receiver<StageFailureEvent>,
 );
-#[derive(Resource)]
-pub(super) struct RenderWhileStageCompletionEventSender(
-    pub  Sender<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageRenderWhile,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-#[derive(Resource)]
-pub(super) struct AsyncStageCompletionEventSender(
-    pub  Sender<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageAsync,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-
-// --- Stage Completion Event Receivers ---
-#[derive(Resource)]
-pub(super) struct EcsStageCompletionEventReceiver(
-    pub  Receiver<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageEcs,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-#[derive(Resource)]
-pub(super) struct EcsWhileStageCompletionEventReceiver(
-    pub  Receiver<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageEcsWhile,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-#[derive(Resource)]
-pub(super) struct RenderStageCompletionEventReceiver(
-    pub  Receiver<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageRender,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-#[derive(Resource)]
-pub(super) struct RenderWhileStageCompletionEventReceiver(
-    pub  Receiver<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageRenderWhile,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-#[derive(Resource)]
-pub(super) struct AsyncStageCompletionEventReceiver(
-    pub  Receiver<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageAsync,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-
-// --- Stage Failure Event Senders ---
-#[derive(Resource)]
-pub(super) struct EcsStageFailureEventSender(
-    pub  Sender<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageEcs,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-#[derive(Resource)]
-pub(super) struct EcsWhileStageFailureEventSender(
-    pub  Sender<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageEcsWhile,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-#[derive(Resource)]
-pub(super) struct RenderStageFailureEventSender(
-    pub  Sender<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageRender,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-#[derive(Resource)]
-pub(super) struct RenderWhileStageFailureEventSender(
-    pub  Sender<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageRenderWhile,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-#[derive(Resource)]
-pub(super) struct AsyncStageFailureEventSender(
-    pub  Sender<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageAsync,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-
-
-// --- Stage Failure Event Receivers ---
-#[derive(Resource)]
-pub(super) struct EcsStageFailureEventReceiver(
-    pub  Receiver<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageEcs,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-#[derive(Resource)]
-pub(super) struct EcsWhileStageFailureEventReceiver(
-    pub  Receiver<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageEcsWhile,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-#[derive(Resource)]
-pub(super) struct RenderStageFailureEventReceiver(
-    pub  Receiver<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageRender,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-#[derive(Resource)]
-pub(super) struct RenderWhileStageFailureEventReceiver(
-    pub  Receiver<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageRenderWhile,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-#[derive(Resource)]
-pub(super) struct AsyncStageFailureEventReceiver(
-    pub  Receiver<(
-        &'static str,
-        &'static str,
-        usize,
-        WorkflowStageAsync,
-        Option<Box<dyn Any + Send + Sync>>,
-    )>,
-);
-
 
 #[derive(Resource, Default, Debug)]
 pub struct WorkflowMap {

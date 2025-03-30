@@ -39,63 +39,13 @@ impl Plugin for WorkflowPlugin {
                 render_workflow_state_extract_reintegration_event_receiver,
             );
 
-        // --- Stage completion channels
-        let (ecs_completion_sender, ecs_completion_receiver) = crossbeam_channel::unbounded();
-        let ecs_completion_sender = EcsStageCompletionEventSender(ecs_completion_sender);
-        let ecs_completion_receiver = EcsStageCompletionEventReceiver(ecs_completion_receiver);
+        let (completion_sender, completion_receiver) = crossbeam_channel::unbounded();
+        let completion_sender = StageCompletionEventSender(completion_sender);
+        let completion_receiver = StageCompletionEventReceiver(completion_receiver);
 
-        let (render_completion_sender, render_completion_receiver) = crossbeam_channel::unbounded();
-        let render_completion_sender = RenderStageCompletionEventSender(render_completion_sender);
-        let render_completion_receiver =
-            RenderStageCompletionEventReceiver(render_completion_receiver);
-
-        let (async_completion_sender, async_completion_receiver) = crossbeam_channel::unbounded();
-        let async_completion_sender = AsyncStageCompletionEventSender(async_completion_sender);
-        let async_completion_receiver =
-            AsyncStageCompletionEventReceiver(async_completion_receiver);
-
-        let (render_while_completion_sender, render_while_completion_receiver) =
-            crossbeam_channel::unbounded();
-        let render_while_completion_sender =
-            RenderWhileStageCompletionEventSender(render_while_completion_sender);
-        let render_while_completion_receiver =
-            RenderWhileStageCompletionEventReceiver(render_while_completion_receiver);
-
-        let (ecs_while_completion_sender, ecs_while_completion_receiver) =
-            crossbeam_channel::unbounded();
-        let ecs_while_completion_sender =
-            EcsWhileStageCompletionEventSender(ecs_while_completion_sender);
-        let ecs_while_completion_receiver =
-            EcsWhileStageCompletionEventReceiver(ecs_while_completion_receiver);
-
-        // --- Stage failure channels
-        let (ecs_failure_sender, ecs_failure_receiver) = crossbeam_channel::unbounded();
-        let ecs_failure_sender = EcsStageFailureEventSender(ecs_failure_sender);
-        let ecs_failure_receiver = EcsStageFailureEventReceiver(ecs_failure_receiver);
-
-        let (render_failure_sender, render_failure_receiver) = crossbeam_channel::unbounded();
-        let render_failure_sender = RenderStageFailureEventSender(render_failure_sender);
-        let render_failure_receiver =
-            RenderStageFailureEventReceiver(render_failure_receiver);
-
-        let (async_failure_sender, async_failure_receiver) = crossbeam_channel::unbounded();
-        let async_failure_sender = AsyncStageFailureEventSender(async_failure_sender);
-        let async_failure_receiver =
-            AsyncStageFailureEventReceiver(async_failure_receiver);
-
-        let (ecs_while_failure_sender, ecs_while_failure_receiver) =
-            crossbeam_channel::unbounded();
-        let ecs_while_failure_sender =
-            EcsWhileStageFailureEventSender(ecs_while_failure_sender);
-        let ecs_while_failure_receiver =
-            EcsWhileStageFailureEventReceiver(ecs_while_failure_receiver);
-
-        let (render_while_failure_sender, render_while_failure_receiver) =
-            crossbeam_channel::unbounded();
-        let render_while_failure_sender =
-            RenderWhileStageFailureEventSender(render_while_failure_sender);
-        let render_while_failure_receiver =
-            RenderWhileStageFailureEventReceiver(render_while_failure_receiver);
+        let (failure_sender, failure_receiver) = crossbeam_channel::unbounded();
+        let failure_sender = StageFailureEventSender(failure_sender);
+        let failure_receiver = StageFailureEventReceiver(failure_receiver);
 
         let (workflow_request_receiver, workflow_response_sender) = initialize_channels();
         let (workflow_request_e_receiver, workflow_response_e_sender) = initialize_e_channels();
@@ -107,10 +57,13 @@ impl Plugin for WorkflowPlugin {
         let (workflow_request_ioe_receiver, workflow_response_ioe_sender) =
             initialize_ioe_channels();
 
-        app.add_event::<WorkflowStageInitializationEvent>()
-            .add_event::<WorkflowStageCompletionEvent>()
-            .add_persistent_consumable_event::<WorkflowStageInitializationEvent>()
-            .add_persistent_consumable_event::<WorkflowStageCompletionEvent>()
+        app
+            .add_event::<StageInitializationEvent>()
+            .add_event::<StageCompletionEvent>()
+            .add_event::<StageFailureEvent>()
+            .add_persistent_consumable_event::<StageInitializationEvent>()
+            .add_persistent_consumable_event::<StageCompletionEvent>()
+            .add_persistent_consumable_event::<StageFailureEvent>()
             .insert_resource(WorkflowTypeModuleRegistry::default())
             .insert_resource(WorkflowRequestBuffer::default())
             .insert_resource(WorkflowMap::default())
@@ -120,22 +73,10 @@ impl Plugin for WorkflowPlugin {
             .insert_resource(RenderWhileStageBuffer::default())
             .insert_resource(AsyncStageBuffer::default())
             .insert_resource(render_while_workflow_state_extract_reintegration_event_receiver)
-            .insert_resource(ecs_completion_sender)
-            .insert_resource(ecs_completion_receiver)
-            .insert_resource(ecs_while_completion_sender)
-            .insert_resource(ecs_while_completion_receiver)
-            .insert_resource(render_completion_receiver)
-            .insert_resource(render_while_completion_receiver)
-            .insert_resource(async_completion_sender)
-            .insert_resource(async_completion_receiver)
-            .insert_resource(ecs_failure_sender)
-            .insert_resource(ecs_failure_receiver)
-            .insert_resource(ecs_while_failure_sender)
-            .insert_resource(ecs_while_failure_receiver)
-            .insert_resource(render_failure_receiver)
-            .insert_resource(render_while_failure_receiver)
-            .insert_resource(async_failure_sender)
-            .insert_resource(async_failure_receiver)
+            .insert_resource(completion_sender.clone())
+            .insert_resource(failure_sender.clone())
+            .insert_resource(completion_receiver)
+            .insert_resource(failure_receiver)
             .insert_resource(WorkflowRequestReceiver(workflow_request_receiver))
             .insert_resource(WorkflowRequestEReceiver(workflow_request_e_receiver))
             .insert_resource(WorkflowRequestOReceiver(workflow_request_o_receiver))
@@ -155,11 +96,8 @@ impl Plugin for WorkflowPlugin {
             .add_systems(
                 PreUpdate,
                 (
-                    handle_ecs_stage_completion_event_system,
-                    handle_ecs_while_stage_completion_event_system,
-                    handle_render_stage_completion_event_system,
-                    handle_render_while_stage_completion_event_system,
-                    handle_async_stage_completion_event_system,
+                    stage_completion_relay_system,
+                    stage_failure_relay_system,
                 ),
             )
             .add_systems(
@@ -194,8 +132,8 @@ impl Plugin for WorkflowPlugin {
         let render_app = app.sub_app_mut(RenderApp);
         render_app
             .insert_resource(render_while_workflow_state_extract_reintegration_event_sender)
-            .insert_resource(render_completion_sender)
-            .insert_resource(render_while_completion_sender)
+            .insert_resource(completion_sender)
+            .insert_resource(failure_sender)
             .add_systems(
                 ExtractSchedule,
                 (

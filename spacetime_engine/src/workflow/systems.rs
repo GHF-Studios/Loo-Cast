@@ -7,17 +7,11 @@ use crate::statics::TOKIO_RUNTIME;
 
 use super::{
     channels::*,
-    events::{WorkflowStageCompletionEvent, WorkflowStageFailureEvent, WorkflowStageInitializationEvent},
+    events::{StageCompletionEvent, StageFailureEvent, StageInitializationEvent},
     instance::*,
     resources::*,
-    stage::{WorkflowStage, WorkflowStageEcs, WorkflowStageSignature, WorkflowStageType, WorkflowStageWhileOutcome},
+    stage::{Stage, StageWhileOutcome},
     types::*,
-    AsyncStageBuffer, AsyncStageCompletionEventReceiver, AsyncStageCompletionEventSender,
-    EcsStageBuffer, EcsStageCompletionEventReceiver, EcsStageCompletionEventSender,
-    EcsWhileStageBuffer, EcsWhileStageCompletionEventReceiver, EcsWhileStageCompletionEventSender,
-    RenderStageBuffer, RenderStageCompletionEventReceiver, RenderStageCompletionEventSender,
-    RenderWhileStageBuffer, RenderWhileStageCompletionEventReceiver,
-    RenderWhileStageCompletionEventSender,
 };
 
 pub(super) fn extract_render_stage_buffer_system(world: &mut World) {
@@ -75,12 +69,12 @@ pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
     };
 
     let completion_sender = world
-        .get_resource::<EcsStageCompletionEventSender>()
+        .get_resource::<StageCompletionEventSender>()
         .unwrap()
         .0
         .clone();
     let failure_sender = world
-        .get_resource::<EcsStageFailureEventSender>()
+        .get_resource::<StageFailureEventSender>()
         .unwrap()
         .0
         .clone();
@@ -226,10 +220,10 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
         let outcome = *outcome.downcast().unwrap();
 
         match outcome {
-            WorkflowStageWhileOutcome::Waiting(state_data) => {
+            StageWhileOutcome::Waiting(state_data) => {
                 waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
             }
-            WorkflowStageWhileOutcome::Completed(output_data) => {
+            StageWhileOutcome::Completed(output_data) => {
                 let cloned_module_name = module_name;
                 let cloned_workflow_name = workflow_name;
 
@@ -320,10 +314,10 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
         let outcome = *outcome.downcast().unwrap();
 
         match outcome {
-            WorkflowStageWhileOutcome::Waiting(state_data) => {
+            StageWhileOutcome::Waiting(state_data) => {
                 waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
             }
-            WorkflowStageWhileOutcome::Completed(output_data) => {
+            StageWhileOutcome::Completed(output_data) => {
                 let cloned_module_name = module_name;
                 let cloned_workflow_name = workflow_name;
 
@@ -380,174 +374,37 @@ pub(super) fn render_while_workflow_state_extract_reintegration_system(world: &m
     }
 }
 
-pub(super) fn handle_ecs_stage_completion_event_system(
-    stage_event_receiver: Res<EcsStageCompletionEventReceiver>,
-    mut stage_event_writer: ConsumableEventWriter<WorkflowStageCompletionEvent>,
+pub(super) fn stage_completion_relay_system(
+    stage_event_receiver: Res<StageCompletionEventReceiver>,
+    mut stage_event_writer: ConsumableEventWriter<StageCompletionEvent>,
 ) {
-    while let Ok((module_name, workflow_name, current_stage, stage, stage_output)) =
+    while let Ok(StageCompletionEvent { ty, module_name, workflow_name, current_stage, stage_output, stage_return }) =
         stage_event_receiver.0.try_recv()
     {
-        stage_event_writer.send(WorkflowStageCompletionEvent {
-            ty: WorkflowStageType::Ecs,
-            module_name: module_name.clone(),
-            workflow_name: workflow_name.clone(),
+        stage_event_writer.send(StageCompletionEvent {
+            ty,
+            module_name,
+            workflow_name,
             current_stage,
             stage_output,
-            stage_return: WorkflowStage::Ecs(stage),
+            stage_return,
         });
     }
 }
-pub(super) fn handle_render_stage_completion_event_system(
-    stage_event_receiver: Res<RenderStageCompletionEventReceiver>,
-    mut stage_event_writer: ConsumableEventWriter<WorkflowStageCompletionEvent>,
+pub(super) fn stage_failure_relay_system(
+    stage_event_receiver: Res<StageFailureEventReceiver>,
+    mut stage_event_writer: ConsumableEventWriter<StageFailureEvent>,
 ) {
-    while let Ok((module_name, workflow_name, current_stage, stage, stage_output)) =
+    while let Ok(StageFailureEvent { ty, module_name, workflow_name, current_stage, stage_error, stage_return }) =
         stage_event_receiver.0.try_recv()
     {
-        stage_event_writer.send(WorkflowStageCompletionEvent {
-            ty: WorkflowStageType::Render,
-            module_name: module_name.clone(),
-            workflow_name: workflow_name.clone(),
-            current_stage,
-            stage_output,
-            stage_return: WorkflowStage::Render(stage),
-        });
-    }
-}
-pub(super) fn handle_async_stage_completion_event_system(
-    stage_event_receiver: ResMut<AsyncStageCompletionEventReceiver>,
-    mut stage_event_writer: ConsumableEventWriter<WorkflowStageCompletionEvent>,
-) {
-    while let Ok((module_name, workflow_name, current_stage, stage, stage_output)) =
-        stage_event_receiver.0.try_recv()
-    {
-        stage_event_writer.send(WorkflowStageCompletionEvent {
-            ty: WorkflowStageType::Async,
-            module_name: module_name.clone(),
-            workflow_name: workflow_name.clone(),
-            current_stage,
-            stage_output,
-            stage_return: WorkflowStage::Async(stage),
-        });
-    }
-}
-pub(super) fn handle_ecs_while_stage_completion_event_system(
-    stage_event_receiver: Res<EcsWhileStageCompletionEventReceiver>,
-    mut stage_event_writer: ConsumableEventWriter<WorkflowStageCompletionEvent>,
-) {
-    while let Ok((module_name, workflow_name, current_stage, stage, stage_output)) =
-        stage_event_receiver.0.try_recv()
-    {
-        stage_event_writer.send(WorkflowStageCompletionEvent {
-            ty: WorkflowStageType::EcsWhile,
-            module_name: module_name.clone(),
-            workflow_name: workflow_name.clone(),
-            current_stage,
-            stage_output,
-            stage_return: WorkflowStage::EcsWhile(stage),
-        });
-    }
-}
-pub(super) fn handle_render_while_stage_completion_event_system(
-    stage_event_receiver: Res<RenderWhileStageCompletionEventReceiver>,
-    mut stage_event_writer: ConsumableEventWriter<WorkflowStageCompletionEvent>,
-) {
-    while let Ok((module_name, workflow_name, current_stage, stage, stage_output)) =
-        stage_event_receiver.0.try_recv()
-    {
-        stage_event_writer.send(WorkflowStageCompletionEvent {
-            ty: WorkflowStageType::RenderWhile,
-            module_name: module_name.clone(),
-            workflow_name: workflow_name.clone(),
-            current_stage,
-            stage_output,
-            stage_return: WorkflowStage::RenderWhile(stage),
-        });
-    }
-}
-
-pub(super) fn handle_ecs_stage_failure_event_system(
-    stage_event_receiver: Res<EcsStageFailureEventReceiver>,
-    mut stage_event_writer: ConsumableEventWriter<WorkflowStageFailureEvent>,
-) {
-    while let Ok((module_name, workflow_name, current_stage, stage, stage_error)) =
-        stage_event_receiver.0.try_recv()
-    {
-        stage_event_writer.send(WorkflowStageFailureEvent {
-            ty: WorkflowStageType::Ecs,
-            module_name: module_name.clone(),
-            workflow_name: workflow_name.clone(),
+        stage_event_writer.send(StageFailureEvent {
+            ty,
+            module_name,
+            workflow_name,
             current_stage,
             stage_error,
-            stage_return: WorkflowStage::Ecs(stage),
-        });
-    }
-}
-pub(super) fn handle_render_stage_failure_event_system(
-    stage_event_receiver: Res<RenderStageFailureEventReceiver>,
-    mut stage_event_writer: ConsumableEventWriter<WorkflowStageFailureEvent>,
-) {
-    while let Ok((module_name, workflow_name, current_stage, stage, stage_error)) =
-        stage_event_receiver.0.try_recv()
-    {
-        stage_event_writer.send(WorkflowStageFailureEvent {
-            ty: WorkflowStageType::Render,
-            module_name: module_name.clone(),
-            workflow_name: workflow_name.clone(),
-            current_stage,
-            stage_error,
-            stage_return: WorkflowStage::Render(stage),
-        });
-    }
-}
-pub(super) fn handle_async_stage_failure_event_system(
-    stage_event_receiver: Res<AsyncStageFailureEventReceiver>,
-    mut stage_event_writer: ConsumableEventWriter<WorkflowStageFailureEvent>,
-) {
-    while let Ok((module_name, workflow_name, current_stage, stage, stage_error)) =
-        stage_event_receiver.0.try_recv()
-    {
-        stage_event_writer.send(WorkflowStageFailureEvent {
-            ty: WorkflowStageType::Async,
-            module_name: module_name.clone(),
-            workflow_name: workflow_name.clone(),
-            current_stage,
-            stage_error,
-            stage_return: WorkflowStage::Async(stage),
-        });
-    }
-}
-pub(super) fn handle_ecs_while_stage_failure_event_system(
-    stage_event_receiver: Res<EcsWhileStageFailureEventReceiver>,
-    mut stage_event_writer: ConsumableEventWriter<WorkflowStageFailureEvent>,
-) {
-    while let Ok((module_name, workflow_name, current_stage, stage, stage_error)) =
-        stage_event_receiver.0.try_recv()
-    {
-        stage_event_writer.send(WorkflowStageFailureEvent {
-            ty: WorkflowStageType::EcsWhile,
-            module_name: module_name.clone(),
-            workflow_name: workflow_name.clone(),
-            current_stage,
-            stage_error,
-            stage_return: WorkflowStage::EcsWhile(stage),
-        });
-    }
-}
-pub(super) fn handle_render_while_stage_failure_event_system(
-    stage_event_receiver: Res<RenderWhileStageFailureEventReceiver>,
-    mut stage_event_writer: ConsumableEventWriter<WorkflowStageFailureEvent>,
-) {
-    while let Ok((module_name, workflow_name, current_stage, stage, stage_error)) =
-        stage_event_receiver.0.try_recv()
-    {
-        stage_event_writer.send(WorkflowStageFailureEvent {
-            ty: WorkflowStageType::RenderWhile,
-            module_name: module_name.clone(),
-            workflow_name: workflow_name.clone(),
-            current_stage,
-            stage_error,
-            stage_return: WorkflowStage::RenderWhile(stage),
+            stage_return,
         });
     }
 }
@@ -895,7 +752,7 @@ pub(super) fn workflow_request_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>,
         Res<WorkflowTypeModuleRegistry>,
-        ConsumableEventWriter<WorkflowStageInitializationEvent>,
+        ConsumableEventWriter<StageInitializationEvent>,
     )> = SystemState::new(world);
     let (mut workflow_map, workflow_type_module_registry, _) = system_state.get_mut(world);
 
@@ -923,7 +780,7 @@ pub(super) fn workflow_request_system(world: &mut World) {
                         stage_completed: false,
                     };
 
-                    stage_initialization_events.push(WorkflowStageInitializationEvent {
+                    stage_initialization_events.push(StageInitializationEvent {
                         module_name,
                         workflow_name,
                         stage_input: input,
@@ -966,7 +823,7 @@ pub(super) fn workflow_execution_system(world: &mut World) {
         ResMut<AsyncStageBuffer>,
         ResMut<EcsWhileStageBuffer>,
         ResMut<RenderWhileStageBuffer>,
-        ConsumableEventReader<WorkflowStageInitializationEvent>,
+        ConsumableEventReader<StageInitializationEvent>,
     )> = SystemState::new(world);
     let (
         mut workflow_map,
@@ -1000,7 +857,7 @@ pub(super) fn workflow_execution_system(world: &mut World) {
 
                 let stage = std::mem::replace(
                     &mut workflow_type.stages[current_stage],
-                    WorkflowStage::Ecs(WorkflowStageEcs {
+                    Stage::Ecs(super::stage::StageEcs {
                         name: "placeholder",
                         run_ecs: Box::new(|_, _| unreachable!()),
                         data_type_transmuter: Box::new(|_| unreachable!()),
@@ -1008,7 +865,7 @@ pub(super) fn workflow_execution_system(world: &mut World) {
                 );
 
                 match stage {
-                    WorkflowStage::Ecs(stage) => {
+                    Stage::Ecs(stage) => {
                         ecs_stage_buffer.0.push((
                             module_name,
                             workflow_name,
@@ -1017,7 +874,7 @@ pub(super) fn workflow_execution_system(world: &mut World) {
                             stage_input,
                         ));
                     }
-                    WorkflowStage::Render(stage) => {
+                    Stage::Render(stage) => {
                         render_stage_buffer.0.push((
                             module_name,
                             workflow_name,
@@ -1026,7 +883,7 @@ pub(super) fn workflow_execution_system(world: &mut World) {
                             stage_input,
                         ));
                     }
-                    WorkflowStage::Async(stage) => {
+                    Stage::Async(stage) => {
                         async_stage_buffer.0.push((
                             module_name,
                             workflow_name,
@@ -1035,7 +892,7 @@ pub(super) fn workflow_execution_system(world: &mut World) {
                             stage_input,
                         ));
                     }
-                    WorkflowStage::EcsWhile(stage) => {
+                    Stage::EcsWhile(stage) => {
                         ecs_while_stage_buffer.0.push((
                             module_name,
                             workflow_name,
@@ -1044,7 +901,7 @@ pub(super) fn workflow_execution_system(world: &mut World) {
                             stage_input,
                         ));
                     }
-                    WorkflowStage::RenderWhile(stage) => {
+                    Stage::RenderWhile(stage) => {
                         render_while_stage_buffer.0.push((
                             module_name,
                             workflow_name,
@@ -1073,8 +930,8 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>,
         ResMut<WorkflowTypeModuleRegistry>,
-        ConsumableEventReader<WorkflowStageCompletionEvent>,
-        ConsumableEventWriter<WorkflowStageInitializationEvent>,
+        ConsumableEventReader<StageCompletionEvent>,
+        ConsumableEventWriter<StageInitializationEvent>,
     )> = SystemState::new(world);
     let (
         mut workflow_map,
@@ -1120,23 +977,23 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                 // TODO: DROPOFF 5: Workflow completion handling
 
                 let response = match stage {
-                    WorkflowStage::Ecs(ref mut stage) => {
+                    Stage::Ecs(ref mut stage) => {
                         let response_handler = &mut stage.handle_ecs_response;
                         response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone())
                     }
-                    WorkflowStage::Render(ref mut stage) => {
+                    Stage::Render(ref mut stage) => {
                         let response_handler = &mut stage.handle_render_response;
                         response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone())
                     }
-                    WorkflowStage::Async(ref mut stage) => {
+                    Stage::Async(ref mut stage) => {
                         let response_handler = &mut stage.handle_async_response;
                         response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone())
                     }
-                    WorkflowStage::EcsWhile(ref mut stage) => {
+                    Stage::EcsWhile(ref mut stage) => {
                         let response_handler = &mut stage.handle_ecs_while_response;
                         response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone())
                     }
-                    WorkflowStage::RenderWhile(ref mut stage) => {
+                    Stage::RenderWhile(ref mut stage) => {
                         let response_handler = &mut stage.handle_render_while_response;
                         response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone())
                     }
@@ -1183,7 +1040,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                     stage_completed: false,
                 };
 
-                stage_initialization_event_writer.send(WorkflowStageInitializationEvent {
+                stage_initialization_event_writer.send(StageInitializationEvent {
                     module_name,
                     workflow_name,
                     stage_input: stage_output,

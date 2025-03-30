@@ -69,8 +69,8 @@ pub trait WorkflowStageEcs {
     fn handle_ecs_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsE {
@@ -83,8 +83,8 @@ pub trait WorkflowStageEcsE {
     fn handle_ecs_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsO {
@@ -97,8 +97,8 @@ pub trait WorkflowStageEcsO {
     fn handle_ecs_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsOE {
@@ -112,8 +112,8 @@ pub trait WorkflowStageEcsOE {
     fn handle_ecs_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsI {
@@ -126,8 +126,8 @@ pub trait WorkflowStageEcsI {
     fn handle_ecs_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsIE {
@@ -141,8 +141,8 @@ pub trait WorkflowStageEcsIE {
     fn handle_ecs_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsIO {
@@ -156,8 +156,8 @@ pub trait WorkflowStageEcsIO {
     fn handle_ecs_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsIOE {
@@ -176,8 +176,8 @@ pub trait WorkflowStageEcsIOE {
     fn handle_ecs_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 
@@ -190,8 +190,8 @@ pub trait WorkflowStageRender {
     fn handle_render_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderE {
@@ -204,8 +204,8 @@ pub trait WorkflowStageRenderE {
     fn handle_render_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderO {
@@ -218,8 +218,8 @@ pub trait WorkflowStageRenderO {
     fn handle_render_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderOE {
@@ -233,8 +233,8 @@ pub trait WorkflowStageRenderOE {
     fn handle_render_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderI {
@@ -247,8 +247,8 @@ pub trait WorkflowStageRenderI {
     fn handle_render_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderIE {
@@ -262,8 +262,8 @@ pub trait WorkflowStageRenderIE {
     fn handle_render_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderIO {
@@ -277,8 +277,8 @@ pub trait WorkflowStageRenderIO {
     fn handle_render_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderIOE {
@@ -297,8 +297,8 @@ pub trait WorkflowStageRenderIOE {
     fn handle_render_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 
@@ -311,8 +311,8 @@ pub trait WorkflowStageAsync {
     fn handle_async_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageAsyncE {
@@ -325,8 +325,8 @@ pub trait WorkflowStageAsyncE {
     fn handle_async_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageAsyncO {
@@ -339,8 +339,8 @@ pub trait WorkflowStageAsyncO {
     fn handle_async_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageAsyncOE {
@@ -354,8 +354,8 @@ pub trait WorkflowStageAsyncOE {
     fn handle_async_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageAsyncI {
@@ -368,8 +368,8 @@ pub trait WorkflowStageAsyncI {
     fn handle_async_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageAsyncIE {
@@ -383,8 +383,8 @@ pub trait WorkflowStageAsyncIE {
     fn handle_async_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageAsyncIO {
@@ -398,8 +398,8 @@ pub trait WorkflowStageAsyncIO {
     fn handle_async_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageAsyncIOE {
@@ -418,8 +418,8 @@ pub trait WorkflowStageAsyncIOE {
     fn handle_async_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 
@@ -433,8 +433,8 @@ pub trait WorkflowStageEcsWhile {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileE {
@@ -451,8 +451,8 @@ pub trait WorkflowStageEcsWhileE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileO {
@@ -466,8 +466,8 @@ pub trait WorkflowStageEcsWhileO {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileOE {
@@ -485,8 +485,8 @@ pub trait WorkflowStageEcsWhileOE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileS {
@@ -504,8 +504,8 @@ pub trait WorkflowStageEcsWhileS {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileSE {
@@ -524,8 +524,8 @@ pub trait WorkflowStageEcsWhileSE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileSO {
@@ -544,8 +544,8 @@ pub trait WorkflowStageEcsWhileSO {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileSOE {
@@ -565,8 +565,8 @@ pub trait WorkflowStageEcsWhileSOE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileI {
@@ -580,8 +580,8 @@ pub trait WorkflowStageEcsWhileI {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileIE {
@@ -599,8 +599,8 @@ pub trait WorkflowStageEcsWhileIE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileIO {
@@ -615,8 +615,8 @@ pub trait WorkflowStageEcsWhileIO {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileIOE {
@@ -635,8 +635,8 @@ pub trait WorkflowStageEcsWhileIOE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileIS {
@@ -655,8 +655,8 @@ pub trait WorkflowStageEcsWhileIS {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileISE {
@@ -680,8 +680,8 @@ pub trait WorkflowStageEcsWhileISE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileISO {
@@ -701,8 +701,8 @@ pub trait WorkflowStageEcsWhileISO {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageEcsWhileISOE {
@@ -727,8 +727,8 @@ pub trait WorkflowStageEcsWhileISOE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 
@@ -742,8 +742,8 @@ pub trait WorkflowStageRenderWhile {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileE {
@@ -760,8 +760,8 @@ pub trait WorkflowStageRenderWhileE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileO {
@@ -775,8 +775,8 @@ pub trait WorkflowStageRenderWhileO {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileOE {
@@ -794,8 +794,8 @@ pub trait WorkflowStageRenderWhileOE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileS {
@@ -813,8 +813,8 @@ pub trait WorkflowStageRenderWhileS {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileSE {
@@ -833,8 +833,8 @@ pub trait WorkflowStageRenderWhileSE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileSO {
@@ -853,8 +853,8 @@ pub trait WorkflowStageRenderWhileSO {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileSOE {
@@ -874,8 +874,8 @@ pub trait WorkflowStageRenderWhileSOE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileI {
@@ -889,8 +889,8 @@ pub trait WorkflowStageRenderWhileI {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileIE {
@@ -908,8 +908,8 @@ pub trait WorkflowStageRenderWhileIE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileIO {
@@ -924,8 +924,8 @@ pub trait WorkflowStageRenderWhileIO {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileIOE {
@@ -944,8 +944,8 @@ pub trait WorkflowStageRenderWhileIOE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileIS {
@@ -964,8 +964,8 @@ pub trait WorkflowStageRenderWhileIS {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileISE {
@@ -989,8 +989,8 @@ pub trait WorkflowStageRenderWhileISE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileISO {
@@ -1010,8 +1010,8 @@ pub trait WorkflowStageRenderWhileISO {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }
 pub trait WorkflowStageRenderWhileISOE {
@@ -1036,7 +1036,7 @@ pub trait WorkflowStageRenderWhileISOE {
     fn handle_ecs_while_response(
         &mut self,
         stage_response: Option<Box<dyn Any + Send + Sync>>, 
-        completion_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
-        failure_sender: Sender<(&str, &str, usize, super::stage::WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
+        completion_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>, 
+        failure_sender: Sender<(&str, &str, usize, super::stage::StageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>
     );
 }

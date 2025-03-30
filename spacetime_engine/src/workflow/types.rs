@@ -2,7 +2,7 @@ use futures::future::BoxFuture;
 use tokio::task::JoinHandle;
 
 use super::{
-    stage::{WorkflowStage, WorkflowStageType},
+    stage::{Stage, StageType},
     statics::TOKIO_RUNTIME,
 };
 
@@ -44,7 +44,7 @@ pub enum WorkflowState {
     Requested,
     Processing {
         current_stage: usize,
-        current_stage_type: WorkflowStageType,
+        current_stage_type: StageType,
         stage_initialized: bool,
         stage_completed: bool,
     },
@@ -82,7 +82,7 @@ pub struct WorkflowTypeModule {
 
 pub struct WorkflowType {
     pub name: &'static str,
-    pub stages: Vec<WorkflowStage>,
+    pub stages: Vec<Stage>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

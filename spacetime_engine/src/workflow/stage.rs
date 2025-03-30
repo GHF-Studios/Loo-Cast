@@ -3,8 +3,10 @@ use crossbeam_channel::Sender;
 use futures::future::BoxFuture;
 use std::any::Any;
 
+use super::events::*;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum WorkflowStageSignature {
+pub enum StageSignature {
     None,
     E,
     O,
@@ -16,93 +18,93 @@ pub enum WorkflowStageSignature {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum WorkflowStageType {
+pub enum StageType {
     Ecs,
     Render,
     Async,
     EcsWhile,
     RenderWhile,
 }
-impl std::fmt::Display for WorkflowStageType {
+impl std::fmt::Display for StageType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            WorkflowStageType::Ecs => write!(f, "WorkflowStageType(Ecs)"),
-            WorkflowStageType::Render => write!(f, "WorkflowStageType(Render)"),
-            WorkflowStageType::Async => write!(f, "WorkflowStageType(Async)"),
-            WorkflowStageType::EcsWhile => write!(f, "WorkflowStageType(EcsWhile)"),
-            WorkflowStageType::RenderWhile => write!(f, "WorkflowStageType(RenderWhile)"),
+            StageType::Ecs => write!(f, "WorkflowStageType(Ecs)"),
+            StageType::Render => write!(f, "WorkflowStageType(Render)"),
+            StageType::Async => write!(f, "WorkflowStageType(Async)"),
+            StageType::EcsWhile => write!(f, "WorkflowStageType(EcsWhile)"),
+            StageType::RenderWhile => write!(f, "WorkflowStageType(RenderWhile)"),
         }
     }
 }
 
-pub enum WorkflowStage {
-    Ecs(WorkflowStageEcs),
-    Render(WorkflowStageRender),
-    Async(WorkflowStageAsync),
-    EcsWhile(WorkflowStageEcsWhile),
-    RenderWhile(WorkflowStageRenderWhile),
+pub enum Stage {
+    Ecs(StageEcs),
+    Render(StageRender),
+    Async(StageAsync),
+    EcsWhile(StageEcsWhile),
+    RenderWhile(StageRenderWhile),
 }
 
-impl WorkflowStage {
-    pub fn get_type(&self) -> WorkflowStageType {
+impl Stage {
+    pub fn get_type(&self) -> StageType {
         match self {
-            WorkflowStage::Ecs(_) => WorkflowStageType::Ecs,
-            WorkflowStage::Render(_) => WorkflowStageType::Render,
-            WorkflowStage::Async(_) => WorkflowStageType::Async,
-            WorkflowStage::EcsWhile(_) => WorkflowStageType::EcsWhile,
-            WorkflowStage::RenderWhile(_) => WorkflowStageType::RenderWhile,
+            Stage::Ecs(_) => StageType::Ecs,
+            Stage::Render(_) => StageType::Render,
+            Stage::Async(_) => StageType::Async,
+            Stage::EcsWhile(_) => StageType::EcsWhile,
+            Stage::RenderWhile(_) => StageType::RenderWhile,
         }
     }
 
     pub fn get_index(&self) -> usize {
         match self {
-            WorkflowStage::Ecs(stage) => stage.signature as usize,
-            WorkflowStage::Render(stage) => stage.signature as usize,
-            WorkflowStage::Async(stage) => stage.signature as usize,
-            WorkflowStage::EcsWhile(stage) => stage.signature as usize,
-            WorkflowStage::RenderWhile(stage) => stage.signature as usize,
+            Stage::Ecs(stage) => stage.signature as usize,
+            Stage::Render(stage) => stage.signature as usize,
+            Stage::Async(stage) => stage.signature as usize,
+            Stage::EcsWhile(stage) => stage.signature as usize,
+            Stage::RenderWhile(stage) => stage.signature as usize,
         }
     }
 
-    pub fn get_signature(&self) -> WorkflowStageSignature {
+    pub fn get_signature(&self) -> StageSignature {
         match self {
-            WorkflowStage::Ecs(stage) => stage.signature,
-            WorkflowStage::Render(stage) => stage.signature,
-            WorkflowStage::Async(stage) => stage.signature,
-            WorkflowStage::EcsWhile(stage) => stage.signature,
-            WorkflowStage::RenderWhile(stage) => stage.signature,
+            Stage::Ecs(stage) => stage.signature,
+            Stage::Render(stage) => stage.signature,
+            Stage::Async(stage) => stage.signature,
+            Stage::EcsWhile(stage) => stage.signature,
+            Stage::RenderWhile(stage) => stage.signature,
         }
     }
 
-    pub fn get_completion_sender(&self) -> Sender<(&'static str, &'static str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)> {
+    pub fn get_completion_sender(&self) -> Sender<StageCompletionEvent> {
         match self {
-            WorkflowStage::Ecs(stage) => stage.completion_sender.clone(),
-            WorkflowStage::Render(stage) => stage.completion_sender.clone(),
-            WorkflowStage::Async(stage) => stage.completion_sender.clone(),
-            WorkflowStage::EcsWhile(stage) => stage.completion_sender.clone(),
-            WorkflowStage::RenderWhile(stage) => stage.completion_sender.clone(),
+            Stage::Ecs(stage) => stage.completion_sender.clone(),
+            Stage::Render(stage) => stage.completion_sender.clone(),
+            Stage::Async(stage) => stage.completion_sender.clone(),
+            Stage::EcsWhile(stage) => stage.completion_sender.clone(),
+            Stage::RenderWhile(stage) => stage.completion_sender.clone(),
         }
     }
 
-    pub fn get_failure_sender(&self) -> Sender<(&'static str, &'static str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)> {
+    pub fn get_failure_sender(&self) -> Sender<StageFailureEvent> {
         match self {
-            WorkflowStage::Ecs(stage) => stage.failure_sender.clone(),
-            WorkflowStage::Render(stage) => stage.failure_sender.clone(),
-            WorkflowStage::Async(stage) => stage.failure_sender.clone(),
-            WorkflowStage::EcsWhile(stage) => stage.failure_sender.clone(),
-            WorkflowStage::RenderWhile(stage) => stage.failure_sender.clone(),
+            Stage::Ecs(stage) => stage.failure_sender.clone(),
+            Stage::Render(stage) => stage.failure_sender.clone(),
+            Stage::Async(stage) => stage.failure_sender.clone(),
+            Stage::EcsWhile(stage) => stage.failure_sender.clone(),
+            Stage::RenderWhile(stage) => stage.failure_sender.clone(),
         }
     }
 }
 
-pub enum WorkflowStageWhileOutcome {
+pub enum StageWhileOutcome {
     Waiting(Option<Box<dyn Any + Send + Sync>>),
     Completed(Option<Box<dyn Any + Send + Sync>>),
 }
 
-pub struct WorkflowStageEcs {
+pub struct StageEcs {
     pub name: &'static str,
-    pub signature: WorkflowStageSignature,
+    pub signature: StageSignature,
     pub run_ecs: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -116,19 +118,19 @@ pub struct WorkflowStageEcs {
             &'static str, 
             &'static str, 
             Option<Box<dyn Any + Send + Sync>>,
-            Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>,
-            Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>,
+            Sender<StageCompletionEvent>,
+            Sender<StageFailureEvent>,
         ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,
-    pub completion_sender: Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>,
-    pub failure_sender: Sender<(&'static str, &'static str, usize, WorkflowStageEcs, Option<Box<dyn Any + Send + Sync>>)>,
+    pub completion_sender: Sender<StageCompletionEvent>,
+    pub failure_sender: Sender<StageFailureEvent>,
 }
 
-pub struct WorkflowStageRender {
+pub struct StageRender {
     pub name: &'static str,
-    pub signature: WorkflowStageSignature,
+    pub signature: StageSignature,
     pub run_render: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -142,19 +144,19 @@ pub struct WorkflowStageRender {
             &'static str, 
             &'static str, 
             Option<Box<dyn Any + Send + Sync>>,
-            Sender<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>,
-            Sender<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>,
+            Sender<StageCompletionEvent>,
+            Sender<StageFailureEvent>,
         ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,
-    pub completion_sender: Sender<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>,
-    pub failure_sender: Sender<(&'static str, &'static str, usize, WorkflowStageRender, Option<Box<dyn Any + Send + Sync>>)>,
+    pub completion_sender: Sender<StageCompletionEvent>,
+    pub failure_sender: Sender<StageFailureEvent>,
 }
 
-pub struct WorkflowStageAsync {
+pub struct StageAsync {
     pub name: &'static str,
-    pub signature: WorkflowStageSignature,
+    pub signature: StageSignature,
     pub run_async: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -167,19 +169,19 @@ pub struct WorkflowStageAsync {
             &'static str, 
             &'static str, 
             Option<Box<dyn Any + Send + Sync>>,
-            Sender<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>,
-            Sender<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>,
+            Sender<StageCompletionEvent>,
+            Sender<StageFailureEvent>,
         ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,
-    pub completion_sender: Sender<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>,
-    pub failure_sender: Sender<(&'static str, &'static str, usize, WorkflowStageAsync, Option<Box<dyn Any + Send + Sync>>)>,
+    pub completion_sender: Sender<StageCompletionEvent>,
+    pub failure_sender: Sender<StageFailureEvent>,
 }
 
-pub struct WorkflowStageEcsWhile {
+pub struct StageEcsWhile {
     pub name: &'static str,
-    pub signature: WorkflowStageSignature,
+    pub signature: StageSignature,
     pub setup_ecs_while: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -198,19 +200,19 @@ pub struct WorkflowStageEcsWhile {
             &'static str, 
             &'static str, 
             Option<Box<dyn Any + Send + Sync>>,
-            Sender<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>,
-            Sender<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>,
+            Sender<StageCompletionEvent>,
+            Sender<StageFailureEvent>,
         ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,
-    pub completion_sender: Sender<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>,
-    pub failure_sender: Sender<(&'static str, &'static str, usize, WorkflowStageEcsWhile, Option<Box<dyn Any + Send + Sync>>)>,
+    pub completion_sender: Sender<StageCompletionEvent>,
+    pub failure_sender: Sender<StageFailureEvent>,
 }
 
-pub struct WorkflowStageRenderWhile {
+pub struct StageRenderWhile {
     pub name: &'static str,
-    pub signature: WorkflowStageSignature,
+    pub signature: StageSignature,
     pub setup_render_while: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
@@ -229,12 +231,12 @@ pub struct WorkflowStageRenderWhile {
             &'static str, 
             &'static str, 
             Option<Box<dyn Any + Send + Sync>>,
-            Sender<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>,
-            Sender<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>,
+            Sender<StageCompletionEvent>,
+            Sender<StageFailureEvent>,
         ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,
-    pub completion_sender: Sender<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>,
-    pub failure_sender: Sender<(&'static str, &'static str, usize, WorkflowStageRenderWhile, Option<Box<dyn Any + Send + Sync>>)>,
+    pub completion_sender: Sender<StageCompletionEvent>,
+    pub failure_sender: Sender<StageFailureEvent>,
 }
