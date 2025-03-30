@@ -120,7 +120,7 @@ pub struct StageEcs {
             Option<Box<dyn Any + Send + Sync>>,
             Sender<StageCompletionEvent>,
             Sender<StageFailureEvent>,
-        ) -> Option<Box<dyn Any + Send + Sync>>
+        ) -> Box<dyn FnOnce(StageEcs)>
             + Send
             + Sync,
     >,
@@ -146,7 +146,7 @@ pub struct StageRender {
             Option<Box<dyn Any + Send + Sync>>,
             Sender<StageCompletionEvent>,
             Sender<StageFailureEvent>,
-        ) -> Option<Box<dyn Any + Send + Sync>>
+        ) -> Box<dyn FnOnce(StageRender)>
             + Send
             + Sync,
     >,
@@ -171,7 +171,7 @@ pub struct StageAsync {
             Option<Box<dyn Any + Send + Sync>>,
             Sender<StageCompletionEvent>,
             Sender<StageFailureEvent>,
-        ) -> Option<Box<dyn Any + Send + Sync>>
+        ) -> Box<dyn FnOnce(StageAsync)>
             + Send
             + Sync,
     >,
@@ -202,7 +202,7 @@ pub struct StageEcsWhile {
             Option<Box<dyn Any + Send + Sync>>,
             Sender<StageCompletionEvent>,
             Sender<StageFailureEvent>,
-        ) -> Option<Box<dyn Any + Send + Sync>>
+        ) -> Box<dyn FnOnce(StageEcsWhile)>
             + Send
             + Sync,
     >,
@@ -233,7 +233,7 @@ pub struct StageRenderWhile {
             Option<Box<dyn Any + Send + Sync>>,
             Sender<StageCompletionEvent>,
             Sender<StageFailureEvent>,
-        ) -> Option<Box<dyn Any + Send + Sync>>
+        ) -> Box<dyn FnOnce(StageRenderWhile)>
             + Send
             + Sync,
     >,

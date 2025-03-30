@@ -977,25 +977,30 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                 // TODO: DROPOFF 5: Workflow completion handling
 
                 let response = match stage {
-                    Stage::Ecs(ref mut stage) => {
+                    Stage::Ecs(stage) => {
                         let response_handler = &mut stage.handle_ecs_response;
-                        response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone())
+                        let return_stage = response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone());
+                        return_stage(stage)
                     }
-                    Stage::Render(ref mut stage) => {
+                    Stage::Render(stage) => {
                         let response_handler = &mut stage.handle_render_response;
-                        response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone())
+                        let return_stage = response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone());
+                        return_stage(stage)
                     }
-                    Stage::Async(ref mut stage) => {
+                    Stage::Async(stage) => {
                         let response_handler = &mut stage.handle_async_response;
-                        response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone())
+                        let return_stage = response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone());
+                        return_stage(stage)
                     }
-                    Stage::EcsWhile(ref mut stage) => {
+                    Stage::EcsWhile(stage) => {
                         let response_handler = &mut stage.handle_ecs_while_response;
-                        response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone())
+                        let return_stage = response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone());
+                        return_stage(stage)
                     }
-                    Stage::RenderWhile(ref mut stage) => {
+                    Stage::RenderWhile(stage) => {
                         let response_handler = &mut stage.handle_render_while_response;
-                        response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone())
+                        let return_stage = response_handler(module_name, workflow_name, stage_output, stage.completion_sender.clone(), stage.failure_sender.clone());
+                        return_stage(stage)
                     }
                 };
 
