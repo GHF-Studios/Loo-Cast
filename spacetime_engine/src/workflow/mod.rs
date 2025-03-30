@@ -47,6 +47,8 @@ impl Plugin for WorkflowPlugin {
         let failure_sender = StageFailureEventSender(failure_sender);
         let failure_receiver = StageFailureEventReceiver(failure_receiver);
 
+        let (completion_receiver, failure_receiver) = initialize_stage_channels();
+
         let (workflow_request_receiver, workflow_response_sender) = initialize_channels();
         let (workflow_request_e_receiver, workflow_response_e_sender) = initialize_e_channels();
         let (workflow_request_o_receiver, workflow_response_o_sender) = initialize_o_channels();
@@ -57,8 +59,7 @@ impl Plugin for WorkflowPlugin {
         let (workflow_request_ioe_receiver, workflow_response_ioe_sender) =
             initialize_ioe_channels();
 
-        app
-            .add_event::<StageInitializationEvent>()
+        app.add_event::<StageInitializationEvent>()
             .add_event::<StageCompletionEvent>()
             .add_event::<StageFailureEvent>()
             .add_persistent_consumable_event::<StageInitializationEvent>()
@@ -73,8 +74,6 @@ impl Plugin for WorkflowPlugin {
             .insert_resource(RenderWhileStageBuffer::default())
             .insert_resource(AsyncStageBuffer::default())
             .insert_resource(render_while_workflow_state_extract_reintegration_event_receiver)
-            .insert_resource(completion_sender.clone())
-            .insert_resource(failure_sender.clone())
             .insert_resource(completion_receiver)
             .insert_resource(failure_receiver)
             .insert_resource(WorkflowRequestReceiver(workflow_request_receiver))
@@ -95,10 +94,7 @@ impl Plugin for WorkflowPlugin {
             .insert_resource(WorkflowResponseIOESender(workflow_response_ioe_sender))
             .add_systems(
                 PreUpdate,
-                (
-                    stage_completion_relay_system,
-                    stage_failure_relay_system,
-                ),
+                (stage_completion_relay_system, stage_failure_relay_system),
             )
             .add_systems(
                 Update,
@@ -132,8 +128,6 @@ impl Plugin for WorkflowPlugin {
         let render_app = app.sub_app_mut(RenderApp);
         render_app
             .insert_resource(render_while_workflow_state_extract_reintegration_event_sender)
-            .insert_resource(completion_sender)
-            .insert_resource(failure_sender)
             .add_systems(
                 ExtractSchedule,
                 (

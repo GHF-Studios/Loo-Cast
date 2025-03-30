@@ -249,7 +249,11 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
+                    Vec<_>,
+                    Vec<_>,
+                    Vec<_>,
+                ) = self
                     .stages
                     .0
                     .iter()
@@ -270,11 +274,7 @@ impl Workflow {
                         )
                     })
                     .unzip3();
-                let (stage_modules, stage_literals, response_handlers): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .into_iter()
@@ -288,11 +288,14 @@ impl Workflow {
                             (None, true)
                         };
 
-                        stage.generate(this_stage_out_type_path, this_err_type_path, next_stage_in_type_path, is_last)
+                        stage.generate(
+                            this_stage_out_type_path,
+                            this_err_type_path,
+                            next_stage_in_type_path,
+                            is_last,
+                        )
                     })
-                    .unzip3();
-                let response_handlers: Vec<_> =
-                    response_handlers.into_iter().flatten().collect();
+                    .unzip();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -315,27 +318,6 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
-                            }
-
-                            pub fn handle_response(
-                                stage: crate::workflow::stage::WorkflowStage,
-                                response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                            ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
-                                    crate::workflow::stage::WorkflowStage,
-                                    Option<Box<dyn std::any::Any+Send+Sync>>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
-                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
-                                    #(#response_handlers),*
-                                ])});
-
-                                let stage_index = stage.get_index();
-                                let completion_sender = stage.get_completion_sender();
-                                let failure_sender = stage.get_failure_sender();
-
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -397,7 +379,11 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
+                    Vec<_>,
+                    Vec<_>,
+                    Vec<_>,
+                ) = self
                     .stages
                     .0
                     .iter()
@@ -418,11 +404,7 @@ impl Workflow {
                         )
                     })
                     .unzip3();
-                let (stage_modules, stage_literals, response_handlers): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .into_iter()
@@ -436,11 +418,14 @@ impl Workflow {
                             (None, true)
                         };
 
-                        stage.generate(this_stage_out_type_path, this_err_type_path, next_stage_in_type_path, is_last)
+                        stage.generate(
+                            this_stage_out_type_path,
+                            this_err_type_path,
+                            next_stage_in_type_path,
+                            is_last,
+                        )
                     })
-                    .unzip3();
-                let response_handlers: Vec<_> =
-                    response_handlers.into_iter().flatten().collect();
+                    .unzip();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -467,27 +452,6 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
-                            }
-
-                            pub fn handle_response(
-                                stage: crate::workflow::stage::WorkflowStage,
-                                response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                            ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
-                                    crate::workflow::stage::WorkflowStage,
-                                    Option<Box<dyn std::any::Any+Send+Sync>>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
-                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
-                                    #(#response_handlers),*
-                                ])});
-
-                                let stage_index = stage.get_index();
-                                let completion_sender = stage.get_completion_sender();
-                                let failure_sender = stage.get_failure_sender();
-
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -518,7 +482,11 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
+                    Vec<_>,
+                    Vec<_>,
+                    Vec<_>,
+                ) = self
                     .stages
                     .0
                     .iter()
@@ -539,11 +507,7 @@ impl Workflow {
                         )
                     })
                     .unzip3();
-                let (stage_modules, stage_literals, response_handlers): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .into_iter()
@@ -557,11 +521,14 @@ impl Workflow {
                             (None, true)
                         };
 
-                        stage.generate(this_stage_out_type_path, this_err_type_path, next_stage_in_type_path, is_last)
+                        stage.generate(
+                            this_stage_out_type_path,
+                            this_err_type_path,
+                            next_stage_in_type_path,
+                            is_last,
+                        )
                     })
-                    .unzip3();
-                let response_handlers: Vec<_> =
-                    response_handlers.into_iter().flatten().collect();
+                    .unzip();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -586,27 +553,6 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
-                            }
-
-                            pub fn handle_response(
-                                stage: crate::workflow::stage::WorkflowStage,
-                                response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                            ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
-                                    crate::workflow::stage::WorkflowStage,
-                                    Option<Box<dyn std::any::Any+Send+Sync>>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
-                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
-                                    #(#response_handlers),*
-                                ])});
-
-                                let stage_index = stage.get_index();
-                                let completion_sender = stage.get_completion_sender();
-                                let failure_sender = stage.get_failure_sender();
-
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -675,7 +621,11 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
+                    Vec<_>,
+                    Vec<_>,
+                    Vec<_>,
+                ) = self
                     .stages
                     .0
                     .iter()
@@ -696,11 +646,7 @@ impl Workflow {
                         )
                     })
                     .unzip3();
-                let (stage_modules, stage_literals, response_handlers): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .into_iter()
@@ -714,11 +660,14 @@ impl Workflow {
                             (None, true)
                         };
 
-                        stage.generate(this_stage_out_type_path, this_err_type_path, next_stage_in_type_path, is_last)
+                        stage.generate(
+                            this_stage_out_type_path,
+                            this_err_type_path,
+                            next_stage_in_type_path,
+                            is_last,
+                        )
                     })
-                    .unzip3();
-                let response_handlers: Vec<_> =
-                    response_handlers.into_iter().flatten().collect();
+                    .unzip();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -746,27 +695,6 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
-                            }
-
-                            pub fn handle_response(
-                                stage: crate::workflow::stage::WorkflowStage,
-                                response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                            ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
-                                    crate::workflow::stage::WorkflowStage,
-                                    Option<Box<dyn std::any::Any+Send+Sync>>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
-                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
-                                    #(#response_handlers),*
-                                ])});
-
-                                let stage_index = stage.get_index();
-                                let completion_sender = stage.get_completion_sender();
-                                let failure_sender = stage.get_failure_sender();
-
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -797,7 +725,11 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
+                    Vec<_>,
+                    Vec<_>,
+                    Vec<_>,
+                ) = self
                     .stages
                     .0
                     .iter()
@@ -818,11 +750,7 @@ impl Workflow {
                         )
                     })
                     .unzip3();
-                let (stage_modules, stage_literals, response_handlers): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .into_iter()
@@ -836,11 +764,14 @@ impl Workflow {
                             (None, true)
                         };
 
-                        stage.generate(this_stage_out_type_path, this_err_type_path, next_stage_in_type_path, is_last)
+                        stage.generate(
+                            this_stage_out_type_path,
+                            this_err_type_path,
+                            next_stage_in_type_path,
+                            is_last,
+                        )
                     })
-                    .unzip3();
-                let response_handlers: Vec<_> =
-                    response_handlers.into_iter().flatten().collect();
+                    .unzip();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -865,27 +796,6 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
-                            }
-
-                            pub fn handle_response(
-                                stage: crate::workflow::stage::WorkflowStage,
-                                response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                            ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
-                                    crate::workflow::stage::WorkflowStage,
-                                    Option<Box<dyn std::any::Any+Send+Sync>>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
-                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
-                                    #(#response_handlers),*
-                                ])});
-
-                                let stage_index = stage.get_index();
-                                let completion_sender = stage.get_completion_sender();
-                                let failure_sender = stage.get_failure_sender();
-
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -954,7 +864,11 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
+                    Vec<_>,
+                    Vec<_>,
+                    Vec<_>,
+                ) = self
                     .stages
                     .0
                     .iter()
@@ -975,11 +889,7 @@ impl Workflow {
                         )
                     })
                     .unzip3();
-                let (stage_modules, stage_literals, response_handlers): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .into_iter()
@@ -993,11 +903,14 @@ impl Workflow {
                             (None, true)
                         };
 
-                        stage.generate(this_stage_out_type_path, this_err_type_path, next_stage_in_type_path, is_last)
+                        stage.generate(
+                            this_stage_out_type_path,
+                            this_err_type_path,
+                            next_stage_in_type_path,
+                            is_last,
+                        )
                     })
-                    .unzip3();
-                let response_handlers: Vec<_> =
-                    response_handlers.into_iter().flatten().collect();
+                    .unzip();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -1025,27 +938,6 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
-                            }
-
-                            pub fn handle_response(
-                                stage: crate::workflow::stage::WorkflowStage,
-                                response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                            ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
-                                    crate::workflow::stage::WorkflowStage,
-                                    Option<Box<dyn std::any::Any+Send+Sync>>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
-                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
-                                    #(#response_handlers),*
-                                ])});
-
-                                let stage_index = stage.get_index();
-                                let completion_sender = stage.get_completion_sender();
-                                let failure_sender = stage.get_failure_sender();
-
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -1080,7 +972,11 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
+                    Vec<_>,
+                    Vec<_>,
+                    Vec<_>,
+                ) = self
                     .stages
                     .0
                     .iter()
@@ -1101,11 +997,7 @@ impl Workflow {
                         )
                     })
                     .unzip3();
-                let (stage_modules, stage_literals, response_handlers): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .into_iter()
@@ -1119,11 +1011,14 @@ impl Workflow {
                             (None, true)
                         };
 
-                        stage.generate(this_stage_out_type_path, this_err_type_path, next_stage_in_type_path, is_last)
+                        stage.generate(
+                            this_stage_out_type_path,
+                            this_err_type_path,
+                            next_stage_in_type_path,
+                            is_last,
+                        )
                     })
-                    .unzip3();
-                let response_handlers: Vec<_> =
-                    response_handlers.into_iter().flatten().collect();
+                    .unzip();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -1149,27 +1044,6 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
-                            }
-
-                            pub fn handle_response(
-                                stage: crate::workflow::stage::WorkflowStage,
-                                response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                            ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
-                                    crate::workflow::stage::WorkflowStage,
-                                    Option<Box<dyn std::any::Any+Send+Sync>>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
-                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
-                                    #(#response_handlers),*
-                                ])});
-
-                                let stage_index = stage.get_index();
-                                let completion_sender = stage.get_completion_sender();
-                                let failure_sender = stage.get_failure_sender();
-
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 
@@ -1242,7 +1116,11 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
+                    Vec<_>,
+                    Vec<_>,
+                    Vec<_>,
+                ) = self
                     .stages
                     .0
                     .iter()
@@ -1263,11 +1141,7 @@ impl Workflow {
                         )
                     })
                     .unzip3();
-                let (stage_modules, stage_literals, response_handlers): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (stage_modules, stage_literals): (Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .into_iter()
@@ -1281,11 +1155,14 @@ impl Workflow {
                             (None, true)
                         };
 
-                        stage.generate(this_stage_out_type_path, this_err_type_path, next_stage_in_type_path, is_last)
+                        stage.generate(
+                            this_stage_out_type_path,
+                            this_err_type_path,
+                            next_stage_in_type_path,
+                            is_last,
+                        )
                     })
-                    .unzip3();
-                let response_handlers: Vec<_> =
-                    response_handlers.into_iter().flatten().collect();
+                    .unzip();
 
                 quote! {
                     pub mod #workflow_ident {
@@ -1314,27 +1191,6 @@ impl Workflow {
                                         #(#stage_literals),*
                                     ],
                                 }
-                            }
-
-                            pub fn handle_response(
-                                stage: crate::workflow::stage::WorkflowStage,
-                                response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                            ) {
-                                static RESPONSE_HANDLERS: once_cell::sync::Lazy<std::sync::Mutex<Vec<Box<dyn FnMut(
-                                    crate::workflow::stage::WorkflowStage,
-                                    Option<Box<dyn std::any::Any+Send+Sync>>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                    Sender<(&str, &str, usize, WorkflowStage, Option<Box<dyn Any + Send + Sync>>)>,
-                                ) -> Option<Box<dyn std::any::Any+Send+Sync>> + Send + Sync>>>> = 
-                                once_cell::sync::Lazy::new(|| {std::sync::Mutex::new(vec![
-                                    #(#response_handlers),*
-                                ])});
-
-                                let stage_index = stage.get_index();
-                                let completion_sender = stage.get_completion_sender();
-                                let failure_sender = stage.get_failure_sender();
-
-                                (RESPONSE_HANDLERS.lock().expect("Failed to lock mutex")[stage_index])(stage, response, completion_sender, failure_sender)
                             }
                         }
 

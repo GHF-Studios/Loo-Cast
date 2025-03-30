@@ -103,6 +103,7 @@ pub enum StageWhileOutcome {
 }
 
 pub struct StageEcs {
+    pub index: usize,
     pub name: &'static str,
     pub signature: StageSignature,
     pub run_ecs: Box<
@@ -115,12 +116,12 @@ pub struct StageEcs {
     >,
     pub handle_ecs_response: Box<
         dyn FnMut(
-            &'static str, 
-            &'static str, 
-            Option<Box<dyn Any + Send + Sync>>,
-            Sender<StageCompletionEvent>,
-            Sender<StageFailureEvent>,
-        ) -> Box<dyn FnOnce(StageEcs)>
+                &'static str,
+                &'static str,
+                Option<Box<dyn Any + Send + Sync>>,
+                Sender<StageCompletionEvent>,
+                Sender<StageFailureEvent>,
+            ) -> Box<dyn FnOnce(StageEcs)>
             + Send
             + Sync,
     >,
@@ -129,6 +130,7 @@ pub struct StageEcs {
 }
 
 pub struct StageRender {
+    pub index: usize,
     pub name: &'static str,
     pub signature: StageSignature,
     pub run_render: Box<
@@ -141,12 +143,12 @@ pub struct StageRender {
     >,
     pub handle_render_response: Box<
         dyn FnMut(
-            &'static str, 
-            &'static str, 
-            Option<Box<dyn Any + Send + Sync>>,
-            Sender<StageCompletionEvent>,
-            Sender<StageFailureEvent>,
-        ) -> Box<dyn FnOnce(StageRender)>
+                &'static str,
+                &'static str,
+                Option<Box<dyn Any + Send + Sync>>,
+                Sender<StageCompletionEvent>,
+                Sender<StageFailureEvent>,
+            ) -> Box<dyn FnOnce(StageRender)>
             + Send
             + Sync,
     >,
@@ -155,6 +157,7 @@ pub struct StageRender {
 }
 
 pub struct StageAsync {
+    pub index: usize,
     pub name: &'static str,
     pub signature: StageSignature,
     pub run_async: Box<
@@ -166,12 +169,12 @@ pub struct StageAsync {
     >,
     pub handle_async_response: Box<
         dyn FnMut(
-            &'static str, 
-            &'static str, 
-            Option<Box<dyn Any + Send + Sync>>,
-            Sender<StageCompletionEvent>,
-            Sender<StageFailureEvent>,
-        ) -> Box<dyn FnOnce(StageAsync)>
+                &'static str,
+                &'static str,
+                Option<Box<dyn Any + Send + Sync>>,
+                Sender<StageCompletionEvent>,
+                Sender<StageFailureEvent>,
+            ) -> Box<dyn FnOnce(StageAsync)>
             + Send
             + Sync,
     >,
@@ -180,6 +183,7 @@ pub struct StageAsync {
 }
 
 pub struct StageEcsWhile {
+    pub index: usize,
     pub name: &'static str,
     pub signature: StageSignature,
     pub setup_ecs_while: Box<
@@ -197,12 +201,12 @@ pub struct StageEcsWhile {
     >,
     pub handle_ecs_while_response: Box<
         dyn FnMut(
-            &'static str, 
-            &'static str, 
-            Option<Box<dyn Any + Send + Sync>>,
-            Sender<StageCompletionEvent>,
-            Sender<StageFailureEvent>,
-        ) -> Box<dyn FnOnce(StageEcsWhile)>
+                &'static str,
+                &'static str,
+                Option<Box<dyn Any + Send + Sync>>,
+                Sender<StageCompletionEvent>,
+                Sender<StageFailureEvent>,
+            ) -> Box<dyn FnOnce(StageEcsWhile)>
             + Send
             + Sync,
     >,
@@ -211,6 +215,7 @@ pub struct StageEcsWhile {
 }
 
 pub struct StageRenderWhile {
+    pub index: usize,
     pub name: &'static str,
     pub signature: StageSignature,
     pub setup_render_while: Box<
@@ -228,12 +233,12 @@ pub struct StageRenderWhile {
     >,
     pub handle_render_while_response: Box<
         dyn FnMut(
-            &'static str, 
-            &'static str, 
-            Option<Box<dyn Any + Send + Sync>>,
-            Sender<StageCompletionEvent>,
-            Sender<StageFailureEvent>,
-        ) -> Box<dyn FnOnce(StageRenderWhile)>
+                &'static str,
+                &'static str,
+                Option<Box<dyn Any + Send + Sync>>,
+                Sender<StageCompletionEvent>,
+                Sender<StageFailureEvent>,
+            ) -> Box<dyn FnOnce(StageRenderWhile)>
             + Send
             + Sync,
     >,

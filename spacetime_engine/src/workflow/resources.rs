@@ -3,7 +3,7 @@ use crossbeam_channel::{Receiver, Sender};
 use std::any::Any;
 use std::collections::HashMap;
 
-use super::{instance::*, stage::*, types::*, events::*};
+use super::{events::*, instance::*, stage::*, types::*};
 
 #[derive(Resource, Default)]
 pub struct WorkflowTypeModuleRegistry {
@@ -124,7 +124,7 @@ pub(super) struct RenderWhileWorkflowStateExtractReintegrationEventReceiver(
 // --- Stage Buffers ---
 #[derive(Resource, Default)]
 pub(super) struct EcsStageBuffer(
-    pub Vec<(
+    pub  Vec<(
         &'static str,
         &'static str,
         usize,
@@ -134,7 +134,7 @@ pub(super) struct EcsStageBuffer(
 );
 #[derive(Resource, Default)]
 pub(super) struct EcsWhileStageBuffer(
-    pub Vec<(
+    pub  Vec<(
         &'static str,
         &'static str,
         usize,
@@ -144,7 +144,7 @@ pub(super) struct EcsWhileStageBuffer(
 );
 #[derive(Resource, Default)]
 pub(super) struct RenderStageBuffer(
-    pub Vec<(
+    pub  Vec<(
         &'static str,
         &'static str,
         usize,
@@ -154,7 +154,7 @@ pub(super) struct RenderStageBuffer(
 );
 #[derive(Resource, Default)]
 pub(super) struct RenderWhileStageBuffer(
-    pub Vec<(
+    pub  Vec<(
         &'static str,
         &'static str,
         usize,
@@ -164,7 +164,7 @@ pub(super) struct RenderWhileStageBuffer(
 );
 #[derive(Resource, Default)]
 pub(super) struct AsyncStageBuffer(
-    pub Vec<(
+    pub  Vec<(
         &'static str,
         &'static str,
         usize,
@@ -173,23 +173,11 @@ pub(super) struct AsyncStageBuffer(
     )>,
 );
 
-// --- Stage Event Senders & Receivers ---
-#[derive(Resource, Clone)]
-pub(super) struct StageCompletionEventSender(
-    pub Sender<StageCompletionEvent>,
-);
-#[derive(Resource, Clone)]
-pub(super) struct StageFailureEventSender(
-    pub Sender<StageFailureEvent>,
-);
+// --- Stage Event Receivers ---
 #[derive(Resource)]
-pub(super) struct StageCompletionEventReceiver(
-    pub Receiver<StageCompletionEvent>,
-);
+pub(super) struct StageCompletionEventReceiver(pub Receiver<StageCompletionEvent>);
 #[derive(Resource)]
-pub(super) struct StageFailureEventReceiver(
-    pub Receiver<StageFailureEvent>,
-);
+pub(super) struct StageFailureEventReceiver(pub Receiver<StageFailureEvent>);
 
 #[derive(Resource, Default, Debug)]
 pub struct WorkflowMap {

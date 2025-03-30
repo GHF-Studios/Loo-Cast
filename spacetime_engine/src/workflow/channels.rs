@@ -1,7 +1,9 @@
 use bevy::prelude::*;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use std::sync::{Mutex, MutexGuard, OnceLock};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
+use super::events::*;
 use super::request::*;
 use super::response::*;
 
@@ -42,6 +44,46 @@ pub(super) struct WorkflowResponseIESender(pub UnboundedSender<TypedWorkflowResp
 pub(super) struct WorkflowResponseIOSender(pub UnboundedSender<TypedWorkflowResponseO>);
 #[derive(Resource)]
 pub(super) struct WorkflowResponseIOESender(pub UnboundedSender<TypedWorkflowResponseOE>);
+
+static STAGE_COMPLETION_SENDER: OnceLock<Mutex<Sender<StageCompletionEvent>>> = OnceLock::new();
+static STAGE_FAILURE_SENDER: OnceLock<Mutex<Sender<StageFailureEvent>>> = OnceLock::new();
+
+pub(super) fn initialize_stage_channels(
+) -> (Receiver<StageCompletionEvent>, Receiver<StageFailureEvent>) {
+    let (completion_sender, completion_receiver) = unbounded();
+    let (failure_sender, failure_receiver) = unbounded();
+
+    let completion_sender_err = STAGE_COMPLETION_SENDER
+        .set(Mutex::new(completion_sender))
+        .is_err();
+    let failure_sender_err = STAGE_FAILURE_SENDER
+        .set(Mutex::new(failure_sender))
+        .is_err();
+
+    if completion_sender_err {
+        panic!("Completion sender already initialized!");
+    }
+    if failure_sender_err {
+        panic!("Failure sender already initialized!");
+    }
+
+    (completion_receiver, failure_receiver)
+}
+
+pub fn get_stage_completion_sender() -> MutexGuard<'static, Sender<StageCompletionEvent>> {
+    STAGE_COMPLETION_SENDER
+        .get()
+        .expect("Stage completion sender accessed before initialization!")
+        .lock()
+        .unwrap()
+}
+pub fn get_stage_failure_sender() -> MutexGuard<'static, Sender<StageFailureEvent>> {
+    STAGE_FAILURE_SENDER
+        .get()
+        .expect("Stage failure sender accessed before initialization!")
+        .lock()
+        .unwrap()
+}
 
 static REQUEST_SENDER: OnceLock<Mutex<UnboundedSender<TypedWorkflowRequest>>> = OnceLock::new();
 static RESPONSE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<()>>> = OnceLock::new();
