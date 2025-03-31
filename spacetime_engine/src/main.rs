@@ -10,8 +10,6 @@ use bevy_rapier2d::prelude::*;
 use iyes_perf_ui::prelude::*;
 use spacetime_engine::*;
 
-// TODO: Remove unnecessary comments and cleanup warnings
-
 const ENABLE_BACKTRACE: bool = true;
 const REROUTE_LOGS_TO_FILE: bool = false;
 const LOG_LEVEL: Level = Level::INFO;

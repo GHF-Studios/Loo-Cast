@@ -210,6 +210,7 @@ pub struct StageEcsWhile {
             + Send
             + Sync,
     >,
+    // TODO: We might need a wait_sender, and optional senders for stages that don't need all senders
     pub completion_sender: Sender<StageCompletionEvent>,
     pub failure_sender: Sender<StageFailureEvent>,
 }

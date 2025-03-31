@@ -29,7 +29,7 @@ use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
 use quote::quote;
 use stage::Stages;
-use syn::{braced, bracketed, parse::Parse, parse_str, Ident, Path, LitStr, Result, Token};
+use syn::{braced, bracketed, parse::Parse, parse_str, Ident, LitStr, Path, Result, Token};
 use use_statement::UseStatements;
 use user_item::UserItems;
 

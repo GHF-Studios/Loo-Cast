@@ -72,8 +72,6 @@ pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
     let failure_sender = get_stage_failure_sender();
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let cloned_module_name = module_name;
-        let cloned_workflow_name = workflow_name;
         let run_ecs = &mut stage.run_ecs;
         let handle_ecs_response = &mut stage.handle_ecs_response;
         let completion_sender = completion_sender.clone();
@@ -81,8 +79,8 @@ pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
 
         let output = (run_ecs)(data_buffer, world);
         (handle_ecs_response)(
-            cloned_module_name,
-            cloned_workflow_name,
+            module_name,
+            workflow_name,
             output,
             completion_sender,
             failure_sender,
@@ -104,9 +102,6 @@ pub(super) fn poll_render_stage_buffer_system(world: &mut World) {
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
         let run_render = &mut stage.run_render;
         let output = (run_render)(data_buffer, world);
-
-        let cloned_module_name = module_name;
-        let cloned_workflow_name = workflow_name;
 
         let output_send_result = sender.send((
             cloned_module_name,
@@ -135,9 +130,6 @@ pub(super) fn poll_async_stage_buffer_system(world: &mut World) {
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
         let run_async = &mut stage.run_async;
         let future = (run_async)(data_buffer);
-
-        let cloned_module_name = module_name;
-        let cloned_workflow_name = workflow_name;
 
         let sender = sender.clone();
         let task_spawn_result = TOKIO_RUNTIME.lock().unwrap().block_on(async {
@@ -219,9 +211,6 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
                 waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
             }
             StageWhileOutcome::Completed(output_data) => {
-                let cloned_module_name = module_name;
-                let cloned_workflow_name = workflow_name;
-
                 let response_send_result = sender.send((
                     cloned_module_name,
                     cloned_workflow_name,
@@ -313,9 +302,6 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
                 waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
             }
             StageWhileOutcome::Completed(output_data) => {
-                let cloned_module_name = module_name;
-                let cloned_workflow_name = workflow_name;
-
                 if let Err(err) = sender.send((
                     cloned_module_name,
                     cloned_workflow_name,

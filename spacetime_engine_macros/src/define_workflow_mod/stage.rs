@@ -500,12 +500,9 @@ impl TypedStage<Ecs> {
                 next_stage_in_type_path,
             ) {
                 (Some(this_out_path), Some(this_err_path), Some(next_in_path)) => {
-                    let stage_err_name =  format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(
-                        stage_err_name.as_str(),
-                        stage_ident.span(),
-                    );
-                    
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
@@ -556,12 +553,10 @@ impl TypedStage<Ecs> {
                 }
                 (Some(this_out_path), Some(this_err_path), None) => {
                     if is_last {
-                        let stage_err_name =  format!("{}Error", stage_name.as_str());
-                        let stage_err_name = Ident::new(
-                            stage_err_name.as_str(),
-                            stage_ident.span(),
-                        );
-                        
+                        let stage_err_name = format!("{}Error", stage_name.as_str());
+                        let stage_err_name =
+                            Ident::new(stage_err_name.as_str(), stage_ident.span());
+
                         quote! { Box::new(|
                             module_name: &'static str,
                             workflow_name: &'static str,
@@ -592,7 +587,7 @@ impl TypedStage<Ecs> {
                                         Err(error) => {
                                             let error = #workflow_path::Error::#stage_err_name(error);
                                             let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
-    
+
                                             if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
                                                 ty: crate::workflow::stage::StageType::Ecs,
                                                 module_name,
@@ -679,11 +674,8 @@ impl TypedStage<Ecs> {
                     unreachable!("This stage has no output, but the next stage has input!")
                 }
                 (None, Some(this_err_path), None) => {
-                    let stage_err_name =  format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(
-                        stage_err_name.as_str(),
-                        stage_ident.span(),
-                    );
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -903,12 +895,9 @@ impl TypedStage<Render> {
                 next_stage_in_type_path,
             ) {
                 (Some(this_out_path), Some(this_err_path), Some(next_in_path)) => {
-                    let stage_err_name =  format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(
-                        stage_err_name.as_str(),
-                        stage_ident.span(),
-                    );
-                    
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
@@ -959,12 +948,10 @@ impl TypedStage<Render> {
                 }
                 (Some(this_out_path), Some(this_err_path), None) => {
                     if is_last {
-                        let stage_err_name =  format!("{}Error", stage_name.as_str());
-                        let stage_err_name = Ident::new(
-                            stage_err_name.as_str(),
-                            stage_ident.span(),
-                        );
-                        
+                        let stage_err_name = format!("{}Error", stage_name.as_str());
+                        let stage_err_name =
+                            Ident::new(stage_err_name.as_str(), stage_ident.span());
+
                         quote! { Box::new(|
                             module_name: &'static str,
                             workflow_name: &'static str,
@@ -995,7 +982,7 @@ impl TypedStage<Render> {
                                         Err(error) => {
                                             let error = #workflow_path::Error::#stage_err_name(error);
                                             let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
-    
+
                                             if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
                                                 ty: crate::workflow::stage::StageType::Render,
                                                 module_name,
@@ -1082,11 +1069,8 @@ impl TypedStage<Render> {
                     unreachable!("This stage has no output, but the next stage has input!")
                 }
                 (None, Some(this_err_path), None) => {
-                    let stage_err_name =  format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(
-                        stage_err_name.as_str(),
-                        stage_ident.span(),
-                    );
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -1306,12 +1290,9 @@ impl TypedStage<Async> {
                 next_stage_in_type_path,
             ) {
                 (Some(this_out_path), Some(this_err_path), Some(next_in_path)) => {
-                    let stage_err_name =  format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(
-                        stage_err_name.as_str(),
-                        stage_ident.span(),
-                    );
-                    
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
@@ -1362,12 +1343,10 @@ impl TypedStage<Async> {
                 }
                 (Some(this_out_path), Some(this_err_path), None) => {
                     if is_last {
-                        let stage_err_name =  format!("{}Error", stage_name.as_str());
-                        let stage_err_name = Ident::new(
-                            stage_err_name.as_str(),
-                            stage_ident.span(),
-                        );
-                        
+                        let stage_err_name = format!("{}Error", stage_name.as_str());
+                        let stage_err_name =
+                            Ident::new(stage_err_name.as_str(), stage_ident.span());
+
                         quote! { Box::new(|
                             module_name: &'static str,
                             workflow_name: &'static str,
@@ -1398,7 +1377,7 @@ impl TypedStage<Async> {
                                         Err(error) => {
                                             let error = #workflow_path::Error::#stage_err_name(error);
                                             let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
-    
+
                                             if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
                                                 ty: crate::workflow::stage::StageType::Async,
                                                 module_name,
@@ -1485,11 +1464,8 @@ impl TypedStage<Async> {
                     unreachable!("This stage has no output, but the next stage has input!")
                 }
                 (None, Some(this_err_path), None) => {
-                    let stage_err_name =  format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(
-                        stage_err_name.as_str(),
-                        stage_ident.span(),
-                    );
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -1709,12 +1685,9 @@ impl TypedStage<EcsWhile> {
                 next_stage_in_type_path,
             ) {
                 (Some(this_out_path), Some(this_err_path), Some(next_in_path)) => {
-                    let stage_err_name =  format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(
-                        stage_err_name.as_str(),
-                        stage_ident.span(),
-                    );
-                    
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
@@ -1765,12 +1738,10 @@ impl TypedStage<EcsWhile> {
                 }
                 (Some(this_out_path), Some(this_err_path), None) => {
                     if is_last {
-                        let stage_err_name =  format!("{}Error", stage_name.as_str());
-                        let stage_err_name = Ident::new(
-                            stage_err_name.as_str(),
-                            stage_ident.span(),
-                        );
-                        
+                        let stage_err_name = format!("{}Error", stage_name.as_str());
+                        let stage_err_name =
+                            Ident::new(stage_err_name.as_str(), stage_ident.span());
+
                         quote! { Box::new(|
                             module_name: &'static str,
                             workflow_name: &'static str,
@@ -1801,7 +1772,7 @@ impl TypedStage<EcsWhile> {
                                         Err(error) => {
                                             let error = #workflow_path::Error::#stage_err_name(error);
                                             let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
-    
+
                                             if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
                                                 ty: crate::workflow::stage::StageType::EcsWhile,
                                                 module_name,
@@ -1888,11 +1859,8 @@ impl TypedStage<EcsWhile> {
                     unreachable!("This stage has no output, but the next stage has input!")
                 }
                 (None, Some(this_err_path), None) => {
-                    let stage_err_name =  format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(
-                        stage_err_name.as_str(),
-                        stage_ident.span(),
-                    );
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -2114,12 +2082,9 @@ impl TypedStage<RenderWhile> {
                 next_stage_in_type_path,
             ) {
                 (Some(this_out_path), Some(this_err_path), Some(next_in_path)) => {
-                    let stage_err_name =  format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(
-                        stage_err_name.as_str(),
-                        stage_ident.span(),
-                    );
-                    
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
@@ -2170,12 +2135,10 @@ impl TypedStage<RenderWhile> {
                 }
                 (Some(this_out_path), Some(this_err_path), None) => {
                     if is_last {
-                        let stage_err_name =  format!("{}Error", stage_name.as_str());
-                        let stage_err_name = Ident::new(
-                            stage_err_name.as_str(),
-                            stage_ident.span(),
-                        );
-                        
+                        let stage_err_name = format!("{}Error", stage_name.as_str());
+                        let stage_err_name =
+                            Ident::new(stage_err_name.as_str(), stage_ident.span());
+
                         quote! { Box::new(|
                             module_name: &'static str,
                             workflow_name: &'static str,
@@ -2206,7 +2169,7 @@ impl TypedStage<RenderWhile> {
                                         Err(error) => {
                                             let error = #workflow_path::Error::#stage_err_name(error);
                                             let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
-    
+
                                             if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
                                                 ty: crate::workflow::stage::StageType::RenderWhile,
                                                 module_name,
@@ -2293,11 +2256,8 @@ impl TypedStage<RenderWhile> {
                     unreachable!("This stage has no output, but the next stage has input!")
                 }
                 (None, Some(this_err_path), None) => {
-                    let stage_err_name =  format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(
-                        stage_err_name.as_str(),
-                        stage_ident.span(),
-                    );
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
                     quote! { Box::new(|
                         module_name: &'static str,
