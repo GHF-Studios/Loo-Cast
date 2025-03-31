@@ -2307,13 +2307,17 @@ impl TypedStage<RenderWhile> {
                 (None, None, Some(_)) => {
                     unreachable!("This stage has no output, but the next stage has input!")
                 }
+                // TODO: Make every case (for every stage type) like this one
+                // TODO: Implement proper outcome handling, instead of simple stupid completion handling, for all while stage types
+                // TODO: Include this_state_path to this match statement, for all while stage types; this means we also need to 
                 (None, None, None) => {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile

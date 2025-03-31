@@ -76,6 +76,16 @@ impl Stage {
         }
     }
 
+    pub fn get_wait_sender(&self) -> Option<Sender<StageWaitEvent>> {
+        match self {
+            Stage::Ecs(_) => None,
+            Stage::Render(_) => None,
+            Stage::Async(_) => None,
+            Stage::EcsWhile(stage) => Some(stage.wait_sender.clone()),
+            Stage::RenderWhile(stage) => Some(stage.wait_sender.clone()),
+        }
+    }
+
     pub fn get_completion_sender(&self) -> Sender<StageCompletionEvent> {
         match self {
             Stage::Ecs(stage) => stage.completion_sender.clone(),
@@ -86,7 +96,7 @@ impl Stage {
         }
     }
 
-    pub fn get_failure_sender(&self) -> Sender<StageFailureEvent> {
+    pub fn get_failure_sender(&self) -> Option<Sender<StageFailureEvent>> {
         match self {
             Stage::Ecs(stage) => stage.failure_sender.clone(),
             Stage::Render(stage) => stage.failure_sender.clone(),
@@ -120,13 +130,13 @@ pub struct StageEcs {
                 &'static str,
                 Option<Box<dyn Any + Send + Sync>>,
                 Sender<StageCompletionEvent>,
-                Sender<StageFailureEvent>,
+                Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageEcs)>
             + Send
             + Sync,
     >,
     pub completion_sender: Sender<StageCompletionEvent>,
-    pub failure_sender: Sender<StageFailureEvent>,
+    pub failure_sender: Option<Sender<StageFailureEvent>>,
 }
 
 pub struct StageRender {
@@ -147,13 +157,13 @@ pub struct StageRender {
                 &'static str,
                 Option<Box<dyn Any + Send + Sync>>,
                 Sender<StageCompletionEvent>,
-                Sender<StageFailureEvent>,
+                Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageRender)>
             + Send
             + Sync,
     >,
     pub completion_sender: Sender<StageCompletionEvent>,
-    pub failure_sender: Sender<StageFailureEvent>,
+    pub failure_sender: Option<Sender<StageFailureEvent>>,
 }
 
 pub struct StageAsync {
@@ -173,13 +183,13 @@ pub struct StageAsync {
                 &'static str,
                 Option<Box<dyn Any + Send + Sync>>,
                 Sender<StageCompletionEvent>,
-                Sender<StageFailureEvent>,
+                Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageAsync)>
             + Send
             + Sync,
     >,
     pub completion_sender: Sender<StageCompletionEvent>,
-    pub failure_sender: Sender<StageFailureEvent>,
+    pub failure_sender: Option<Sender<StageFailureEvent>>,
 }
 
 pub struct StageEcsWhile {
@@ -204,15 +214,17 @@ pub struct StageEcsWhile {
                 &'static str,
                 &'static str,
                 Option<Box<dyn Any + Send + Sync>>,
+                Sender<StageWaitEvent>,
                 Sender<StageCompletionEvent>,
-                Sender<StageFailureEvent>,
+                Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageEcsWhile)>
             + Send
             + Sync,
     >,
     // TODO: We might need a wait_sender, and optional senders for stages that don't need all senders
+    pub wait_sender: Sender<StageWaitEvent>,
     pub completion_sender: Sender<StageCompletionEvent>,
-    pub failure_sender: Sender<StageFailureEvent>,
+    pub failure_sender: Option<Sender<StageFailureEvent>>,
 }
 
 pub struct StageRenderWhile {
@@ -237,12 +249,14 @@ pub struct StageRenderWhile {
                 &'static str,
                 &'static str,
                 Option<Box<dyn Any + Send + Sync>>,
+                Sender<StageWaitEvent>,
                 Sender<StageCompletionEvent>,
-                Sender<StageFailureEvent>,
+                Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageRenderWhile)>
             + Send
             + Sync,
     >,
+    pub wait_sender: Sender<StageWaitEvent>,
     pub completion_sender: Sender<StageCompletionEvent>,
-    pub failure_sender: Sender<StageFailureEvent>,
+    pub failure_sender: Option<Sender<StageFailureEvent>>,
 }
