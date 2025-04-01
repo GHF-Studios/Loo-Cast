@@ -107,11 +107,6 @@ impl Stage {
     }
 }
 
-pub enum StageWhileOutcome {
-    Waiting(Option<Box<dyn Any + Send + Sync>>),
-    Completed(Option<Box<dyn Any + Send + Sync>>),
-}
-
 pub struct StageEcs {
     pub index: usize,
     pub name: &'static str,
@@ -221,6 +216,7 @@ pub struct StageEcsWhile {
             + Send
             + Sync,
     >,
+    // TODO: DROPOFF 2
     // TODO: We might need a wait_sender, and optional senders for stages that don't need all senders
     pub wait_sender: Sender<StageWaitEvent>,
     pub completion_sender: Sender<StageCompletionEvent>,

@@ -10,7 +10,7 @@ use super::{
     events::{StageCompletionEvent, StageFailureEvent, StageInitializationEvent},
     instance::*,
     resources::*,
-    stage::{Stage, StageWhileOutcome},
+    stage::{Stage, Outcome},
     types::*,
 };
 
@@ -61,6 +61,7 @@ pub(super) fn extract_render_while_stage_buffer_system(world: &mut World) {
     }
 }
 
+// TODO: DROPOFF 1
 // TODO: Implement changes to the 4 other poll_*_systems and (re-)implement the receiving end of completion/failure handling
 pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
     let drained_buffer = {
@@ -207,10 +208,10 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
         let outcome = *outcome.downcast().unwrap();
 
         match outcome {
-            StageWhileOutcome::Waiting(state_data) => {
+            Outcome::Waiting(state_data) => {
                 waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
             }
-            StageWhileOutcome::Completed(output_data) => {
+            Outcome::Completed(output_data) => {
                 let response_send_result = sender.send((
                     cloned_module_name,
                     cloned_workflow_name,
@@ -298,10 +299,10 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
         let outcome = *outcome.downcast().unwrap();
 
         match outcome {
-            StageWhileOutcome::Waiting(state_data) => {
+            Outcome::Waiting(state_data) => {
                 waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
             }
-            StageWhileOutcome::Completed(output_data) => {
+            Outcome::Completed(output_data) => {
                 if let Err(err) = sender.send((
                     cloned_module_name,
                     cloned_workflow_name,
