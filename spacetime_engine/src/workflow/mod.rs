@@ -54,8 +54,7 @@ impl Plugin for WorkflowPlugin {
         let (workflow_request_ioe_receiver, workflow_response_ioe_sender) =
             initialize_ioe_channels();
 
-        app
-            .add_event::<StageInitializationEvent>()
+        app.add_event::<StageInitializationEvent>()
             .add_event::<StageWaitEvent>()
             .add_event::<StageCompletionEvent>()
             .add_event::<StageFailureEvent>()
@@ -93,7 +92,11 @@ impl Plugin for WorkflowPlugin {
             .insert_resource(WorkflowResponseIOESender(workflow_response_ioe_sender))
             .add_systems(
                 PreUpdate,
-                (stage_wait_relay_system, stage_completion_relay_system, stage_failure_relay_system),
+                (
+                    stage_wait_relay_system,
+                    stage_completion_relay_system,
+                    stage_failure_relay_system,
+                ),
             )
             .add_systems(
                 Update,

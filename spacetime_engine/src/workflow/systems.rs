@@ -5,14 +5,7 @@ use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 
 use crate::statics::TOKIO_RUNTIME;
 
-use super::{
-    channels::*,
-    events::*,
-    instance::*,
-    resources::*,
-    stage::Stage,
-    types::*,
-};
+use super::{channels::*, events::*, instance::*, resources::*, stage::Stage, types::*};
 
 pub(super) fn extract_render_stage_buffer_system(world: &mut World) {
     let mut main_world = SystemState::<ResMut<MainWorld>>::new(world).get_mut(world);
@@ -208,10 +201,10 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
         let outcome = *outcome.downcast().unwrap();
 
         match outcome {
-            Outcome::Waiting(state_data) => {
+            Outcome::Wait(state_data) => {
                 waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
             }
-            Outcome::Completed(output_data) => {
+            Outcome::Done(output_data) => {
                 let response_send_result = sender.send((
                     cloned_module_name,
                     cloned_workflow_name,
@@ -299,10 +292,10 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
         let outcome = *outcome.downcast().unwrap();
 
         match outcome {
-            Outcome::Waiting(state_data) => {
+            Outcome::Wait(state_data) => {
                 waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
             }
-            Outcome::Completed(output_data) => {
+            Outcome::Done(output_data) => {
                 if let Err(err) = sender.send((
                     cloned_module_name,
                     cloned_workflow_name,

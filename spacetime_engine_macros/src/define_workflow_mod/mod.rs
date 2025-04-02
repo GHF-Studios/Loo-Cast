@@ -230,9 +230,7 @@ trait IteratorExt: Iterator {
         )
     }
 
-    fn unzip4<A, B, C, D, IA, IB, IC, ID>(
-        self,
-    ) -> (IA, IB, IC, ID)
+    fn unzip4<A, B, C, D, IA, IB, IC, ID>(self) -> (IA, IB, IC, ID)
     where
         Self: Sized + Iterator<Item = (A, B, C, D)>,
         IA: FromIterator<A>,
@@ -295,12 +293,12 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (
+                    stage_state_type_paths,
+                    stage_out_type_paths,
+                    stage_err_type_paths,
+                    stage_in_type_paths,
+                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
@@ -433,12 +431,12 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (
+                    stage_state_type_paths,
+                    stage_out_type_paths,
+                    stage_err_type_paths,
+                    stage_in_type_paths,
+                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
@@ -544,12 +542,12 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (
+                    stage_state_type_paths,
+                    stage_out_type_paths,
+                    stage_err_type_paths,
+                    stage_in_type_paths,
+                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
@@ -691,12 +689,12 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (
+                    stage_state_type_paths,
+                    stage_out_type_paths,
+                    stage_err_type_paths,
+                    stage_in_type_paths,
+                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
@@ -803,12 +801,12 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (
+                    stage_state_type_paths,
+                    stage_out_type_paths,
+                    stage_err_type_paths,
+                    stage_in_type_paths,
+                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
@@ -950,12 +948,12 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (
+                    stage_state_type_paths,
+                    stage_out_type_paths,
+                    stage_err_type_paths,
+                    stage_in_type_paths,
+                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
@@ -1066,12 +1064,12 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (
+                    stage_state_type_paths,
+                    stage_out_type_paths,
+                    stage_err_type_paths,
+                    stage_in_type_paths,
+                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
@@ -1218,12 +1216,12 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                    Vec<_>,
-                ) = self
+                let (
+                    stage_state_type_paths,
+                    stage_out_type_paths,
+                    stage_err_type_paths,
+                    stage_in_type_paths,
+                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()

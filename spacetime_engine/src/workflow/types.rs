@@ -88,6 +88,6 @@ pub struct WorkflowType {
 }
 
 pub enum Outcome<S, O> {
-    Waiting(S),
-    Completed(O),
+    Wait(S),
+    Done(O),
 }

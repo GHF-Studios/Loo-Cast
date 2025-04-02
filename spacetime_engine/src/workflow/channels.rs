@@ -49,15 +49,16 @@ static STAGE_WAIT_SENDER: OnceLock<Mutex<Sender<StageWaitEvent>>> = OnceLock::ne
 static STAGE_COMPLETION_SENDER: OnceLock<Mutex<Sender<StageCompletionEvent>>> = OnceLock::new();
 static STAGE_FAILURE_SENDER: OnceLock<Mutex<Sender<StageFailureEvent>>> = OnceLock::new();
 
-pub(super) fn initialize_stage_channels(
-) -> (Receiver<StageWaitEvent>, Receiver<StageCompletionEvent>, Receiver<StageFailureEvent>) {
+pub(super) fn initialize_stage_channels() -> (
+    Receiver<StageWaitEvent>,
+    Receiver<StageCompletionEvent>,
+    Receiver<StageFailureEvent>,
+) {
     let (wait_sender, wait_receiver) = unbounded();
     let (completion_sender, completion_receiver) = unbounded();
     let (failure_sender, failure_receiver) = unbounded();
 
-    let wait_sender_err = STAGE_WAIT_SENDER
-        .set(Mutex::new(wait_sender))
-        .is_err();
+    let wait_sender_err = STAGE_WAIT_SENDER.set(Mutex::new(wait_sender)).is_err();
     let completion_sender_err = STAGE_COMPLETION_SENDER
         .set(Mutex::new(completion_sender))
         .is_err();
