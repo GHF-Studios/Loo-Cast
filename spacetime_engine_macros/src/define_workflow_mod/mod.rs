@@ -1131,6 +1131,7 @@ impl Workflow {
                 }
             }
             WorkflowSignature::IOE => {
+                // TODO: Clone the changes to the 7 other cases
                 let (first_stage_ident, last_stage_ident) = {
                     let first_stage_ident = self.stages.0.first().unwrap().name();
                     let last_stage_ident = self.stages.0.last().unwrap().name();
