@@ -237,6 +237,24 @@ impl Stage {
         }
     }
 
+    pub fn get_state_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
+        match self {
+            Stage::Ecs(_) => None,
+            Stage::Render(_) => None,
+            Stage::Async(_) => None,
+            Stage::EcsWhile(stage) => {
+                stage.get_state_type_path(workflow_module_ident, workflow_ident)
+            },
+            Stage::RenderWhile(stage) => {
+                stage.get_state_type_path(workflow_module_ident, workflow_ident)
+            }
+        }
+    }
+
     pub fn get_out_type_path(
         &self,
         workflow_module_ident: Ident,
@@ -616,7 +634,7 @@ impl TypedStage<Ecs> {
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                        _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageEcs)> {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcs
@@ -647,7 +665,7 @@ impl TypedStage<Ecs> {
                             workflow_name: &'static str,
                             response: Option<Box<dyn std::any::Any + Send + Sync>>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                            failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                            _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                         | -> Box<dyn FnOnce(crate::workflow::stage::StageEcs)> {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageEcs,
@@ -734,7 +752,7 @@ impl TypedStage<Ecs> {
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                        _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageEcs)> {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcs
@@ -1011,7 +1029,7 @@ impl TypedStage<Render> {
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                        _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageRender)> {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRender
@@ -1042,7 +1060,7 @@ impl TypedStage<Render> {
                             workflow_name: &'static str,
                             response: Option<Box<dyn std::any::Any + Send + Sync>>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                            failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                            _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                         | -> Box<dyn FnOnce(crate::workflow::stage::StageRender)> {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageRender,
@@ -1129,7 +1147,7 @@ impl TypedStage<Render> {
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                        _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageRender)> {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRender
@@ -1406,7 +1424,7 @@ impl TypedStage<Async> {
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                        _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageAsync)> {
                         Box::new(move |
                             stage: crate::workflow::stage::StageAsync
@@ -1437,7 +1455,7 @@ impl TypedStage<Async> {
                             workflow_name: &'static str,
                             response: Option<Box<dyn std::any::Any + Send + Sync>>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                            failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                            _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                         | -> Box<dyn FnOnce(crate::workflow::stage::StageAsync)> {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageAsync,
@@ -1524,7 +1542,7 @@ impl TypedStage<Async> {
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                        _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageAsync)> {
                         Box::new(move |
                             stage: crate::workflow::stage::StageAsync
@@ -1697,6 +1715,7 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
@@ -1704,21 +1723,40 @@ impl TypedStage<EcsWhile> {
                             stage: crate::workflow::stage::StageEcsWhile
                         | {
                             response.map(|response| {
-                                let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
-                                match result_data {
-                                    Ok(output) => {
-                                        let output: #next_in_path = unsafe { std::mem::transmute(output) };
-                                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                                
+                                match outcome_result {
+                                    Ok(outcome) => {
+                                        match outcome {
+                                            crate::workflow::types::Outcome::Waiting(state) => {
+                                                let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
-                                            ty: crate::workflow::stage::StageType::EcsWhile,
-                                            module_name,
-                                            workflow_name,
-                                            current_stage: #index_literal,
-                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
-                                            stage_output: output,
-                                        }) {
-                                            unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageWaitEvent {
+                                                    ty: crate::workflow::stage::StageType::EcsWhile,
+                                                    module_name,
+                                                    workflow_name,
+                                                    current_stage: #index_literal,
+                                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                                    stage_state: state,
+                                                }) {
+                                                    unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                                }
+                                            },
+                                            crate::workflow::types::Outcome::Completed(output) => {
+                                                let output: #next_in_path = unsafe { std::mem::transmute(output) };
+                                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+        
+                                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                                    ty: crate::workflow::stage::StageType::EcsWhile,
+                                                    module_name,
+                                                    workflow_name,
+                                                    current_stage: #index_literal,
+                                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                                    stage_output: output,
+                                                }) {
+                                                    unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                                }
+                                            }
                                         }
                                     }
                                     Err(error) => {
@@ -1751,27 +1789,46 @@ impl TypedStage<EcsWhile> {
                             module_name: &'static str,
                             workflow_name: &'static str,
                             response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                            wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                         | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
                             Box::new(move |
-                                stage: crate::workflow::stage::StageEcsWhile
+                                stage: crate::workflow::stage::StageEcsWhile,
                             | {
                                 response.map(|response| {
-                                    let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
-                                    match result {
-                                        Ok(output) => {
-                                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>)
+                                    let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                                    match outcome_result {
+                                        Ok(outcome) => {
+                                            match outcome {
+                                                crate::workflow::types::Outcome::Waiting(state) => {
+                                                    let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
-                                                ty: crate::workflow::stage::StageType::EcsWhile,
-                                                module_name,
-                                                workflow_name,
-                                                current_stage: #index_literal,
-                                                stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
-                                                stage_output: output,
-                                            }) {
-                                                unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                                    if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                                        ty: crate::workflow::stage::StageType::EcsWhile,
+                                                        module_name,
+                                                        workflow_name,
+                                                        current_stage: #index_literal,
+                                                        stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                                        stage_state: state,
+                                                    }) {
+                                                        unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                                    }
+                                                },
+                                                crate::workflow::types::Outcome::Completed(output) => {
+                                                    let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>)
+        
+                                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                                        ty: crate::workflow::stage::StageType::EcsWhile,
+                                                        module_name,
+                                                        workflow_name,
+                                                        current_stage: #index_literal,
+                                                        stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                                        stage_output: output,
+                                                    }) {
+                                                        unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                                    }
+                                                }
                                             }
                                         }
                                         Err(error) => {
@@ -1802,26 +1859,46 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                        _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile
                         | {
                             response.map(|response| {
-                                let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
-                                let output: #next_in_path = unsafe { std::mem::transmute(output) };
-                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
-                                    ty: crate::workflow::stage::StageType::EcsWhile,
-                                    module_name,
-                                    workflow_name,
-                                    current_stage: #index_literal,
-                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
-                                    stage_output: output,
-                                }) {
-                                    unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                match outcome {
+                                    crate::workflow::types::Outcome::Waiting(state) => {
+                                        let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            ty: crate::workflow::stage::StageType::EcsWhile,
+                                            module_name,
+                                            workflow_name,
+                                            current_stage: #index_literal,
+                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                            stage_state: state,
+                                        }) {
+                                            unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                        }
+                                    },
+                                    crate::workflow::types::Outcome::Completed(output) => {
+                                        let output: #next_in_path = unsafe { std::mem::transmute(output) };
+                                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            ty: crate::workflow::stage::StageType::EcsWhile,
+                                            module_name,
+                                            workflow_name,
+                                            current_stage: #index_literal,
+                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                            stage_output: output,
+                                        }) {
+                                            unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                        }
+                                    }
                                 }
                             });
                         })
@@ -1962,7 +2039,7 @@ impl TypedStage<EcsWhile> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile
@@ -2010,6 +2087,7 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
@@ -2017,21 +2095,38 @@ impl TypedStage<EcsWhile> {
                             stage: crate::workflow::stage::StageEcsWhile
                         | {
                             response.map(|response| {
-                                let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
-                                match result_data {
-                                    Ok(output) => {
-                                        let output: #next_in_path = unsafe { std::mem::transmute(output) };
-                                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
-
-                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
-                                            ty: crate::workflow::stage::StageType::EcsWhile,
-                                            module_name,
-                                            workflow_name,
-                                            current_stage: #index_literal,
-                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
-                                            stage_output: output,
-                                        }) {
-                                            unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                                
+                                match outcome_result {
+                                    Ok(outcome) => {
+                                        match outcome {
+                                            crate::workflow::types::Outcome::Waiting(_) => {
+                                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageWaitEvent {
+                                                    ty: crate::workflow::stage::StageType::EcsWhile,
+                                                    module_name,
+                                                    workflow_name,
+                                                    current_stage: #index_literal,
+                                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                                    stage_state: None,
+                                                }) {
+                                                    unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                                }
+                                            },
+                                            crate::workflow::types::Outcome::Completed(output) => {
+                                                let output: #next_in_path = unsafe { std::mem::transmute(output) };
+                                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+        
+                                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                                    ty: crate::workflow::stage::StageType::EcsWhile,
+                                                    module_name,
+                                                    workflow_name,
+                                                    current_stage: #index_literal,
+                                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                                    stage_output: output,
+                                                }) {
+                                                    unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                                }
+                                            }
                                         }
                                     }
                                     Err(error) => {
@@ -2064,27 +2159,44 @@ impl TypedStage<EcsWhile> {
                             module_name: &'static str,
                             workflow_name: &'static str,
                             response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                            wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                         | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
                             Box::new(move |
-                                stage: crate::workflow::stage::StageEcsWhile
+                                stage: crate::workflow::stage::StageEcsWhile,
                             | {
                                 response.map(|response| {
-                                    let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
-                                    match result {
-                                        Ok(output) => {
-                                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>)
-
-                                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
-                                                ty: crate::workflow::stage::StageType::EcsWhile,
-                                                module_name,
-                                                workflow_name,
-                                                current_stage: #index_literal,
-                                                stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
-                                                stage_output: output,
-                                            }) {
-                                                unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                    let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                                    match outcome_result {
+                                        Ok(outcome) => {
+                                            match outcome {
+                                                crate::workflow::types::Outcome::Waiting(_) => {
+                                                    if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                                        ty: crate::workflow::stage::StageType::EcsWhile,
+                                                        module_name,
+                                                        workflow_name,
+                                                        current_stage: #index_literal,
+                                                        stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                                        stage_state: None,
+                                                    }) {
+                                                        unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                                    }
+                                                },
+                                                crate::workflow::types::Outcome::Completed(output) => {
+                                                    let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>)
+        
+                                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                                        ty: crate::workflow::stage::StageType::EcsWhile,
+                                                        module_name,
+                                                        workflow_name,
+                                                        current_stage: #index_literal,
+                                                        stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                                        stage_output: output,
+                                                    }) {
+                                                        unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                                    }
+                                                }
                                             }
                                         }
                                         Err(error) => {
@@ -2115,26 +2227,45 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                        _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile
                         | {
                             response.map(|response| {
-                                let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
-                                let output: #next_in_path = unsafe { std::mem::transmute(output) };
-                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                let outcome: crate::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
-                                    ty: crate::workflow::stage::StageType::EcsWhile,
-                                    module_name,
-                                    workflow_name,
-                                    current_stage: #index_literal,
-                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
-                                    stage_output: output,
-                                }) {
-                                    unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                match outcome {
+                                    crate::workflow::types::Outcome::Waiting(_) => {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            ty: crate::workflow::stage::StageType::EcsWhile,
+                                            module_name,
+                                            workflow_name,
+                                            current_stage: #index_literal,
+                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                            stage_state: None,
+                                        }) {
+                                            unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                        }
+                                    },
+                                    crate::workflow::types::Outcome::Completed(_) => {
+                                        let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
+                                        let output: #next_in_path = unsafe { std::mem::transmute(output) };
+                                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            ty: crate::workflow::stage::StageType::EcsWhile,
+                                            module_name,
+                                            workflow_name,
+                                            current_stage: #index_literal,
+                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                            stage_output: output,
+                                        }) {
+                                            unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                        }
+                                    },
                                 }
                             });
                         })
@@ -2153,9 +2284,11 @@ impl TypedStage<EcsWhile> {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageEcsWhile,
                             | {
+                                // TODO: IMPORTANT: Empty responses should be handled for non-while stages, and should outright panic for while stages
+                                // Note: Currently, we simply ignore the response and do nothing if it is empty, always, in every case, lol 
                                 response.map(|response| {
                                     let outcome: crate::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
-
+                                    
                                     match outcome {
                                         crate::workflow::types::Outcome::Waiting(_) => {
                                             if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
@@ -2170,8 +2303,8 @@ impl TypedStage<EcsWhile> {
                                             }
                                         }
                                         crate::workflow::types::Outcome::Completed(output) => {
-                                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
-
+                                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>)
+        
                                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                                 ty: crate::workflow::stage::StageType::EcsWhile,
                                                 module_name,
@@ -2202,7 +2335,6 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
@@ -2271,7 +2403,7 @@ impl TypedStage<EcsWhile> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile
@@ -2281,7 +2413,7 @@ impl TypedStage<EcsWhile> {
 
                                 match outcome {
                                     crate::workflow::types::Outcome::Waiting(_) => {
-                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageWaitEvent {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
@@ -2378,6 +2510,21 @@ impl TypedStage<EcsWhile> {
         core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
+    pub fn get_state_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
+        let stage_ident = &self.name;
+        let stage_ident = Ident::new(
+            stage_ident.to_string().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
+        let core_types = &self.core_types;
+
+        core_types.state.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::State })
+    }
+
     pub fn get_out_type_path(
         &self,
         workflow_module_ident: Ident,
@@ -2464,6 +2611,7 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
@@ -2471,21 +2619,40 @@ impl TypedStage<RenderWhile> {
                             stage: crate::workflow::stage::StageRenderWhile
                         | {
                             response.map(|response| {
-                                let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
-                                match result_data {
-                                    Ok(output) => {
-                                        let output: #next_in_path = unsafe { std::mem::transmute(output) };
-                                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                                
+                                match outcome_result {
+                                    Ok(outcome) => {
+                                        match outcome {
+                                            crate::workflow::types::Outcome::Waiting(state) => {
+                                                let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
-                                            ty: crate::workflow::stage::StageType::RenderWhile,
-                                            module_name,
-                                            workflow_name,
-                                            current_stage: #index_literal,
-                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
-                                            stage_output: output,
-                                        }) {
-                                            unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageWaitEvent {
+                                                    ty: crate::workflow::stage::StageType::RenderWhile,
+                                                    module_name,
+                                                    workflow_name,
+                                                    current_stage: #index_literal,
+                                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                                    stage_state: state,
+                                                }) {
+                                                    unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                                }
+                                            },
+                                            crate::workflow::types::Outcome::Completed(output) => {
+                                                let output: #next_in_path = unsafe { std::mem::transmute(output) };
+                                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+        
+                                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                                    ty: crate::workflow::stage::StageType::RenderWhile,
+                                                    module_name,
+                                                    workflow_name,
+                                                    current_stage: #index_literal,
+                                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                                    stage_output: output,
+                                                }) {
+                                                    unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                                }
+                                            }
                                         }
                                     }
                                     Err(error) => {
@@ -2518,6 +2685,7 @@ impl TypedStage<RenderWhile> {
                             module_name: &'static str,
                             workflow_name: &'static str,
                             response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                            wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                         | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
@@ -2525,20 +2693,38 @@ impl TypedStage<RenderWhile> {
                                 stage: crate::workflow::stage::StageRenderWhile,
                             | {
                                 response.map(|response| {
-                                    let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
-                                    match result {
-                                        Ok(output) => {
-                                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>)
+                                    let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                                    match outcome_result {
+                                        Ok(outcome) => {
+                                            match outcome {
+                                                crate::workflow::types::Outcome::Waiting(state) => {
+                                                    let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
-                                                ty: crate::workflow::stage::StageType::RenderWhile,
-                                                module_name,
-                                                workflow_name,
-                                                current_stage: #index_literal,
-                                                stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
-                                                stage_output: output,
-                                            }) {
-                                                unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                                    if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                                        ty: crate::workflow::stage::StageType::RenderWhile,
+                                                        module_name,
+                                                        workflow_name,
+                                                        current_stage: #index_literal,
+                                                        stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                                        stage_state: state,
+                                                    }) {
+                                                        unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                                    }
+                                                },
+                                                crate::workflow::types::Outcome::Completed(output) => {
+                                                    let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>)
+        
+                                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                                        ty: crate::workflow::stage::StageType::RenderWhile,
+                                                        module_name,
+                                                        workflow_name,
+                                                        current_stage: #index_literal,
+                                                        stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                                        stage_output: output,
+                                                    }) {
+                                                        unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                                    }
+                                                }
                                             }
                                         }
                                         Err(error) => {
@@ -2569,26 +2755,46 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                        _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile
                         | {
                             response.map(|response| {
-                                let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
-                                let output: #next_in_path = unsafe { std::mem::transmute(output) };
-                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
-                                    ty: crate::workflow::stage::StageType::RenderWhile,
-                                    module_name,
-                                    workflow_name,
-                                    current_stage: #index_literal,
-                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
-                                    stage_output: output,
-                                }) {
-                                    unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                match outcome {
+                                    crate::workflow::types::Outcome::Waiting(state) => {
+                                        let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            ty: crate::workflow::stage::StageType::RenderWhile,
+                                            module_name,
+                                            workflow_name,
+                                            current_stage: #index_literal,
+                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                            stage_state: state,
+                                        }) {
+                                            unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                        }
+                                    },
+                                    crate::workflow::types::Outcome::Completed(output) => {
+                                        let output: #next_in_path = unsafe { std::mem::transmute(output) };
+                                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            ty: crate::workflow::stage::StageType::RenderWhile,
+                                            module_name,
+                                            workflow_name,
+                                            current_stage: #index_literal,
+                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                            stage_output: output,
+                                        }) {
+                                            unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                        }
+                                    }
                                 }
                             });
                         })
@@ -2658,6 +2864,7 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
@@ -2776,6 +2983,7 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
@@ -2783,21 +2991,38 @@ impl TypedStage<RenderWhile> {
                             stage: crate::workflow::stage::StageRenderWhile
                         | {
                             response.map(|response| {
-                                let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
-                                match result_data {
-                                    Ok(output) => {
-                                        let output: #next_in_path = unsafe { std::mem::transmute(output) };
-                                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
-
-                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
-                                            ty: crate::workflow::stage::StageType::RenderWhile,
-                                            module_name,
-                                            workflow_name,
-                                            current_stage: #index_literal,
-                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
-                                            stage_output: output,
-                                        }) {
-                                            unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                                
+                                match outcome_result {
+                                    Ok(outcome) => {
+                                        match outcome {
+                                            crate::workflow::types::Outcome::Waiting(_) => {
+                                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageWaitEvent {
+                                                    ty: crate::workflow::stage::StageType::RenderWhile,
+                                                    module_name,
+                                                    workflow_name,
+                                                    current_stage: #index_literal,
+                                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                                    stage_state: None,
+                                                }) {
+                                                    unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                                }
+                                            },
+                                            crate::workflow::types::Outcome::Completed(output) => {
+                                                let output: #next_in_path = unsafe { std::mem::transmute(output) };
+                                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+        
+                                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                                    ty: crate::workflow::stage::StageType::RenderWhile,
+                                                    module_name,
+                                                    workflow_name,
+                                                    current_stage: #index_literal,
+                                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                                    stage_output: output,
+                                                }) {
+                                                    unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                                }
+                                            }
                                         }
                                     }
                                     Err(error) => {
@@ -2830,6 +3055,7 @@ impl TypedStage<RenderWhile> {
                             module_name: &'static str,
                             workflow_name: &'static str,
                             response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                            wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                         | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
@@ -2837,20 +3063,36 @@ impl TypedStage<RenderWhile> {
                                 stage: crate::workflow::stage::StageRenderWhile,
                             | {
                                 response.map(|response| {
-                                    let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
-                                    match result {
-                                        Ok(output) => {
-                                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>)
-
-                                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
-                                                ty: crate::workflow::stage::StageType::RenderWhile,
-                                                module_name,
-                                                workflow_name,
-                                                current_stage: #index_literal,
-                                                stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
-                                                stage_output: output,
-                                            }) {
-                                                unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                    let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                                    match outcome_result {
+                                        Ok(outcome) => {
+                                            match outcome {
+                                                crate::workflow::types::Outcome::Waiting(_) => {
+                                                    if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                                        ty: crate::workflow::stage::StageType::RenderWhile,
+                                                        module_name,
+                                                        workflow_name,
+                                                        current_stage: #index_literal,
+                                                        stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                                        stage_state: None,
+                                                    }) {
+                                                        unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                                    }
+                                                },
+                                                crate::workflow::types::Outcome::Completed(output) => {
+                                                    let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>)
+        
+                                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                                        ty: crate::workflow::stage::StageType::RenderWhile,
+                                                        module_name,
+                                                        workflow_name,
+                                                        current_stage: #index_literal,
+                                                        stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                                        stage_output: output,
+                                                    }) {
+                                                        unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                                    }
+                                                }
                                             }
                                         }
                                         Err(error) => {
@@ -2881,26 +3123,45 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
+                        _failure_sender: crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>
                     | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile
                         | {
                             response.map(|response| {
-                                let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
-                                let output: #next_in_path = unsafe { std::mem::transmute(output) };
-                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                let outcome: crate::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
-                                    ty: crate::workflow::stage::StageType::RenderWhile,
-                                    module_name,
-                                    workflow_name,
-                                    current_stage: #index_literal,
-                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
-                                    stage_output: output,
-                                }) {
-                                    unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                match outcome {
+                                    crate::workflow::types::Outcome::Waiting(_) => {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            ty: crate::workflow::stage::StageType::RenderWhile,
+                                            module_name,
+                                            workflow_name,
+                                            current_stage: #index_literal,
+                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                            stage_state: None,
+                                        }) {
+                                            unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                        }
+                                    },
+                                    crate::workflow::types::Outcome::Completed(_) => {
+                                        let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
+                                        let output: #next_in_path = unsafe { std::mem::transmute(output) };
+                                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            ty: crate::workflow::stage::StageType::RenderWhile,
+                                            module_name,
+                                            workflow_name,
+                                            current_stage: #index_literal,
+                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                            stage_output: output,
+                                        }) {
+                                            unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                        }
+                                    },
                                 }
                             });
                         })
@@ -3143,6 +3404,21 @@ impl TypedStage<RenderWhile> {
         let core_types = &self.core_types;
 
         core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
+    }
+
+    pub fn get_state_type_path(
+        &self,
+        workflow_module_ident: Ident,
+        workflow_ident: Ident,
+    ) -> Option<TokenStream> {
+        let stage_ident = &self.name;
+        let stage_ident = Ident::new(
+            stage_ident.to_string().to_snake_case().as_str(),
+            stage_ident.span(),
+        );
+        let core_types = &self.core_types;
+
+        core_types.state.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::State })
     }
 
     pub fn get_out_type_path(
