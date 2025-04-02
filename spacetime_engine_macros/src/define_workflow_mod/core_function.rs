@@ -819,7 +819,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_ecs_while_inner(world: &mut World) -> TypedOutcome<(), ()> #body
+                        fn run_ecs_while_inner(world: &mut World) -> Outcome<(), ()> #body
                     }
                 }
                 (false, false, true) => {
@@ -839,7 +839,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_ecs_while_inner(world: &mut World) -> Result<TypedOutcome<(), ()>, Error> #body
+                        fn run_ecs_while_inner(world: &mut World) -> Result<Outcome<(), ()>, Error> #body
                     }
                 }
                 (false, true, false) => {
@@ -853,7 +853,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_ecs_while_inner(world: &mut World) -> TypedOutcome<(), Output> #body
+                        fn run_ecs_while_inner(world: &mut World) -> Outcome<(), Output> #body
                     }
                 }
                 (false, true, true) => {
@@ -873,7 +873,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_ecs_while_inner(world: &mut World) -> Result<TypedOutcome<(), Output>, Error> #body
+                        fn run_ecs_while_inner(world: &mut World) -> Result<Outcome<(), Output>, Error> #body
                     }
                 }
                 (true, false, false) => {
@@ -888,7 +888,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_ecs_while_inner(state: State, world: &mut World) -> TypedOutcome<State, ()> #body
+                        fn run_ecs_while_inner(state: State, world: &mut World) -> Outcome<State, ()> #body
                     }
                 }
                 (true, false, true) => {
@@ -909,7 +909,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_ecs_while_inner(state: State, world: &mut World) -> Result<TypedOutcome<State, ()>, Error> #body
+                        fn run_ecs_while_inner(state: State, world: &mut World) -> Result<Outcome<State, ()>, Error> #body
                     }
                 }
                 (true, true, false) => {
@@ -924,7 +924,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_ecs_while_inner(state: State, world: &mut World) -> TypedOutcome<State, Output> #body
+                        fn run_ecs_while_inner(state: State, world: &mut World) -> Outcome<State, Output> #body
                     }
                 }
                 (true, true, true) => {
@@ -945,7 +945,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_ecs_while_inner(state: State, world: &mut World) -> Result<TypedOutcome<State, Output>, Error> #body
+                        fn run_ecs_while_inner(state: State, world: &mut World) -> Result<Outcome<State, Output>, Error> #body
                     }
                 }
             },
@@ -961,7 +961,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_render_while_inner(world: &mut World) -> TypedOutcome<(), ()> #body
+                        fn run_render_while_inner(world: &mut World) -> Outcome<(), ()> #body
                     }
                 }
                 (false, false, true) => {
@@ -981,7 +981,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_render_while_inner(world: &mut World) -> Result<TypedOutcome<(), ()>, Error> #body
+                        fn run_render_while_inner(world: &mut World) -> Result<Outcome<(), ()>, Error> #body
                     }
                 }
                 (false, true, false) => {
@@ -995,7 +995,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_render_while_inner(world: &mut World) -> TypedOutcome<(), Output> #body
+                        fn run_render_while_inner(world: &mut World) -> Outcome<(), Output> #body
                     }
                 }
                 (false, true, true) => {
@@ -1015,7 +1015,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_render_while_inner(world: &mut World) -> Result<TypedOutcome<(), Output>, Error> #body
+                        fn run_render_while_inner(world: &mut World) -> Result<Outcome<(), Output>, Error> #body
                     }
                 }
                 (true, false, false) => {
@@ -1030,7 +1030,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_render_while_inner(state: State, world: &mut World) -> TypedOutcome<State, ()> #body
+                        fn run_render_while_inner(state: State, world: &mut World) -> Outcome<State, ()> #body
                     }
                 }
                 (true, false, true) => {
@@ -1051,7 +1051,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_render_while_inner(state: State, world: &mut World) -> Result<TypedOutcome<State, ()>, Error> #body
+                        fn run_render_while_inner(state: State, world: &mut World) -> Result<Outcome<State, ()>, Error> #body
                     }
                 }
                 (true, true, false) => {
@@ -1066,7 +1066,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_render_while_inner(state: State, world: &mut World) -> TypedOutcome<State, Output> #body
+                        fn run_render_while_inner(state: State, world: &mut World) -> Outcome<State, Output> #body
                     }
                 }
                 (true, true, true) => {
@@ -1087,7 +1087,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_render_while_inner(state: State, world: &mut World) -> Result<TypedOutcome<State, Output>, Error> #body
+                        fn run_render_while_inner(state: State, world: &mut World) -> Result<Outcome<State, Output>, Error> #body
                     }
                 }
             },

@@ -16,8 +16,8 @@ pub(crate) struct StageWaitEvent {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub current_stage: usize,
-    pub stage_state: Option<Box<dyn Any + Send + Sync>>,
     pub stage_return: Stage,
+    pub stage_state: Option<Box<dyn Any + Send + Sync>>,
 }
 
 #[derive(Event)]
@@ -26,8 +26,8 @@ pub(crate) struct StageCompletionEvent {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub current_stage: usize,
-    pub stage_output: Option<Box<dyn Any + Send + Sync>>,
     pub stage_return: Stage,
+    pub stage_output: Option<Box<dyn Any + Send + Sync>>,
 }
 
 #[derive(Event)]
@@ -36,6 +36,6 @@ pub(crate) struct StageFailureEvent {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub current_stage: usize,
-    pub stage_error: Option<Box<dyn Any + Send + Sync>>,
     pub stage_return: Stage,
+    pub stage_error: Option<Box<dyn Any + Send + Sync>>,
 }

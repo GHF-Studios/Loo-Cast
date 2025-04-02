@@ -10,7 +10,7 @@ use super::{
     events::{StageCompletionEvent, StageFailureEvent, StageInitializationEvent},
     instance::*,
     resources::*,
-    stage::{Stage, Outcome},
+    stage::Stage,
     types::*,
 };
 

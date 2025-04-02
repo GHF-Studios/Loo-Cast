@@ -87,61 +87,7 @@ pub struct WorkflowType {
     pub stages: Vec<Stage>,
 }
 
-pub enum Outcome {
-    Waiting(Option<Box<dyn Any + Send + Sync>>),
-    Completed(Option<Box<dyn Any + Send + Sync>>),
-}
-
-pub struct TypedOutcome<S, O>(pub Outcome, std::marker::PhantomData<(S, O)>);
-impl<S, O> TypedOutcome<S, O>
-where
-    S: Any + Send + Sync,
-    O: Any + Send + Sync,
-{
-    pub fn new(outcome: Outcome) -> Self {
-        Self(outcome, std::marker::PhantomData)
-    }
-
-    pub fn new_waiting(value: Option<Box<dyn Any + Send + Sync>>) -> Self {
-        Self(Outcome::Waiting(value), std::marker::PhantomData)
-    }
-
-    pub fn new_completed(value: Option<Box<dyn Any + Send + Sync>>) -> Self {
-        Self(Outcome::Completed(value), std::marker::PhantomData)
-    }
-
-    pub fn get_waiting(&self) -> Option<&Box<dyn Any + Send + Sync>> {
-        if let Outcome::Waiting(value) = &self.0 {
-            value.as_ref()
-        } else {
-            None
-        }
-    }
-
-    pub fn get_completed(&self) -> Option<&Box<dyn Any + Send + Sync>> {
-        if let Outcome::Completed(value) = &self.0 {
-            value.as_ref()
-        } else {
-            None
-        }
-    }
-
-    pub fn is_waiting(&self) -> bool {
-        matches!(self.0, Outcome::Waiting(_))
-    }
-
-    pub fn is_completed(&self) -> bool {
-        matches!(self.0, Outcome::Completed(_))
-    }
-}
-impl<S, O> Deref for TypedOutcome<S, O>
-where
-    S: Any + Send + Sync,
-    O: Any + Send + Sync,
-{
-    type Target = Outcome;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+pub enum Outcome<S, O> {
+    Waiting(S),
+    Completed(O),
 }
