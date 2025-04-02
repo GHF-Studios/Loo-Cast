@@ -7,7 +7,7 @@ use crate::statics::TOKIO_RUNTIME;
 
 use super::{
     channels::*,
-    events::{StageCompletionEvent, StageFailureEvent, StageInitializationEvent},
+    events::*,
     instance::*,
     resources::*,
     stage::Stage,
@@ -356,6 +356,29 @@ pub(super) fn render_while_workflow_state_extract_reintegration_system(world: &m
     }
 }
 
+pub(super) fn stage_wait_relay_system(
+    stage_event_receiver: Res<StageWaitEventReceiver>,
+    mut stage_event_writer: ConsumableEventWriter<StageWaitEvent>,
+) {
+    while let Ok(StageWaitEvent {
+        ty,
+        module_name,
+        workflow_name,
+        current_stage,
+        stage_return,
+        stage_state,
+    }) = stage_event_receiver.0.try_recv()
+    {
+        stage_event_writer.send(StageWaitEvent {
+            ty,
+            module_name,
+            workflow_name,
+            current_stage,
+            stage_return,
+            stage_state,
+        });
+    }
+}
 pub(super) fn stage_completion_relay_system(
     stage_event_receiver: Res<StageCompletionEventReceiver>,
     mut stage_event_writer: ConsumableEventWriter<StageCompletionEvent>,

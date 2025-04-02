@@ -45,14 +45,19 @@ pub(super) struct WorkflowResponseIOSender(pub UnboundedSender<TypedWorkflowResp
 #[derive(Resource)]
 pub(super) struct WorkflowResponseIOESender(pub UnboundedSender<TypedWorkflowResponseOE>);
 
+static STAGE_WAIT_SENDER: OnceLock<Mutex<Sender<StageWaitEvent>>> = OnceLock::new();
 static STAGE_COMPLETION_SENDER: OnceLock<Mutex<Sender<StageCompletionEvent>>> = OnceLock::new();
 static STAGE_FAILURE_SENDER: OnceLock<Mutex<Sender<StageFailureEvent>>> = OnceLock::new();
 
 pub(super) fn initialize_stage_channels(
-) -> (Receiver<StageCompletionEvent>, Receiver<StageFailureEvent>) {
+) -> (Receiver<StageWaitEvent>, Receiver<StageCompletionEvent>, Receiver<StageFailureEvent>) {
+    let (wait_sender, wait_receiver) = unbounded();
     let (completion_sender, completion_receiver) = unbounded();
     let (failure_sender, failure_receiver) = unbounded();
 
+    let wait_sender_err = STAGE_WAIT_SENDER
+        .set(Mutex::new(wait_sender))
+        .is_err();
     let completion_sender_err = STAGE_COMPLETION_SENDER
         .set(Mutex::new(completion_sender))
         .is_err();
@@ -60,6 +65,9 @@ pub(super) fn initialize_stage_channels(
         .set(Mutex::new(failure_sender))
         .is_err();
 
+    if wait_sender_err {
+        panic!("Wait sender already initialized!");
+    }
     if completion_sender_err {
         panic!("Completion sender already initialized!");
     }
@@ -67,9 +75,16 @@ pub(super) fn initialize_stage_channels(
         panic!("Failure sender already initialized!");
     }
 
-    (completion_receiver, failure_receiver)
+    (wait_receiver, completion_receiver, failure_receiver)
 }
 
+pub fn get_stage_wait_sender() -> MutexGuard<'static, Sender<StageWaitEvent>> {
+    STAGE_WAIT_SENDER
+        .get()
+        .expect("Stage wait sender accessed before initialization!")
+        .lock()
+        .unwrap()
+}
 pub fn get_stage_completion_sender() -> MutexGuard<'static, Sender<StageCompletionEvent>> {
     STAGE_COMPLETION_SENDER
         .get()

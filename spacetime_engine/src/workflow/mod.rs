@@ -39,7 +39,8 @@ impl Plugin for WorkflowPlugin {
                 render_workflow_state_extract_reintegration_event_receiver,
             );
 
-        let (completion_receiver, failure_receiver) = initialize_stage_channels();
+        let (wait_receiver, completion_receiver, failure_receiver) = initialize_stage_channels();
+        let wait_receiver = StageWaitEventReceiver(wait_receiver);
         let completion_receiver = StageCompletionEventReceiver(completion_receiver);
         let failure_receiver = StageFailureEventReceiver(failure_receiver);
 
@@ -53,10 +54,13 @@ impl Plugin for WorkflowPlugin {
         let (workflow_request_ioe_receiver, workflow_response_ioe_sender) =
             initialize_ioe_channels();
 
-        app.add_event::<StageInitializationEvent>()
+        app
+            .add_event::<StageInitializationEvent>()
+            .add_event::<StageWaitEvent>()
             .add_event::<StageCompletionEvent>()
             .add_event::<StageFailureEvent>()
             .add_persistent_consumable_event::<StageInitializationEvent>()
+            .add_persistent_consumable_event::<StageWaitEvent>()
             .add_persistent_consumable_event::<StageCompletionEvent>()
             .add_persistent_consumable_event::<StageFailureEvent>()
             .insert_resource(WorkflowTypeModuleRegistry::default())
@@ -68,6 +72,7 @@ impl Plugin for WorkflowPlugin {
             .insert_resource(RenderWhileStageBuffer::default())
             .insert_resource(AsyncStageBuffer::default())
             .insert_resource(render_while_workflow_state_extract_reintegration_event_receiver)
+            .insert_resource(wait_receiver)
             .insert_resource(completion_receiver)
             .insert_resource(failure_receiver)
             .insert_resource(WorkflowRequestReceiver(workflow_request_receiver))
@@ -88,7 +93,7 @@ impl Plugin for WorkflowPlugin {
             .insert_resource(WorkflowResponseIOESender(workflow_response_ioe_sender))
             .add_systems(
                 PreUpdate,
-                (stage_completion_relay_system, stage_failure_relay_system),
+                (stage_wait_relay_system, stage_completion_relay_system, stage_failure_relay_system),
             )
             .add_systems(
                 Update,

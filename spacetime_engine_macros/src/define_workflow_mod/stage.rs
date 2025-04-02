@@ -2284,8 +2284,6 @@ impl TypedStage<EcsWhile> {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageEcsWhile,
                             | {
-                                // TODO: IMPORTANT: Empty responses should be handled for non-while stages, and should outright panic for while stages
-                                // Note: Currently, we simply ignore the response and do nothing if it is empty, always, in every case, lol 
                                 response.map(|response| {
                                     let outcome: crate::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
                                     
