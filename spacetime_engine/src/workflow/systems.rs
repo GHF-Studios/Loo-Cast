@@ -54,8 +54,6 @@ pub(super) fn extract_render_while_stage_buffer_system(world: &mut World) {
     }
 }
 
-// TODO: DROPOFF 1
-// TODO: Implement changes to the 4 other poll_*_systems and (re-)implement the receiving end of completion/failure handling
 pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
     let drained_buffer = {
         let mut buffer = world.resource_mut::<EcsStageBuffer>();
