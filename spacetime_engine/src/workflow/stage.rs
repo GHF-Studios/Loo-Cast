@@ -16,6 +16,26 @@ pub enum StageSignature {
     IO,
     IOE,
 }
+impl StageSignature {
+    pub fn has_input(&self) -> bool {
+        match self {
+            StageSignature::I | StageSignature::IE | StageSignature::IO | StageSignature::IOE => true,
+            _ => false,
+        }
+    }
+    pub fn has_output(&self) -> bool {
+        match self {
+            StageSignature::O | StageSignature::OE | StageSignature::IO | StageSignature::IOE => true,
+            _ => false,
+        }
+    }
+    pub fn has_error(&self) -> bool {
+        match self {
+            StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => true,
+            _ => false,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StageType {

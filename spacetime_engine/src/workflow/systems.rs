@@ -69,16 +69,21 @@ pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
         let run_ecs = &mut stage.run_ecs;
         let handle_ecs_response = &mut stage.handle_ecs_response;
         let completion_sender = completion_sender.clone();
-        let failure_sender = failure_sender.clone();
+        let failure_sender = if stage.signature.has_error() {
+            Some(failure_sender.clone())
+        } else {
+            None
+        };
 
-        let output = (run_ecs)(data_buffer, world);
-        (handle_ecs_response)(
+        let response = (run_ecs)(data_buffer, world);
+        let handler = (handle_ecs_response)(
             module_name,
             workflow_name,
-            output,
+            response,
             completion_sender,
             failure_sender,
         );
+        handler(stage);
     }
 }
 pub(super) fn poll_render_stage_buffer_system(world: &mut World) {
@@ -87,27 +92,28 @@ pub(super) fn poll_render_stage_buffer_system(world: &mut World) {
         std::mem::take(&mut buffer.0)
     };
 
-    let sender = world
-        .get_resource::<RenderStageCompletionEventSender>()
-        .unwrap()
-        .0
-        .clone();
+    let completion_sender = get_stage_completion_sender();
+    let failure_sender = get_stage_failure_sender();
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
         let run_render = &mut stage.run_render;
-        let output = (run_render)(data_buffer, world);
+        let handle_render_response = &mut stage.handle_render_response;
+        let completion_sender = completion_sender.clone();
+        let failure_sender = if stage.signature.has_error() {
+            Some(failure_sender.clone())
+        } else {
+            None
+        };
 
-        let output_send_result = sender.send((
-            cloned_module_name,
-            cloned_workflow_name,
-            current_stage,
-            stage,
-            output,
-        ));
-
-        if let Err(err) = output_send_result {
-            unreachable!("Render stage completion error: Output send error: {}", err);
-        }
+        let response = (run_render)(data_buffer, world);
+        let handler = (handle_render_response)(
+            module_name,
+            workflow_name,
+            response,
+            completion_sender,
+            failure_sender,
+        );
+        handler(stage);
     }
 }
 pub(super) fn poll_async_stage_buffer_system(world: &mut World) {
@@ -116,36 +122,33 @@ pub(super) fn poll_async_stage_buffer_system(world: &mut World) {
         std::mem::take(&mut buffer.0)
     };
 
-    let sender = &world
-        .get_resource::<AsyncStageCompletionEventSender>()
-        .unwrap()
-        .0;
+    let completion_sender = get_stage_completion_sender();
+    let failure_sender = get_stage_failure_sender();
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
         let run_async = &mut stage.run_async;
-        let future = (run_async)(data_buffer);
-
-        let sender = sender.clone();
-        let task_spawn_result = TOKIO_RUNTIME.lock().unwrap().block_on(async {
+        let completion_sender = completion_sender.clone();
+        let failure_sender = if stage.signature.has_error() {
+            Some(failure_sender.clone())
+        } else {
+            None
+        };
+        
+        let response_future = (run_async)(data_buffer);
+        if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
             tokio::spawn(async move {
-                let output = future.await;
-
-                let output_send_result = sender.send((
-                    cloned_module_name,
-                    cloned_workflow_name,
-                    current_stage,
-                    stage,
-                    output,
-                ));
-
-                if let Err(err) = output_send_result {
-                    unreachable!("Async stage completion error: Output send error: {}", err);
-                }
+                let response = response_future.await;
+                let handler = (stage.handle_async_response)(
+                    module_name,
+                    workflow_name,
+                    response,
+                    completion_sender,
+                    failure_sender,
+                );
+                handler(stage);
             })
             .await
-        });
-
-        if let Err(err) = task_spawn_result {
+        }) {
             unreachable!("Async stage execution error: Task spawn error: {}", err);
         }
     }
@@ -156,75 +159,62 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
         std::mem::take(&mut buffer.0)
     };
 
-    let sender = world
-        .get_resource::<EcsWhileStageCompletionEventSender>()
-        .unwrap()
-        .0
-        .clone();
-
-    let mut waiting_buffer = Vec::new();
+    let wait_sender = get_stage_wait_sender();
+    let completion_sender = get_stage_completion_sender();
+    let failure_sender = get_stage_failure_sender();
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let mut workflow_map = SystemState::<ResMut<WorkflowMap>>::new(world).get_mut(world);
-        let workflow_instance = workflow_map
-            .map
-            .get_mut(module_name)
-            .and_then(|workflows| workflows.get_mut(workflow_name))
-            .unwrap();
-
-        let state = if let WorkflowState::Processing {
-            current_stage: _,
-            current_stage_type: _,
-            stage_initialized,
-            stage_completed: _,
-        } = &mut workflow_instance.state()
-        {
-            if !*stage_initialized {
-                let setup_ecs_while = &mut stage.setup_ecs_while;
-                let state = (setup_ecs_while)(data_buffer, world);
-
-                *stage_initialized = true;
-
-                state
-            } else {
-                data_buffer
-            }
+        let run_ecs_while = &mut stage.run_ecs_while;
+        let handle_ecs_while_response = &mut stage.handle_ecs_while_response;
+        let completion_sender = completion_sender.clone();
+        let failure_sender = if stage.signature.has_error() {
+            Some(failure_sender.clone())
         } else {
-            unreachable!(
-                "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
-                workflow_instance.state()
-            );
+            None
         };
 
-        let run_ecs_while = &mut stage.run_ecs_while;
-        let outcome = (run_ecs_while)(state, world);
-        let outcome = *outcome.downcast().unwrap();
+        let state = {
+            let mut workflow_map = SystemState::<ResMut<WorkflowMap>>::new(world).get_mut(world);
+            let workflow_instance = workflow_map
+                .map
+                .get_mut(module_name)
+                .and_then(|workflows| workflows.get_mut(workflow_name))
+                .unwrap();
 
-        match outcome {
-            Outcome::Wait(state_data) => {
-                waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
-            }
-            Outcome::Done(output_data) => {
-                let response_send_result = sender.send((
-                    cloned_module_name,
-                    cloned_workflow_name,
-                    current_stage,
-                    stage,
-                    output_data,
-                ));
+            if let WorkflowState::Processing {
+                current_stage: _,
+                current_stage_type: _,
+                stage_initialized,
+                stage_completed: _,
+            } = &mut workflow_instance.state() {
+                if !*stage_initialized {
+                    let setup_ecs_while = &mut stage.setup_ecs_while;
+                    let state = (setup_ecs_while)(data_buffer, world);
 
-                if let Err(err) = response_send_result {
-                    unreachable!(
-                        "Ecs while stage completion error: Output send error: {}",
-                        err
-                    );
+                    *stage_initialized = true;
+
+                    state
+                } else {
+                    data_buffer
                 }
+            } else {
+                unreachable!(
+                    "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                    workflow_instance.state()
+                );
             }
-        }
+        };
+        let response = (run_ecs_while)(state, world);
+        let handler = (handle_ecs_while_response)(
+            module_name,
+            workflow_name,
+            Some(response),
+            wait_sender.clone(),
+            completion_sender,
+            failure_sender,
+        );
+        handler(stage);
     }
-
-    let mut buffer = world.resource_mut::<EcsWhileStageBuffer>();
-    buffer.0 = waiting_buffer;
 }
 pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
     let drained_buffer = {
@@ -238,39 +228,47 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
         .0
         .clone();
 
-    let sender = world
-        .get_resource::<RenderWhileStageCompletionEventSender>()
-        .unwrap()
-        .0
-        .clone();
+    let wait_sender = get_stage_wait_sender();
+    let completion_sender = get_stage_completion_sender();
+    let failure_sender = get_stage_failure_sender();
 
-    let mut waiting_buffer = Vec::new();
+    let mut remaining_buffer = Vec::new();
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let render_workflow_state_extract =
-            SystemState::<ResMut<RenderWhileWorkflowStateExtract>>::new(world).get_mut(world);
-        let stage_initialized = &mut render_workflow_state_extract
-            .0
-            .iter()
-            .find(|(m, w, _, _)| m == &module_name && w == &workflow_name)
-            .map(|(_, _, _, s)| *s);
-
-        let stage_initialized = match stage_initialized {
-            Some(stage_initialized) => stage_initialized,
-            None => {
-                warn!("Render while stage buffer system error: Stage initialized state not found for workflow '{}', module '{}'", workflow_name, module_name);
-                waiting_buffer.push((
-                    module_name,
-                    workflow_name,
-                    current_stage,
-                    stage,
-                    data_buffer,
-                ));
-                continue;
-            }
+        let run_render_while = &mut stage.run_render_while;
+        let handle_render_while_response = &mut stage.handle_render_while_response;
+        let wait_sender = wait_sender.clone();
+        let completion_sender = completion_sender.clone();
+        let failure_sender = if stage.signature.has_error() {
+            Some(failure_sender.clone())
+        } else {
+            None
         };
 
         let state = {
+            let render_workflow_state_extract =
+                SystemState::<ResMut<RenderWhileWorkflowStateExtract>>::new(world).get_mut(world);
+            let stage_initialized = &mut render_workflow_state_extract
+                .0
+                .iter()
+                .find(|(m, w, _, _)| m == &module_name && w == &workflow_name)
+                .map(|(_, _, _, s)| *s);
+    
+            let stage_initialized = match stage_initialized {
+                Some(stage_initialized) => stage_initialized,
+                None => {
+                    warn!("Render while stage buffer system error: Stage initialized state not found for workflow '{}', module '{}'", workflow_name, module_name);
+                    remaining_buffer.push((
+                        module_name,
+                        workflow_name,
+                        current_stage,
+                        stage,
+                        data_buffer,
+                    ));
+                    continue;
+                }
+            };
+
             if !*stage_initialized {
                 let setup_render_while = &mut stage.setup_render_while;
                 let state = (setup_render_while)(data_buffer, world);
@@ -286,34 +284,17 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
                 data_buffer
             }
         };
-
-        let run_render_while = &mut stage.run_render_while;
-        let outcome = (run_render_while)(state, world);
-        let outcome = *outcome.downcast().unwrap();
-
-        match outcome {
-            Outcome::Wait(state_data) => {
-                waiting_buffer.push((module_name, workflow_name, current_stage, stage, state_data));
-            }
-            Outcome::Done(output_data) => {
-                if let Err(err) = sender.send((
-                    cloned_module_name,
-                    cloned_workflow_name,
-                    current_stage,
-                    stage,
-                    output_data,
-                )) {
-                    unreachable!(
-                        "Render while stage completion error: Output send error: {}",
-                        err
-                    );
-                }
-            }
-        }
+        let response = (run_render_while)(state, world);
+        let handler = (handle_render_while_response)(
+            module_name,
+            workflow_name,
+            Some(response),
+            wait_sender.clone(),
+            completion_sender,
+            failure_sender,
+        );
+        handler(stage);
     }
-
-    let mut buffer = world.resource_mut::<RenderWhileStageBuffer>();
-    buffer.0 = waiting_buffer;
 }
 
 pub(super) fn render_while_workflow_state_extract_reintegration_system(world: &mut World) {
