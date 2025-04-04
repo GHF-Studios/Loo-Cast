@@ -73,7 +73,8 @@ pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
             None
         };
 
-        let response = (run_ecs)(data_buffer, world);
+        let input = data_buffer;
+        let response = (run_ecs)(input, world);
         let handler = (handle_ecs_response)(
             module_name,
             workflow_name,
@@ -103,7 +104,8 @@ pub(super) fn poll_render_stage_buffer_system(world: &mut World) {
             None
         };
 
-        let response = (run_render)(data_buffer, world);
+        let input = data_buffer;
+        let response = (run_render)(input, world);
         let handler = (handle_render_response)(
             module_name,
             workflow_name,
@@ -132,7 +134,8 @@ pub(super) fn poll_async_stage_buffer_system(world: &mut World) {
             None
         };
         
-        let response_future = (run_async)(data_buffer);
+        let input = data_buffer;
+        let response_future = (run_async)(input);
         if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
             tokio::spawn(async move {
                 let response = response_future.await;
@@ -187,7 +190,9 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
             } = &mut workflow_instance.state() {
                 if !*stage_initialized {
                     let setup_ecs_while = &mut stage.setup_ecs_while;
-                    let state = (setup_ecs_while)(data_buffer, world);
+
+                    let input = data_buffer;
+                    let state = (setup_ecs_while)(input, world);
 
                     *stage_initialized = true;
 
@@ -269,7 +274,9 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
 
             if !*stage_initialized {
                 let setup_render_while = &mut stage.setup_render_while;
-                let state = (setup_render_while)(data_buffer, world);
+                
+                let input = data_buffer;
+                let state = (setup_render_while)(input, world);
 
                 *stage_initialized = true;
 
@@ -821,71 +828,9 @@ pub(super) fn workflow_execution_system(world: &mut World) {
         let workflow_name = event.workflow_name;
         let stage_input = event.stage_input;
 
-        if let Some(workflows) = workflow_map.map.get_mut(module_name) {
+        let workflow_instance = if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
-                let current_state = instance.state();
-                let current_stage = current_state.current_stage();
-
-                let workflow_type = workflow_type_module_registry
-                    .get_workflow_type_mut(module_name, workflow_name)
-                    .unwrap();
-
-                let stage = std::mem::replace(
-                    &mut workflow_type.stages[current_stage],
-                    Stage::Ecs(super::stage::StageEcs {
-                        name: "placeholder",
-                        run_ecs: Box::new(|_, _| unreachable!()),
-                        data_type_transmuter: Box::new(|_| unreachable!()),
-                    }),
-                );
-
-                match stage {
-                    Stage::Ecs(stage) => {
-                        ecs_stage_buffer.0.push((
-                            module_name,
-                            workflow_name,
-                            current_stage,
-                            stage,
-                            stage_input,
-                        ));
-                    }
-                    Stage::Render(stage) => {
-                        render_stage_buffer.0.push((
-                            module_name,
-                            workflow_name,
-                            current_stage,
-                            stage,
-                            stage_input,
-                        ));
-                    }
-                    Stage::Async(stage) => {
-                        async_stage_buffer.0.push((
-                            module_name,
-                            workflow_name,
-                            current_stage,
-                            stage,
-                            stage_input,
-                        ));
-                    }
-                    Stage::EcsWhile(stage) => {
-                        ecs_while_stage_buffer.0.push((
-                            module_name,
-                            workflow_name,
-                            current_stage,
-                            stage,
-                            stage_input,
-                        ));
-                    }
-                    Stage::RenderWhile(stage) => {
-                        render_while_stage_buffer.0.push((
-                            module_name,
-                            workflow_name,
-                            current_stage,
-                            stage,
-                            stage_input,
-                        ));
-                    }
-                }
+                instance
             } else {
                 unreachable!(
                     "Workflow instance not found for module '{}' and name '{}'",
@@ -897,12 +842,86 @@ pub(super) fn workflow_execution_system(world: &mut World) {
                 "Workflow instance module not found for name '{}'",
                 module_name
             );
+        };
+        
+        let current_state = workflow_instance.state();
+        let current_stage = current_state.current_stage();
+
+        let workflow_type = workflow_type_module_registry
+            .get_workflow_type_mut(module_name, workflow_name)
+            .unwrap();
+
+        let stage = std::mem::replace(
+            &mut workflow_type.stages[current_stage],
+            Stage::Ecs(super::stage::StageEcs {
+                index: 0,
+                name: "placeholder",
+                signature: super::stage::StageSignature::None,
+                run_ecs: Box::new(|_, _| unreachable!()),
+                handle_ecs_response: Box::new(|_, _, _, _, _| unreachable!()),
+                completion_sender: get_stage_completion_sender().clone(),
+                failure_sender: None,
+            }),
+        );
+
+        match stage {
+            Stage::Ecs(stage) => {
+                ecs_stage_buffer.0.push((
+                    module_name,
+                    workflow_name,
+                    current_stage,
+                    stage,
+                    stage_input,
+                ));
+            }
+            Stage::Render(stage) => {
+                render_stage_buffer.0.push((
+                    module_name,
+                    workflow_name,
+                    current_stage,
+                    stage,
+                    stage_input,
+                ));
+            }
+            Stage::Async(stage) => {
+                async_stage_buffer.0.push((
+                    module_name,
+                    workflow_name,
+                    current_stage,
+                    stage,
+                    stage_input,
+                ));
+            }
+            Stage::EcsWhile(stage) => {
+                ecs_while_stage_buffer.0.push((
+                    module_name,
+                    workflow_name,
+                    current_stage,
+                    stage,
+                    stage_input,
+                ));
+            }
+            Stage::RenderWhile(stage) => {
+                render_while_stage_buffer.0.push((
+                    module_name,
+                    workflow_name,
+                    current_stage,
+                    stage,
+                    stage_input,
+                ));
+            }
         }
     }
 }
 
+pub(super) fn stage_waiting_handling_system(world: &mut World) {}
+
+pub(super) fn stage_completion_handling_system(world: &mut World) {}
+
+pub(super) fn stage_failure_handling_system(world: &mut World) {}
+
 // TODO: MAJOR: Touch this system with a lange Zange and a Gefahrenschutzanzug
-pub(super) fn workflow_completion_handling_system(world: &mut World) {
+pub(super) fn OLD_workflow_completion_handling_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>,
         ResMut<WorkflowTypeModuleRegistry>,
