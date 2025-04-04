@@ -118,13 +118,10 @@ fn pre_startup_system(
     //commands.run_system(id);
 
     // --- Initialize workflow framework ---
-    info!("Registering workflow type modules");
     crate::chunk::workflows::chunk::register_workflow_type_module(
         &mut workflow_type_module_registry,
     );
-    info!("Registered 'chunk' workflow module");
     crate::gpu::workflows::gpu::register_workflow_type_module(&mut workflow_type_module_registry);
-    info!("Registered 'gpu' workflow module");
 }
 
 // --- Fully expanded oneshot composite workflow `test_workflow_framework` ---

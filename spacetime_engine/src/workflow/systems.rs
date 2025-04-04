@@ -133,7 +133,7 @@ pub(super) fn poll_async_stage_buffer_system(world: &mut World) {
         } else {
             None
         };
-        
+
         let input = data_buffer;
         let response_future = (run_async)(input);
         if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
@@ -187,7 +187,8 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
                 current_stage_type: _,
                 stage_initialized,
                 stage_completed: _,
-            } = &mut workflow_instance.state() {
+            } = &mut workflow_instance.state()
+            {
                 if !*stage_initialized {
                     let setup_ecs_while = &mut stage.setup_ecs_while;
 
@@ -256,7 +257,7 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
                 .iter()
                 .find(|(m, w, _, _)| m == &module_name && w == &workflow_name)
                 .map(|(_, _, _, s)| *s);
-    
+
             let stage_initialized = match stage_initialized {
                 Some(stage_initialized) => stage_initialized,
                 None => {
@@ -274,7 +275,7 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
 
             if !*stage_initialized {
                 let setup_render_while = &mut stage.setup_render_while;
-                
+
                 let input = data_buffer;
                 let state = (setup_render_while)(input, world);
 
@@ -842,7 +843,7 @@ pub(super) fn workflow_execution_system(world: &mut World) {
                 module_name
             );
         };
-        
+
         let current_state = workflow_instance.state();
         let current_stage = current_state.current_stage();
 
@@ -970,14 +971,14 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         workflow_name,
                         current_stage,
                         current_stage_type,
-                        stage_output
+                        stage_output,
                     ));
                 } else {
                     final_stage_completions.push((
                         module_name,
                         workflow_name,
                         instance.take_callback(),
-                        stage_output
+                        stage_output,
                     ));
                 }
 
@@ -1024,60 +1025,56 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
     }
     for (callback, data) in callbacks {
         match callback {
-            WorkflowCallback::None(callback) => {
-                (callback)()
-            },
+            WorkflowCallback::None(callback) => (callback)(),
             WorkflowCallback::E(callback) => {
                 let data = match data {
                     Some(data) => data,
                     None => unreachable!("Workflow callback error: Expected data, but got None."),
                 };
-                
+
                 (callback)(data)
-            },
+            }
             WorkflowCallback::O(callback) => {
                 let data = match data {
                     Some(data) => data,
                     None => unreachable!("Workflow callback error: Expected data, but got None."),
                 };
-                
+
                 (callback)(data)
-            },
+            }
             WorkflowCallback::OE(callback) => {
                 let data = match data {
                     Some(data) => data,
                     None => unreachable!("Workflow callback error: Expected data, but got None."),
                 };
-                
+
                 (callback)(data)
-            },
-            WorkflowCallback::I(callback) => {
-                (callback)()
-            },
+            }
+            WorkflowCallback::I(callback) => (callback)(),
             WorkflowCallback::IE(callback) => {
                 let data = match data {
                     Some(data) => data,
                     None => unreachable!("Workflow callback error: Expected data, but got None."),
                 };
-                
+
                 (callback)(data)
-            },
+            }
             WorkflowCallback::IO(callback) => {
                 let data = match data {
                     Some(data) => data,
                     None => unreachable!("Workflow callback error: Expected data, but got None."),
                 };
-                
+
                 (callback)(data)
-            },
+            }
             WorkflowCallback::IOE(callback) => {
                 let data = match data {
                     Some(data) => data,
                     None => unreachable!("Workflow callback error: Expected data, but got None."),
                 };
-                
+
                 (callback)(data)
-            },
+            }
         }
     }
 }

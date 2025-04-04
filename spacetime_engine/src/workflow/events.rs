@@ -4,14 +4,14 @@ use std::any::Any;
 use super::stage::{Stage, StageType};
 
 #[derive(Event)]
-pub(crate) struct StageInitializationEvent {
+pub struct StageInitializationEvent {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub stage_input: Option<Box<dyn Any + Send + Sync>>,
 }
 
 #[derive(Event)]
-pub(crate) struct StageWaitEvent {
+pub struct StageWaitEvent {
     pub ty: StageType,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
@@ -21,7 +21,7 @@ pub(crate) struct StageWaitEvent {
 }
 
 #[derive(Event)]
-pub(crate) struct StageCompletionEvent {
+pub struct StageCompletionEvent {
     pub ty: StageType,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
@@ -31,7 +31,7 @@ pub(crate) struct StageCompletionEvent {
 }
 
 #[derive(Event)]
-pub(crate) struct StageFailureEvent {
+pub struct StageFailureEvent {
     pub ty: StageType,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
