@@ -131,6 +131,7 @@ impl Plugin for WorkflowPlugin {
                 (
                     render_while_workflow_state_extract_reintegration_system,
                     (
+                        workflow_setup_handling_system,
                         workflow_wait_handling_system,
                         workflow_completion_handling_system,
                         workflow_failure_handling_system,

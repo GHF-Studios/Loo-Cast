@@ -204,13 +204,14 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
 
             let input = data_buffer;
             let response = (setup_ecs_while)(input, world);
-            (handle_ecs_while_setup_response)(
+            let handler = (handle_ecs_while_setup_response)(
                 module_name,
                 workflow_name,
                 response,
                 setup_sender.clone(),
                 failure_sender.clone(),
             );
+            handler(stage);
 
             *stage_initialized = true;
         } else {
@@ -286,13 +287,14 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
 
             let input = data_buffer;
             let response = (setup_render_while)(input, world);
-            (handle_render_while_setup_response)(
+            let handler = (handle_render_while_setup_response)(
                 module_name,
                 workflow_name,
                 response,
                 setup_sender.clone(),
                 failure_sender.clone(),
             );
+            handler(stage);
 
             *stage_initialized = true;
 

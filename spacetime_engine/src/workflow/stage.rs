@@ -237,7 +237,8 @@ pub struct StageEcsWhile {
                 Option<Box<dyn Any + Send + Sync>>,
                 Sender<StageSetupEvent>,
                 Option<Sender<StageFailureEvent>>,
-            ) + Send
+            ) -> Box<dyn FnOnce(StageEcsWhile)>
+            + Send
             + Sync,
     >,
     pub handle_ecs_while_run_response: Box<
@@ -282,7 +283,8 @@ pub struct StageRenderWhile {
                 Option<Box<dyn Any + Send + Sync>>,
                 Sender<StageSetupEvent>,
                 Option<Sender<StageFailureEvent>>,
-            ) + Send
+            ) -> Box<dyn FnOnce(StageRenderWhile)>
+            + Send
             + Sync,
     >,
     pub handle_render_while_run_response: Box<
