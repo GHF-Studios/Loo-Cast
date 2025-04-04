@@ -1748,8 +1748,8 @@ impl TypedStage<EcsWhile> {
         let (ecs_while_setup_response_handler, ecs_while_run_response_handler) = if !is_last {
             // TODO: Implement ecs_while_setup_response_handler
             let ecs_while_setup_response_handler = match (
-                this_stage_state_type_path, 
-                this_stage_err_type_path
+                this_stage_state_type_path,
+                this_stage_err_type_path,
             ) {
                 (Some(this_state_path), Some(this_err_path)) => {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
@@ -1759,7 +1759,7 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
                     | -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         let response = response.expect("EcsWhile stages with state and error must have a response");
@@ -1810,7 +1810,7 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         let response = response.expect("EcsWhile stages with state must have a response");
@@ -1837,7 +1837,7 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
                     | -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         let response = response.expect("EcsWhile stages with error must have a response");
@@ -1886,7 +1886,7 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         _response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
@@ -1909,7 +1909,12 @@ impl TypedStage<EcsWhile> {
                 this_stage_err_type_path,
                 next_stage_in_type_path,
             ) {
-                (Some(this_state_path), Some(this_out_path), Some(this_err_path), Some(next_in_path)) => {
+                (
+                    Some(this_state_path),
+                    Some(this_out_path),
+                    Some(this_err_path),
+                    Some(next_in_path),
+                ) => {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
@@ -2860,7 +2865,7 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
                     | -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         let response = response.expect("RenderWhile stages with state and error must have a response");
@@ -2911,7 +2916,7 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         let response = response.expect("RenderWhile stages with state must have a response");
@@ -2939,7 +2944,7 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         let response = response.expect("RenderWhile stages with error must have a response");
@@ -2988,7 +2993,7 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | -> Option<Box<dyn std::any::Any + Send + Sync>> {
                         let response = response.expect("RenderWhile stages must have a response");
@@ -3014,7 +3019,12 @@ impl TypedStage<RenderWhile> {
                 this_stage_err_type_path,
                 next_stage_in_type_path,
             ) {
-                (Some(this_state_path), Some(this_out_path), Some(this_err_path), Some(next_in_path)) => {
+                (
+                    Some(this_state_path),
+                    Some(this_out_path),
+                    Some(this_err_path),
+                    Some(next_in_path),
+                ) => {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
