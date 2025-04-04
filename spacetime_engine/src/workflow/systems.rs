@@ -353,9 +353,10 @@ pub(super) fn render_while_workflow_state_extract_reintegration_system(world: &m
     }
 }
 
+/// Note: We actually convert the event from 'setup' to 'wait', seeing as the event handler logic from post-setup is identical to that of post-wait
 pub(super) fn stage_setup_relay_system(
     stage_event_receiver: Res<StageSetupEventReceiver>,
-    mut stage_event_writer: ConsumableEventWriter<StageSetupEvent>,
+    mut stage_event_writer: ConsumableEventWriter<StageWaitEvent>,
 ) {
     while let Ok(StageSetupEvent {
         ty,
@@ -366,7 +367,7 @@ pub(super) fn stage_setup_relay_system(
         stage_state,
     }) = stage_event_receiver.0.try_recv()
     {
-        stage_event_writer.send(StageSetupEvent {
+        stage_event_writer.send(StageWaitEvent {
             ty,
             module_name,
             workflow_name,
@@ -822,6 +823,11 @@ pub(super) fn workflow_request_system(world: &mut World) {
                         workflow_name,
                         stage_input: input,
                     });
+
+                    info!(
+                        "Workflow '{}' in module '{}' has been requested. Initializing workflow..",
+                        workflow_name, module_name
+                    );
                 }
                 WorkflowState::Processing { .. } => {
                     // Skip this workflow instance, as it is already being processed
@@ -839,7 +845,7 @@ pub(super) fn workflow_request_system(world: &mut World) {
     }
 }
 
-pub(super) fn workflow_execution_system(world: &mut World) {
+pub(super) fn workflow_initialization_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>,
         ResMut<WorkflowTypeModuleRegistry>,
@@ -950,16 +956,47 @@ pub(super) fn workflow_execution_system(world: &mut World) {
                     stage_input,
                 ));
             }
-        }
+        };
+
+        info!(
+            "Workflow '{}' in module '{}' has been initialized. Processing workflow..",
+            workflow_name, module_name
+        );
     }
 }
 
 // TODO: MAJOR: Touch this system with a lange Zange and a Gefahrenschutzanzug
-pub(super) fn workflow_setup_handling_system(world: &mut World) {}
+pub(super) fn workflow_wait_handling_system(world: &mut World) {
+    let mut system_state: SystemState<(
+        ResMut<WorkflowTypeModuleRegistry>,
+        ConsumableEventReader<StageWaitEvent>,
+    )> = SystemState::new(world);
+    let (
+        mut workflow_type_module_registry,
+        mut stage_wait_event_reader,
+    ) = system_state.get_mut(world);
+
+    for event in stage_wait_event_reader.read() {
+        let event = event.consume();
+        let module_name = event.module_name;
+        let workflow_name = event.workflow_name;
+        let current_stage = event.current_stage;
+        let stage_return = event.stage_return;
+
+        let workflow_type = workflow_type_module_registry
+            .get_workflow_type_mut(module_name, workflow_name)
+            .unwrap();
+
+        workflow_type.stages[current_stage] = stage_return;
+
+        info!(
+            "Workflow '{}' in module '{}' is awaiting completion of stage '{}'..",
+            workflow_name, module_name, current_stage
+        )
+    }
+}
 
 // TODO: MAJOR: Touch this system with a lange Zange and a Gefahrenschutzanzug
-pub(super) fn workflow_wait_handling_system(world: &mut World) {}
-
 pub(super) fn workflow_completion_handling_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>,
@@ -1020,6 +1057,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                     final_stage_completions.push((
                         module_name,
                         workflow_name,
+                        current_stage,
                         instance.take_callback(),
                         stage_output,
                     ));
@@ -1054,73 +1092,121 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                     workflow_name,
                     stage_input: stage_output,
                 });
+
+                info!(
+                    "Workflow '{}' in module '{}' has completed intermediate stage '{}'. Moving to next stage..",
+                    workflow_name, module_name, current_stage
+                );
             }
         }
     }
 
     // Handle final stage completions
-    let mut callbacks = Vec::new();
-    for (module_name, workflow_name, callback, stage_output) in final_stage_completions {
+    for (module_name, workflow_name, current_stage, callback, stage_output) in final_stage_completions {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             workflows.remove(workflow_name);
-            callbacks.push((callback, stage_output));
-        }
-    }
-    for (callback, data) in callbacks {
-        match callback {
-            WorkflowCallback::None(callback) => (callback)(),
-            WorkflowCallback::E(callback) => {
-                let data = match data {
-                    Some(data) => data,
-                    None => unreachable!("Workflow callback error: Expected data, but got None."),
-                };
 
-                (callback)(data)
-            }
-            WorkflowCallback::O(callback) => {
-                let data = match data {
-                    Some(data) => data,
-                    None => unreachable!("Workflow callback error: Expected data, but got None."),
-                };
+            info!(
+                "Workflow '{}' in module '{}' has completed final stage '{}'. Invoking callback..",
+                workflow_name, module_name, current_stage
+            );
 
-                (callback)(data)
-            }
-            WorkflowCallback::OE(callback) => {
-                let data = match data {
-                    Some(data) => data,
-                    None => unreachable!("Workflow callback error: Expected data, but got None."),
-                };
-
-                (callback)(data)
-            }
-            WorkflowCallback::I(callback) => (callback)(),
-            WorkflowCallback::IE(callback) => {
-                let data = match data {
-                    Some(data) => data,
-                    None => unreachable!("Workflow callback error: Expected data, but got None."),
-                };
-
-                (callback)(data)
-            }
-            WorkflowCallback::IO(callback) => {
-                let data = match data {
-                    Some(data) => data,
-                    None => unreachable!("Workflow callback error: Expected data, but got None."),
-                };
-
-                (callback)(data)
-            }
-            WorkflowCallback::IOE(callback) => {
-                let data = match data {
-                    Some(data) => data,
-                    None => unreachable!("Workflow callback error: Expected data, but got None."),
-                };
-
-                (callback)(data)
-            }
+            match callback {
+                WorkflowCallback::None(callback) => (callback)(),
+                WorkflowCallback::E(callback) => {
+                    let data = match stage_output {
+                        Some(data) => data,
+                        None => unreachable!("Workflow callback error: Expected data, but got None."),
+                    };
+    
+                    (callback)(data)
+                }
+                WorkflowCallback::O(callback) => {
+                    let data = match stage_output {
+                        Some(data) => data,
+                        None => unreachable!("Workflow callback error: Expected data, but got None."),
+                    };
+    
+                    (callback)(data)
+                }
+                WorkflowCallback::OE(callback) => {
+                    let data = match stage_output {
+                        Some(data) => data,
+                        None => unreachable!("Workflow callback error: Expected data, but got None."),
+                    };
+    
+                    (callback)(data)
+                }
+                WorkflowCallback::I(callback) => (callback)(),
+                WorkflowCallback::IE(callback) => {
+                    let data = match stage_output {
+                        Some(data) => data,
+                        None => unreachable!("Workflow callback error: Expected data, but got None."),
+                    };
+    
+                    (callback)(data)
+                }
+                WorkflowCallback::IO(callback) => {
+                    let data = match stage_output {
+                        Some(data) => data,
+                        None => unreachable!("Workflow callback error: Expected data, but got None."),
+                    };
+    
+                    (callback)(data)
+                }
+                WorkflowCallback::IOE(callback) => {
+                    let data = match stage_output {
+                        Some(data) => data,
+                        None => unreachable!("Workflow callback error: Expected data, but got None."),
+                    };
+    
+                    (callback)(data)
+                }
+            };
         }
     }
 }
 
 // TODO: MAJOR: Touch this system with a lange Zange and a Gefahrenschutzanzug
-pub(super) fn workflow_failure_handling_system(world: &mut World) {}
+pub(super) fn workflow_failure_handling_system(world: &mut World) {
+    let mut system_state: SystemState<(
+        ResMut<WorkflowMap>,
+        ResMut<WorkflowTypeModuleRegistry>,
+        ConsumableEventReader<StageFailureEvent>,
+    )> = SystemState::new(world);
+    let (
+        mut workflow_map,
+        mut workflow_type_module_registry,
+        mut stage_failure_event_reader,
+    ) = system_state.get_mut(world);
+
+    let mut stage_failures = Vec::new();
+
+    for event in stage_failure_event_reader.read() {
+        let event = event.consume();
+        let module_name = event.module_name;
+        let workflow_name = event.workflow_name;
+        let current_stage = event.current_stage;
+        let stage_error = event.stage_error;
+        let stage = event.stage_return;
+
+        let workflow_type = workflow_type_module_registry
+            .get_workflow_type_mut(module_name, workflow_name)
+            .unwrap();
+
+        stage_failures.push((module_name, workflow_name, current_stage, stage_error));
+
+        workflow_type.stages[current_stage] = stage;
+    }
+
+    for (module_name, workflow_name, current_stage, stage_error) in stage_failures {
+        if let Some(workflows) = workflow_map.map.get_mut(module_name) {
+            workflows.remove(workflow_name);
+        }
+
+        error!(
+            "Workflow '{}' in module '{}' has failed at stage '{}'. Error: {:?}",
+            workflow_name, module_name, current_stage, stage_error
+        );
+    }
+}

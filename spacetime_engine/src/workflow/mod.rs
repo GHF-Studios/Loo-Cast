@@ -57,10 +57,12 @@ impl Plugin for WorkflowPlugin {
             initialize_ioe_channels();
 
         app.add_event::<StageInitializationEvent>()
+            .add_event::<StageSetupEvent>()
             .add_event::<StageWaitEvent>()
             .add_event::<StageCompletionEvent>()
             .add_event::<StageFailureEvent>()
             .add_persistent_consumable_event::<StageInitializationEvent>()
+            .add_persistent_consumable_event::<StageSetupEvent>()
             .add_persistent_consumable_event::<StageWaitEvent>()
             .add_persistent_consumable_event::<StageCompletionEvent>()
             .add_persistent_consumable_event::<StageFailureEvent>()
@@ -115,7 +117,7 @@ impl Plugin for WorkflowPlugin {
                     )
                         .before(workflow_request_system),
                     workflow_request_system,
-                    workflow_execution_system.after(workflow_request_system),
+                    workflow_initialization_system.after(workflow_request_system),
                 ),
             )
             .add_systems(
@@ -131,7 +133,6 @@ impl Plugin for WorkflowPlugin {
                 (
                     render_while_workflow_state_extract_reintegration_system,
                     (
-                        workflow_setup_handling_system,
                         workflow_wait_handling_system,
                         workflow_completion_handling_system,
                         workflow_failure_handling_system,
