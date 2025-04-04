@@ -530,7 +530,7 @@ impl TypedStage<Ecs> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageEcs)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcs
                         | {
@@ -591,7 +591,7 @@ impl TypedStage<Ecs> {
                             response: Option<Box<dyn std::any::Any + Send + Sync>>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageEcs)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageEcs
                             | {
@@ -649,7 +649,7 @@ impl TypedStage<Ecs> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageEcs)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcs
                         | {
@@ -679,7 +679,7 @@ impl TypedStage<Ecs> {
                             response: Option<Box<dyn std::any::Any + Send + Sync>>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageEcs)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageEcs,
                             | {
@@ -716,7 +716,7 @@ impl TypedStage<Ecs> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageEcs)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcs
                         | {
@@ -772,7 +772,7 @@ impl TypedStage<Ecs> {
                         _response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageEcs)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcs
                         | {
@@ -799,7 +799,7 @@ impl TypedStage<Ecs> {
                 _response: Option<Box<dyn std::any::Any + Send + Sync>>,
                 _completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                 _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-            | -> Box<dyn FnOnce(crate::workflow::stage::StageEcs)> {
+            | {
                 Box::new(move |
                     _stage: crate::workflow::stage::StageEcs
                 | {
@@ -940,7 +940,7 @@ impl TypedStage<Render> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageRender)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRender
                         | {
@@ -1001,7 +1001,7 @@ impl TypedStage<Render> {
                             response: Option<Box<dyn std::any::Any + Send + Sync>>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageRender)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageRender
                             | {
@@ -1059,7 +1059,7 @@ impl TypedStage<Render> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageRender)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRender
                         | {
@@ -1089,7 +1089,7 @@ impl TypedStage<Render> {
                             response: Option<Box<dyn std::any::Any + Send + Sync>>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageRender)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageRender,
                             | {
@@ -1126,7 +1126,7 @@ impl TypedStage<Render> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageRender)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRender
                         | {
@@ -1182,7 +1182,7 @@ impl TypedStage<Render> {
                         _response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageRender)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRender
                         | {
@@ -1209,7 +1209,7 @@ impl TypedStage<Render> {
                 _response: Option<Box<dyn std::any::Any + Send + Sync>>,
                 _completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                 _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-            | -> Box<dyn FnOnce(crate::workflow::stage::StageRender)> {
+            | {
                 Box::new(move |
                     _stage: crate::workflow::stage::StageRender
                 | {
@@ -1350,7 +1350,7 @@ impl TypedStage<Async> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageAsync)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageAsync
                         | {
@@ -1411,7 +1411,7 @@ impl TypedStage<Async> {
                             response: Option<Box<dyn std::any::Any + Send + Sync>>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageAsync)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageAsync
                             | {
@@ -1469,7 +1469,7 @@ impl TypedStage<Async> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageAsync)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageAsync
                         | {
@@ -1499,7 +1499,7 @@ impl TypedStage<Async> {
                             response: Option<Box<dyn std::any::Any + Send + Sync>>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageAsync)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageAsync,
                             | {
@@ -1536,7 +1536,7 @@ impl TypedStage<Async> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageAsync)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageAsync
                         | {
@@ -1592,7 +1592,7 @@ impl TypedStage<Async> {
                         _response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageAsync)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageAsync
                         | {
@@ -1619,7 +1619,7 @@ impl TypedStage<Async> {
                 _response: Option<Box<dyn std::any::Any + Send + Sync>>,
                 _completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                 _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-            | -> Box<dyn FnOnce(crate::workflow::stage::StageAsync)> {
+            | {
                 Box::new(move |
                     _stage: crate::workflow::stage::StageAsync
                 | {
@@ -1761,7 +1761,7 @@ impl TypedStage<EcsWhile> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
-                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                    | {
                         let response = response.expect("EcsWhile stages with state and error must have a response");
                         let result: Result<#this_state_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
@@ -1812,7 +1812,7 @@ impl TypedStage<EcsWhile> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                    | {
                         let response = response.expect("EcsWhile stages with state must have a response");
                         let state: #this_state_path = *response.downcast().expect("Failed to downcast response state data");
                         let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
@@ -1839,7 +1839,7 @@ impl TypedStage<EcsWhile> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
-                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                    | {
                         let response = response.expect("EcsWhile stages with error must have a response");
                         let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
@@ -1888,7 +1888,7 @@ impl TypedStage<EcsWhile> {
                         _response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                    | {
                         if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
                             ty: crate::workflow::stage::StageType::EcsWhile,
                             module_name,
@@ -1925,7 +1925,7 @@ impl TypedStage<EcsWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile
                         | {
@@ -2005,7 +2005,7 @@ impl TypedStage<EcsWhile> {
                             wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageEcsWhile,
                             | {
@@ -2082,7 +2082,7 @@ impl TypedStage<EcsWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile
                         | {
@@ -2132,7 +2132,7 @@ impl TypedStage<EcsWhile> {
                             wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageEcsWhile,
                             | {
@@ -2189,7 +2189,7 @@ impl TypedStage<EcsWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile
                         | {
@@ -2264,7 +2264,7 @@ impl TypedStage<EcsWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile
                         | {
@@ -2313,7 +2313,7 @@ impl TypedStage<EcsWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile
                         | {
@@ -2391,7 +2391,7 @@ impl TypedStage<EcsWhile> {
                             wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageEcsWhile,
                             | {
@@ -2466,7 +2466,7 @@ impl TypedStage<EcsWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile
                         | {
@@ -2515,7 +2515,7 @@ impl TypedStage<EcsWhile> {
                             wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageEcsWhile,
                             | {
@@ -2569,7 +2569,7 @@ impl TypedStage<EcsWhile> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile
                         | {
@@ -2642,7 +2642,7 @@ impl TypedStage<EcsWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile
                         | {
@@ -2702,7 +2702,7 @@ impl TypedStage<EcsWhile> {
                 _wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                 _completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                 _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-            | -> Box<dyn FnOnce(crate::workflow::stage::StageEcsWhile)> {
+            | {
                 Box::new(move |
                     _stage: crate::workflow::stage::StageEcsWhile
                 | {
@@ -2867,7 +2867,7 @@ impl TypedStage<RenderWhile> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
-                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                    | {
                         let response = response.expect("RenderWhile stages with state and error must have a response");
                         let result: Result<#this_state_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
@@ -2918,7 +2918,7 @@ impl TypedStage<RenderWhile> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                    | {
                         let response = response.expect("RenderWhile stages with state must have a response");
                         let state: #this_state_path = *response.downcast().expect("Failed to downcast response result data");
 
@@ -2946,7 +2946,7 @@ impl TypedStage<RenderWhile> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                    | {
                         let response = response.expect("RenderWhile stages with error must have a response");
                         let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
@@ -2995,7 +2995,7 @@ impl TypedStage<RenderWhile> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                    | {
                         let response = response.expect("RenderWhile stages must have a response");
                         let state = Some(response);
 
@@ -3035,7 +3035,7 @@ impl TypedStage<RenderWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile
                         | {
@@ -3115,7 +3115,7 @@ impl TypedStage<RenderWhile> {
                             wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageRenderWhile,
                             | {
@@ -3192,7 +3192,7 @@ impl TypedStage<RenderWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile
                         | {
@@ -3242,7 +3242,7 @@ impl TypedStage<RenderWhile> {
                             wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageRenderWhile,
                             | {
@@ -3299,7 +3299,7 @@ impl TypedStage<RenderWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile
                         | {
@@ -3374,7 +3374,7 @@ impl TypedStage<RenderWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile
                         | {
@@ -3423,7 +3423,7 @@ impl TypedStage<RenderWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile
                         | {
@@ -3501,7 +3501,7 @@ impl TypedStage<RenderWhile> {
                             wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageRenderWhile,
                             | {
@@ -3576,7 +3576,7 @@ impl TypedStage<RenderWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile
                         | {
@@ -3625,7 +3625,7 @@ impl TypedStage<RenderWhile> {
                             wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                             completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                             _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                        | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
+                        | {
                             Box::new(move |
                                 stage: crate::workflow::stage::StageRenderWhile,
                             | {
@@ -3679,7 +3679,7 @@ impl TypedStage<RenderWhile> {
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile
                         | {
@@ -3752,7 +3752,7 @@ impl TypedStage<RenderWhile> {
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-                    | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
+                    | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile
                         | {
@@ -3812,7 +3812,7 @@ impl TypedStage<RenderWhile> {
                 _wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                 _completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                 _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
-            | -> Box<dyn FnOnce(crate::workflow::stage::StageRenderWhile)> {
+            | {
                 Box::new(move |
                     _stage: crate::workflow::stage::StageRenderWhile
                 | {
