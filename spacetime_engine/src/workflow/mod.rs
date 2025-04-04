@@ -123,21 +123,21 @@ impl Plugin for WorkflowPlugin {
             .add_systems(
                 Update,
                 (
-                    poll_ecs_stage_buffer_system,
-                    poll_ecs_while_stage_buffer_system,
-                    poll_async_stage_buffer_system,
+                    //render_while_workflow_state_extract_reintegration_system,
+                    (
+                        poll_ecs_stage_buffer_system,
+                        poll_ecs_while_stage_buffer_system,
+                        poll_async_stage_buffer_system,
+                    )
+                        //.after(render_while_workflow_state_extract_reintegration_system),
                 ),
             )
             .add_systems(
                 PostUpdate,
                 (
-                    render_while_workflow_state_extract_reintegration_system,
-                    (
-                        workflow_wait_handling_system,
-                        workflow_completion_handling_system,
-                        workflow_failure_handling_system,
-                    )
-                        .after(render_while_workflow_state_extract_reintegration_system),
+                    workflow_wait_handling_system,
+                    workflow_completion_handling_system,
+                    workflow_failure_handling_system,
                 ),
             );
 

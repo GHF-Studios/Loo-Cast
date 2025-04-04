@@ -83,6 +83,11 @@ pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
             failure_sender,
         );
         handler(stage);
+
+        info!(
+            "Workflow '{}' in module '{}' has processed stage '{}'.",
+            workflow_name, module_name, current_stage
+        );
     }
 }
 pub(super) fn poll_render_stage_buffer_system(world: &mut World) {
@@ -114,6 +119,11 @@ pub(super) fn poll_render_stage_buffer_system(world: &mut World) {
             failure_sender,
         );
         handler(stage);
+
+        info!(
+            "Workflow '{}' in module '{}' has processed stage '{}'.",
+            workflow_name, module_name, current_stage
+        );
     }
 }
 pub(super) fn poll_async_stage_buffer_system(world: &mut World) {
@@ -147,6 +157,11 @@ pub(super) fn poll_async_stage_buffer_system(world: &mut World) {
                     failure_sender,
                 );
                 handler(stage);
+
+                info!(
+                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                    workflow_name, module_name, current_stage
+                );
             })
             .await
         }) {
@@ -214,6 +229,11 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
             handler(stage);
 
             *stage_initialized = true;
+
+            info!(
+                "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                workflow_name, module_name, current_stage
+            );
         } else {
             let state = data_buffer;
             let response = (run_ecs_while)(state, world);
@@ -226,6 +246,11 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
                 failure_sender,
             );
             handler(stage);
+
+            info!(
+                "Workflow '{}' in module '{}' has processed stage '{}'.",
+                workflow_name, module_name, current_stage
+            );
         }
     }
 }
@@ -246,8 +271,6 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
     let completion_sender = get_stage_completion_sender();
     let failure_sender = get_stage_failure_sender();
 
-    let mut remaining_buffer = Vec::new();
-
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
         let setup_sender = setup_sender.clone();
         let wait_sender = wait_sender.clone();
@@ -264,24 +287,15 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
             .0
             .iter()
             .find(|(m, w, _, _)| m == &module_name && w == &workflow_name)
-            .map(|(_, _, _, s)| *s);
-
-        let stage_initialized = match stage_initialized {
-            Some(stage_initialized) => stage_initialized,
-            None => {
-                warn!("Render while stage buffer system error: Stage initialized state not found for workflow '{}', module '{}'", workflow_name, module_name);
-                remaining_buffer.push((
-                    module_name,
-                    workflow_name,
-                    current_stage,
-                    stage,
-                    data_buffer,
-                ));
-                continue;
-            }
-        };
+            .map(|(_, _, _, s)| *s)
+            .expect("Render while workflow state extract error: 'stage_initialized' not found in workflow state extract");
 
         if !*stage_initialized {
+            info!(
+                "Workflow '{}' in module '{}' is initializing stage '{}'..",
+                workflow_name, module_name, current_stage
+            );
+
             let setup_render_while = &mut stage.setup_render_while;
             let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
 
@@ -301,6 +315,11 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
             extract_reintegration_sender
                 .send((module_name, workflow_name))
                 .unwrap();
+
+            info!(
+                "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                workflow_name, module_name, current_stage
+            );
         } else {
             let run_render_while = &mut stage.run_render_while;
             let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
@@ -316,6 +335,11 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
                 failure_sender,
             );
             handler(stage);
+
+            info!(
+                "Workflow '{}' in module '{}' has processed stage '{}'.",
+                workflow_name, module_name, current_stage
+            );
         }
     }
 }
@@ -959,8 +983,8 @@ pub(super) fn workflow_initialization_system(world: &mut World) {
         };
 
         info!(
-            "Workflow '{}' in module '{}' has been initialized. Processing workflow..",
-            workflow_name, module_name
+            "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+            workflow_name, module_name, current_stage
         );
     }
 }
@@ -968,11 +992,15 @@ pub(super) fn workflow_initialization_system(world: &mut World) {
 // TODO: MAJOR: Touch this system with a lange Zange and a Gefahrenschutzanzug
 pub(super) fn workflow_wait_handling_system(world: &mut World) {
     let mut system_state: SystemState<(
-        ResMut<WorkflowTypeModuleRegistry>,
+        ResMut<WorkflowMap>,
+        ResMut<EcsWhileStageBuffer>,
+        ResMut<RenderWhileStageBuffer>,
         ConsumableEventReader<StageWaitEvent>,
     )> = SystemState::new(world);
     let (
-        mut workflow_type_module_registry,
+        mut workflow_map,
+        mut ecs_while_stage_buffer,
+        mut render_while_stage_buffer,
         mut stage_wait_event_reader,
     ) = system_state.get_mut(world);
 
@@ -982,12 +1010,78 @@ pub(super) fn workflow_wait_handling_system(world: &mut World) {
         let workflow_name = event.workflow_name;
         let current_stage = event.current_stage;
         let stage_return = event.stage_return;
+        let stage_state = event.stage_state;
 
-        let workflow_type = workflow_type_module_registry
-            .get_workflow_type_mut(module_name, workflow_name)
-            .unwrap();
+        let workflow_instance = if let Some(workflows) = workflow_map.map.get_mut(module_name) {
+            if let Some(instance) = workflows.get_mut(workflow_name) {
+                instance
+            } else {
+                unreachable!(
+                    "Workflow instance not found for module '{}' and name '{}'",
+                    module_name, workflow_name
+                );
+            }
+        } else {
+            unreachable!(
+                "Workflow instance module not found for name '{}'",
+                module_name
+            );
+        };
 
-        workflow_type.stages[current_stage] = stage_return;
+        let stage_initialized = match workflow_instance.state_mut() {
+            WorkflowState::Requested => {
+                unreachable!(
+                    "Workflow wait handling error: Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                    workflow_instance.state()
+                )
+            },
+            WorkflowState::Processing {
+                current_stage: _,
+                current_stage_type: _,
+                stage_initialized,
+                stage_completed: _,
+            } => {
+                stage_initialized
+            },
+        };
+
+        *stage_initialized = true;
+
+        match stage_return {
+            Stage::Ecs(_stage) => {
+                unreachable!(
+                    "Workflow wait handling error: Stage type 'Ecs' does not support waiting"
+                );
+            }
+            Stage::Render(_stage) => {
+                unreachable!(
+                    "Workflow wait handling error: Stage type 'Ecs' does not support waiting"
+                );
+            }
+            Stage::Async(_stage) => {
+                unreachable!(
+                    "Workflow wait handling error: Stage type 'Ecs' does not support waiting"
+                );
+            }
+            Stage::EcsWhile(stage) => {
+                ecs_while_stage_buffer.0.push((
+                    module_name,
+                    workflow_name,
+                    current_stage,
+                    stage,
+                    stage_state,
+                ));
+            }
+            Stage::RenderWhile(stage) => {
+                render_while_stage_buffer.0.push((
+                    module_name,
+                    workflow_name,
+                    current_stage,
+                    stage,
+                    stage_state,
+                ));
+            }
+        };
 
         info!(
             "Workflow '{}' in module '{}' is awaiting completion of stage '{}'..",
@@ -1001,14 +1095,22 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>,
         ResMut<WorkflowTypeModuleRegistry>,
+        ResMut<EcsStageBuffer>,
+        ResMut<RenderStageBuffer>,
+        ResMut<AsyncStageBuffer>,
+        ResMut<EcsWhileStageBuffer>,
+        ResMut<RenderWhileStageBuffer>,
         ConsumableEventReader<StageCompletionEvent>,
-        ConsumableEventWriter<StageInitializationEvent>,
     )> = SystemState::new(world);
     let (
         mut workflow_map,
         mut workflow_type_module_registry,
+        mut ecs_stage_buffer,
+        mut render_stage_buffer,
+        mut async_stage_buffer,
+        mut ecs_while_stage_buffer,
+        mut render_while_stage_buffer,
         mut stage_completion_event_reader,
-        mut stage_initialization_event_writer,
     ) = system_state.get_mut(world);
 
     let mut intermediate_stage_completions = Vec::new();
@@ -1069,40 +1171,97 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
     }
 
     // Handle intermediate stage completions
-    for (module_name, workflow_name, current_stage, current_stage_type, stage_output) in
+    for (module_name, workflow_name, stage_index, current_stage_type, stage_output) in
         intermediate_stage_completions
     {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
-                let new_stage_type = workflow_type_module_registry
-                    .get_workflow_type(module_name, workflow_name)
-                    .unwrap()
-                    .stages[current_stage + 1]
-                    .get_type();
+                let workflow_type = workflow_type_module_registry
+                    .get_workflow_type_mut(module_name, workflow_name)
+                    .unwrap();
+
+                let new_stage_index = stage_index + 1;
+                let new_stage = std::mem::replace(
+                    &mut workflow_type.stages[new_stage_index],
+                    Stage::Ecs(super::stage::StageEcs {
+                        index: 0,
+                        name: "placeholder",
+                        signature: super::stage::StageSignature::None,
+                        run_ecs: Box::new(|_, _| unreachable!()),
+                        handle_ecs_run_response: Box::new(|_, _, _, _, _| unreachable!()),
+                        completion_sender: get_stage_completion_sender().clone(),
+                        failure_sender: None,
+                    }),
+                );
+                let new_stage_type = new_stage.get_type();
 
                 *instance.state_mut() = WorkflowState::Processing {
-                    current_stage: current_stage + 1,
+                    current_stage: new_stage_index,
                     current_stage_type: new_stage_type,
                     stage_initialized: false,
                     stage_completed: false,
                 };
 
-                stage_initialization_event_writer.send(StageInitializationEvent {
-                    module_name,
-                    workflow_name,
-                    stage_input: stage_output,
-                });
+                match new_stage {
+                    Stage::Ecs(stage) => {
+                        ecs_stage_buffer.0.push((
+                            module_name,
+                            workflow_name,
+                            new_stage_index,
+                            stage,
+                            stage_output,
+                        ));
+                    }
+                    Stage::Render(stage) => {
+                        render_stage_buffer.0.push((
+                            module_name,
+                            workflow_name,
+                            new_stage_index,
+                            stage,
+                            stage_output,
+                        ));
+                    }
+                    Stage::Async(stage) => {
+                        async_stage_buffer.0.push((
+                            module_name,
+                            workflow_name,
+                            new_stage_index,
+                            stage,
+                            stage_output,
+                        ));
+                    }
+                    Stage::EcsWhile(stage) => {
+                        ecs_while_stage_buffer.0.push((
+                            module_name,
+                            workflow_name,
+                            new_stage_index,
+                            stage,
+                            stage_output,
+                        ));
+                    }
+                    Stage::RenderWhile(stage) => {
+                        render_while_stage_buffer.0.push((
+                            module_name,
+                            workflow_name,
+                            new_stage_index,
+                            stage,
+                            stage_output,
+                        ));
+                    }
+                };
 
                 info!(
-                    "Workflow '{}' in module '{}' has completed intermediate stage '{}'. Moving to next stage..",
-                    workflow_name, module_name, current_stage
+                    "Workflow '{}' in module '{}' has completed intermediate stage '{}'. Moving on to next stage..",
+                    workflow_name, module_name, stage_index
                 );
             }
         }
     }
 
     // Handle final stage completions
-    for (module_name, workflow_name, current_stage, callback, stage_output) in final_stage_completions {
+    for (module_name, workflow_name, current_stage, callback, stage_output) in
+        final_stage_completions
+    {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             workflows.remove(workflow_name);
 
@@ -1116,50 +1275,62 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                 WorkflowCallback::E(callback) => {
                     let data = match stage_output {
                         Some(data) => data,
-                        None => unreachable!("Workflow callback error: Expected data, but got None."),
+                        None => {
+                            unreachable!("Workflow callback error: Expected data, but got None.")
+                        }
                     };
-    
+
                     (callback)(data)
                 }
                 WorkflowCallback::O(callback) => {
                     let data = match stage_output {
                         Some(data) => data,
-                        None => unreachable!("Workflow callback error: Expected data, but got None."),
+                        None => {
+                            unreachable!("Workflow callback error: Expected data, but got None.")
+                        }
                     };
-    
+
                     (callback)(data)
                 }
                 WorkflowCallback::OE(callback) => {
                     let data = match stage_output {
                         Some(data) => data,
-                        None => unreachable!("Workflow callback error: Expected data, but got None."),
+                        None => {
+                            unreachable!("Workflow callback error: Expected data, but got None.")
+                        }
                     };
-    
+
                     (callback)(data)
                 }
                 WorkflowCallback::I(callback) => (callback)(),
                 WorkflowCallback::IE(callback) => {
                     let data = match stage_output {
                         Some(data) => data,
-                        None => unreachable!("Workflow callback error: Expected data, but got None."),
+                        None => {
+                            unreachable!("Workflow callback error: Expected data, but got None.")
+                        }
                     };
-    
+
                     (callback)(data)
                 }
                 WorkflowCallback::IO(callback) => {
                     let data = match stage_output {
                         Some(data) => data,
-                        None => unreachable!("Workflow callback error: Expected data, but got None."),
+                        None => {
+                            unreachable!("Workflow callback error: Expected data, but got None.")
+                        }
                     };
-    
+
                     (callback)(data)
                 }
                 WorkflowCallback::IOE(callback) => {
                     let data = match stage_output {
                         Some(data) => data,
-                        None => unreachable!("Workflow callback error: Expected data, but got None."),
+                        None => {
+                            unreachable!("Workflow callback error: Expected data, but got None.")
+                        }
                     };
-    
+
                     (callback)(data)
                 }
             };
@@ -1174,11 +1345,8 @@ pub(super) fn workflow_failure_handling_system(world: &mut World) {
         ResMut<WorkflowTypeModuleRegistry>,
         ConsumableEventReader<StageFailureEvent>,
     )> = SystemState::new(world);
-    let (
-        mut workflow_map,
-        mut workflow_type_module_registry,
-        mut stage_failure_event_reader,
-    ) = system_state.get_mut(world);
+    let (mut workflow_map, mut workflow_type_module_registry, mut stage_failure_event_reader) =
+        system_state.get_mut(world);
 
     let mut stage_failures = Vec::new();
 
