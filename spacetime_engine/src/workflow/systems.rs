@@ -798,7 +798,6 @@ pub(super) fn workflow_request_system(world: &mut World) {
     }
 }
 
-// TODO: MAJOR: Touch this system with a lange Zange and a Gefahrenschutzanzug
 pub(super) fn workflow_execution_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>,
@@ -914,14 +913,10 @@ pub(super) fn workflow_execution_system(world: &mut World) {
     }
 }
 
-pub(super) fn stage_waiting_handling_system(world: &mut World) {}
-
-pub(super) fn stage_completion_handling_system(world: &mut World) {}
-
-pub(super) fn stage_failure_handling_system(world: &mut World) {}
-
 // TODO: MAJOR: Touch this system with a lange Zange and a Gefahrenschutzanzug
-pub(super) fn OLD_workflow_completion_handling_system(world: &mut World) {
+pub(super) fn workflow_wait_handling_system(world: &mut World) {}
+
+pub(super) fn workflow_completion_handling_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>,
         ResMut<WorkflowTypeModuleRegistry>,
@@ -944,7 +939,7 @@ pub(super) fn OLD_workflow_completion_handling_system(world: &mut World) {
         let workflow_name = event.workflow_name;
         let current_stage = event.current_stage;
         let stage_output = event.stage_output;
-        let mut stage = event.stage_return;
+        let stage = event.stage_return;
 
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
@@ -969,80 +964,20 @@ pub(super) fn OLD_workflow_completion_handling_system(world: &mut World) {
                     state => unreachable!("Unexpected workflow state. Expected 'WorkflowState::Processing(_)', got '{:?}'", state),
                 };
 
-                // TODO: DROPOFF 5: Workflow completion handling
-
-                let response = match stage {
-                    Stage::Ecs(stage) => {
-                        let response_handler = &mut stage.handle_ecs_response;
-                        let return_stage = response_handler(
-                            module_name,
-                            workflow_name,
-                            stage_output,
-                            stage.completion_sender.clone(),
-                            stage.failure_sender.clone(),
-                        );
-                        return_stage(stage)
-                    }
-                    Stage::Render(stage) => {
-                        let response_handler = &mut stage.handle_render_response;
-                        let return_stage = response_handler(
-                            module_name,
-                            workflow_name,
-                            stage_output,
-                            stage.completion_sender.clone(),
-                            stage.failure_sender.clone(),
-                        );
-                        return_stage(stage)
-                    }
-                    Stage::Async(stage) => {
-                        let response_handler = &mut stage.handle_async_response;
-                        let return_stage = response_handler(
-                            module_name,
-                            workflow_name,
-                            stage_output,
-                            stage.completion_sender.clone(),
-                            stage.failure_sender.clone(),
-                        );
-                        return_stage(stage)
-                    }
-                    Stage::EcsWhile(stage) => {
-                        let response_handler = &mut stage.handle_ecs_while_response;
-                        let return_stage = response_handler(
-                            module_name,
-                            workflow_name,
-                            stage_output,
-                            stage.completion_sender.clone(),
-                            stage.failure_sender.clone(),
-                        );
-                        return_stage(stage)
-                    }
-                    Stage::RenderWhile(stage) => {
-                        let response_handler = &mut stage.handle_render_while_response;
-                        let return_stage = response_handler(
-                            module_name,
-                            workflow_name,
-                            stage_output,
-                            stage.completion_sender.clone(),
-                            stage.failure_sender.clone(),
-                        );
-                        return_stage(stage)
-                    }
-                };
-
                 if current_stage + 1 < stage_count {
                     intermediate_stage_completions.push((
                         module_name,
                         workflow_name,
                         current_stage,
                         current_stage_type,
-                        response,
+                        stage_output
                     ));
                 } else {
                     final_stage_completions.push((
                         module_name,
                         workflow_name,
                         instance.take_callback(),
-                        response,
+                        stage_output
                     ));
                 }
 
@@ -1089,54 +1024,63 @@ pub(super) fn OLD_workflow_completion_handling_system(world: &mut World) {
     }
     for (callback, data) in callbacks {
         match callback {
-            WorkflowCallback::None(callback) => match data {
-                None => (callback)(),
-                Some(_) => unreachable!(
-                    "Unexpected workflow completion state. Expected None data, got Some data."
-                ),
+            WorkflowCallback::None(callback) => {
+                (callback)()
             },
-            WorkflowCallback::E(callback) => match data {
-                None => unreachable!(
-                    "Unexpected workflow completion state. Expected Some data, got None data."
-                ),
-                Some(result) => (callback)(Box::new(result)),
+            WorkflowCallback::E(callback) => {
+                let data = match data {
+                    Some(data) => data,
+                    None => unreachable!("Workflow callback error: Expected data, but got None."),
+                };
+                
+                (callback)(data)
             },
-            WorkflowCallback::O(callback) => match data {
-                None => unreachable!(
-                    "Unexpected workflow completion state. Expected Some data, got None data."
-                ),
-                Some(output) => (callback)(Box::new(output)),
+            WorkflowCallback::O(callback) => {
+                let data = match data {
+                    Some(data) => data,
+                    None => unreachable!("Workflow callback error: Expected data, but got None."),
+                };
+                
+                (callback)(data)
             },
-            WorkflowCallback::OE(callback) => match data {
-                None => unreachable!(
-                    "Unexpected workflow completion state. Expected Some data, got None data."
-                ),
-                Some(result) => (callback)(Box::new(result)),
+            WorkflowCallback::OE(callback) => {
+                let data = match data {
+                    Some(data) => data,
+                    None => unreachable!("Workflow callback error: Expected data, but got None."),
+                };
+                
+                (callback)(data)
             },
-            WorkflowCallback::I(callback) => match data {
-                None => (callback)(),
-                Some(_) => unreachable!(
-                    "Unexpected workflow completion state. Expected None data, got Some data."
-                ),
+            WorkflowCallback::I(callback) => {
+                (callback)()
             },
-            WorkflowCallback::IE(callback) => match data {
-                None => unreachable!(
-                    "Unexpected workflow completion state. Expected Some data, got None data."
-                ),
-                Some(result) => (callback)(Box::new(result)),
+            WorkflowCallback::IE(callback) => {
+                let data = match data {
+                    Some(data) => data,
+                    None => unreachable!("Workflow callback error: Expected data, but got None."),
+                };
+                
+                (callback)(data)
             },
-            WorkflowCallback::IO(callback) => match data {
-                None => unreachable!(
-                    "Unexpected workflow completion state. Expected Some data, got None data."
-                ),
-                Some(output) => (callback)(Box::new(output)),
+            WorkflowCallback::IO(callback) => {
+                let data = match data {
+                    Some(data) => data,
+                    None => unreachable!("Workflow callback error: Expected data, but got None."),
+                };
+                
+                (callback)(data)
             },
-            WorkflowCallback::IOE(callback) => match data {
-                None => unreachable!(
-                    "Unexpected workflow completion state. Expected Some data, got None data."
-                ),
-                Some(result) => (callback)(Box::new(result)),
+            WorkflowCallback::IOE(callback) => {
+                let data = match data {
+                    Some(data) => data,
+                    None => unreachable!("Workflow callback error: Expected data, but got None."),
+                };
+                
+                (callback)(data)
             },
         }
     }
 }
+
+// TODO: MAJOR: Touch this system with a lange Zange and a Gefahrenschutzanzug
+pub(super) fn workflow_failure_handling_system(world: &mut World) {}

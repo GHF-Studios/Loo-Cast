@@ -93,10 +93,24 @@ impl Plugin for WorkflowPlugin {
             .add_systems(
                 PreUpdate,
                 (
-                    stage_wait_relay_system,
-                    stage_completion_relay_system,
-                    stage_failure_relay_system,
-                ),
+                    (
+                        workflow_request_relay_system,
+                        workflow_request_e_relay_system,
+                        workflow_request_o_relay_system,
+                        workflow_request_oe_relay_system,
+                        workflow_request_i_relay_system,
+                        workflow_request_ie_relay_system,
+                        workflow_request_io_relay_system,
+                        workflow_request_ioe_relay_system,
+                    ).before(stage_wait_relay_system),
+                    (
+                        stage_wait_relay_system,
+                        stage_completion_relay_system,
+                        stage_failure_relay_system,
+                    ).before(workflow_request_system),
+                    workflow_request_system,
+                    workflow_execution_system.after(workflow_request_system),
+                )
             )
             .add_systems(
                 Update,
@@ -109,22 +123,13 @@ impl Plugin for WorkflowPlugin {
             .add_systems(
                 PostUpdate,
                 (
+                    render_while_workflow_state_extract_reintegration_system,
                     (
-                        render_while_workflow_state_extract_reintegration_system,
-                        workflow_request_relay_system,
-                        workflow_request_e_relay_system,
-                        workflow_request_o_relay_system,
-                        workflow_request_oe_relay_system,
-                        workflow_request_i_relay_system,
-                        workflow_request_ie_relay_system,
-                        workflow_request_io_relay_system,
-                        workflow_request_ioe_relay_system,
-                    )
-                        .before(workflow_request_system),
-                    workflow_request_system,
-                    workflow_execution_system.after(workflow_request_system),
-                    workflow_completion_handling_system.after(workflow_execution_system),
-                ),
+                        workflow_wait_handling_system, 
+                        workflow_completion_handling_system, 
+                        workflow_failure_handling_system,
+                    ).after(render_while_workflow_state_extract_reintegration_system)
+                )
             );
 
         let render_app = app.sub_app_mut(RenderApp);

@@ -100,6 +100,7 @@ fn pre_startup_system(
     oneshot_systems: Res<MainOneshotSystems>,
     mut workflow_type_module_registry: ResMut<WorkflowTypeModuleRegistry>,
 ) {
+    info!("Pre startup system");
     // --- Spawn essential entities ---
     let id = oneshot_systems.0["spawn_main_camera"];
     commands.run_system(id);
@@ -117,10 +118,13 @@ fn pre_startup_system(
     //commands.run_system(id);
 
     // --- Initialize workflow framework ---
+    info!("Registering workflow type modules");
     crate::chunk::workflows::chunk::register_workflow_type_module(
         &mut workflow_type_module_registry,
     );
+    info!("Registered 'chunk' workflow module");
     crate::gpu::workflows::gpu::register_workflow_type_module(&mut workflow_type_module_registry);
+    info!("Registered 'gpu' workflow module");
 }
 
 // --- Fully expanded oneshot composite workflow `test_workflow_framework` ---
