@@ -797,6 +797,7 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
+                        // TODO: MINOR: Setup functions' responses do not need to be optional at all
                         pub fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
                             let result = setup_render_while_inner(*input, world);
@@ -812,10 +813,6 @@ impl CoreFunction {
                     quote! {
                         pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let outcome = run_ecs_while_inner(world);
-                            let outcome = match outcome {
-                                Wait(_) => Wait(None),
-                                Done(_) => Done(None),
-                            };
                             Box::new(outcome)
                         }
 
@@ -826,16 +823,6 @@ impl CoreFunction {
                     quote! {
                         pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let outcome_result = run_ecs_while_inner(world);
-                            let outcome_result = match outcome_result {
-                                Ok(outcome) => {
-                                    let outcome = match outcome {
-                                        Wait(_) => Wait(None),
-                                        Done(_) => Done(None),
-                                    };
-                                    Ok(outcome)
-                                },
-                                Err(error) => Err(error),
-                            };
                             Box::new(outcome_result)
                         }
 
@@ -846,10 +833,6 @@ impl CoreFunction {
                     quote! {
                         pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let outcome = run_ecs_while_inner(world);
-                            let outcome = match outcome {
-                                Wait(_) => Wait(None),
-                                Done(output) => Done(Some(Box::new(output))),
-                            };
                             Box::new(outcome)
                         }
 
@@ -860,16 +843,6 @@ impl CoreFunction {
                     quote! {
                         pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let outcome_result = run_ecs_while_inner(world);
-                            let outcome_result = match outcome_result {
-                                Ok(outcome) => {
-                                    let outcome = match outcome {
-                                        Wait(_) => Wait(None),
-                                        Done(output) => Done(Some(Box::new(output))),
-                                    };
-                                    Ok(outcome)
-                                },
-                                Err(error) => Err(error),
-                            };
                             Box::new(outcome_result)
                         }
 
@@ -881,10 +854,6 @@ impl CoreFunction {
                         pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
                             let outcome = run_ecs_while_inner(*state, world);
-                            let outcome = match outcome {
-                                Wait(state) => Wait(Some(Box::new(state))),
-                                Done(_) => Done(None),
-                            };
                             Box::new(outcome)
                         }
 
@@ -896,16 +865,6 @@ impl CoreFunction {
                         pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
                             let outcome_result = run_ecs_while_inner(*state, world);
-                            let outcome_result = match outcome_result {
-                                Ok(outcome) => {
-                                    let outcome = match outcome {
-                                        Wait(state) => Wait(Some(Box::new(state))),
-                                        Done(_) => Done(None),
-                                    };
-                                    Ok(outcome)
-                                },
-                                Err(error) => Err(error),
-                            };
                             Box::new(outcome_result)
                         }
 
@@ -917,10 +876,6 @@ impl CoreFunction {
                         pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
                             let outcome = run_ecs_while_inner(*state, world);
-                            let outcome = match outcome {
-                                Wait(state) => Wait(Some(Box::new(state))),
-                                Done(output) => Done(Some(Box::new(output))),
-                            };
                             Box::new(outcome)
                         }
 
@@ -932,16 +887,6 @@ impl CoreFunction {
                         pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
                             let outcome_result = run_ecs_while_inner(*state, world);
-                            let outcome_result = match outcome_result {
-                                Ok(outcome) => {
-                                    let outcome = match outcome {
-                                        Wait(state) => Wait(Some(Box::new(state))),
-                                        Done(output) => Done(Some(Box::new(output))),
-                                    };
-                                    Ok(outcome)
-                                },
-                                Err(error) => Err(error),
-                            };
                             Box::new(outcome_result)
                         }
 
@@ -954,10 +899,6 @@ impl CoreFunction {
                     quote! {
                         pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let outcome = run_render_while_inner(world);
-                            let outcome = match outcome {
-                                Wait(_) => Wait(None),
-                                Done(_) => Done(None),
-                            };
                             Box::new(outcome)
                         }
 
@@ -968,16 +909,6 @@ impl CoreFunction {
                     quote! {
                         pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let outcome_result = run_render_while_inner(world);
-                            let outcome_result = match outcome_result {
-                                Ok(outcome) => {
-                                    let outcome = match outcome {
-                                        Wait(_) => Wait(None),
-                                        Done(_) => Done(None),
-                                    };
-                                    Ok(outcome)
-                                },
-                                Err(error) => Err(error),
-                            };
                             Box::new(outcome_result)
                         }
 
@@ -988,10 +919,6 @@ impl CoreFunction {
                     quote! {
                         pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let outcome = run_render_while_inner(world);
-                            let outcome = match outcome {
-                                Wait(_) => Wait(None),
-                                Done(output) => Done(Some(Box::new(output))),
-                            };
                             Box::new(outcome)
                         }
 
@@ -1002,16 +929,6 @@ impl CoreFunction {
                     quote! {
                         pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let outcome_result = run_render_while_inner(world);
-                            let outcome_result = match outcome_result {
-                                Ok(outcome) => {
-                                    let outcome = match outcome {
-                                        Wait(_) => Wait(None),
-                                        Done(output) => Done(Some(Box::new(output))),
-                                    };
-                                    Ok(outcome)
-                                },
-                                Err(error) => Err(error),
-                            };
                             Box::new(outcome_result)
                         }
 
@@ -1023,10 +940,6 @@ impl CoreFunction {
                         pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
                             let outcome = run_render_while_inner(*state, world);
-                            let outcome = match outcome {
-                                Wait(state) => Wait(Some(Box::new(state))),
-                                Done(_) => Done(None),
-                            };
                             Box::new(outcome)
                         }
 
@@ -1038,16 +951,6 @@ impl CoreFunction {
                         pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
                             let outcome_result = run_render_while_inner(*state, world);
-                            let outcome_result = match outcome_result {
-                                Ok(outcome) => {
-                                    let outcome = match outcome {
-                                        Wait(state) => Wait(Some(Box::new(state))),
-                                        Done(_) => Done(None),
-                                    };
-                                    Ok(outcome)
-                                },
-                                Err(error) => Err(error),
-                            };
                             Box::new(outcome_result)
                         }
 
@@ -1059,10 +962,6 @@ impl CoreFunction {
                         pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
                             let outcome = run_render_while_inner(*state, world);
-                            let outcome = match outcome {
-                                Wait(state) => Wait(Some(Box::new(state))),
-                                Done(output) => Done(Some(Box::new(output))),
-                            };
                             Box::new(outcome)
                         }
 
@@ -1074,16 +973,6 @@ impl CoreFunction {
                         pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, world: &mut World) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
                             let outcome_result = run_render_while_inner(*state, world);
-                            let outcome_result = match outcome_result {
-                                Ok(outcome) => {
-                                    let outcome = match outcome {
-                                        Wait(state) => Wait(Some(Box::new(state))),
-                                        Done(output) => Done(Some(Box::new(output))),
-                                    };
-                                    Ok(outcome)
-                                },
-                                Err(error) => Err(error),
-                            };
                             Box::new(outcome_result)
                         }
 

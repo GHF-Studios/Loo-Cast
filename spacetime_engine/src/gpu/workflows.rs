@@ -511,16 +511,6 @@ pub mod gpu {
                     ) -> Box<dyn std::any::Any + Send + Sync> {
                         let state = state.unwrap().downcast::<State>().unwrap();
                         let outcome_result = run_render_while_inner(*state, world);
-                        let outcome_result = match outcome_result {
-                            Ok(outcome) => {
-                                let outcome = match outcome {
-                                    Wait(state) => Wait(Some(Box::new(state))),
-                                    Done(output) => Done(Some(Box::new(output))),
-                                };
-                                Ok(outcome)
-                            }
-                            Err(error) => Err(error),
-                        };
                         Box::new(outcome_result)
                     }
                     fn run_render_while_inner(
@@ -963,10 +953,6 @@ pub mod gpu {
                     ) -> Box<dyn std::any::Any + Send + Sync> {
                         let state = state.unwrap().downcast::<State>().unwrap();
                         let outcome = run_render_while_inner(*state, world);
-                        let outcome = match outcome {
-                            Wait(state) => Wait(Some(Box::new(state))),
-                            Done(output) => Done(Some(Box::new(output))),
-                        };
                         Box::new(outcome)
                     }
                     fn run_render_while_inner(
@@ -1113,16 +1099,6 @@ pub mod gpu {
                     ) -> Box<dyn std::any::Any + Send + Sync> {
                         let state = state.unwrap().downcast::<State>().unwrap();
                         let outcome_result = run_ecs_while_inner(*state, world);
-                        let outcome_result = match outcome_result {
-                            Ok(outcome) => {
-                                let outcome = match outcome {
-                                    Wait(state) => Wait(Some(Box::new(state))),
-                                    Done(output) => Done(Some(Box::new(output))),
-                                };
-                                Ok(outcome)
-                            }
-                            Err(error) => Err(error),
-                        };
                         Box::new(outcome_result)
                     }
                     fn run_ecs_while_inner(

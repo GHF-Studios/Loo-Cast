@@ -82,7 +82,8 @@ pub struct WorkflowRequestBuffer {
 // --- RenderWhile Workflow State Extraction Resources ---
 #[derive(Resource, Default, Debug)]
 pub(super) struct RenderWhileWorkflowStateExtract(
-    pub Vec<(&'static str, &'static str, StageType, bool)>,
+    // TODO: MINOR: Remove current_stage_type
+    pub Vec<(&'static str, &'static str, StageType, bool, bool)>,
 );
 impl From<&WorkflowMap> for RenderWhileWorkflowStateExtract {
     fn from(value: &WorkflowMap) -> Self {
@@ -94,6 +95,7 @@ impl From<&WorkflowMap> for RenderWhileWorkflowStateExtract {
                 if let WorkflowState::Processing {
                     current_stage_type,
                     stage_initialized,
+                    stage_completed,
                     ..
                 } = workflow_instance.state()
                 {
@@ -101,8 +103,10 @@ impl From<&WorkflowMap> for RenderWhileWorkflowStateExtract {
                         render_workflow_state_extract.0.push((
                             module_name,
                             workflow_name,
+                            // TODO: MINOR: Remove current_stage_type
                             current_stage_type,
                             stage_initialized,
+                            stage_completed,
                         ));
                     }
                 }

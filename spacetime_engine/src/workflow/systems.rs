@@ -283,12 +283,16 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
 
         let render_workflow_state_extract =
             SystemState::<ResMut<RenderWhileWorkflowStateExtract>>::new(world).get_mut(world);
-        let stage_initialized = &mut render_workflow_state_extract
+        let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
             .0
             .iter()
-            .find(|(m, w, _, _)| m == &module_name && w == &workflow_name)
-            .map(|(_, _, _, s)| *s)
+            .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
+            .map(|(_, _, _, init, complete)| (*init, *complete))
             .expect("Render while workflow state extract error: 'stage_initialized' not found in workflow state extract");
+
+        if *stage_completed {
+            continue;
+        }
 
         if !*stage_initialized {
             info!(
@@ -1028,24 +1032,23 @@ pub(super) fn workflow_wait_handling_system(world: &mut World) {
             );
         };
 
-        let stage_initialized = match workflow_instance.state_mut() {
+        let (stage_initialized, stage_completed) = match workflow_instance.state_mut() {
             WorkflowState::Requested => {
                 unreachable!(
                     "Workflow wait handling error: Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
                     workflow_instance.state()
                 )
-            },
+            }
             WorkflowState::Processing {
                 current_stage: _,
                 current_stage_type: _,
                 stage_initialized,
-                stage_completed: _,
-            } => {
-                stage_initialized
-            },
+                stage_completed,
+            } => (stage_initialized, stage_completed),
         };
 
         *stage_initialized = true;
+        *stage_completed = false;
 
         match stage_return {
             Stage::Ecs(_stage) => {
