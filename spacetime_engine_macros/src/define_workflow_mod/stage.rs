@@ -1747,21 +1747,161 @@ impl TypedStage<EcsWhile> {
         };
         let (ecs_while_setup_response_handler, ecs_while_run_response_handler) = if !is_last {
             // TODO: Implement ecs_while_setup_response_handler
-            let ecs_while_setup_response_handler =
-                match (this_stage_state_type_path, this_stage_err_type_path) {
-                    (Some(this_state_path), Some(this_err_path)) => {
-                        quote! {}
-                    }
-                    (Some(this_state_path), None) => {
-                        quote! {}
-                    }
-                    (None, Some(this_err_path)) => {
-                        quote! {}
-                    }
-                    (None, None) => {
-                        quote! {}
-                    }
-                };
+            let ecs_while_setup_response_handler = match (
+                this_stage_state_type_path, 
+                this_stage_err_type_path
+            ) {
+                (Some(this_state_path), Some(this_err_path)) => {
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+
+                    quote! { Box::new(|
+                        module_name: &'static str,
+                        workflow_name: &'static str,
+                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
+                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        let response = response.expect("EcsWhile stages with state and error must have a response");
+                        let result: Result<#this_state_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+
+                        match result {
+                            Ok(state) => {
+                                let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+
+                                if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
+                                    module_name,
+                                    workflow_name,
+                                    current_stage: #index_literal,
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_state: state,
+                                }) {
+                                    unreachable!("EcsWhile response handler error: Setup event send error: {}", send_err);
+                                }
+                            }
+                            Err(error) => {
+                                let error = #workflow_path::Error::#stage_err_name(error);
+                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+
+                                let failure_sender = match failure_sender {
+                                    Some(failure_sender) => failure_sender,
+                                    None => {
+                                        unreachable!("EcsWhile response handler error: Failure event send error: No failure sender provided");
+                                    }
+                                };
+
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
+                                    module_name,
+                                    workflow_name,
+                                    current_stage: #index_literal,
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_error: error,
+                                }) {
+                                    unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
+                                }
+                            }
+                        }
+                    })}
+                }
+                (Some(this_state_path), None) => {
+                    quote! { Box::new(|
+                        module_name: &'static str,
+                        workflow_name: &'static str,
+                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        let response = response.expect("EcsWhile stages with state must have a response");
+                        let state: #this_state_path = *response.downcast().expect("Failed to downcast response state data");
+                        let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+
+                        if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                            ty: crate::workflow::stage::StageType::EcsWhile,
+                            module_name,
+                            workflow_name,
+                            current_stage: #index_literal,
+                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
+                            stage_state: state,
+                        }) {
+                            unreachable!("EcsWhile response handler error: Setup event send error: {}", send_err);
+                        }
+                    })}
+                }
+                (None, Some(this_err_path)) => {
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+
+                    quote! { Box::new(|
+                        module_name: &'static str,
+                        workflow_name: &'static str,
+                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
+                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        let response = response.expect("EcsWhile stages with error must have a response");
+                        let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+
+                        match result {
+                            Ok(_) => {
+                                if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
+                                    module_name,
+                                    workflow_name,
+                                    current_stage: #index_literal,
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(None),
+                                    stage_state: None,
+                                }) {
+                                    unreachable!("EcsWhile response handler error: Setup event send error: {}", send_err);
+                                }
+                            }
+                            Err(error) => {
+                                let error = #workflow_path::Error::#stage_err_name(error);
+                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+
+                                let failure_sender = match failure_sender {
+                                    Some(failure_sender) => failure_sender,
+                                    None => {
+                                        unreachable!("EcsWhile response handler error: Failure event send error: No failure sender provided");
+                                    }
+                                };
+
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
+                                    module_name,
+                                    workflow_name,
+                                    current_stage: #index_literal,
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(None),
+                                    stage_error: error,
+                                }) {
+                                    unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
+                                }
+                            }
+                        }
+                    })}
+                }
+                (None, None) => {
+                    quote! { Box::new(|
+                        module_name: &'static str,
+                        workflow_name: &'static str,
+                        _response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                            ty: crate::workflow::stage::StageType::EcsWhile,
+                            module_name,
+                            workflow_name,
+                            current_stage: #index_literal,
+                            stage_return: crate::workflow::stage::Stage::EcsWhile(None),
+                            stage_state: None,
+                        }) {
+                            unreachable!("EcsWhile response handler error: Setup event send error: {}", send_err);
+                        }
+                    })}
+                }
+            };
 
             let ecs_while_run_response_handler = match (
                 this_stage_state_type_path,
@@ -2711,8 +2851,8 @@ impl TypedStage<RenderWhile> {
                 this_stage_state_type_path,
                 this_stage_err_type_path,
             ) {
+                // TODO: Implement all 4 handlers, for both this and EcsWhile
                 (Some(this_state_path), Some(this_err_path)) => {
-                    // TODO: Implement all 4 handlers, for both this and EcsWhile
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
@@ -2723,14 +2863,14 @@ impl TypedStage<RenderWhile> {
                         setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
                     | -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                        let response = response.expect("RenderWhile stages with input and state and error must have a response");
+                        let response = response.expect("RenderWhile stages with state and error must have a response");
                         let result: Result<#this_state_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(state) => {
                                 let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageSetupEvent {
+                                if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -2767,13 +2907,104 @@ impl TypedStage<RenderWhile> {
                     })}
                 }
                 (Some(this_state_path), None) => {
-                    quote! {}
+                    quote! { Box::new(|
+                        module_name: &'static str,
+                        workflow_name: &'static str,
+                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        let response = response.expect("RenderWhile stages with state must have a response");
+                        let state: #this_state_path = *response.downcast().expect("Failed to downcast response result data");
+
+                        let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+
+                        if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                            ty: crate::workflow::stage::StageType::RenderWhile,
+                            module_name,
+                            workflow_name,
+                            current_stage: #index_literal,
+                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                            stage_state: state,
+                        }) {
+                            unreachable!("RenderWhile response handler error: Setup event send error: {}", send_err);
+                        }
+                    })}
                 }
                 (None, Some(this_err_path)) => {
-                    quote! {}
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+
+                    quote! { Box::new(|
+                        module_name: &'static str,
+                        workflow_name: &'static str,
+                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        let response = response.expect("RenderWhile stages with error must have a response");
+                        let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+
+                        match result {
+                            Ok(_) => {
+                                if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
+                                    module_name,
+                                    workflow_name,
+                                    current_stage: #index_literal,
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_state: None,
+                                }) {
+                                    unreachable!("RenderWhile response handler error: Setup event send error: {}", send_err);
+                                }
+                            }
+                            Err(error) => {
+                                let error = #workflow_path::Error::#stage_err_name(error);
+                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+
+                                let failure_sender = match failure_sender {
+                                    Some(failure_sender) => failure_sender,
+                                    None => {
+                                        unreachable!("RenderWhile response handler error: Failure event send error: No failure sender provided");
+                                    }
+                                };
+
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
+                                    module_name,
+                                    workflow_name,
+                                    current_stage: #index_literal,
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_error: error,
+                                }) {
+                                    unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
+                                }
+                            }
+                        }
+                    })}
                 }
                 (None, None) => {
-                    quote! {}
+                    quote! { Box::new(|
+                        module_name: &'static str,
+                        workflow_name: &'static str,
+                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        let response = response.expect("RenderWhile stages must have a response");
+                        let state = Some(response);
+
+                        if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                            ty: crate::workflow::stage::StageType::RenderWhile,
+                            module_name,
+                            workflow_name,
+                            current_stage: #index_literal,
+                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                            stage_state: state,
+                        }) {
+                            unreachable!("RenderWhile response handler error: Setup event send error: {}", send_err);
+                        }
+                    })}
                 }
             };
 
