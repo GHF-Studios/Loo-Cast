@@ -65,7 +65,7 @@ pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
         let run_ecs = &mut stage.run_ecs;
-        let handle_ecs_response = &mut stage.handle_ecs_response;
+        let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
         let completion_sender = completion_sender.clone();
         let failure_sender = if stage.signature.has_error() {
             Some(failure_sender.clone())
@@ -75,7 +75,7 @@ pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
 
         let input = data_buffer;
         let response = (run_ecs)(input, world);
-        let handler = (handle_ecs_response)(
+        let handler = (handle_ecs_run_response)(
             module_name,
             workflow_name,
             response,
@@ -96,7 +96,7 @@ pub(super) fn poll_render_stage_buffer_system(world: &mut World) {
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
         let run_render = &mut stage.run_render;
-        let handle_render_response = &mut stage.handle_render_response;
+        let handle_render_run_response = &mut stage.handle_render_run_response;
         let completion_sender = completion_sender.clone();
         let failure_sender = if stage.signature.has_error() {
             Some(failure_sender.clone())
@@ -106,7 +106,7 @@ pub(super) fn poll_render_stage_buffer_system(world: &mut World) {
 
         let input = data_buffer;
         let response = (run_render)(input, world);
-        let handler = (handle_render_response)(
+        let handler = (handle_render_run_response)(
             module_name,
             workflow_name,
             response,
@@ -139,7 +139,7 @@ pub(super) fn poll_async_stage_buffer_system(world: &mut World) {
         if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
             tokio::spawn(async move {
                 let response = response_future.await;
-                let handler = (stage.handle_async_response)(
+                let handler = (stage.handle_async_run_response)(
                     module_name,
                     workflow_name,
                     response,
@@ -166,7 +166,7 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
         let run_ecs_while = &mut stage.run_ecs_while;
-        let handle_ecs_while_response = &mut stage.handle_ecs_while_response;
+        let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
         let completion_sender = completion_sender.clone();
         let failure_sender = if stage.signature.has_error() {
             Some(failure_sender.clone())
@@ -194,6 +194,7 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
 
                     let input = data_buffer;
                     let state = (setup_ecs_while)(input, world);
+                    // TODO: MAJOR: We need to also handle the setup response
 
                     *stage_initialized = true;
 
@@ -209,7 +210,7 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
             }
         };
         let response = (run_ecs_while)(state, world);
-        let handler = (handle_ecs_while_response)(
+        let handler = (handle_ecs_while_run_response)(
             module_name,
             workflow_name,
             Some(response),
@@ -240,7 +241,7 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
         let run_render_while = &mut stage.run_render_while;
-        let handle_render_while_response = &mut stage.handle_render_while_response;
+        let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
         let wait_sender = wait_sender.clone();
         let completion_sender = completion_sender.clone();
         let failure_sender = if stage.signature.has_error() {
@@ -274,10 +275,12 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
             };
 
             if !*stage_initialized {
+                info!("Render while stage buffer system: Initializing stage for workflow '{}', module '{}'", workflow_name, module_name);
                 let setup_render_while = &mut stage.setup_render_while;
 
                 let input = data_buffer;
                 let state = (setup_render_while)(input, world);
+                // TODO: MAJOR: We need to also handle the setup response
 
                 *stage_initialized = true;
 
@@ -287,11 +290,12 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
 
                 state
             } else {
+                info!("Render while stage buffer system: Stage already initialized for workflow '{}', module '{}'", workflow_name, module_name);
                 data_buffer
             }
         };
         let response = (run_render_while)(state, world);
-        let handler = (handle_render_while_response)(
+        let handler = (handle_render_while_run_response)(
             module_name,
             workflow_name,
             Some(response),
@@ -858,7 +862,7 @@ pub(super) fn workflow_execution_system(world: &mut World) {
                 name: "placeholder",
                 signature: super::stage::StageSignature::None,
                 run_ecs: Box::new(|_, _| unreachable!()),
-                handle_ecs_response: Box::new(|_, _, _, _, _| unreachable!()),
+                handle_ecs_run_response: Box::new(|_, _, _, _, _| unreachable!()),
                 completion_sender: get_stage_completion_sender().clone(),
                 failure_sender: None,
             }),

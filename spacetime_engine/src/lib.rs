@@ -100,7 +100,6 @@ fn pre_startup_system(
     oneshot_systems: Res<MainOneshotSystems>,
     mut workflow_type_module_registry: ResMut<WorkflowTypeModuleRegistry>,
 ) {
-    info!("Pre startup system");
     // --- Spawn essential entities ---
     let id = oneshot_systems.0["spawn_main_camera"];
     commands.run_system(id);

@@ -515,7 +515,7 @@ impl TypedStage<Ecs> {
             }
         };
         let stage_literal = if !is_last {
-            let ecs_response_handler = match (
+            let ecs_run_response_handler = match (
                 this_stage_out_type_path,
                 this_stage_err_type_path,
                 next_stage_in_type_path,
@@ -803,13 +803,13 @@ impl TypedStage<Ecs> {
                     name: stringify!(#stage_name),
                     signature: #signature,
                     run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    handle_ecs_response: #ecs_response_handler,
+                    handle_ecs_run_response: #ecs_run_response_handler,
                     completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                     failure_sender: #failure_sender,
                 })
             }
         } else {
-            let ecs_response_handler_placeholder = quote! { Box::new(|
+            let ecs_run_response_handler_placeholder = quote! { Box::new(|
                 _module_name: &'static str,
                 _workflow_name: &'static str,
                 _response: Option<Box<dyn std::any::Any + Send + Sync>>,
@@ -835,7 +835,7 @@ impl TypedStage<Ecs> {
                     name: stringify!(#stage_name),
                     signature: #signature,
                     run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    handle_ecs_response: #ecs_response_handler_placeholder,
+                    handle_ecs_run_response: #ecs_run_response_handler_placeholder,
                     completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                     failure_sender: #failure_sender,
                 })
@@ -939,7 +939,7 @@ impl TypedStage<Render> {
             }
         };
         let stage_literal = if !is_last {
-            let render_response_handler = match (
+            let render_run_response_handler = match (
                 this_stage_out_type_path,
                 this_stage_err_type_path,
                 next_stage_in_type_path,
@@ -1227,13 +1227,13 @@ impl TypedStage<Render> {
                     name: stringify!(#stage_name),
                     signature: #signature,
                     run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    handle_render_response: #render_response_handler,
+                    handle_render_run_response: #render_run_response_handler,
                     completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                     failure_sender: #failure_sender,
                 })
             }
         } else {
-            let render_response_handler_placeholder = quote! { Box::new(|
+            let render_run_response_handler_placeholder = quote! { Box::new(|
                 _module_name: &'static str,
                 _workflow_name: &'static str,
                 _response: Option<Box<dyn std::any::Any + Send + Sync>>,
@@ -1259,7 +1259,7 @@ impl TypedStage<Render> {
                     name: stringify!(#stage_name),
                     signature: #signature,
                     run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    handle_render_response: #render_response_handler_placeholder,
+                    handle_render_run_response: #render_run_response_handler_placeholder,
                     completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                     failure_sender: #failure_sender,
                 })
@@ -1363,7 +1363,7 @@ impl TypedStage<Async> {
             }
         };
         let stage_literal = if !is_last {
-            let async_response_handler = match (
+            let async_run_response_handler = match (
                 this_stage_out_type_path,
                 this_stage_err_type_path,
                 next_stage_in_type_path,
@@ -1651,13 +1651,13 @@ impl TypedStage<Async> {
                     name: stringify!(#stage_name),
                     signature: #signature,
                     run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    handle_async_response: #async_response_handler,
+                    handle_async_run_response: #async_run_response_handler,
                     completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                     failure_sender: #failure_sender,
                 })
             }
         } else {
-            let async_response_handler_placeholder = quote! { Box::new(|
+            let async_run_response_handler_placeholder = quote! { Box::new(|
                 _module_name: &'static str,
                 _workflow_name: &'static str,
                 _response: Option<Box<dyn std::any::Any + Send + Sync>>,
@@ -1683,7 +1683,7 @@ impl TypedStage<Async> {
                     name: stringify!(#stage_name),
                     signature: #signature,
                     run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    handle_async_response: #async_response_handler_placeholder,
+                    handle_async_run_response: #async_run_response_handler_placeholder,
                     completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                     failure_sender: #failure_sender,
                 })
@@ -1788,7 +1788,9 @@ impl TypedStage<EcsWhile> {
             }
         };
         let stage_literal = if !is_last {
-            let ecs_while_response_handler = match (
+            // TODO: Implement ecs_while_setup_response_handler
+
+            let ecs_while_run_response_handler = match (
                 this_stage_state_type_path,
                 this_stage_out_type_path,
                 this_stage_err_type_path,
@@ -2578,14 +2580,14 @@ impl TypedStage<EcsWhile> {
                     signature: #signature,
                     setup_ecs_while: Box::new(self::stages::#stage_ident::core_functions::setup_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
-                    handle_ecs_while_response: #ecs_while_response_handler,
+                    handle_ecs_while_run_response: #ecs_while_run_response_handler,
                     wait_sender: crate::workflow::channels::get_stage_wait_sender().clone(),
                     completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                     failure_sender: #failure_sender,
                 })
             }
         } else {
-            let ecs_while_response_handler_placeholder = quote! { Box::new(|
+            let ecs_while_run_response_handler_placeholder = quote! { Box::new(|
                 _module_name: &'static str,
                 _workflow_name: &'static str,
                 _response: Option<Box<dyn std::any::Any + Send + Sync>>,
@@ -2613,7 +2615,7 @@ impl TypedStage<EcsWhile> {
                     signature: #signature,
                     setup_ecs_while: Box::new(self::stages::#stage_ident::core_functions::setup_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
-                    handle_ecs_while_response: #ecs_while_response_handler_placeholder,
+                    handle_ecs_while_run_response: #ecs_while_run_response_handler_placeholder,
                     wait_sender: crate::workflow::channels::get_stage_wait_sender().clone(),
                     completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                     failure_sender: #failure_sender,
@@ -2734,7 +2736,9 @@ impl TypedStage<RenderWhile> {
             }
         };
         let stage_literal = if !is_last {
-            let render_while_response_handler = match (
+            // TODO: Implement render_while_setup_response_handler
+
+            let render_while_run_response_handler = match (
                 this_stage_state_type_path,
                 this_stage_out_type_path,
                 this_stage_err_type_path,
@@ -3524,14 +3528,14 @@ impl TypedStage<RenderWhile> {
                     signature: #signature,
                     setup_render_while: Box::new(self::stages::#stage_ident::core_functions::setup_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
-                    handle_render_while_response: #render_while_response_handler,
+                    handle_render_while_run_response: #render_while_run_response_handler,
                     wait_sender: crate::workflow::channels::get_stage_wait_sender().clone(),
                     completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                     failure_sender: #failure_sender,
                 })
             }
         } else {
-            let render_while_response_handler_placeholder = quote! { Box::new(|
+            let render_while_run_response_handler_placeholder = quote! { Box::new(|
                 _module_name: &'static str,
                 _workflow_name: &'static str,
                 _response: Option<Box<dyn std::any::Any + Send + Sync>>,
@@ -3559,7 +3563,7 @@ impl TypedStage<RenderWhile> {
                     signature: #signature,
                     setup_render_while: Box::new(self::stages::#stage_ident::core_functions::setup_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                     run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
-                    handle_render_while_response: #render_while_response_handler_placeholder,
+                    handle_render_while_run_response: #render_while_run_response_handler_placeholder,
                     wait_sender: crate::workflow::channels::get_stage_wait_sender().clone(),
                     completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                     failure_sender: #failure_sender,

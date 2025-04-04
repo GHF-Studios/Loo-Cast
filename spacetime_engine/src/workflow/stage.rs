@@ -145,7 +145,7 @@ pub struct StageEcs {
             + Send
             + Sync,
     >,
-    pub handle_ecs_response: Box<
+    pub handle_ecs_run_response: Box<
         dyn FnMut(
                 &'static str,
                 &'static str,
@@ -172,7 +172,7 @@ pub struct StageRender {
             + Send
             + Sync,
     >,
-    pub handle_render_response: Box<
+    pub handle_render_run_response: Box<
         dyn FnMut(
                 &'static str,
                 &'static str,
@@ -198,7 +198,7 @@ pub struct StageAsync {
             + Send
             + Sync,
     >,
-    pub handle_async_response: Box<
+    pub handle_async_run_response: Box<
         dyn FnMut(
                 &'static str,
                 &'static str,
@@ -230,7 +230,19 @@ pub struct StageEcsWhile {
             + Send
             + Sync,
     >,
-    pub handle_ecs_while_response: Box<
+    pub handle_ecs_while_setup_response: Box<
+        dyn FnMut(
+                &'static str,
+                &'static str,
+                Option<Box<dyn Any + Send + Sync>>,
+                Sender<StageWaitEvent>,
+                Sender<StageCompletionEvent>,
+                Option<Sender<StageFailureEvent>>,
+            ) -> Box<dyn FnOnce(StageEcsWhile)>
+            + Send
+            + Sync,
+    >,
+    pub handle_ecs_while_run_response: Box<
         dyn FnMut(
                 &'static str,
                 &'static str,
@@ -264,7 +276,19 @@ pub struct StageRenderWhile {
             + Send
             + Sync,
     >,
-    pub handle_render_while_response: Box<
+    pub handle_render_while_setup_response: Box<
+        dyn FnMut(
+                &'static str,
+                &'static str,
+                Option<Box<dyn Any + Send + Sync>>,
+                Sender<StageWaitEvent>,
+                Sender<StageCompletionEvent>,
+                Option<Sender<StageFailureEvent>>,
+            ) -> Box<dyn FnOnce(StageRenderWhile)>
+            + Send
+            + Sync,
+    >,
+    pub handle_render_while_run_response: Box<
         dyn FnMut(
                 &'static str,
                 &'static str,
