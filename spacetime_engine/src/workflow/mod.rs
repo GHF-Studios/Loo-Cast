@@ -39,7 +39,9 @@ impl Plugin for WorkflowPlugin {
                 render_workflow_state_extract_reintegration_event_receiver,
             );
 
-        let (wait_receiver, completion_receiver, failure_receiver) = initialize_stage_channels();
+        let (setup_receiver, wait_receiver, completion_receiver, failure_receiver) =
+            initialize_stage_channels();
+        let setup_receiver = StageSetupEventReceiver(setup_receiver);
         let wait_receiver = StageWaitEventReceiver(wait_receiver);
         let completion_receiver = StageCompletionEventReceiver(completion_receiver);
         let failure_receiver = StageFailureEventReceiver(failure_receiver);
@@ -71,6 +73,7 @@ impl Plugin for WorkflowPlugin {
             .insert_resource(RenderWhileStageBuffer::default())
             .insert_resource(AsyncStageBuffer::default())
             .insert_resource(render_while_workflow_state_extract_reintegration_event_receiver)
+            .insert_resource(setup_receiver)
             .insert_resource(wait_receiver)
             .insert_resource(completion_receiver)
             .insert_resource(failure_receiver)
@@ -103,8 +106,9 @@ impl Plugin for WorkflowPlugin {
                         workflow_request_io_relay_system,
                         workflow_request_ioe_relay_system,
                     )
-                        .before(stage_wait_relay_system),
+                        .before(stage_setup_relay_system),
                     (
+                        stage_setup_relay_system,
                         stage_wait_relay_system,
                         stage_completion_relay_system,
                         stage_failure_relay_system,

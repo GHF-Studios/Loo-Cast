@@ -175,6 +175,8 @@ pub(super) struct AsyncStageBuffer(
 
 // --- Stage Event Receivers ---
 #[derive(Resource)]
+pub(super) struct StageSetupEventReceiver(pub Receiver<StageSetupEvent>);
+#[derive(Resource)]
 pub(super) struct StageWaitEventReceiver(pub Receiver<StageWaitEvent>);
 #[derive(Resource)]
 pub(super) struct StageCompletionEventReceiver(pub Receiver<StageCompletionEvent>);

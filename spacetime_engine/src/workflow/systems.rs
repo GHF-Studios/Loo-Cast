@@ -160,6 +160,7 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
         std::mem::take(&mut buffer.0)
     };
 
+    let setup_sender = get_stage_setup_sender();
     let wait_sender = get_stage_wait_sender();
     let completion_sender = get_stage_completion_sender();
     let failure_sender = get_stage_failure_sender();
@@ -174,51 +175,57 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
             None
         };
 
-        let state = {
-            let mut workflow_map = SystemState::<ResMut<WorkflowMap>>::new(world).get_mut(world);
-            let workflow_instance = workflow_map
-                .map
-                .get_mut(module_name)
-                .and_then(|workflows| workflows.get_mut(workflow_name))
-                .unwrap();
+        let mut workflow_map = SystemState::<ResMut<WorkflowMap>>::new(world).get_mut(world);
+        let workflow_instance = workflow_map
+            .map
+            .get_mut(module_name)
+            .and_then(|workflows| workflows.get_mut(workflow_name))
+            .unwrap();
+        let workflow_state = &mut workflow_instance.state();
 
-            if let WorkflowState::Processing {
-                current_stage: _,
-                current_stage_type: _,
-                stage_initialized,
-                stage_completed: _,
-            } = &mut workflow_instance.state()
-            {
-                if !*stage_initialized {
-                    let setup_ecs_while = &mut stage.setup_ecs_while;
-
-                    let input = data_buffer;
-                    let state = (setup_ecs_while)(input, world);
-                    // TODO: MAJOR: We need to also handle the setup response
-
-                    *stage_initialized = true;
-
-                    state
-                } else {
-                    data_buffer
-                }
-            } else {
+        let stage_initialized = match workflow_state {
+            WorkflowState::Requested => {
                 unreachable!(
                     "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
                     workflow_instance.state()
                 );
             }
+            WorkflowState::Processing {
+                current_stage: _,
+                current_stage_type: _,
+                stage_initialized,
+                stage_completed: _,
+            } => stage_initialized,
         };
-        let response = (run_ecs_while)(state, world);
-        let handler = (handle_ecs_while_run_response)(
-            module_name,
-            workflow_name,
-            Some(response),
-            wait_sender.clone(),
-            completion_sender,
-            failure_sender,
-        );
-        handler(stage);
+
+        if !*stage_initialized {
+            let setup_ecs_while = &mut stage.setup_ecs_while;
+            let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
+
+            let input = data_buffer;
+            let response = (setup_ecs_while)(input, world);
+            (handle_ecs_while_setup_response)(
+                module_name,
+                workflow_name,
+                response,
+                setup_sender.clone(),
+                failure_sender.clone(),
+            );
+
+            *stage_initialized = true;
+        } else {
+            let state = data_buffer;
+            let response = (run_ecs_while)(state, world);
+            let handler = (handle_ecs_while_run_response)(
+                module_name,
+                workflow_name,
+                Some(response),
+                wait_sender.clone(),
+                completion_sender,
+                failure_sender,
+            );
+            handler(stage);
+        }
     }
 }
 pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
@@ -233,6 +240,7 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
         .0
         .clone();
 
+    let setup_sender = get_stage_setup_sender();
     let wait_sender = get_stage_wait_sender();
     let completion_sender = get_stage_completion_sender();
     let failure_sender = get_stage_failure_sender();
@@ -240,8 +248,7 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
     let mut remaining_buffer = Vec::new();
 
     for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let run_render_while = &mut stage.run_render_while;
-        let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+        let setup_sender = setup_sender.clone();
         let wait_sender = wait_sender.clone();
         let completion_sender = completion_sender.clone();
         let failure_sender = if stage.signature.has_error() {
@@ -250,60 +257,64 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
             None
         };
 
-        let state = {
-            let render_workflow_state_extract =
-                SystemState::<ResMut<RenderWhileWorkflowStateExtract>>::new(world).get_mut(world);
-            let stage_initialized = &mut render_workflow_state_extract
-                .0
-                .iter()
-                .find(|(m, w, _, _)| m == &module_name && w == &workflow_name)
-                .map(|(_, _, _, s)| *s);
+        let render_workflow_state_extract =
+            SystemState::<ResMut<RenderWhileWorkflowStateExtract>>::new(world).get_mut(world);
+        let stage_initialized = &mut render_workflow_state_extract
+            .0
+            .iter()
+            .find(|(m, w, _, _)| m == &module_name && w == &workflow_name)
+            .map(|(_, _, _, s)| *s);
 
-            let stage_initialized = match stage_initialized {
-                Some(stage_initialized) => stage_initialized,
-                None => {
-                    warn!("Render while stage buffer system error: Stage initialized state not found for workflow '{}', module '{}'", workflow_name, module_name);
-                    remaining_buffer.push((
-                        module_name,
-                        workflow_name,
-                        current_stage,
-                        stage,
-                        data_buffer,
-                    ));
-                    continue;
-                }
-            };
-
-            if !*stage_initialized {
-                info!("Render while stage buffer system: Initializing stage for workflow '{}', module '{}'", workflow_name, module_name);
-                let setup_render_while = &mut stage.setup_render_while;
-
-                let input = data_buffer;
-                let state = (setup_render_while)(input, world);
-                // TODO: MAJOR: We need to also handle the setup response
-
-                *stage_initialized = true;
-
-                extract_reintegration_sender
-                    .send((module_name, workflow_name))
-                    .unwrap();
-
-                state
-            } else {
-                info!("Render while stage buffer system: Stage already initialized for workflow '{}', module '{}'", workflow_name, module_name);
-                data_buffer
+        let stage_initialized = match stage_initialized {
+            Some(stage_initialized) => stage_initialized,
+            None => {
+                warn!("Render while stage buffer system error: Stage initialized state not found for workflow '{}', module '{}'", workflow_name, module_name);
+                remaining_buffer.push((
+                    module_name,
+                    workflow_name,
+                    current_stage,
+                    stage,
+                    data_buffer,
+                ));
+                continue;
             }
         };
-        let response = (run_render_while)(state, world);
-        let handler = (handle_render_while_run_response)(
-            module_name,
-            workflow_name,
-            Some(response),
-            wait_sender.clone(),
-            completion_sender,
-            failure_sender,
-        );
-        handler(stage);
+
+        if !*stage_initialized {
+            let setup_render_while = &mut stage.setup_render_while;
+            let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
+
+            let input = data_buffer;
+            let response = (setup_render_while)(input, world);
+            (handle_render_while_setup_response)(
+                module_name,
+                workflow_name,
+                response,
+                setup_sender.clone(),
+                failure_sender.clone(),
+            );
+
+            *stage_initialized = true;
+
+            extract_reintegration_sender
+                .send((module_name, workflow_name))
+                .unwrap();
+        } else {
+            let run_render_while = &mut stage.run_render_while;
+            let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+
+            let state = data_buffer;
+            let response = (run_render_while)(state, world);
+            let handler = (handle_render_while_run_response)(
+                module_name,
+                workflow_name,
+                Some(response),
+                wait_sender.clone(),
+                completion_sender,
+                failure_sender,
+            );
+            handler(stage);
+        }
     }
 }
 
@@ -340,6 +351,29 @@ pub(super) fn render_while_workflow_state_extract_reintegration_system(world: &m
     }
 }
 
+pub(super) fn stage_setup_relay_system(
+    stage_event_receiver: Res<StageSetupEventReceiver>,
+    mut stage_event_writer: ConsumableEventWriter<StageSetupEvent>,
+) {
+    while let Ok(StageSetupEvent {
+        ty,
+        module_name,
+        workflow_name,
+        current_stage,
+        stage_return,
+        stage_state,
+    }) = stage_event_receiver.0.try_recv()
+    {
+        stage_event_writer.send(StageSetupEvent {
+            ty,
+            module_name,
+            workflow_name,
+            current_stage,
+            stage_return,
+            stage_state,
+        });
+    }
+}
 pub(super) fn stage_wait_relay_system(
     stage_event_receiver: Res<StageWaitEventReceiver>,
     mut stage_event_writer: ConsumableEventWriter<StageWaitEvent>,
@@ -917,6 +951,9 @@ pub(super) fn workflow_execution_system(world: &mut World) {
         }
     }
 }
+
+// TODO: MAJOR: Touch this system with a lange Zange and a Gefahrenschutzanzug
+pub(super) fn workflow_setup_handling_system(world: &mut World) {}
 
 // TODO: MAJOR: Touch this system with a lange Zange and a Gefahrenschutzanzug
 pub(super) fn workflow_wait_handling_system(world: &mut World) {}

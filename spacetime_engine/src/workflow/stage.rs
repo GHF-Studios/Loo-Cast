@@ -235,11 +235,9 @@ pub struct StageEcsWhile {
                 &'static str,
                 &'static str,
                 Option<Box<dyn Any + Send + Sync>>,
-                Sender<StageWaitEvent>,
-                Sender<StageCompletionEvent>,
+                Sender<StageSetupEvent>,
                 Option<Sender<StageFailureEvent>>,
-            ) -> Box<dyn FnOnce(StageEcsWhile)>
-            + Send
+            ) + Send
             + Sync,
     >,
     pub handle_ecs_while_run_response: Box<
@@ -254,6 +252,7 @@ pub struct StageEcsWhile {
             + Send
             + Sync,
     >,
+    pub setup_sender: Sender<StageSetupEvent>,
     pub wait_sender: Sender<StageWaitEvent>,
     pub completion_sender: Sender<StageCompletionEvent>,
     pub failure_sender: Option<Sender<StageFailureEvent>>,
@@ -281,11 +280,9 @@ pub struct StageRenderWhile {
                 &'static str,
                 &'static str,
                 Option<Box<dyn Any + Send + Sync>>,
-                Sender<StageWaitEvent>,
-                Sender<StageCompletionEvent>,
+                Sender<StageSetupEvent>,
                 Option<Sender<StageFailureEvent>>,
-            ) -> Box<dyn FnOnce(StageRenderWhile)>
-            + Send
+            ) + Send
             + Sync,
     >,
     pub handle_render_while_run_response: Box<
@@ -300,6 +297,7 @@ pub struct StageRenderWhile {
             + Send
             + Sync,
     >,
+    pub setup_sender: Sender<StageSetupEvent>,
     pub wait_sender: Sender<StageWaitEvent>,
     pub completion_sender: Sender<StageCompletionEvent>,
     pub failure_sender: Option<Sender<StageFailureEvent>>,

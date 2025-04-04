@@ -514,7 +514,7 @@ impl TypedStage<Ecs> {
                 }
             }
         };
-        let stage_literal = if !is_last {
+        let ecs_run_response_handler = if !is_last {
             let ecs_run_response_handler = match (
                 this_stage_out_type_path,
                 this_stage_err_type_path,
@@ -791,23 +791,7 @@ impl TypedStage<Ecs> {
                 }
             };
 
-            let failure_sender = if self.core_types.error.is_some() {
-                quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
-            } else {
-                quote! { None }
-            };
-
-            quote! {
-                crate::workflow::stage::Stage::Ecs(crate::workflow::stage::StageEcs {
-                    index: #index_literal,
-                    name: stringify!(#stage_name),
-                    signature: #signature,
-                    run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    handle_ecs_run_response: #ecs_run_response_handler,
-                    completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
-                    failure_sender: #failure_sender,
-                })
-            }
+            ecs_run_response_handler
         } else {
             let ecs_run_response_handler_placeholder = quote! { Box::new(|
                 _module_name: &'static str,
@@ -819,27 +803,29 @@ impl TypedStage<Ecs> {
                 Box::new(move |
                     _stage: crate::workflow::stage::StageEcs
                 | {
-                    unreachable!("Tried to call ecs response handler placeholder");
+                    unreachable!("Tried to call ecs run response handler placeholder");
                 })
             })};
 
-            let failure_sender = if self.core_types.error.is_some() {
-                quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
-            } else {
-                quote! { None }
-            };
+            ecs_run_response_handler_placeholder
+        };
 
-            quote! {
-                crate::workflow::stage::Stage::Ecs(crate::workflow::stage::StageEcs {
-                    index: #index_literal,
-                    name: stringify!(#stage_name),
-                    signature: #signature,
-                    run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    handle_ecs_run_response: #ecs_run_response_handler_placeholder,
-                    completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
-                    failure_sender: #failure_sender,
-                })
-            }
+        let failure_sender = if self.core_types.error.is_some() {
+            quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
+        } else {
+            quote! { None }
+        };
+
+        let stage_literal = quote! {
+            crate::workflow::stage::Stage::Ecs(crate::workflow::stage::StageEcs {
+                index: #index_literal,
+                name: stringify!(#stage_name),
+                signature: #signature,
+                run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                handle_ecs_run_response: #ecs_run_response_handler,
+                completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
+                failure_sender: #failure_sender,
+            })
         };
 
         (stage_module, stage_literal)
@@ -938,7 +924,7 @@ impl TypedStage<Render> {
                 }
             }
         };
-        let stage_literal = if !is_last {
+        let render_run_response_handler = if !is_last {
             let render_run_response_handler = match (
                 this_stage_out_type_path,
                 this_stage_err_type_path,
@@ -1215,23 +1201,7 @@ impl TypedStage<Render> {
                 }
             };
 
-            let failure_sender = if self.core_types.error.is_some() {
-                quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
-            } else {
-                quote! { None }
-            };
-
-            quote! {
-                crate::workflow::stage::Stage::Render(crate::workflow::stage::StageRender {
-                    index: #index_literal,
-                    name: stringify!(#stage_name),
-                    signature: #signature,
-                    run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    handle_render_run_response: #render_run_response_handler,
-                    completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
-                    failure_sender: #failure_sender,
-                })
-            }
+            render_run_response_handler
         } else {
             let render_run_response_handler_placeholder = quote! { Box::new(|
                 _module_name: &'static str,
@@ -1243,27 +1213,29 @@ impl TypedStage<Render> {
                 Box::new(move |
                     _stage: crate::workflow::stage::StageRender
                 | {
-                    unreachable!("Tried to call render response handler placeholder");
+                    unreachable!("Tried to call render run response handler placeholder");
                 })
             })};
 
-            let failure_sender = if self.core_types.error.is_some() {
-                quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
-            } else {
-                quote! { None }
-            };
+            render_run_response_handler_placeholder
+        };
 
-            quote! {
-                crate::workflow::stage::Stage::Render(crate::workflow::stage::StageRender {
-                    index: #index_literal,
-                    name: stringify!(#stage_name),
-                    signature: #signature,
-                    run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    handle_render_run_response: #render_run_response_handler_placeholder,
-                    completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
-                    failure_sender: #failure_sender,
-                })
-            }
+        let failure_sender = if self.core_types.error.is_some() {
+            quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
+        } else {
+            quote! { None }
+        };
+
+        let stage_literal = quote! {
+            crate::workflow::stage::Stage::Render(crate::workflow::stage::StageRender {
+                index: #index_literal,
+                name: stringify!(#stage_name),
+                signature: #signature,
+                run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                handle_render_run_response: #render_run_response_handler,
+                completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
+                failure_sender: #failure_sender,
+            })
         };
 
         (stage_module, stage_literal)
@@ -1362,7 +1334,7 @@ impl TypedStage<Async> {
                 }
             }
         };
-        let stage_literal = if !is_last {
+        let async_run_response_handler = if !is_last {
             let async_run_response_handler = match (
                 this_stage_out_type_path,
                 this_stage_err_type_path,
@@ -1639,23 +1611,7 @@ impl TypedStage<Async> {
                 }
             };
 
-            let failure_sender = if self.core_types.error.is_some() {
-                quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
-            } else {
-                quote! { None }
-            };
-
-            quote! {
-                crate::workflow::stage::Stage::Async(crate::workflow::stage::StageAsync {
-                    index: #index_literal,
-                    name: stringify!(#stage_name),
-                    signature: #signature,
-                    run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    handle_async_run_response: #async_run_response_handler,
-                    completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
-                    failure_sender: #failure_sender,
-                })
-            }
+            async_run_response_handler
         } else {
             let async_run_response_handler_placeholder = quote! { Box::new(|
                 _module_name: &'static str,
@@ -1667,27 +1623,29 @@ impl TypedStage<Async> {
                 Box::new(move |
                     _stage: crate::workflow::stage::StageAsync
                 | {
-                    unreachable!("Tried to call async response handler placeholder");
+                    unreachable!("Tried to call async run response handler placeholder");
                 })
             })};
 
-            let failure_sender = if self.core_types.error.is_some() {
-                quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
-            } else {
-                quote! { None }
-            };
+            async_run_response_handler_placeholder
+        };
 
-            quote! {
-                crate::workflow::stage::Stage::Async(crate::workflow::stage::StageAsync {
-                    index: #index_literal,
-                    name: stringify!(#stage_name),
-                    signature: #signature,
-                    run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    handle_async_run_response: #async_run_response_handler_placeholder,
-                    completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
-                    failure_sender: #failure_sender,
-                })
-            }
+        let failure_sender = if self.core_types.error.is_some() {
+            quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
+        } else {
+            quote! { None }
+        };
+
+        let stage_literal = quote! {
+            crate::workflow::stage::Stage::Async(crate::workflow::stage::StageAsync {
+                index: #index_literal,
+                name: stringify!(#stage_name),
+                signature: #signature,
+                run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                handle_async_run_response: #async_run_response_handler,
+                completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
+                failure_sender: #failure_sender,
+            })
         };
 
         (stage_module, stage_literal)
@@ -1787,8 +1745,23 @@ impl TypedStage<EcsWhile> {
                 }
             }
         };
-        let stage_literal = if !is_last {
+        let (ecs_while_setup_response_handler, ecs_while_run_response_handler) = if !is_last {
             // TODO: Implement ecs_while_setup_response_handler
+            let ecs_while_setup_response_handler =
+                match (this_stage_state_type_path, this_stage_err_type_path) {
+                    (Some(this_state_path), Some(this_err_path)) => {
+                        quote! {}
+                    }
+                    (Some(this_state_path), None) => {
+                        quote! {}
+                    }
+                    (None, Some(this_err_path)) => {
+                        quote! {}
+                    }
+                    (None, None) => {
+                        quote! {}
+                    }
+                };
 
             let ecs_while_run_response_handler = match (
                 this_stage_state_type_path,
@@ -1796,12 +1769,7 @@ impl TypedStage<EcsWhile> {
                 this_stage_err_type_path,
                 next_stage_in_type_path,
             ) {
-                (
-                    Some(this_state_path),
-                    Some(this_out_path),
-                    Some(this_err_path),
-                    Some(next_in_path),
-                ) => {
+                (Some(this_state_path), Some(this_out_path), Some(this_err_path), Some(next_in_path)) => {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
@@ -2567,26 +2535,21 @@ impl TypedStage<EcsWhile> {
                 }
             };
 
-            let failure_sender = if self.core_types.error.is_some() {
-                quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
-            } else {
-                quote! { None }
-            };
-
-            quote! {
-                crate::workflow::stage::Stage::EcsWhile(crate::workflow::stage::StageEcsWhile {
-                    index: #index_literal,
-                    name: stringify!(#stage_name),
-                    signature: #signature,
-                    setup_ecs_while: Box::new(self::stages::#stage_ident::core_functions::setup_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
-                    handle_ecs_while_run_response: #ecs_while_run_response_handler,
-                    wait_sender: crate::workflow::channels::get_stage_wait_sender().clone(),
-                    completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
-                    failure_sender: #failure_sender,
-                })
-            }
+            (
+                ecs_while_setup_response_handler,
+                ecs_while_run_response_handler,
+            )
         } else {
+            let ecs_while_setup_response_handler_placeholder = quote! { Box::new(|
+                _module_name: &'static str,
+                _workflow_name: &'static str,
+                _response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                _setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
+                _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+            | {
+                unreachable!("Tried to call ecs while setup response handler placeholder");
+            })};
+
             let ecs_while_run_response_handler_placeholder = quote! { Box::new(|
                 _module_name: &'static str,
                 _workflow_name: &'static str,
@@ -2598,29 +2561,36 @@ impl TypedStage<EcsWhile> {
                 Box::new(move |
                     _stage: crate::workflow::stage::StageEcsWhile
                 | {
-                    unreachable!("Tried to call ecs while response handler placeholder");
+                    unreachable!("Tried to call ecs while run response handler placeholder");
                 })
             })};
 
-            let failure_sender = if self.core_types.error.is_some() {
-                quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
-            } else {
-                quote! { None }
-            };
+            (
+                ecs_while_setup_response_handler_placeholder,
+                ecs_while_run_response_handler_placeholder,
+            )
+        };
 
-            quote! {
-                crate::workflow::stage::Stage::EcsWhile(crate::workflow::stage::StageEcsWhile {
-                    index: #index_literal,
-                    name: stringify!(#stage_name),
-                    signature: #signature,
-                    setup_ecs_while: Box::new(self::stages::#stage_ident::core_functions::setup_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
-                    handle_ecs_while_run_response: #ecs_while_run_response_handler_placeholder,
-                    wait_sender: crate::workflow::channels::get_stage_wait_sender().clone(),
-                    completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
-                    failure_sender: #failure_sender,
-                })
-            }
+        let failure_sender = if self.core_types.error.is_some() {
+            quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
+        } else {
+            quote! { None }
+        };
+
+        let stage_literal = quote! {
+            crate::workflow::stage::Stage::EcsWhile(crate::workflow::stage::StageEcsWhile {
+                index: #index_literal,
+                name: stringify!(#stage_name),
+                signature: #signature,
+                setup_ecs_while: Box::new(self::stages::#stage_ident::core_functions::setup_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
+                handle_ecs_while_setup_response: #ecs_while_setup_response_handler,
+                handle_ecs_while_run_response: #ecs_while_run_response_handler,
+                setup_sender: crate::workflow::channels::get_stage_setup_sender().clone(),
+                wait_sender: crate::workflow::channels::get_stage_wait_sender().clone(),
+                completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
+                failure_sender: #failure_sender,
+            })
         };
 
         (stage_module, stage_literal)
@@ -2735,8 +2705,77 @@ impl TypedStage<RenderWhile> {
                 }
             }
         };
-        let stage_literal = if !is_last {
+        let (render_while_setup_response_handler, render_while_run_response_handler) = if !is_last {
             // TODO: Implement render_while_setup_response_handler
+            let render_while_setup_response_handler = match (
+                this_stage_state_type_path,
+                this_stage_err_type_path,
+            ) {
+                (Some(this_state_path), Some(this_err_path)) => {
+                    // TODO: Implement all 4 handlers, for both this and EcsWhile
+                    let stage_err_name = format!("{}Error", stage_name.as_str());
+                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+
+                    quote! { Box::new(|
+                        module_name: &'static str,
+                        workflow_name: &'static str,
+                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        setup_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
+                    | -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        let response = response.expect("RenderWhile stages with input and state and error must have a response");
+                        let result: Result<#this_state_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+
+                        match result {
+                            Ok(state) => {
+                                let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+
+                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageSetupEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
+                                    module_name,
+                                    workflow_name,
+                                    current_stage: #index_literal,
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_state: state,
+                                }) {
+                                    unreachable!("RenderWhile response handler error: Setup event send error: {}", send_err);
+                                }
+                            }
+                            Err(error) => {
+                                let error = #workflow_path::Error::#stage_err_name(error);
+                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+
+                                let failure_sender = match failure_sender {
+                                    Some(failure_sender) => failure_sender,
+                                    None => {
+                                        unreachable!("RenderWhile response handler error: Failure event send error: No failure sender provided");
+                                    }
+                                };
+
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
+                                    module_name,
+                                    workflow_name,
+                                    current_stage: #index_literal,
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_error: error,
+                                }) {
+                                    unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
+                                }
+                            }
+                        }
+                    })}
+                }
+                (Some(this_state_path), None) => {
+                    quote! {}
+                }
+                (None, Some(this_err_path)) => {
+                    quote! {}
+                }
+                (None, None) => {
+                    quote! {}
+                }
+            };
 
             let render_while_run_response_handler = match (
                 this_stage_state_type_path,
@@ -2744,12 +2783,7 @@ impl TypedStage<RenderWhile> {
                 this_stage_err_type_path,
                 next_stage_in_type_path,
             ) {
-                (
-                    Some(this_state_path),
-                    Some(this_out_path),
-                    Some(this_err_path),
-                    Some(next_in_path),
-                ) => {
+                (Some(this_state_path), Some(this_out_path), Some(this_err_path), Some(next_in_path)) => {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
@@ -3515,26 +3549,21 @@ impl TypedStage<RenderWhile> {
                 }
             };
 
-            let failure_sender = if self.core_types.error.is_some() {
-                quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
-            } else {
-                quote! { None }
-            };
-
-            quote! {
-                crate::workflow::stage::Stage::RenderWhile(crate::workflow::stage::StageRenderWhile {
-                    index: #index_literal,
-                    name: stringify!(#stage_name),
-                    signature: #signature,
-                    setup_render_while: Box::new(self::stages::#stage_ident::core_functions::setup_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
-                    handle_render_while_run_response: #render_while_run_response_handler,
-                    wait_sender: crate::workflow::channels::get_stage_wait_sender().clone(),
-                    completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
-                    failure_sender: #failure_sender,
-                })
-            }
+            (
+                render_while_setup_response_handler,
+                render_while_run_response_handler,
+            )
         } else {
+            let render_while_setup_response_handler_placeholder = quote! { Box::new(|
+                _module_name: &'static str,
+                _workflow_name: &'static str,
+                _response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                _setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
+                _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+            | {
+                unreachable!("Tried to call render while setup response handler placeholder");
+            })};
+
             let render_while_run_response_handler_placeholder = quote! { Box::new(|
                 _module_name: &'static str,
                 _workflow_name: &'static str,
@@ -3546,29 +3575,36 @@ impl TypedStage<RenderWhile> {
                 Box::new(move |
                     _stage: crate::workflow::stage::StageRenderWhile
                 | {
-                    unreachable!("Tried to call render while response handler placeholder");
+                    unreachable!("Tried to call render while run response handler placeholder");
                 })
             })};
 
-            let failure_sender = if self.core_types.error.is_some() {
-                quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
-            } else {
-                quote! { None }
-            };
+            (
+                render_while_setup_response_handler_placeholder,
+                render_while_run_response_handler_placeholder,
+            )
+        };
 
-            quote! {
-                crate::workflow::stage::Stage::RenderWhile(crate::workflow::stage::StageRenderWhile {
-                    index: #index_literal,
-                    name: stringify!(#stage_name),
-                    signature: #signature,
-                    setup_render_while: Box::new(self::stages::#stage_ident::core_functions::setup_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                    run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
-                    handle_render_while_run_response: #render_while_run_response_handler_placeholder,
-                    wait_sender: crate::workflow::channels::get_stage_wait_sender().clone(),
-                    completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
-                    failure_sender: #failure_sender,
-                })
-            }
+        let failure_sender = if self.core_types.error.is_some() {
+            quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
+        } else {
+            quote! { None }
+        };
+
+        let stage_literal = quote! {
+            crate::workflow::stage::Stage::RenderWhile(crate::workflow::stage::StageRenderWhile {
+                index: #index_literal,
+                name: stringify!(#stage_name),
+                signature: #signature,
+                setup_render_while: Box::new(self::stages::#stage_ident::core_functions::setup_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
+                run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
+                handle_render_while_setup_response: #render_while_setup_response_handler,
+                handle_render_while_run_response: #render_while_run_response_handler,
+                setup_sender: crate::workflow::channels::get_stage_setup_sender().clone(),
+                wait_sender: crate::workflow::channels::get_stage_wait_sender().clone(),
+                completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
+                failure_sender: #failure_sender,
+            })
         };
 
         (stage_module, stage_literal)

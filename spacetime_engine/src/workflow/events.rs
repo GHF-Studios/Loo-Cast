@@ -11,6 +11,16 @@ pub struct StageInitializationEvent {
 }
 
 #[derive(Event)]
+pub struct StageSetupEvent {
+    pub ty: StageType,
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub current_stage: usize,
+    pub stage_return: Stage,
+    pub stage_state: Option<Box<dyn Any + Send + Sync>>,
+}
+
+#[derive(Event)]
 pub struct StageWaitEvent {
     pub ty: StageType,
     pub module_name: &'static str,
