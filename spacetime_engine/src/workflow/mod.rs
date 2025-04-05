@@ -123,13 +123,9 @@ impl Plugin for WorkflowPlugin {
             .add_systems(
                 Update,
                 (
-                    //render_while_workflow_state_extract_reintegration_system,
-                    (
-                        poll_ecs_stage_buffer_system,
-                        poll_ecs_while_stage_buffer_system,
-                        poll_async_stage_buffer_system,
-                    )
-                    //.after(render_while_workflow_state_extract_reintegration_system),
+                    poll_ecs_stage_buffer_system,
+                    poll_ecs_while_stage_buffer_system,
+                    poll_async_stage_buffer_system,
                 ),
             )
             .add_systems(

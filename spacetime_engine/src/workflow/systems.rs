@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy::render::MainWorld;
 use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 
-use crate::statics::TOKIO_RUNTIME;
+use crate::{statics::TOKIO_RUNTIME, workflow::response::*};
 
 use super::{channels::*, events::*, instance::*, resources::*, stage::Stage, types::*};
 
@@ -1274,67 +1274,57 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
             );
 
             match callback {
-                WorkflowCallback::None(callback) => (callback)(),
+                WorkflowCallback::None(callback) => {
+                    (callback)()
+                },
                 WorkflowCallback::E(callback) => {
-                    let data = match stage_output {
-                        Some(data) => data,
-                        None => {
-                            unreachable!("Workflow callback error: Expected data, but got None.")
-                        }
-                    };
-
-                    (callback)(data)
+                    (callback)(Box::new(TypedWorkflowResponseE(Ok(()))))
                 }
                 WorkflowCallback::O(callback) => {
-                    let data = match stage_output {
-                        Some(data) => data,
+                    let stage_output = match stage_output {
+                        Some(stage_output) => stage_output,
                         None => {
-                            unreachable!("Workflow callback error: Expected data, but got None.")
+                            unreachable!("Workflow callback error: Expected Some(output), but got None.")
                         }
                     };
 
-                    (callback)(data)
+                    (callback)(Box::new(TypedWorkflowResponseO(stage_output)))
                 }
                 WorkflowCallback::OE(callback) => {
-                    let data = match stage_output {
-                        Some(data) => data,
+                    let stage_output = match stage_output {
+                        Some(stage_output) => stage_output,
                         None => {
-                            unreachable!("Workflow callback error: Expected data, but got None.")
+                            unreachable!("Workflow callback error: Expected Some(output), but got None.")
                         }
                     };
 
-                    (callback)(data)
+                    (callback)(Box::new(TypedWorkflowResponseOE(Ok(Box::new(stage_output)))))
                 }
-                WorkflowCallback::I(callback) => (callback)(),
+                WorkflowCallback::I(callback) => {
+                    (callback)()
+                },
                 WorkflowCallback::IE(callback) => {
-                    let data = match stage_output {
-                        Some(data) => data,
-                        None => {
-                            unreachable!("Workflow callback error: Expected data, but got None.")
-                        }
-                    };
-
-                    (callback)(data)
+                    (callback)(Box::new(TypedWorkflowResponseE(Ok(()))))
                 }
                 WorkflowCallback::IO(callback) => {
-                    let data = match stage_output {
-                        Some(data) => data,
+                    let stage_output = match stage_output {
+                        Some(stage_output) => stage_output,
                         None => {
-                            unreachable!("Workflow callback error: Expected data, but got None.")
+                            unreachable!("Workflow callback error: Expected Some(output), but got None.")
                         }
                     };
 
-                    (callback)(data)
+                    (callback)(Box::new(TypedWorkflowResponseO(stage_output)))
                 }
                 WorkflowCallback::IOE(callback) => {
-                    let data = match stage_output {
-                        Some(data) => data,
+                    let stage_output = match stage_output {
+                        Some(stage_output) => stage_output,
                         None => {
-                            unreachable!("Workflow callback error: Expected data, but got None.")
+                            unreachable!("Workflow callback error: Expected Some(output), but got None.")
                         }
                     };
 
-                    (callback)(data)
+                    (callback)(Box::new(TypedWorkflowResponseOE(Ok(Box::new(stage_output)))))
                 }
             };
         }
@@ -1365,19 +1355,86 @@ pub(super) fn workflow_failure_handling_system(world: &mut World) {
             .get_workflow_type_mut(module_name, workflow_name)
             .unwrap();
 
-        stage_failures.push((module_name, workflow_name, current_stage, stage_error));
+        stage_failures.push((
+            module_name, 
+            workflow_name, 
+            current_stage, 
+            stage_error
+        ));
 
         workflow_type.stages[current_stage] = stage;
     }
 
     for (module_name, workflow_name, current_stage, stage_error) in stage_failures {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
+            if let Some(instance) = workflows.get_mut(workflow_name) {
+                let callback = instance.take_callback();
+    
+                match callback {
+                    WorkflowCallback::None(_callback) => {
+                        unreachable!(
+                            "Workflow callback error: Stage type 'None' does not support failure handling"
+                        );
+                    },
+                    WorkflowCallback::E(callback) => {
+                        let stage_error = match stage_error {
+                            Some(stage_error) => stage_error,
+                            None => {
+                                unreachable!("Workflow callback error: Expected Some(error), but got None.")
+                            }
+                        };
+
+                        (callback)(Box::new(TypedWorkflowResponseE(Err(stage_error))))
+                    }
+                    WorkflowCallback::O(_callback) => {
+                        unreachable!(
+                            "Workflow callback error: Stage type 'O' does not support failure handling"
+                        );
+                    }
+                    WorkflowCallback::OE(callback) => {
+                        let stage_error = match stage_error {
+                            Some(stage_error) => stage_error,
+                            None => {
+                                unreachable!("Workflow callback error: Expected Some(error), but got None.")
+                            }
+                        };
+    
+                        (callback)(Box::new(TypedWorkflowResponseOE(Err(stage_error))))
+                    }
+                    WorkflowCallback::I(_callback) => {
+                        unreachable!(
+                            "Workflow callback error: Stage type 'I' does not support failure handling"
+                        );
+                    },
+                    WorkflowCallback::IE(callback) => {
+                        let stage_error = match stage_error {
+                            Some(stage_error) => stage_error,
+                            None => {
+                                unreachable!("Workflow callback error: Expected Some(error), but got None.")
+                            }
+                        };
+    
+                        (callback)(Box::new(TypedWorkflowResponseOE(Err(stage_error))))
+                    }
+                    WorkflowCallback::IO(_callback) => {
+                        unreachable!(
+                            "Workflow callback error: Stage type 'IO' does not support failure handling"
+                        );
+                    }
+                    WorkflowCallback::IOE(callback) => {
+                        let stage_error = match stage_error {
+                            Some(stage_error) => stage_error,
+                            None => {
+                                unreachable!("Workflow callback error: Expected Some(error), but got None.")
+                            }
+                        };
+    
+                        (callback)(Box::new(TypedWorkflowResponseOE(Err(stage_error))))
+                    }
+                };
+            }
+
             workflows.remove(workflow_name);
         }
-
-        error!(
-            "Workflow '{}' in module '{}' has failed at stage '{}'. Error: {:?}",
-            workflow_name, module_name, current_stage, stage_error
-        );
     }
 }

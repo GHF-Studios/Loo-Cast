@@ -183,7 +183,7 @@ fn startup_system() {
             crate::gpu::workflows::gpu::generate_texture::run(I {
                 shader_name,
                 texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
-                param_data: vec![],
+                param_data: vec![0.0],
             })
             .await
             .map_err(Into::<TestWorkflowFrameworkError>::into)
@@ -224,7 +224,7 @@ fn startup_system() {
 //        let generate_texture_output = run_workflow!(get_workflow_path!(Gpu::GenerateTexture, IOE), Input {
 //            shader_name,
 //            texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
-//            param_data: vec![]
+//            param_data: vec![0.0]
 //        });
 //
 //        run_workflow!(get_workflow_path!(Chunk::SpawnChunk, IE), Input {
@@ -281,7 +281,7 @@ fn startup_system() {
 //        let generate_texture_output = run_workflow!(get_workflow_path!(Gpu::GenerateTexture, IOE), Input {
 //            shader_name,
 //            texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
-//            param_data: vec![]
+//            param_data: vec![0.0]
 //        });
 //
 //        run_workflow!(get_workflow_path!(Chunk::SpawnChunk, IE), Input {
@@ -347,7 +347,7 @@ fn startup_system() {
 //            crate::gpu::workflows::gpu::generate_texture::run(I {
 //                shader_name,
 //                texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
-//                param_data: vec![]
+//                param_data: vec![0.0]
 //            }).await.map_err(Into::<TestWorkflowFrameworkError>::into)
 //        }?;
 //

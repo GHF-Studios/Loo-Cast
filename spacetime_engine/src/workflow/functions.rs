@@ -19,8 +19,9 @@ pub async fn run_workflow<W: WorkflowType>() {
             receiver.recv().now_or_never()
         } {
             return response;
+        } else {
+            tokio::task::yield_now().await;
         }
-        tokio::task::yield_now().await;
     }
 }
 pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
@@ -40,8 +41,9 @@ pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
             receiver.recv().now_or_never()
         } {
             return response.unpack();
+        } else {
+            tokio::task::yield_now().await;
         }
-        tokio::task::yield_now().await;
     }
 }
 pub async fn run_workflow_o<W: WorkflowTypeO>() -> Result<W::Output, ()> {
@@ -61,8 +63,9 @@ pub async fn run_workflow_o<W: WorkflowTypeO>() -> Result<W::Output, ()> {
             receiver.recv().now_or_never()
         } {
             return response.unpack();
+        } else {
+            tokio::task::yield_now().await;
         }
-        tokio::task::yield_now().await;
     }
 }
 pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error> {
@@ -82,8 +85,9 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error>
             receiver.recv().now_or_never()
         } {
             return response.unpack();
+        } else {
+            tokio::task::yield_now().await;
         }
-        tokio::task::yield_now().await;
     }
 }
 pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
@@ -104,8 +108,9 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
             receiver.recv().now_or_never()
         } {
             return response;
+        } else {
+            tokio::task::yield_now().await;
         }
-        tokio::task::yield_now().await;
     }
 }
 pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W::Error> {
@@ -126,8 +131,9 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W
             receiver.recv().now_or_never()
         } {
             return response.unpack();
+        } else {
+            tokio::task::yield_now().await;
         }
-        tokio::task::yield_now().await;
     }
 }
 pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> Result<W::Output, ()> {
@@ -148,8 +154,9 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> Result<W::Ou
             response_receiver.recv().now_or_never()
         } {
             return response.unpack();
+        } else {
+            tokio::task::yield_now().await;
         }
-        tokio::task::yield_now().await;
     }
 }
 pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::Output, W::Error> {
@@ -170,7 +177,8 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
             receiver.recv().now_or_never()
         } {
             return response.unpack();
+        } else {
+            tokio::task::yield_now().await;
         }
-        tokio::task::yield_now().await;
     }
 }
