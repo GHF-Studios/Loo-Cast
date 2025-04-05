@@ -993,7 +993,6 @@ pub(super) fn workflow_initialization_system(world: &mut World) {
     }
 }
 
-// TODO: MAJOR: Touch this system with a lange Zange and a Gefahrenschutzanzug
 pub(super) fn workflow_wait_handling_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>,
@@ -1093,7 +1092,6 @@ pub(super) fn workflow_wait_handling_system(world: &mut World) {
     }
 }
 
-// TODO: MAJOR: Touch this system with a lange Zange and a Gefahrenschutzanzug
 pub(super) fn workflow_completion_handling_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>,
@@ -1331,7 +1329,6 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
     }
 }
 
-// TODO: MAJOR: Touch this system with a lange Zange and a Gefahrenschutzanzug
 pub(super) fn workflow_failure_handling_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>,
