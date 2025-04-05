@@ -15,7 +15,7 @@ define_workflow_mod! {
                 ValidateAndSpawn: Ecs {
                     core_types: [],
                     core_functions: [
-                        fn RunEcs |world| -> Result<(), Error> {
+                        fn RunEcs |world| {
                             world.spawn((
                                 PerfUiRoot::default(),
                                 PerfUiFramerateEntries::default(),
@@ -26,7 +26,7 @@ define_workflow_mod! {
                     ]
                 }
             ]
-        },
+        }
         SpawnDebugObjects {
             user_imports: {
                 use bevy::prelude::*;
@@ -34,8 +34,7 @@ define_workflow_mod! {
                 use crate::{
                     chunk_actor::components::ChunkActorComponent, chunk_loader::components::ChunkLoaderComponent,
                 };
-
-                use super::components::{TestObjectComponent, TestObjectMovement};
+                use crate::debug::components::{TestObjectComponent, TestObjectMovement};
             },
             user_items: {
                 pub fn spawn_test_object(
@@ -69,7 +68,7 @@ define_workflow_mod! {
                 ValidateAndSpawn: Ecs {
                     core_types: [],
                     core_functions: [
-                        fn RunEcs |input, world| -> Result<(), Error> {
+                        fn RunEcs |world| {
                             spawn_test_object(
                                 world,
                                 Vec2::new(350.0, 350.0),

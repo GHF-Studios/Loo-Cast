@@ -1,6 +1,7 @@
 pub mod components;
 pub mod functions;
 pub mod systems;
+pub mod workflows;
 
 use bevy::prelude::*;
 use systems::{

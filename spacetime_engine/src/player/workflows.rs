@@ -5,13 +5,17 @@ define_workflow_mod! {
     workflows: [
         SpawnPlayer {
             user_imports: {
+                use crate::{
+                    player::bundles::PlayerBundle,
+                    follower::components::FollowerTargetComponent,
+                };
             },
             user_items: {},
             stages: [
                 ValidateAndSpawn: Ecs {
                     core_types: [],
                     core_functions: [
-                        fn RunEcs |world| -> Result<(), Error> {
+                        fn RunEcs |world| {
                             world.spawn((
                                 PlayerBundle::default(),
                                 FollowerTargetComponent {

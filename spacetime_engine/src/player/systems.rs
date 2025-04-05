@@ -1,6 +1,7 @@
 use bevy::prelude::*;
+use spacetime_engine_macros::{workflow_path, run_workflow, define_composite_workflow};
 
-use crate::{config::statics::CONFIG, oneshot_systems::MainOneshotSystems};
+use crate::config::statics::CONFIG;
 
 use super::{
     components::PlayerComponent,
@@ -51,14 +52,16 @@ pub(crate) fn update_player_system(
 
 pub(crate) fn process_player_workflow_queue(
     mut commands: Commands,
-    mut queue: ResMut<PlayerWorkflowQueue>,
-    main_oneshot_systems: Res<MainOneshotSystems>,
+    mut queue: ResMut<PlayerWorkflowQueue>
 ) {
     for workflow in queue.0.drain(..) {
         match workflow {
             PlayerWorkflow::Spawn => {
-                let id = main_oneshot_systems.0["spawn_main_player"];
-                commands.run_system(id);
+                define_composite_workflow!(Spawn {
+                    #workflow(#path(Player::SpawnPlayer));
+                })
+            
+                crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(spawn()));
             }
             PlayerWorkflow::Despawn(entity) => {
                 commands.entity(entity).despawn_recursive();

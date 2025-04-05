@@ -1,5 +1,6 @@
 pub mod components;
 pub mod systems;
+pub mod workflows;
 
 use bevy::prelude::*;
 use systems::main_camera_zoom_system;

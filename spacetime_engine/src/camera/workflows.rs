@@ -16,7 +16,7 @@ define_workflow_mod! {
                 ValidateAndSpawn: Ecs {
                     core_types: [],
                     core_functions: [
-                        fn RunEcs |world| -> Result<(), Error> {
+                        fn RunEcs |world| {
                             world.spawn((
                                 Camera2dBundle::default(),
                                 MainCamera,
