@@ -107,19 +107,19 @@ fn startup_system(
     mut workflow_type_module_registry: ResMut<WorkflowTypeModuleRegistry>,
 ) {
     define_composite_workflow!(Startup {
-        #workflow(#id(Camera::SpawnMainCamera));
-        #workflow(#id(Debug::SpawnDebugUI));
-        #workflow(#id(Debug::SpawnDebugObjects));
-        #workflow(#id(IE, Gpu::SetupTextureGenerator), Input {
+        workflow!(id!(Camera::SpawnMainCamera));
+        workflow!(id!(Debug::SpawnDebugUI));
+        workflow!(id!(Debug::SpawnDebugObjects));
+        workflow!(id!(IE, Gpu::SetupTextureGenerator), Input {
             shader_name: "texture_generators/example_compute_uv",
             shader_path: "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string(),
         });
-        let generate_texture_output = #workflow(#id(IOE, Gpu::GenerateTexture), Input {
+        let generate_texture_output = workflow!(id!(IOE, Gpu::GenerateTexture), Input {
             shader_name,
             texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
             param_data: vec![0.0]
         });
-        #workflow(#id(IE, Chunk::SpawnChunk), Input {
+        workflow!(id!(IE, Chunk::SpawnChunk), Input {
             chunk_coord: (0, 0),
             chunk_owner: None,
             metric_texture: generate_texture_output.texture_handle,

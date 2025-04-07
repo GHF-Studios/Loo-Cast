@@ -58,7 +58,7 @@ pub(crate) fn process_player_workflow_queue(
         match workflow {
             PlayerWorkflow::Spawn => {
                 define_composite_workflow!(Spawn {
-                    #workflow(#path(Player::SpawnPlayer));
+                    workflow!(id!(Player::SpawnPlayer));
                 })
             
                 crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(spawn()));
