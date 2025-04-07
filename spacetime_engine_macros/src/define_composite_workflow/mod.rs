@@ -12,28 +12,24 @@ use workflow_invocation::WorkflowMacro;
 #[derive(Debug)]
 pub struct CompositeWorkflow {
     name: Ident,
-    body: TokenStream,
     invocations: Vec<WorkflowMacro>,
 }
 
 impl Parse for CompositeWorkflow {
     fn parse(input: ParseStream) -> Result<Self> {
         let name: Ident = input.parse()?;
-        input.parse::<Token![!]>().ok(); // Allow optional !
+        input.parse::<Token![!]>().ok(); // optional !
+
         let content;
         braced!(content in input);
         let raw: TokenStream = content.parse()?;
 
-        // -- Run ID expansion pass --
+        // Run ID and workflow expansion passes
         let SubMacroOutput { token_stream, .. } = SubMacro::WorkflowId.expand_in(raw);
-
-        // -- Run workflow! expansion + tracking --
-        let SubMacroOutput { token_stream, invocations } =
-            SubMacro::WorkflowInvocation.expand_in(token_stream);
+        let SubMacroOutput { invocations, .. } = SubMacro::WorkflowInvocation.expand_in(token_stream);
 
         Ok(Self {
             name,
-            body: token_stream,
             invocations,
         })
     }
