@@ -42,7 +42,7 @@ impl SubMacro {
                                         output.extend(expanded);
                                     }
                                     Err(e) => {
-                                        unreachable!("Failed to parse ID: {}", e);
+                                        unreachable!("Failed to parse workflow id: {}", e);
                                     }
                                 }
 
@@ -93,7 +93,7 @@ impl SubMacro {
                                         invocations.push(invocation);
                                     }
                                     Err(e) => {
-                                        unreachable!("Failed to parse ID: {}", e);
+                                        unreachable!("Failed to parse workflow invocation: {}", e);
                                     }
                                 }
 

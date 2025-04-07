@@ -31,12 +31,11 @@ pub enum SignatureType {
 }
 
 impl SignatureType {
-    fn from_kw(input: ParseStream) -> Result<Self> {
-        let lookahead = input.lookahead1();
-        if lookahead.peek(kw::None) {
-            input.parse::<kw::None>()?;
-            Ok(Self::None)
-        } else if lookahead.peek(kw::E) {
+    pub fn from_kw_optional(input: ParseStream) -> Result<Self> {
+        let fork = input.fork();
+
+        let lookahead = fork.lookahead1();
+        if lookahead.peek(kw::E) {
             input.parse::<kw::E>()?;
             Ok(Self::E)
         } else if lookahead.peek(kw::O) {
@@ -58,7 +57,7 @@ impl SignatureType {
             input.parse::<kw::IOE>()?;
             Ok(Self::IOE)
         } else {
-            Err(lookahead.error())
+            Ok(Self::None)
         }
     }
 
@@ -92,7 +91,9 @@ pub struct TypedWorkflowId {
 
 impl Parse for TypedWorkflowId {
     fn parse(input: ParseStream) -> Result<Self> {
-        let signature = SignatureType::from_kw(input)?;
+        // Try parsing a signature keyword, fallback to None
+        let signature = SignatureType::from_kw_optional(input)?;
+
         let namespace: Ident = input.parse()?;
         input.parse::<Token![::]>()?;
         let workflow: Ident = input.parse()?;
@@ -120,8 +121,8 @@ impl TypedWorkflowId {
             },
         );
 
-        let namespace_mod = Ident::new(&workflow_module_name, Span::call_site());
-        let workflow_mod = Ident::new(&workflow_name, Span::call_site());
+        let namespace_mod = Ident::new(&workflow_module_name, self.namespace.span());
+        let workflow_mod = Ident::new(&workflow_name, self.namespace.span());
 
         quote! {
             #[WorkflowSignature(#sig_attr)]
