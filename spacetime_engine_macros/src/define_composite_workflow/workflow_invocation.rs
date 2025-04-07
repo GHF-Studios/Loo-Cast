@@ -5,7 +5,7 @@ use syn::{
 };
 
 // Used in `sub_macro.rs` expansion logic
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WorkflowMacro {
     pub signature: Ident,
     pub workflow_type_path: ExprPath,

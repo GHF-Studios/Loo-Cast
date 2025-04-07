@@ -44,15 +44,15 @@ impl CompositeWorkflow {
         let function_ident = self.name;
         let error_enum_ident = Ident::new(&format!("{function_ident}Error"), function_ident.span());
 
-        // -- Filter fallible workflows into a vec --
-        let fallible: Vec<_> = self.invocations.iter().filter(|inv| {
+        // --- Collect fallible workflows ---
+        let fallible: Vec<_> = self.invocations.clone().into_iter().filter(|inv| {
             matches!(
                 inv.signature.to_string().as_str(),
                 "E" | "OE" | "IE" | "IOE"
             )
         }).collect();
 
-        // -- Error variants --
+        // --- Error Enum Variants ---
         let error_variants = fallible.iter().map(|wf| {
             let path = &wf.workflow_type_path;
             let name_str = path.to_token_stream().to_string().replace("::", "");
@@ -64,7 +64,7 @@ impl CompositeWorkflow {
             }
         });
 
-        // -- From impls --
+        // --- From impls for error conversion ---
         let from_impls = fallible.iter().map(|wf| {
             let path = &wf.workflow_type_path;
             let name_str = path.to_token_stream().to_string().replace("::", "");
@@ -79,14 +79,82 @@ impl CompositeWorkflow {
             }
         });
 
-        // -- Return type --
+        // --- Function return type ---
         let fn_return_type = if fallible.is_empty() {
             quote! { () }
         } else {
             quote! { Result<(), #error_enum_ident> }
         };
 
-        // -- Error enum (only if needed) --
+        // --- Generate function body from WorkflowMacro entries ---
+        let body_blocks = self.invocations.into_iter().map(|wf| {
+            let path = &wf.workflow_type_path;
+            let sig = wf.signature.to_string();
+            let input = wf.input_struct;
+
+            let trait_path = match sig.as_str() {
+                "E" => quote! { workflow::traits::WorkflowTypeE },
+                "O" => quote! { workflow::traits::WorkflowTypeO },
+                "OE" => quote! { workflow::traits::WorkflowTypeOE },
+                "I" => quote! { workflow::traits::WorkflowTypeI },
+                "IE" => quote! { workflow::traits::WorkflowTypeIE },
+                "IO" => quote! { workflow::traits::WorkflowTypeIO },
+                "IOE" => quote! { workflow::traits::WorkflowTypeIOE },
+                _ => quote! { workflow::traits::WorkflowType },
+            };
+
+            let run_call = match sig.as_str() {
+                "None" => quote! {
+                    #path::run().await
+                },
+                "E" => quote! {
+                    #path::run().await.map_err(Into::<#error_enum_ident>::into)
+                },
+                "O" => quote! {
+                    let output = #path::run().await;
+                },
+                "OE" => quote! {
+                    let output = #path::run().await.map_err(Into::<#error_enum_ident>::into)?;
+                },
+                "I" | "IE" | "IO" | "IOE" => {
+                    let input_block = input.expect("Expected Input { ... } for workflow with input");
+
+                    let result_expr = quote! {
+                        #path::run(#input_block).await
+                    };
+
+                    let wrapped_expr = if sig.contains('E') {
+                        quote! {
+                            #result_expr.map_err(Into::<#error_enum_ident>::into)?
+                        }
+                    } else {
+                        quote! {
+                            #result_expr
+                        }
+                    };
+
+                    if sig.contains('O') {
+                        quote! {
+                            let output = #wrapped_expr;
+                        }
+                    } else {
+                        quote! {
+                            #wrapped_expr;
+                        }
+                    }
+                }
+                _ => panic!("Unhandled workflow signature type: {}", sig),
+            };
+
+            quote! {
+                {
+                    type T = #path;
+                    #run_call;
+                }
+            }
+        });
+
+        // --- Conditionally emit error enum ---
         let error_enum = if fallible.is_empty() {
             quote! {}
         } else {
@@ -100,13 +168,13 @@ impl CompositeWorkflow {
             }
         };
 
-        let fn_body = self.body;
-
+        // --- Final output ---
         quote! {
             #error_enum
 
             pub async fn #function_ident() -> #fn_return_type {
-                #fn_body
+                #(#body_blocks)*
+                Ok(())
             }
 
             crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
