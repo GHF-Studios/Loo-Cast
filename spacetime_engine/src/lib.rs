@@ -44,7 +44,7 @@ use iyes_perf_ui::{
     entries::{PerfUiFramerateEntries, PerfUiSystemEntries},
     prelude::{PerfUiEntryEntityCount, PerfUiRoot},
 };
-use spacetime_engine_macros::{workflow_path, run_workflow};
+use spacetime_engine_macros::define_composite_workflow;
 use workflow::{resources::WorkflowTypeModuleRegistry, WorkflowPlugin};
 //use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;
@@ -130,6 +130,93 @@ fn startup_system(
 
     crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(startup()));
 }
+
+
+
+
+
+
+
+
+
+
+fn startup_system_2(
+    mut commands: Commands,
+    mut workflow_type_module_registry: ResMut<WorkflowTypeModuleRegistry>,
+) {
+    define_composite_workflow!(Startup {
+        workflow!(#[WorkflowSignature(None)]crate::camera::workflows::camera::spawn_main_camera::Type);
+        workflow!(#[WorkflowSignature(None)]crate::debug::workflows::debug::spawn_debug_ui::Type);
+        workflow!(#[WorkflowSignature(None)]crate::debug::workflows::debug::spawn_debug_objects::Type);
+
+        workflow!(#[WorkflowSignature(IE)]crate::gpu::workflows::gpu::setup_texture_generator::TypeIE, Input {
+            shader_name: "texture_generators/example_compute_uv",
+            shader_path: "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string(),
+        });
+        let generate_texture_output = workflow!(#[WorkflowSignature(IOE)]crate::gpu::workflows::gpu::generate_texture::TypeIOE, Input {
+            shader_name,
+            texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
+            param_data: vec![0.0]
+        });
+        workflow!(#[WorkflowSignature(IE)]crate::chunk::workflows::chunk::spawn_chunk::TypeIE, Input {
+            chunk_coord: (0, 0),
+            chunk_owner: None,
+            metric_texture: generate_texture_output.texture_handle,
+        });
+
+        Ok(())
+    })
+
+    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(startup()));
+}
+
+
+
+
+
+
+
+
+
+
+
+fn startup_system_3(
+    mut commands: Commands,
+    mut workflow_type_module_registry: ResMut<WorkflowTypeModuleRegistry>,
+) {
+    define_composite_workflow!(Startup {
+        #[WorkflowSignature(None), WorkflowType(crate::camera::workflows::camera::spawn_main_camera::Type)];
+        #[WorkflowSignature(None), WorkflowType(crate::debug::workflows::debug::spawn_debug_ui::Type)];
+        #[WorkflowSignature(None), WorkflowType(crate::debug::workflows::debug::spawn_debug_objects::Type)];
+
+        #[WorkflowSignature(IE), WorkflowType(crate::gpu::workflows::gpu::setup_texture_generator::TypeIE)];
+        let generate_texture_output = #[WorkflowSignature(IOE), WorkflowType(crate::gpu::workflows::gpu::generate_texture::TypeIOE), WorkflowInput {
+            shader_name,
+            texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
+            param_data: vec![0.0]
+        }];
+
+        #[WorkflowSignature(IE), WorkflowType(crate::chunk::workflows::chunk::spawn_chunk::TypeIE), WorkflowInput {
+            chunk_coord: (0, 0),
+            chunk_owner: None,
+            metric_texture: generate_texture_output.texture_handle,
+        }];
+
+        Ok(())
+    })
+
+    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(startup()));
+}
+
+
+
+
+
+
+
+
+
+
 
 // --- Fully expanded and working oneshot composite workflow `startup` ---
 fn fully_expanded_startup_system() {
