@@ -1,58 +1,78 @@
 mod sub_macro;
 mod workflow_id;
 mod workflow_invocation;
+mod workflow_segment;
 
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, Result, Ident, Token, braced, parse::{Parse, ParseStream}, spanned::Spanned};
+use heck::ToSnakeCase;
+use std::collections::HashSet;
 
 use sub_macro::{SubMacro, SubMacroOutput};
 use workflow_invocation::WorkflowMacro;
+use workflow_segment::{extract_workflow_segments, WorkflowSegment};
 
 #[derive(Debug)]
 pub struct CompositeWorkflow {
     name: Ident,
-    invocations: Vec<WorkflowMacro>,
+    segments: Vec<WorkflowSegment>,
 }
 
 impl Parse for CompositeWorkflow {
     fn parse(input: ParseStream) -> Result<Self> {
         let name: Ident = input.parse()?;
-        input.parse::<Token![!]>().ok(); // optional !
 
         let content;
         braced!(content in input);
-        let raw: TokenStream = content.parse()?;
+        let token_stream: TokenStream = content.parse()?;
 
-        // Run ID and workflow expansion passes
-        let SubMacroOutput { token_stream, .. } = SubMacro::WorkflowId.expand_in(raw);
-        let SubMacroOutput { invocations, .. } = SubMacro::WorkflowInvocation.expand_in(token_stream);
+        // TODO: Actually implement this and un-comment it
+        // Step 1: expand id! and workflow!
+        //let SubMacroOutput { token_stream, .. } = SubMacro::WorkflowId.expand_in(token_stream);
+        //let SubMacroOutput { token_stream, .. } = SubMacro::WorkflowInvocation.expand_in(token_stream);
+
+        // Step 2: segment the body into workflow blocks and plain tokens
+        let segments = extract_workflow_segments(token_stream);
 
         Ok(Self {
             name,
-            invocations,
+            segments,
         })
     }
 }
 
 impl CompositeWorkflow {
     pub fn generate(self) -> TokenStream {
-        let function_ident = self.name;
-        let error_enum_ident = Ident::new(&format!("{function_ident}Error"), function_ident.span());
+        let function_ident = &self.name;
+        let error_enum_ident = Ident::new(&format!("{}Error", function_ident), function_ident.span());
 
-        // --- Collect fallible workflows ---
-        let fallible: Vec<_> = self.invocations.clone().into_iter().filter(|inv| {
-            matches!(
-                inv.signature.to_string().as_str(),
-                "E" | "OE" | "IE" | "IOE"
-            )
+        // --- Collect fallible invocations ---
+        let fallible_invocations: Vec<_> = self.segments.iter().filter_map(|seg| {
+            match seg {
+                WorkflowSegment::Invocation(wf)
+                    if matches!(
+                        wf.signature.to_string().as_str(),
+                        "E" | "OE" | "IE" | "IOE"
+                    ) => Some(wf),
+                _ => None,
+            }
         }).collect();
 
-        // --- Error Enum Variants ---
-        let error_variants = fallible.iter().map(|wf| {
+        // --- Deduplicate error types by workflow_type_path ---
+        let mut seen_paths = HashSet::new();
+        let mut unique_errors = Vec::new();
+        for wf in &fallible_invocations {
             let path = &wf.workflow_type_path;
+            let key = path.to_token_stream().to_string();
+            if seen_paths.insert(key) {
+                unique_errors.push(path);
+            }
+        }
+
+        let error_variants = unique_errors.iter().map(|path| {
             let name_str = path.to_token_stream().to_string().replace("::", "");
-            let variant = Ident::new(&format!("{name_str}Error"), path.span());
+            let variant = Ident::new(&format!("{}Error", name_str), path.span());
 
             quote! {
                 #[error(#name_str)]
@@ -60,11 +80,9 @@ impl CompositeWorkflow {
             }
         });
 
-        // --- From impls for error conversion ---
-        let from_impls = fallible.iter().map(|wf| {
-            let path = &wf.workflow_type_path;
+        let from_impls = unique_errors.iter().map(|path| {
             let name_str = path.to_token_stream().to_string().replace("::", "");
-            let variant = Ident::new(&format!("{name_str}Error"), path.span());
+            let variant = Ident::new(&format!("{}Error", name_str), path.span());
 
             quote! {
                 impl From<<#path as workflow::traits::WorkflowType>::Error> for #error_enum_ident {
@@ -75,83 +93,7 @@ impl CompositeWorkflow {
             }
         });
 
-        // --- Function return type ---
-        let fn_return_type = if fallible.is_empty() {
-            quote! { () }
-        } else {
-            quote! { Result<(), #error_enum_ident> }
-        };
-
-        // --- Generate function body from WorkflowMacro entries ---
-        let body_blocks = self.invocations.into_iter().map(|wf| {
-            let path = &wf.workflow_type_path;
-            let sig = wf.signature.to_string();
-            let input = wf.input_struct;
-
-            let trait_path = match sig.as_str() {
-                "E" => quote! { workflow::traits::WorkflowTypeE },
-                "O" => quote! { workflow::traits::WorkflowTypeO },
-                "OE" => quote! { workflow::traits::WorkflowTypeOE },
-                "I" => quote! { workflow::traits::WorkflowTypeI },
-                "IE" => quote! { workflow::traits::WorkflowTypeIE },
-                "IO" => quote! { workflow::traits::WorkflowTypeIO },
-                "IOE" => quote! { workflow::traits::WorkflowTypeIOE },
-                _ => quote! { workflow::traits::WorkflowType },
-            };
-
-            let run_call = match sig.as_str() {
-                "None" => quote! {
-                    #path::run().await
-                },
-                "E" => quote! {
-                    #path::run().await.map_err(Into::<#error_enum_ident>::into)
-                },
-                "O" => quote! {
-                    let output = #path::run().await;
-                },
-                "OE" => quote! {
-                    let output = #path::run().await.map_err(Into::<#error_enum_ident>::into)?;
-                },
-                "I" | "IE" | "IO" | "IOE" => {
-                    let input_block = input.expect("Expected Input { ... } for workflow with input");
-
-                    let result_expr = quote! {
-                        #path::run(#input_block).await
-                    };
-
-                    let wrapped_expr = if sig.contains('E') {
-                        quote! {
-                            #result_expr.map_err(Into::<#error_enum_ident>::into)?
-                        }
-                    } else {
-                        quote! {
-                            #result_expr
-                        }
-                    };
-
-                    if sig.contains('O') {
-                        quote! {
-                            let output = #wrapped_expr;
-                        }
-                    } else {
-                        quote! {
-                            #wrapped_expr;
-                        }
-                    }
-                }
-                _ => panic!("Unhandled workflow signature type: {}", sig),
-            };
-
-            quote! {
-                {
-                    type T = #path;
-                    #run_call;
-                }
-            }
-        });
-
-        // --- Conditionally emit error enum ---
-        let error_enum = if fallible.is_empty() {
+        let error_enum_tokens = if unique_errors.is_empty() {
             quote! {}
         } else {
             quote! {
@@ -164,19 +106,88 @@ impl CompositeWorkflow {
             }
         };
 
-        // --- Final output ---
-        quote! {
-            #error_enum
+        // --- Build function body ---
+        let mut body_segments = Vec::new();
 
-            pub async fn #function_ident() -> #fn_return_type {
-                #(#body_blocks)*
+        for segment in &self.segments {
+            match segment {
+                WorkflowSegment::Plain(tokens) => {
+                    body_segments.push(quote! { #tokens });
+                }
+
+                WorkflowSegment::Invocation(wf) => {
+                    let sig = wf.signature.to_string();
+                    let path = &wf.workflow_type_path;
+
+                    let block = match sig.as_str() {
+                        "None" => quote! {
+                            {
+                                #path::run().await
+                            }
+                        },
+
+                        "E" => quote! {
+                            {
+                                #path::run().await.map_err(Into::<#error_enum_ident>::into)?
+                            }
+                        },
+
+                        "O" => quote! {
+                            {
+                                #path::run().await
+                            }
+                        },
+
+                        "OE" => quote! {
+                            {
+                                #path::run().await.map_err(Into::<#error_enum_ident>::into)?
+                            }
+                        },
+
+                        "I" | "IE" | "IO" | "IOE" => {
+                            let input = wf.input_struct.as_ref().expect("Expected `Input { ... }` block for workflow with input");
+
+                            let mut inner = quote! {
+                                type T = #path;
+                                type I = <T as workflow::traits::WorkflowType>::Input;
+                                T::run(#input).await
+                            };
+
+                            if sig.contains('E') {
+                                inner = quote! {
+                                    #inner.map_err(Into::<#error_enum_ident>::into)?
+                                };
+                            }
+
+                            quote! {
+                                {
+                                    #inner
+                                }
+                            }
+                        }
+
+                        _ => panic!("Unknown workflow signature: {}", sig),
+                    };
+
+                    body_segments.push(block);
+                }
+            }
+        }
+
+        let return_type = if fallible_invocations.is_empty() {
+            quote! { () }
+        } else {
+            quote! { Result<(), #error_enum_ident> }
+        };
+
+        quote! {
+            #error_enum_tokens
+
+            pub async fn #function_ident() -> #return_type {
+                #(#body_segments)*
+
                 Ok(())
             }
-
-            crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
-                .lock()
-                .unwrap()
-                .spawn_fallible(Box::pin(#function_ident()));
         }
     }
 }
