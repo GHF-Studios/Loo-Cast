@@ -1,4 +1,3 @@
-mod sub_macro;
 mod workflow_id;
 mod workflow_invocation;
 mod workflow_segment;
@@ -9,7 +8,6 @@ use syn::{parse_macro_input, Result, Ident, Token, braced, ExprPath, parse::{Par
 use heck::{ToPascalCase, ToSnakeCase};
 use std::collections::HashSet;
 
-use sub_macro::{SubMacro, SubMacroOutput};
 use workflow_invocation::WorkflowInvocation;
 use workflow_segment::{extract_workflow_segments, WorkflowSegment};
 
