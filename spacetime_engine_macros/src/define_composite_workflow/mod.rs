@@ -44,8 +44,8 @@ impl Parse for CompositeWorkflow {
 
 impl CompositeWorkflow {
     pub fn generate(self) -> TokenStream {
-        let function_ident = &self.name;
-        let error_enum_ident = Ident::new(&format!("{}Error", function_ident), function_ident.span());
+        let function_ident = Ident::new(self.name.to_string().as_str().to_snake_case().as_str(), self.name.span());
+        let error_enum_ident = Ident::new(&format!("{}Error", self.name), self.name.span());
 
         // --- Collect fallible invocations ---
         let fallible_invocations: Vec<_> = self.segments.iter().filter_map(|seg| {
