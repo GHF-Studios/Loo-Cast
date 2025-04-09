@@ -3,11 +3,11 @@ use quote::quote;
 use syn::parse2;
 
 use super::workflow_id::TypedWorkflowId;
-use super::workflow_invocation::WorkflowMacro;
+use super::workflow_invocation::WorkflowInvocation;
 
 pub struct SubMacroOutput {
     pub token_stream: TokenStream,
-    pub invocations: Vec<WorkflowMacro>,
+    pub invocations: Vec<WorkflowInvocation>,
 }
 
 pub enum SubMacro {
@@ -86,7 +86,7 @@ impl SubMacro {
                             if let Some(TokenTree::Group(group)) = tokens.next() {
                                 let inner_tokens = group.stream();
 
-                                match parse2::<WorkflowMacro>(inner_tokens.clone()) {
+                                match parse2::<WorkflowInvocation>(inner_tokens.clone()) {
                                     Ok(invocation) => {
                                         let generated = invocation.generate();
                                         output.extend(generated.clone());

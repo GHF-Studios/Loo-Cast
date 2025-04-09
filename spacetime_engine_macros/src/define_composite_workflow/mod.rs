@@ -5,12 +5,12 @@ mod workflow_segment;
 
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Result, Ident, Token, braced, parse::{Parse, ParseStream}, spanned::Spanned};
-use heck::ToSnakeCase;
+use syn::{parse_macro_input, Result, Ident, Token, braced, ExprPath, parse::{Parse, ParseStream}, spanned::Spanned};
+use heck::{ToPascalCase, ToSnakeCase};
 use std::collections::HashSet;
 
 use sub_macro::{SubMacro, SubMacroOutput};
-use workflow_invocation::WorkflowMacro;
+use workflow_invocation::WorkflowInvocation;
 use workflow_segment::{extract_workflow_segments, WorkflowSegment};
 
 #[derive(Debug)]
@@ -71,22 +71,25 @@ impl CompositeWorkflow {
         }
 
         let error_variants = unique_errors.iter().map(|path| {
-            let name_str = path.to_token_stream().to_string().replace("::", "");
-            let variant = Ident::new(&format!("{}Error", name_str), path.span());
-
+            let sig_str = signature_ident_from_path(path);
+            let trait_ident = trait_ident_from_signature(&sig_str);
+            let variant = extract_error_variant(path);
+            let name_str = variant.to_string();
+        
             quote! {
                 #[error(#name_str)]
-                #variant(<#path as workflow::traits::WorkflowType>::Error)
+                #variant(<#path as workflow::traits::#trait_ident>::Error)
             }
         });
 
         let from_impls = unique_errors.iter().map(|path| {
-            let name_str = path.to_token_stream().to_string().replace("::", "");
-            let variant = Ident::new(&format!("{}Error", name_str), path.span());
-
+            let sig_str = signature_ident_from_path(path);
+            let trait_ident = trait_ident_from_signature(&sig_str);
+            let variant = extract_error_variant(path);
+        
             quote! {
-                impl From<<#path as workflow::traits::WorkflowType>::Error> for #error_enum_ident {
-                    fn from(e: <#path as workflow::traits::WorkflowType>::Error) -> Self {
+                impl From<<#path as workflow::traits::#trait_ident>::Error> for #error_enum_ident {
+                    fn from(e: <#path as workflow::traits::#trait_ident>::Error) -> Self {
                         Self::#variant(e)
                     }
                 }
@@ -117,6 +120,7 @@ impl CompositeWorkflow {
 
                 WorkflowSegment::Invocation(wf) => {
                     let sig = wf.signature.to_string();
+                    let trait_ident = trait_ident_from_signature(&wf.signature);
                     let path = &wf.workflow_type_path;
 
                     let block = match sig.as_str() {
@@ -149,7 +153,7 @@ impl CompositeWorkflow {
 
                             let mut inner = quote! {
                                 type T = #path;
-                                type I = <T as workflow::traits::WorkflowType>::Input;
+                                type I = <T as workflow::traits::#trait_ident>::Input;
                                 T::run(#input).await
                             };
 
@@ -185,9 +189,63 @@ impl CompositeWorkflow {
 
             pub async fn #function_ident() -> #return_type {
                 #(#body_segments)*
-
-                Ok(())
             }
         }
     }
+}
+
+fn signature_ident_from_path(path: &syn::ExprPath) -> Ident {
+    // Get the final segment of the path, e.g., `TypeIE`
+    let last_segment = path.path.segments.last().unwrap().ident.to_string();
+
+    // Match on known suffixes — order matters (longer first)
+    let signature = if last_segment.ends_with("IOE") {
+        "IOE"
+    } else if last_segment.ends_with("IO") {
+        "IO"
+    } else if last_segment.ends_with("IE") {
+        "IE"
+    } else if last_segment.ends_with("OE") {
+        "OE"
+    } else if last_segment.ends_with("I") {
+        "I"
+    } else if last_segment.ends_with("O") {
+        "O"
+    } else if last_segment.ends_with("E") {
+        "E"
+    } else {
+        "None"
+    };
+
+    Ident::new(signature, path.span())
+}
+
+fn trait_ident_from_signature(sig: &Ident) -> Ident {
+    let sig_label = sig.to_string();
+    let sig_span = sig.span();
+
+    let trait_name = if sig_label == "None" {
+        "WorkflowType".to_string()
+    } else {
+        format!("WorkflowType{}", sig_label)
+    };
+
+    Ident::new(&trait_name, sig_span)
+}
+
+fn extract_error_variant(path: &ExprPath) -> Ident {
+    let segments = &path.path.segments;
+    let len = segments.len();
+
+    // Safely get the module and workflow name
+    let module_name = if len >= 2 {
+        segments[len - 2].ident.to_string()
+    } else {
+        segments.last().unwrap().ident.to_string()
+    };
+
+    let workflow_name = segments.last().unwrap().ident.to_string();
+
+    let combined = format!("{}{}", module_name, workflow_name).to_pascal_case();
+    Ident::new(&format!("{}Error", combined), path.span())
 }

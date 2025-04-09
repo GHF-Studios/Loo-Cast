@@ -100,7 +100,7 @@ fn pre_startup_system(
     crate::gpu::workflows::gpu::register_workflow_type_module(&mut workflow_type_module_registry);
     crate::player::workflows::player::register_workflow_type_module(&mut workflow_type_module_registry);
 }
-
+/*
 // Non-Expanded new WIP universal startup system, which will replace the current startup system
 fn startup_system(
     mut commands: Commands,
@@ -170,7 +170,7 @@ fn startup_system_2(
     crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(startup()));
 }
 
-
+*/
 
 
 
@@ -189,7 +189,10 @@ fn startup_system_3(
         #[WorkflowSignature(None)] #[WorkflowType(crate::debug::workflows::debug::spawn_debug_ui::Type)];
         #[WorkflowSignature(None)] #[WorkflowType(crate::debug::workflows::debug::spawn_debug_objects::Type)];
 
-        #[WorkflowSignature(IE)] #[WorkflowType(crate::gpu::workflows::gpu::setup_texture_generator::TypeIE)];
+        #[WorkflowSignature(IE)] #[WorkflowType(crate::gpu::workflows::gpu::setup_texture_generator::TypeIE)] #[WorkflowInput {
+            shader_name: "texture_generators/example_compute_uv",
+            shader_path: "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string(),
+        }];
         let generate_texture_output = #[WorkflowSignature(IOE)] #[WorkflowType(crate::gpu::workflows::gpu::generate_texture::TypeIOE)] #[WorkflowInput {
             shader_name,
             texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
@@ -219,42 +222,42 @@ fn startup_system_3(
 
 // --- Fully expanded and working oneshot composite workflow `startup` ---
 fn fully_expanded_startup_system() {
-    pub async fn startup() -> Result<(), StartupError> {
-        use thiserror::Error;
-    
-        #[derive(Debug, Error)]
-        pub enum StartupError {
-            #[error("SetupTextureGeneratorError{0}")]
-            SetupTextureGeneratorError(<crate::gpu::workflows::gpu::setup_texture_generator::TypeIE as workflow::traits::WorkflowTypeIE>::Error),
-    
-            #[error("GenerateTextureError{0}")]
-            GenerateTextureError(<crate::gpu::workflows::gpu::generate_texture::TypeIOE as workflow::traits::WorkflowTypeIOE>::Error),
-    
-            #[error("SpawnChunkError{0}")]
-            SpawnChunkError(<crate::chunk::workflows::chunk::spawn_chunk::TypeIE as workflow::traits::WorkflowTypeIE>::Error),
-        }
-        impl std::convert::From<gpu::workflows::gpu::generate_texture::Error>
-            for StartupError
-        {
-            fn from(e: gpu::workflows::gpu::generate_texture::Error) -> Self {
-                Self::GenerateTextureError(e)
-            }
-        }
-        impl std::convert::From<gpu::workflows::gpu::setup_texture_generator::Error>
-            for StartupError
-        {
-            fn from(e: gpu::workflows::gpu::setup_texture_generator::Error) -> Self {
-                Self::SetupTextureGeneratorError(e)
-            }
-        }
-        impl std::convert::From<chunk::workflows::chunk::spawn_chunk::Error>
-            for StartupError
-        {
-            fn from(e: chunk::workflows::chunk::spawn_chunk::Error) -> Self {
-                Self::SpawnChunkError(e)
-            }
-        }
+    use thiserror::Error;
 
+    #[derive(Debug, Error)]
+    pub enum StartupError {
+        #[error("SetupTextureGeneratorError{0}")]
+        SetupTextureGeneratorError(<crate::gpu::workflows::gpu::setup_texture_generator::TypeIE as workflow::traits::WorkflowTypeIE>::Error),
+
+        #[error("GenerateTextureError{0}")]
+        GenerateTextureError(<crate::gpu::workflows::gpu::generate_texture::TypeIOE as workflow::traits::WorkflowTypeIOE>::Error),
+
+        #[error("SpawnChunkError{0}")]
+        SpawnChunkError(<crate::chunk::workflows::chunk::spawn_chunk::TypeIE as workflow::traits::WorkflowTypeIE>::Error),
+    }
+    impl std::convert::From<gpu::workflows::gpu::generate_texture::Error>
+        for StartupError
+    {
+        fn from(e: gpu::workflows::gpu::generate_texture::Error) -> Self {
+            Self::GenerateTextureError(e)
+        }
+    }
+    impl std::convert::From<gpu::workflows::gpu::setup_texture_generator::Error>
+        for StartupError
+    {
+        fn from(e: gpu::workflows::gpu::setup_texture_generator::Error) -> Self {
+            Self::SetupTextureGeneratorError(e)
+        }
+    }
+    impl std::convert::From<chunk::workflows::chunk::spawn_chunk::Error>
+        for StartupError
+    {
+        fn from(e: chunk::workflows::chunk::spawn_chunk::Error) -> Self {
+            Self::SpawnChunkError(e)
+        }
+    }
+
+    pub async fn startup() -> Result<(), StartupError> {
         {
             crate::camera::workflows::camera::spawn_main_camera::run().await
         };

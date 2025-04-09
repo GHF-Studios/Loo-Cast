@@ -4,15 +4,22 @@ use syn::{
     Attribute, ExprPath, Ident, Result, Token, parse::{Parse, ParseStream}, ExprStruct, braced, parse2,
 };
 
+#[derive(Debug, Clone)]
+pub enum InvocationPart {
+    Signature(Ident),
+    Type(syn::ExprPath),
+    Input(syn::ExprStruct),
+}
+
 // Used in `sub_macro.rs` expansion logic
 #[derive(Debug, Clone)]
-pub struct WorkflowMacro {
+pub struct WorkflowInvocation {
     pub signature: Ident,
     pub workflow_type_path: ExprPath,
     pub input_struct: Option<ExprStruct>,
 }
 
-impl Parse for WorkflowMacro {
+impl Parse for WorkflowInvocation {
     fn parse(input: ParseStream) -> Result<Self> {
         // First: pull out the #[WorkflowSignature(...)] attribute
         let attrs = input.call(Attribute::parse_outer)?;
@@ -58,7 +65,30 @@ impl Parse for WorkflowMacro {
     }
 }
 
-impl WorkflowMacro {
+impl WorkflowInvocation {
+    pub fn from_parts(parts: Vec<InvocationPart>) -> Option<Self> {
+        let mut signature: Option<Ident> = None;
+        let mut workflow_type_path: Option<ExprPath> = None;
+        let mut input_struct: Option<ExprStruct> = None;
+
+        for part in parts {
+            match part {
+                InvocationPart::Signature(s) => signature = Some(s),
+                InvocationPart::Type(p) => workflow_type_path = Some(p),
+                InvocationPart::Input(i) => input_struct = Some(i),
+            }
+        }
+
+        match (signature, workflow_type_path) {
+            (Some(signature), Some(workflow_type_path)) => Some(Self {
+                signature,
+                workflow_type_path,
+                input_struct,
+            }),
+            _ => None,
+        }
+    }
+
     pub fn generate(&self) -> TokenStream {
         let sig = &self.signature;
         let path = &self.workflow_type_path;
