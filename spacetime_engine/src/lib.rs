@@ -189,12 +189,15 @@ fn startup_system_3(
         #[WorkflowSignature(None)] #[WorkflowType(crate::debug::workflows::debug::spawn_debug_ui::Type)];
         #[WorkflowSignature(None)] #[WorkflowType(crate::debug::workflows::debug::spawn_debug_objects::Type)];
 
+        let chunk_shader_name = "texture_generators/example_compute_uv";
+        let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
+
         #[WorkflowSignature(IE)] #[WorkflowType(crate::gpu::workflows::gpu::setup_texture_generator::TypeIE)] #[WorkflowInput {
-            shader_name: "texture_generators/example_compute_uv",
-            shader_path: "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string(),
+            shader_name: chunk_shader_name,
+            shader_path: chunk_shader_path,
         }];
         let generate_texture_output = #[WorkflowSignature(IOE)] #[WorkflowType(crate::gpu::workflows::gpu::generate_texture::TypeIOE)] #[WorkflowInput {
-            shader_name,
+            shader_name: chunk_shader_name,
             texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
             param_data: vec![0.0]
         }];

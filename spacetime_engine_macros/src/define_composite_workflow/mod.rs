@@ -121,40 +121,43 @@ impl CompositeWorkflow {
                 WorkflowSegment::Invocation(wf) => {
                     let sig = wf.signature.to_string();
                     let trait_ident = trait_ident_from_signature(&wf.signature);
-                    let path = &wf.workflow_type_path;
+                    let worfklow_path = &wf.workflow_type_path;
+                    let mut module_path = wf.workflow_type_path.clone();
+                    module_path.path.segments.pop();
 
                     let block = match sig.as_str() {
                         "None" => quote! {
                             {
-                                #path::run().await
+                                #module_path run().await
                             }
                         },
 
                         "E" => quote! {
                             {
-                                #path::run().await.map_err(Into::<#error_enum_ident>::into)?
+                                #module_path run().await.map_err(Into::<#error_enum_ident>::into)?
                             }
                         },
 
                         "O" => quote! {
                             {
-                                #path::run().await
+                                #module_path run().await
                             }
                         },
 
                         "OE" => quote! {
                             {
-                                #path::run().await.map_err(Into::<#error_enum_ident>::into)?
+                                #module_path run().await.map_err(Into::<#error_enum_ident>::into)?
                             }
                         },
 
                         "I" | "IE" | "IO" | "IOE" => {
-                            let input = wf.input_struct.as_ref().expect("Expected `Input { ... }` block for workflow with input");
-
+                            let mut input_expr = wf.input_struct.as_ref().unwrap_or_else(|| panic!("Expected `Input {{ ... }}` block for workflow with signature '{}'", sig)).clone();
+                            input_expr.path = syn::parse_quote! { I };
+                            
                             let mut inner = quote! {
-                                type T = #path;
+                                type T = #worfklow_path;
                                 type I = <T as workflow::traits::#trait_ident>::Input;
-                                T::run(#input).await
+                                #module_path run(#input_expr).await
                             };
 
                             if sig.contains('E') {
@@ -237,15 +240,29 @@ fn extract_error_variant(path: &ExprPath) -> Ident {
     let segments = &path.path.segments;
     let len = segments.len();
 
-    // Safely get the module and workflow name
-    let module_name = if len >= 2 {
-        segments[len - 2].ident.to_string()
-    } else {
-        segments.last().unwrap().ident.to_string()
-    };
+    // Defensive fallback
+    if len != 6 {
+        unreachable!("Expected 6 segments in the path, got {}", len);
+    }
 
-    let workflow_name = segments.last().unwrap().ident.to_string();
+    // Get module and workflow name from path
+    let module_name = segments[len - 3].ident.to_string().to_pascal_case(); // e.g. "gpu"
+    let workflow_name = segments[len - 2].ident.to_string().to_pascal_case(); // e.g. "setup_texture_generator"
 
-    let combined = format!("{}{}", module_name, workflow_name).to_pascal_case();
+    let mut combined = format!("{}{}", module_name, workflow_name);
+
+    // Strip Type-like suffixes if they snuck in
+    for &suffix in [
+        "Type", "TypeE", "TypeO", "TypeOe", "TypeI", "TypeIe", "TypeIo", "TypeIoe",
+    ]
+    .iter()
+    {
+        if let Some(stripped) = combined.strip_suffix(suffix) {
+            combined = stripped.to_string();
+            break;
+        }
+    }
+
     Ident::new(&format!("{}Error", combined), path.span())
 }
+
