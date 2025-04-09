@@ -207,7 +207,7 @@ fn startup_system_3(
         Ok(())
     });
 
-    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn(Box::pin(startup()));
+    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(startup()));
 }
 
 
@@ -222,9 +222,7 @@ fn startup_system_3(
 
 // --- Fully expanded and working oneshot composite workflow `startup` ---
 fn fully_expanded_startup_system() {
-    use thiserror::Error;
-
-    #[derive(Debug, Error)]
+    #[derive(Debug, thiserror::Error)]
     pub enum StartupError {
         #[error("SetupTextureGeneratorError{0}")]
         SetupTextureGeneratorError(<crate::gpu::workflows::gpu::setup_texture_generator::TypeIE as workflow::traits::WorkflowTypeIE>::Error),

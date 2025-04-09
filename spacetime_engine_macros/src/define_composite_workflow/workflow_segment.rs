@@ -11,69 +11,106 @@ pub enum WorkflowSegment {
 
 pub fn extract_workflow_segments(input: TokenStream) -> Vec<WorkflowSegment> {
     let mut segments = Vec::new();
-    let mut buffer = vec![];
     let mut plain_buffer = TokenStream::new();
+    let mut invocation_parts = Vec::new();
 
     let mut tokens = input.into_iter().peekable();
 
     while let Some(tt) = tokens.next() {
-        match tt {
-            TokenTree::Punct(ref p) if p.as_char() == '#' => {
+        match &tt {
+            TokenTree::Punct(p) if p.as_char() == '#' => {
+                // Check if this is an attribute group
                 if let Some(TokenTree::Group(group)) = tokens.peek() {
                     if group.delimiter() == Delimiter::Bracket {
-                        let group = match tokens.next() {
-                            Some(TokenTree::Group(g)) => g,
-                            _ => continue,
-                        };
-                        let group_stream = group.stream().to_string();
-
-                        if group_stream.contains("WorkflowSignature") {
-                            if let Ok(ident) = extract_signature_ident(group.stream()) {
-                                buffer.push(InvocationPart::Signature(ident));
-                                continue;
+                        // Consume and match the next token as a Group
+                        if let TokenTree::Group(group) = tokens.next().unwrap() {
+                            let group_stream = group.stream();
+                
+                            let handled = if group_stream.to_string().contains("WorkflowSignature") {
+                                extract_signature_ident(group_stream).map(InvocationPart::Signature)
+                            } else if group_stream.to_string().contains("WorkflowType") {
+                                extract_type_path(group_stream).map(InvocationPart::Type)
+                            } else if group_stream.to_string().contains("WorkflowInput") {
+                                extract_input_struct(group_stream).map(InvocationPart::Input)
+                            } else {
+                                Err(syn::Error::new_spanned(
+                                    quote! { #[#group] },
+                                    "Unrecognized attribute",
+                                ))
+                            };
+                
+                            match handled {
+                                Ok(part) => {
+                                    invocation_parts.push(part);
+                
+                                    if let Some(invocation) = WorkflowInvocation::from_parts(invocation_parts.clone()) {
+                                        if !plain_buffer.is_empty() {
+                                            segments.push(WorkflowSegment::Plain(plain_buffer.clone()));
+                                            plain_buffer = TokenStream::new();
+                                        }
+                                        segments.push(WorkflowSegment::Invocation(invocation));
+                                        invocation_parts.clear();
+                                    }
+                                }
+                                Err(_) => {
+                                    flush_to_plain(&mut segments, &mut plain_buffer, &mut invocation_parts);
+                                    plain_buffer.extend(quote! { #[#group] });
+                                }
                             }
-                        } else if group_stream.contains("WorkflowType") {
-                            if let Ok(path) = extract_type_path(group.stream()) {
-                                buffer.push(InvocationPart::Type(path));
-                                continue;
-                            }
-                        } else if group_stream.contains("WorkflowInput") {
-                            if let Ok(expr) = extract_input_struct(group.stream()) {
-                                buffer.push(InvocationPart::Input(expr));
-                                continue;
-                            }
+                
+                            continue;
                         }
-
-                        // If unrecognized, just flush everything and treat as plain
-                        flush_buffer_as_plain(&mut segments, &mut plain_buffer, &mut buffer);
-                        plain_buffer.extend(quote! { #tt #[#group] });
                     }
                 }
+
+                // A lone `#` — treat as plain
+                plain_buffer.extend(quote! { #tt });
             }
 
-            TokenTree::Punct(p) if p.as_char() == ';' => {
-                if let Some(invocation) = WorkflowInvocation::from_parts(buffer.clone()) {
-                    segments.push(WorkflowSegment::Invocation(invocation));
-                } else {
-                    flush_buffer_as_plain(&mut segments, &mut plain_buffer, &mut buffer);
+            _ => {
+                // Any other token
+                // If we had partial invocation parts, treat them as plain now
+                if !invocation_parts.is_empty() {
+                    flush_to_plain(&mut segments, &mut plain_buffer, &mut invocation_parts);
                 }
-                buffer.clear();
-            }
 
-            other => {
-                if !buffer.is_empty() {
-                    flush_buffer_as_plain(&mut segments, &mut plain_buffer, &mut buffer);
-                }
-                plain_buffer.extend(std::iter::once(other));
+                plain_buffer.extend(quote! { #tt });
             }
         }
     }
 
+    // Final flush
+    if !invocation_parts.is_empty() {
+        flush_to_plain(&mut segments, &mut plain_buffer, &mut invocation_parts);
+    }
     if !plain_buffer.is_empty() {
-        merge_or_push_plain(&mut segments, plain_buffer);
+        segments.push(WorkflowSegment::Plain(plain_buffer));
     }
 
     segments
+}
+
+fn flush_to_plain(
+    segments: &mut Vec<WorkflowSegment>,
+    plain_buffer: &mut TokenStream,
+    invocation_parts: &mut Vec<InvocationPart>,
+) {
+    if !invocation_parts.is_empty() {
+        let dumped: TokenStream = invocation_parts
+            .drain(..)
+            .map(|p| match p {
+                InvocationPart::Signature(s) => quote! { #[WorkflowSignature(#s)] },
+                InvocationPart::Type(t) => quote! { #[WorkflowType(#t)] },
+                InvocationPart::Input(i) => quote! { #[WorkflowInput #i] },
+            })
+            .collect();
+        plain_buffer.extend(dumped);
+    }
+
+    if !plain_buffer.is_empty() {
+        segments.push(WorkflowSegment::Plain(plain_buffer.clone()));
+        *plain_buffer = TokenStream::new();
+    }
 }
 
 fn merge_or_push_plain(segments: &mut Vec<WorkflowSegment>, tokens: TokenStream) {
