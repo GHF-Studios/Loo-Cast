@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use spacetime_engine_macros::{workflow_path, run_workflow, define_composite_workflow};
+use spacetime_engine_macros::define_composite_workflow;
 
 use crate::config::statics::CONFIG;
 
@@ -16,6 +16,7 @@ pub(crate) fn update_player_system(
 ) {
     if player_query.is_empty() {
         if keys.just_pressed(KeyCode::Space) {
+            error!("1s");
             queue.0.push(PlayerWorkflow::Spawn);
         }
         return;
@@ -45,6 +46,7 @@ pub(crate) fn update_player_system(
             direction * CONFIG.get::<f32>("player/movement_speed") * time.delta_seconds();
 
         if keys.just_pressed(KeyCode::Space) {
+            error!("1d");
             queue.0.push(PlayerWorkflow::Despawn(player_entity));
         }
     }
@@ -55,13 +57,16 @@ pub(crate) fn process_player_workflow_queue(
     mut queue: ResMut<PlayerWorkflowQueue>
 ) {
     for workflow in queue.0.drain(..) {
+        error!("2");
         match workflow {
             PlayerWorkflow::Spawn => {
-                define_composite_workflow!(Spawn {
-                    workflow!(id!(Player::SpawnPlayer));
-                })
+                error!("3");
+                define_composite_workflow!(JustDoIt {
+                    error!("4");
+                    workflow!(id!(Player::SpawnPlayer))
+                });
             
-                crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(spawn()));
+                crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn(Box::pin(just_do_it()));
             }
             PlayerWorkflow::Despawn(entity) => {
                 commands.entity(entity).despawn_recursive();

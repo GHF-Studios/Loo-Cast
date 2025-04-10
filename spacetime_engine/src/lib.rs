@@ -101,21 +101,11 @@ fn pre_startup_system(
     crate::player::workflows::player::register_workflow_type_module(&mut workflow_type_module_registry);
 }
 
-
-
-
-
-
-
-
-fn startup_system(
-    mut commands: Commands,
-    mut workflow_type_module_registry: ResMut<WorkflowTypeModuleRegistry>,
-) {
+fn startup_system() {
     define_composite_workflow!(Startup {
-        workflow!(Camera::SpawnMainCamera);
-        workflow!(Debug::SpawnDebugUI);
-        workflow!(Debug::SpawnDebugObjects);
+        //workflow!(Camera::SpawnMainCamera);
+        //workflow!(Debug::SpawnDebugUI);
+        //workflow!(Debug::SpawnDebugObjects);
 
         let chunk_shader_name = "texture_generators/example_compute_uv";
         let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
@@ -139,128 +129,4 @@ fn startup_system(
     });
 
     crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(startup()));
-}
-
-
-
-fn pre_processed_startup_system(
-    mut commands: Commands,
-    mut workflow_type_module_registry: ResMut<WorkflowTypeModuleRegistry>,
-) {
-    #[WorkflowSignature(None)] #[WorkflowType(crate::camera::workflows::camera::spawn_main_camera::Type)];
-    #[WorkflowSignature(None)] #[WorkflowType(crate::debug::workflows::debug::spawn_debug_ui::Type)];
-    #[WorkflowSignature(None)] #[WorkflowType(crate::debug::workflows::debug::spawn_debug_objects::Type)];
-    
-    let chunk_shader_name = "texture_generators/example_compute_uv";
-    let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
-
-    #[WorkflowSignature(IE)] #[WorkflowType(crate::gpu::workflows::gpu::setup_texture_generator::TypeIE)] #[WorkflowInput {
-            shader_name: chunk_shader_name,
-            shader_path: chunk_shader_path,
-    }];
-    let generate_texture_output = #[WorkflowSignature(IOE)] #[WorkflowType(crate::gpu::workflows::gpu::generate_texture::TypeIOE)] #[WorkflowInput {
-            shader_name: chunk_shader_name,
-            texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
-            param_data: vec![0.0]
-    }];
-    #[WorkflowSignature(IE)] #[WorkflowType(crate::chunk::workflows::chunk::spawn_chunk::TypeIE)] #[WorkflowInput {
-            chunk_coord: (0, 0),
-            chunk_owner: None,
-            metric_texture: generate_texture_output.texture_handle,
-    }];
-    Ok(());
-
-    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(startup()));
-}
-
-
-
-// --- Fully expanded and working oneshot composite workflow `startup` ---
-fn fully_expanded_startup_system() {
-    #[derive(Debug, thiserror::Error)]
-    pub enum StartupError {
-        #[error("SetupTextureGeneratorError{0}")]
-        SetupTextureGeneratorError(<crate::gpu::workflows::gpu::setup_texture_generator::TypeIE as workflow::traits::WorkflowTypeIE>::Error),
-
-        #[error("GenerateTextureError{0}")]
-        GenerateTextureError(<crate::gpu::workflows::gpu::generate_texture::TypeIOE as workflow::traits::WorkflowTypeIOE>::Error),
-
-        #[error("SpawnChunkError{0}")]
-        SpawnChunkError(<crate::chunk::workflows::chunk::spawn_chunk::TypeIE as workflow::traits::WorkflowTypeIE>::Error),
-    }
-    impl std::convert::From<gpu::workflows::gpu::generate_texture::Error>
-        for StartupError
-    {
-        fn from(e: gpu::workflows::gpu::generate_texture::Error) -> Self {
-            Self::GenerateTextureError(e)
-        }
-    }
-    impl std::convert::From<gpu::workflows::gpu::setup_texture_generator::Error>
-        for StartupError
-    {
-        fn from(e: gpu::workflows::gpu::setup_texture_generator::Error) -> Self {
-            Self::SetupTextureGeneratorError(e)
-        }
-    }
-    impl std::convert::From<chunk::workflows::chunk::spawn_chunk::Error>
-        for StartupError
-    {
-        fn from(e: chunk::workflows::chunk::spawn_chunk::Error) -> Self {
-            Self::SpawnChunkError(e)
-        }
-    }
-
-    pub async fn startup() -> Result<(), StartupError> {
-        {
-            crate::camera::workflows::camera::spawn_main_camera::run().await
-        };
-        {
-            crate::debug::workflows::debug::spawn_debug_ui::run().await
-        };
-        {
-            crate::debug::workflows::debug::spawn_debug_objects::run().await
-        };
-
-        let shader_name = "texture_generators/example_compute_uv";
-        let shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl";
-        {
-            type T = crate::gpu::workflows::gpu::setup_texture_generator::TypeIE;
-            type I = <T as crate::workflow::traits::WorkflowTypeIE>::Input;
-
-            crate::gpu::workflows::gpu::setup_texture_generator::run(I {
-                shader_name,
-                shader_path: shader_path.to_string(),
-            }).await
-            .map_err(Into::<StartupError>::into)
-        }?;
-        let generate_texture_output = {
-            type T = crate::gpu::workflows::gpu::generate_texture::TypeIOE;
-            type I = <T as crate::workflow::traits::WorkflowTypeIOE>::Input;
-
-            crate::gpu::workflows::gpu::generate_texture::run(I {
-                shader_name,
-                texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
-                param_data: vec![0.0],
-            }).await
-            .map_err(Into::<StartupError>::into)
-        }?;
-        {
-            type T = crate::chunk::workflows::chunk::spawn_chunk::TypeIE;
-            type I = <T as crate::workflow::traits::WorkflowTypeIE>::Input;
-
-            crate::chunk::workflows::chunk::spawn_chunk::run(I {
-                chunk_coord: (0, 0),
-                chunk_owner: None,
-                metric_texture: generate_texture_output.texture_handle,
-            }).await
-            .map_err(Into::<StartupError>::into)
-        }?;
-
-        Ok(())
-    }
-
-    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
-        .lock()
-        .unwrap()
-        .spawn_fallible(Box::pin(startup()));
 }

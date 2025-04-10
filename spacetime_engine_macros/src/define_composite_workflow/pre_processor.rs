@@ -106,7 +106,10 @@ fn transform_workflow_group(group: Group) -> TokenStream {
     let type_path = format!("crate::{0}::workflows::{0}::{1}::Type", module_snake, workflow_snake);
 
     let workflow_signature = match &signature {
-        Some(sig) => quote! { #sig },
+        Some(sig) => {
+            let ident = Ident::new(sig, Span::call_site());
+            quote! { #ident }
+        },
         None => quote! { None },
     };
 

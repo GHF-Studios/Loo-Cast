@@ -17,7 +17,6 @@ use workflow_segment::{extract_workflow_segments, WorkflowSegment};
 pub struct CompositeWorkflow {
     name: Ident,
     segments: Vec<WorkflowSegment>,
-    DEBUG_TOKENS: TokenStream
 }
 
 impl Parse for CompositeWorkflow {
@@ -27,13 +26,12 @@ impl Parse for CompositeWorkflow {
         let content;
         braced!(content in input);
         let token_stream: TokenStream = content.parse()?;
-        //let token_stream = pre_process_workflows(token_stream);
+        let token_stream = pre_process_workflows(token_stream);
         let segments = extract_workflow_segments(token_stream.clone());
 
         Ok(Self {
             name,
             segments,
-            DEBUG_TOKENS: token_stream,
         })
     }
 }
@@ -183,15 +181,13 @@ impl CompositeWorkflow {
             quote! { Result<(), #error_enum_ident> }
         };
 
-        //quote! {
-        //    #error_enum_tokens
-        //
-        //    pub async fn #function_ident() -> #return_type {
-        //        #(#body_segments)*
-        //    }
-        //}
-
-        self.DEBUG_TOKENS
+        quote! {
+            #error_enum_tokens
+        
+            pub async fn #function_ident() -> #return_type {
+                #(#body_segments)*
+            }
+        }
     }
 }
 
