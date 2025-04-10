@@ -88,25 +88,4 @@ impl WorkflowInvocation {
             _ => None,
         }
     }
-
-    pub fn generate(&self) -> TokenStream {
-        let sig = &self.signature;
-        let path = &self.workflow_type_path;
-
-        let signature_attr = quote! { #[WorkflowSignature(#sig)] };
-        let type_attr = quote! { WorkflowType(#path) };
-
-        let input_attr = self.input_struct.as_ref().map(|input| {
-            quote! { WorkflowInput #input }
-        });
-
-        let attrs = match input_attr {
-            Some(i) => quote! { #[#signature_attr, #type_attr, #i] },
-            None => quote! { #[#signature_attr, #type_attr] },
-        };
-
-        quote! {
-            #attrs
-        }
-    }
 }

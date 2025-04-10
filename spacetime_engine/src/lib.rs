@@ -116,12 +116,16 @@ fn startup_system(
         workflow!(Camera::SpawnMainCamera);
         workflow!(Debug::SpawnDebugUI);
         workflow!(Debug::SpawnDebugObjects);
+
+        let chunk_shader_name = "texture_generators/example_compute_uv";
+        let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
+
         workflow!(IE, Gpu::SetupTextureGenerator, Input {
-            shader_name: "texture_generators/example_compute_uv",
-            shader_path: "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string(),
+            shader_name: chunk_shader_name,
+            shader_path: chunk_shader_path,
         });
         let generate_texture_output = workflow!(IOE, Gpu::GenerateTexture, Input {
-            shader_name,
+            shader_name: chunk_shader_name,
             texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
             param_data: vec![0.0]
         });
@@ -139,52 +143,35 @@ fn startup_system(
 
 
 
-
-
-
-
-
-
-fn half_expanded_startup_system(
+fn pre_processed_startup_system(
     mut commands: Commands,
     mut workflow_type_module_registry: ResMut<WorkflowTypeModuleRegistry>,
 ) {
-    define_composite_workflow!(Startup {
-        #[WorkflowSignature(None)] #[WorkflowType(crate::camera::workflows::camera::spawn_main_camera::Type)];
-        #[WorkflowSignature(None)] #[WorkflowType(crate::debug::workflows::debug::spawn_debug_ui::Type)];
-        #[WorkflowSignature(None)] #[WorkflowType(crate::debug::workflows::debug::spawn_debug_objects::Type)];
+    #[WorkflowSignature(None)] #[WorkflowType(crate::camera::workflows::camera::spawn_main_camera::Type)];
+    #[WorkflowSignature(None)] #[WorkflowType(crate::debug::workflows::debug::spawn_debug_ui::Type)];
+    #[WorkflowSignature(None)] #[WorkflowType(crate::debug::workflows::debug::spawn_debug_objects::Type)];
+    
+    let chunk_shader_name = "texture_generators/example_compute_uv";
+    let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
 
-        let chunk_shader_name = "texture_generators/example_compute_uv";
-        let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
-
-        #[WorkflowSignature(IE)] #[WorkflowType(crate::gpu::workflows::gpu::setup_texture_generator::TypeIE)] #[WorkflowInput {
+    #[WorkflowSignature(IE)] #[WorkflowType(crate::gpu::workflows::gpu::setup_texture_generator::TypeIE)] #[WorkflowInput {
             shader_name: chunk_shader_name,
             shader_path: chunk_shader_path,
-        }];
-        let generate_texture_output = #[WorkflowSignature(IOE)] #[WorkflowType(crate::gpu::workflows::gpu::generate_texture::TypeIOE)] #[WorkflowInput {
+    }];
+    let generate_texture_output = #[WorkflowSignature(IOE)] #[WorkflowType(crate::gpu::workflows::gpu::generate_texture::TypeIOE)] #[WorkflowInput {
             shader_name: chunk_shader_name,
             texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
             param_data: vec![0.0]
-        }];
-        #[WorkflowSignature(IE)] #[WorkflowType(crate::chunk::workflows::chunk::spawn_chunk::TypeIE)] #[WorkflowInput {
+    }];
+    #[WorkflowSignature(IE)] #[WorkflowType(crate::chunk::workflows::chunk::spawn_chunk::TypeIE)] #[WorkflowInput {
             chunk_coord: (0, 0),
             chunk_owner: None,
             metric_texture: generate_texture_output.texture_handle,
-        }];
-
-        Ok(())
-    });
+    }];
+    Ok(());
 
     crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(startup()));
 }
-
-
-
-
-
-
-
-
 
 
 

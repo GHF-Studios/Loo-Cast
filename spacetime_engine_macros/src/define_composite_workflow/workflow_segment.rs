@@ -1,6 +1,6 @@
-use proc_macro2::{TokenStream, TokenTree, Group, Delimiter};
+use proc_macro2::{TokenStream, TokenTree, Delimiter};
 use quote::quote;
-use syn::{parse2, ExprStruct, ExprPath, Attribute, Result, Ident};
+use syn::{parse2, ExprStruct, ExprPath, Result, Ident};
 use crate::define_composite_workflow::workflow_invocation::*;
 
 #[derive(Debug, Clone)]
@@ -22,7 +22,6 @@ pub fn extract_workflow_segments(input: TokenStream) -> Vec<WorkflowSegment> {
                 if let Some(TokenTree::Group(group)) = tokens.peek() {
                     if group.delimiter() == Delimiter::Bracket {
                         if let TokenTree::Group(group) = tokens.next().unwrap() {
-                            let attr_tokens = quote! { #[#group] };
                             let tokens = group.stream();
 
                             let handled = if let Ok(ident) = extract_signature_ident(tokens.clone()) {
@@ -119,38 +118,6 @@ fn flush_to_plain(
 
     if !plain_buffer.is_empty() {
         segments.push(WorkflowSegment::Plain(plain_buffer.clone()));
-        *plain_buffer = TokenStream::new();
-    }
-}
-
-fn merge_or_push_plain(segments: &mut Vec<WorkflowSegment>, tokens: TokenStream) {
-    match segments.last_mut() {
-        Some(WorkflowSegment::Plain(existing)) => {
-            existing.extend(tokens);
-        }
-        _ => segments.push(WorkflowSegment::Plain(tokens)),
-    }
-}
-
-fn flush_buffer_as_plain(
-    segments: &mut Vec<WorkflowSegment>,
-    plain_buffer: &mut TokenStream,
-    buffer: &mut Vec<InvocationPart>,
-) {
-    if !buffer.is_empty() {
-        let dumped: TokenStream = buffer
-            .drain(..)
-            .map(|p| match p {
-                InvocationPart::Signature(s) => quote! { #[WorkflowSignature(#s)] },
-                InvocationPart::Type(t) => quote! { #[WorkflowType(#t)] },
-                InvocationPart::Input(i) => quote! { #[WorkflowInput #i] },
-            })
-            .collect();
-        plain_buffer.extend(dumped);
-    }
-
-    if !plain_buffer.is_empty() {
-        merge_or_push_plain(segments, plain_buffer.clone());
         *plain_buffer = TokenStream::new();
     }
 }
