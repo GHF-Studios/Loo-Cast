@@ -103,13 +103,13 @@ fn pre_startup_system(
 
 fn startup_system() {
     define_composite_workflow!(Startup {
-        //workflow!(Camera::SpawnMainCamera);
-        //workflow!(Debug::SpawnDebugUI);
-        //workflow!(Debug::SpawnDebugObjects);
+        workflow!(Camera::SpawnMainCamera);
+        workflow!(Debug::SpawnDebugUI);
+        workflow!(Debug::SpawnDebugObjects);
 
         let chunk_shader_name = "texture_generators/example_compute_uv";
         let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
-
+        
         workflow!(IE, Gpu::SetupTextureGenerator, Input {
             shader_name: chunk_shader_name,
             shader_path: chunk_shader_path,
@@ -124,7 +124,7 @@ fn startup_system() {
             chunk_owner: None,
             metric_texture: generate_texture_output.texture_handle,
         });
-
+        
         Ok(())
     });
 

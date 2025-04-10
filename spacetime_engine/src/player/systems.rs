@@ -8,6 +8,7 @@ use super::{
     resources::{PlayerWorkflow, PlayerWorkflowQueue},
 };
 
+// TODO: Make it so we can't spawn two players if we click fast enough, aka we 
 pub(crate) fn update_player_system(
     mut queue: ResMut<PlayerWorkflowQueue>,
     mut player_query: Query<(Entity, &mut Transform), With<PlayerComponent>>,
@@ -16,7 +17,6 @@ pub(crate) fn update_player_system(
 ) {
     if player_query.is_empty() {
         if keys.just_pressed(KeyCode::Space) {
-            error!("1s");
             queue.0.push(PlayerWorkflow::Spawn);
         }
         return;
@@ -46,7 +46,6 @@ pub(crate) fn update_player_system(
             direction * CONFIG.get::<f32>("player/movement_speed") * time.delta_seconds();
 
         if keys.just_pressed(KeyCode::Space) {
-            error!("1d");
             queue.0.push(PlayerWorkflow::Despawn(player_entity));
         }
     }
@@ -57,13 +56,11 @@ pub(crate) fn process_player_workflow_queue(
     mut queue: ResMut<PlayerWorkflowQueue>
 ) {
     for workflow in queue.0.drain(..) {
-        error!("2");
         match workflow {
             PlayerWorkflow::Spawn => {
-                error!("3");
+                // TODO: FIX: Invalid workflow! invocations in general seem to just disappear entirely, instead of outputting some error like `__Panic__`
                 define_composite_workflow!(JustDoIt {
-                    error!("4");
-                    workflow!(id!(Player::SpawnPlayer))
+                    workflow!(Player::SpawnPlayer)
                 });
             
                 crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn(Box::pin(just_do_it()));
