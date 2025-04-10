@@ -16,7 +16,6 @@ define_workflow_mod! {
                     core_types: [],
                     core_functions: [
                         fn RunEcs |world| {
-                            bevy::prelude::error!("5");
                             world.spawn((
                                 PlayerBundle::default(),
                                 FollowerTargetComponent {
