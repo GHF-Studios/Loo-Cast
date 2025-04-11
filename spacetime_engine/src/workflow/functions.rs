@@ -176,7 +176,6 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
             let mut receiver = get_response_ioe_receiver();
             receiver.recv().now_or_never()
         } {
-            bevy::prelude::debug!("skibidi toilet");
             return response.unpack();
         } else {
             tokio::task::yield_now().await;

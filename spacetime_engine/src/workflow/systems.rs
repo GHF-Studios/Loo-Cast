@@ -1296,7 +1296,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         }
                     };
 
-                    (callback)(Box::new(TypedWorkflowResponseOE(Ok(Box::new(stage_output)))))
+                    (callback)(Box::new(TypedWorkflowResponseOE(Ok(stage_output))))
                 }
                 WorkflowCallback::I(callback) => {
                     (callback)()
@@ -1322,7 +1322,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         }
                     };
 
-                    (callback)(Box::new(TypedWorkflowResponseOE(Ok(Box::new(stage_output)))))
+                    (callback)(Box::new(TypedWorkflowResponseOE(Ok(stage_output))))
                 }
             };
         }
