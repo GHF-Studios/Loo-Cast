@@ -79,7 +79,7 @@ define_workflow_mod! {
                                     speed: 0.15,
                                 },
                             );
-                        
+
                             spawn_test_object(
                                 world,
                                 Vec2::new(-300.0, -400.0),
@@ -90,7 +90,7 @@ define_workflow_mod! {
                                     speed: 0.15,
                                 },
                             );
-                        
+
                             spawn_test_object(
                                 world,
                                 Vec2::new(-350.0, 400.0),

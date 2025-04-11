@@ -1,7 +1,7 @@
-use proc_macro2::{TokenStream, TokenTree, Delimiter};
-use quote::quote;
-use syn::{parse2, ExprStruct, ExprPath, Result, Ident};
 use crate::define_composite_workflow::workflow_invocation::*;
+use proc_macro2::{Delimiter, TokenStream, TokenTree};
+use quote::quote;
+use syn::{parse2, ExprPath, ExprStruct, Ident, Result};
 
 #[derive(Debug, Clone)]
 pub enum WorkflowSegment {
@@ -24,7 +24,8 @@ pub fn extract_workflow_segments(input: TokenStream) -> Vec<WorkflowSegment> {
                         if let TokenTree::Group(group) = tokens.next().unwrap() {
                             let tokens = group.stream();
 
-                            let handled = if let Ok(ident) = extract_signature_ident(tokens.clone()) {
+                            let handled = if let Ok(ident) = extract_signature_ident(tokens.clone())
+                            {
                                 invocation_parts.push(InvocationPart::Signature(ident));
                                 true
                             } else if let Ok(path) = extract_type_path(tokens.clone()) {
@@ -38,10 +39,18 @@ pub fn extract_workflow_segments(input: TokenStream) -> Vec<WorkflowSegment> {
                             };
 
                             if handled {
-                                try_finalize_invocation(&mut segments, &mut plain_buffer, &mut invocation_parts);
+                                try_finalize_invocation(
+                                    &mut segments,
+                                    &mut plain_buffer,
+                                    &mut invocation_parts,
+                                );
                                 continue;
                             } else {
-                                flush_to_plain(&mut segments, &mut plain_buffer, &mut invocation_parts);
+                                flush_to_plain(
+                                    &mut segments,
+                                    &mut plain_buffer,
+                                    &mut invocation_parts,
+                                );
                                 plain_buffer.extend(quote! { #[#group] });
                                 continue;
                             }
@@ -125,29 +134,44 @@ fn flush_to_plain(
 fn extract_signature_ident(ts: TokenStream) -> Result<Ident> {
     let mut inner = ts.into_iter();
     match (inner.next(), inner.next()) {
-        (Some(TokenTree::Ident(kw)), Some(TokenTree::Group(group))) if kw == "WorkflowSignature" && group.delimiter() == Delimiter::Parenthesis => {
+        (Some(TokenTree::Ident(kw)), Some(TokenTree::Group(group)))
+            if kw == "WorkflowSignature" && group.delimiter() == Delimiter::Parenthesis =>
+        {
             parse2::<Ident>(group.stream())
         }
-        _ => Err(syn::Error::new_spanned(quote! { #(#inner)* }, "Expected WorkflowSignature(Ident)")),
+        _ => Err(syn::Error::new_spanned(
+            quote! { #(#inner)* },
+            "Expected WorkflowSignature(Ident)",
+        )),
     }
 }
 
 fn extract_type_path(ts: TokenStream) -> Result<ExprPath> {
     let mut inner = ts.into_iter();
     match (inner.next(), inner.next()) {
-        (Some(TokenTree::Ident(kw)), Some(TokenTree::Group(group))) if kw == "WorkflowType" && group.delimiter() == Delimiter::Parenthesis => {
+        (Some(TokenTree::Ident(kw)), Some(TokenTree::Group(group)))
+            if kw == "WorkflowType" && group.delimiter() == Delimiter::Parenthesis =>
+        {
             parse2::<ExprPath>(group.stream())
         }
-        _ => Err(syn::Error::new_spanned(quote! { #(#inner)* }, "Expected WorkflowType(path)")),
+        _ => Err(syn::Error::new_spanned(
+            quote! { #(#inner)* },
+            "Expected WorkflowType(path)",
+        )),
     }
 }
 
 fn extract_input_struct(ts: TokenStream) -> Result<ExprStruct> {
     let mut inner = ts.into_iter();
     match (inner.next(), inner.next()) {
-        (Some(TokenTree::Ident(kw)), Some(TokenTree::Group(group))) if kw == "WorkflowInput" && group.delimiter() == Delimiter::Brace => {
+        (Some(TokenTree::Ident(kw)), Some(TokenTree::Group(group)))
+            if kw == "WorkflowInput" && group.delimiter() == Delimiter::Brace =>
+        {
             parse2::<ExprStruct>(quote! { #kw #group })
         }
-        _ => Err(syn::Error::new_spanned(quote! { #(#inner)* }, "Expected WorkflowInput { ... }")),
+        _ => Err(syn::Error::new_spanned(
+            quote! { #(#inner)* },
+            "Expected WorkflowInput { ... }",
+        )),
     }
 }

@@ -1,8 +1,8 @@
-use proc_macro2::{TokenStream, TokenTree, Group, Delimiter, Ident, Span};
+use heck::ToSnakeCase;
+use proc_macro2::{Delimiter, Group, Ident, Span, TokenStream, TokenTree};
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::{braced, parse_macro_input};
-use heck::ToSnakeCase;
 
 pub fn pre_process_workflows(input: TokenStream) -> TokenStream {
     let mut output = TokenStream::new();
@@ -103,13 +103,16 @@ fn transform_workflow_group(group: Group) -> TokenStream {
     // Snake-case identifiers
     let module_snake = module.to_snake_case();
     let workflow_snake = workflow.to_snake_case();
-    let type_path = format!("crate::{0}::workflows::{0}::{1}::Type", module_snake, workflow_snake);
+    let type_path = format!(
+        "crate::{0}::workflows::{0}::{1}::Type",
+        module_snake, workflow_snake
+    );
 
     let workflow_signature = match &signature {
         Some(sig) => {
             let ident = Ident::new(sig, Span::call_site());
             quote! { #ident }
-        },
+        }
         None => quote! { None },
     };
 

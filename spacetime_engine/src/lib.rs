@@ -84,32 +84,36 @@ impl PluginGroup for SpacetimeEnginePlugins {
 pub(crate) struct SpacetimeEngineCorePlugin;
 impl Plugin for SpacetimeEngineCorePlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(PreStartup, pre_startup_system)
+        app.add_systems(PreStartup, pre_startup_system)
             .add_systems(Startup, startup_system);
     }
 }
 
-fn pre_startup_system(
-    mut workflow_type_module_registry: ResMut<WorkflowTypeModuleRegistry>
-) {
+fn pre_startup_system(mut workflow_type_module_registry: ResMut<WorkflowTypeModuleRegistry>) {
     // --- Startup workflow framework ---
-    crate::camera::workflows::camera::register_workflow_type_module(&mut workflow_type_module_registry);
-    crate::chunk::workflows::chunk::register_workflow_type_module(&mut workflow_type_module_registry);
-    crate::debug::workflows::debug::register_workflow_type_module(&mut workflow_type_module_registry);
+    crate::camera::workflows::camera::register_workflow_type_module(
+        &mut workflow_type_module_registry,
+    );
+    crate::chunk::workflows::chunk::register_workflow_type_module(
+        &mut workflow_type_module_registry,
+    );
+    crate::debug::workflows::debug::register_workflow_type_module(
+        &mut workflow_type_module_registry,
+    );
     crate::gpu::workflows::gpu::register_workflow_type_module(&mut workflow_type_module_registry);
-    crate::player::workflows::player::register_workflow_type_module(&mut workflow_type_module_registry);
+    crate::player::workflows::player::register_workflow_type_module(
+        &mut workflow_type_module_registry,
+    );
 }
 
 fn startup_system() {
     define_composite_workflow!(Startup {
         workflow!(Camera::SpawnMainCamera);
         workflow!(Debug::SpawnDebugUI);
-        workflow!(Debug::SpawnDebugObjects);
 
         let chunk_shader_name = "texture_generators/example_compute_uv";
         let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
-        
+
         workflow!(IE, Gpu::SetupTextureGenerator, Input {
             shader_name: chunk_shader_name,
             shader_path: chunk_shader_path,
@@ -125,8 +129,13 @@ fn startup_system() {
             metric_texture: generate_texture_output.texture_handle,
         });
         
+        workflow!(Debug::SpawnDebugObjects);
+
         Ok(())
     });
 
-    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn_fallible(Box::pin(startup()));
+    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
+        .lock()
+        .unwrap()
+        .spawn_fallible(Box::pin(startup()));
 }

@@ -155,7 +155,7 @@ define_workflow_mod! {
                             let shader_name = state.shader_name;
                             let shader_handle = state.shader_handle.clone();
                             let bind_group_layout = state.bind_group_layout.clone();
-                            let pipeline_id = state.pipeline_id.clone();
+                            let pipeline_id = state.pipeline_id;
 
                             let pipeline_cache = SystemState::<Res::<PipelineCache>>::new(world).get(world);
 
@@ -340,11 +340,11 @@ define_workflow_mod! {
                             )> = SystemState::new(world);
                             let (render_device, mut images, shader_registry) = system_state.get_mut(world);
 
-                            if shader_registry.shaders.get(shader_name).is_none() {
+                            if !shader_registry.shaders.contains_key(shader_name) {
                                 return Err(Error::GeneratorNotFound { shader_name })
                             }
 
-                            let pipeline_id = shader_registry.pipelines.get(shader_name).unwrap().clone();
+                            let pipeline_id = *shader_registry.pipelines.get(shader_name).unwrap();
                             let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name).unwrap().clone();
 
                             let texture = Image {
@@ -431,7 +431,7 @@ define_workflow_mod! {
                     core_functions: [
                         fn RunRender |input, world| -> Output {
                             let prepared = &input.request.inner;
-                            let pipeline_id = prepared.pipeline_id.clone();
+                            let pipeline_id = prepared.pipeline_id;
                             let bind_group_layout = &prepared.bind_group_layout;
                             let texture_handle = prepared.texture_handle.clone();
                             let texture_view = &prepared.texture_view;

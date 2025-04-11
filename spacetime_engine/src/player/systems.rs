@@ -8,7 +8,7 @@ use super::{
     resources::{PlayerWorkflow, PlayerWorkflowQueue},
 };
 
-// TODO: Make it so we can't spawn two players if we click fast enough, aka we 
+// TODO: Make it so we can't spawn two players if we click fast enough, aka we
 pub(crate) fn update_player_system(
     mut queue: ResMut<PlayerWorkflowQueue>,
     mut player_query: Query<(Entity, &mut Transform), With<PlayerComponent>>,
@@ -53,7 +53,7 @@ pub(crate) fn update_player_system(
 
 pub(crate) fn process_player_workflow_queue(
     mut commands: Commands,
-    mut queue: ResMut<PlayerWorkflowQueue>
+    mut queue: ResMut<PlayerWorkflowQueue>,
 ) {
     for workflow in queue.0.drain(..) {
         match workflow {
@@ -62,8 +62,11 @@ pub(crate) fn process_player_workflow_queue(
                 define_composite_workflow!(JustDoIt {
                     workflow!(Player::SpawnPlayer)
                 });
-            
-                crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME.lock().unwrap().spawn(Box::pin(just_do_it()));
+
+                crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
+                    .lock()
+                    .unwrap()
+                    .spawn(Box::pin(just_do_it()));
             }
             PlayerWorkflow::Despawn(entity) => {
                 commands.entity(entity).despawn_recursive();

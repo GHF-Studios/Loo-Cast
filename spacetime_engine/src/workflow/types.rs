@@ -30,7 +30,7 @@ impl CompositeWorkflowRuntime {
     ) -> BoxFuture<'static, ()> {
         Box::pin(async move {
             match future.await {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => {
                     unreachable!("Composite workflow failed: {}", e)
                 }

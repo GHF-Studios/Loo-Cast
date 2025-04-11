@@ -1,10 +1,10 @@
+use heck::ToSnakeCase;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{
     parse::{Parse, ParseStream},
     Ident, Result, Token,
 };
-use heck::ToSnakeCase;
 
 // --- Supported Signature Types ---
 mod kw {

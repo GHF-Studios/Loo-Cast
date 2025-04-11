@@ -1272,9 +1272,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
             );
 
             match callback {
-                WorkflowCallback::None(callback) => {
-                    (callback)()
-                },
+                WorkflowCallback::None(callback) => (callback)(),
                 WorkflowCallback::E(callback) => {
                     (callback)(Box::new(TypedWorkflowResponseE(Ok(()))))
                 }
@@ -1282,7 +1280,9 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                     let stage_output = match stage_output {
                         Some(stage_output) => stage_output,
                         None => {
-                            unreachable!("Workflow callback error: Expected Some(output), but got None.")
+                            unreachable!(
+                                "Workflow callback error: Expected Some(output), but got None."
+                            )
                         }
                     };
 
@@ -1292,15 +1292,15 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                     let stage_output = match stage_output {
                         Some(stage_output) => stage_output,
                         None => {
-                            unreachable!("Workflow callback error: Expected Some(output), but got None.")
+                            unreachable!(
+                                "Workflow callback error: Expected Some(output), but got None."
+                            )
                         }
                     };
 
                     (callback)(Box::new(TypedWorkflowResponseOE(Ok(stage_output))))
                 }
-                WorkflowCallback::I(callback) => {
-                    (callback)()
-                },
+                WorkflowCallback::I(callback) => (callback)(),
                 WorkflowCallback::IE(callback) => {
                     (callback)(Box::new(TypedWorkflowResponseE(Ok(()))))
                 }
@@ -1308,7 +1308,9 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                     let stage_output = match stage_output {
                         Some(stage_output) => stage_output,
                         None => {
-                            unreachable!("Workflow callback error: Expected Some(output), but got None.")
+                            unreachable!(
+                                "Workflow callback error: Expected Some(output), but got None."
+                            )
                         }
                     };
 
@@ -1318,7 +1320,9 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                     let stage_output = match stage_output {
                         Some(stage_output) => stage_output,
                         None => {
-                            unreachable!("Workflow callback error: Expected Some(output), but got None.")
+                            unreachable!(
+                                "Workflow callback error: Expected Some(output), but got None."
+                            )
                         }
                     };
 
@@ -1352,12 +1356,7 @@ pub(super) fn workflow_failure_handling_system(world: &mut World) {
             .get_workflow_type_mut(module_name, workflow_name)
             .unwrap();
 
-        stage_failures.push((
-            module_name, 
-            workflow_name, 
-            current_stage, 
-            stage_error
-        ));
+        stage_failures.push((module_name, workflow_name, current_stage, stage_error));
 
         workflow_type.stages[current_stage] = stage;
     }
@@ -1366,22 +1365,24 @@ pub(super) fn workflow_failure_handling_system(world: &mut World) {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
                 let callback = instance.take_callback();
-    
+
                 match callback {
                     WorkflowCallback::None(_callback) => {
                         unreachable!(
                             "Workflow callback error: Stage type 'None' does not support failure handling"
                         );
-                    },
+                    }
                     WorkflowCallback::E(callback) => {
                         let stage_error = match stage_error {
                             Some(stage_error) => stage_error,
                             None => {
-                                unreachable!("Workflow callback error: Expected Some(error), but got None.")
+                                unreachable!(
+                                    "Workflow callback error: Expected Some(error), but got None."
+                                )
                             }
                         };
 
-                        (callback)(Box::new(TypedWorkflowResponseE(Err(stage_error))))
+                        (callback)(stage_error)
                     }
                     WorkflowCallback::O(_callback) => {
                         unreachable!(
@@ -1392,26 +1393,30 @@ pub(super) fn workflow_failure_handling_system(world: &mut World) {
                         let stage_error = match stage_error {
                             Some(stage_error) => stage_error,
                             None => {
-                                unreachable!("Workflow callback error: Expected Some(error), but got None.")
+                                unreachable!(
+                                    "Workflow callback error: Expected Some(error), but got None."
+                                )
                             }
                         };
-    
-                        (callback)(Box::new(TypedWorkflowResponseOE(Err(stage_error))))
+
+                        (callback)(stage_error)
                     }
                     WorkflowCallback::I(_callback) => {
                         unreachable!(
                             "Workflow callback error: Stage type 'I' does not support failure handling"
                         );
-                    },
+                    }
                     WorkflowCallback::IE(callback) => {
                         let stage_error = match stage_error {
                             Some(stage_error) => stage_error,
                             None => {
-                                unreachable!("Workflow callback error: Expected Some(error), but got None.")
+                                unreachable!(
+                                    "Workflow callback error: Expected Some(error), but got None."
+                                )
                             }
                         };
-    
-                        (callback)(Box::new(TypedWorkflowResponseOE(Err(stage_error))))
+
+                        (callback)(stage_error)
                     }
                     WorkflowCallback::IO(_callback) => {
                         unreachable!(
@@ -1422,11 +1427,13 @@ pub(super) fn workflow_failure_handling_system(world: &mut World) {
                         let stage_error = match stage_error {
                             Some(stage_error) => stage_error,
                             None => {
-                                unreachable!("Workflow callback error: Expected Some(error), but got None.")
+                                unreachable!(
+                                    "Workflow callback error: Expected Some(error), but got None."
+                                )
                             }
                         };
-    
-                        (callback)(Box::new(TypedWorkflowResponseOE(Err(stage_error))))
+
+                        (callback)(stage_error)
                     }
                 };
             }

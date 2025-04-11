@@ -3,11 +3,17 @@ mod workflow_id;
 mod workflow_invocation;
 mod workflow_segment;
 
+use heck::{ToPascalCase, ToSnakeCase};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Result, Ident, Token, braced, ExprPath, parse::{Parse, ParseStream}, spanned::Spanned};
-use heck::{ToPascalCase, ToSnakeCase};
 use std::collections::HashSet;
+use syn::{
+    braced,
+    parse::{Parse, ParseStream},
+    parse_macro_input,
+    spanned::Spanned,
+    ExprPath, Ident, Result, Token,
+};
 
 use pre_processor::pre_process_workflows;
 use workflow_invocation::WorkflowInvocation;
@@ -29,29 +35,31 @@ impl Parse for CompositeWorkflow {
         let token_stream = pre_process_workflows(token_stream);
         let segments = extract_workflow_segments(token_stream.clone());
 
-        Ok(Self {
-            name,
-            segments,
-        })
+        Ok(Self { name, segments })
     }
 }
 
 impl CompositeWorkflow {
     pub fn generate(self) -> TokenStream {
-        let function_ident = Ident::new(self.name.to_string().as_str().to_snake_case().as_str(), self.name.span());
+        let function_ident = Ident::new(
+            self.name.to_string().as_str().to_snake_case().as_str(),
+            self.name.span(),
+        );
         let error_enum_ident = Ident::new(&format!("{}Error", self.name), self.name.span());
 
         // --- Collect fallible invocations ---
-        let fallible_invocations: Vec<_> = self.segments.iter().filter_map(|seg| {
-            match seg {
+        let fallible_invocations: Vec<_> = self
+            .segments
+            .iter()
+            .filter_map(|seg| match seg {
                 WorkflowSegment::Invocation(wf)
-                    if matches!(
-                        wf.signature.to_string().as_str(),
-                        "E" | "OE" | "IE" | "IOE"
-                    ) => Some(wf),
+                    if matches!(wf.signature.to_string().as_str(), "E" | "OE" | "IE" | "IOE") =>
+                {
+                    Some(wf)
+                }
                 _ => None,
-            }
-        }).collect();
+            })
+            .collect();
 
         // --- Deduplicate error types by workflow_type_path ---
         let mut seen_paths = HashSet::new();
@@ -69,7 +77,7 @@ impl CompositeWorkflow {
             let trait_ident = trait_ident_from_signature(&sig_str);
             let variant = extract_error_variant(path);
             let name_str = variant.to_string();
-        
+
             quote! {
                 #[error(#name_str)]
                 #variant(<#path as workflow::traits::#trait_ident>::Error)
@@ -80,7 +88,7 @@ impl CompositeWorkflow {
             let sig_str = signature_ident_from_path(path);
             let trait_ident = trait_ident_from_signature(&sig_str);
             let variant = extract_error_variant(path);
-        
+
             quote! {
                 impl From<<#path as workflow::traits::#trait_ident>::Error> for #error_enum_ident {
                     fn from(e: <#path as workflow::traits::#trait_ident>::Error) -> Self {
@@ -147,7 +155,7 @@ impl CompositeWorkflow {
                         "I" | "IE" | "IO" | "IOE" => {
                             let mut input_expr = wf.input_struct.as_ref().unwrap_or_else(|| panic!("Expected `Input {{ ... }}` block for workflow with signature '{}'", sig)).clone();
                             input_expr.path = syn::parse_quote! { I };
-                            
+
                             let mut inner = quote! {
                                 type T = #worfklow_path;
                                 type I = <T as workflow::traits::#trait_ident>::Input;
@@ -183,7 +191,7 @@ impl CompositeWorkflow {
 
         quote! {
             #error_enum_tokens
-        
+
             pub async fn #function_ident() -> #return_type {
                 #(#body_segments)*
             }
@@ -259,4 +267,3 @@ fn extract_error_variant(path: &ExprPath) -> Ident {
 
     Ident::new(&format!("{}Error", combined), path.span())
 }
-

@@ -1,7 +1,9 @@
-use proc_macro2::{TokenStream, Span};
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
-    Attribute, ExprPath, Ident, Result, Token, parse::{Parse, ParseStream}, ExprStruct, braced, parse2,
+    braced,
+    parse::{Parse, ParseStream},
+    parse2, Attribute, ExprPath, ExprStruct, Ident, Result, Token,
 };
 
 #[derive(Debug, Clone)]
@@ -26,7 +28,12 @@ impl Parse for WorkflowInvocation {
         let signature_attr = attrs
             .iter()
             .find(|attr| attr.path().is_ident("WorkflowSignature"))
-            .ok_or_else(|| syn::Error::new(Span::call_site(), "Missing #[WorkflowSignature(...)] attribute"))?;
+            .ok_or_else(|| {
+                syn::Error::new(
+                    Span::call_site(),
+                    "Missing #[WorkflowSignature(...)] attribute",
+                )
+            })?;
 
         let signature: Ident = signature_attr.parse_args()?;
 
