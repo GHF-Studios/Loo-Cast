@@ -93,9 +93,9 @@ impl WorkflowModule {
             pub mod #module_ident {
                 pub const NAME: &str = stringify!(#module_name);
 
-                pub fn register_workflow_type_module(workflow_type_module_registry: &mut spacetime_engine::workflow::resources::WorkflowTypeModuleRegistry) {
+                pub fn register_workflow_type_module(workflow_type_module_registry: &mut crate::workflow::resources::WorkflowTypeModuleRegistry) {
                     workflow_type_module_registry.register(
-                        spacetime_engine::workflow::types::WorkflowTypeModule {
+                        crate::workflow::types::WorkflowTypeModule {
                             name: stringify!(#module_name),
                             workflow_types: vec![
                                 #(#workflow_literals),*
@@ -331,17 +331,17 @@ impl Workflow {
                         pub const NAME: &str = stringify!(#workflow_name);
 
                         pub async fn run() {
-                            spacetime_engine::workflow::functions::run_workflow::<Type>().await
+                            crate::workflow::functions::run_workflow::<Type>().await
                         }
 
                         pub struct Type;
-                        impl spacetime_engine::workflow::traits::WorkflowType for Type {
+                        impl crate::workflow::traits::WorkflowType for Type {
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
                         impl Type {
-                            pub fn create_workflow() -> spacetime_engine::workflow::types::WorkflowType {
-                                spacetime_engine::workflow::types::WorkflowType {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
                                     name: self::NAME,
                                     stages: vec![
                                         #(#stage_literals),*
@@ -468,22 +468,22 @@ impl Workflow {
                     pub mod #workflow_ident {
                         pub const NAME: &str = stringify!(#workflow_name);
 
-                        pub async fn run() -> Result<(), <TypeE as spacetime_engine::workflow::traits::WorkflowTypeE>::Error> {
-                            spacetime_engine::workflow::functions::run_workflow_e::<Type>().await
+                        pub async fn run() -> Result<(), <TypeE as crate::workflow::traits::WorkflowTypeE>::Error> {
+                            crate::workflow::functions::run_workflow_e::<Type>().await
                         }
 
                         #error_enum
 
                         pub struct TypeE;
-                        impl spacetime_engine::workflow::traits::WorkflowTypeE for TypeE {
+                        impl crate::workflow::traits::WorkflowTypeE for TypeE {
                             type Error = Error;
 
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
                         impl TypeE {
-                            pub fn create_workflow() -> spacetime_engine::workflow::types::WorkflowType {
-                                spacetime_engine::workflow::types::WorkflowType {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
                                     name: self::NAME,
                                     stages: vec![
                                         #(#stage_literals),*
@@ -579,20 +579,20 @@ impl Workflow {
                     pub mod #workflow_ident {
                         pub const NAME: &str = stringify!(#workflow_name);
 
-                        pub async fn run() -> <TypeO as spacetime_engine::workflow::traits::WorkflowTypeO>::Output {
-                            spacetime_engine::workflow::functions::run_workflow_o::<TypeO>().await
+                        pub async fn run() -> <TypeO as crate::workflow::traits::WorkflowTypeO>::Output {
+                            crate::workflow::functions::run_workflow_o::<TypeO>().await
                         }
 
                         pub struct TypeO;
-                        impl spacetime_engine::workflow::traits::WorkflowTypeO for TypeO {
+                        impl crate::workflow::traits::WorkflowTypeO for TypeO {
                             type Output = self::stages::#last_stage_ident::core_types::Output;
 
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
                         impl TypeO {
-                            pub fn create_workflow() -> spacetime_engine::workflow::types::WorkflowType {
-                                spacetime_engine::workflow::types::WorkflowType {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
                                     name: self::NAME,
                                     stages: vec![
                                         #(#stage_literals),*
@@ -726,14 +726,14 @@ impl Workflow {
                     pub mod #workflow_ident {
                         pub const NAME: &str = stringify!(#workflow_name);
 
-                        pub async fn run() -> Result<<TypeOE as spacetime_engine::workflow::traits::WorkflowTypeOE>::Output, <TypeOE as spacetime_engine::workflow::traits::WorkflowTypeOE>::Error> {
-                            spacetime_engine::workflow::functions::run_workflow_oe::<TypeOE>().await
+                        pub async fn run() -> Result<<TypeOE as crate::workflow::traits::WorkflowTypeOE>::Output, <TypeOE as crate::workflow::traits::WorkflowTypeOE>::Error> {
+                            crate::workflow::functions::run_workflow_oe::<TypeOE>().await
                         }
 
                         #error_enum
 
                         pub struct TypeOE;
-                        impl spacetime_engine::workflow::traits::WorkflowTypeOE for TypeOE {
+                        impl crate::workflow::traits::WorkflowTypeOE for TypeOE {
                             type Output = self::stages::#last_stage_ident::core_types::Output;
                             type Error = Error;
 
@@ -741,8 +741,8 @@ impl Workflow {
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
                         impl TypeOE {
-                            pub fn create_workflow() -> spacetime_engine::workflow::types::WorkflowType {
-                                spacetime_engine::workflow::types::WorkflowType {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
                                     name: self::NAME,
                                     stages: vec![
                                         #(#stage_literals),*
@@ -838,20 +838,20 @@ impl Workflow {
                     pub mod #workflow_ident {
                         pub const NAME: &str = stringify!(#workflow_name);
 
-                        pub async fn run(input: <TypeI as spacetime_engine::workflow::traits::WorkflowTypeI>::Input) -> () {
-                            spacetime_engine::workflow::functions::run_workflow_i::<TypeI>(input).await
+                        pub async fn run(input: <TypeI as crate::workflow::traits::WorkflowTypeI>::Input) -> () {
+                            crate::workflow::functions::run_workflow_i::<TypeI>(input).await
                         }
 
                         pub struct TypeI;
-                        impl spacetime_engine::workflow::traits::WorkflowTypeI for TypeI {
+                        impl crate::workflow::traits::WorkflowTypeI for TypeI {
                             type Input = self::stages::#first_stage_ident::core_types::Input;
 
                             const MODULE_NAME: &'static str = super::NAME;
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
                         impl TypeI {
-                            pub fn create_workflow() -> spacetime_engine::workflow::types::WorkflowType {
-                                spacetime_engine::workflow::types::WorkflowType {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
                                     name: self::NAME,
                                     stages: vec![
                                         #(#stage_literals),*
@@ -985,14 +985,14 @@ impl Workflow {
                     pub mod #workflow_ident {
                         pub const NAME: &str = stringify!(#workflow_name);
 
-                        pub async fn run(input: <TypeIE as spacetime_engine::workflow::traits::WorkflowTypeIE>::Input) -> Result<(), <TypeIE as spacetime_engine::workflow::traits::WorkflowTypeIE>::Error> {
-                            spacetime_engine::workflow::functions::run_workflow_ie::<TypeIE>(input).await
+                        pub async fn run(input: <TypeIE as crate::workflow::traits::WorkflowTypeIE>::Input) -> Result<(), <TypeIE as crate::workflow::traits::WorkflowTypeIE>::Error> {
+                            crate::workflow::functions::run_workflow_ie::<TypeIE>(input).await
                         }
 
                         #error_enum
 
                         pub struct TypeIE;
-                        impl spacetime_engine::workflow::traits::WorkflowTypeIE for TypeIE {
+                        impl crate::workflow::traits::WorkflowTypeIE for TypeIE {
                             type Input = self::stages::#first_stage_ident::core_types::Input;
                             type Error = Error;
 
@@ -1000,8 +1000,8 @@ impl Workflow {
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
                         impl TypeIE {
-                            pub fn create_workflow() -> spacetime_engine::workflow::types::WorkflowType {
-                                spacetime_engine::workflow::types::WorkflowType {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
                                     name: self::NAME,
                                     stages: vec![
                                         #(#stage_literals),*
@@ -1101,12 +1101,12 @@ impl Workflow {
                     pub mod #workflow_ident {
                         pub const NAME: &str = stringify!(#workflow_name);
 
-                        pub async fn run(input: <TypeIO as spacetime_engine::workflow::traits::WorkflowTypeIO>::Input) -> <TypeIO as spacetime_engine::workflow::traits::WorkflowTypeIO>::Output {
-                            spacetime_engine::workflow::functions::run_workflow_io::<TypeIO>(input).await
+                        pub async fn run(input: <TypeIO as crate::workflow::traits::WorkflowTypeIO>::Input) -> <TypeIO as crate::workflow::traits::WorkflowTypeIO>::Output {
+                            crate::workflow::functions::run_workflow_io::<TypeIO>(input).await
                         }
 
                         pub struct TypeIO;
-                        impl spacetime_engine::workflow::traits::WorkflowTypeIO for TypeIO {
+                        impl crate::workflow::traits::WorkflowTypeIO for TypeIO {
                             type Input = self::stages::#first_stage_ident::core_types::Input;
                             type Output = self::stages::#last_stage_ident::core_types::Output;
 
@@ -1114,8 +1114,8 @@ impl Workflow {
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
                         impl TypeIO {
-                            pub fn create_workflow() -> spacetime_engine::workflow::types::WorkflowType {
-                                spacetime_engine::workflow::types::WorkflowType {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
                                     name: self::NAME,
                                     stages: vec![
                                         #(#stage_literals),*
@@ -1253,14 +1253,14 @@ impl Workflow {
                     pub mod #workflow_ident {
                         pub const NAME: &str = stringify!(#workflow_name);
 
-                        pub async fn run(input: <TypeIOE as spacetime_engine::workflow::traits::WorkflowTypeIOE>::Input) -> Result<<TypeIOE as spacetime_engine::workflow::traits::WorkflowTypeIOE>::Output, <TypeIOE as spacetime_engine::workflow::traits::WorkflowTypeIOE>::Error> {
-                            spacetime_engine::workflow::functions::run_workflow_ioe::<TypeIOE>(input).await
+                        pub async fn run(input: <TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Input) -> Result<<TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Output, <TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Error> {
+                            crate::workflow::functions::run_workflow_ioe::<TypeIOE>(input).await
                         }
 
                         #error_enum
 
                         pub struct TypeIOE;
-                        impl spacetime_engine::workflow::traits::WorkflowTypeIOE for TypeIOE {
+                        impl crate::workflow::traits::WorkflowTypeIOE for TypeIOE {
                             type Input = self::stages::#first_stage_ident::core_types::Input;
                             type Output = self::stages::#last_stage_ident::core_types::Output;
                             type Error = Error;
@@ -1269,8 +1269,8 @@ impl Workflow {
                             const WORKFLOW_NAME: &'static str = self::NAME;
                         }
                         impl TypeIOE {
-                            pub fn create_workflow() -> spacetime_engine::workflow::types::WorkflowType {
-                                spacetime_engine::workflow::types::WorkflowType {
+                            pub fn create_workflow() -> crate::workflow::types::WorkflowType {
+                                crate::workflow::types::WorkflowType {
                                     name: self::NAME,
                                     stages: vec![
                                         #(#stage_literals),*

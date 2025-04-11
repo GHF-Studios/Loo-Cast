@@ -28,14 +28,14 @@ pub enum StageSignature {
 impl StageSignature {
     pub fn generate(self) -> TokenStream {
         match self {
-            StageSignature::None => quote! { spacetime_engine::workflow::stage::StageSignature::None },
-            StageSignature::E => quote! { spacetime_engine::workflow::stage::StageSignature::E },
-            StageSignature::O => quote! { spacetime_engine::workflow::stage::StageSignature::O },
-            StageSignature::OE => quote! { spacetime_engine::workflow::stage::StageSignature::OE },
-            StageSignature::I => quote! { spacetime_engine::workflow::stage::StageSignature::I },
-            StageSignature::IE => quote! { spacetime_engine::workflow::stage::StageSignature::IE },
-            StageSignature::IO => quote! { spacetime_engine::workflow::stage::StageSignature::IO },
-            StageSignature::IOE => quote! { spacetime_engine::workflow::stage::StageSignature::IOE },
+            StageSignature::None => quote! { crate::workflow::stage::StageSignature::None },
+            StageSignature::E => quote! { crate::workflow::stage::StageSignature::E },
+            StageSignature::O => quote! { crate::workflow::stage::StageSignature::O },
+            StageSignature::OE => quote! { crate::workflow::stage::StageSignature::OE },
+            StageSignature::I => quote! { crate::workflow::stage::StageSignature::I },
+            StageSignature::IE => quote! { crate::workflow::stage::StageSignature::IE },
+            StageSignature::IO => quote! { crate::workflow::stage::StageSignature::IO },
+            StageSignature::IOE => quote! { crate::workflow::stage::StageSignature::IOE },
         }
     }
 }
@@ -504,11 +504,11 @@ impl TypedStage<Ecs> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcs
+                        stage: crate::workflow::stage::StageEcs
                     | {
                         let response = response.expect("Ecs stages with output and error must have a response");
                         let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -518,19 +518,19 @@ impl TypedStage<Ecs> {
                                 #stage_output_transmutation
                                 let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::Ecs,
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::Ecs,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::Ecs(stage),
+                                    stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                     stage_output: output,
                                 }) {
                                     unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -540,12 +540,12 @@ impl TypedStage<Ecs> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::Ecs,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::Ecs,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::Ecs(stage),
+                                    stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("Ecs response handler error: Failure event send error: {}", send_err);
@@ -564,11 +564,11 @@ impl TypedStage<Ecs> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageEcs
+                            stage: crate::workflow::stage::StageEcs
                         | {
                             let response = response.expect("Ecs stages with output and error (last stage) must have a response");
                             let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -577,19 +577,19 @@ impl TypedStage<Ecs> {
                                 Ok(output) => {
                                     let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                    if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::Ecs,
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        ty: crate::workflow::stage::StageType::Ecs,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::Ecs(stage),
+                                        stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                         stage_output: output,
                                     }) {
                                         unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
                                     }
                                 }
                                 Err(error) => {
-                                    let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                     let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                     let failure_sender = match failure_sender {
@@ -599,12 +599,12 @@ impl TypedStage<Ecs> {
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::Ecs,
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                        ty: crate::workflow::stage::StageType::Ecs,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::Ecs(stage),
+                                        stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                         stage_error: error,
                                     }) {
                                         unreachable!("Ecs response handler error: Failure event send error: {}", send_err);
@@ -628,23 +628,23 @@ impl TypedStage<Ecs> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcs
+                        stage: crate::workflow::stage::StageEcs
                     | {
                         let response = response.expect("Ecs stages with output must have a response");
                         let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
                         #stage_output_transmutation
                         let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                            ty: spacetime_engine::workflow::stage::StageType::Ecs,
+                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                            ty: crate::workflow::stage::StageType::Ecs,
                             module_name,
                             workflow_name,
                             current_stage: #index_literal,
-                            stage_return: spacetime_engine::workflow::stage::Stage::Ecs(stage),
+                            stage_return: crate::workflow::stage::Stage::Ecs(stage),
                             stage_output: output,
                         }) {
                             unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
@@ -658,22 +658,22 @@ impl TypedStage<Ecs> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageEcs,
+                            stage: crate::workflow::stage::StageEcs,
                         | {
                             let response = response.expect("Ecs stages with output and error must have a response");
                             let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
                             let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                            if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                ty: spacetime_engine::workflow::stage::StageType::Ecs,
+                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                ty: crate::workflow::stage::StageType::Ecs,
                                 module_name,
                                 workflow_name,
                                 current_stage: #index_literal,
-                                stage_return: spacetime_engine::workflow::stage::Stage::Ecs(stage),
+                                stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                 stage_output: output,
                             }) {
                                 unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
@@ -695,30 +695,30 @@ impl TypedStage<Ecs> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcs
+                        stage: crate::workflow::stage::StageEcs
                     | {
                         let response = response.expect("Ecs stages with error must have a response");
                         let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(_) => {
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::Ecs,
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::Ecs,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::Ecs(stage),
+                                    stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                     stage_output: None,
                                 }) {
                                     unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -728,12 +728,12 @@ impl TypedStage<Ecs> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::Ecs,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::Ecs,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::Ecs(stage),
+                                    stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("Ecs response handler error: Failure event send error: {}", send_err);
@@ -751,18 +751,18 @@ impl TypedStage<Ecs> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcs
+                        stage: crate::workflow::stage::StageEcs
                     | {
-                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                            ty: spacetime_engine::workflow::stage::StageType::Ecs,
+                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                            ty: crate::workflow::stage::StageType::Ecs,
                             module_name,
                             workflow_name,
                             current_stage: #index_literal,
-                            stage_return: spacetime_engine::workflow::stage::Stage::Ecs(stage),
+                            stage_return: crate::workflow::stage::Stage::Ecs(stage),
                             stage_output: None,
                         }) {
                             unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
@@ -773,19 +773,19 @@ impl TypedStage<Ecs> {
         };
 
         let failure_sender = if self.core_types.error.is_some() {
-            quote! { Some(spacetime_engine::workflow::channels::get_stage_failure_sender().clone()) }
+            quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
         } else {
             quote! { None }
         };
 
         let stage_literal = quote! {
-            spacetime_engine::workflow::stage::Stage::Ecs(spacetime_engine::workflow::stage::StageEcs {
+            crate::workflow::stage::Stage::Ecs(crate::workflow::stage::StageEcs {
                 index: #index_literal,
                 name: stringify!(#stage_name),
                 signature: #signature,
                 run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                 handle_ecs_run_response: #ecs_run_response_handler,
-                completion_sender: spacetime_engine::workflow::channels::get_stage_completion_sender().clone(),
+                completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                 failure_sender: #failure_sender,
             })
         };
@@ -904,11 +904,11 @@ impl TypedStage<Render> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRender
+                        stage: crate::workflow::stage::StageRender
                     | {
                         let response = response.expect("Render stages with output and error must have a response");
                         let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -918,19 +918,19 @@ impl TypedStage<Render> {
                                 #stage_output_transmutation
                                 let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::Render,
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::Render,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::Render(stage),
+                                    stage_return: crate::workflow::stage::Stage::Render(stage),
                                     stage_output: output,
                                 }) {
                                     unreachable!("Render response handler error: Completion event send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -940,12 +940,12 @@ impl TypedStage<Render> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::Render,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::Render,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::Render(stage),
+                                    stage_return: crate::workflow::stage::Stage::Render(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("Render response handler error: Failure event send error: {}", send_err);
@@ -964,11 +964,11 @@ impl TypedStage<Render> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageRender
+                            stage: crate::workflow::stage::StageRender
                         | {
                             let response = response.expect("Render stages with output and error (last stage) must have a response");
                             let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -977,19 +977,19 @@ impl TypedStage<Render> {
                                 Ok(output) => {
                                     let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                    if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::Render,
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        ty: crate::workflow::stage::StageType::Render,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::Render(stage),
+                                        stage_return: crate::workflow::stage::Stage::Render(stage),
                                         stage_output: output,
                                     }) {
                                         unreachable!("Render response handler error: Completion event send error: {}", send_err);
                                     }
                                 }
                                 Err(error) => {
-                                    let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                     let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                     let failure_sender = match failure_sender {
@@ -999,12 +999,12 @@ impl TypedStage<Render> {
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::Render,
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                        ty: crate::workflow::stage::StageType::Render,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::Render(stage),
+                                        stage_return: crate::workflow::stage::Stage::Render(stage),
                                         stage_error: error,
                                     }) {
                                         unreachable!("Render response handler error: Failure event send error: {}", send_err);
@@ -1028,23 +1028,23 @@ impl TypedStage<Render> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRender
+                        stage: crate::workflow::stage::StageRender
                     | {
                         let response = response.expect("Render stages with output (last stage) must have a response");
                         let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
                         #stage_output_transmutation
                         let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                            ty: spacetime_engine::workflow::stage::StageType::Render,
+                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                            ty: crate::workflow::stage::StageType::Render,
                             module_name,
                             workflow_name,
                             current_stage: #index_literal,
-                            stage_return: spacetime_engine::workflow::stage::Stage::Render(stage),
+                            stage_return: crate::workflow::stage::Stage::Render(stage),
                             stage_output: output,
                         }) {
                             unreachable!("Render response handler error: Completion event send error: {}", send_err);
@@ -1058,22 +1058,22 @@ impl TypedStage<Render> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageRender,
+                            stage: crate::workflow::stage::StageRender,
                         | {
                             let response = response.expect("Render stages with output (last stage) must have a response");
                             let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
                             let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                            if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                ty: spacetime_engine::workflow::stage::StageType::Render,
+                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                ty: crate::workflow::stage::StageType::Render,
                                 module_name,
                                 workflow_name,
                                 current_stage: #index_literal,
-                                stage_return: spacetime_engine::workflow::stage::Stage::Render(stage),
+                                stage_return: crate::workflow::stage::Stage::Render(stage),
                                 stage_output: output,
                             }) {
                                 unreachable!("Render response handler error: Completion event send error: {}", send_err);
@@ -1095,30 +1095,30 @@ impl TypedStage<Render> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRender
+                        stage: crate::workflow::stage::StageRender
                     | {
                         let response = response.expect("Render stages with error (last stage) must have a response");
                         let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(_) => {
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::Render,
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::Render,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::Render(stage),
+                                    stage_return: crate::workflow::stage::Stage::Render(stage),
                                     stage_output: None,
                                 }) {
                                     unreachable!("Render response handler error: Completion event send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -1128,12 +1128,12 @@ impl TypedStage<Render> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::Render,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::Render,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::Render(stage),
+                                    stage_return: crate::workflow::stage::Stage::Render(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("Render response handler error: Failure event send error: {}", send_err);
@@ -1151,18 +1151,18 @@ impl TypedStage<Render> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRender
+                        stage: crate::workflow::stage::StageRender
                     | {
-                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                            ty: spacetime_engine::workflow::stage::StageType::Render,
+                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                            ty: crate::workflow::stage::StageType::Render,
                             module_name,
                             workflow_name,
                             current_stage: #index_literal,
-                            stage_return: spacetime_engine::workflow::stage::Stage::Render(stage),
+                            stage_return: crate::workflow::stage::Stage::Render(stage),
                             stage_output: None,
                         }) {
                             unreachable!("Render response handler error: Completion event send error: {}", send_err);
@@ -1173,19 +1173,19 @@ impl TypedStage<Render> {
         };
 
         let failure_sender = if self.core_types.error.is_some() {
-            quote! { Some(spacetime_engine::workflow::channels::get_stage_failure_sender().clone()) }
+            quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
         } else {
             quote! { None }
         };
 
         let stage_literal = quote! {
-            spacetime_engine::workflow::stage::Stage::Render(spacetime_engine::workflow::stage::StageRender {
+            crate::workflow::stage::Stage::Render(crate::workflow::stage::StageRender {
                 index: #index_literal,
                 name: stringify!(#stage_name),
                 signature: #signature,
                 run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                 handle_render_run_response: #render_run_response_handler,
-                completion_sender: spacetime_engine::workflow::channels::get_stage_completion_sender().clone(),
+                completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                 failure_sender: #failure_sender,
             })
         };
@@ -1304,11 +1304,11 @@ impl TypedStage<Async> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageAsync
+                        stage: crate::workflow::stage::StageAsync
                     | {
                         let response = response.expect("Async stages with output and error must have a response");
                         let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -1318,19 +1318,19 @@ impl TypedStage<Async> {
                                 #stage_output_transmutation
                                 let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::Async,
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::Async,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::Async(stage),
+                                    stage_return: crate::workflow::stage::Stage::Async(stage),
                                     stage_output: output,
                                 }) {
                                     unreachable!("Async response handler error: Completion event send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -1340,12 +1340,12 @@ impl TypedStage<Async> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::Async,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::Async,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::Async(stage),
+                                    stage_return: crate::workflow::stage::Stage::Async(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("Async response handler error: Failure event send error: {}", send_err);
@@ -1364,11 +1364,11 @@ impl TypedStage<Async> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageAsync
+                            stage: crate::workflow::stage::StageAsync
                         | {
                             let response = response.expect("Async stages with output and error (last stage) must have a response");
                             let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -1377,19 +1377,19 @@ impl TypedStage<Async> {
                                 Ok(output) => {
                                     let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                    if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::Async,
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        ty: crate::workflow::stage::StageType::Async,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::Async(stage),
+                                        stage_return: crate::workflow::stage::Stage::Async(stage),
                                         stage_output: output,
                                     }) {
                                         unreachable!("Async response handler error: Completion event send error: {}", send_err);
                                     }
                                 }
                                 Err(error) => {
-                                    let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                     let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                     let failure_sender = match failure_sender {
@@ -1399,12 +1399,12 @@ impl TypedStage<Async> {
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::Async,
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                        ty: crate::workflow::stage::StageType::Async,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::Async(stage),
+                                        stage_return: crate::workflow::stage::Stage::Async(stage),
                                         stage_error: error,
                                     }) {
                                         unreachable!("Async response handler error: Failure event send error: {}", send_err);
@@ -1428,23 +1428,23 @@ impl TypedStage<Async> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageAsync
+                        stage: crate::workflow::stage::StageAsync
                     | {
                         let response = response.expect("Async stages with output must have a response");
                         let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
                         #stage_output_transmutation
                         let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                            ty: spacetime_engine::workflow::stage::StageType::Async,
+                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                            ty: crate::workflow::stage::StageType::Async,
                             module_name,
                             workflow_name,
                             current_stage: #index_literal,
-                            stage_return: spacetime_engine::workflow::stage::Stage::Async(stage),
+                            stage_return: crate::workflow::stage::Stage::Async(stage),
                             stage_output: output,
                         }) {
                             unreachable!("Async response handler error: Completion event send error: {}", send_err);
@@ -1458,22 +1458,22 @@ impl TypedStage<Async> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageAsync,
+                            stage: crate::workflow::stage::StageAsync,
                         | {
                             let response = response.expect("Async stages with output (last stage) must have a response");
                             let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
                             let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                            if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                ty: spacetime_engine::workflow::stage::StageType::Async,
+                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                ty: crate::workflow::stage::StageType::Async,
                                 module_name,
                                 workflow_name,
                                 current_stage: #index_literal,
-                                stage_return: spacetime_engine::workflow::stage::Stage::Async(stage),
+                                stage_return: crate::workflow::stage::Stage::Async(stage),
                                 stage_output: output,
                             }) {
                                 unreachable!("Async response handler error: Completion event send error: {}", send_err);
@@ -1495,30 +1495,30 @@ impl TypedStage<Async> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageAsync
+                        stage: crate::workflow::stage::StageAsync
                     | {
                         let response = response.expect("Async stages with error must have a response");
                         let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(_) => {
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::Async,
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::Async,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::Async(stage),
+                                    stage_return: crate::workflow::stage::Stage::Async(stage),
                                     stage_output: None,
                                 }) {
                                     unreachable!("Async response handler error: Completion event send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -1528,12 +1528,12 @@ impl TypedStage<Async> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::Async,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::Async,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::Async(stage),
+                                    stage_return: crate::workflow::stage::Stage::Async(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("Async response handler error: Failure event send error: {}", send_err);
@@ -1551,18 +1551,18 @@ impl TypedStage<Async> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageAsync
+                        stage: crate::workflow::stage::StageAsync
                     | {
-                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                            ty: spacetime_engine::workflow::stage::StageType::Async,
+                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                            ty: crate::workflow::stage::StageType::Async,
                             module_name,
                             workflow_name,
                             current_stage: #index_literal,
-                            stage_return: spacetime_engine::workflow::stage::Stage::Async(stage),
+                            stage_return: crate::workflow::stage::Stage::Async(stage),
                             stage_output: None,
                         }) {
                             unreachable!("Async response handler error: Completion event send error: {}", send_err);
@@ -1573,19 +1573,19 @@ impl TypedStage<Async> {
         };
 
         let failure_sender = if self.core_types.error.is_some() {
-            quote! { Some(spacetime_engine::workflow::channels::get_stage_failure_sender().clone()) }
+            quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
         } else {
             quote! { None }
         };
 
         let stage_literal = quote! {
-            spacetime_engine::workflow::stage::Stage::Async(spacetime_engine::workflow::stage::StageAsync {
+            crate::workflow::stage::Stage::Async(crate::workflow::stage::StageAsync {
                 index: #index_literal,
                 name: stringify!(#stage_name),
                 signature: #signature,
                 run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                 handle_async_run_response: #async_run_response_handler,
-                completion_sender: spacetime_engine::workflow::channels::get_stage_completion_sender().clone(),
+                completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                 failure_sender: #failure_sender,
             })
         };
@@ -1700,11 +1700,11 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    setup_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageSetupEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>,
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcsWhile
+                        stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with state and error must have a response");
                         let result: Result<#this_state_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -1713,19 +1713,19 @@ impl TypedStage<EcsWhile> {
                             Ok(state) => {
                                 let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = setup_sender.send(spacetime_engine::workflow::events::StageSetupEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_state: state,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Setup event send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -1735,12 +1735,12 @@ impl TypedStage<EcsWhile> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
@@ -1755,22 +1755,22 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    setup_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageSetupEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcsWhile
+                        stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with state must have a response");
                         let state: #this_state_path = *response.downcast().expect("Failed to downcast response state data");
                         let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                        if let Err(send_err) = setup_sender.send(spacetime_engine::workflow::events::StageSetupEvent {
-                            ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                        if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                            ty: crate::workflow::stage::StageType::EcsWhile,
                             module_name,
                             workflow_name,
                             current_stage: #index_literal,
-                            stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                             stage_state: state,
                         }) {
                             unreachable!("EcsWhile response handler error: Setup event send error: {}", send_err);
@@ -1786,30 +1786,30 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    setup_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageSetupEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>,
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcsWhile
+                        stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with error must have a response");
                         let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(_) => {
-                                if let Err(send_err) = setup_sender.send(spacetime_engine::workflow::events::StageSetupEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(None),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(None),
                                     stage_state: None,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Setup event send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -1819,12 +1819,12 @@ impl TypedStage<EcsWhile> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(None),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(None),
                                     stage_error: error,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
@@ -1839,18 +1839,18 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    setup_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageSetupEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcsWhile
+                        stage: crate::workflow::stage::StageEcsWhile
                     | {
-                        if let Err(send_err) = setup_sender.send(spacetime_engine::workflow::events::StageSetupEvent {
-                            ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                        if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                            ty: crate::workflow::stage::StageType::EcsWhile,
                             module_name,
                             workflow_name,
                             current_stage: #index_literal,
-                            stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(None),
+                            stage_return: crate::workflow::stage::Stage::EcsWhile(None),
                             stage_state: None,
                         }) {
                             unreachable!("EcsWhile response handler error: Setup event send error: {}", send_err);
@@ -1884,43 +1884,43 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcsWhile
+                        stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output and error must have a response");
-                        let outcome_result: Result<spacetime_engine::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                         match outcome_result {
                             Ok(outcome) => {
                                 match outcome {
-                                    spacetime_engine::workflow::types::Outcome::Wait(state) => {
+                                    crate::workflow::types::Outcome::Wait(state) => {
                                         let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                        if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_state: state,
                                         }) {
                                             unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
                                         }
                                     },
-                                    spacetime_engine::workflow::types::Outcome::Done(output) => {
+                                    crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
                                         let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_output: output,
                                         }) {
                                             unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
@@ -1929,7 +1929,7 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -1939,12 +1939,12 @@ impl TypedStage<EcsWhile> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
@@ -1963,42 +1963,42 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageEcsWhile,
+                            stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output and error (last stage) must have a response");
-                            let outcome_result: Result<spacetime_engine::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                            let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                             match outcome_result {
                                 Ok(outcome) => {
                                     match outcome {
-                                        spacetime_engine::workflow::types::Outcome::Wait(state) => {
+                                        crate::workflow::types::Outcome::Wait(state) => {
                                             let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                            if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                                ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                            if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                                ty: crate::workflow::stage::StageType::EcsWhile,
                                                 module_name,
                                                 workflow_name,
                                                 current_stage: #index_literal,
-                                                stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                                stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                                 stage_state: state,
                                             }) {
                                                 unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
                                             }
                                         },
-                                        spacetime_engine::workflow::types::Outcome::Done(output) => {
+                                        crate::workflow::types::Outcome::Done(output) => {
                                             let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                            if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                                ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                                ty: crate::workflow::stage::StageType::EcsWhile,
                                                 module_name,
                                                 workflow_name,
                                                 current_stage: #index_literal,
-                                                stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                                stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                                 stage_output: output,
                                             }) {
                                                 unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
@@ -2007,7 +2007,7 @@ impl TypedStage<EcsWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                     let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                     let failure_sender = match failure_sender {
@@ -2017,12 +2017,12 @@ impl TypedStage<EcsWhile> {
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                        ty: crate::workflow::stage::StageType::EcsWhile,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                        stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                         stage_error: error,
                                     }) {
                                         unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
@@ -2046,41 +2046,41 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcsWhile
+                        stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output must have a response");
-                        let outcome: spacetime_engine::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
 
                         match outcome {
-                            spacetime_engine::workflow::types::Outcome::Wait(state) => {
+                            crate::workflow::types::Outcome::Wait(state) => {
                                 let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_state: state,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
                                 }
                             },
-                            spacetime_engine::workflow::types::Outcome::Done(output) => {
+                            crate::workflow::types::Outcome::Done(output) => {
                                 #stage_output_transmutation
                                 let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_output: output,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
@@ -2096,40 +2096,40 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageEcsWhile,
+                            stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output (last stage) must have a response");
-                            let outcome: spacetime_engine::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                            let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
 
                             match outcome {
-                                spacetime_engine::workflow::types::Outcome::Wait(state) => {
+                                crate::workflow::types::Outcome::Wait(state) => {
                                     let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                    if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                    if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                        ty: crate::workflow::stage::StageType::EcsWhile,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                        stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                         stage_state: state,
                                     }) {
                                         unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
                                     }
                                 }
-                                spacetime_engine::workflow::types::Outcome::Done(output) => {
+                                crate::workflow::types::Outcome::Done(output) => {
                                     let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                    if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        ty: crate::workflow::stage::StageType::EcsWhile,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                        stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                         stage_output: output,
                                     }) {
                                         unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
@@ -2153,40 +2153,40 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcsWhile
+                        stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with error must have a response");
-                        let outcome_result: Result<spacetime_engine::workflow::types::Outcome<#this_state_path, ()>, #this_err_path> = *response.downcast().expect("Failed to downcast response result outcome data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, ()>, #this_err_path> = *response.downcast().expect("Failed to downcast response result outcome data");
 
                         match result {
                             Ok(outcome) => {
                                 match outcome {
-                                    spacetime_engine::workflow::types::Outcome::Wait(state) => {
+                                    crate::workflow::types::Outcome::Wait(state) => {
                                         let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                        if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_state: state,
                                         }) {
                                             unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
                                         }
                                     }
-                                    spacetime_engine::workflow::types::Outcome::Done(_) => {
-                                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                    crate::workflow::types::Outcome::Done(_) => {
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_output: None,
                                         }) {
                                             unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
@@ -2205,12 +2205,12 @@ impl TypedStage<EcsWhile> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
@@ -2228,38 +2228,38 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcsWhile
+                        stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages must have a response");
-                        let outcome: spacetime_engine::workflow::types::Outcome<#this_state_path, ()> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<#this_state_path, ()> = *response.downcast().expect("Failed to downcast response outcome data");
 
                         match outcome {
-                            spacetime_engine::workflow::types::Outcome::Wait(state) => {
+                            crate::workflow::types::Outcome::Wait(state) => {
                                 let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_state: state,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
                                 }
                             }
-                            spacetime_engine::workflow::types::Outcome::Done(_) => {
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                            crate::workflow::types::Outcome::Done(_) => {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_output: None,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
@@ -2282,41 +2282,41 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcsWhile
+                        stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output and error must have a response");
-                        let outcome_result: Result<spacetime_engine::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                         match outcome_result {
                             Ok(outcome) => {
                                 match outcome {
-                                    spacetime_engine::workflow::types::Outcome::Wait(_) => {
-                                        if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                    crate::workflow::types::Outcome::Wait(_) => {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_state: None,
                                         }) {
                                             unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
                                         }
                                     },
-                                    spacetime_engine::workflow::types::Outcome::Done(output) => {
+                                    crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
                                         let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_output: output,
                                         }) {
                                             unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
@@ -2325,7 +2325,7 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -2335,12 +2335,12 @@ impl TypedStage<EcsWhile> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
@@ -2359,40 +2359,40 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageEcsWhile,
+                            stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output and error (last stage) must have a response");
-                            let outcome_result: Result<spacetime_engine::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                            let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                             match outcome_result {
                                 Ok(outcome) => {
                                     match outcome {
-                                        spacetime_engine::workflow::types::Outcome::Wait(_) => {
-                                            if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                                ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                        crate::workflow::types::Outcome::Wait(_) => {
+                                            if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                                ty: crate::workflow::stage::StageType::EcsWhile,
                                                 module_name,
                                                 workflow_name,
                                                 current_stage: #index_literal,
-                                                stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                                stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                                 stage_state: None,
                                             }) {
                                                 unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
                                             }
                                         },
-                                        spacetime_engine::workflow::types::Outcome::Done(output) => {
+                                        crate::workflow::types::Outcome::Done(output) => {
                                             let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                            if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                                ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                                ty: crate::workflow::stage::StageType::EcsWhile,
                                                 module_name,
                                                 workflow_name,
                                                 current_stage: #index_literal,
-                                                stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                                stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                                 stage_output: output,
                                             }) {
                                                 unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
@@ -2401,7 +2401,7 @@ impl TypedStage<EcsWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                     let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                     let failure_sender = match failure_sender {
@@ -2411,12 +2411,12 @@ impl TypedStage<EcsWhile> {
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                        ty: crate::workflow::stage::StageType::EcsWhile,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                        stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                         stage_error: error,
                                     }) {
                                         unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
@@ -2440,40 +2440,40 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcsWhile
+                        stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output must have a response");
-                        let outcome: spacetime_engine::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
 
                         match outcome {
-                            spacetime_engine::workflow::types::Outcome::Wait(_) => {
-                                if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                            crate::workflow::types::Outcome::Wait(_) => {
+                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_state: None,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
                                 }
                             },
-                            spacetime_engine::workflow::types::Outcome::Done(_) => {
+                            crate::workflow::types::Outcome::Done(_) => {
                                 let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
                                 #stage_output_transmutation
                                 let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_output: output,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
@@ -2489,38 +2489,38 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageEcsWhile,
+                            stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output (last stage) must have a response");
-                            let outcome: spacetime_engine::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                            let outcome: crate::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
 
                             match outcome {
-                                spacetime_engine::workflow::types::Outcome::Wait(_) => {
-                                    if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                crate::workflow::types::Outcome::Wait(_) => {
+                                    if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                        ty: crate::workflow::stage::StageType::EcsWhile,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                        stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                         stage_state: None,
                                     }) {
                                         unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
                                     }
                                 }
-                                spacetime_engine::workflow::types::Outcome::Done(output) => {
+                                crate::workflow::types::Outcome::Done(output) => {
                                     let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                    if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        ty: crate::workflow::stage::StageType::EcsWhile,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                        stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                         stage_output: output,
                                     }) {
                                         unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
@@ -2544,37 +2544,37 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcsWhile
+                        stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with error must have a response");
-                        let outcome_result: Result<spacetime_engine::workflow::types::Outcome<(), ()>, #this_err_path> = *response.downcast().expect("Failed to downcast response result outcome data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<(), ()>, #this_err_path> = *response.downcast().expect("Failed to downcast response result outcome data");
 
                         match result {
                             Ok(outcome) => {
                                 match outcome {
-                                    spacetime_engine::workflow::types::Outcome::Wait(_) => {
-                                        if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                    crate::workflow::types::Outcome::Wait(_) => {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_state: None,
                                         }) {
                                             unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
                                         }
                                     }
-                                    spacetime_engine::workflow::types::Outcome::Done(_) => {
-                                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                    crate::workflow::types::Outcome::Done(_) => {
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_output: None,
                                         }) {
                                             unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
@@ -2593,12 +2593,12 @@ impl TypedStage<EcsWhile> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
@@ -2616,36 +2616,36 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageEcsWhile
+                        stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages must have a response");
-                        let outcome: spacetime_engine::workflow::types::Outcome<(), ()> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<(), ()> = *response.downcast().expect("Failed to downcast response outcome data");
 
                         match outcome {
-                            spacetime_engine::workflow::types::Outcome::Wait(_) => {
-                                if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                            crate::workflow::types::Outcome::Wait(_) => {
+                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_state: None,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
                                 }
                             }
-                            spacetime_engine::workflow::types::Outcome::Done(_) => {
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::EcsWhile,
+                            crate::workflow::types::Outcome::Done(_) => {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::EcsWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_output: None,
                                 }) {
                                     unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
@@ -2658,13 +2658,13 @@ impl TypedStage<EcsWhile> {
         };
 
         let failure_sender = if self.core_types.error.is_some() {
-            quote! { Some(spacetime_engine::workflow::channels::get_stage_failure_sender().clone()) }
+            quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
         } else {
             quote! { None }
         };
 
         let stage_literal = quote! {
-            spacetime_engine::workflow::stage::Stage::EcsWhile(spacetime_engine::workflow::stage::StageEcsWhile {
+            crate::workflow::stage::Stage::EcsWhile(crate::workflow::stage::StageEcsWhile {
                 index: #index_literal,
                 name: stringify!(#stage_name),
                 signature: #signature,
@@ -2672,9 +2672,9 @@ impl TypedStage<EcsWhile> {
                 run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
                 handle_ecs_while_setup_response: #ecs_while_setup_response_handler,
                 handle_ecs_while_run_response: #ecs_while_run_response_handler,
-                setup_sender: spacetime_engine::workflow::channels::get_stage_setup_sender().clone(),
-                wait_sender: spacetime_engine::workflow::channels::get_stage_wait_sender().clone(),
-                completion_sender: spacetime_engine::workflow::channels::get_stage_completion_sender().clone(),
+                setup_sender: crate::workflow::channels::get_stage_setup_sender().clone(),
+                wait_sender: crate::workflow::channels::get_stage_wait_sender().clone(),
+                completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                 failure_sender: #failure_sender,
             })
         };
@@ -2804,11 +2804,11 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    setup_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageSetupEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>,
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRenderWhile
+                        stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with state and error must have a response");
                         let result: Result<#this_state_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
@@ -2817,19 +2817,19 @@ impl TypedStage<RenderWhile> {
                             Ok(state) => {
                                 let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = setup_sender.send(spacetime_engine::workflow::events::StageSetupEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_state: state,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Setup event send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -2839,12 +2839,12 @@ impl TypedStage<RenderWhile> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
@@ -2859,11 +2859,11 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    setup_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageSetupEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRenderWhile
+                        stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with state must have a response");
                         // TODO: MINOR: Error message below should be "Failed to downcast setup reponse state data", and like `setup response` instead of `response` in general for all setup response handlers
@@ -2871,12 +2871,12 @@ impl TypedStage<RenderWhile> {
 
                         let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                        if let Err(send_err) = setup_sender.send(spacetime_engine::workflow::events::StageSetupEvent {
-                            ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                        if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                            ty: crate::workflow::stage::StageType::RenderWhile,
                             module_name,
                             workflow_name,
                             current_stage: #index_literal,
-                            stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                             stage_state: state,
                         }) {
                             unreachable!("RenderWhile response handler error: Setup event send error: {}", send_err);
@@ -2892,30 +2892,30 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    setup_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageSetupEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRenderWhile
+                        stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with error must have a response");
                         let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(_) => {
-                                if let Err(send_err) = setup_sender.send(spacetime_engine::workflow::events::StageSetupEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_state: None,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Setup event send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -2925,12 +2925,12 @@ impl TypedStage<RenderWhile> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
@@ -2945,21 +2945,21 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    setup_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageSetupEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRenderWhile
+                        stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages must have a response");
                         let state = Some(response);
 
-                        if let Err(send_err) = setup_sender.send(spacetime_engine::workflow::events::StageSetupEvent {
-                            ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                        if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                            ty: crate::workflow::stage::StageType::RenderWhile,
                             module_name,
                             workflow_name,
                             current_stage: #index_literal,
-                            stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                             stage_state: state,
                         }) {
                             unreachable!("RenderWhile response handler error: Setup event send error: {}", send_err);
@@ -2993,43 +2993,43 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRenderWhile
+                        stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output and error must have a response");
-                        let outcome_result: Result<spacetime_engine::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                         match outcome_result {
                             Ok(outcome) => {
                                 match outcome {
-                                    spacetime_engine::workflow::types::Outcome::Wait(state) => {
+                                    crate::workflow::types::Outcome::Wait(state) => {
                                         let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                        if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_state: state,
                                         }) {
                                             unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
                                         }
                                     },
-                                    spacetime_engine::workflow::types::Outcome::Done(output) => {
+                                    crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
                                         let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_output: output,
                                         }) {
                                             unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
@@ -3038,7 +3038,7 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -3048,12 +3048,12 @@ impl TypedStage<RenderWhile> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
@@ -3072,42 +3072,42 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageRenderWhile,
+                            stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output and error (last stage) must have a response");
-                            let outcome_result: Result<spacetime_engine::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                            let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                             match outcome_result {
                                 Ok(outcome) => {
                                     match outcome {
-                                        spacetime_engine::workflow::types::Outcome::Wait(state) => {
+                                        crate::workflow::types::Outcome::Wait(state) => {
                                             let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                            if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                                ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                            if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                                ty: crate::workflow::stage::StageType::RenderWhile,
                                                 module_name,
                                                 workflow_name,
                                                 current_stage: #index_literal,
-                                                stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                                stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                                 stage_state: state,
                                             }) {
                                                 unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
                                             }
                                         },
-                                        spacetime_engine::workflow::types::Outcome::Done(output) => {
+                                        crate::workflow::types::Outcome::Done(output) => {
                                             let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                            if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                                ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                                ty: crate::workflow::stage::StageType::RenderWhile,
                                                 module_name,
                                                 workflow_name,
                                                 current_stage: #index_literal,
-                                                stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                                stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                                 stage_output: output,
                                             }) {
                                                 unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
@@ -3116,7 +3116,7 @@ impl TypedStage<RenderWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                     let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                     let failure_sender = match failure_sender {
@@ -3126,12 +3126,12 @@ impl TypedStage<RenderWhile> {
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                        ty: crate::workflow::stage::StageType::RenderWhile,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                        stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                         stage_error: error,
                                     }) {
                                         unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
@@ -3155,41 +3155,41 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRenderWhile
+                        stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output must have a response");
-                        let outcome: spacetime_engine::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
 
                         match outcome {
-                            spacetime_engine::workflow::types::Outcome::Wait(state) => {
+                            crate::workflow::types::Outcome::Wait(state) => {
                                 let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_state: state,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
                                 }
                             },
-                            spacetime_engine::workflow::types::Outcome::Done(output) => {
+                            crate::workflow::types::Outcome::Done(output) => {
                                 #stage_output_transmutation
                                 let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_output: output,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
@@ -3205,40 +3205,40 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageRenderWhile,
+                            stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output (last stage) must have a response");
-                            let outcome: spacetime_engine::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                            let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
 
                             match outcome {
-                                spacetime_engine::workflow::types::Outcome::Wait(state) => {
+                                crate::workflow::types::Outcome::Wait(state) => {
                                     let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                    if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                    if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                        ty: crate::workflow::stage::StageType::RenderWhile,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                        stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                         stage_state: state,
                                     }) {
                                         unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
                                     }
                                 }
-                                spacetime_engine::workflow::types::Outcome::Done(output) => {
+                                crate::workflow::types::Outcome::Done(output) => {
                                     let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                    if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        ty: crate::workflow::stage::StageType::RenderWhile,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                        stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                         stage_output: output,
                                     }) {
                                         unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
@@ -3262,40 +3262,40 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRenderWhile
+                        stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with error must have a response");
-                        let outcome_result: Result<spacetime_engine::workflow::types::Outcome<#this_state_path, ()>, #this_err_path> = *response.downcast().expect("Failed to downcast response result outcome data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, ()>, #this_err_path> = *response.downcast().expect("Failed to downcast response result outcome data");
 
                         match result {
                             Ok(outcome) => {
                                 match outcome {
-                                    spacetime_engine::workflow::types::Outcome::Wait(state) => {
+                                    crate::workflow::types::Outcome::Wait(state) => {
                                         let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                        if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_state: state,
                                         }) {
                                             unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
                                         }
                                     }
-                                    spacetime_engine::workflow::types::Outcome::Done(_) => {
-                                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                    crate::workflow::types::Outcome::Done(_) => {
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_output: None,
                                         }) {
                                             unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
@@ -3314,12 +3314,12 @@ impl TypedStage<RenderWhile> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
@@ -3337,38 +3337,38 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRenderWhile
+                        stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages must have a response");
-                        let outcome: spacetime_engine::workflow::types::Outcome<#this_state_path, ()> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<#this_state_path, ()> = *response.downcast().expect("Failed to downcast response outcome data");
 
                         match outcome {
-                            spacetime_engine::workflow::types::Outcome::Wait(state) => {
+                            crate::workflow::types::Outcome::Wait(state) => {
                                 let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_state: state,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
                                 }
                             }
-                            spacetime_engine::workflow::types::Outcome::Done(_) => {
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                            crate::workflow::types::Outcome::Done(_) => {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_output: None,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
@@ -3391,41 +3391,41 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRenderWhile
+                        stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output and error must have a response");
-                        let outcome_result: Result<spacetime_engine::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                         match outcome_result {
                             Ok(outcome) => {
                                 match outcome {
-                                    spacetime_engine::workflow::types::Outcome::Wait(_) => {
-                                        if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                    crate::workflow::types::Outcome::Wait(_) => {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_state: None,
                                         }) {
                                             unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
                                         }
                                     },
-                                    spacetime_engine::workflow::types::Outcome::Done(output) => {
+                                    crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
                                         let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_output: output,
                                         }) {
                                             unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
@@ -3434,7 +3434,7 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                 let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                 let failure_sender = match failure_sender {
@@ -3444,12 +3444,12 @@ impl TypedStage<RenderWhile> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
@@ -3468,40 +3468,40 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageRenderWhile,
+                            stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output and error (last stage) must have a response");
-                            let outcome_result: Result<spacetime_engine::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                            let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
                             match outcome_result {
                                 Ok(outcome) => {
                                     match outcome {
-                                        spacetime_engine::workflow::types::Outcome::Wait(_) => {
-                                            if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                                ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                        crate::workflow::types::Outcome::Wait(_) => {
+                                            if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                                ty: crate::workflow::stage::StageType::RenderWhile,
                                                 module_name,
                                                 workflow_name,
                                                 current_stage: #index_literal,
-                                                stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                                stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                                 stage_state: None,
                                             }) {
                                                 unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
                                             }
                                         },
-                                        spacetime_engine::workflow::types::Outcome::Done(output) => {
+                                        crate::workflow::types::Outcome::Done(output) => {
                                             let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                            if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                                ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                                ty: crate::workflow::stage::StageType::RenderWhile,
                                                 module_name,
                                                 workflow_name,
                                                 current_stage: #index_literal,
-                                                stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                                stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                                 stage_output: output,
                                             }) {
                                                 unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
@@ -3510,7 +3510,7 @@ impl TypedStage<RenderWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = spacetime_engine::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
                                     let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
 
                                     let failure_sender = match failure_sender {
@@ -3520,12 +3520,12 @@ impl TypedStage<RenderWhile> {
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                        ty: crate::workflow::stage::StageType::RenderWhile,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                        stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                         stage_error: error,
                                     }) {
                                         unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
@@ -3549,40 +3549,40 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRenderWhile
+                        stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output must have a response");
-                        let outcome: spacetime_engine::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
 
                         match outcome {
-                            spacetime_engine::workflow::types::Outcome::Wait(_) => {
-                                if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                            crate::workflow::types::Outcome::Wait(_) => {
+                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_state: None,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
                                 }
                             },
-                            spacetime_engine::workflow::types::Outcome::Done(_) => {
+                            crate::workflow::types::Outcome::Done(_) => {
                                 let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
                                 #stage_output_transmutation
                                 let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_output: output,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
@@ -3598,38 +3598,38 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                        wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
                         Box::new(move |
-                            stage: spacetime_engine::workflow::stage::StageRenderWhile,
+                            stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output must have a response");
-                            let outcome: spacetime_engine::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                            let outcome: crate::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
 
                             match outcome {
-                                spacetime_engine::workflow::types::Outcome::Wait(_) => {
-                                    if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                crate::workflow::types::Outcome::Wait(_) => {
+                                    if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                        ty: crate::workflow::stage::StageType::RenderWhile,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                        stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                         stage_state: None,
                                     }) {
                                         unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
                                     }
                                 }
-                                spacetime_engine::workflow::types::Outcome::Done(output) => {
+                                crate::workflow::types::Outcome::Done(output) => {
                                     let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
 
-                                    if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                        ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        ty: crate::workflow::stage::StageType::RenderWhile,
                                         module_name,
                                         workflow_name,
                                         current_stage: #index_literal,
-                                        stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                        stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                         stage_output: output,
                                     }) {
                                         unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
@@ -3653,37 +3653,37 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRenderWhile
+                        stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with error must have a response");
-                        let outcome_result: Result<spacetime_engine::workflow::types::Outcome<(), ()>, #this_err_path> = *response.downcast().expect("Failed to downcast response result outcome data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<(), ()>, #this_err_path> = *response.downcast().expect("Failed to downcast response result outcome data");
 
                         match result {
                             Ok(outcome) => {
                                 match outcome {
-                                    spacetime_engine::workflow::types::Outcome::Wait(_) => {
-                                        if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                    crate::workflow::types::Outcome::Wait(_) => {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_state: None,
                                         }) {
                                             unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
                                         }
                                     }
-                                    spacetime_engine::workflow::types::Outcome::Done(_) => {
-                                        if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                            ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                    crate::workflow::types::Outcome::Done(_) => {
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
                                             current_stage: #index_literal,
-                                            stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                            stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_output: None,
                                         }) {
                                             unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
@@ -3702,12 +3702,12 @@ impl TypedStage<RenderWhile> {
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(spacetime_engine::workflow::events::StageFailureEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_error: error,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
@@ -3725,36 +3725,36 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<Box<dyn std::any::Any + Send + Sync>>,
-                    wait_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<spacetime_engine::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<spacetime_engine::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
                     Box::new(move |
-                        stage: spacetime_engine::workflow::stage::StageRenderWhile
+                        stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages must have a response");
-                        let outcome: spacetime_engine::workflow::types::Outcome<(), ()> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<(), ()> = *response.downcast().expect("Failed to downcast response outcome data");
 
                         match outcome {
-                            spacetime_engine::workflow::types::Outcome::Wait(_) => {
-                                if let Err(send_err) = wait_sender.send(spacetime_engine::workflow::events::StageWaitEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                            crate::workflow::types::Outcome::Wait(_) => {
+                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_state: None,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
                                 }
                             }
-                            spacetime_engine::workflow::types::Outcome::Done(_) => {
-                                if let Err(send_err) = completion_sender.send(spacetime_engine::workflow::events::StageCompletionEvent {
-                                    ty: spacetime_engine::workflow::stage::StageType::RenderWhile,
+                            crate::workflow::types::Outcome::Done(_) => {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
                                     current_stage: #index_literal,
-                                    stage_return: spacetime_engine::workflow::stage::Stage::RenderWhile(stage),
+                                    stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_output: None,
                                 }) {
                                     unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
@@ -3767,13 +3767,13 @@ impl TypedStage<RenderWhile> {
         };
 
         let failure_sender = if self.core_types.error.is_some() {
-            quote! { Some(spacetime_engine::workflow::channels::get_stage_failure_sender().clone()) }
+            quote! { Some(crate::workflow::channels::get_stage_failure_sender().clone()) }
         } else {
             quote! { None }
         };
 
         let stage_literal = quote! {
-            spacetime_engine::workflow::stage::Stage::RenderWhile(spacetime_engine::workflow::stage::StageRenderWhile {
+            crate::workflow::stage::Stage::RenderWhile(crate::workflow::stage::StageRenderWhile {
                 index: #index_literal,
                 name: stringify!(#stage_name),
                 signature: #signature,
@@ -3781,9 +3781,9 @@ impl TypedStage<RenderWhile> {
                 run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, &mut bevy::prelude::World) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
                 handle_render_while_setup_response: #render_while_setup_response_handler,
                 handle_render_while_run_response: #render_while_run_response_handler,
-                setup_sender: spacetime_engine::workflow::channels::get_stage_setup_sender().clone(),
-                wait_sender: spacetime_engine::workflow::channels::get_stage_wait_sender().clone(),
-                completion_sender: spacetime_engine::workflow::channels::get_stage_completion_sender().clone(),
+                setup_sender: crate::workflow::channels::get_stage_setup_sender().clone(),
+                wait_sender: crate::workflow::channels::get_stage_wait_sender().clone(),
+                completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                 failure_sender: #failure_sender,
             })
         };

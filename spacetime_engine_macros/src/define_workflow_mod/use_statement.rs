@@ -56,7 +56,7 @@ impl UseStatements {
         quote! {
             // Automatic imports
             pub use super::user_items::*;
-            pub use spacetime_engine::workflow::types::{Outcome, Outcome::Wait, Outcome::Done};
+            pub use crate::workflow::types::{Outcome, Outcome::Wait, Outcome::Done};
             pub use bevy::prelude::World;
 
             // User imports

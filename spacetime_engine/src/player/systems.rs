@@ -58,7 +58,7 @@ pub(crate) fn process_player_workflow_queue(
     for workflow in queue.0.drain(..) {
         match workflow {
             PlayerWorkflow::Spawn => {
-                // TODO: MAJOR: Invalid workflow! invocations in general seem to just disappear entirely, instead of outputting some error like `__Panic__`
+                // TODO: FIX: Invalid workflow! invocations in general seem to just disappear entirely, instead of outputting some error like `__Panic__`
                 define_composite_workflow!(JustDoIt {
                     workflow!(Player::SpawnPlayer)
                 });
