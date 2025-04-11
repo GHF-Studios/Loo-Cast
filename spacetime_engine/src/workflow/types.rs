@@ -11,7 +11,7 @@ use super::{
 pub struct CompositeWorkflowRuntime(tokio::runtime::Handle);
 impl CompositeWorkflowRuntime {
     pub fn new() -> Self {
-        Self(TOKIO_RUNTIME.lock().unwrap().handle().clone())
+        Self::default()
     }
 
     pub fn spawn(&mut self, future: BoxFuture<'static, ()>) -> JoinHandle<()> {
@@ -30,14 +30,18 @@ impl CompositeWorkflowRuntime {
     ) -> BoxFuture<'static, ()> {
         Box::pin(async move {
             match future.await {
-                Ok(_) => bevy::prelude::debug!(
-                    "Composite workflow `test_workflow_framework` completed successfully"
-                ),
+                Ok(_) => {},
                 Err(e) => {
-                    unreachable!("Composite workflow `test_workflow_framework` failed: {}", e)
+                    unreachable!("Composite workflow failed: {}", e)
                 }
             };
         })
+    }
+}
+
+impl Default for CompositeWorkflowRuntime {
+    fn default() -> Self {
+        Self(TOKIO_RUNTIME.lock().unwrap().handle().clone())
     }
 }
 
