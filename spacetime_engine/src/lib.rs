@@ -40,10 +40,6 @@ pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use camera::CameraPlugin;
-use iyes_perf_ui::{
-    entries::{PerfUiFramerateEntries, PerfUiSystemEntries},
-    prelude::{PerfUiEntryEntityCount, PerfUiRoot},
-};
 use spacetime_engine_macros::define_composite_workflow;
 use workflow::{resources::WorkflowTypeModuleRegistry, WorkflowPlugin};
 //use camera_2d_bundle::Camera2dBundlePlugin;

@@ -1,7 +1,4 @@
 use std::any::Any;
-use tokio::sync::mpsc::UnboundedSender;
-
-use super::response::*;
 
 pub struct TypedWorkflowRequest {
     pub module_name: &'static str,

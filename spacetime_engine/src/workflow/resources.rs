@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::Receiver;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -116,14 +116,6 @@ impl From<&WorkflowMap> for RenderWhileWorkflowStateExtract {
         render_workflow_state_extract
     }
 }
-#[derive(Resource)]
-pub(super) struct RenderWhileWorkflowStateExtractReintegrationEventSender(
-    pub Sender<(&'static str, &'static str)>,
-);
-#[derive(Resource)]
-pub(super) struct RenderWhileWorkflowStateExtractReintegrationEventReceiver(
-    pub Receiver<(&'static str, &'static str)>,
-);
 
 // --- Stage Buffers ---
 #[derive(Resource, Default)]

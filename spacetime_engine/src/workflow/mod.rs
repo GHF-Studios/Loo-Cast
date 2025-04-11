@@ -26,19 +26,6 @@ use systems::*;
 pub(crate) struct WorkflowPlugin;
 impl Plugin for WorkflowPlugin {
     fn build(&self, app: &mut App) {
-        let (
-            render_workflow_state_extract_reintegration_event_sender,
-            render_workflow_state_extract_reintegration_event_receiver,
-        ) = crossbeam_channel::unbounded();
-        let render_while_workflow_state_extract_reintegration_event_sender =
-            RenderWhileWorkflowStateExtractReintegrationEventSender(
-                render_workflow_state_extract_reintegration_event_sender,
-            );
-        let render_while_workflow_state_extract_reintegration_event_receiver =
-            RenderWhileWorkflowStateExtractReintegrationEventReceiver(
-                render_workflow_state_extract_reintegration_event_receiver,
-            );
-
         let (setup_receiver, wait_receiver, completion_receiver, failure_receiver) =
             initialize_stage_channels();
         let setup_receiver = StageSetupEventReceiver(setup_receiver);
@@ -74,7 +61,6 @@ impl Plugin for WorkflowPlugin {
             .insert_resource(RenderStageBuffer::default())
             .insert_resource(RenderWhileStageBuffer::default())
             .insert_resource(AsyncStageBuffer::default())
-            .insert_resource(render_while_workflow_state_extract_reintegration_event_receiver)
             .insert_resource(setup_receiver)
             .insert_resource(wait_receiver)
             .insert_resource(completion_receiver)
@@ -139,7 +125,6 @@ impl Plugin for WorkflowPlugin {
 
         let render_app = app.sub_app_mut(RenderApp);
         render_app
-            .insert_resource(render_while_workflow_state_extract_reintegration_event_sender)
             .add_systems(
                 ExtractSchedule,
                 (

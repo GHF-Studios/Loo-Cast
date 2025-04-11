@@ -13,15 +13,7 @@ pub struct RenderWhile;
 
 pub struct Stages(pub Vec<Stage>);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum StageType {
-    Ecs,
-    Render,
-    Async,
-    EcsWhile,
-    RenderWhile,
-}
-
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StageSignature {
     None,
@@ -171,16 +163,6 @@ impl Stage {
         }
     }
 
-    pub fn has_state(&self) -> bool {
-        match self {
-            Stage::Ecs(stage) => stage.core_types.has_state(),
-            Stage::Async(stage) => stage.core_types.has_state(),
-            Stage::Render(stage) => stage.core_types.has_state(),
-            Stage::EcsWhile(stage) => stage.core_types.has_state(),
-            Stage::RenderWhile(stage) => stage.core_types.has_state(),
-        }
-    }
-
     pub fn has_output(&self) -> bool {
         match self {
             Stage::Ecs(stage) => stage.core_types.has_output(),
@@ -208,16 +190,6 @@ impl Stage {
             Stage::Async(stage) => stage.get_index(),
             Stage::EcsWhile(stage) => stage.get_index(),
             Stage::RenderWhile(stage) => stage.get_index(),
-        }
-    }
-
-    pub fn get_type(&self) -> StageType {
-        match self {
-            Stage::Ecs(_) => StageType::Ecs,
-            Stage::Render(_) => StageType::Render,
-            Stage::Async(_) => StageType::Async,
-            Stage::EcsWhile(_) => StageType::EcsWhile,
-            Stage::RenderWhile(_) => StageType::RenderWhile,
         }
     }
 
@@ -1676,6 +1648,7 @@ impl TypedStage<Async> {
 }
 
 impl TypedStage<EcsWhile> {
+    #[allow(clippy::too_many_arguments)]
     pub fn generate(
         self,
         workflow_path: &TokenStream,
@@ -2778,6 +2751,7 @@ impl TypedStage<EcsWhile> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 impl TypedStage<RenderWhile> {
     pub fn generate(
         self,
@@ -2892,7 +2866,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with state must have a response");
-                        // TODO: FIX: Error message below should be "Failed to downcast setup reponse state data", and like `setup response` instead of `response` in general for all setup response handlers
+                        // TODO: MINOR: Error message below should be "Failed to downcast setup reponse state data", and like `setup response` instead of `response` in general for all setup response handlers
                         let state: #this_state_path = *response.downcast().expect("Failed to downcast response result data");
 
                         let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);

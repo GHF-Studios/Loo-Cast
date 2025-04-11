@@ -67,10 +67,8 @@ pub struct CoreFunctionSignature {
     pub function_type: CoreFunctionType,
     pub has_input: bool,
     pub has_state: bool,
-    pub has_world: bool,
     pub has_output: bool,
     pub has_error: bool,
-    pub has_outcome: bool,
 }
 
 pub struct CoreFunction {
@@ -353,10 +351,8 @@ impl Parse for CoreFunction {
             function_type,
             has_input,
             has_state,
-            has_world,
             has_output,
             has_error,
-            has_outcome,
         };
 
         let body: syn::Block = input.parse()?;

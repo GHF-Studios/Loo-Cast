@@ -110,6 +110,7 @@ impl WorkflowModule {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 pub enum WorkflowSignature {
     None,
     E,
@@ -206,30 +207,6 @@ impl Parse for Workflow {
 }
 
 trait IteratorExt: Iterator {
-    fn unzip3<A, B, C, IA, IB, IC>(self) -> (IA, IB, IC)
-    where
-        Self: Sized + Iterator<Item = (A, B, C)>,
-        IA: FromIterator<A>,
-        IB: FromIterator<B>,
-        IC: FromIterator<C>,
-    {
-        let mut a = Vec::new();
-        let mut b = Vec::new();
-        let mut c = Vec::new();
-
-        for (x, y, z) in self {
-            a.push(x);
-            b.push(y);
-            c.push(z);
-        }
-
-        (
-            a.into_iter().collect(),
-            b.into_iter().collect(),
-            c.into_iter().collect(),
-        )
-    }
-
     fn unzip4<A, B, C, D, IA, IB, IC, ID>(self) -> (IA, IB, IC, ID)
     where
         Self: Sized + Iterator<Item = (A, B, C, D)>,

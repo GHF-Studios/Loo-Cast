@@ -512,10 +512,6 @@ impl<T> CoreTypes<T> {
         self.input.is_some()
     }
 
-    pub fn has_state(&self) -> bool {
-        self.state.is_some()
-    }
-
     pub fn has_output(&self) -> bool {
         self.output.is_some()
     }

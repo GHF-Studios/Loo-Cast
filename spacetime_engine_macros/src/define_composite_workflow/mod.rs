@@ -1,5 +1,4 @@
 mod pre_processor;
-mod workflow_id;
 mod workflow_invocation;
 mod workflow_segment;
 
@@ -10,13 +9,11 @@ use std::collections::HashSet;
 use syn::{
     braced,
     parse::{Parse, ParseStream},
-    parse_macro_input,
     spanned::Spanned,
-    ExprPath, Ident, Result, Token,
+    ExprPath, Ident, Result,
 };
 
 use pre_processor::pre_process_workflows;
-use workflow_invocation::WorkflowInvocation;
 use workflow_segment::{extract_workflow_segments, WorkflowSegment};
 
 #[derive(Debug)]
@@ -212,11 +209,11 @@ fn signature_ident_from_path(path: &syn::ExprPath) -> Ident {
         "IE"
     } else if last_segment.ends_with("OE") {
         "OE"
-    } else if last_segment.ends_with("I") {
+    } else if last_segment.ends_with('I') {
         "I"
-    } else if last_segment.ends_with("O") {
+    } else if last_segment.ends_with('O') {
         "O"
-    } else if last_segment.ends_with("E") {
+    } else if last_segment.ends_with('E') {
         "E"
     } else {
         "None"

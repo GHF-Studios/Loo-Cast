@@ -260,12 +260,6 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
         std::mem::take(&mut buffer.0)
     };
 
-    let extract_reintegration_sender = world
-        .get_resource::<RenderWhileWorkflowStateExtractReintegrationEventSender>()
-        .unwrap()
-        .0
-        .clone();
-
     let setup_sender = get_stage_setup_sender();
     let wait_sender = get_stage_wait_sender();
     let completion_sender = get_stage_completion_sender();
@@ -316,10 +310,6 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
 
             *stage_initialized = true;
 
-            extract_reintegration_sender
-                .send((module_name, workflow_name))
-                .unwrap();
-
             info!(
                 "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                 workflow_name, module_name, current_stage
@@ -344,39 +334,6 @@ pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
                 "Workflow '{}' in module '{}' has processed stage '{}'.",
                 workflow_name, module_name, current_stage
             );
-        }
-    }
-}
-
-pub(super) fn render_while_workflow_state_extract_reintegration_system(world: &mut World) {
-    let mut system_state: SystemState<(
-        ResMut<WorkflowMap>,
-        ResMut<RenderWhileWorkflowStateExtractReintegrationEventReceiver>,
-    )> = SystemState::new(world);
-    let (mut workflow_map, render_while_workflow_state_extract_reintegration_event_receiver) =
-        system_state.get_mut(world);
-
-    while let Ok(event) = render_while_workflow_state_extract_reintegration_event_receiver
-        .0
-        .try_recv()
-    {
-        let module_name = event.0;
-        let workflow_name = event.1;
-
-        if let Some(workflow_instance) = workflow_map.get_workflow_mut(module_name, workflow_name) {
-            if let WorkflowState::Processing {
-                current_stage: _,
-                current_stage_type: _,
-                ref mut stage_initialized,
-                stage_completed: _,
-            } = workflow_instance.state()
-            {
-                *stage_initialized = true;
-            } else {
-                unreachable!("Render while workflow state reintegration error: Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'", workflow_instance.state());
-            }
-        } else {
-            unreachable!("Render while workflow state reintegration error: Workflow '{}' in module '{}' not found.", workflow_name, module_name);
         }
     }
 }
@@ -822,7 +779,7 @@ pub(super) fn workflow_request_system(world: &mut World) {
     )> = SystemState::new(world);
     let (mut workflow_map, workflow_type_module_registry, _) = system_state.get_mut(world);
 
-    // TODO: Minor: Duplicate to other relevant places: Rely less on std::mem::take/replace and more on optional resource queries
+    // TODO: MINOR: Duplicate to other relevant places: Rely less on std::mem::take/replace and more on optional resource queries
     let mut stolen_workflow_map = std::mem::take(&mut *workflow_map);
 
     let mut stage_initialization_events = Vec::new();
@@ -1132,8 +1089,8 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                     .unwrap();
                 let stage_count = workflow_type.stages.len();
 
-                let current_stage_type = match instance.state_mut() {
-                    WorkflowState::Processing { current_stage: other_current_stage, current_stage_type, stage_completed: completed, .. } => {
+                match instance.state_mut() {
+                    WorkflowState::Processing { current_stage: other_current_stage, current_stage_type: _, stage_completed: completed, .. } => {
                         if current_stage != *other_current_stage {
                             unreachable!("Unexpected workflow state. Completion event is at stage '{}', but the workflow instance is at stage '{}'", current_stage, other_current_stage);
                         }
@@ -1142,18 +1099,15 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         }
 
                         *completed = true;
-
-                        *current_stage_type
                     },
                     state => unreachable!("Unexpected workflow state. Expected 'WorkflowState::Processing(_)', got '{:?}'", state),
-                };
+                }
 
                 if current_stage + 1 < stage_count {
                     intermediate_stage_completions.push((
                         module_name,
                         workflow_name,
                         current_stage,
-                        current_stage_type,
                         stage_output,
                     ));
                 } else {
@@ -1172,7 +1126,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
     }
 
     // Handle intermediate stage completions
-    for (module_name, workflow_name, stage_index, current_stage_type, stage_output) in
+    for (module_name, workflow_name, stage_index, stage_output) in
         intermediate_stage_completions
     {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
@@ -1356,12 +1310,12 @@ pub(super) fn workflow_failure_handling_system(world: &mut World) {
             .get_workflow_type_mut(module_name, workflow_name)
             .unwrap();
 
-        stage_failures.push((module_name, workflow_name, current_stage, stage_error));
+        stage_failures.push((module_name, workflow_name, stage_error));
 
         workflow_type.stages[current_stage] = stage;
     }
 
-    for (module_name, workflow_name, current_stage, stage_error) in stage_failures {
+    for (module_name, workflow_name, stage_error) in stage_failures {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
                 let callback = instance.take_callback();

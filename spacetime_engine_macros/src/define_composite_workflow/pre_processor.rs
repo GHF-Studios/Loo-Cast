@@ -1,8 +1,6 @@
 use heck::ToSnakeCase;
 use proc_macro2::{Delimiter, Group, Ident, Span, TokenStream, TokenTree};
-use quote::{quote, ToTokens};
-use syn::parse::{Parse, ParseStream};
-use syn::{braced, parse_macro_input};
+use quote::quote;
 
 pub fn pre_process_workflows(input: TokenStream) -> TokenStream {
     let mut output = TokenStream::new();
@@ -10,7 +8,7 @@ pub fn pre_process_workflows(input: TokenStream) -> TokenStream {
 
     while let Some(token) = iter.next() {
         match &token {
-            TokenTree::Ident(ident) if ident.to_string() == "workflow" => {
+            TokenTree::Ident(ident) if ident == "workflow" => {
                 if let Some(TokenTree::Punct(p)) = iter.next() {
                     if p.as_char() == '!' {
                         if let Some(TokenTree::Group(group)) = iter.next() {
@@ -89,12 +87,11 @@ fn transform_workflow_group(group: Group) -> TokenStream {
     // Optional Input block
     let mut input_block: Option<Group> = None;
     if let Some(TokenTree::Ident(input_ident)) = tokens.get(cursor) {
-        if input_ident.to_string() == "Input" {
+        if input_ident == "Input" {
             cursor += 1;
             if let Some(TokenTree::Group(group)) = tokens.get(cursor) {
                 if group.delimiter() == Delimiter::Brace {
                     input_block = Some(group.clone());
-                    cursor += 1;
                 }
             }
         }

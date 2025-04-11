@@ -8,7 +8,7 @@ use super::{
     resources::{PlayerWorkflow, PlayerWorkflowQueue},
 };
 
-// TODO: Make it so we can't spawn two players if we click fast enough, aka we
+// TODO: MAJOR: Make it so we can't spawn two players if we click fast enough, aka we introduce a sort of `CompositeWorkflowRequestHandle`
 pub(crate) fn update_player_system(
     mut queue: ResMut<PlayerWorkflowQueue>,
     mut player_query: Query<(Entity, &mut Transform), With<PlayerComponent>>,

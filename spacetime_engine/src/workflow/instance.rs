@@ -3,8 +3,6 @@ use std::any::Any;
 use crate::config::statics::CONFIG;
 use crate::workflow::types::*;
 
-use super::response::*;
-
 pub enum WorkflowCallback {
     None(Box<dyn FnOnce() + Send + Sync>),
     E(Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>),
