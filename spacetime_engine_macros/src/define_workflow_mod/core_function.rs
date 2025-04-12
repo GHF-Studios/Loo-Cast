@@ -409,7 +409,7 @@ impl CoreFunction {
                             None
                         }
 
-                        fn run_ecs_inner(main_access: MainAccess) #body
+                        fn run_ecs_inner(mut main_access: MainAccess) #body
                     }
                 }
                 (false, false, true) => {
@@ -419,7 +419,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn run_ecs_inner(main_access: MainAccess) -> Result<(), Error> #body
+                        fn run_ecs_inner(mut main_access: MainAccess) -> Result<(), Error> #body
                     }
                 }
                 (false, true, false) => {
@@ -429,7 +429,7 @@ impl CoreFunction {
                             Some(Box::new(output))
                         }
 
-                        fn run_ecs_inner(main_access: MainAccess) -> Output #body
+                        fn run_ecs_inner(mut main_access: MainAccess) -> Output #body
                     }
                 }
                 (false, true, true) => {
@@ -439,7 +439,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn run_ecs_inner(main_access: MainAccess) -> Result<Output, Error> #body
+                        fn run_ecs_inner(mut main_access: MainAccess) -> Result<Output, Error> #body
                     }
                 }
                 (true, false, false) => {
@@ -450,7 +450,7 @@ impl CoreFunction {
                             None
                         }
 
-                        fn run_ecs_inner(input: Input, main_access: MainAccess) #body
+                        fn run_ecs_inner(input: Input, mut main_access: MainAccess) #body
                     }
                 }
                 (true, false, true) => {
@@ -461,7 +461,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn run_ecs_inner(input: Input, main_access: MainAccess) -> Result<(), Error> #body
+                        fn run_ecs_inner(input: Input, mut main_access: MainAccess) -> Result<(), Error> #body
                     }
                 }
                 (true, true, false) => {
@@ -472,7 +472,7 @@ impl CoreFunction {
                             Some(Box::new(output))
                         }
 
-                        fn run_ecs_inner(input: Input, main_access: MainAccess) -> Output #body
+                        fn run_ecs_inner(input: Input, mut main_access: MainAccess) -> Output #body
                     }
                 }
                 (true, true, true) => {
@@ -483,7 +483,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn run_ecs_inner(input: Input, main_access: MainAccess) -> Result<Output, Error> #body
+                        fn run_ecs_inner(input: Input, mut main_access: MainAccess) -> Result<Output, Error> #body
                     }
                 }
             },
@@ -495,7 +495,7 @@ impl CoreFunction {
                             None
                         }
 
-                        fn run_render_inner(render_access: RenderAccess) #body
+                        fn run_render_inner(mut render_access: RenderAccess) #body
                     }
                 }
                 (false, false, true) => {
@@ -505,7 +505,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn run_render_inner(render_access: RenderAccess) -> Result<(), Error> #body
+                        fn run_render_inner(mut render_access: RenderAccess) -> Result<(), Error> #body
                     }
                 }
                 (false, true, false) => {
@@ -515,7 +515,7 @@ impl CoreFunction {
                             Some(Box::new(output))
                         }
 
-                        fn run_render_inner(render_access: RenderAccess) -> Output #body
+                        fn run_render_inner(mut render_access: RenderAccess) -> Output #body
                     }
                 }
                 (false, true, true) => {
@@ -525,7 +525,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn run_render_inner(render_access: RenderAccess) -> Result<Output, Error> #body
+                        fn run_render_inner(mut render_access: RenderAccess) -> Result<Output, Error> #body
                     }
                 }
                 (true, false, false) => {
@@ -536,7 +536,7 @@ impl CoreFunction {
                             None
                         }
 
-                        fn run_render_inner(input: Input, render_access: RenderAccess) #body
+                        fn run_render_inner(input: Input, mut render_access: RenderAccess) #body
                     }
                 }
                 (true, false, true) => {
@@ -547,7 +547,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn run_render_inner(input: Input, render_access: RenderAccess) -> Result<(), Error> #body
+                        fn run_render_inner(input: Input, mut render_access: RenderAccess) -> Result<(), Error> #body
                     }
                 }
                 (true, true, false) => {
@@ -558,7 +558,7 @@ impl CoreFunction {
                             Some(Box::new(output))
                         }
 
-                        fn run_render_inner(input: Input, render_access: RenderAccess) -> Output #body
+                        fn run_render_inner(input: Input, mut render_access: RenderAccess) -> Output #body
                     }
                 }
                 (true, true, true) => {
@@ -569,7 +569,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn run_render_inner(input: Input, render_access: RenderAccess) -> Result<Output, Error> #body
+                        fn run_render_inner(input: Input, mut render_access: RenderAccess) -> Result<Output, Error> #body
                     }
                 }
             },
@@ -667,7 +667,7 @@ impl CoreFunction {
                             None
                         }
 
-                        fn setup_ecs_while_inner(main_access: MainAccess) #body
+                        fn setup_ecs_while_inner(mut main_access: MainAccess) #body
                     }
                 }
                 (false, false, true) => {
@@ -677,7 +677,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn setup_ecs_while_inner(main_access: MainAccess) -> Result<(), Error> #body
+                        fn setup_ecs_while_inner(mut main_access: MainAccess) -> Result<(), Error> #body
                     }
                 }
                 (false, true, false) => {
@@ -687,7 +687,7 @@ impl CoreFunction {
                             Some(Box::new(state))
                         }
 
-                        fn setup_ecs_while_inner(main_access: MainAccess) -> State #body
+                        fn setup_ecs_while_inner(mut main_access: MainAccess) -> State #body
                     }
                 }
                 (false, true, true) => {
@@ -697,7 +697,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn setup_ecs_while_inner(main_access: MainAccess) -> Result<State, Error> #body
+                        fn setup_ecs_while_inner(mut main_access: MainAccess) -> Result<State, Error> #body
                     }
                 }
                 (true, false, false) => {
@@ -708,7 +708,7 @@ impl CoreFunction {
                             None
                         }
 
-                        fn setup_ecs_while_inner(input: Input, main_access: MainAccess) #body
+                        fn setup_ecs_while_inner(input: Input, mut main_access: MainAccess) #body
                     }
                 }
                 (true, false, true) => {
@@ -719,7 +719,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn setup_ecs_while_inner(input: Input, main_access: MainAccess) -> Result<(), Error> #body
+                        fn setup_ecs_while_inner(input: Input, mut main_access: MainAccess) -> Result<(), Error> #body
                     }
                 }
                 (true, true, false) => {
@@ -730,7 +730,7 @@ impl CoreFunction {
                             Some(Box::new(state))
                         }
 
-                        fn setup_ecs_while_inner(input: Input, main_access: MainAccess) -> State #body
+                        fn setup_ecs_while_inner(input: Input, mut main_access: MainAccess) -> State #body
                     }
                 }
                 (true, true, true) => {
@@ -741,7 +741,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn setup_ecs_while_inner(input: Input, main_access: MainAccess) -> Result<State, Error> #body
+                        fn setup_ecs_while_inner(input: Input, mut main_access: MainAccess) -> Result<State, Error> #body
                     }
                 }
             },
@@ -753,7 +753,7 @@ impl CoreFunction {
                             None
                         }
 
-                        fn setup_render_while_inner(render_access: RenderAccess) #body
+                        fn setup_render_while_inner(mut render_access: RenderAccess) #body
                     }
                 }
                 (false, false, true) => {
@@ -763,7 +763,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn setup_render_while_inner(render_access: RenderAccess) -> Result<(), Error> #body
+                        fn setup_render_while_inner(mut render_access: RenderAccess) -> Result<(), Error> #body
                     }
                 }
                 (false, true, false) => {
@@ -773,7 +773,7 @@ impl CoreFunction {
                             Some(Box::new(state))
                         }
 
-                        fn setup_render_while_inner(render_access: RenderAccess) -> State #body
+                        fn setup_render_while_inner(mut render_access: RenderAccess) -> State #body
                     }
                 }
                 (false, true, true) => {
@@ -783,7 +783,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn setup_render_while_inner(render_access: RenderAccess) -> Result<State, Error> #body
+                        fn setup_render_while_inner(mut render_access: RenderAccess) -> Result<State, Error> #body
                     }
                 }
                 (true, false, false) => {
@@ -794,7 +794,7 @@ impl CoreFunction {
                             None
                         }
 
-                        fn setup_render_while_inner(input: Input, render_access: RenderAccess) #body
+                        fn setup_render_while_inner(input: Input, mut render_access: RenderAccess) #body
                     }
                 }
                 (true, false, true) => {
@@ -805,7 +805,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn setup_render_while_inner(input: Input, render_access: RenderAccess) -> Result<(), Error> #body
+                        fn setup_render_while_inner(input: Input, mut render_access: RenderAccess) -> Result<(), Error> #body
                     }
                 }
                 (true, true, false) => {
@@ -816,7 +816,7 @@ impl CoreFunction {
                             Some(Box::new(state))
                         }
 
-                        fn setup_render_while_inner(input: Input, render_access: RenderAccess) -> State #body
+                        fn setup_render_while_inner(input: Input, mut render_access: RenderAccess) -> State #body
                     }
                 }
                 (true, true, true) => {
@@ -828,7 +828,7 @@ impl CoreFunction {
                             Some(Box::new(result))
                         }
 
-                        fn setup_render_while_inner(input: Input, render_access: RenderAccess) -> Result<State, Error> #body
+                        fn setup_render_while_inner(input: Input, mut render_access: RenderAccess) -> Result<State, Error> #body
                     }
                 }
             },
@@ -840,7 +840,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_ecs_while_inner(main_access: MainAccess) -> Outcome<(), ()> #body
+                        fn run_ecs_while_inner(mut main_access: MainAccess) -> Outcome<(), ()> #body
                     }
                 }
                 (false, false, true) => {
@@ -850,7 +850,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_ecs_while_inner(main_access: MainAccess) -> Result<Outcome<(), ()>, Error> #body
+                        fn run_ecs_while_inner(mut main_access: MainAccess) -> Result<Outcome<(), ()>, Error> #body
                     }
                 }
                 (false, true, false) => {
@@ -860,7 +860,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_ecs_while_inner(main_access: MainAccess) -> Outcome<(), Output> #body
+                        fn run_ecs_while_inner(mut main_access: MainAccess) -> Outcome<(), Output> #body
                     }
                 }
                 (false, true, true) => {
@@ -870,7 +870,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_ecs_while_inner(main_access: MainAccess) -> Result<Outcome<(), Output>, Error> #body
+                        fn run_ecs_while_inner(mut main_access: MainAccess) -> Result<Outcome<(), Output>, Error> #body
                     }
                 }
                 (true, false, false) => {
@@ -881,7 +881,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_ecs_while_inner(state: State, main_access: MainAccess) -> Outcome<State, ()> #body
+                        fn run_ecs_while_inner(state: State, mut main_access: MainAccess) -> Outcome<State, ()> #body
                     }
                 }
                 (true, false, true) => {
@@ -892,7 +892,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_ecs_while_inner(state: State, main_access: MainAccess) -> Result<Outcome<State, ()>, Error> #body
+                        fn run_ecs_while_inner(state: State, mut main_access: MainAccess) -> Result<Outcome<State, ()>, Error> #body
                     }
                 }
                 (true, true, false) => {
@@ -903,7 +903,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_ecs_while_inner(state: State, main_access: MainAccess) -> Outcome<State, Output> #body
+                        fn run_ecs_while_inner(state: State, mut main_access: MainAccess) -> Outcome<State, Output> #body
                     }
                 }
                 (true, true, true) => {
@@ -914,7 +914,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_ecs_while_inner(state: State, main_access: MainAccess) -> Result<Outcome<State, Output>, Error> #body
+                        fn run_ecs_while_inner(state: State, mut main_access: MainAccess) -> Result<Outcome<State, Output>, Error> #body
                     }
                 }
             },
@@ -926,7 +926,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_render_while_inner(render_access: RenderAccess) -> Outcome<(), ()> #body
+                        fn run_render_while_inner(mut render_access: RenderAccess) -> Outcome<(), ()> #body
                     }
                 }
                 (false, false, true) => {
@@ -936,7 +936,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_render_while_inner(render_access: RenderAccess) -> Result<Outcome<(), ()>, Error> #body
+                        fn run_render_while_inner(mut render_access: RenderAccess) -> Result<Outcome<(), ()>, Error> #body
                     }
                 }
                 (false, true, false) => {
@@ -946,7 +946,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_render_while_inner(render_access: RenderAccess) -> Outcome<(), Output> #body
+                        fn run_render_while_inner(mut render_access: RenderAccess) -> Outcome<(), Output> #body
                     }
                 }
                 (false, true, true) => {
@@ -956,7 +956,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_render_while_inner(render_access: RenderAccess) -> Result<Outcome<(), Output>, Error> #body
+                        fn run_render_while_inner(mut render_access: RenderAccess) -> Result<Outcome<(), Output>, Error> #body
                     }
                 }
                 (true, false, false) => {
@@ -967,7 +967,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_render_while_inner(state: State, render_access: RenderAccess) -> Outcome<State, ()> #body
+                        fn run_render_while_inner(state: State, mut render_access: RenderAccess) -> Outcome<State, ()> #body
                     }
                 }
                 (true, false, true) => {
@@ -978,7 +978,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_render_while_inner(state: State, render_access: RenderAccess) -> Result<Outcome<State, ()>, Error> #body
+                        fn run_render_while_inner(state: State, mut render_access: RenderAccess) -> Result<Outcome<State, ()>, Error> #body
                     }
                 }
                 (true, true, false) => {
@@ -989,7 +989,7 @@ impl CoreFunction {
                             Box::new(outcome)
                         }
 
-                        fn run_render_while_inner(state: State, render_access: RenderAccess) -> Outcome<State, Output> #body
+                        fn run_render_while_inner(state: State, mut render_access: RenderAccess) -> Outcome<State, Output> #body
                     }
                 }
                 (true, true, true) => {
@@ -1000,7 +1000,7 @@ impl CoreFunction {
                             Box::new(outcome_result)
                         }
 
-                        fn run_render_while_inner(state: State, render_access: RenderAccess) -> Result<Outcome<State, Output>, Error> #body
+                        fn run_render_while_inner(state: State, mut render_access: RenderAccess) -> Result<Outcome<State, Output>, Error> #body
                     }
                 }
             },
