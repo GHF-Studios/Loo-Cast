@@ -18,13 +18,22 @@ pub enum StageSignature {
 }
 impl StageSignature {
     pub fn has_input(&self) -> bool {
-        matches!(self, StageSignature::I | StageSignature::IE | StageSignature::IO | StageSignature::IOE)
+        matches!(
+            self,
+            StageSignature::I | StageSignature::IE | StageSignature::IO | StageSignature::IOE
+        )
     }
     pub fn has_output(&self) -> bool {
-        matches!(self, StageSignature::O | StageSignature::OE | StageSignature::IO | StageSignature::IOE)
+        matches!(
+            self,
+            StageSignature::O | StageSignature::OE | StageSignature::IO | StageSignature::IOE
+        )
     }
     pub fn has_error(&self) -> bool {
-        matches!(self, StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE)
+        matches!(
+            self,
+            StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE
+        )
     }
 }
 
@@ -125,7 +134,7 @@ pub struct StageEcs {
     pub run_ecs: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
-                &mut World,
+                Box<dyn Any + Send + Sync>,
             ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
@@ -152,7 +161,7 @@ pub struct StageRender {
     pub run_render: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
-                &mut World,
+                Box<dyn Any + Send + Sync>,
             ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
@@ -205,13 +214,13 @@ pub struct StageEcsWhile {
     pub setup_ecs_while: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
-                &mut World,
+                Box<dyn Any + Send + Sync>,
             ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,
     pub run_ecs_while: Box<
-        dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> Box<dyn Any + Send + Sync>
+        dyn FnMut(Option<Box<dyn Any + Send + Sync>>, Box<dyn Any + Send + Sync>) -> Box<dyn Any + Send + Sync>
             + Send
             + Sync,
     >,
@@ -251,13 +260,13 @@ pub struct StageRenderWhile {
     pub setup_render_while: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
-                &mut World,
+                Box<dyn Any + Send + Sync>,
             ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,
     pub run_render_while: Box<
-        dyn FnMut(Option<Box<dyn Any + Send + Sync>>, &mut World) -> Box<dyn Any + Send + Sync>
+        dyn FnMut(Option<Box<dyn Any + Send + Sync>>, Box<dyn Any + Send + Sync>) -> Box<dyn Any + Send + Sync>
             + Send
             + Sync,
     >,
