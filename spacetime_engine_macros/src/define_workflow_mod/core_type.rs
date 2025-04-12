@@ -38,6 +38,8 @@ pub struct Input;
 pub struct State;
 pub struct Output;
 pub struct Error;
+pub struct MainAccess;
+pub struct RenderAccess;
 
 pub enum CoreType<T> {
     Struct(ItemStruct, PhantomData<T>),
@@ -102,12 +104,56 @@ impl CoreType<Error> {
     }
 }
 
+impl CoreType<MainAccess> {
+    pub fn generate(&self) -> TokenStream {
+        match self {
+            CoreType::Struct(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[derive(SystemParam)]
+                    #item
+                }
+            }
+            CoreType::Enum(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[derive(SystemParam)]
+                    #item
+                }
+            }
+        }
+    }
+}
+
+impl CoreType<RenderAccess> {
+    pub fn generate(&self) -> TokenStream {
+        match self {
+            CoreType::Struct(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[derive(SystemParam)]
+                    #item
+                }
+            }
+            CoreType::Enum(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[derive(SystemParam)]
+                    #item
+                }
+            }
+        }
+    }
+}
+
 pub struct CoreTypes<T> {
     pub phantom_data: PhantomData<T>,
     pub input: Option<CoreType<Input>>,
     pub state: Option<CoreType<State>>,
     pub output: Option<CoreType<Output>>,
     pub error: Option<CoreType<Error>>,
+    pub main_access: Option<CoreType<MainAccess>>,
+    pub render_access: Option<CoreType<RenderAccess>>,
 }
 
 impl Parse for CoreTypes<Ecs> {
@@ -115,6 +161,7 @@ impl Parse for CoreTypes<Ecs> {
         let mut input_type = None;
         let mut output_type = None;
         let mut error_type = None;
+        let mut main_access_type = None;
 
         while !input.is_empty() {
             let mut item: syn::Item = input.parse()?;
@@ -167,6 +214,20 @@ impl Parse for CoreTypes<Ecs> {
                 {
                     return Err(input.error("State is not allowed in Ecs stages"));
                 }
+                syn::Item::Struct(ref mut s) if s.ident == "MainAccess" => {
+                    align_core_struct(s);
+                    if main_access_type.is_some() {
+                        return Err(input.error("Duplicate MainAccess type"));
+                    }
+                    main_access_type = Some(CoreType::<MainAccess>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "MainAccess" => {
+                    align_core_enum(e);
+                    if main_access_type.is_some() {
+                        return Err(input.error("Duplicate MainAccess type"));
+                    }
+                    main_access_type = Some(CoreType::<MainAccess>::Enum(e.clone(), PhantomData));
+                }
                 _ => return Err(input.error("Invalid or misplaced core type declaration")),
             }
         }
@@ -177,6 +238,8 @@ impl Parse for CoreTypes<Ecs> {
             state: None,
             output: output_type,
             error: error_type,
+            main_access: main_access_type,
+            render_access: None,
         })
     }
 }
@@ -187,6 +250,7 @@ impl Parse for CoreTypes<EcsWhile> {
         let mut state_type = None;
         let mut output_type = None;
         let mut error_type = None;
+        let mut main_access_type = None;
 
         while !input.is_empty() {
             let mut item: syn::Item = input.parse()?;
@@ -247,6 +311,20 @@ impl Parse for CoreTypes<EcsWhile> {
                     }
                     error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
                 }
+                syn::Item::Struct(ref mut s) if s.ident == "MainAccess" => {
+                    align_core_struct(s);
+                    if main_access_type.is_some() {
+                        return Err(input.error("Duplicate MainAccess type"));
+                    }
+                    main_access_type = Some(CoreType::<MainAccess>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "MainAccess" => {
+                    align_core_enum(e);
+                    if main_access_type.is_some() {
+                        return Err(input.error("Duplicate MainAccess type"));
+                    }
+                    main_access_type = Some(CoreType::<MainAccess>::Enum(e.clone(), PhantomData));
+                }
                 _ => return Err(input.error("Invalid or misplaced core type declaration")),
             }
         }
@@ -257,6 +335,8 @@ impl Parse for CoreTypes<EcsWhile> {
             state: state_type,
             output: output_type,
             error: error_type,
+            main_access: main_access_type,
+            render_access: None,
         })
     }
 }
@@ -266,6 +346,7 @@ impl Parse for CoreTypes<Render> {
         let mut input_type = None;
         let mut output_type = None;
         let mut error_type = None;
+        let mut render_access_type = None;
 
         while !input.is_empty() {
             let mut item: syn::Item = input.parse()?;
@@ -318,6 +399,20 @@ impl Parse for CoreTypes<Render> {
                 {
                     return Err(input.error("State is not allowed in Render stages"));
                 }
+                syn::Item::Struct(ref mut s) if s.ident == "RenderAccess" => {
+                    align_core_struct(s);
+                    if render_access_type.is_some() {
+                        return Err(input.error("Duplicate RenderAccess type"));
+                    }
+                    render_access_type = Some(CoreType::<RenderAccess>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "RenderAccess" => {
+                    align_core_enum(e);
+                    if render_access_type.is_some() {
+                        return Err(input.error("Duplicate RenderAccess type"));
+                    }
+                    render_access_type = Some(CoreType::<RenderAccess>::Enum(e.clone(), PhantomData));
+                }
                 _ => return Err(input.error("Invalid or misplaced core type declaration")),
             }
         }
@@ -328,6 +423,8 @@ impl Parse for CoreTypes<Render> {
             state: None,
             output: output_type,
             error: error_type,
+            main_access: None,
+            render_access: render_access_type,
         })
     }
 }
@@ -338,6 +435,7 @@ impl Parse for CoreTypes<RenderWhile> {
         let mut state_type = None;
         let mut output_type = None;
         let mut error_type = None;
+        let mut render_access_type = None;
 
         while !input.is_empty() {
             let mut item: syn::Item = input.parse()?;
@@ -398,6 +496,20 @@ impl Parse for CoreTypes<RenderWhile> {
                     }
                     error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
                 }
+                syn::Item::Struct(ref mut s) if s.ident == "RenderAccess" => {
+                    align_core_struct(s);
+                    if render_access_type.is_some() {
+                        return Err(input.error("Duplicate RenderAccess type"));
+                    }
+                    render_access_type = Some(CoreType::<RenderAccess>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "RenderAccess" => {
+                    align_core_enum(e);
+                    if render_access_type.is_some() {
+                        return Err(input.error("Duplicate RenderAccess type"));
+                    }
+                    render_access_type = Some(CoreType::<RenderAccess>::Enum(e.clone(), PhantomData));
+                }
                 _ => return Err(input.error("Invalid or misplaced core type declaration")),
             }
         }
@@ -408,6 +520,8 @@ impl Parse for CoreTypes<RenderWhile> {
             state: state_type,
             output: output_type,
             error: error_type,
+            main_access: None,
+            render_access: render_access_type,
         })
     }
 }
@@ -479,6 +593,8 @@ impl Parse for CoreTypes<Async> {
             state: None,
             output: output_type,
             error: error_type,
+            main_access: None,
+            render_access: None,
         })
     }
 }
@@ -489,22 +605,24 @@ impl<T> CoreTypes<T> {
         let state = self.state.as_ref().map(|t| t.generate());
         let output = self.output.as_ref().map(|t| t.generate());
         let error = self.error.as_ref().map(|t| t.generate());
+        let main_access = self.main_access.as_ref().map(|t| t.generate());
+        let render_access = self.render_access.as_ref().map(|t| t.generate());
 
-        if self.error.is_some() {
-            quote! {
+        let imports = if self.error.is_some() {
+            Some(quote! {
                 use thiserror::Error;
+            })
+        } else { None };
 
-                #input
-                #state
-                #output
-                #error
-            }
-        } else {
-            quote! {
-                #input
-                #state
-                #output
-            }
+        quote! {
+            #imports
+
+            #input
+            #state
+            #output
+            #error
+            #main_access
+            #render_access
         }
     }
 
