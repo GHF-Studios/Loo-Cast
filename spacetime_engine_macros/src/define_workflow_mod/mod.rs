@@ -106,13 +106,13 @@ impl WorkflowModule {
                 impl Plugin for #plugin_ident {
                     fn build(&self, app: &mut App) {
                         app
-                            .add_systems(PreSetup, register_workflow_type_module)
+                            .add_systems(PreStartup, register_workflow_type_module)
                             #(#workflow_stage_systems_registration_literals)*
                             ;
                     }
                 }
 
-                fn register_workflow_type_module(workflow_type_module_registry: &mut crate::workflow::resources::WorkflowTypeModuleRegistry) {
+                fn register_workflow_type_module(mut workflow_type_module_registry: ResMut<crate::workflow::resources::WorkflowTypeModuleRegistry>) {
                     workflow_type_module_registry.register(
                         crate::workflow::types::WorkflowTypeModule {
                             name: stringify!(#module_name),
