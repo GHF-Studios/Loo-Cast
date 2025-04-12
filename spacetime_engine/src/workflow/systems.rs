@@ -1126,7 +1126,9 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
     }
 
     // Handle intermediate stage completions
-    for (module_name, workflow_name, stage_index, stage_output) in intermediate_stage_completions {
+    for (module_name, workflow_name, stage_index, stage_output) in
+        intermediate_stage_completions
+    {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
                 let workflow_type = workflow_type_module_registry

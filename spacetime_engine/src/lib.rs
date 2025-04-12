@@ -124,7 +124,7 @@ fn startup_system() {
             chunk_owner: None,
             metric_texture: generate_texture_output.texture_handle,
         });
-
+        
         workflow!(Debug::SpawnDebugObjects);
 
         Ok(())

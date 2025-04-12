@@ -69,10 +69,6 @@ impl WorkflowModule {
             module_name.as_str().to_snake_case().as_str(),
             module_ident.span(),
         );
-        let plugin_ident = Ident::new(
-            format!("{}WorkflowPlugin", module_name).as_str(),
-            module_ident.span(),
-        );
         let (workflow_modules, workflow_data): (Vec<_>, Vec<_>) = self
             .workflows
             .into_iter()
@@ -93,26 +89,11 @@ impl WorkflowModule {
             })
             .collect::<Vec<_>>();
 
-        let workflow_stage_systems_registration_literals = vec![quote! {}, quote! {}, quote! {}];
-
         quote! {
             pub mod #module_ident {
-                use bevy::prelude::*;
-
                 pub const NAME: &str = stringify!(#module_name);
 
-                pub struct #plugin_ident;
-
-                impl Plugin for #plugin_ident {
-                    fn build(&self, app: &mut App) {
-                        app
-                            .add_systems(PreSetup, register_workflow_type_module)
-                            #(#workflow_stage_systems_registration_literals)*
-                            ;
-                    }
-                }
-
-                fn register_workflow_type_module(workflow_type_module_registry: &mut crate::workflow::resources::WorkflowTypeModuleRegistry) {
+                pub fn register_workflow_type_module(workflow_type_module_registry: &mut crate::workflow::resources::WorkflowTypeModuleRegistry) {
                     workflow_type_module_registry.register(
                         crate::workflow::types::WorkflowTypeModule {
                             name: stringify!(#module_name),

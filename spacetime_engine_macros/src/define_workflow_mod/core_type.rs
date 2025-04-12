@@ -147,7 +147,7 @@ impl CoreType<RenderAccess> {
 }
 
 pub struct CoreTypes<T> {
-    pub _phantom_data: PhantomData<T>,
+    pub phantom_data: PhantomData<T>,
     pub input: Option<CoreType<Input>>,
     pub state: Option<CoreType<State>>,
     pub output: Option<CoreType<Output>>,
@@ -233,7 +233,7 @@ impl Parse for CoreTypes<Ecs> {
         }
 
         Ok(CoreTypes {
-            _phantom_data: PhantomData,
+            phantom_data: PhantomData,
             input: input_type,
             state: None,
             output: output_type,
@@ -330,7 +330,7 @@ impl Parse for CoreTypes<EcsWhile> {
         }
 
         Ok(CoreTypes {
-            _phantom_data: PhantomData,
+            phantom_data: PhantomData,
             input: input_type,
             state: state_type,
             output: output_type,
@@ -404,23 +404,21 @@ impl Parse for CoreTypes<Render> {
                     if render_access_type.is_some() {
                         return Err(input.error("Duplicate RenderAccess type"));
                     }
-                    render_access_type =
-                        Some(CoreType::<RenderAccess>::Struct(s.clone(), PhantomData));
+                    render_access_type = Some(CoreType::<RenderAccess>::Struct(s.clone(), PhantomData));
                 }
                 syn::Item::Enum(ref mut e) if e.ident == "RenderAccess" => {
                     align_core_enum(e);
                     if render_access_type.is_some() {
                         return Err(input.error("Duplicate RenderAccess type"));
                     }
-                    render_access_type =
-                        Some(CoreType::<RenderAccess>::Enum(e.clone(), PhantomData));
+                    render_access_type = Some(CoreType::<RenderAccess>::Enum(e.clone(), PhantomData));
                 }
                 _ => return Err(input.error("Invalid or misplaced core type declaration")),
             }
         }
 
         Ok(CoreTypes {
-            _phantom_data: PhantomData,
+            phantom_data: PhantomData,
             input: input_type,
             state: None,
             output: output_type,
@@ -503,23 +501,21 @@ impl Parse for CoreTypes<RenderWhile> {
                     if render_access_type.is_some() {
                         return Err(input.error("Duplicate RenderAccess type"));
                     }
-                    render_access_type =
-                        Some(CoreType::<RenderAccess>::Struct(s.clone(), PhantomData));
+                    render_access_type = Some(CoreType::<RenderAccess>::Struct(s.clone(), PhantomData));
                 }
                 syn::Item::Enum(ref mut e) if e.ident == "RenderAccess" => {
                     align_core_enum(e);
                     if render_access_type.is_some() {
                         return Err(input.error("Duplicate RenderAccess type"));
                     }
-                    render_access_type =
-                        Some(CoreType::<RenderAccess>::Enum(e.clone(), PhantomData));
+                    render_access_type = Some(CoreType::<RenderAccess>::Enum(e.clone(), PhantomData));
                 }
                 _ => return Err(input.error("Invalid or misplaced core type declaration")),
             }
         }
 
         Ok(CoreTypes {
-            _phantom_data: PhantomData,
+            phantom_data: PhantomData,
             input: input_type,
             state: state_type,
             output: output_type,
@@ -592,7 +588,7 @@ impl Parse for CoreTypes<Async> {
         }
 
         Ok(CoreTypes {
-            _phantom_data: PhantomData,
+            phantom_data: PhantomData,
             input: input_type,
             state: None,
             output: output_type,
@@ -616,9 +612,7 @@ impl<T> CoreTypes<T> {
             Some(quote! {
                 use thiserror::Error;
             })
-        } else {
-            None
-        };
+        } else { None };
 
         quote! {
             #imports

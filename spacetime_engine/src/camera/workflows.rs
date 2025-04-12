@@ -14,14 +14,10 @@ define_workflow_mod! {
             user_items: {},
             stages: [
                 ValidateAndSpawn: Ecs {
-                    core_types: [
-                        struct MainAccess {
-                            commands: Commands
-                        }
-                    ],
+                    core_types: [],
                     core_functions: [
-                        fn RunEcs |main_access| {
-                            main_access.commands.spawn((
+                        fn RunEcs |world| {
+                            world.spawn((
                                 Camera2dBundle::default(),
                                 MainCamera,
                                 FollowerComponent::new(
