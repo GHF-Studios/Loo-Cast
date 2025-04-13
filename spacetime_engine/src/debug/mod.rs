@@ -1,7 +1,11 @@
 pub mod components;
 pub mod functions;
 pub mod systems;
+
 pub mod workflows;
+
+pub mod workflows_MACROINPUT;
+pub mod workflows_MACROOUTPUT;
 
 use bevy::prelude::*;
 use systems::{

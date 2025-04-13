@@ -2,7 +2,11 @@ pub mod bundles;
 pub mod components;
 pub mod resources;
 pub mod systems;
+
 pub mod workflows;
+
+pub mod workflows_MACROINPUT;
+pub mod workflows_MACROOUTPUT;
 
 use bevy::prelude::*;
 use resources::PlayerWorkflowQueue;

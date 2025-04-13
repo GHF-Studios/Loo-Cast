@@ -20,7 +20,7 @@ pub mod core_functions {
     use super::super::super::user_items::*;
     use super::core_types::*;
 
-    pub fn run_ecs_inner(mut main_access: MainAccess) {
+    pub fn run_ecs_inner(main_access: MainAccess) {
         main_access.commands.spawn((
             Camera2dBundle::default(),
             MainCamera,

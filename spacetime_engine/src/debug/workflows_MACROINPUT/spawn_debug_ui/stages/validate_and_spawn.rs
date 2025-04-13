@@ -5,7 +5,7 @@ pub mod core_types {
 
     #[derive(SystemParam)]
     pub struct MainAccess<'w, 's> {
-        pub commands: Commands<'w, 's>,
+        commands: Commands<'w, 's>,
     }
 }
 
@@ -15,13 +15,10 @@ pub mod core_functions {
 
     pub fn run_ecs_inner(main_access: MainAccess) {
         main_access.commands.spawn((
-            Camera2dBundle::default(),
-            MainCamera,
-            FollowerComponent::new(
-                "main_camera".to_string(),
-                Vec2::ZERO,
-                CONFIG.get::<f32>("camera/follow_smoothness"),
-            ),
+            PerfUiRoot::default(),
+            PerfUiFramerateEntries::default(),
+            PerfUiSystemEntries::default(),
+            PerfUiEntryEntityCount::default(),
         ));
     }
 }

@@ -52,6 +52,13 @@ macro_rules! workflow_stage_core_functions_util {
     };
 }
 
+// TODO: Implement
+#[macro_export]
+macro_rules! workflow_stage_core_function_util {
+    () => {
+    };
+}
+
 #[macro_export]
 macro_rules! workflow_imports_util {
     () => {

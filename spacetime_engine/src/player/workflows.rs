@@ -20,7 +20,9 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn RunEcs |main_access| {
-                            main_access.commands.spawn((
+                            let mut commands = main_access.commands;
+
+                            commands.spawn((
                                 PlayerBundle::default(),
                                 FollowerTargetComponent {
                                     id: "main_camera".to_string(),

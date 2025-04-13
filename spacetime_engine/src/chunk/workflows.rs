@@ -5,8 +5,7 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnChunk {
             user_imports: {
-                use bevy::prelude::{Entity, Handle, Image, Query, ResMut, Transform, SpriteBundle};
-                use bevy::ecs::system::SystemState;
+                use bevy::prelude::*;
 
                 use crate::chunk::{components::ChunkComponent, resources::ChunkManager, functions::chunk_pos_to_world};
                 use crate::config::statics::CONFIG;
@@ -75,8 +74,7 @@ define_workflow_mod_OLD! {
 
         DespawnChunk {
             user_imports: {
-                use bevy::prelude::{Entity, Query, ResMut, DespawnRecursiveExt};
-                use bevy::ecs::system::SystemState;
+                use bevy::prelude::*;
 
                 use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
             },
@@ -122,8 +120,7 @@ define_workflow_mod_OLD! {
 
         TransferChunkOwnership {
             user_imports: {
-                use bevy::prelude::{Entity, Query, ResMut};
-                use bevy::ecs::system::SystemState;
+                use bevy::prelude::*;
 
                 use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
             },
