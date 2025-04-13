@@ -220,7 +220,10 @@ pub struct StageEcsWhile {
             + Sync,
     >,
     pub run_ecs_while: Box<
-        dyn FnMut(Option<Box<dyn Any + Send + Sync>>, Box<dyn Any + Send + Sync>) -> Box<dyn Any + Send + Sync>
+        dyn FnMut(
+                Option<Box<dyn Any + Send + Sync>>,
+                Box<dyn Any + Send + Sync>,
+            ) -> Box<dyn Any + Send + Sync>
             + Send
             + Sync,
     >,
@@ -260,13 +263,16 @@ pub struct StageRenderWhile {
     pub setup_render_while: Box<
         dyn FnMut(
                 Option<Box<dyn Any + Send + Sync>>,
-                Box<dyn Any + Send + Sync>, 
+                Box<dyn Any + Send + Sync>,
             ) -> Option<Box<dyn Any + Send + Sync>>
             + Send
             + Sync,
     >,
     pub run_render_while: Box<
-        dyn FnMut(Option<Box<dyn Any + Send + Sync>>, Box<dyn Any + Send + Sync>) -> Box<dyn Any + Send + Sync>
+        dyn FnMut(
+                Option<Box<dyn Any + Send + Sync>>,
+                Box<dyn Any + Send + Sync>,
+            ) -> Box<dyn Any + Send + Sync>
             + Send
             + Sync,
     >,

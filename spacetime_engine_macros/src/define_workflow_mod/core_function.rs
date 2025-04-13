@@ -405,7 +405,8 @@ impl CoreFunction {
                 (false, false, false) => {
                     quote! {
                         pub fn run_ecs(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            run_ecs_inner(main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            run_ecs_inner(*main_access);
                             None
                         }
 
@@ -415,7 +416,8 @@ impl CoreFunction {
                 (false, false, true) => {
                     quote! {
                         pub fn run_ecs(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let result = run_ecs_inner(main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let result = run_ecs_inner(*main_access);
                             Some(Box::new(result))
                         }
 
@@ -425,7 +427,8 @@ impl CoreFunction {
                 (false, true, false) => {
                     quote! {
                         pub fn run_ecs(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let output = run_ecs_inner(main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let output = run_ecs_inner(*main_access);
                             Some(Box::new(output))
                         }
 
@@ -435,7 +438,8 @@ impl CoreFunction {
                 (false, true, true) => {
                     quote! {
                         pub fn run_ecs(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let result = run_ecs_inner(main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let result = run_ecs_inner(*main_access);
                             Some(Box::new(result))
                         }
 
@@ -446,7 +450,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            run_ecs_inner(*input, main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            run_ecs_inner(*input, *main_access);
                             None
                         }
 
@@ -457,7 +462,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let result = run_ecs_inner(*input, main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let result = run_ecs_inner(*input, *main_access);
                             Some(Box::new(result))
                         }
 
@@ -468,7 +474,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let output = run_ecs_inner(*input, main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let output = run_ecs_inner(*input, *main_access);
                             Some(Box::new(output))
                         }
 
@@ -479,7 +486,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let result = run_ecs_inner(*input, main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let result = run_ecs_inner(*input, *main_access);
                             Some(Box::new(result))
                         }
 
@@ -491,7 +499,8 @@ impl CoreFunction {
                 (false, false, false) => {
                     quote! {
                         pub fn run_render(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            run_render_inner(render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            run_render_inner(*render_access);
                             None
                         }
 
@@ -501,7 +510,8 @@ impl CoreFunction {
                 (false, false, true) => {
                     quote! {
                         pub fn run_render(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let result = run_render_inner(render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let result = run_render_inner(*render_access);
                             Some(Box::new(result))
                         }
 
@@ -511,7 +521,8 @@ impl CoreFunction {
                 (false, true, false) => {
                     quote! {
                         pub fn run_render(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let output = run_render_inner(render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let output = run_render_inner(*render_access);
                             Some(Box::new(output))
                         }
 
@@ -521,7 +532,8 @@ impl CoreFunction {
                 (false, true, true) => {
                     quote! {
                         pub fn run_render(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let result = run_render_inner(render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let result = run_render_inner(*render_access);
                             Some(Box::new(result))
                         }
 
@@ -532,7 +544,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            run_render_inner(*input, render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            run_render_inner(*input, *render_access);
                             None
                         }
 
@@ -543,7 +556,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let result = run_render_inner(*input, render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let result = run_render_inner(*input, *render_access);
                             Some(Box::new(result))
                         }
 
@@ -554,7 +568,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let output = run_render_inner(*input, render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let output = run_render_inner(*input, *render_access);
                             Some(Box::new(output))
                         }
 
@@ -565,7 +580,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let result = run_render_inner(*input, render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let result = run_render_inner(*input, *render_access);
                             Some(Box::new(result))
                         }
 
@@ -663,7 +679,8 @@ impl CoreFunction {
                 (false, false, false) => {
                     quote! {
                         pub fn setup_ecs_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            setup_ecs_while_inner(main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            setup_ecs_while_inner(*main_access);
                             None
                         }
 
@@ -673,7 +690,8 @@ impl CoreFunction {
                 (false, false, true) => {
                     quote! {
                         pub fn setup_ecs_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let result = setup_ecs_while_inner(main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let result = setup_ecs_while_inner(*main_access);
                             Some(Box::new(result))
                         }
 
@@ -683,7 +701,8 @@ impl CoreFunction {
                 (false, true, false) => {
                     quote! {
                         pub fn setup_ecs_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let state = setup_ecs_while_inner(main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let state = setup_ecs_while_inner(*main_access);
                             Some(Box::new(state))
                         }
 
@@ -693,7 +712,8 @@ impl CoreFunction {
                 (false, true, true) => {
                     quote! {
                         pub fn setup_ecs_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let result = setup_ecs_while_inner(main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let result = setup_ecs_while_inner(*main_access);
                             Some(Box::new(result))
                         }
 
@@ -704,7 +724,8 @@ impl CoreFunction {
                     quote! {
                         pub fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            setup_ecs_while_inner(*input, main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            setup_ecs_while_inner(*input, *main_access);
                             None
                         }
 
@@ -715,7 +736,8 @@ impl CoreFunction {
                     quote! {
                         pub fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let result = setup_ecs_while_inner(*input, main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let result = setup_ecs_while_inner(*input, *main_access);
                             Some(Box::new(result))
                         }
 
@@ -726,7 +748,8 @@ impl CoreFunction {
                     quote! {
                         pub fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let state = setup_ecs_while_inner(*input, main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let state = setup_ecs_while_inner(*input, *main_access);
                             Some(Box::new(state))
                         }
 
@@ -737,7 +760,8 @@ impl CoreFunction {
                     quote! {
                         pub fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let result = setup_ecs_while_inner(*input, main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let result = setup_ecs_while_inner(*input, *main_access);
                             Some(Box::new(result))
                         }
 
@@ -749,7 +773,8 @@ impl CoreFunction {
                 (false, false, false) => {
                     quote! {
                         pub fn setup_render_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            setup_render_while_inner(render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            setup_render_while_inner(*render_access);
                             None
                         }
 
@@ -759,7 +784,8 @@ impl CoreFunction {
                 (false, false, true) => {
                     quote! {
                         pub fn setup_render_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let result = setup_render_while_inner(render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let result = setup_render_while_inner(*render_access);
                             Some(Box::new(result))
                         }
 
@@ -769,7 +795,8 @@ impl CoreFunction {
                 (false, true, false) => {
                     quote! {
                         pub fn setup_render_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let state = setup_render_while_inner(render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let state = setup_render_while_inner(*render_access);
                             Some(Box::new(state))
                         }
 
@@ -779,7 +806,8 @@ impl CoreFunction {
                 (false, true, true) => {
                     quote! {
                         pub fn setup_render_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let result = setup_render_while_inner(render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let result = setup_render_while_inner(*render_access);
                             Some(Box::new(result))
                         }
 
@@ -790,7 +818,8 @@ impl CoreFunction {
                     quote! {
                         pub fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            setup_render_while_inner(*input, render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            setup_render_while_inner(*input, *render_access);
                             None
                         }
 
@@ -801,7 +830,8 @@ impl CoreFunction {
                     quote! {
                         pub fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let result = setup_render_while_inner(*input, render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let result = setup_render_while_inner(*input, *render_access);
                             Some(Box::new(result))
                         }
 
@@ -812,7 +842,8 @@ impl CoreFunction {
                     quote! {
                         pub fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let state = setup_render_while_inner(*input, render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let state = setup_render_while_inner(*input, *render_access);
                             Some(Box::new(state))
                         }
 
@@ -821,10 +852,11 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        // TODO: MINOR: Setup functions' responses do not need to be optional at all
+                        // TODO: MINOR: Setup functions' responses (and data in general) do not need to be optional at all
                         pub fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let result = setup_render_while_inner(*input, render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let result = setup_render_while_inner(*input, *render_access);
                             Some(Box::new(result))
                         }
 
@@ -836,7 +868,8 @@ impl CoreFunction {
                 (false, false, false) => {
                     quote! {
                         pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let outcome = run_ecs_while_inner(main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let outcome = run_ecs_while_inner(*main_access);
                             Box::new(outcome)
                         }
 
@@ -846,7 +879,8 @@ impl CoreFunction {
                 (false, false, true) => {
                     quote! {
                         pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let outcome_result = run_ecs_while_inner(main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let outcome_result = run_ecs_while_inner(*main_access);
                             Box::new(outcome_result)
                         }
 
@@ -856,7 +890,8 @@ impl CoreFunction {
                 (false, true, false) => {
                     quote! {
                         pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let outcome = run_ecs_while_inner(main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let outcome = run_ecs_while_inner(*main_access);
                             Box::new(outcome)
                         }
 
@@ -866,7 +901,8 @@ impl CoreFunction {
                 (false, true, true) => {
                     quote! {
                         pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let outcome_result = run_ecs_while_inner(main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let outcome_result = run_ecs_while_inner(*main_access);
                             Box::new(outcome_result)
                         }
 
@@ -877,7 +913,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let outcome = run_ecs_while_inner(*state, main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let outcome = run_ecs_while_inner(*state, *main_access);
                             Box::new(outcome)
                         }
 
@@ -888,7 +925,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let outcome_result = run_ecs_while_inner(*state, main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let outcome_result = run_ecs_while_inner(*state, *main_access);
                             Box::new(outcome_result)
                         }
 
@@ -899,7 +937,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let outcome = run_ecs_while_inner(*state, main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let outcome = run_ecs_while_inner(*state, *main_access);
                             Box::new(outcome)
                         }
 
@@ -910,7 +949,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let outcome_result = run_ecs_while_inner(*state, main_access);
+                            let main_access = main_access.downcast::<MainAccess>().unwrap();
+                            let outcome_result = run_ecs_while_inner(*state, *main_access);
                             Box::new(outcome_result)
                         }
 
@@ -922,7 +962,8 @@ impl CoreFunction {
                 (false, false, false) => {
                     quote! {
                         pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let outcome = run_render_while_inner(render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let outcome = run_render_while_inner(*render_access);
                             Box::new(outcome)
                         }
 
@@ -932,7 +973,8 @@ impl CoreFunction {
                 (false, false, true) => {
                     quote! {
                         pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let outcome_result = run_render_while_inner(render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let outcome_result = run_render_while_inner(*render_access);
                             Box::new(outcome_result)
                         }
 
@@ -942,7 +984,8 @@ impl CoreFunction {
                 (false, true, false) => {
                     quote! {
                         pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let outcome = run_render_while_inner(render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let outcome = run_render_while_inner(*render_access);
                             Box::new(outcome)
                         }
 
@@ -952,7 +995,8 @@ impl CoreFunction {
                 (false, true, true) => {
                     quote! {
                         pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let outcome_result = run_render_while_inner(render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let outcome_result = run_render_while_inner(*render_access);
                             Box::new(outcome_result)
                         }
 
@@ -963,7 +1007,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let outcome = run_render_while_inner(*state, render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let outcome = run_render_while_inner(*state, *render_access);
                             Box::new(outcome)
                         }
 
@@ -974,7 +1019,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let outcome_result = run_render_while_inner(*state, render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let outcome_result = run_render_while_inner(*state, *render_access);
                             Box::new(outcome_result)
                         }
 
@@ -985,7 +1031,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let outcome = run_render_while_inner(*state, render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let outcome = run_render_while_inner(*state, *render_access);
                             Box::new(outcome)
                         }
 
@@ -996,7 +1043,8 @@ impl CoreFunction {
                     quote! {
                         pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let outcome_result = run_render_while_inner(*state, render_access);
+                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
+                            let outcome_result = run_render_while_inner(*state, *render_access);
                             Box::new(outcome_result)
                         }
 

@@ -23,6 +23,27 @@ use events::*;
 use resources::*;
 use systems::*;
 
+#[macro_export]
+macro_rules! workflow_stage_core_types_util {
+    () => {
+        use bevy::ecs::system::SystemParam;
+
+        use super::core_functions::*;
+        use super::super::super::user_imports::*;
+        use super::super::super::user_items::*;
+    };
+}
+
+#[macro_export]
+macro_rules! workflow_stage_core_functions_util {
+    () => {
+        use bevy::ecs::system::SystemParam;
+
+        use super::core_types::*;
+        use super::super::super::user_imports::*;
+        use super::super::super::user_items::*;
+    };
+}
 pub(crate) struct WorkflowPlugin;
 impl Plugin for WorkflowPlugin {
     fn build(&self, app: &mut App) {

@@ -6,6 +6,8 @@ use syn::{
     parse::{Parse, ParseStream},
     token::Pub,
     Fields, ItemEnum, ItemStruct, Result, Visibility,
+    Lifetime, LifetimeParam,
+    spanned::Spanned,
 };
 
 fn align_core_struct(item: &mut ItemStruct) {

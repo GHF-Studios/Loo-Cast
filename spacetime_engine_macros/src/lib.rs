@@ -6,6 +6,7 @@ use define_workflow_mod::WorkflowModule;
 
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
+use quote::quote;
 
 #[proc_macro]
 pub fn define_workflow_mod(input: TokenStream) -> TokenStream {
@@ -17,4 +18,9 @@ pub fn define_workflow_mod(input: TokenStream) -> TokenStream {
 pub fn define_composite_workflow(input: TokenStream) -> TokenStream {
     let composite_workflow = parse_macro_input!(input as CompositeWorkflow);
     composite_workflow.generate().into()
+}
+
+#[proc_macro]
+pub fn define_worfklow_stages(input: TokenStream) -> TokenStream {
+    quote! {}.into()
 }

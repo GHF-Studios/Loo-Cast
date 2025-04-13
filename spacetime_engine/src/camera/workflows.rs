@@ -15,8 +15,8 @@ define_workflow_mod! {
             stages: [
                 ValidateAndSpawn: Ecs {
                     core_types: [
-                        struct MainAccess {
-                            commands: Commands
+                        struct MainAccess<'w, 's> {
+                            commands: Commands<'w, 's>
                         }
                     ],
                     core_functions: [
