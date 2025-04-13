@@ -12,7 +12,6 @@ pub mod imports {
         CachedPipelineState, Pipeline, ComputePipelineDescriptor
     };
     use bevy::render::render_asset::RenderAssets;
-    use bevy::render::texture::GpuImage;
     use bevy::render::renderer::RenderDevice;
 
     use crate::gpu::resources::ShaderRegistry;

@@ -15,7 +15,6 @@ define_workflow_mod_OLD! {
                     CachedPipelineState, Pipeline, ComputePipelineDescriptor
                 };
                 use bevy::render::render_asset::RenderAssets;
-                use bevy::render::texture::GpuImage;
                 use bevy::render::renderer::RenderDevice;
 
                 use crate::gpu::resources::ShaderRegistry;
@@ -74,7 +73,6 @@ define_workflow_mod_OLD! {
                         struct RenderAccess<'w> {
                             render_device: Res<'w, RenderDevice>,
                             pipeline_cache: Res<'w, PipelineCache>,
-                            gpu_images: Res<'w, RenderAssets<GpuImage>>,
                         }
                         struct Input {
                             shader_name: &'static str,
@@ -110,7 +108,6 @@ define_workflow_mod_OLD! {
 
                             let render_device = render_access.render_device;
                             let pipeline_cache = render_access.pipeline_cache;
-                            let gpu_images = render_access.gpu_images;
 
                             let bind_group_layout = render_device.create_bind_group_layout(
                                 None,

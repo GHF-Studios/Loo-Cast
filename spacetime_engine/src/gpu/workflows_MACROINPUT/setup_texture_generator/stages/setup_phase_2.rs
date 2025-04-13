@@ -7,7 +7,6 @@ pub mod core_types {
     pub struct RenderAccess<'w> {
         render_device: Res<'w, RenderDevice>,
         pipeline_cache: Res<'w, PipelineCache>,
-        gpu_images: Res<'w, RenderAssets<GpuImage>>,
     }
     pub struct Input {
         shader_name: &'static str,
@@ -48,7 +47,6 @@ pub mod core_functions {
 
         let render_device = render_access.render_device;
         let pipeline_cache = render_access.pipeline_cache;
-        let gpu_images = render_access.gpu_images;
 
         let bind_group_layout = render_device.create_bind_group_layout(
             None,

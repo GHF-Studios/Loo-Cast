@@ -21,7 +21,9 @@ pub mod core_functions {
     use super::core_types::*;
 
     pub fn run_ecs_inner(main_access: MainAccess) {
-        main_access.commands.spawn((
+        let mut commands = main_access.commands;
+
+        commands.spawn((
             Camera2dBundle::default(),
             MainCamera,
             FollowerComponent::new(
