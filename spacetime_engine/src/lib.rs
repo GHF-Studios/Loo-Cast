@@ -73,6 +73,12 @@ impl PluginGroup for SpacetimeEnginePlugins {
             //.add(EntityPlugin)
             //.add(MathPlugin)
             .add(PlayerPlugin)
+
+            .add(crate::camera::workflows::camera::CameraWorkflowPlugin)
+            .add(crate::chunk::workflows::chunk::ChunkWorkflowPlugin)
+            .add(crate::debug::workflows::debug::DebugWorkflowPlugin)
+            .add(crate::gpu::workflows::gpu::GpuWorkflowPlugin)
+            .add(crate::player::workflows::player::PlayerWorkflowPlugin)
         //.add(SpriteBundlePlugin)
     }
 }
@@ -80,26 +86,8 @@ impl PluginGroup for SpacetimeEnginePlugins {
 pub(crate) struct SpacetimeEngineCorePlugin;
 impl Plugin for SpacetimeEngineCorePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreStartup, pre_startup_system)
-            .add_systems(Startup, startup_system);
+        app.add_systems(Startup, startup_system);
     }
-}
-
-fn pre_startup_system(mut workflow_type_module_registry: ResMut<WorkflowTypeModuleRegistry>) {
-    // --- Startup workflow framework ---
-    crate::camera::workflows::camera::register_workflow_type_module(
-        &mut workflow_type_module_registry,
-    );
-    crate::chunk::workflows::chunk::register_workflow_type_module(
-        &mut workflow_type_module_registry,
-    );
-    crate::debug::workflows::debug::register_workflow_type_module(
-        &mut workflow_type_module_registry,
-    );
-    crate::gpu::workflows::gpu::register_workflow_type_module(&mut workflow_type_module_registry);
-    crate::player::workflows::player::register_workflow_type_module(
-        &mut workflow_type_module_registry,
-    );
 }
 
 fn startup_system() {

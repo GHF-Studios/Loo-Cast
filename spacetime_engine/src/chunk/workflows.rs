@@ -1,6 +1,6 @@
-use spacetime_engine_macros::define_workflow_mod;
+use spacetime_engine_macros::define_workflow_mod_OLD;
 
-define_workflow_mod! {
+define_workflow_mod_OLD! {
     name: "Chunk",
     workflows: [
         SpawnChunk {
@@ -15,6 +15,11 @@ define_workflow_mod! {
             stages: [
                 ValidateAndSpawn: Ecs {
                     core_types: [
+                        struct MainAccess<'w, 's> {
+                            commands: Commands<'w, 's>,
+                            chunk_query: Query<'w, 's, &'static ChunkComponent>,
+                            chunk_manager: ResMut<'w, ChunkManager>,
+                        }
                         struct Input {
                             chunk_coord: (i32, i32),
                             chunk_owner: Option<Entity>,
@@ -25,13 +30,14 @@ define_workflow_mod! {
                         }
                     ],
                     core_functions: [
-                        fn RunEcs |input, world| -> Result<(), Error> {
+                        fn RunEcs |input, main_access| -> Result<(), Error> {
                             let chunk_coord = input.chunk_coord;
                             let chunk_owner = input.chunk_owner;
                             let metric_texture = input.metric_texture.clone();
 
-                            let mut system_state = SystemState::<Query::<&ChunkComponent>>::new(world);
-                            let chunk_query = system_state.get(world);
+                            let mut commands = main_access.commands;
+                            let chunk_query = main_access.chunk_query;
+                            let mut chunk_manager = main_access.chunk_manager;
 
                             if chunk_query.iter().any(|chunk| chunk.coord == chunk_coord) {
                                 return Err(Error::ChunkAlreadyLoaded { chunk_coord });
@@ -43,7 +49,7 @@ define_workflow_mod! {
                                 ..Default::default()
                             };
 
-                            world.spawn((
+                            commands.spawn((
                                 SpriteBundle {
                                     texture: metric_texture,
                                     transform: chunk_transform,
@@ -55,7 +61,6 @@ define_workflow_mod! {
                                 },
                             ));
 
-                            let mut chunk_manager = SystemState::<ResMut::<ChunkManager>>::new(world).get_mut(world);
                             chunk_manager.loaded_chunks.insert(chunk_coord);
                             if let Some(owner) = chunk_owner {
                                 chunk_manager.owned_chunks.insert(chunk_coord, owner);
@@ -79,6 +84,11 @@ define_workflow_mod! {
             stages: [
                 FindAndDespawn: Ecs {
                     core_types: [
+                        struct MainAccess<'w, 's> {
+                            commands: Commands<'w, 's>,
+                            chunk_query: Query<'w, 's, (Entity, &'static ChunkComponent)>,
+                            chunk_manager: ResMut<'w, ChunkManager>,
+                        }
                         struct Input {
                             chunk_coord: (i32, i32)
                         }
@@ -87,20 +97,18 @@ define_workflow_mod! {
                         }
                     ],
                     core_functions: [
-                        fn RunEcs |input, world| -> Result<(), Error> {
+                        fn RunEcs |input, main_access| -> Result<(), Error> {
                             let chunk_coord = input.chunk_coord;
-
-                            let mut system_state: SystemState<(
-                                Query<(Entity, &ChunkComponent)>,
-                                ResMut<ChunkManager>,
-                            )> = SystemState::new(world);
-                            let (chunk_query, mut chunk_manager) = system_state.get_mut(world);
+                            
+                            let mut commands = main_access.commands;
+                            let chunk_query = main_access.chunk_query;
+                            let mut chunk_manager = main_access.chunk_manager;
 
                             if let Some((entity, _)) = chunk_query.iter().find(|(_, chunk)| chunk.coord == chunk_coord) {
                                 chunk_manager.loaded_chunks.remove(&chunk_coord);
                                 chunk_manager.owned_chunks.remove(&chunk_coord);
 
-                                world.entity_mut(entity).despawn_recursive();
+                                commands.entity(entity).despawn_recursive();
 
                                 Ok(())
                             } else {
@@ -123,6 +131,10 @@ define_workflow_mod! {
             stages: [
                 FindAndTransferOwnership: Ecs {
                     core_types: [
+                        struct MainAccess<'w, 's> {
+                            chunk_query: Query<'w, 's, &'static mut ChunkComponent>,
+                            chunk_manager: ResMut<'w, ChunkManager>,
+                        }
                         struct Input {
                             chunk_coord: (i32, i32),
                             new_owner: Entity
@@ -132,15 +144,12 @@ define_workflow_mod! {
                         }
                     ],
                     core_functions: [
-                        fn RunEcs |input, world| -> Result<(), Error> {
+                        fn RunEcs |input, main_access| -> Result<(), Error> {
                             let chunk_coord = input.chunk_coord;
                             let new_owner = input.new_owner;
 
-                            let mut system_state: SystemState<(
-                                Query<&mut ChunkComponent>,
-                                ResMut<ChunkManager>,
-                            )> = SystemState::new(world);
-                            let (mut chunk_query, mut chunk_manager) = system_state.get_mut(world);
+                            let mut chunk_query = main_access.chunk_query;
+                            let mut chunk_manager = main_access.chunk_manager;
 
                             if let Some(mut chunk) = chunk_query.iter_mut().find(|chunk| chunk.coord == chunk_coord) {
                                 if chunk.owner.is_some() {

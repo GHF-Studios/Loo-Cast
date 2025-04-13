@@ -24,13 +24,20 @@ use resources::*;
 use systems::*;
 
 #[macro_export]
+macro_rules! workflow_stage_util {
+    ($name:literal) => {
+        pub const NAME: &str = stringify!($name);
+    };
+}
+
+#[macro_export]
 macro_rules! workflow_stage_core_types_util {
     () => {
         use bevy::ecs::system::SystemParam;
 
-        use super::core_functions::*;
-        use super::super::super::user_imports::*;
+        use super::super::super::imports::*;
         use super::super::super::user_items::*;
+        use super::core_functions::*;
     };
 }
 
@@ -39,11 +46,30 @@ macro_rules! workflow_stage_core_functions_util {
     () => {
         use bevy::ecs::system::SystemParam;
 
-        use super::core_types::*;
-        use super::super::super::user_imports::*;
+        use super::super::super::imports::*;
         use super::super::super::user_items::*;
+        use super::core_types::*;
     };
 }
+
+#[macro_export]
+macro_rules! workflow_imports_util {
+    () => {
+        pub use super::user_items:: * ;
+        pub use crate::workflow::types::{
+            Outcome,Outcome::Wait,Outcome::Done
+        };
+        pub use bevy::prelude::World;
+    };
+}
+
+#[macro_export]
+macro_rules! workflow_user_items_util {
+    () => {
+        use super::imports::*;
+    };
+}
+
 pub(crate) struct WorkflowPlugin;
 impl Plugin for WorkflowPlugin {
     fn build(&self, app: &mut App) {

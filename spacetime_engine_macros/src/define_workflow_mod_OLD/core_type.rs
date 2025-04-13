@@ -4,10 +4,9 @@ use quote::{quote, ToTokens};
 use std::marker::PhantomData;
 use syn::{
     parse::{Parse, ParseStream},
-    token::Pub,
-    Fields, ItemEnum, ItemStruct, Result, Visibility,
-    Lifetime, LifetimeParam,
     spanned::Spanned,
+    token::Pub,
+    Fields, ItemEnum, ItemStruct, Lifetime, LifetimeParam, Result, Visibility,
 };
 
 fn align_core_struct(item: &mut ItemStruct) {

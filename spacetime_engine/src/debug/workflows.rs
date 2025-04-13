@@ -1,6 +1,6 @@
-use spacetime_engine_macros::define_workflow_mod;
+use spacetime_engine_macros::define_workflow_mod_OLD;
 
-define_workflow_mod! {
+define_workflow_mod_OLD! {
     name: "Debug",
     workflows: [
         SpawnDebugUI {
@@ -13,10 +13,14 @@ define_workflow_mod! {
             user_items: {},
             stages: [
                 ValidateAndSpawn: Ecs {
-                    core_types: [],
+                    core_types: [
+                        struct MainAccess<'w, 's> {
+                            commands: Commands<'w, 's>
+                        }
+                    ],
                     core_functions: [
-                        fn RunEcs |world| {
-                            world.spawn((
+                        fn RunEcs |main_access| {
+                            main_access.commands.spawn((
                                 PerfUiRoot::default(),
                                 PerfUiFramerateEntries::default(),
                                 PerfUiSystemEntries::default(),
@@ -38,13 +42,13 @@ define_workflow_mod! {
             },
             user_items: {
                 pub fn spawn_test_object(
-                    world: &mut World,
+                    commands: &mut Commands,
                     position: Vec2,
                     rotation: f32,
                     scale: Vec2,
                     movement: TestObjectMovement,
                 ) {
-                    world.spawn((
+                    commands.spawn((
                         ChunkActorComponent,
                         ChunkLoaderComponent::default(),
                         TestObjectComponent { movement },
@@ -66,11 +70,15 @@ define_workflow_mod! {
             },
             stages: [
                 ValidateAndSpawn: Ecs {
-                    core_types: [],
+                    core_types: [
+                        struct MainAccess<'w, 's> {
+                            commands: Commands<'w, 's>
+                        }
+                    ],
                     core_functions: [
-                        fn RunEcs |world| {
+                        fn RunEcs |main_access| {
                             spawn_test_object(
-                                world,
+                                &mut main_access.commands,
                                 Vec2::new(350.0, 350.0),
                                 0.0,
                                 Vec2::ONE,
@@ -81,7 +89,7 @@ define_workflow_mod! {
                             );
 
                             spawn_test_object(
-                                world,
+                                &mut main_access.commands,
                                 Vec2::new(-300.0, -400.0),
                                 0.0,
                                 Vec2::ONE,
@@ -92,7 +100,7 @@ define_workflow_mod! {
                             );
 
                             spawn_test_object(
-                                world,
+                                &mut main_access.commands,
                                 Vec2::new(-350.0, 400.0),
                                 0.0,
                                 Vec2::ONE,

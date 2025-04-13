@@ -1,6 +1,6 @@
-use spacetime_engine_macros::define_workflow_mod;
+use spacetime_engine_macros::define_workflow_mod_OLD;
 
-define_workflow_mod! {
+define_workflow_mod_OLD! {
     name: "Camera",
     workflows: [
         SpawnMainCamera {
