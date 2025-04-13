@@ -20,6 +20,8 @@ fn register_workflow_type_module(
 ) {
     workflow_type_module_registry.register(crate::workflow::types::WorkflowTypeModule {
         name: stringify!("Camera"),
-        workflow_types: vec![spawn_main_camera::Type::create_workflow()],
+        workflow_types: vec![
+            spawn_main_camera::Type::create_workflow()
+        ],
     });
 }
