@@ -2,6 +2,8 @@ use spacetime_engine_macros::define_workflow_mod;
 
 pub mod spawn_main_camera;
 
+use bevy::prelude:: * ;
+
 pub const NAME: &str = stringify!("Camera");
 
 pub struct CameraWorkflowPlugin;
