@@ -2,7 +2,7 @@ use spacetime_engine_macros::define_workflow_mod;
 
 pub mod spawn_main_camera;
 
-use bevy::prelude:: * ;
+use bevy::prelude::*;
 
 pub const NAME: &str = stringify!("Camera");
 
@@ -20,8 +20,6 @@ fn register_workflow_type_module(
 ) {
     workflow_type_module_registry.register(crate::workflow::types::WorkflowTypeModule {
         name: stringify!("Camera"),
-        workflow_types: vec![
-            spawn_main_camera::Type::create_workflow()
-        ],
+        workflow_types: vec![spawn_main_camera::Type::create_workflow()],
     });
 }

@@ -1,7 +1,7 @@
 use spacetime_engine_macros::define_workflow_mod;
 
-pub mod spawn_chunk;
 pub mod despawn_chunk;
+pub mod spawn_chunk;
 pub mod transfer_chunk_ownership;
 
 use bevy::prelude::*;
@@ -25,7 +25,7 @@ fn register_workflow_type_module(
         workflow_types: vec![
             spawn_chunk::TypeIE::create_workflow(),
             despawn_chunk::TypeIE::create_workflow(),
-            transfer_chunk_ownership::TypeIE::create_workflow()
+            transfer_chunk_ownership::TypeIE::create_workflow(),
         ],
     });
 }

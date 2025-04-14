@@ -73,7 +73,6 @@ impl PluginGroup for SpacetimeEnginePlugins {
             //.add(EntityPlugin)
             //.add(MathPlugin)
             .add(PlayerPlugin)
-
             .add(crate::camera::workflows::camera::CameraWorkflowPlugin)
             .add(crate::chunk::workflows::chunk::ChunkWorkflowPlugin)
             .add(crate::debug::workflows::debug::DebugWorkflowPlugin)

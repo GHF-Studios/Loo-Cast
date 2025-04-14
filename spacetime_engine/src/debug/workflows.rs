@@ -21,7 +21,7 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn RunEcs |main_access| {
                             let mut commands = main_access.commands;
-                            
+
                             commands.spawn((
                                 PerfUiRoot::default(),
                                 PerfUiFramerateEntries::default(),
@@ -33,7 +33,7 @@ define_workflow_mod_OLD! {
                 }
             ]
         }
-        
+
         SpawnDebugObjects {
             user_imports: {
                 use bevy::prelude::*;
@@ -81,7 +81,7 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn RunEcs |main_access| {
                             let mut commands = main_access.commands;
-                            
+
                             spawn_test_object(
                                 &mut commands,
                                 Vec2::new(350.0, 350.0),

@@ -1,7 +1,7 @@
 use spacetime_engine_macros::define_workflow_mod;
 
-pub mod spawn_debug_ui;
 pub mod spawn_debug_objects;
+pub mod spawn_debug_ui;
 
 use bevy::prelude::*;
 
@@ -23,7 +23,7 @@ fn register_workflow_type_module(
         name: stringify!("Debug"),
         workflow_types: vec![
             spawn_debug_ui::Type::create_workflow(),
-            spawn_debug_objects::Type::create_workflow()
+            spawn_debug_objects::Type::create_workflow(),
         ],
     });
 }

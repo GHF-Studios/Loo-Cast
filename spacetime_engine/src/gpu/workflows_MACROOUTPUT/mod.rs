@@ -1,7 +1,7 @@
 use spacetime_engine_macros::define_workflow_mod;
 
-pub mod setup_texture_generator;
 pub mod generate_texture;
+pub mod setup_texture_generator;
 
 use bevy::prelude::*;
 
