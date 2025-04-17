@@ -97,7 +97,7 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn RunEcs |input, main_access| -> Result<(), Error> {
                             let chunk_coord = input.chunk_coord;
-                            
+
                             let mut commands = main_access.commands;
                             let chunk_query = main_access.chunk_query;
                             let mut chunk_manager = main_access.chunk_manager;

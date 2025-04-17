@@ -69,15 +69,18 @@ impl WorkflowModule {
             module_name.as_str().to_snake_case().as_str(),
             module_ident.span(),
         );
-        let plugin_ident = Ident::new(
-            format!("{}WorkflowPlugin", module_name).as_str(),
-            module_ident.span(),
-        );
-        let (workflow_modules, workflow_data): (Vec<_>, Vec<_>) = self
+        let plugin_name = format!("{}WorkflowsPlugin", module_name);
+        let plugin_ident = Ident::new(plugin_name.as_str(), module_ident.span());
+
+        let (workflow_modules, workflow_data, workflow_plugin_addition_literals): (
+            Vec<_>,
+            Vec<_>,
+            Vec<_>,
+        ) = self
             .workflows
             .into_iter()
             .map(|w| w.generate(module_ident.clone()))
-            .unzip();
+            .unzip3();
 
         let workflow_literals = workflow_data
             .into_iter()
@@ -93,23 +96,18 @@ impl WorkflowModule {
             })
             .collect::<Vec<_>>();
 
-        // TODO: MAJOR: HIGHLY PROBLEMATIC HERE
-        let workflow_stage_systems_registration_literals = vec![quote! {}, quote! {}, quote! {}];
-
-        quote! {
+        let workflow_module_declaration = quote! {
             pub mod #module_ident {
                 use bevy::prelude::*;
 
                 pub const NAME: &str = stringify!(#module_name);
 
                 pub struct #plugin_ident;
-
                 impl Plugin for #plugin_ident {
                     fn build(&self, app: &mut App) {
                         app
                             .add_systems(PreStartup, register_workflow_type_module)
-                            #(#workflow_stage_systems_registration_literals)*
-                            ;
+                            #(#workflow_plugin_addition_literals)*;
                     }
                 }
 
@@ -126,7 +124,9 @@ impl WorkflowModule {
 
                 #(#workflow_modules)*
             }
-        }
+        };
+
+        workflow_module_declaration
     }
 }
 
@@ -227,6 +227,30 @@ impl Parse for Workflow {
 }
 
 trait IteratorExt: Iterator {
+    fn unzip3<A, B, C, IA, IB, IC>(self) -> (IA, IB, IC)
+    where
+        Self: Sized + Iterator<Item = (A, B, C)>,
+        IA: FromIterator<A>,
+        IB: FromIterator<B>,
+        IC: FromIterator<C>,
+    {
+        let mut a = Vec::new();
+        let mut b = Vec::new();
+        let mut c = Vec::new();
+
+        for (x, y, z) in self {
+            a.push(x);
+            b.push(y);
+            c.push(z);
+        }
+
+        (
+            a.into_iter().collect(),
+            b.into_iter().collect(),
+            c.into_iter().collect(),
+        )
+    }
+
     fn unzip4<A, B, C, D, IA, IB, IC, ID>(self) -> (IA, IB, IC, ID)
     where
         Self: Sized + Iterator<Item = (A, B, C, D)>,
@@ -261,7 +285,7 @@ impl Workflow {
     pub fn generate(
         self,
         workflow_module_ident: Ident,
-    ) -> (TokenStream, (WorkflowSignature, Ident)) {
+    ) -> (TokenStream, (WorkflowSignature, Ident), TokenStream) {
         let workflow_ident = &self.name;
         let workflow_name = workflow_ident.to_string();
         let workflow_ident = Ident::new(
@@ -284,6 +308,54 @@ impl Workflow {
                 .collect(),
         };
         let workflow_path = quote! { #workflow_path };
+        let workflow_plugin_name = format!("{}WorkflowPlugin", workflow_name);
+        let workflow_plugin_ident =
+            Ident::new(workflow_plugin_name.as_str(), workflow_ident.span());
+
+        let workflow_stage_systems_registration_literals = {
+            let mut workflow_stage_systems_registration_literals = vec![];
+
+            for stage in self.stages.0.iter() {
+                let stage_ident = stage.name();
+                let workflow_stage_system_name =
+                    format!("{}", stage_ident).as_str().to_snake_case();
+                let workflow_stage_module_ident =
+                    Ident::new(workflow_stage_system_name.as_str(), stage_ident.span());
+
+                workflow_stage_systems_registration_literals.push(quote! {
+                    .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::workflow_polling_system)
+                });
+            }
+
+            workflow_stage_systems_registration_literals
+        };
+
+        let workflow_plugin_declaration = {
+            if workflow_stage_systems_registration_literals.is_empty() {
+                quote! {
+                    pub(crate) struct #workflow_plugin_ident;
+                    impl bevy::prelude::Plugin for #workflow_plugin_ident {
+                        fn build(&self, app: &mut bevy::prelude::App) {}
+                    }
+                }
+            } else {
+                quote! {
+                    pub(crate) struct #workflow_plugin_ident;
+                    impl bevy::prelude::Plugin for #workflow_plugin_ident {
+                        fn build(&self, app: &mut bevy::prelude::App) {
+                            app
+                                #(#workflow_stage_systems_registration_literals)*;
+                        }
+                    }
+                }
+            }
+        };
+
+        let workflow_plugin_addition_literal = {
+            quote! {
+                .add_plugins(crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::#workflow_plugin_ident)
+            }
+        };
 
         let workflow_module = match self.signature {
             WorkflowSignature::None => {
@@ -302,19 +374,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -353,6 +425,8 @@ impl Workflow {
                         pub async fn run() {
                             crate::workflow::functions::run_workflow::<Type>().await
                         }
+
+                        #workflow_plugin_declaration
 
                         pub struct Type;
                         impl crate::workflow::traits::WorkflowType for Type {
@@ -440,19 +514,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -491,6 +565,8 @@ impl Workflow {
                         pub async fn run() -> Result<(), <TypeE as crate::workflow::traits::WorkflowTypeE>::Error> {
                             crate::workflow::functions::run_workflow_e::<Type>().await
                         }
+
+                        #workflow_plugin_declaration
 
                         #error_enum
 
@@ -551,19 +627,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -602,6 +678,8 @@ impl Workflow {
                         pub async fn run() -> <TypeO as crate::workflow::traits::WorkflowTypeO>::Output {
                             crate::workflow::functions::run_workflow_o::<TypeO>().await
                         }
+
+                        #workflow_plugin_declaration
 
                         pub struct TypeO;
                         impl crate::workflow::traits::WorkflowTypeO for TypeO {
@@ -698,19 +776,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -749,6 +827,8 @@ impl Workflow {
                         pub async fn run() -> Result<<TypeOE as crate::workflow::traits::WorkflowTypeOE>::Output, <TypeOE as crate::workflow::traits::WorkflowTypeOE>::Error> {
                             crate::workflow::functions::run_workflow_oe::<TypeOE>().await
                         }
+
+                        #workflow_plugin_declaration
 
                         #error_enum
 
@@ -810,19 +890,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -861,6 +941,8 @@ impl Workflow {
                         pub async fn run(input: <TypeI as crate::workflow::traits::WorkflowTypeI>::Input) -> () {
                             crate::workflow::functions::run_workflow_i::<TypeI>(input).await
                         }
+
+                        #workflow_plugin_declaration
 
                         pub struct TypeI;
                         impl crate::workflow::traits::WorkflowTypeI for TypeI {
@@ -957,19 +1039,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -1008,6 +1090,8 @@ impl Workflow {
                         pub async fn run(input: <TypeIE as crate::workflow::traits::WorkflowTypeIE>::Input) -> Result<(), <TypeIE as crate::workflow::traits::WorkflowTypeIE>::Error> {
                             crate::workflow::functions::run_workflow_ie::<TypeIE>(input).await
                         }
+
+                        #workflow_plugin_declaration
 
                         #error_enum
 
@@ -1073,19 +1157,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -1124,6 +1208,8 @@ impl Workflow {
                         pub async fn run(input: <TypeIO as crate::workflow::traits::WorkflowTypeIO>::Input) -> <TypeIO as crate::workflow::traits::WorkflowTypeIO>::Output {
                             crate::workflow::functions::run_workflow_io::<TypeIO>(input).await
                         }
+
+                        #workflow_plugin_declaration
 
                         pub struct TypeIO;
                         impl crate::workflow::traits::WorkflowTypeIO for TypeIO {
@@ -1225,19 +1311,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_module_ident.clone(),
+                                workflow_plugin_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -1276,6 +1362,8 @@ impl Workflow {
                         pub async fn run(input: <TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Input) -> Result<<TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Output, <TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Error> {
                             crate::workflow::functions::run_workflow_ioe::<TypeIOE>(input).await
                         }
+
+                        #workflow_plugin_declaration
 
                         #error_enum
 
@@ -1317,6 +1405,10 @@ impl Workflow {
             }
         };
 
-        (workflow_module, (self.signature, workflow_ident))
+        (
+            workflow_module,
+            (self.signature, workflow_ident),
+            workflow_plugin_addition_literal,
+        )
     }
 }
