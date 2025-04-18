@@ -323,7 +323,7 @@ impl Workflow {
                     Ident::new(workflow_stage_system_name.as_str(), stage_ident.span());
 
                 workflow_stage_systems_registration_literals.push(quote! {
-                    .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::workflow_polling_system)
+                    .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_workflow_system)
                 });
             }
 
