@@ -73,11 +73,11 @@ impl PluginGroup for SpacetimeEnginePlugins {
             //.add(EntityPlugin)
             //.add(MathPlugin)
             .add(PlayerPlugin)
-            .add(crate::camera::workflows::camera::CameraWorkflowPlugin)
-            .add(crate::chunk::workflows::chunk::ChunkWorkflowPlugin)
-            .add(crate::debug::workflows::debug::DebugWorkflowPlugin)
-            .add(crate::gpu::workflows::gpu::GpuWorkflowPlugin)
-            .add(crate::player::workflows::player::PlayerWorkflowPlugin)
+            .add(crate::camera::workflows::camera::CameraWorkflowsPlugin)
+            .add(crate::chunk::workflows::chunk::ChunkWorkflowsPlugin)
+            .add(crate::debug::workflows::debug::DebugWorkflowsPlugin)
+            .add(crate::gpu::workflows::gpu::GpuWorkflowsPlugin)
+            .add(crate::player::workflows::player::PlayerWorkflowsPlugin)
         //.add(SpriteBundlePlugin)
     }
 }

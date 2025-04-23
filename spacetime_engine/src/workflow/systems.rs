@@ -54,6 +54,8 @@ pub(super) fn extract_render_while_stage_buffer_system(world: &mut World) {
     }
 }
 
+
+
 pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
     let drained_buffer = {
         let mut buffer = world.resource_mut::<EcsStageBuffer>();
@@ -888,7 +890,6 @@ pub(super) fn workflow_initialization_system(world: &mut World) {
                 index: 0,
                 name: "placeholder",
                 signature: super::stage::StageSignature::None,
-                run_ecs: Box::new(|_, _| unreachable!()),
                 handle_ecs_run_response: Box::new(|_, _, _, _, _| unreachable!()),
                 completion_sender: get_stage_completion_sender().clone(),
                 failure_sender: None,
@@ -1140,7 +1141,6 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         index: 0,
                         name: "placeholder",
                         signature: super::stage::StageSignature::None,
-                        run_ecs: Box::new(|_, _| unreachable!()),
                         handle_ecs_run_response: Box::new(|_, _, _, _, _| unreachable!()),
                         completion_sender: get_stage_completion_sender().clone(),
                         failure_sender: None,

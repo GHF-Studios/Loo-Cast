@@ -60,13 +60,15 @@ pub(crate) fn process_player_workflow_queue(
             PlayerWorkflow::Spawn => {
                 // TODO: MAJOR: POINTER: Invalid workflow! invocations in general seem to just disappear entirely, instead of outputting some error like `__Panic__`
                 define_composite_workflow!(JustDoIt {
-                    workflow!(Player::SpawnPlayer)
+                    workflow!(E, Player::SpawnPlayer);
+
+                    Ok(())
                 });
 
                 crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
                     .lock()
                     .unwrap()
-                    .spawn(Box::pin(just_do_it()));
+                    .spawn_fallible(Box::pin(just_do_it()));
             }
             PlayerWorkflow::Despawn(entity) => {
                 commands.entity(entity).despawn_recursive();

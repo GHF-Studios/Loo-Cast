@@ -632,7 +632,7 @@ impl<T> CoreTypes<T> {
             #render_access
 
             #[derive(Resource, Default)]
-            pub(super) enum StageBuffer {
+            pub(super) enum TypedStageBuffer {
                 #[default]
                 None,
                 Some {
@@ -643,7 +643,7 @@ impl<T> CoreTypes<T> {
                     stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
                 }
             }
-            impl StageBuffer {
+            impl TypedStageBuffer {
                 pub fn fill(
                     &mut self,
                     module_name: &'static str,
@@ -653,8 +653,8 @@ impl<T> CoreTypes<T> {
                     stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
                 ) {
                     match std::mem::take(self) {
-                        StageBuffer::None => {
-                            *self = StageBuffer::Some {
+                        TypedStageBuffer::None => {
+                            *self = TypedStageBuffer::Some {
                                 module_name,
                                 workflow_name,
                                 stage_index,
@@ -662,7 +662,7 @@ impl<T> CoreTypes<T> {
                                 stage_data,
                             }
                         },
-                        StageBuffer::Some { .. } => unreachable!("Stage buffer is full")
+                        TypedStageBuffer::Some { .. } => unreachable!("Stage buffer is not empty")
                     }
                 }
 
@@ -676,10 +676,10 @@ impl<T> CoreTypes<T> {
                     Option<Box<dyn std::any::Any + Send + Sync>>,
                 ) {
                     match std::mem::take(self) {
-                        StageBuffer::None => {
-                            unreachable!("Stage buffer is empty");
+                        TypedStageBuffer::None => {
+                            unreachable!("Stage buffer is not filled");
                         }
-                        StageBuffer::Some {
+                        TypedStageBuffer::Some {
                             module_name,
                             workflow_name,
                             stage_index,
@@ -698,7 +698,7 @@ impl<T> CoreTypes<T> {
                 }
 
                 pub fn is_empty(&self) -> bool {
-                    matches!(self, StageBuffer::None)
+                    matches!(self, TypedStageBuffer::None)
                 }
             }
         }

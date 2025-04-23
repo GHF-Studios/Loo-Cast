@@ -404,9 +404,13 @@ impl CoreFunction {
             CoreFunctionType::RunEcs { .. } => match (has_input, has_output, has_error) {
                 (false, false, false) => {
                     quote! {
-                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+
                             let completion_sender = crate::workflow::channels::get_stage_completion_sender();
-                            let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
+                            let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
                             let mut stage = match stage {
                                 crate::workflow::stage::Stage::Ecs(stage) => stage,
                                 crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
@@ -443,10 +447,14 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+
                             let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                             let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                            let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
+                            let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
                             let mut stage = match stage {
                                 crate::workflow::stage::Stage::Ecs(stage) => stage,
                                 crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
@@ -488,9 +496,13 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+
                             let completion_sender = crate::workflow::channels::get_stage_completion_sender();
-                            let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
+                            let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
                             let mut stage = match stage {
                                 crate::workflow::stage::Stage::Ecs(stage) => stage,
                                 crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
@@ -527,10 +539,14 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+
                             let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                             let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                            let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
+                            let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
                             let mut stage = match stage {
                                 crate::workflow::stage::Stage::Ecs(stage) => stage,
                                 crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
@@ -572,7 +588,11 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+
                             let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                             let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
                             let mut stage = match stage {
@@ -613,7 +633,11 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+
                             let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                             let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                             let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
@@ -660,7 +684,11 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+
                             let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                             let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
                             let mut stage = match stage {
@@ -701,7 +729,11 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+
                             let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                             let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                             let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();

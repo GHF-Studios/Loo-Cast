@@ -77,7 +77,7 @@ impl CompositeWorkflow {
 
             quote! {
                 #[error(#name_str)]
-                #variant(<#path as workflow::traits::#trait_ident>::Error)
+                #variant(<#path as crate::workflow::traits::#trait_ident>::Error)
             }
         });
 
@@ -87,8 +87,8 @@ impl CompositeWorkflow {
             let variant = extract_error_variant(path);
 
             quote! {
-                impl From<<#path as workflow::traits::#trait_ident>::Error> for #error_enum_ident {
-                    fn from(e: <#path as workflow::traits::#trait_ident>::Error) -> Self {
+                impl From<<#path as crate::workflow::traits::#trait_ident>::Error> for #error_enum_ident {
+                    fn from(e: <#path as crate::workflow::traits::#trait_ident>::Error) -> Self {
                         Self::#variant(e)
                     }
                 }
@@ -155,7 +155,7 @@ impl CompositeWorkflow {
 
                             let mut inner = quote! {
                                 type T = #worfklow_path;
-                                type I = <T as workflow::traits::#trait_ident>::Input;
+                                type I = <T as crate::workflow::traits::#trait_ident>::Input;
                                 #module_path run(#input_expr).await
                             };
 

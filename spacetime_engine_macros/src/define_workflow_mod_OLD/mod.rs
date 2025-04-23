@@ -28,7 +28,7 @@ pub(super) mod kw {
 use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
 use quote::quote;
-use stage::Stages;
+use stage::{Stage, Stages};
 use syn::{braced, bracketed, parse::Parse, parse_str, Ident, LitStr, Path, Result, Token};
 use use_statement::UseStatements;
 use user_item::UserItems;
@@ -322,9 +322,35 @@ impl Workflow {
                 let workflow_stage_module_ident =
                     Ident::new(workflow_stage_system_name.as_str(), stage_ident.span());
 
-                workflow_stage_systems_registration_literals.push(quote! {
-                    .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_system)
-                });
+                workflow_stage_systems_registration_literals.push(
+                    match stage {
+                        Stage::Ecs(_) => {
+                            quote! {
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_system)
+                            }
+                        },
+                        Stage::Render(_) => {
+                            quote! {
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_system)
+                            }
+                        },
+                        Stage::Async(_) => {
+                            quote! {
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_async_system)
+                            }
+                        },
+                        Stage::EcsWhile(_) => {
+                            quote! {
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_system)
+                            }
+                        },
+                        Stage::RenderWhile(_) => {
+                            quote! {
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_while_system)
+                            }
+                        },
+                    }
+                );
             }
 
             workflow_stage_systems_registration_literals
