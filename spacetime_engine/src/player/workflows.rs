@@ -7,6 +7,7 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use crate::{
                     player::bundles::PlayerBundle,
+                    player::components::PlayerComponent,
                     follower::components::FollowerTargetComponent,
                 };
             },
@@ -15,12 +16,21 @@ define_workflow_mod_OLD! {
                 ValidateAndSpawn: Ecs {
                     core_types: [
                         struct MainAccess<'w, 's> {
-                            commands: Commands<'w, 's>
+                            commands: Commands<'w, 's>,
+                            player_query: Query<'w, 's, &'static PlayerComponent>,
+                        }
+                        enum Error {
+                            PlayerAlreadySpawned
                         }
                     ],
                     core_functions: [
-                        fn RunEcs |main_access| {
+                        fn RunEcs |main_access| -> Result<(), Error> {
                             let mut commands = main_access.commands;
+                            let player_query = main_access.player_query;
+
+                            if !player_query.is_empty() {
+                                return Err(Error::PlayerAlreadySpawned);
+                            }
 
                             commands.spawn((
                                 PlayerBundle::default(),
@@ -28,6 +38,8 @@ define_workflow_mod_OLD! {
                                     id: "main_camera".to_string(),
                                 },
                             ));
+
+                            Ok(())
                         }
                     ]
                 }

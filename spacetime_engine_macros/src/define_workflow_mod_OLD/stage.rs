@@ -512,9 +512,9 @@ impl TypedStage<Ecs> {
                         stage: crate::workflow::stage::StageEcs
                     | {
                         let response = response.expect("Ecs stages with output and error must have a response");
-                        let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
-                        match result_data {
+                        match result {
                             Ok(output) => {
                                 #stage_output_transmutation
                                 let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
@@ -784,7 +784,6 @@ impl TypedStage<Ecs> {
                 index: #index_literal,
                 name: stringify!(#stage_name),
                 signature: #signature,
-                run_ecs: Box::new(self::stages::#stage_ident::core_functions::run_ecs) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                 handle_ecs_run_response: #ecs_run_response_handler,
                 completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                 failure_sender: #failure_sender,
@@ -913,9 +912,9 @@ impl TypedStage<Render> {
                         stage: crate::workflow::stage::StageRender
                     | {
                         let response = response.expect("Render stages with output and error must have a response");
-                        let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
-                        match result_data {
+                        match result {
                             Ok(output) => {
                                 #stage_output_transmutation
                                 let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
@@ -1185,7 +1184,6 @@ impl TypedStage<Render> {
                 index: #index_literal,
                 name: stringify!(#stage_name),
                 signature: #signature,
-                run_render: Box::new(self::stages::#stage_ident::core_functions::run_render) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                 handle_render_run_response: #render_run_response_handler,
                 completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                 failure_sender: #failure_sender,
@@ -1314,9 +1312,9 @@ impl TypedStage<Async> {
                         stage: crate::workflow::stage::StageAsync
                     | {
                         let response = response.expect("Async stages with output and error must have a response");
-                        let result_data: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
 
-                        match result_data {
+                        match result {
                             Ok(output) => {
                                 #stage_output_transmutation
                                 let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
@@ -1586,7 +1584,6 @@ impl TypedStage<Async> {
                 index: #index_literal,
                 name: stringify!(#stage_name),
                 signature: #signature,
-                run_async: Box::new(self::stages::#stage_ident::core_functions::run_async) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
                 handle_async_run_response: #async_run_response_handler,
                 completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                 failure_sender: #failure_sender,
@@ -2672,8 +2669,6 @@ impl TypedStage<EcsWhile> {
                 index: #index_literal,
                 name: stringify!(#stage_name),
                 signature: #signature,
-                setup_ecs_while: Box::new(self::stages::#stage_ident::core_functions::setup_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                run_ecs_while: Box::new(self::stages::#stage_ident::core_functions::run_ecs_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
                 handle_ecs_while_setup_response: #ecs_while_setup_response_handler,
                 handle_ecs_while_run_response: #ecs_while_run_response_handler,
                 setup_sender: crate::workflow::channels::get_stage_setup_sender().clone(),
@@ -3782,8 +3777,6 @@ impl TypedStage<RenderWhile> {
                 index: #index_literal,
                 name: stringify!(#stage_name),
                 signature: #signature,
-                setup_render_while: Box::new(self::stages::#stage_ident::core_functions::setup_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> + Send + Sync>,
-                run_render_while: Box::new(self::stages::#stage_ident::core_functions::run_render_while) as Box<dyn FnMut(Option<Box<dyn std::any::Any + Send + Sync>>, Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>,
                 handle_render_while_setup_response: #render_while_setup_response_handler,
                 handle_render_while_run_response: #render_while_run_response_handler,
                 setup_sender: crate::workflow::channels::get_stage_setup_sender().clone(),

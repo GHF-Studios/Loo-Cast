@@ -131,14 +131,6 @@ pub struct StageEcs {
     pub index: usize,
     pub name: &'static str,
     pub signature: StageSignature,
-    pub run_ecs: Box<
-        dyn FnMut(
-                Option<Box<dyn Any + Send + Sync>>,
-                Box<dyn Any + Send + Sync>,
-            ) -> Option<Box<dyn Any + Send + Sync>>
-            + Send
-            + Sync,
-    >,
     pub handle_ecs_run_response: Box<
         dyn FnMut(
                 &'static str,
@@ -158,14 +150,6 @@ pub struct StageRender {
     pub index: usize,
     pub name: &'static str,
     pub signature: StageSignature,
-    pub run_render: Box<
-        dyn FnMut(
-                Option<Box<dyn Any + Send + Sync>>,
-                Box<dyn Any + Send + Sync>,
-            ) -> Option<Box<dyn Any + Send + Sync>>
-            + Send
-            + Sync,
-    >,
     pub handle_render_run_response: Box<
         dyn FnMut(
                 &'static str,
@@ -185,13 +169,6 @@ pub struct StageAsync {
     pub index: usize,
     pub name: &'static str,
     pub signature: StageSignature,
-    pub run_async: Box<
-        dyn FnMut(
-                Option<Box<dyn Any + Send + Sync>>,
-            ) -> BoxFuture<'static, Option<Box<dyn Any + Send + Sync>>>
-            + Send
-            + Sync,
-    >,
     pub handle_async_run_response: Box<
         dyn FnMut(
                 &'static str,
@@ -211,22 +188,6 @@ pub struct StageEcsWhile {
     pub index: usize,
     pub name: &'static str,
     pub signature: StageSignature,
-    pub setup_ecs_while: Box<
-        dyn FnMut(
-                Option<Box<dyn Any + Send + Sync>>,
-                Box<dyn Any + Send + Sync>,
-            ) -> Option<Box<dyn Any + Send + Sync>>
-            + Send
-            + Sync,
-    >,
-    pub run_ecs_while: Box<
-        dyn FnMut(
-                Option<Box<dyn Any + Send + Sync>>,
-                Box<dyn Any + Send + Sync>,
-            ) -> Box<dyn Any + Send + Sync>
-            + Send
-            + Sync,
-    >,
     pub handle_ecs_while_setup_response: Box<
         dyn FnMut(
                 &'static str,
@@ -260,22 +221,6 @@ pub struct StageRenderWhile {
     pub index: usize,
     pub name: &'static str,
     pub signature: StageSignature,
-    pub setup_render_while: Box<
-        dyn FnMut(
-                Option<Box<dyn Any + Send + Sync>>,
-                Box<dyn Any + Send + Sync>,
-            ) -> Option<Box<dyn Any + Send + Sync>>
-            + Send
-            + Sync,
-    >,
-    pub run_render_while: Box<
-        dyn FnMut(
-                Option<Box<dyn Any + Send + Sync>>,
-                Box<dyn Any + Send + Sync>,
-            ) -> Box<dyn Any + Send + Sync>
-            + Send
-            + Sync,
-    >,
     pub handle_render_while_setup_response: Box<
         dyn FnMut(
                 &'static str,

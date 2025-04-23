@@ -323,7 +323,7 @@ impl Workflow {
                     Ident::new(workflow_stage_system_name.as_str(), stage_ident.span());
 
                 workflow_stage_systems_registration_literals.push(quote! {
-                    .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_workflow_system)
+                    .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_system)
                 });
             }
 
@@ -374,19 +374,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -514,19 +514,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -563,7 +563,7 @@ impl Workflow {
                         pub const NAME: &str = stringify!(#workflow_name);
 
                         pub async fn run() -> Result<(), <TypeE as crate::workflow::traits::WorkflowTypeE>::Error> {
-                            crate::workflow::functions::run_workflow_e::<Type>().await
+                            crate::workflow::functions::run_workflow_e::<TypeE>().await
                         }
 
                         #workflow_plugin_declaration
@@ -627,19 +627,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -776,19 +776,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -890,19 +890,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -1039,19 +1039,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -1157,19 +1157,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )
@@ -1311,19 +1311,19 @@ impl Workflow {
                     .map(|stage| {
                         (
                             stage.get_state_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_out_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_err_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                             stage.get_in_type_path(
-                                workflow_plugin_ident.clone(),
+                                workflow_module_ident.clone(),
                                 workflow_ident.clone(),
                             ),
                         )

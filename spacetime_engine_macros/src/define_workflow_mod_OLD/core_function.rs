@@ -404,9 +404,37 @@ impl CoreFunction {
             CoreFunctionType::RunEcs { .. } => match (has_input, has_output, has_error) {
                 (false, false, false) => {
                     quote! {
-                        pub fn run_ecs(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            run_ecs_inner(*main_access);
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                            let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                            let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(stage) => stage,
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
+                            let completion_sender = completion_sender.clone();
+
+                            let _response = run_ecs(main_access);
+                            let handler = (handle_ecs_run_response)(
+                                module_name,
+                                workflow_name,
+                                None,
+                                completion_sender,
+                                None,
+                            );
+                            handler(stage);
+
+                            bevy::prelude::info!(
+                                "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                workflow_name, module_name, current_stage
+                            );
+                        }
+
+                        fn run_ecs(main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            run_ecs_inner(main_access);
                             None
                         }
 
@@ -415,9 +443,43 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        pub fn run_ecs(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let result = run_ecs_inner(*main_access);
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                            let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                            let failure_sender = crate::workflow::channels::get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(stage) => stage,
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
+                            let completion_sender = completion_sender.clone();
+                            let failure_sender = if stage.signature.has_error() {
+                                Some(failure_sender.clone())
+                            } else {
+                                None
+                            };
+
+                            let response = run_ecs(main_access);
+                            let handler = (handle_ecs_run_response)(
+                                module_name,
+                                workflow_name,
+                                response,
+                                completion_sender,
+                                failure_sender,
+                            );
+                            handler(stage);
+
+                            bevy::prelude::info!(
+                                "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                workflow_name, module_name, current_stage
+                            );
+                        }
+
+                        fn run_ecs(main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            let result = run_ecs_inner(main_access);
                             Some(Box::new(result))
                         }
 
@@ -426,9 +488,37 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        pub fn run_ecs(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let output = run_ecs_inner(*main_access);
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                            let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                            let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(stage) => stage,
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
+                            let completion_sender = completion_sender.clone();
+
+                            let response = run_ecs(main_access);
+                            let handler = (handle_ecs_run_response)(
+                                module_name,
+                                workflow_name,
+                                response,
+                                completion_sender,
+                                None,
+                            );
+                            handler(stage);
+
+                            bevy::prelude::info!(
+                                "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                workflow_name, module_name, current_stage
+                            );
+                        }
+
+                        fn run_ecs(main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            let output = run_ecs_inner(main_access);
                             Some(Box::new(output))
                         }
 
@@ -437,9 +527,43 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        pub fn run_ecs(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let result = run_ecs_inner(*main_access);
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                            let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                            let failure_sender = crate::workflow::channels::get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(stage) => stage,
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
+                            let completion_sender = completion_sender.clone();
+                            let failure_sender = if stage.signature.has_error() {
+                                Some(failure_sender.clone())
+                            } else {
+                                None
+                            };
+
+                            let response = run_ecs(main_access);
+                            let handler = (handle_ecs_run_response)(
+                                module_name,
+                                workflow_name,
+                                response,
+                                completion_sender,
+                                failure_sender,
+                            );
+                            handler(stage);
+
+                            bevy::prelude::info!(
+                                "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                workflow_name, module_name, current_stage
+                            );
+                        }
+
+                        fn run_ecs(main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            let result = run_ecs_inner(main_access);
                             Some(Box::new(result))
                         }
 
@@ -448,10 +572,39 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        pub fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                            let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                            let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(stage) => stage,
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
+                            let completion_sender = completion_sender.clone();
+
+                            let input = data_buffer;
+                            let _response = run_ecs(input, main_access);
+                            let handler = (handle_ecs_run_response)(
+                                module_name,
+                                workflow_name,
+                                None,
+                                completion_sender,
+                                None,
+                            );
+                            handler(stage);
+
+                            bevy::prelude::info!(
+                                "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                workflow_name, module_name, current_stage
+                            );
+                        }
+
+                        fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            run_ecs_inner(*input, *main_access);
+                            run_ecs_inner(*input, main_access);
                             None
                         }
 
@@ -460,10 +613,45 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        pub fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                            let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                            let failure_sender = crate::workflow::channels::get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(stage) => stage,
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
+                            let completion_sender = completion_sender.clone();
+                            let failure_sender = if stage.signature.has_error() {
+                                Some(failure_sender.clone())
+                            } else {
+                                None
+                            };
+
+                            let input = data_buffer;
+                            let response = run_ecs(input, main_access);
+                            let handler = (handle_ecs_run_response)(
+                                module_name,
+                                workflow_name,
+                                response,
+                                completion_sender,
+                                failure_sender,
+                            );
+                            handler(stage);
+
+                            bevy::prelude::info!(
+                                "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                workflow_name, module_name, current_stage
+                            );
+                        }
+
+                        fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let result = run_ecs_inner(*input, *main_access);
+                            let result = run_ecs_inner(*input, main_access);
                             Some(Box::new(result))
                         }
 
@@ -472,10 +660,39 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        pub fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                            let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                            let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(stage) => stage,
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
+                            let completion_sender = completion_sender.clone();
+
+                            let input = data_buffer;
+                            let response = run_ecs(input, main_access);
+                            let handler = (handle_ecs_run_response)(
+                                module_name,
+                                workflow_name,
+                                response,
+                                completion_sender,
+                                None,
+                            );
+                            handler(stage);
+
+                            bevy::prelude::info!(
+                                "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                workflow_name, module_name, current_stage
+                            );
+                        }
+
+                        fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let output = run_ecs_inner(*input, *main_access);
+                            let output = run_ecs_inner(*input, main_access);
                             Some(Box::new(output))
                         }
 
@@ -484,10 +701,45 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        pub fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        pub fn poll_ecs_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
+                            let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                            let failure_sender = crate::workflow::channels::get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(stage) => stage,
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
+                            let completion_sender = completion_sender.clone();
+                            let failure_sender = if stage.signature.has_error() {
+                                Some(failure_sender.clone())
+                            } else {
+                                None
+                            };
+
+                            let input = data_buffer;
+                            let response = run_ecs(input, main_access);
+                            let handler = (handle_ecs_run_response)(
+                                module_name,
+                                workflow_name,
+                                response,
+                                completion_sender,
+                                failure_sender,
+                            );
+                            handler(stage);
+
+                            bevy::prelude::info!(
+                                "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                workflow_name, module_name, current_stage
+                            );
+                        }
+
+                        fn run_ecs(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let result = run_ecs_inner(*input, *main_access);
+                            let result = run_ecs_inner(*input, main_access);
                             Some(Box::new(result))
                         }
 
@@ -498,9 +750,8 @@ impl CoreFunction {
             CoreFunctionType::RunRender { .. } => match (has_input, has_output, has_error) {
                 (false, false, false) => {
                     quote! {
-                        pub fn run_render(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            run_render_inner(*render_access);
+                        fn run_render(render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            run_render_inner(render_access);
                             None
                         }
 
@@ -509,9 +760,8 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        pub fn run_render(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let result = run_render_inner(*render_access);
+                        fn run_render(render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            let result = run_render_inner(render_access);
                             Some(Box::new(result))
                         }
 
@@ -520,9 +770,8 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        pub fn run_render(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let output = run_render_inner(*render_access);
+                        fn run_render(render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            let output = run_render_inner(render_access);
                             Some(Box::new(output))
                         }
 
@@ -531,9 +780,8 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        pub fn run_render(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let result = run_render_inner(*render_access);
+                        fn run_render(render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            let result = run_render_inner(render_access);
                             Some(Box::new(result))
                         }
 
@@ -542,10 +790,9 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        pub fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            run_render_inner(*input, *render_access);
+                            run_render_inner(*input, render_access);
                             None
                         }
 
@@ -554,10 +801,9 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        pub fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let result = run_render_inner(*input, *render_access);
+                            let result = run_render_inner(*input, render_access);
                             Some(Box::new(result))
                         }
 
@@ -566,10 +812,9 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        pub fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let output = run_render_inner(*input, *render_access);
+                            let output = run_render_inner(*input, render_access);
                             Some(Box::new(output))
                         }
 
@@ -578,10 +823,9 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        pub fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn run_render(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let result = run_render_inner(*input, *render_access);
+                            let result = run_render_inner(*input, render_access);
                             Some(Box::new(result))
                         }
 
@@ -592,7 +836,7 @@ impl CoreFunction {
             CoreFunctionType::RunAsync { .. } => match (has_input, has_output, has_error) {
                 (false, false, false) => {
                     quote! {
-                        pub fn run_async(_input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn run_async() -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             run_async_inner();
                             None
                         }
@@ -602,7 +846,7 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        pub fn run_async(_input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn run_async() -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let result = run_async_inner();
                             Some(Box::new(result))
                         }
@@ -612,7 +856,7 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        pub fn run_async(_input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn run_async() -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let output = run_async_inner();
                             Some(Box::new(output))
                         }
@@ -622,7 +866,7 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        pub fn run_async(_input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn run_async() -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let result = run_async_inner();
                             Some(Box::new(result))
                         }
@@ -632,7 +876,7 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        pub fn run_async(input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn run_async(input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
                             run_async_inner(*input);
                             None
@@ -643,7 +887,7 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        pub fn run_async(input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn run_async(input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
                             let result = run_async_inner(*input);
                             Some(Box::new(result))
@@ -654,7 +898,7 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        pub fn run_async(input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn run_async(input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
                             let output = run_async_inner(*input);
                             Some(Box::new(output))
@@ -665,7 +909,7 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        pub fn run_async(input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn run_async(input: Option<Box<dyn std::any::Any + Send + Sync>>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
                             let result = run_async_inner(*input);
                             Some(Box::new(result))
@@ -678,9 +922,8 @@ impl CoreFunction {
             CoreFunctionType::SetupEcsWhile { .. } => match (has_input, has_state, has_error) {
                 (false, false, false) => {
                     quote! {
-                        pub fn setup_ecs_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            setup_ecs_while_inner(*main_access);
+                        fn setup_ecs_while(main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            setup_ecs_while_inner(main_access);
                             None
                         }
 
@@ -689,9 +932,8 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        pub fn setup_ecs_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let result = setup_ecs_while_inner(*main_access);
+                        fn setup_ecs_while(main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            let result = setup_ecs_while_inner(main_access);
                             Some(Box::new(result))
                         }
 
@@ -700,9 +942,8 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        pub fn setup_ecs_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let state = setup_ecs_while_inner(*main_access);
+                        fn setup_ecs_while(main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            let state = setup_ecs_while_inner(main_access);
                             Some(Box::new(state))
                         }
 
@@ -711,9 +952,8 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        pub fn setup_ecs_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let result = setup_ecs_while_inner(*main_access);
+                        fn setup_ecs_while(main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            let result = setup_ecs_while_inner(main_access);
                             Some(Box::new(result))
                         }
 
@@ -722,10 +962,9 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        pub fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            setup_ecs_while_inner(*input, *main_access);
+                            setup_ecs_while_inner(*input, main_access);
                             None
                         }
 
@@ -734,10 +973,9 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        pub fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let result = setup_ecs_while_inner(*input, *main_access);
+                            let result = setup_ecs_while_inner(*input, main_access);
                             Some(Box::new(result))
                         }
 
@@ -746,10 +984,9 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        pub fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let state = setup_ecs_while_inner(*input, *main_access);
+                            let state = setup_ecs_while_inner(*input, main_access);
                             Some(Box::new(state))
                         }
 
@@ -758,10 +995,9 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        pub fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let result = setup_ecs_while_inner(*input, *main_access);
+                            let result = setup_ecs_while_inner(*input, main_access);
                             Some(Box::new(result))
                         }
 
@@ -772,9 +1008,8 @@ impl CoreFunction {
             CoreFunctionType::SetupRenderWhile { .. } => match (has_input, has_state, has_error) {
                 (false, false, false) => {
                     quote! {
-                        pub fn setup_render_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            setup_render_while_inner(*render_access);
+                        fn setup_render_while(render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            setup_render_while_inner(render_access);
                             None
                         }
 
@@ -783,9 +1018,8 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        pub fn setup_render_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let result = setup_render_while_inner(*render_access);
+                        fn setup_render_while(render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            let result = setup_render_while_inner(render_access);
                             Some(Box::new(result))
                         }
 
@@ -794,9 +1028,8 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        pub fn setup_render_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let state = setup_render_while_inner(*render_access);
+                        fn setup_render_while(render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            let state = setup_render_while_inner(render_access);
                             Some(Box::new(state))
                         }
 
@@ -805,9 +1038,8 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        pub fn setup_render_while(_input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let result = setup_render_while_inner(*render_access);
+                        fn setup_render_while(render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                            let result = setup_render_while_inner(render_access);
                             Some(Box::new(result))
                         }
 
@@ -816,10 +1048,9 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        pub fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            setup_render_while_inner(*input, *render_access);
+                            setup_render_while_inner(*input, render_access);
                             None
                         }
 
@@ -828,10 +1059,9 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        pub fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let result = setup_render_while_inner(*input, *render_access);
+                            let result = setup_render_while_inner(*input, render_access);
                             Some(Box::new(result))
                         }
 
@@ -840,10 +1070,9 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        pub fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let state = setup_render_while_inner(*input, *render_access);
+                            let state = setup_render_while_inner(*input, render_access);
                             Some(Box::new(state))
                         }
 
@@ -853,10 +1082,9 @@ impl CoreFunction {
                 (true, true, true) => {
                     quote! {
                         // TODO: MINOR: Setup functions' responses (and data in general) do not need to be optional at all
-                        pub fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Option<Box<dyn std::any::Any + Send + Sync>> {
+                        fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let result = setup_render_while_inner(*input, *render_access);
+                            let result = setup_render_while_inner(*input, render_access);
                             Some(Box::new(result))
                         }
 
@@ -867,9 +1095,8 @@ impl CoreFunction {
             CoreFunctionType::RunEcsWhile { .. } => match (has_state, has_output, has_error) {
                 (false, false, false) => {
                     quote! {
-                        pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let outcome = run_ecs_while_inner(*main_access);
+                        fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Box<dyn std::any::Any + Send + Sync> {
+                            let outcome = run_ecs_while_inner(main_access);
                             Box::new(outcome)
                         }
 
@@ -878,9 +1105,8 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let outcome_result = run_ecs_while_inner(*main_access);
+                        fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Box<dyn std::any::Any + Send + Sync> {
+                            let outcome_result = run_ecs_while_inner(main_access);
                             Box::new(outcome_result)
                         }
 
@@ -889,9 +1115,8 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let outcome = run_ecs_while_inner(*main_access);
+                        fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Box<dyn std::any::Any + Send + Sync> {
+                            let outcome = run_ecs_while_inner(main_access);
                             Box::new(outcome)
                         }
 
@@ -900,9 +1125,8 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        pub fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let outcome_result = run_ecs_while_inner(*main_access);
+                        fn run_ecs_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Box<dyn std::any::Any + Send + Sync> {
+                            let outcome_result = run_ecs_while_inner(main_access);
                             Box::new(outcome_result)
                         }
 
@@ -911,10 +1135,9 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
+                        fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let outcome = run_ecs_while_inner(*state, *main_access);
+                            let outcome = run_ecs_while_inner(*state, main_access);
                             Box::new(outcome)
                         }
 
@@ -923,10 +1146,9 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
+                        fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let outcome_result = run_ecs_while_inner(*state, *main_access);
+                            let outcome_result = run_ecs_while_inner(*state, main_access);
                             Box::new(outcome_result)
                         }
 
@@ -935,10 +1157,9 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
+                        fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let outcome = run_ecs_while_inner(*state, *main_access);
+                            let outcome = run_ecs_while_inner(*state, main_access);
                             Box::new(outcome)
                         }
 
@@ -947,10 +1168,9 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        pub fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
+                        fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let main_access = main_access.downcast::<MainAccess>().unwrap();
-                            let outcome_result = run_ecs_while_inner(*state, *main_access);
+                            let outcome_result = run_ecs_while_inner(*state, main_access);
                             Box::new(outcome_result)
                         }
 
@@ -961,9 +1181,8 @@ impl CoreFunction {
             CoreFunctionType::RunRenderWhile { .. } => match (has_state, has_output, has_error) {
                 (false, false, false) => {
                     quote! {
-                        pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let outcome = run_render_while_inner(*render_access);
+                        fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Box<dyn std::any::Any + Send + Sync> {
+                            let outcome = run_render_while_inner(render_access);
                             Box::new(outcome)
                         }
 
@@ -972,9 +1191,8 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let outcome_result = run_render_while_inner(*render_access);
+                        fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Box<dyn std::any::Any + Send + Sync> {
+                            let outcome_result = run_render_while_inner(render_access);
                             Box::new(outcome_result)
                         }
 
@@ -983,9 +1201,8 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let outcome = run_render_while_inner(*render_access);
+                        fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Box<dyn std::any::Any + Send + Sync> {
+                            let outcome = run_render_while_inner(render_access);
                             Box::new(outcome)
                         }
 
@@ -994,9 +1211,8 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        pub fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let outcome_result = run_render_while_inner(*render_access);
+                        fn run_render_while(_state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Box<dyn std::any::Any + Send + Sync> {
+                            let outcome_result = run_render_while_inner(render_access);
                             Box::new(outcome_result)
                         }
 
@@ -1005,10 +1221,9 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
+                        fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let outcome = run_render_while_inner(*state, *render_access);
+                            let outcome = run_render_while_inner(*state, render_access);
                             Box::new(outcome)
                         }
 
@@ -1017,10 +1232,9 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
+                        fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let outcome_result = run_render_while_inner(*state, *render_access);
+                            let outcome_result = run_render_while_inner(*state, render_access);
                             Box::new(outcome_result)
                         }
 
@@ -1029,10 +1243,9 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
+                        fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let outcome = run_render_while_inner(*state, *render_access);
+                            let outcome = run_render_while_inner(*state, render_access);
                             Box::new(outcome)
                         }
 
@@ -1041,10 +1254,9 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        pub fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: Box<dyn std::any::Any + Send + Sync>) -> Box<dyn std::any::Any + Send + Sync> {
+                        fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Box<dyn std::any::Any + Send + Sync> {
                             let state = state.unwrap().downcast::<State>().unwrap();
-                            let render_access = render_access.downcast::<RenderAccess>().unwrap();
-                            let outcome_result = run_render_while_inner(*state, *render_access);
+                            let outcome_result = run_render_while_inner(*state, render_access);
                             Box::new(outcome_result)
                         }
 

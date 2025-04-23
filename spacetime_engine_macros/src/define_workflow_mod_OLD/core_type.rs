@@ -630,6 +630,77 @@ impl<T> CoreTypes<T> {
             #error
             #main_access
             #render_access
+
+            #[derive(Resource, Default)]
+            pub(super) enum StageBuffer {
+                #[default]
+                None,
+                Some {
+                    module_name: &'static str,
+                    workflow_name: &'static str,
+                    stage_index: usize,
+                    stage: crate::workflow::stage::Stage,
+                    stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
+                }
+            }
+            impl StageBuffer {
+                pub fn fill(
+                    &mut self,
+                    module_name: &'static str,
+                    workflow_name: &'static str,
+                    stage_index: usize,
+                    stage: crate::workflow::stage::Stage,
+                    stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
+                ) {
+                    match std::mem::take(self) {
+                        StageBuffer::None => {
+                            *self = StageBuffer::Some {
+                                module_name,
+                                workflow_name,
+                                stage_index,
+                                stage,
+                                stage_data,
+                            }
+                        },
+                        StageBuffer::Some { .. } => unreachable!("Stage buffer is full")
+                    }
+                }
+
+                pub fn empty(
+                    &mut self,
+                ) -> (
+                    &'static str,
+                    &'static str,
+                    usize,
+                    crate::workflow::stage::Stage,
+                    Option<Box<dyn std::any::Any + Send + Sync>>,
+                ) {
+                    match std::mem::take(self) {
+                        StageBuffer::None => {
+                            unreachable!("Stage buffer is empty");
+                        }
+                        StageBuffer::Some {
+                            module_name,
+                            workflow_name,
+                            stage_index,
+                            stage,
+                            stage_data,
+                        } => {
+                            (
+                                module_name,
+                                workflow_name,
+                                stage_index,
+                                stage,
+                                stage_data,
+                            )
+                        }
+                    }
+                }
+
+                pub fn is_empty(&self) -> bool {
+                    matches!(self, StageBuffer::None)
+                }
+            }
         }
     }
 
