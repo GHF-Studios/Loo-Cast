@@ -54,7 +54,11 @@ pub(super) fn extract_render_while_stage_buffer_system(world: &mut World) {
     }
 }
 
-
+pub(super) fn push_ecs_stages_to_ecs_buffers_system() {}
+pub(super) fn push_render_stages_to_render_buffers_system() {}
+pub(super) fn push_async_stages_to_async_buffers_system() {}
+pub(super) fn push_ecs_while_stages_to_ecs_while_buffers_system() {}
+pub(super) fn push_render_while_stages_to_render_while_buffers_system() {}
 
 pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
     let drained_buffer = {
