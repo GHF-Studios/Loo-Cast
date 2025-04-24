@@ -780,7 +780,7 @@ impl CoreFunction {
                             );
                             handler(stage);
                     
-                            info!(
+                            bevy::prelude::info!(
                                 "Workflow '{}' in module '{}' has processed stage '{}'.",
                                 workflow_name, module_name, current_stage
                             );
@@ -823,7 +823,7 @@ impl CoreFunction {
                             );
                             handler(stage);
                     
-                            info!(
+                            bevy::prelude::info!(
                                 "Workflow '{}' in module '{}' has processed stage '{}'.",
                                 workflow_name, module_name, current_stage
                             );
@@ -865,7 +865,7 @@ impl CoreFunction {
                             );
                             handler(stage);
                     
-                            info!(
+                            bevy::prelude::info!(
                                 "Workflow '{}' in module '{}' has processed stage '{}'.",
                                 workflow_name, module_name, current_stage
                             );
@@ -908,7 +908,7 @@ impl CoreFunction {
                             );
                             handler(stage);
                     
-                            info!(
+                            bevy::prelude::info!(
                                 "Workflow '{}' in module '{}' has processed stage '{}'.",
                                 workflow_name, module_name, current_stage
                             );
@@ -951,7 +951,7 @@ impl CoreFunction {
                             );
                             handler(stage);
                     
-                            info!(
+                            bevy::prelude::info!(
                                 "Workflow '{}' in module '{}' has processed stage '{}'.",
                                 workflow_name, module_name, current_stage
                             );
@@ -996,7 +996,7 @@ impl CoreFunction {
                             );
                             handler(stage);
                     
-                            info!(
+                            bevy::prelude::info!(
                                 "Workflow '{}' in module '{}' has processed stage '{}'.",
                                 workflow_name, module_name, current_stage
                             );
@@ -1041,7 +1041,7 @@ impl CoreFunction {
                             );
                             handler(stage);
                     
-                            info!(
+                            bevy::prelude::info!(
                                 "Workflow '{}' in module '{}' has processed stage '{}'.",
                                 workflow_name, module_name, current_stage
                             );
@@ -1086,7 +1086,7 @@ impl CoreFunction {
                             );
                             handler(stage);
                     
-                            info!(
+                            bevy::prelude::info!(
                                 "Workflow '{}' in module '{}' has processed stage '{}'.",
                                 workflow_name, module_name, current_stage
                             );
@@ -1134,7 +1134,7 @@ impl CoreFunction {
                                     );
                                     handler(stage);
                     
-                                    info!(
+                                    bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
                                     );
@@ -1185,7 +1185,7 @@ impl CoreFunction {
                                     );
                                     handler(stage);
                     
-                                    info!(
+                                    bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
                                     );
@@ -1235,7 +1235,7 @@ impl CoreFunction {
                                     );
                                     handler(stage);
                     
-                                    info!(
+                                    bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
                                     );
@@ -1286,7 +1286,7 @@ impl CoreFunction {
                                     );
                                     handler(stage);
                     
-                                    info!(
+                                    bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
                                     );
@@ -1337,7 +1337,7 @@ impl CoreFunction {
                                     );
                                     handler(stage);
                     
-                                    info!(
+                                    bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
                                     );
@@ -1390,7 +1390,7 @@ impl CoreFunction {
                                     );
                                     handler(stage);
                     
-                                    info!(
+                                    bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
                                     );
@@ -1442,7 +1442,7 @@ impl CoreFunction {
                                     );
                                     handler(stage);
                     
-                                    info!(
+                                    bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
                                     );
@@ -1495,7 +1495,7 @@ impl CoreFunction {
                                     );
                                     handler(stage);
                     
-                                    info!(
+                                    bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
                                     );
@@ -1519,6 +1519,90 @@ impl CoreFunction {
             CoreFunctionType::SetupEcsWhile { .. } => match (has_input, has_state, has_error) {
                 (false, false, false) => {
                     quote! {
+                        pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let failure_sender = get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(stage) => stage,
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+                    
+                            let workflow_instance = workflow_map
+                                .map
+                                .get_mut(module_name)
+                                .and_then(|workflows| workflows.get_mut(workflow_name))
+                                .unwrap();
+                            let workflow_state = &mut workflow_instance.state();
+                    
+                            let stage_initialized = match workflow_state {
+                                WorkflowState::Requested => {
+                                    unreachable!(
+                                        "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                        workflow_instance.state()
+                                    );
+                                }
+                                WorkflowState::Processing {
+                                    current_stage: _,
+                                    current_stage_type: _,
+                                    stage_initialized,
+                                    stage_completed,
+                                } => stage_initialized,
+                            };
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
+                    
+                                let _response = setup_ecs_while(main_access);
+                                let handler = (handle_ecs_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    None,
+                                    setup_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let response = run_ecs_while(state, main_access);
+                                let handler = (handle_ecs_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    wait_sender,
+                                    completion_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_ecs_while(main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             setup_ecs_while_inner(main_access);
                             None
@@ -1529,6 +1613,90 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
+                        pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let failure_sender = get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(stage) => stage,
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+                    
+                            let workflow_instance = workflow_map
+                                .map
+                                .get_mut(module_name)
+                                .and_then(|workflows| workflows.get_mut(workflow_name))
+                                .unwrap();
+                            let workflow_state = &mut workflow_instance.state();
+                    
+                            let stage_initialized = match workflow_state {
+                                WorkflowState::Requested => {
+                                    unreachable!(
+                                        "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                        workflow_instance.state()
+                                    );
+                                }
+                                WorkflowState::Processing {
+                                    current_stage: _,
+                                    current_stage_type: _,
+                                    stage_initialized,
+                                    stage_completed,
+                                } => stage_initialized,
+                            };
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
+                    
+                                let response = setup_ecs_while(main_access);
+                                let handler = (handle_ecs_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    setup_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let response = run_ecs_while(state, main_access);
+                                let handler = (handle_ecs_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    wait_sender,
+                                    completion_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_ecs_while(main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let result = setup_ecs_while_inner(main_access);
                             Some(Box::new(result))
@@ -1539,6 +1707,89 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
+                        pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(stage) => stage,
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+                    
+                            let workflow_instance = workflow_map
+                                .map
+                                .get_mut(module_name)
+                                .and_then(|workflows| workflows.get_mut(workflow_name))
+                                .unwrap();
+                            let workflow_state = &mut workflow_instance.state();
+                    
+                            let stage_initialized = match workflow_state {
+                                WorkflowState::Requested => {
+                                    unreachable!(
+                                        "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                        workflow_instance.state()
+                                    );
+                                }
+                                WorkflowState::Processing {
+                                    current_stage: _,
+                                    current_stage_type: _,
+                                    stage_initialized,
+                                    stage_completed,
+                                } => stage_initialized,
+                            };
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
+                    
+                                let response = setup_ecs_while(main_access);
+                                let handler = (handle_ecs_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    setup_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let response = run_ecs_while(state, main_access);
+                                let handler = (handle_ecs_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    wait_sender,
+                                    completion_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_ecs_while(main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let state = setup_ecs_while_inner(main_access);
                             Some(Box::new(state))
@@ -1549,6 +1800,90 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
+                        pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let failure_sender = get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(stage) => stage,
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+                    
+                            let workflow_instance = workflow_map
+                                .map
+                                .get_mut(module_name)
+                                .and_then(|workflows| workflows.get_mut(workflow_name))
+                                .unwrap();
+                            let workflow_state = &mut workflow_instance.state();
+                    
+                            let stage_initialized = match workflow_state {
+                                WorkflowState::Requested => {
+                                    unreachable!(
+                                        "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                        workflow_instance.state()
+                                    );
+                                }
+                                WorkflowState::Processing {
+                                    current_stage: _,
+                                    current_stage_type: _,
+                                    stage_initialized,
+                                    stage_completed,
+                                } => stage_initialized,
+                            };
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
+                    
+                                let response = setup_ecs_while(main_access);
+                                let handler = (handle_ecs_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    setup_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let response = run_ecs_while(state, main_access);
+                                let handler = (handle_ecs_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    wait_sender,
+                                    completion_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_ecs_while(main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let result = setup_ecs_while_inner(main_access);
                             Some(Box::new(result))
@@ -1559,6 +1894,90 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
+                        pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(stage) => stage,
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+                    
+                            let workflow_instance = workflow_map
+                                .map
+                                .get_mut(module_name)
+                                .and_then(|workflows| workflows.get_mut(workflow_name))
+                                .unwrap();
+                            let workflow_state = &mut workflow_instance.state();
+                    
+                            let stage_initialized = match workflow_state {
+                                WorkflowState::Requested => {
+                                    unreachable!(
+                                        "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                        workflow_instance.state()
+                                    );
+                                }
+                                WorkflowState::Processing {
+                                    current_stage: _,
+                                    current_stage_type: _,
+                                    stage_initialized,
+                                    stage_completed,
+                                } => stage_initialized,
+                            };
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
+                    
+                                let input = data_buffer;
+                                let _response = setup_ecs_while(input, main_access);
+                                let handler = (handle_ecs_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    None,
+                                    setup_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let response = run_ecs_while(state, main_access);
+                                let handler = (handle_ecs_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    wait_sender,
+                                    completion_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
                             setup_ecs_while_inner(*input, main_access);
@@ -1570,6 +1989,91 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
+                        pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let failure_sender = get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(stage) => stage,
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+                    
+                            let workflow_instance = workflow_map
+                                .map
+                                .get_mut(module_name)
+                                .and_then(|workflows| workflows.get_mut(workflow_name))
+                                .unwrap();
+                            let workflow_state = &mut workflow_instance.state();
+                    
+                            let stage_initialized = match workflow_state {
+                                WorkflowState::Requested => {
+                                    unreachable!(
+                                        "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                        workflow_instance.state()
+                                    );
+                                }
+                                WorkflowState::Processing {
+                                    current_stage: _,
+                                    current_stage_type: _,
+                                    stage_initialized,
+                                    stage_completed,
+                                } => stage_initialized,
+                            };
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
+                    
+                                let input = data_buffer;
+                                let response = setup_ecs_while(input, main_access);
+                                let handler = (handle_ecs_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    setup_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let response = run_ecs_while(state, main_access);
+                                let handler = (handle_ecs_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    wait_sender,
+                                    completion_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
                             let result = setup_ecs_while_inner(*input, main_access);
@@ -1581,6 +2085,90 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
+                        pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(stage) => stage,
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+                    
+                            let workflow_instance = workflow_map
+                                .map
+                                .get_mut(module_name)
+                                .and_then(|workflows| workflows.get_mut(workflow_name))
+                                .unwrap();
+                            let workflow_state = &mut workflow_instance.state();
+                    
+                            let stage_initialized = match workflow_state {
+                                WorkflowState::Requested => {
+                                    unreachable!(
+                                        "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                        workflow_instance.state()
+                                    );
+                                }
+                                WorkflowState::Processing {
+                                    current_stage: _,
+                                    current_stage_type: _,
+                                    stage_initialized,
+                                    stage_completed,
+                                } => stage_initialized,
+                            };
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
+                    
+                                let input = data_buffer;
+                                let response = setup_ecs_while(input, main_access);
+                                let handler = (handle_ecs_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    setup_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let response = run_ecs_while(state, main_access);
+                                let handler = (handle_ecs_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    wait_sender,
+                                    completion_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
                             let state = setup_ecs_while_inner(*input, main_access);
@@ -1592,6 +2180,91 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
+                        pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let failure_sender = get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(stage) => stage,
+                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
+                            };
+                            let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+                    
+                            let workflow_instance = workflow_map
+                                .map
+                                .get_mut(module_name)
+                                .and_then(|workflows| workflows.get_mut(workflow_name))
+                                .unwrap();
+                            let workflow_state = &mut workflow_instance.state();
+                    
+                            let stage_initialized = match workflow_state {
+                                WorkflowState::Requested => {
+                                    unreachable!(
+                                        "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                        workflow_instance.state()
+                                    );
+                                }
+                                WorkflowState::Processing {
+                                    current_stage: _,
+                                    current_stage_type: _,
+                                    stage_initialized,
+                                    stage_completed,
+                                } => stage_initialized,
+                            };
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
+                    
+                                let input = data_buffer;
+                                let response = setup_ecs_while(input, main_access);
+                                let handler = (handle_ecs_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    setup_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let response = run_ecs_while(state, main_access);
+                                let handler = (handle_ecs_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    wait_sender,
+                                    completion_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_ecs_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
                             let result = setup_ecs_while_inner(*input, main_access);
@@ -1605,6 +2278,74 @@ impl CoreFunction {
             CoreFunctionType::SetupRenderWhile { .. } => match (has_input, has_state, has_error) {
                 (false, false, false) => {
                     quote! {
+                        pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let failure_sender = get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(stage) => stage,
+                            };
+                            let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
+                                .0
+                                .iter()
+                                .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
+                                .map(|(_, _, _, init, complete)| (*init, *complete))
+                                .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                            let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
+                    
+                                let response = setup_render_while(render_access);
+                                let handler = (handle_render_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    setup_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let _response = run_render_while(state, render_access);
+                                let handler = (handle_render_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    None,
+                                    wait_sender,
+                                    completion_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_render_while(render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             setup_render_while_inner(render_access);
                             None
@@ -1615,6 +2356,74 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
+                        pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let failure_sender = get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(stage) => stage,
+                            };
+                            let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
+                                .0
+                                .iter()
+                                .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
+                                .map(|(_, _, _, init, complete)| (*init, *complete))
+                                .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                            let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
+                    
+                                let response = setup_render_while(render_access);
+                                let handler = (handle_render_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    setup_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let response = run_render_while(state, render_access);
+                                let handler = (handle_render_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    wait_sender,
+                                    completion_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_render_while(render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let result = setup_render_while_inner(render_access);
                             Some(Box::new(result))
@@ -1625,6 +2434,73 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
+                        pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(stage) => stage,
+                            };
+                            let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
+                                .0
+                                .iter()
+                                .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
+                                .map(|(_, _, _, init, complete)| (*init, *complete))
+                                .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                            let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
+                    
+                                let response = setup_render_while(render_access);
+                                let handler = (handle_render_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    setup_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let response = run_render_while(state, render_access);
+                                let handler = (handle_render_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    wait_sender,
+                                    completion_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_render_while(render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let state = setup_render_while_inner(render_access);
                             Some(Box::new(state))
@@ -1635,6 +2511,74 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
+                        pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let failure_sender = get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(stage) => stage,
+                            };
+                            let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
+                                .0
+                                .iter()
+                                .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
+                                .map(|(_, _, _, init, complete)| (*init, *complete))
+                                .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                            let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
+                    
+                                let response = setup_render_while(render_access);
+                                let handler = (handle_render_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    setup_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let response = run_render_while(state, render_access);
+                                let handler = (handle_render_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    wait_sender,
+                                    completion_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_render_while(render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let result = setup_render_while_inner(render_access);
                             Some(Box::new(result))
@@ -1645,6 +2589,75 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
+                        pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let failure_sender = get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(stage) => stage,
+                            };
+                            let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
+                                .0
+                                .iter()
+                                .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
+                                .map(|(_, _, _, init, complete)| (*init, *complete))
+                                .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                            let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
+                    
+                                let input = data_buffer;
+                                let response = setup_render_while(input, render_access);
+                                let handler = (handle_render_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    setup_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let _response = run_render_while(state, render_access);
+                                let handler = (handle_render_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    None,
+                                    wait_sender,
+                                    completion_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
                             setup_render_while_inner(*input, render_access);
@@ -1656,6 +2669,75 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
+                        pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let failure_sender = get_stage_failure_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(stage) => stage,
+                            };
+                            let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
+                                .0
+                                .iter()
+                                .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
+                                .map(|(_, _, _, init, complete)| (*init, *complete))
+                                .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                            let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
+                    
+                                let input = data_buffer;
+                                let response = setup_render_while(input, render_access);
+                                let handler = (handle_render_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    setup_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let response = run_render_while(state, render_access);
+                                let handler = (handle_render_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    wait_sender,
+                                    completion_sender,
+                                    Some(failure_sender),
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
                             let result = setup_render_while_inner(*input, render_access);
@@ -1667,6 +2749,74 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
+                        pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            if stage_buffer.is_empty() {
+                                return;
+                            }
+                        
+                            let setup_sender = get_stage_setup_sender();
+                            let wait_sender = get_stage_wait_sender();
+                            let completion_sender = get_stage_completion_sender();
+                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
+                            let mut stage = match stage {
+                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
+                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
+                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
+                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
+                                crate::workflow::stage::Stage::RenderWhile(stage) => stage,
+                            };
+                            let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
+                                .0
+                                .iter()
+                                .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
+                                .map(|(_, _, _, init, complete)| (*init, *complete))
+                                .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                            let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+
+                            if *stage_completed {
+                                return;
+                            }
+                    
+                            if !*stage_initialized {
+                                let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
+                    
+                                let input = data_buffer;
+                                let response = setup_render_while(input, render_access);
+                                let handler = (handle_render_while_setup_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    setup_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                *stage_initialized = true;
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
+                                    workflow_name, module_name, current_stage
+                                );
+                            } else {
+                                let state = data_buffer;
+                                let response = run_render_while(state, render_access);
+                                let handler = (handle_render_while_run_response)(
+                                    module_name,
+                                    workflow_name,
+                                    response,
+                                    wait_sender,
+                                    completion_sender,
+                                    None,
+                                );
+                                handler(stage);
+                    
+                                bevy::prelude::info!(
+                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
+                                    workflow_name, module_name, current_stage
+                                );
+                            }
+                        }
+
                         fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
                             let state = setup_render_while_inner(*input, render_access);
@@ -1678,7 +2828,7 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        // TODO: MINOR: Setup functions' responses (and data in general) do not need to be optional at all
+                        // TODO: MINOR: POINTER: Setup functions' responses (and data in general) do not need to be optional at all
                         fn setup_render_while(input: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let input = input.unwrap().downcast::<Input>().unwrap();
                             let result = setup_render_while_inner(*input, render_access);
@@ -1765,91 +2915,6 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
-                            if stage_buffer.is_empty() {
-                                return;
-                            }
-                        
-                            let setup_sender = get_stage_setup_sender();
-                            let wait_sender = get_stage_wait_sender();
-                            let completion_sender = get_stage_completion_sender();
-                            let failure_sender = get_stage_failure_sender();
-                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                            let mut stage = match stage {
-                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
-                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
-                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
-                                crate::workflow::stage::Stage::EcsWhile(stage) => stage,
-                                crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
-                            };
-                            let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
-                    
-                            let workflow_instance = workflow_map
-                                .map
-                                .get_mut(module_name)
-                                .and_then(|workflows| workflows.get_mut(workflow_name))
-                                .unwrap();
-                            let workflow_state = &mut workflow_instance.state();
-                    
-                            let stage_initialized = match workflow_state {
-                                WorkflowState::Requested => {
-                                    unreachable!(
-                                        "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
-                                        workflow_instance.state()
-                                    );
-                                }
-                                WorkflowState::Processing {
-                                    current_stage: _,
-                                    current_stage_type: _,
-                                    stage_initialized,
-                                    stage_completed,
-                                } => stage_initialized,
-                            };
-
-                            if *stage_completed {
-                                continue;
-                            }
-                    
-                            if !*stage_initialized {
-                                let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
-                    
-                                let input = data_buffer;
-                                let response = setup_ecs_while(input, main_access);
-                                let handler = (handle_ecs_while_setup_response)(
-                                    module_name,
-                                    workflow_name,
-                                    response,
-                                    setup_sender,
-                                    Some(failure_sender),
-                                );
-                                handler(stage);
-                    
-                                *stage_initialized = true;
-                    
-                                info!(
-                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                    workflow_name, module_name, current_stage
-                                );
-                            } else {
-                                let state = data_buffer;
-                                let response = run_ecs_while(state, main_access);
-                                let handler = (handle_ecs_while_run_response)(
-                                    module_name,
-                                    workflow_name,
-                                    response,
-                                    wait_sender,
-                                    completion_sender,
-                                    Some(failure_sender),
-                                );
-                                handler(stage);
-                    
-                                info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
-                            }
-                        }
-
                         fn run_ecs_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, main_access: MainAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let state = state.unwrap().downcast::<State>().unwrap();
                             let outcome_result = run_ecs_while_inner(*state, main_access);
@@ -1936,75 +3001,6 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
-                            if stage_buffer.is_empty() {
-                                return;
-                            }
-                        
-                            let setup_sender = get_stage_setup_sender();
-                            let wait_sender = get_stage_wait_sender();
-                            let completion_sender = get_stage_completion_sender();
-                            let failure_sender = get_stage_failure_sender();
-                            let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                            let mut stage = match stage {
-                                crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
-                                crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
-                                crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
-                                crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
-                                crate::workflow::stage::Stage::RenderWhile(stage) => stage,
-                            };
-                            let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
-                                .0
-                                .iter()
-                                .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
-                                .map(|(_, _, _, init, complete)| (*init, *complete))
-                                .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
-                            let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
-
-                            if *stage_completed {
-                                continue;
-                            }
-                    
-                            if !*stage_initialized {
-                                let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
-                    
-                                let input = data_buffer;
-                                let response = setup_render_while(input, render_access);
-                                let handler = (handle_render_while_setup_response)(
-                                    module_name,
-                                    workflow_name,
-                                    response,
-                                    setup_sender,
-                                    Some(failure_sender),
-                                );
-                                handler(stage);
-                    
-                                *stage_initialized = true;
-                    
-                                info!(
-                                    "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                    workflow_name, module_name, current_stage
-                                );
-                            } else {
-                                let state = data_buffer;
-                                let response = run_render_while(state, render_access);
-                                let handler = (handle_render_while_run_response)(
-                                    module_name,
-                                    workflow_name,
-                                    response,
-                                    wait_sender,
-                                    completion_sender,
-                                    Some(failure_sender),
-                                );
-                                handler(stage);
-                    
-                                info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
-                            }
-                        }
-
                         fn run_render_while(state: Option<Box<dyn std::any::Any + Send + Sync>>, render_access: RenderAccess) -> Option<Box<dyn std::any::Any + Send + Sync>> {
                             let state = state.unwrap().downcast::<State>().unwrap();
                             let outcome_result = run_render_while_inner(*state, render_access);
@@ -2047,6 +3043,44 @@ impl Parse for CoreFunctions<Ecs> {
     }
 }
 
+impl Parse for CoreFunctions<Render> {
+    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
+        let run: CoreFunction = input.parse()?;
+        if !matches!(
+            run.signature.function_type,
+            CoreFunctionType::RunRender { .. }
+        ) {
+            return Err(syn::Error::new(
+                run.signature.function_type.span(),
+                "Expected a `RunRender` function in Render stage.",
+            ));
+        }
+        Ok(CoreFunctions::Default {
+            _phantom_data: PhantomData,
+            run,
+        })
+    }
+}
+
+impl Parse for CoreFunctions<Async> {
+    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
+        let run: CoreFunction = input.parse()?;
+        if !matches!(
+            run.signature.function_type,
+            CoreFunctionType::RunAsync { .. }
+        ) {
+            return Err(syn::Error::new(
+                run.signature.function_type.span(),
+                "Expected a `RunAsync` function in Async stage.",
+            ));
+        }
+        Ok(CoreFunctions::Default {
+            _phantom_data: PhantomData,
+            run,
+        })
+    }
+}
+
 impl Parse for CoreFunctions<EcsWhile> {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let setup: CoreFunction = input.parse()?;
@@ -2074,25 +3108,6 @@ impl Parse for CoreFunctions<EcsWhile> {
         Ok(CoreFunctions::While {
             _phantom_data: PhantomData,
             setup,
-            run,
-        })
-    }
-}
-
-impl Parse for CoreFunctions<Render> {
-    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        let run: CoreFunction = input.parse()?;
-        if !matches!(
-            run.signature.function_type,
-            CoreFunctionType::RunRender { .. }
-        ) {
-            return Err(syn::Error::new(
-                run.signature.function_type.span(),
-                "Expected a `RunRender` function in Render stage.",
-            ));
-        }
-        Ok(CoreFunctions::Default {
-            _phantom_data: PhantomData,
             run,
         })
     }
@@ -2127,26 +3142,37 @@ impl Parse for CoreFunctions<RenderWhile> {
     }
 }
 
-impl Parse for CoreFunctions<Async> {
-    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        let run: CoreFunction = input.parse()?;
-        if !matches!(
-            run.signature.function_type,
-            CoreFunctionType::RunAsync { .. }
-        ) {
-            return Err(syn::Error::new(
-                run.signature.function_type.span(),
-                "Expected a `RunAsync` function in Async stage.",
-            ));
+impl CoreFunctions<Ecs> {
+    pub fn generate(&self) -> TokenStream {
+        match self {
+            CoreFunctions::Default { run, .. } => {
+                let run_fn = run.generate();
+
+                quote! {
+                    #run_fn
+                }
+            }
+            _ => unreachable!(),
         }
-        Ok(CoreFunctions::Default {
-            _phantom_data: PhantomData,
-            run,
-        })
     }
 }
 
-impl CoreFunctions<Ecs> {
+impl CoreFunctions<Render> {
+    pub fn generate(&self) -> TokenStream {
+        match self {
+            CoreFunctions::Default { run, .. } => {
+                let run_fn = run.generate();
+
+                quote! {
+                    #run_fn
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl CoreFunctions<Async> {
     pub fn generate(&self) -> TokenStream {
         match self {
             CoreFunctions::Default { run, .. } => {
@@ -2178,21 +3204,6 @@ impl CoreFunctions<EcsWhile> {
     }
 }
 
-impl CoreFunctions<Render> {
-    pub fn generate(&self) -> TokenStream {
-        match self {
-            CoreFunctions::Default { run, .. } => {
-                let run_fn = run.generate();
-
-                quote! {
-                    #run_fn
-                }
-            }
-            _ => unreachable!(),
-        }
-    }
-}
-
 impl CoreFunctions<RenderWhile> {
     pub fn generate(&self) -> TokenStream {
         match self {
@@ -2202,21 +3213,6 @@ impl CoreFunctions<RenderWhile> {
 
                 quote! {
                     #setup_fn
-                    #run_fn
-                }
-            }
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl CoreFunctions<Async> {
-    pub fn generate(&self) -> TokenStream {
-        match self {
-            CoreFunctions::Default { run, .. } => {
-                let run_fn = run.generate();
-
-                quote! {
                     #run_fn
                 }
             }

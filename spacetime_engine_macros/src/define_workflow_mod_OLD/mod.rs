@@ -312,8 +312,8 @@ impl Workflow {
         let workflow_plugin_ident =
             Ident::new(workflow_plugin_name.as_str(), workflow_ident.span());
 
-        let workflow_stage_systems_registration_literals = {
-            let mut workflow_stage_systems_registration_literals = vec![];
+        let workflow_stage_plugin_usage_literals = {
+            let mut workflow_stage_plugin_usage_literals = vec![];
 
             for stage in self.stages.0.iter() {
                 let stage_ident = stage.name();
@@ -322,42 +322,47 @@ impl Workflow {
                 let workflow_stage_module_ident =
                     Ident::new(workflow_stage_system_name.as_str(), stage_ident.span());
 
-                workflow_stage_systems_registration_literals.push(
+                workflow_stage_plugin_usage_literals.push(
                     match stage {
                         Stage::Ecs(_) => {
                             quote! {
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_system)
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::TypedStageBuffer::default())
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system)
                             }
                         },
                         Stage::Render(_) => {
                             quote! {
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_system)
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::TypedStageBuffer::default())
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system)
                             }
                         },
                         Stage::Async(_) => {
                             quote! {
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_async_system)
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::TypedStageBuffer::default())
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system)
                             }
                         },
                         Stage::EcsWhile(_) => {
                             quote! {
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_system)
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::TypedStageBuffer::default())
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system)
                             }
                         },
                         Stage::RenderWhile(_) => {
                             quote! {
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_while_system)
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::TypedStageBuffer::default())
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)
                             }
                         },
                     }
                 );
             }
 
-            workflow_stage_systems_registration_literals
+            workflow_stage_plugin_usage_literals
         };
 
         let workflow_plugin_declaration = {
-            if workflow_stage_systems_registration_literals.is_empty() {
+            if workflow_stage_plugin_usage_literals.is_empty() {
                 quote! {
                     pub(crate) struct #workflow_plugin_ident;
                     impl bevy::prelude::Plugin for #workflow_plugin_ident {
@@ -370,7 +375,7 @@ impl Workflow {
                     impl bevy::prelude::Plugin for #workflow_plugin_ident {
                         fn build(&self, app: &mut bevy::prelude::App) {
                             app
-                                #(#workflow_stage_systems_registration_literals)*;
+                                #(#workflow_stage_plugin_usage_literals)*;
                         }
                     }
                 }

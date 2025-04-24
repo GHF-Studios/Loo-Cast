@@ -632,7 +632,7 @@ impl<T> CoreTypes<T> {
             #render_access
 
             #[derive(Resource, Default)]
-            pub(super) enum TypedStageBuffer {
+            pub(in super::super::super) enum TypedStageBuffer {
                 #[default]
                 None,
                 Some {
