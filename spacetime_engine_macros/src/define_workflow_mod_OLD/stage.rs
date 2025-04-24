@@ -40,15 +40,24 @@ impl StageSignature {
     }
 
     pub fn has_input(&self) -> bool {
-        matches!(self, StageSignature::I | StageSignature::IE | StageSignature::IO | StageSignature::IOE)
+        matches!(
+            self,
+            StageSignature::I | StageSignature::IE | StageSignature::IO | StageSignature::IOE
+        )
     }
 
     pub fn has_output(&self) -> bool {
-        matches!(self, StageSignature::O | StageSignature::OE | StageSignature::IO | StageSignature::IOE)
+        matches!(
+            self,
+            StageSignature::O | StageSignature::OE | StageSignature::IO | StageSignature::IOE
+        )
     }
 
     pub fn has_error(&self) -> bool {
-        matches!(self, StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE)
+        matches!(
+            self,
+            StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE
+        )
     }
 }
 

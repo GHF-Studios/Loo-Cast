@@ -81,7 +81,7 @@ pub struct WorkflowRequestBuffer {
 
 // --- RenderWhile Workflow State Extraction Resources ---
 #[derive(Resource, Default, Debug)]
-pub(super) struct RenderWhileWorkflowStateExtract(
+pub struct RenderWhileWorkflowStateExtract(
     // TODO: MINOR: Remove current_stage_type
     pub Vec<(&'static str, &'static str, StageType, bool, bool)>,
 );
@@ -181,7 +181,7 @@ pub(super) struct StageFailureEventReceiver(pub Receiver<StageFailureEvent>);
 
 #[derive(Resource, Default, Debug)]
 pub struct WorkflowMap {
-    pub(super) map: HashMap<&'static str, HashMap<&'static str, WorkflowInstance>>,
+    pub map: HashMap<&'static str, HashMap<&'static str, WorkflowInstance>>,
 }
 
 impl WorkflowMap {

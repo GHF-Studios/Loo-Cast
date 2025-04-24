@@ -1,4 +1,4 @@
-use super::stage::{StageSignature, Ecs, Render, Async, EcsWhile, RenderWhile};
+use super::stage::{Async, Ecs, EcsWhile, Render, RenderWhile, StageSignature};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use std::marker::PhantomData;
@@ -1150,7 +1150,7 @@ impl CoreFunctions<Ecs> {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-    
+
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
@@ -1161,7 +1161,7 @@ impl CoreFunctions<Ecs> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
-    
+
                                 let _response = run_ecs(main_access);
                                 let handler = (handle_ecs_run_response)(
                                     module_name,
@@ -1171,21 +1171,21 @@ impl CoreFunctions<Ecs> {
                                     None,
                                 );
                                 handler(stage);
-    
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
                         }
-                    },
+                    }
                     (false, false, true) => {
                         quote! {
                             pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-    
+
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
@@ -1197,7 +1197,7 @@ impl CoreFunctions<Ecs> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
-    
+
                                 let response = run_ecs(main_access);
                                 let handler = (handle_ecs_run_response)(
                                     module_name,
@@ -1207,21 +1207,21 @@ impl CoreFunctions<Ecs> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-    
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
                         }
-                    },
+                    }
                     (false, true, false) => {
                         quote! {
                             pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-    
+
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
@@ -1232,7 +1232,7 @@ impl CoreFunctions<Ecs> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
-    
+
                                 let response = run_ecs(main_access);
                                 let handler = (handle_ecs_run_response)(
                                     module_name,
@@ -1242,21 +1242,21 @@ impl CoreFunctions<Ecs> {
                                     None,
                                 );
                                 handler(stage);
-    
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
                         }
-                    },
+                    }
                     (false, true, true) => {
                         quote! {
                             pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-    
+
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
@@ -1268,7 +1268,7 @@ impl CoreFunctions<Ecs> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
-    
+
                                 let response = run_ecs(main_access);
                                 let handler = (handle_ecs_run_response)(
                                     module_name,
@@ -1278,21 +1278,21 @@ impl CoreFunctions<Ecs> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-    
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
                         }
-                    },
+                    }
                     (true, false, false) => {
                         quote! {
                             pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-    
+
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
@@ -1303,7 +1303,7 @@ impl CoreFunctions<Ecs> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
-    
+
                                 let input = data_buffer;
                                 let _response = run_ecs(input, main_access);
                                 let handler = (handle_ecs_run_response)(
@@ -1314,21 +1314,21 @@ impl CoreFunctions<Ecs> {
                                     None,
                                 );
                                 handler(stage);
-    
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
                         }
-                    },
+                    }
                     (true, false, true) => {
                         quote! {
                             pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-    
+
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
@@ -1340,7 +1340,7 @@ impl CoreFunctions<Ecs> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
-    
+
                                 let input = data_buffer;
                                 let response = run_ecs(input, main_access);
                                 let handler = (handle_ecs_run_response)(
@@ -1351,21 +1351,21 @@ impl CoreFunctions<Ecs> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-    
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
                         }
-                    },
+                    }
                     (true, true, false) => {
                         quote! {
                             pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-    
+
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
@@ -1376,7 +1376,7 @@ impl CoreFunctions<Ecs> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
-    
+
                                 let input = data_buffer;
                                 let response = run_ecs(input, main_access);
                                 let handler = (handle_ecs_run_response)(
@@ -1387,21 +1387,21 @@ impl CoreFunctions<Ecs> {
                                     None,
                                 );
                                 handler(stage);
-    
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
                         }
-                    },
+                    }
                     (true, true, true) => {
                         quote! {
                             pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-    
+
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
@@ -1413,7 +1413,7 @@ impl CoreFunctions<Ecs> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
-    
+
                                 let input = data_buffer;
                                 let response = run_ecs(input, main_access);
                                 let handler = (handle_ecs_run_response)(
@@ -1424,15 +1424,15 @@ impl CoreFunctions<Ecs> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-    
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
-    
+
                         }
-                    },
+                    }
                 };
                 let run_fn = run.generate();
 
@@ -1461,8 +1461,8 @@ impl CoreFunctions<Render> {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
@@ -1472,7 +1472,7 @@ impl CoreFunctions<Render> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
                                 };
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
-                        
+
                                 let _response = run_render(render_access);
                                 let handler = (handle_render_run_response)(
                                     module_name,
@@ -1482,23 +1482,23 @@ impl CoreFunctions<Render> {
                                     None,
                                 );
                                 handler(stage);
-                        
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
                         }
-                    },
+                    }
                     (false, false, true) => {
                         quote! {
                             pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
@@ -1508,7 +1508,7 @@ impl CoreFunctions<Render> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
                                 };
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
-                        
+
                                 let response = run_render(render_access);
                                 let handler = (handle_render_run_response)(
                                     module_name,
@@ -1518,23 +1518,23 @@ impl CoreFunctions<Render> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-                        
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
-    
+
                         }
-                    },
+                    }
                     (false, true, false) => {
                         quote! {
                             pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
@@ -1544,7 +1544,7 @@ impl CoreFunctions<Render> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
                                 };
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
-                        
+
                                 let response = run_render(render_access);
                                 let handler = (handle_render_run_response)(
                                     module_name,
@@ -1554,24 +1554,24 @@ impl CoreFunctions<Render> {
                                     None,
                                 );
                                 handler(stage);
-                        
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
-    
+
                         }
-                    },
+                    }
                     (false, true, true) => {
-                        quote! {  
+                        quote! {
                             pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
@@ -1581,7 +1581,7 @@ impl CoreFunctions<Render> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
                                 };
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
-                        
+
                                 let response = run_render(render_access);
                                 let handler = (handle_render_run_response)(
                                     module_name,
@@ -1591,23 +1591,23 @@ impl CoreFunctions<Render> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-                        
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
-    
+
                         }
-                    },
+                    }
                     (true, false, false) => {
                         quote! {
                             pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
@@ -1617,7 +1617,7 @@ impl CoreFunctions<Render> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
                                 };
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
-                        
+
                                 let input = data_buffer;
                                 let _response = run_render(input, render_access);
                                 let handler = (handle_render_run_response)(
@@ -1628,24 +1628,24 @@ impl CoreFunctions<Render> {
                                     None,
                                 );
                                 handler(stage);
-                        
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
-    
+
                         }
-                    },
+                    }
                     (true, false, true) => {
                         quote! {
                             pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
@@ -1655,7 +1655,7 @@ impl CoreFunctions<Render> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
                                 };
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
-                        
+
                                 let input = data_buffer;
                                 let response = run_render(input, render_access);
                                 let handler = (handle_render_run_response)(
@@ -1666,24 +1666,24 @@ impl CoreFunctions<Render> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-                        
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
-    
+
                         }
-                    },
+                    }
                     (true, true, false) => {
                         quote! {
                             pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
@@ -1693,7 +1693,7 @@ impl CoreFunctions<Render> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
                                 };
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
-                        
+
                                 let input = data_buffer;
                                 let response = run_render(input, render_access);
                                 let handler = (handle_render_run_response)(
@@ -1704,24 +1704,24 @@ impl CoreFunctions<Render> {
                                     None,
                                 );
                                 handler(stage);
-                        
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
-    
+
                         }
-                    },
+                    }
                     (true, true, true) => {
                         quote! {
                             pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
@@ -1731,7 +1731,7 @@ impl CoreFunctions<Render> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
                                 };
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
-                        
+
                                 let input = data_buffer;
                                 let response = run_render(input, render_access);
                                 let handler = (handle_render_run_response)(
@@ -1742,15 +1742,15 @@ impl CoreFunctions<Render> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-                        
+
                                 bevy::prelude::info!(
                                     "Workflow '{}' in module '{}' has processed stage '{}'.",
                                     workflow_name, module_name, current_stage
                                 );
                             }
-    
+
                         }
-                    },
+                    }
                 };
                 let run_fn = run.generate();
 
@@ -1779,8 +1779,8 @@ impl CoreFunctions<Async> {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
@@ -1790,7 +1790,7 @@ impl CoreFunctions<Async> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
                                 };
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
-                        
+
                                 let response_future = (run_async)();
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
                                     tokio::spawn(async move {
@@ -1803,7 +1803,7 @@ impl CoreFunctions<Async> {
                                             None,
                                         );
                                         handler(stage);
-                        
+
                                         bevy::prelude::info!(
                                             "Workflow '{}' in module '{}' has processed stage '{}'.",
                                             workflow_name, module_name, current_stage
@@ -1815,16 +1815,16 @@ impl CoreFunctions<Async> {
                                 }
                             }
                         }
-                    },
+                    }
                     (false, false, true) => {
                         quote! {
                             pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
@@ -1834,7 +1834,7 @@ impl CoreFunctions<Async> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
                                 };
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
-                        
+
                                 let response_future = (run_async)();
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
                                     tokio::spawn(async move {
@@ -1847,7 +1847,7 @@ impl CoreFunctions<Async> {
                                             Some(failure_sender),
                                         );
                                         handler(stage);
-                        
+
                                         bevy::prelude::info!(
                                             "Workflow '{}' in module '{}' has processed stage '{}'.",
                                             workflow_name, module_name, current_stage
@@ -1859,15 +1859,15 @@ impl CoreFunctions<Async> {
                                 }
                             }
                         }
-                    },
+                    }
                     (false, true, false) => {
                         quote! {
                             pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
@@ -1877,7 +1877,7 @@ impl CoreFunctions<Async> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
                                 };
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
-                        
+
                                 let response_future = (run_async)();
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
                                     tokio::spawn(async move {
@@ -1890,7 +1890,7 @@ impl CoreFunctions<Async> {
                                             None,
                                         );
                                         handler(stage);
-                        
+
                                         bevy::prelude::info!(
                                             "Workflow '{}' in module '{}' has processed stage '{}'.",
                                             workflow_name, module_name, current_stage
@@ -1902,16 +1902,16 @@ impl CoreFunctions<Async> {
                                 }
                             }
                         }
-                    },
+                    }
                     (false, true, true) => {
-                        quote! {  
+                        quote! {
                             pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
@@ -1921,7 +1921,7 @@ impl CoreFunctions<Async> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
                                 };
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
-                        
+
                                 let response_future = (run_async)();
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
                                     tokio::spawn(async move {
@@ -1934,7 +1934,7 @@ impl CoreFunctions<Async> {
                                             Some(failure_sender),
                                         );
                                         handler(stage);
-                        
+
                                         bevy::prelude::info!(
                                             "Workflow '{}' in module '{}' has processed stage '{}'.",
                                             workflow_name, module_name, current_stage
@@ -1946,15 +1946,15 @@ impl CoreFunctions<Async> {
                                 }
                             }
                         }
-                    },
+                    }
                     (true, false, false) => {
                         quote! {
                             pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
@@ -1964,7 +1964,7 @@ impl CoreFunctions<Async> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
                                 };
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
-                        
+
                                 let input = data_buffer;
                                 let response_future = (run_async)(input);
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
@@ -1978,7 +1978,7 @@ impl CoreFunctions<Async> {
                                             None,
                                         );
                                         handler(stage);
-                        
+
                                         bevy::prelude::info!(
                                             "Workflow '{}' in module '{}' has processed stage '{}'.",
                                             workflow_name, module_name, current_stage
@@ -1990,16 +1990,16 @@ impl CoreFunctions<Async> {
                                 }
                             }
                         }
-                    },
+                    }
                     (true, false, true) => {
                         quote! {
                             pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
@@ -2009,7 +2009,7 @@ impl CoreFunctions<Async> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
                                 };
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
-                        
+
                                 let input = data_buffer;
                                 let response_future = (run_async)(input);
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
@@ -2023,7 +2023,7 @@ impl CoreFunctions<Async> {
                                             Some(failure_sender),
                                         );
                                         handler(stage);
-                        
+
                                         bevy::prelude::info!(
                                             "Workflow '{}' in module '{}' has processed stage '{}'.",
                                             workflow_name, module_name, current_stage
@@ -2035,15 +2035,15 @@ impl CoreFunctions<Async> {
                                 }
                             }
                         }
-                    },
+                    }
                     (true, true, false) => {
                         quote! {
                             pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
@@ -2053,7 +2053,7 @@ impl CoreFunctions<Async> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
                                 };
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
-                        
+
                                 let input = data_buffer;
                                 let response_future = (run_async)(input);
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
@@ -2067,7 +2067,7 @@ impl CoreFunctions<Async> {
                                             None,
                                         );
                                         handler(stage);
-                        
+
                                         bevy::prelude::info!(
                                             "Workflow '{}' in module '{}' has processed stage '{}'.",
                                             workflow_name, module_name, current_stage
@@ -2079,16 +2079,16 @@ impl CoreFunctions<Async> {
                                 }
                             }
                         }
-                    },
+                    }
                     (true, true, true) => {
                         quote! {
                             pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
@@ -2098,7 +2098,7 @@ impl CoreFunctions<Async> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
                                 };
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
-                        
+
                                 let input = data_buffer;
                                 let response_future = (run_async)(input);
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
@@ -2112,7 +2112,7 @@ impl CoreFunctions<Async> {
                                             Some(failure_sender),
                                         );
                                         handler(stage);
-                        
+
                                         bevy::prelude::info!(
                                             "Workflow '{}' in module '{}' has processed stage '{}'.",
                                             workflow_name, module_name, current_stage
@@ -2124,7 +2124,7 @@ impl CoreFunctions<Async> {
                                 }
                             }
                         }
-                    },
+                    }
                 };
                 let run_fn = run.generate();
 
@@ -2149,15 +2149,15 @@ impl CoreFunctions<EcsWhile> {
                 let poll_fn = match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
@@ -2167,36 +2167,36 @@ impl CoreFunctions<EcsWhile> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
-                        
+
                                 let workflow_instance = workflow_map
                                     .map
                                     .get_mut(module_name)
                                     .and_then(|workflows| workflows.get_mut(workflow_name))
                                     .unwrap();
                                 let workflow_state = &mut workflow_instance.state();
-                        
-                                let stage_initialized = match workflow_state {
-                                    WorkflowState::Requested => {
+
+                                let (stage_initialized, stage_completed) = match workflow_state {
+                                    crate::workflow::types::WorkflowState::Requested => {
                                         unreachable!(
-                                            "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                            "Unexpected workflow state. Expected 'crate::workflow::types::WorkflowState::Processing', got '{:?}'",
                                             workflow_instance.state()
                                         );
                                     }
-                                    WorkflowState::Processing {
+                                    crate::workflow::types::WorkflowState::Processing {
                                         current_stage: _,
                                         current_stage_type: _,
                                         stage_initialized,
                                         stage_completed,
-                                    } => stage_initialized,
+                                    } => (stage_initialized, stage_completed),
                                 };
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
-                        
+
                                     let _response = setup_ecs_while(main_access);
                                     let handler = (handle_ecs_while_setup_response)(
                                         module_name,
@@ -2206,9 +2206,9 @@ impl CoreFunctions<EcsWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -2225,7 +2225,7 @@ impl CoreFunctions<EcsWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -2233,18 +2233,18 @@ impl CoreFunctions<EcsWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                     (false, false, true) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
@@ -2254,36 +2254,36 @@ impl CoreFunctions<EcsWhile> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
-                        
+
                                 let workflow_instance = workflow_map
                                     .map
                                     .get_mut(module_name)
                                     .and_then(|workflows| workflows.get_mut(workflow_name))
                                     .unwrap();
                                 let workflow_state = &mut workflow_instance.state();
-                        
-                                let stage_initialized = match workflow_state {
-                                    WorkflowState::Requested => {
+
+                                let (stage_initialized, stage_completed) = match workflow_state {
+                                    crate::workflow::types::WorkflowState::Requested => {
                                         unreachable!(
-                                            "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                            "Unexpected workflow state. Expected 'crate::workflow::types::WorkflowState::Processing', got '{:?}'",
                                             workflow_instance.state()
                                         );
                                     }
-                                    WorkflowState::Processing {
+                                    crate::workflow::types::WorkflowState::Processing {
                                         current_stage: _,
                                         current_stage_type: _,
                                         stage_initialized,
                                         stage_completed,
-                                    } => stage_initialized,
+                                    } => (stage_initialized, stage_completed),
                                 };
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
-                        
+
                                     let response = setup_ecs_while(main_access);
                                     let handler = (handle_ecs_while_setup_response)(
                                         module_name,
@@ -2293,9 +2293,9 @@ impl CoreFunctions<EcsWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -2312,26 +2312,26 @@ impl CoreFunctions<EcsWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
                                     );
                                 }
                             }
-    
+
                         }
-                    },
+                    }
                     (false, true, false) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
@@ -2341,36 +2341,36 @@ impl CoreFunctions<EcsWhile> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
-                        
+
                                 let workflow_instance = workflow_map
                                     .map
                                     .get_mut(module_name)
                                     .and_then(|workflows| workflows.get_mut(workflow_name))
                                     .unwrap();
                                 let workflow_state = &mut workflow_instance.state();
-                        
-                                let stage_initialized = match workflow_state {
-                                    WorkflowState::Requested => {
+
+                                let (stage_initialized, stage_completed) = match workflow_state {
+                                    crate::workflow::types::WorkflowState::Requested => {
                                         unreachable!(
-                                            "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                            "Unexpected workflow state. Expected 'crate::workflow::types::WorkflowState::Processing', got '{:?}'",
                                             workflow_instance.state()
                                         );
                                     }
-                                    WorkflowState::Processing {
+                                    crate::workflow::types::WorkflowState::Processing {
                                         current_stage: _,
                                         current_stage_type: _,
                                         stage_initialized,
                                         stage_completed,
-                                    } => stage_initialized,
+                                    } => (stage_initialized, stage_completed),
                                 };
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
-                        
+
                                     let response = setup_ecs_while(main_access);
                                     let handler = (handle_ecs_while_setup_response)(
                                         module_name,
@@ -2380,9 +2380,9 @@ impl CoreFunctions<EcsWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -2399,7 +2399,7 @@ impl CoreFunctions<EcsWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -2407,18 +2407,18 @@ impl CoreFunctions<EcsWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                     (false, true, true) => {
-                        quote! {  
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                        quote! {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
@@ -2428,36 +2428,36 @@ impl CoreFunctions<EcsWhile> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
-                        
+
                                 let workflow_instance = workflow_map
                                     .map
                                     .get_mut(module_name)
                                     .and_then(|workflows| workflows.get_mut(workflow_name))
                                     .unwrap();
                                 let workflow_state = &mut workflow_instance.state();
-                        
-                                let stage_initialized = match workflow_state {
-                                    WorkflowState::Requested => {
+
+                                let (stage_initialized, stage_completed) = match workflow_state {
+                                    crate::workflow::types::WorkflowState::Requested => {
                                         unreachable!(
-                                            "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                            "Unexpected workflow state. Expected 'crate::workflow::types::WorkflowState::Processing', got '{:?}'",
                                             workflow_instance.state()
                                         );
                                     }
-                                    WorkflowState::Processing {
+                                    crate::workflow::types::WorkflowState::Processing {
                                         current_stage: _,
                                         current_stage_type: _,
                                         stage_initialized,
                                         stage_completed,
-                                    } => stage_initialized,
+                                    } => (stage_initialized, stage_completed),
                                 };
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
-                        
+
                                     let response = setup_ecs_while(main_access);
                                     let handler = (handle_ecs_while_setup_response)(
                                         module_name,
@@ -2467,9 +2467,9 @@ impl CoreFunctions<EcsWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -2486,7 +2486,7 @@ impl CoreFunctions<EcsWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -2494,17 +2494,17 @@ impl CoreFunctions<EcsWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                     (true, false, false) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
@@ -2514,36 +2514,36 @@ impl CoreFunctions<EcsWhile> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
-                        
+
                                 let workflow_instance = workflow_map
                                     .map
                                     .get_mut(module_name)
                                     .and_then(|workflows| workflows.get_mut(workflow_name))
                                     .unwrap();
                                 let workflow_state = &mut workflow_instance.state();
-                        
-                                let stage_initialized = match workflow_state {
-                                    WorkflowState::Requested => {
+
+                                let (stage_initialized, stage_completed) = match workflow_state {
+                                    crate::workflow::types::WorkflowState::Requested => {
                                         unreachable!(
-                                            "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                            "Unexpected workflow state. Expected 'crate::workflow::types::WorkflowState::Processing', got '{:?}'",
                                             workflow_instance.state()
                                         );
                                     }
-                                    WorkflowState::Processing {
+                                    crate::workflow::types::WorkflowState::Processing {
                                         current_stage: _,
                                         current_stage_type: _,
                                         stage_initialized,
                                         stage_completed,
-                                    } => stage_initialized,
+                                    } => (stage_initialized, stage_completed),
                                 };
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
-                        
+
                                     let input = data_buffer;
                                     let _response = setup_ecs_while(input, main_access);
                                     let handler = (handle_ecs_while_setup_response)(
@@ -2554,9 +2554,9 @@ impl CoreFunctions<EcsWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -2573,7 +2573,7 @@ impl CoreFunctions<EcsWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -2581,18 +2581,18 @@ impl CoreFunctions<EcsWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                     (true, false, true) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
@@ -2602,36 +2602,36 @@ impl CoreFunctions<EcsWhile> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
-                        
+
                                 let workflow_instance = workflow_map
                                     .map
                                     .get_mut(module_name)
                                     .and_then(|workflows| workflows.get_mut(workflow_name))
                                     .unwrap();
                                 let workflow_state = &mut workflow_instance.state();
-                        
-                                let stage_initialized = match workflow_state {
-                                    WorkflowState::Requested => {
+
+                                let (stage_initialized, stage_completed) = match workflow_state {
+                                    crate::workflow::types::WorkflowState::Requested => {
                                         unreachable!(
-                                            "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                            "Unexpected workflow state. Expected 'crate::workflow::types::WorkflowState::Processing', got '{:?}'",
                                             workflow_instance.state()
                                         );
                                     }
-                                    WorkflowState::Processing {
+                                    crate::workflow::types::WorkflowState::Processing {
                                         current_stage: _,
                                         current_stage_type: _,
                                         stage_initialized,
                                         stage_completed,
-                                    } => stage_initialized,
+                                    } => (stage_initialized, stage_completed),
                                 };
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
-                        
+
                                     let input = data_buffer;
                                     let response = setup_ecs_while(input, main_access);
                                     let handler = (handle_ecs_while_setup_response)(
@@ -2642,9 +2642,9 @@ impl CoreFunctions<EcsWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -2661,7 +2661,7 @@ impl CoreFunctions<EcsWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -2669,17 +2669,17 @@ impl CoreFunctions<EcsWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                     (true, true, false) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
@@ -2689,36 +2689,36 @@ impl CoreFunctions<EcsWhile> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
-                        
+
                                 let workflow_instance = workflow_map
                                     .map
                                     .get_mut(module_name)
                                     .and_then(|workflows| workflows.get_mut(workflow_name))
                                     .unwrap();
                                 let workflow_state = &mut workflow_instance.state();
-                        
-                                let stage_initialized = match workflow_state {
-                                    WorkflowState::Requested => {
+
+                                let (stage_initialized, stage_completed) = match workflow_state {
+                                    crate::workflow::types::WorkflowState::Requested => {
                                         unreachable!(
-                                            "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                            "Unexpected workflow state. Expected 'crate::workflow::types::WorkflowState::Processing', got '{:?}'",
                                             workflow_instance.state()
                                         );
                                     }
-                                    WorkflowState::Processing {
+                                    crate::workflow::types::WorkflowState::Processing {
                                         current_stage: _,
                                         current_stage_type: _,
                                         stage_initialized,
                                         stage_completed,
-                                    } => stage_initialized,
+                                    } => (stage_initialized, stage_completed),
                                 };
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
-                        
+
                                     let input = data_buffer;
                                     let response = setup_ecs_while(input, main_access);
                                     let handler = (handle_ecs_while_setup_response)(
@@ -2729,9 +2729,9 @@ impl CoreFunctions<EcsWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -2748,7 +2748,7 @@ impl CoreFunctions<EcsWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -2756,18 +2756,18 @@ impl CoreFunctions<EcsWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                     (true, true, true) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
@@ -2777,36 +2777,36 @@ impl CoreFunctions<EcsWhile> {
                                     crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
                                 };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
-                        
+
                                 let workflow_instance = workflow_map
                                     .map
                                     .get_mut(module_name)
                                     .and_then(|workflows| workflows.get_mut(workflow_name))
                                     .unwrap();
                                 let workflow_state = &mut workflow_instance.state();
-                        
-                                let stage_initialized = match workflow_state {
-                                    WorkflowState::Requested => {
+
+                                let (stage_initialized, stage_completed) = match workflow_state {
+                                    crate::workflow::types::WorkflowState::Requested => {
                                         unreachable!(
-                                            "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
+                                            "Unexpected workflow state. Expected 'crate::workflow::types::WorkflowState::Processing', got '{:?}'",
                                             workflow_instance.state()
                                         );
                                     }
-                                    WorkflowState::Processing {
+                                    crate::workflow::types::WorkflowState::Processing {
                                         current_stage: _,
                                         current_stage_type: _,
                                         stage_initialized,
                                         stage_completed,
-                                    } => stage_initialized,
+                                    } => (stage_initialized, stage_completed),
                                 };
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
-                        
+
                                     let input = data_buffer;
                                     let response = setup_ecs_while(input, main_access);
                                     let handler = (handle_ecs_while_setup_response)(
@@ -2817,9 +2817,9 @@ impl CoreFunctions<EcsWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -2836,7 +2836,7 @@ impl CoreFunctions<EcsWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -2844,7 +2844,7 @@ impl CoreFunctions<EcsWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                 };
                 let setup_fn = setup.generate();
                 let run_fn = run.generate();
@@ -2871,15 +2871,15 @@ impl CoreFunctions<RenderWhile> {
                 let poll_fn = match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
@@ -2893,16 +2893,16 @@ impl CoreFunctions<RenderWhile> {
                                     .iter()
                                     .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
                                     .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
-                        
+
                                     let response = setup_render_while(render_access);
                                     let handler = (handle_render_while_setup_response)(
                                         module_name,
@@ -2912,9 +2912,9 @@ impl CoreFunctions<RenderWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -2931,7 +2931,7 @@ impl CoreFunctions<RenderWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -2939,18 +2939,18 @@ impl CoreFunctions<RenderWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                     (false, false, true) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
@@ -2964,16 +2964,16 @@ impl CoreFunctions<RenderWhile> {
                                     .iter()
                                     .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
                                     .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
-                        
+
                                     let response = setup_render_while(render_access);
                                     let handler = (handle_render_while_setup_response)(
                                         module_name,
@@ -2983,9 +2983,9 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -3002,7 +3002,7 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -3010,17 +3010,17 @@ impl CoreFunctions<RenderWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                     (false, true, false) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
@@ -3034,16 +3034,16 @@ impl CoreFunctions<RenderWhile> {
                                     .iter()
                                     .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
                                     .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
-                        
+
                                     let response = setup_render_while(render_access);
                                     let handler = (handle_render_while_setup_response)(
                                         module_name,
@@ -3053,9 +3053,9 @@ impl CoreFunctions<RenderWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -3072,7 +3072,7 @@ impl CoreFunctions<RenderWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -3080,18 +3080,18 @@ impl CoreFunctions<RenderWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                     (false, true, true) => {
-                        quote! {  
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                        quote! {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
@@ -3105,16 +3105,16 @@ impl CoreFunctions<RenderWhile> {
                                     .iter()
                                     .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
                                     .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
-                        
+
                                     let response = setup_render_while(render_access);
                                     let handler = (handle_render_while_setup_response)(
                                         module_name,
@@ -3124,9 +3124,9 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -3143,7 +3143,7 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -3151,18 +3151,18 @@ impl CoreFunctions<RenderWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                     (true, false, false) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
@@ -3176,16 +3176,16 @@ impl CoreFunctions<RenderWhile> {
                                     .iter()
                                     .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
                                     .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
-                        
+
                                     let input = data_buffer;
                                     let response = setup_render_while(input, render_access);
                                     let handler = (handle_render_while_setup_response)(
@@ -3196,9 +3196,9 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -3215,7 +3215,7 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -3223,18 +3223,18 @@ impl CoreFunctions<RenderWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                     (true, false, true) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
@@ -3248,16 +3248,16 @@ impl CoreFunctions<RenderWhile> {
                                     .iter()
                                     .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
                                     .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
-                        
+
                                     let input = data_buffer;
                                     let response = setup_render_while(input, render_access);
                                     let handler = (handle_render_while_setup_response)(
@@ -3268,9 +3268,9 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -3287,7 +3287,7 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -3295,17 +3295,17 @@ impl CoreFunctions<RenderWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                     (true, true, false) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
@@ -3319,16 +3319,16 @@ impl CoreFunctions<RenderWhile> {
                                     .iter()
                                     .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
                                     .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
-                        
+
                                     let input = data_buffer;
                                     let response = setup_render_while(input, render_access);
                                     let handler = (handle_render_while_setup_response)(
@@ -3339,9 +3339,9 @@ impl CoreFunctions<RenderWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -3358,7 +3358,7 @@ impl CoreFunctions<RenderWhile> {
                                         None,
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -3366,18 +3366,18 @@ impl CoreFunctions<RenderWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                     (true, true, true) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<RenderWhileWorkflowStateExtract>, main_access: MainAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
-                                let setup_sender = get_stage_setup_sender();
-                                let wait_sender = get_stage_wait_sender();
-                                let completion_sender = get_stage_completion_sender();
-                                let failure_sender = get_stage_failure_sender();
+
+                                let setup_sender = crate::workflow::channels::get_stage_setup_sender();
+                                let wait_sender = crate::workflow::channels::get_stage_wait_sender();
+                                let completion_sender = crate::workflow::channels::get_stage_completion_sender();
+                                let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stage = match stage {
                                     crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
@@ -3391,16 +3391,16 @@ impl CoreFunctions<RenderWhile> {
                                     .iter()
                                     .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
                                     .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name));
+                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
-    
+
                                 if *stage_completed {
                                     return;
                                 }
-                        
+
                                 if !*stage_initialized {
                                     let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
-                        
+
                                     let input = data_buffer;
                                     let response = setup_render_while(input, render_access);
                                     let handler = (handle_render_while_setup_response)(
@@ -3411,9 +3411,9 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     *stage_initialized = true;
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
                                         workflow_name, module_name, current_stage
@@ -3430,7 +3430,7 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-                        
+
                                     bevy::prelude::info!(
                                         "Workflow '{}' in module '{}' has processed stage '{}'.",
                                         workflow_name, module_name, current_stage
@@ -3438,7 +3438,7 @@ impl CoreFunctions<RenderWhile> {
                                 }
                             }
                         }
-                    },
+                    }
                 };
                 let setup_fn = setup.generate();
                 let run_fn = run.generate();
