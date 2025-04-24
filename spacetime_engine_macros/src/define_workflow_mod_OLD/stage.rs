@@ -38,6 +38,18 @@ impl StageSignature {
             StageSignature::IOE => quote! { crate::workflow::stage::StageSignature::IOE },
         }
     }
+
+    pub fn has_input(&self) -> bool {
+        matches!(self, StageSignature::I | StageSignature::IE | StageSignature::IO | StageSignature::IOE)
+    }
+
+    pub fn has_output(&self) -> bool {
+        matches!(self, StageSignature::O | StageSignature::OE | StageSignature::IO | StageSignature::IOE)
+    }
+
+    pub fn has_error(&self) -> bool {
+        matches!(self, StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE)
+    }
 }
 
 pub enum Stage {
@@ -464,9 +476,9 @@ impl TypedStage<Ecs> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let signature = signature.generate();
         let core_types = self.core_types.generate();
-        let core_functions = self.core_functions.generate();
+        let core_functions = self.core_functions.generate(signature);
+        let signature = signature.generate();
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -864,9 +876,9 @@ impl TypedStage<Render> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let signature = signature.generate();
         let core_types = self.core_types.generate();
-        let core_functions = self.core_functions.generate();
+        let core_functions = self.core_functions.generate(signature);
+        let signature = signature.generate();
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -1264,9 +1276,9 @@ impl TypedStage<Async> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let signature = signature.generate();
         let core_types = self.core_types.generate();
-        let core_functions = self.core_functions.generate();
+        let core_functions = self.core_functions.generate(signature);
+        let signature = signature.generate();
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -1666,9 +1678,9 @@ impl TypedStage<EcsWhile> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let signature = signature.generate();
         let core_types = self.core_types.generate();
-        let core_functions = self.core_functions.generate();
+        let core_functions = self.core_functions.generate(signature);
+        let signature = signature.generate();
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -2769,9 +2781,9 @@ impl TypedStage<RenderWhile> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let signature = signature.generate();
         let core_types = self.core_types.generate();
-        let core_functions = self.core_functions.generate();
+        let core_functions = self.core_functions.generate(signature);
+        let signature = signature.generate();
 
         let stage_module = quote! {
             pub mod #stage_ident {
