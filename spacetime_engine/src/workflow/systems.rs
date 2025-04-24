@@ -215,9 +215,13 @@ pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
                 current_stage: _,
                 current_stage_type: _,
                 stage_initialized,
-                stage_completed: _,
+                stage_completed,
             } => stage_initialized,
         };
+
+        if *stage_completed {
+            continue;
+        }
 
         if !*stage_initialized {
             let setup_ecs_while = &mut stage.setup_ecs_while;
