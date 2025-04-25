@@ -56,5 +56,6 @@ fn main() {
         .add_plugins(PerfUiPlugin)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(SpacetimeEngineMainPlugins)
+        .add_plugins(SpacetimeEngineWorkflowPlugins)
         .run();
 }

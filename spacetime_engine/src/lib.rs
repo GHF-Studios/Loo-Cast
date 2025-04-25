@@ -78,31 +78,49 @@ impl PluginGroup for SpacetimeEngineMainPlugins {
 }
 
 define_workflow_mods!(
-    Camera,
-    Chunk,
-    Debug,
-    Gpu,
-    Player
-);
-
-pub static WORKFLOW_MODULES: &[WorkflowModule] = &[
-    WorkflowModule {
-        name: "camera",
-        workflows: &GPU_WORKFLOWS,
+    Camera {
+        SpawnMainCamera {
+            Spawn: Ecs
+        },
     },
-];
-
-pub struct SpacetimeEngineWorkflowPlugins;
-impl bevy::prelude::PluginGroup for SpacetimeEngineWorkflowPlugins {
-    fn build(self) -> bevy::app::PluginGroupBuilder {
-        bevy::app::PluginGroupBuilder::start::<Self>()
-            .add(crate::camera::workflows::camera::CameraWorkflowsPlugin)
-            .add(crate::chunk::workflows::chunk::ChunkWorkflowsPlugin)
-            .add(crate::debug::workflows::debug::DebugWorkflowsPlugin)
-            .add(crate::gpu::workflows::gpu::GpuWorkflowsPlugin)
-            .add(crate::player::workflows::player::PlayerWorkflowsPlugin)
-    }
-}
+    Chunk {
+        SpawnChunk {
+            SpawnAndValidate: Ecs
+        },
+        DespawnChunk {
+            FindAndDespawn: Ecs
+        },
+        TransferChunkOwnership {
+            FindAndTransferOwnership: Ecs
+        }
+    },
+    Debug {
+        SpawnDebugUI {
+            Spawn: Ecs
+        },
+        SpawnDebugObjects {
+            Spawn: Ecs
+        },
+    },
+    Gpu {
+        SetupTextureGenerator {
+            SetupPhase1: Ecs,
+            SetupPhase2: RenderWhile,
+            SetupPhase3: Ecs,
+        },
+        GenerateTexture {
+            PrepareRequest: Ecs,
+            GetTextureView: RenderWhile,
+            DispatchCompute: Render,
+            WaitForCompute: EcsWhile,
+        },
+    },
+    Player {
+        SpawnPlayer {
+            SpawnAndValidate: Ecs
+        },
+    },
+);
 
 pub(crate) struct SpacetimeEngineCorePlugin;
 impl Plugin for SpacetimeEngineCorePlugin {

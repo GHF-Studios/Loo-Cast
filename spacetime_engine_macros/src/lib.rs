@@ -34,13 +34,23 @@ pub fn define_workflow_mods(input: TokenStream) -> TokenStream {
         }
     });
 
-    let main_access_enum_variants = vec![quote!{ MainAccess::Placeholder }];
-    let render_access_enum_variants = vec![quote!{ RenderAccess::Placeholder }];
-    let stage_buffer_enum_variants = vec![quote!{ Placeholder }];
-
     let expanded = quote! {
-        pub(super) fn push_ecs_stages_to_ecs_buffers_system(buffer: ResMut<EcsStageBuffer>) {
-        }
+        pub static WORKFLOW_MODULES: &[WorkflowModule] = &[
+            WorkflowModule {
+                name: "Camera",
+                workflows: &[Workflow] = &[
+                    Workflow {
+                        name: "SpawnMainCamera",
+                        stages: &[WorkflowStage] = &[
+                            WorkflowStage::Ecs(WorkflowStageEcs {
+                                name: "Spawn",
+                                poll_fn: crate::camera::workflows::camera::spawn_main_camera::stages::spawn::core_functions::poll_fn,
+                            }),
+                        ],
+                    },
+                ],
+            },
+        ];
 
         pub struct WorkflowModule {
             name: &'static str,
@@ -59,30 +69,29 @@ pub fn define_workflow_mods(input: TokenStream) -> TokenStream {
             EcsWhile(WorkflowStageEcsWhile),
             RenderWhile(WorkflowStageRenderWhile),
         }
-        
         pub struct WorkflowStageEcs {
             name: &'static str,
-            polling_function: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess),
+            poll_fn: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess),
         }
         
         pub struct WorkflowStageRender {
             name: &'static str,
-            polling_function: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess),
+            poll_fn: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess),
         }
         
         pub struct WorkflowStageAsync {
             name: &'static str,
-            polling_function: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>),
+            poll_fn: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>),
         }
         
         pub struct WorkflowStageEcsWhile {
             name: &'static str,
-            polling_function: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess),
+            poll_fn: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess),
         }
         
         pub struct WorkflowStageRenderWhile {
             name: &'static str,
-            polling_function: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess),
+            poll_fn: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess),
         }
 
         pub struct SpacetimeEngineWorkflowPlugins;

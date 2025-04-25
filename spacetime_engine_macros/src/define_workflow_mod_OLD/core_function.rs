@@ -1143,7 +1143,7 @@ impl CoreFunctions<Ecs> {
 
         match self {
             CoreFunctions::Default { run, .. } => {
-                let poll_fn = match (has_input, has_output, has_error) {
+                let poll_fn_inner = match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote! {
                             pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
@@ -1437,7 +1437,22 @@ impl CoreFunctions<Ecs> {
                 let run_fn = run.generate();
 
                 quote! {
-                    #poll_fn
+                    pub fn poll_fn() -> fn(world: &mut World) {
+                        move |world| {
+                            let mut system_state: bevy::ecs::system::SystemState<(
+                                bevy::prelude::ResMut<TypedStageBuffer>,
+                                MainAccess,
+                            )> = bevy::ecs::system::SystemState::new(world);
+                            let (
+                                stage_buffer,
+                                main_access,
+                            ) = system_state.get_mut(world);
+
+                            poll_ecs_stage_buffer_system(stage_buffer, main_access);
+                        }
+                    }
+                    
+                    #poll_fn_inner
                     #run_fn
                 }
             }
@@ -1454,7 +1469,7 @@ impl CoreFunctions<Render> {
 
         match self {
             CoreFunctions::Default { run, .. } => {
-                let poll_fn = match (has_input, has_output, has_error) {
+                let poll_fn_inner = match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote! {
                             pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
@@ -1755,7 +1770,22 @@ impl CoreFunctions<Render> {
                 let run_fn = run.generate();
 
                 quote! {
-                    #poll_fn
+                    pub fn poll_fn() -> fn(world: &mut World) {
+                        move |world| {
+                            let mut system_state: bevy::ecs::system::SystemState<(
+                                bevy::prelude::ResMut<TypedStageBuffer>, 
+                                RenderAccess
+                            )> = bevy::ecs::system::SystemState::new(world);
+                            let (
+                                stage_buffer,
+                                render_access,
+                            ) = system_state.get_mut(world);
+
+                            poll_render_stage_buffer_system(stage_buffer, render_access);
+                        }
+                    }
+                    
+                    #poll_fn_inner
                     #run_fn
                 }
             }
@@ -1772,7 +1802,7 @@ impl CoreFunctions<Async> {
 
         match self {
             CoreFunctions::Default { run, .. } => {
-                let poll_fn = match (has_input, has_output, has_error) {
+                let poll_fn_inner = match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote! {
                             pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
@@ -2129,7 +2159,20 @@ impl CoreFunctions<Async> {
                 let run_fn = run.generate();
 
                 quote! {
-                    #poll_fn
+                    pub fn poll_fn() -> fn(world: &mut World) {
+                        move |world| {
+                            let mut system_state: bevy::ecs::system::SystemState<(
+                                bevy::prelude::ResMut<TypedStageBuffer>
+                            )> = bevy::ecs::system::SystemState::new(world);
+                            let (
+                                stage_buffer,
+                            ) = system_state.get_mut(world);
+
+                            poll_render_stage_buffer_system(stage_buffer);
+                        }
+                    }
+                    
+                    #poll_fn_inner
                     #run_fn
                 }
             }
@@ -2146,7 +2189,7 @@ impl CoreFunctions<EcsWhile> {
 
         match self {
             CoreFunctions::While { setup, run, .. } => {
-                let poll_fn = match (has_input, has_output, has_error) {
+                let poll_fn_inner = match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote! {
                             pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
@@ -2850,7 +2893,24 @@ impl CoreFunctions<EcsWhile> {
                 let run_fn = run.generate();
 
                 quote! {
-                    #poll_fn
+                    pub fn poll_fn() -> fn(world: &mut World) {
+                        move |world| {
+                            let mut system_state: bevy::ecs::system::SystemState<(
+                                bevy::prelude::ResMut<TypedStageBuffer>,
+                                ResMut<crate::workflow::resources::WorkflowMap>,
+                                MainAccess,
+                            )> = bevy::ecs::system::SystemState::new(world);
+                            let (
+                                stage_buffer,
+                                workflow_map,
+                                main_access,
+                            ) = system_state.get_mut(world);
+
+                            poll_ecs_while_stage_buffer_system(stage_buffer, workflow_map, main_access);
+                        }
+                    }
+                    
+                    #poll_fn_inner
                     #setup_fn
                     #run_fn
                 }
@@ -2868,7 +2928,7 @@ impl CoreFunctions<RenderWhile> {
 
         match self {
             CoreFunctions::While { setup, run, .. } => {
-                let poll_fn = match (has_input, has_output, has_error) {
+                let poll_fn_inner = match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote! {
                             pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
@@ -3444,7 +3504,24 @@ impl CoreFunctions<RenderWhile> {
                 let run_fn = run.generate();
 
                 quote! {
-                    #poll_fn
+                    pub fn poll_fn() -> fn(world: &mut World) {
+                        move |world| {
+                            let mut system_state: bevy::ecs::system::SystemState<(
+                                bevy::prelude::ResMut<TypedStageBuffer>,
+                                ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>,
+                                RenderAccess,
+                            )> = bevy::ecs::system::SystemState::new(world);
+                            let (
+                                stage_buffer,
+                                render_workflow_state_extract,
+                                render_access,
+                            ) = system_state.get_mut(world);
+
+                            poll_render_while_stage_buffer_system(stage_buffer, render_workflow_state_extract, render_access);
+                        }
+                    }
+                    
+                    #poll_fn_inner
                     #setup_fn
                     #run_fn
                 }
