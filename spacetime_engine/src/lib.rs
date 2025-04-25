@@ -40,7 +40,7 @@ pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use camera::CameraPlugin;
-use spacetime_engine_macros::define_composite_workflow;
+use spacetime_engine_macros::{define_composite_workflow, define_workflow_mods};
 use workflow::{resources::WorkflowTypeModuleRegistry, WorkflowPlugin};
 //use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;
@@ -55,8 +55,8 @@ use gpu::GpuPlugin;
 use player::PlayerPlugin;
 //use sprite_bundle::SpriteBundlePlugin;
 
-pub struct SpacetimeEnginePlugins;
-impl PluginGroup for SpacetimeEnginePlugins {
+pub struct SpacetimeEngineMainPlugins;
+impl PluginGroup for SpacetimeEngineMainPlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
             .add(SpacetimeEngineCorePlugin)
@@ -73,12 +73,34 @@ impl PluginGroup for SpacetimeEnginePlugins {
             //.add(EntityPlugin)
             //.add(MathPlugin)
             .add(PlayerPlugin)
+        //.add(SpriteBundlePlugin)
+    }
+}
+
+define_workflow_mods!(
+    Camera,
+    Chunk,
+    Debug,
+    Gpu,
+    Player
+);
+
+pub static WORKFLOW_MODULES: &[WorkflowModule] = &[
+    WorkflowModule {
+        name: "camera",
+        workflows: &GPU_WORKFLOWS,
+    },
+];
+
+pub struct SpacetimeEngineWorkflowPlugins;
+impl bevy::prelude::PluginGroup for SpacetimeEngineWorkflowPlugins {
+    fn build(self) -> bevy::app::PluginGroupBuilder {
+        bevy::app::PluginGroupBuilder::start::<Self>()
             .add(crate::camera::workflows::camera::CameraWorkflowsPlugin)
             .add(crate::chunk::workflows::chunk::ChunkWorkflowsPlugin)
             .add(crate::debug::workflows::debug::DebugWorkflowsPlugin)
             .add(crate::gpu::workflows::gpu::GpuWorkflowsPlugin)
             .add(crate::player::workflows::player::PlayerWorkflowsPlugin)
-        //.add(SpriteBundlePlugin)
     }
 }
 

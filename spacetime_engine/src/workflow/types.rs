@@ -93,3 +93,4 @@ pub enum Outcome<S, O> {
     Wait(S),
     Done(O),
 }
+

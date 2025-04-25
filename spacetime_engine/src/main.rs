@@ -55,6 +55,6 @@ fn main() {
         .add_plugins(bevy_plugins)
         .add_plugins(PerfUiPlugin)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugins(SpacetimeEnginePlugins)
+        .add_plugins(SpacetimeEngineMainPlugins)
         .run();
 }
