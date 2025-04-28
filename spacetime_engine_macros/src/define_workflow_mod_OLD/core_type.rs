@@ -644,7 +644,7 @@ impl CoreTypes<Ecs> {
                 stage_index: usize,
                 sender: Sender<FillWorkflowStageEcsBufferEvent>
             }
-            impl crate::DynFillWorkflowStageEcsBufferEventSender<FillWorkflowStageEcsBufferEvent> for FillWorkflowStageEcsBufferEventSender {
+            impl crate::DynFillWorkflowStageEcsBufferEventSender for FillWorkflowStageEcsBufferEventSender {
                 fn module_name(&self) -> &'static str {
                     self.module_name
                 }
@@ -657,7 +657,7 @@ impl CoreTypes<Ecs> {
                     self.stage_index
                 }
 
-                fn sender(&self) -> Sender<FillWorkflowStageEcsBufferEvent> {
+                fn send(&self, event: Box<dyn FillWorkflowStageEcsBufferEventMarker>) {
                     self.sender.clone()
                 }
             }
@@ -705,7 +705,7 @@ impl CoreTypes<Render> {
                 stage_index: usize,
                 sender: Sender<FillWorkflowStageRenderBufferEvent>
             }
-            impl crate::DynFillWorkflowStageRenderBufferEventSender<FillWorkflowStageRenderBufferEvent> for FillWorkflowStageRenderBufferEventSender {
+            impl crate::DynFillWorkflowStageRenderBufferEventSender for FillWorkflowStageRenderBufferEventSender {
                 fn module_name(&self) -> &'static str {
                     self.module_name
                 }
@@ -718,7 +718,7 @@ impl CoreTypes<Render> {
                     self.stage_index
                 }
 
-                fn sender(&self) -> Sender<FillWorkflowStageRenderBufferEvent> {
+                fn send(&self, event: Box<dyn FillWorkflowStageRenderBufferEventMarker>) {
                     self.sender.clone()
                 }
             }
@@ -766,7 +766,7 @@ impl CoreTypes<Async> {
                 stage_index: usize,
                 sender: Sender<FillWorkflowStageAsyncBufferEvent>
             }
-            impl crate::DynFillWorkflowStageAsyncBufferEventSender<FillWorkflowStageAsyncBufferEvent> for FillWorkflowStageAsyncBufferEventSender {
+            impl crate::DynFillWorkflowStageAsyncBufferEventSender for FillWorkflowStageAsyncBufferEventSender {
                 fn module_name(&self) -> &'static str {
                     self.module_name
                 }
@@ -779,7 +779,7 @@ impl CoreTypes<Async> {
                     self.stage_index
                 }
 
-                fn sender(&self) -> Sender<FillWorkflowStageAsyncBufferEvent> {
+                fn send(&self, event: Box<dyn FillWorkflowStageAsyncBufferEventMarker>) {
                     self.sender.clone()
                 }
             }
@@ -827,7 +827,7 @@ impl CoreTypes<EcsWhile> {
                 stage_index: usize,
                 sender: Sender<FillWorkflowStageEcsWhileBufferEvent>
             }
-            impl crate::DynFillWorkflowStageEcsWhileBufferEventSender<FillWorkflowStageEcsWhileBufferEvent> for FillWorkflowStageEcsWhileBufferEventSender {
+            impl crate::DynFillWorkflowStageEcsWhileBufferEventSender for FillWorkflowStageEcsWhileBufferEventSender {
                 fn module_name(&self) -> &'static str {
                     self.module_name
                 }
@@ -840,7 +840,7 @@ impl CoreTypes<EcsWhile> {
                     self.stage_index
                 }
 
-                fn sender(&self) -> Sender<FillWorkflowStageEcsWhileBufferEvent> {
+                fn send(&self, event: Box<dyn FillWorkflowStageEcsWhileBufferEventMarker>) {
                     self.sender.clone()
                 }
             }
@@ -888,7 +888,7 @@ impl CoreTypes<RenderWhile> {
                 stage_index: usize,
                 sender: Sender<FillWorkflowStageRenderWhileBufferEvent>
             }
-            impl crate::DynFillWorkflowStageRenderWhileBufferEventSender<FillWorkflowStageRenderWhileBufferEvent> for FillWorkflowStageRenderWhileBufferEventSender {
+            impl crate::DynFillWorkflowStageRenderWhileBufferEventSender for FillWorkflowStageRenderWhileBufferEventSender {
                 fn module_name(&self) -> &'static str {
                     self.module_name
                 }
@@ -901,7 +901,7 @@ impl CoreTypes<RenderWhile> {
                     self.stage_index
                 }
 
-                fn sender(&self) -> Sender<FillWorkflowStageRenderWhileBufferEvent> {
+                fn send(&self, event: Box<dyn FillWorkflowStageRenderWhileBufferEventMarker>) {
                     self.sender.clone()
                 }
             }

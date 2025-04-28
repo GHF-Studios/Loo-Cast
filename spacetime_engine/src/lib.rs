@@ -85,7 +85,7 @@ register_workflow_mods!(
     },
     Chunk {
         SpawnChunk {
-            SpawnAndValidate: Ecs,
+            ValidateAndSpawn: Ecs,
         },
         DespawnChunk {
             FindAndDespawn: Ecs,
@@ -117,7 +117,7 @@ register_workflow_mods!(
     },
     Player {
         SpawnPlayer {
-            SpawnAndValidate: Ecs,
+            ValidateAndSpawn: Ecs,
         },
     },
 );

@@ -1,10 +1,10 @@
-use syn::{Ident, Token};
-use syn::parse::{Parse, ParseStream, Result};
-use syn::punctuated::Punctuated;
-use syn::braced;
 use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
 use quote::quote;
+use syn::braced;
+use syn::parse::{Parse, ParseStream, Result};
+use syn::punctuated::Punctuated;
+use syn::{Ident, Token};
 
 pub struct WorkflowMods {
     pub modules: Vec<WorkflowMod>,
@@ -97,65 +97,70 @@ impl Parse for StageType {
 
 impl WorkflowMods {
     pub fn generate(self) -> TokenStream {
-        let plugin_addition_literals: Vec<_> = self.modules.iter().map(|workflow_module| {
-            let ident = &workflow_module.name;
-            let mod_name = ident.to_string().to_lowercase();
-            let mod_ident = Ident::new(mod_name.as_str(), ident.span());
-            let plugin_name = syn::Ident::new(&format!("{}WorkflowsPlugin", ident), ident.span());
+        let plugin_addition_literals: Vec<_> = self
+            .modules
+            .iter()
+            .map(|workflow_module| {
+                let ident = &workflow_module.name;
+                let mod_name = ident.to_string().to_lowercase();
+                let mod_ident = Ident::new(mod_name.as_str(), ident.span());
+                let plugin_name =
+                    syn::Ident::new(&format!("{}WorkflowsPlugin", ident), ident.span());
 
-            quote! {
-                .add(crate::#mod_ident::workflows::#mod_ident::#plugin_name)
-            }
-        }).collect();
+                quote! {
+                    .add(crate::#mod_ident::workflows::#mod_ident::#plugin_name)
+                }
+            })
+            .collect();
 
         let workflow_modules_items = quote! {
-            pub trait FillWorkflowStageEcsBufferEventMarker: Send {}
-            pub trait FillWorkflowStageRenderBufferEventMarker: Send {}
-            pub trait FillWorkflowStageAsyncBufferEventMarker: Send {}
-            pub trait FillWorkflowStageEcsWhileBufferEventMarker: Send {}
-            pub trait FillWorkflowStageRenderWhileBufferEventMarker: Send {}
-    
-            pub trait DynFillWorkflowStageEcsBufferEventSender<T: FillWorkflowStageEcsBufferEventMarker>: Send + Sync {
+            pub trait FillWorkflowStageEcsBufferEventMarker: std::any::Any + Send {}
+            pub trait FillWorkflowStageRenderBufferEventMarker: std::any::Any + Send {}
+            pub trait FillWorkflowStageAsyncBufferEventMarker: std::any::Any + Send {}
+            pub trait FillWorkflowStageEcsWhileBufferEventMarker: std::any::Any + Send {}
+            pub trait FillWorkflowStageRenderWhileBufferEventMarker: std::any::Any + Send {}
+
+            pub trait DynFillWorkflowStageEcsBufferEventSender: Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
-                fn send(&self, event: T);
+                fn send(&self, event: Box<dyn FillWorkflowStageEcsBufferEventMarker>);
             }
-            pub trait DynFillWorkflowStageRenderBufferEventSender<T: FillWorkflowStageRenderBufferEventMarker>: Send + Sync {
+            pub trait DynFillWorkflowStageRenderBufferEventSender: Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
-                fn send(&self, event: T);
+                fn send(&self, event: Box<dyn FillWorkflowStageRenderBufferEventMarker>);
             }
-            pub trait DynFillWorkflowStageAsyncBufferEventSender<T: FillWorkflowStageAsyncBufferEventMarker>: Send + Sync {
+            pub trait DynFillWorkflowStageAsyncBufferEventSender: Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
-                fn send(&self, event: T);
+                fn send(&self, event: Box<dyn FillWorkflowStageAsyncBufferEventMarker>);
             }
-            pub trait DynFillWorkflowStageEcsWhileBufferEventSender<T: FillWorkflowStageEcsWhileBufferEventMarker>: Send + Sync {
+            pub trait DynFillWorkflowStageEcsWhileBufferEventSender: Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
-                fn send(&self, event: T);
+                fn send(&self, event: Box<dyn FillWorkflowStageEcsWhileBufferEventMarker>);
             }
-            pub trait DynFillWorkflowStageRenderWhileBufferEventSender<T: FillWorkflowStageRenderWhileBufferEventMarker>: Send + Sync {
+            pub trait DynFillWorkflowStageRenderWhileBufferEventSender: Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
-                fn send(&self, event: T);
+                fn send(&self, event: Box<dyn FillWorkflowStageRenderWhileBufferEventMarker>);
             }
-    
+
             pub struct WorkflowModuleMetadata {
                 name: &'static str,
                 workflows: &'static [WorkflowMetadata],
             }
-    
+
             pub struct WorkflowMetadata {
                 name: &'static str,
                 stages: &'static [WorkflowStageMetadata],
             }
-    
+
             pub enum WorkflowStageMetadata {
                 Ecs(Box<dyn DynFillWorkflowStageEcsBufferEventSender>),
                 Render(Box<dyn DynFillWorkflowStageRenderBufferEventSender>),
@@ -165,7 +170,11 @@ impl WorkflowMods {
             }
         };
 
-        let workflow_modules_metadata: Vec<_> = self.modules.into_iter().map(|workflow_module| workflow_module.generate()).collect();
+        let workflow_modules_metadata: Vec<_> = self
+            .modules
+            .into_iter()
+            .map(|workflow_module| workflow_module.generate())
+            .collect();
         let workflow_modules_metadata = quote! {
             pub static WORKFLOW_MODULES_METADATA: &[WorkflowModuleMetadata] = &[
                 #(#workflow_modules_metadata),*
@@ -174,9 +183,9 @@ impl WorkflowMods {
 
         quote! {
             #workflow_modules_items
-            
+
             #workflow_modules_metadata
-    
+
             pub struct SpacetimeEngineWorkflowPlugins;
             impl bevy::prelude::PluginGroup for SpacetimeEngineWorkflowPlugins {
                 fn build(self) -> bevy::app::PluginGroupBuilder {
@@ -192,70 +201,86 @@ impl WorkflowMod {
     pub fn generate(self) -> TokenStream {
         let workflow_module_name = self.name.to_string();
         let workflow_module_name_snake_case = workflow_module_name.as_str().to_snake_case();
-        let workflow_module_metadata: Vec<_> = self.workflows.into_iter().map(|workflow| workflow.generate(workflow_module_name_snake_case.as_str())).collect();
-        let workflow_module_metadata = quote! {
+        let workflow_module_metadata: Vec<_> = self
+            .workflows
+            .into_iter()
+            .map(|workflow| {
+                workflow.generate(Ident::new(
+                    workflow_module_name_snake_case.as_str(),
+                    self.name.span(),
+                ))
+            })
+            .collect();
+
+        quote! {
             WorkflowModuleMetadata {
                 name: #workflow_module_name,
-                workflows: &[WorkflowMetadata] = &[
+                workflows: &[
                     #(#workflow_module_metadata),*
                 ],
             }
-        };
-
-        workflow_module_metadata
+        }
     }
 }
 
 impl Workflow {
-    pub fn generate(self, module_name: &str) -> TokenStream {
+    pub fn generate(self, module_name: Ident) -> TokenStream {
         let workflow_name = self.name.to_string();
         let workflow_name_snake_case = workflow_name.as_str().to_snake_case();
-        let workflow_metadata: Vec<_> = self.stages.into_iter().map(|workflow| workflow.generate(module_name, workflow_name_snake_case.as_str())).collect();
-        let workflow_metadata = quote! {
+        let workflow_metadata: Vec<_> = self
+            .stages
+            .into_iter()
+            .map(|workflow| {
+                workflow.generate(
+                    module_name.clone(),
+                    Ident::new(workflow_name_snake_case.as_str(), self.name.span()),
+                )
+            })
+            .collect();
+
+        quote! {
             WorkflowMetadata {
                 name: #workflow_name,
-                stages: &[WorkflowStageMetadata] = &[
+                stages: &[
                     #(#workflow_metadata),*
                 ],
             }
-        };
-
-        workflow_metadata
+        }
     }
 }
 
 impl Stage {
-    pub fn generate(self, module_name: &str, workflow_name: &str) -> TokenStream {
+    pub fn generate(self, module_name: Ident, workflow_name: Ident) -> TokenStream {
         let stage_name = self.name.to_string();
-        let stage_name = stage_name.as_str().to_snake_case();
-        let stage_metadata = match self.ty {
+        let stage_name_snake_case = stage_name.as_str().to_snake_case();
+        let stage_name = Ident::new(stage_name_snake_case.as_str(), self.name.span());
+
+        match self.ty {
             StageType::Ecs => {
                 quote! {
-                    WorkflowStageMetadata::Ecs(Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_name::core_types::initialize_fill_workflow_stage_buffer_channel())),
+                    WorkflowStageMetadata::Ecs(Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_name::core_types::initialize_fill_workflow_stage_buffer_channel()))
                 }
-            },
+            }
             StageType::Render => {
                 quote! {
-                    WorkflowStageMetadata::Render(Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_name::core_types::initialize_fill_workflow_stage_buffer_channel())),
+                    WorkflowStageMetadata::Render(Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_name::core_types::initialize_fill_workflow_stage_buffer_channel()))
                 }
-            },
+            }
             StageType::Async => {
                 quote! {
-                    WorkflowStageMetadata::Async(Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_name::core_types::initialize_fill_workflow_stage_buffer_channel())),
+                    WorkflowStageMetadata::Async(Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_name::core_types::initialize_fill_workflow_stage_buffer_channel()))
                 }
-            },
+            }
             StageType::EcsWhile => {
                 quote! {
-                    WorkflowStageMetadata::EcsWhile(Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_name::core_types::initialize_fill_workflow_stage_buffer_channel())),
+                    WorkflowStageMetadata::EcsWhile(Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_name::core_types::initialize_fill_workflow_stage_buffer_channel()))
                 }
-            },
+            }
             StageType::RenderWhile => {
                 quote! {
-                    WorkflowStageMetadata::RenderWhile(Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_name::core_types::initialize_fill_workflow_stage_buffer_channel())),
+                    WorkflowStageMetadata::RenderWhile(Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_name::core_types::initialize_fill_workflow_stage_buffer_channel()))
                 }
-            },
-        };
-
-        stage_metadata
+            }
+        }
     }
 }
