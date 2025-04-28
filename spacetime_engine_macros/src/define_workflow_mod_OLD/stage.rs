@@ -485,7 +485,7 @@ impl TypedStage<Ecs> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self.core_types.generate();
+        let core_types = self.core_types.generate(self.core_types.generate_stage_type_dependent_stuff());
         let core_functions = self.core_functions.generate(signature);
         let signature = signature.generate();
 
@@ -885,7 +885,7 @@ impl TypedStage<Render> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self.core_types.generate();
+        let core_types = self.core_types.generate(self.core_types.generate_stage_type_dependent_stuff());
         let core_functions = self.core_functions.generate(signature);
         let signature = signature.generate();
 
@@ -1285,7 +1285,7 @@ impl TypedStage<Async> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self.core_types.generate();
+        let core_types = self.core_types.generate(self.core_types.generate_stage_type_dependent_stuff());
         let core_functions = self.core_functions.generate(signature);
         let signature = signature.generate();
 
@@ -1687,7 +1687,7 @@ impl TypedStage<EcsWhile> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self.core_types.generate();
+        let core_types = self.core_types.generate(self.core_types.generate_stage_type_dependent_stuff());
         let core_functions = self.core_functions.generate(signature);
         let signature = signature.generate();
 
@@ -2790,7 +2790,7 @@ impl TypedStage<RenderWhile> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self.core_types.generate();
+        let core_types = self.core_types.generate(self.core_types.generate_stage_type_dependent_stuff());
         let core_functions = self.core_functions.generate(signature);
         let signature = signature.generate();
 

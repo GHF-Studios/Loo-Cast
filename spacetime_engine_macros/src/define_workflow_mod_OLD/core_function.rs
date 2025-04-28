@@ -1437,21 +1437,6 @@ impl CoreFunctions<Ecs> {
                 let run_fn = run.generate();
 
                 quote! {
-                    pub fn poll_fn() -> fn(world: &mut World) {
-                        move |world| {
-                            let mut system_state: bevy::ecs::system::SystemState<(
-                                bevy::prelude::ResMut<TypedStageBuffer>,
-                                MainAccess,
-                            )> = bevy::ecs::system::SystemState::new(world);
-                            let (
-                                stage_buffer,
-                                main_access,
-                            ) = system_state.get_mut(world);
-
-                            poll_ecs_stage_buffer_system(stage_buffer, main_access);
-                        }
-                    }
-                    
                     #poll_fn_inner
                     #run_fn
                 }
@@ -1770,21 +1755,6 @@ impl CoreFunctions<Render> {
                 let run_fn = run.generate();
 
                 quote! {
-                    pub fn poll_fn() -> fn(world: &mut World) {
-                        move |world| {
-                            let mut system_state: bevy::ecs::system::SystemState<(
-                                bevy::prelude::ResMut<TypedStageBuffer>, 
-                                RenderAccess
-                            )> = bevy::ecs::system::SystemState::new(world);
-                            let (
-                                stage_buffer,
-                                render_access,
-                            ) = system_state.get_mut(world);
-
-                            poll_render_stage_buffer_system(stage_buffer, render_access);
-                        }
-                    }
-                    
                     #poll_fn_inner
                     #run_fn
                 }
@@ -2159,19 +2129,6 @@ impl CoreFunctions<Async> {
                 let run_fn = run.generate();
 
                 quote! {
-                    pub fn poll_fn() -> fn(world: &mut World) {
-                        move |world| {
-                            let mut system_state: bevy::ecs::system::SystemState<(
-                                bevy::prelude::ResMut<TypedStageBuffer>
-                            )> = bevy::ecs::system::SystemState::new(world);
-                            let (
-                                stage_buffer,
-                            ) = system_state.get_mut(world);
-
-                            poll_render_stage_buffer_system(stage_buffer);
-                        }
-                    }
-                    
                     #poll_fn_inner
                     #run_fn
                 }
@@ -2893,23 +2850,6 @@ impl CoreFunctions<EcsWhile> {
                 let run_fn = run.generate();
 
                 quote! {
-                    pub fn poll_fn() -> fn(world: &mut World) {
-                        move |world| {
-                            let mut system_state: bevy::ecs::system::SystemState<(
-                                bevy::prelude::ResMut<TypedStageBuffer>,
-                                ResMut<crate::workflow::resources::WorkflowMap>,
-                                MainAccess,
-                            )> = bevy::ecs::system::SystemState::new(world);
-                            let (
-                                stage_buffer,
-                                workflow_map,
-                                main_access,
-                            ) = system_state.get_mut(world);
-
-                            poll_ecs_while_stage_buffer_system(stage_buffer, workflow_map, main_access);
-                        }
-                    }
-                    
                     #poll_fn_inner
                     #setup_fn
                     #run_fn
@@ -3504,23 +3444,6 @@ impl CoreFunctions<RenderWhile> {
                 let run_fn = run.generate();
 
                 quote! {
-                    pub fn poll_fn() -> fn(world: &mut World) {
-                        move |world| {
-                            let mut system_state: bevy::ecs::system::SystemState<(
-                                bevy::prelude::ResMut<TypedStageBuffer>,
-                                ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>,
-                                RenderAccess,
-                            )> = bevy::ecs::system::SystemState::new(world);
-                            let (
-                                stage_buffer,
-                                render_workflow_state_extract,
-                                render_access,
-                            ) = system_state.get_mut(world);
-
-                            poll_render_while_stage_buffer_system(stage_buffer, render_workflow_state_extract, render_access);
-                        }
-                    }
-                    
                     #poll_fn_inner
                     #setup_fn
                     #run_fn

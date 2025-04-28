@@ -25,6 +25,8 @@ pub fn define_workflow_mod_OLD(input: TokenStream) -> TokenStream {
 pub fn define_workflow_mods(input: TokenStream) -> TokenStream {
     let idents = parse_macro_input!(input with Punctuated::<Ident, Token![,]>::parse_terminated);
 
+    let workflow_modules_metadata = todo!();
+
     let plugin_addition_literals = idents.iter().map(|ident| {
         let mod_name = ident.to_string().to_lowercase();
         let mod_ident = Ident::new(mod_name.as_str(), ident.span());
@@ -35,14 +37,14 @@ pub fn define_workflow_mods(input: TokenStream) -> TokenStream {
     });
 
     let expanded = quote! {
-        pub static WORKFLOW_MODULES: &[WorkflowModule] = &[
-            WorkflowModule {
+        pub static WORKFLOW_MODULES_METADATA: &[WorkflowModuleMetadata] = &[
+            WorkflowModuleMetadata {
                 name: "Camera",
-                workflows: &[Workflow] = &[
-                    Workflow {
+                workflows: &[WorkflowMetadata] = &[
+                    WorkflowMetadata {
                         name: "SpawnMainCamera",
-                        stages: &[WorkflowStage] = &[
-                            WorkflowStage::Ecs(WorkflowStageEcs {
+                        stages: &[WorkflowStageMetadata] = &[
+                            WorkflowStageMetadata::Ecs(WorkflowStageEcsMetadata {
                                 name: "Spawn",
                                 poll_fn: crate::camera::workflows::camera::spawn_main_camera::stages::spawn::core_functions::poll_fn,
                             }),
@@ -52,50 +54,62 @@ pub fn define_workflow_mods(input: TokenStream) -> TokenStream {
             },
         ];
 
-        pub struct WorkflowModule {
+        pub trait FillWorkflowStageEcsBufferEventMarker: Send;
+        pub trait FillWorkflowStageRenderBufferEventMarker: Send;
+        pub trait FillWorkflowStageAsyncBufferEventMarker: Send;
+        pub trait FillWorkflowStageEcsWhileBufferEventMarker: Send;
+        pub trait FillWorkflowStageRenderWhileBufferEventMarker: Send;
+
+        pub trait DynFillWorkflowStageEcsBufferEventSender<T: FillWorkflowStageEcsBufferEventMarker>: Send + Sync {
+            fn module_name(&self) -> &'static str;
+            fn workflow_name(&self) -> &'static str;
+            fn stage_index(&self) -> usize;
+            fn send(&self, event: T);
+        }
+        pub trait DynFillWorkflowStageRenderBufferEventSender<T: FillWorkflowStageRenderBufferEventMarker>: Send + Sync {
+            fn module_name(&self) -> &'static str;
+            fn workflow_name(&self) -> &'static str;
+            fn stage_index(&self) -> usize;
+            fn send(&self, event: T);
+        }
+        pub trait DynFillWorkflowStageAsyncBufferEventSender<T: FillWorkflowStageAsyncBufferEventMarker>: Send + Sync {
+            fn module_name(&self) -> &'static str;
+            fn workflow_name(&self) -> &'static str;
+            fn stage_index(&self) -> usize;
+            fn send(&self, event: T);
+        }
+        pub trait DynFillWorkflowStageEcsWhileBufferEventSender<T: FillWorkflowStageEcsWhileBufferEventMarker>: Send + Sync {
+            fn module_name(&self) -> &'static str;
+            fn workflow_name(&self) -> &'static str;
+            fn stage_index(&self) -> usize;
+            fn send(&self, event: T);
+        }
+        pub trait DynFillWorkflowStageRenderWhileBufferEventSender<T: FillWorkflowStageRenderWhileBufferEventMarker>: Send + Sync {
+            fn module_name(&self) -> &'static str;
+            fn workflow_name(&self) -> &'static str;
+            fn stage_index(&self) -> usize;
+            fn send(&self, event: T);
+        }
+
+        pub struct WorkflowModuleMetadata {
             name: &'static str,
-            workflows: &'static [Workflow],
+            workflows: &'static [WorkflowMetadata],
         }
         
-        pub struct Workflow {
+        pub struct WorkflowMetadata {
             name: &'static str,
-            stages: &'static [WorkflowStage],
+            stages: &'static [WorkflowStageMetadata],
         }
         
-        pub enum WorkflowStage {
-            Ecs(WorkflowStageEcs),
-            Render(WorkflowStageRender),
-            Async(WorkflowStageAsync),
-            EcsWhile(WorkflowStageEcsWhile),
-            RenderWhile(WorkflowStageRenderWhile),
-        }
-        pub struct WorkflowStageEcs {
-            name: &'static str,
-            poll_fn: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess),
-        }
-        
-        pub struct WorkflowStageRender {
-            name: &'static str,
-            poll_fn: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess),
-        }
-        
-        pub struct WorkflowStageAsync {
-            name: &'static str,
-            poll_fn: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>),
-        }
-        
-        pub struct WorkflowStageEcsWhile {
-            name: &'static str,
-            poll_fn: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess),
-        }
-        
-        pub struct WorkflowStageRenderWhile {
-            name: &'static str,
-            poll_fn: fn(stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess),
+        pub enum WorkflowStageMetadata {
+            Ecs(Box<dyn DynFillWorkflowStageEcsBufferEventSender>),
+            Render(Box<dyn DynFillWorkflowStageRenderBufferEventSender>),
+            Async(Box<dyn DynFillWorkflowStageAsyncBufferEventSender>),
+            EcsWhile(Box<dyn DynFillWorkflowStageEcsWhileBufferEventSender>),
+            RenderWhile(Box<dyn DynFillWorkflowStageRenderWhileBufferEventSender>),
         }
 
         pub struct SpacetimeEngineWorkflowPlugins;
-
         impl bevy::prelude::PluginGroup for SpacetimeEngineWorkflowPlugins {
             fn build(self) -> bevy::app::PluginGroupBuilder {
                 bevy::app::PluginGroupBuilder::start::<Self>()
