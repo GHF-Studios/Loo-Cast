@@ -62,8 +62,14 @@ pub(super) fn push_ecs_stages_to_ecs_buffers_system(world: &mut World) {
 }
 pub(super) fn push_render_stages_to_render_buffers_system(buffer: ResMut<RenderStageBuffer>) {}
 pub(super) fn push_async_stages_to_async_buffers_system(buffer: ResMut<AsyncStageBuffer>) {}
-pub(super) fn push_ecs_while_stages_to_ecs_while_buffers_system(buffer: ResMut<EcsWhileStageBuffer>) {}
-pub(super) fn push_render_while_stages_to_render_while_buffers_system(buffer: ResMut<RenderWhileStageBuffer>) {}
+pub(super) fn push_ecs_while_stages_to_ecs_while_buffers_system(
+    buffer: ResMut<EcsWhileStageBuffer>,
+) {
+}
+pub(super) fn push_render_while_stages_to_render_while_buffers_system(
+    buffer: ResMut<RenderWhileStageBuffer>,
+) {
+}
 
 pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
     let drained_buffer = {

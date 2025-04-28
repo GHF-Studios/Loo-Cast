@@ -40,7 +40,7 @@ pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use camera::CameraPlugin;
-use spacetime_engine_macros::{define_composite_workflow, define_workflow_mods};
+use spacetime_engine_macros::{define_composite_workflow, register_workflow_mods};
 use workflow::{resources::WorkflowTypeModuleRegistry, WorkflowPlugin};
 //use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;
@@ -77,29 +77,29 @@ impl PluginGroup for SpacetimeEngineMainPlugins {
     }
 }
 
-define_workflow_mods!(
+register_workflow_mods!(
     Camera {
         SpawnMainCamera {
-            Spawn: Ecs
+            Spawn: Ecs,
         },
     },
     Chunk {
         SpawnChunk {
-            SpawnAndValidate: Ecs
+            SpawnAndValidate: Ecs,
         },
         DespawnChunk {
-            FindAndDespawn: Ecs
+            FindAndDespawn: Ecs,
         },
         TransferChunkOwnership {
-            FindAndTransferOwnership: Ecs
+            FindAndTransferOwnership: Ecs,
         }
     },
     Debug {
         SpawnDebugUI {
-            Spawn: Ecs
+            Spawn: Ecs,
         },
         SpawnDebugObjects {
-            Spawn: Ecs
+            Spawn: Ecs,
         },
     },
     Gpu {
@@ -117,7 +117,7 @@ define_workflow_mods!(
     },
     Player {
         SpawnPlayer {
-            SpawnAndValidate: Ecs
+            SpawnAndValidate: Ecs,
         },
     },
 );

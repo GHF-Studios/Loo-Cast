@@ -611,11 +611,11 @@ impl CoreTypes<Ecs> {
 
             pub fn initialize_fill_workflow_stage_buffer_channel() -> Receiver<FillWorkflowStageEcsBufferEvent> {
                 let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = unbounded();
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(fill_workflow_stage_buffer_sender)
                     .expect("Fill workflow stage buffer sender already initialized!");
-            
+
                 fill_workflow_stage_buffer_receiver
             }
 
@@ -672,11 +672,11 @@ impl CoreTypes<Render> {
 
             pub fn initialize_fill_workflow_stage_buffer_channel() -> Receiver<FillWorkflowStageRenderBufferEvent> {
                 let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = unbounded();
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(fill_workflow_stage_buffer_sender)
                     .expect("Fill workflow stage buffer sender already initialized!");
-            
+
                 fill_workflow_stage_buffer_receiver
             }
 
@@ -733,11 +733,11 @@ impl CoreTypes<Async> {
 
             pub fn initialize_fill_workflow_stage_buffer_channel() -> Receiver<FillWorkflowStageAsyncBufferEvent> {
                 let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = unbounded();
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(fill_workflow_stage_buffer_sender)
                     .expect("Fill workflow stage buffer sender already initialized!");
-            
+
                 fill_workflow_stage_buffer_receiver
             }
 
@@ -794,11 +794,11 @@ impl CoreTypes<EcsWhile> {
 
             pub fn initialize_fill_workflow_stage_buffer_channel() -> Receiver<FillWorkflowStageEcsWhileBufferEvent> {
                 let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = unbounded();
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(fill_workflow_stage_buffer_sender)
                     .expect("Fill workflow stage buffer sender already initialized!");
-            
+
                 fill_workflow_stage_buffer_receiver
             }
 
@@ -855,11 +855,11 @@ impl CoreTypes<RenderWhile> {
 
             pub fn initialize_fill_workflow_stage_buffer_channel() -> Receiver<FillWorkflowStageRenderWhileBufferEvent> {
                 let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = unbounded();
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(fill_workflow_stage_buffer_sender)
                     .expect("Fill workflow stage buffer sender already initialized!");
-            
+
                 fill_workflow_stage_buffer_receiver
             }
 
