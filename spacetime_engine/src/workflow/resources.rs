@@ -80,6 +80,7 @@ pub struct WorkflowRequestBuffer {
 }
 
 // --- RenderWhile Workflow State Extraction Resources ---
+// TODO: Split across dedicated *extract_shard types
 #[derive(Resource, Default, Debug)]
 pub struct RenderWhileWorkflowStateExtract(
     // TODO: MINOR: Remove current_stage_type
