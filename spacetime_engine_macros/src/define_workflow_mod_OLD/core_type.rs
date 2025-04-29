@@ -651,11 +651,7 @@ impl CoreTypes<Ecs> {
                 stage: crate::workflow::stage::StageEcs,
                 stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
             }
-            impl crate::FillWorkflowStageEcsBufferEventMarker for FillWorkflowStageEcsBufferEvent {
-                fn as_any(self) -> Box<dyn std::any::Any> {
-                    Box::new(self)
-                }
-            }
+            impl crate::FillWorkflowStageEcsBufferEventMarker for FillWorkflowStageEcsBufferEvent {}
 
             #[derive(Resource)]
             pub struct FillWorkflowStageEcsBufferEventReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageEcsBufferEvent>);
@@ -680,7 +676,7 @@ impl CoreTypes<Ecs> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn crate::FillWorkflowStageEcsBufferEventMarker>) {
+                fn send(&self, event: Box<dyn crate::AnyFillWorkflowStageEcsBufferEventMarker>) {
                     let event = event.as_any().downcast::<FillWorkflowStageEcsBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
                     self.sender.send(*event);
                 }
@@ -740,11 +736,7 @@ impl CoreTypes<Render> {
                 stage: crate::workflow::stage::StageRender,
                 stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
             }
-            impl crate::FillWorkflowStageRenderBufferEventMarker for FillWorkflowStageRenderBufferEvent {
-                fn as_any(self) -> Box<dyn std::any::Any> {
-                    Box::new(self)
-                }
-            }
+            impl crate::FillWorkflowStageRenderBufferEventMarker for FillWorkflowStageRenderBufferEvent {}
 
             #[derive(Resource)]
             pub struct FillWorkflowStageRenderBufferEventReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageRenderBufferEvent>);
@@ -769,7 +761,7 @@ impl CoreTypes<Render> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn crate::FillWorkflowStageRenderBufferEventMarker>) {
+                fn send(&self, event: Box<dyn crate::AnyFillWorkflowStageRenderBufferEventMarker>) {
                     let event = event.as_any().downcast::<FillWorkflowStageRenderBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
                     self.sender.send(*event);
                 }
@@ -829,11 +821,7 @@ impl CoreTypes<Async> {
                 stage: crate::workflow::stage::StageAsync,
                 stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
             }
-            impl crate::FillWorkflowStageAsyncBufferEventMarker for FillWorkflowStageAsyncBufferEvent {
-                fn as_any(self) -> Box<dyn std::any::Any> {
-                    Box::new(self)
-                }
-            }
+            impl crate::FillWorkflowStageAsyncBufferEventMarker for FillWorkflowStageAsyncBufferEvent {}
 
             #[derive(Resource)]
             pub struct FillWorkflowStageAsyncBufferEventReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageAsyncBufferEvent>);
@@ -858,7 +846,7 @@ impl CoreTypes<Async> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn crate::FillWorkflowStageAsyncBufferEventMarker>) {
+                fn send(&self, event: Box<dyn crate::AnyFillWorkflowStageAsyncBufferEventMarker>) {
                     let event = event.as_any().downcast::<FillWorkflowStageAsyncBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
                     self.sender.send(*event);
                 }
@@ -918,11 +906,7 @@ impl CoreTypes<EcsWhile> {
                 stage: crate::workflow::stage::StageEcsWhile,
                 stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
             }
-            impl crate::FillWorkflowStageEcsWhileBufferEventMarker for FillWorkflowStageEcsWhileBufferEvent {
-                fn as_any(self) -> Box<dyn std::any::Any> {
-                    Box::new(self)
-                }
-            }
+            impl crate::FillWorkflowStageEcsWhileBufferEventMarker for FillWorkflowStageEcsWhileBufferEvent {}
 
             #[derive(Resource)]
             pub struct FillWorkflowStageEcsWhileBufferEventReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageEcsWhileBufferEvent>);
@@ -947,7 +931,7 @@ impl CoreTypes<EcsWhile> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn crate::FillWorkflowStageEcsWhileBufferEventMarker>) {
+                fn send(&self, event: Box<dyn crate::AnyFillWorkflowStageEcsWhileBufferEventMarker>) {
                     let event = event.as_any().downcast::<FillWorkflowStageEcsWhileBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
                     self.sender.send(*event);
                 }
@@ -1007,11 +991,7 @@ impl CoreTypes<RenderWhile> {
                 stage: crate::workflow::stage::StageRenderWhile,
                 stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
             }
-            impl crate::FillWorkflowStageRenderWhileBufferEventMarker for FillWorkflowStageRenderWhileBufferEvent {
-                fn as_any(self) -> Box<dyn std::any::Any> {
-                    Box::new(self)
-                }
-            }
+            impl crate::FillWorkflowStageRenderWhileBufferEventMarker for FillWorkflowStageRenderWhileBufferEvent {}
 
             #[derive(Resource)]
             pub struct FillWorkflowStageRenderWhileBufferEventReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageRenderWhileBufferEvent>);
@@ -1036,7 +1016,7 @@ impl CoreTypes<RenderWhile> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn crate::FillWorkflowStageRenderWhileBufferEventMarker>) {
+                fn send(&self, event: Box<dyn crate::AnyFillWorkflowStageRenderWhileBufferEventMarker>) {
                     let event = event.as_any().downcast::<FillWorkflowStageRenderWhileBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
                     self.sender.send(*event);
                 }

@@ -114,55 +114,87 @@ impl WorkflowMods {
             .collect();
 
         let workflow_modules_items = quote! {
-            pub trait FillWorkflowStageEcsBufferEventMarker: std::any::Any + Send {
-                fn as_any(self) -> Box<dyn std::any::Any>;
+            pub trait FillWorkflowStageEcsBufferEventMarker: std::any::Any + Send {}
+            pub trait FillWorkflowStageRenderBufferEventMarker: std::any::Any + Send {}
+            pub trait FillWorkflowStageAsyncBufferEventMarker: std::any::Any + Send {}
+            pub trait FillWorkflowStageEcsWhileBufferEventMarker: std::any::Any + Send {}
+            pub trait FillWorkflowStageRenderWhileBufferEventMarker: std::any::Any + Send {}
+
+            pub trait AnyFillWorkflowStageEcsBufferEventMarker: std::any::Any + Send {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any>;
             }
-            pub trait FillWorkflowStageRenderBufferEventMarker: std::any::Any + Send {
-                fn as_any(self) -> Box<dyn std::any::Any>;
+            pub trait AnyFillWorkflowStageRenderBufferEventMarker: std::any::Any + Send {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any>;
             }
-            pub trait FillWorkflowStageAsyncBufferEventMarker: std::any::Any + Send {
-                fn as_any(self) -> Box<dyn std::any::Any>;
+            pub trait AnyFillWorkflowStageAsyncBufferEventMarker: std::any::Any + Send {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any>;
             }
-            pub trait FillWorkflowStageEcsWhileBufferEventMarker: std::any::Any + Send {
-                fn as_any(self) -> Box<dyn std::any::Any>;
+            pub trait AnyFillWorkflowStageEcsWhileBufferEventMarker: std::any::Any + Send {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any>;
             }
-            pub trait FillWorkflowStageRenderWhileBufferEventMarker: std::any::Any + Send {
-                fn as_any(self) -> Box<dyn std::any::Any>;
+            pub trait AnyFillWorkflowStageRenderWhileBufferEventMarker: std::any::Any + Send {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any>;
+            }
+
+            impl<T: FillWorkflowStageEcsBufferEventMarker> AnyFillWorkflowStageEcsBufferEventMarker for T {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+                    self
+                }
+            }
+            impl<T: FillWorkflowStageRenderBufferEventMarker> AnyFillWorkflowStageRenderBufferEventMarker for T {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+                    self
+                }
+            }
+            impl<T: FillWorkflowStageAsyncBufferEventMarker> AnyFillWorkflowStageAsyncBufferEventMarker for T {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+                    self
+                }
+            }
+            impl<T: FillWorkflowStageEcsWhileBufferEventMarker> AnyFillWorkflowStageEcsWhileBufferEventMarker for T {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+                    self
+                }
+            }
+            impl<T: FillWorkflowStageRenderWhileBufferEventMarker> AnyFillWorkflowStageRenderWhileBufferEventMarker for T {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+                    self
+                }
             }
 
             pub trait DynFillWorkflowStageEcsBufferEventSender: dyn_clone::DynClone + Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
-                fn send(&self, event: Box<dyn FillWorkflowStageEcsBufferEventMarker>);
+                fn send(&self, event: Box<dyn AnyFillWorkflowStageEcsBufferEventMarker>);
                 fn as_any_ref(&self) -> &dyn std::any::Any;
             }
             pub trait DynFillWorkflowStageRenderBufferEventSender: dyn_clone::DynClone + Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
-                fn send(&self, event: Box<dyn FillWorkflowStageRenderBufferEventMarker>);
+                fn send(&self, event: Box<dyn AnyFillWorkflowStageRenderBufferEventMarker>);
                 fn as_any_ref(&self) -> &dyn std::any::Any;
             }
             pub trait DynFillWorkflowStageAsyncBufferEventSender: dyn_clone::DynClone + Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
-                fn send(&self, event: Box<dyn FillWorkflowStageAsyncBufferEventMarker>);
+                fn send(&self, event: Box<dyn AnyFillWorkflowStageAsyncBufferEventMarker>);
                 fn as_any_ref(&self) -> &dyn std::any::Any;
             }
             pub trait DynFillWorkflowStageEcsWhileBufferEventSender: dyn_clone::DynClone + Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
-                fn send(&self, event: Box<dyn FillWorkflowStageEcsWhileBufferEventMarker>);
+                fn send(&self, event: Box<dyn AnyFillWorkflowStageEcsWhileBufferEventMarker>);
                 fn as_any_ref(&self) -> &dyn std::any::Any;
             }
             pub trait DynFillWorkflowStageRenderWhileBufferEventSender: dyn_clone::DynClone + Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
-                fn send(&self, event: Box<dyn FillWorkflowStageRenderWhileBufferEventMarker>);
+                fn send(&self, event: Box<dyn AnyFillWorkflowStageRenderWhileBufferEventMarker>);
                 fn as_any_ref(&self) -> &dyn std::any::Any;
             }
             dyn_clone::clone_trait_object!(DynFillWorkflowStageEcsBufferEventSender);
