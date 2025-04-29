@@ -54,310 +54,182 @@ pub(super) fn extract_render_while_stage_buffer_system(world: &mut World) {
     }
 }
 
-pub(super) fn push_ecs_stages_to_ecs_buffers_system(world: &mut World) {
+pub(super) fn send_ecs_stages_to_ecs_buffers_system(mut buffer: ResMut<EcsStageBuffer>) {
     let drained_buffer = {
-        let mut buffer = world.resource_mut::<EcsStageBuffer>();
-        std::mem::take(&mut buffer.0)
-    };
-}
-pub(super) fn push_render_stages_to_render_buffers_system(buffer: ResMut<RenderStageBuffer>) {}
-pub(super) fn push_async_stages_to_async_buffers_system(buffer: ResMut<AsyncStageBuffer>) {}
-pub(super) fn push_ecs_while_stages_to_ecs_while_buffers_system(
-    buffer: ResMut<EcsWhileStageBuffer>,
-) {
-}
-pub(super) fn push_render_while_stages_to_render_while_buffers_system(
-    buffer: ResMut<RenderWhileStageBuffer>,
-) {
-}
-
-pub(super) fn poll_ecs_stage_buffer_system(world: &mut World) {
-    let drained_buffer = {
-        let mut buffer = world.resource_mut::<EcsStageBuffer>();
         std::mem::take(&mut buffer.0)
     };
 
-    let completion_sender = get_stage_completion_sender();
-    let failure_sender = get_stage_failure_sender();
-
-    for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let run_ecs = &mut stage.run_ecs;
-        let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
-        let completion_sender = completion_sender.clone();
-        let failure_sender = if stage.signature.has_error() {
-            Some(failure_sender.clone())
-        } else {
-            None
-        };
-
-        let input = data_buffer;
-        let response = (run_ecs)(input, world);
-        let handler = (handle_ecs_run_response)(
-            module_name,
-            workflow_name,
-            response,
-            completion_sender,
-            failure_sender,
-        );
-        handler(stage);
-
-        info!(
-            "Workflow '{}' in module '{}' has processed stage '{}'.",
-            workflow_name, module_name, current_stage
-        );
-    }
-}
-pub(super) fn poll_render_stage_buffer_system(world: &mut World) {
-    let drained_buffer = {
-        let mut buffer = world.resource_mut::<RenderStageBuffer>();
-        std::mem::take(&mut buffer.0)
-    };
-
-    let completion_sender = get_stage_completion_sender();
-    let failure_sender = get_stage_failure_sender();
-
-    for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let run_render = &mut stage.run_render;
-        let handle_render_run_response = &mut stage.handle_render_run_response;
-        let completion_sender = completion_sender.clone();
-        let failure_sender = if stage.signature.has_error() {
-            Some(failure_sender.clone())
-        } else {
-            None
-        };
-
-        let input = data_buffer;
-        let response = (run_render)(input, world);
-        let handler = (handle_render_run_response)(
-            module_name,
-            workflow_name,
-            response,
-            completion_sender,
-            failure_sender,
-        );
-        handler(stage);
-
-        info!(
-            "Workflow '{}' in module '{}' has processed stage '{}'.",
-            workflow_name, module_name, current_stage
-        );
-    }
-}
-pub(super) fn poll_async_stage_buffer_system(world: &mut World) {
-    let drained_buffer = {
-        let mut buffer = world.resource_mut::<AsyncStageBuffer>();
-        std::mem::take(&mut buffer.0)
-    };
-
-    let completion_sender = get_stage_completion_sender();
-    let failure_sender = get_stage_failure_sender();
-
-    for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let run_async = &mut stage.run_async;
-        let completion_sender = completion_sender.clone();
-        let failure_sender = if stage.signature.has_error() {
-            Some(failure_sender.clone())
-        } else {
-            None
-        };
-
-        let input = data_buffer;
-        let response_future = (run_async)(input);
-        if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
-            tokio::spawn(async move {
-                let response = response_future.await;
-                let handler = (stage.handle_async_run_response)(
-                    module_name,
-                    workflow_name,
-                    response,
-                    completion_sender,
-                    failure_sender,
-                );
-                handler(stage);
-
-                info!(
-                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                    workflow_name, module_name, current_stage
-                );
-            })
-            .await
-        }) {
-            unreachable!("Async stage execution error: Task spawn error: {}", err);
-        }
-    }
-}
-pub(super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
-    let drained_buffer = {
-        let mut buffer = world.resource_mut::<EcsWhileStageBuffer>();
-        std::mem::take(&mut buffer.0)
-    };
-
-    let setup_sender = get_stage_setup_sender();
-    let wait_sender = get_stage_wait_sender();
-    let completion_sender = get_stage_completion_sender();
-    let failure_sender = get_stage_failure_sender();
-
-    for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let run_ecs_while = &mut stage.run_ecs_while;
-        let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
-        let completion_sender = completion_sender.clone();
-        let failure_sender = if stage.signature.has_error() {
-            Some(failure_sender.clone())
-        } else {
-            None
-        };
-
-        let mut workflow_map = SystemState::<ResMut<WorkflowMap>>::new(world).get_mut(world);
-        let workflow_instance = workflow_map
-            .map
-            .get_mut(module_name)
-            .and_then(|workflows| workflows.get_mut(workflow_name))
-            .unwrap();
-        let workflow_state = &mut workflow_instance.state();
-
-        let stage_initialized = match workflow_state {
-            WorkflowState::Requested => {
-                unreachable!(
-                    "Unexpected workflow state. Expected 'WorkflowState::Processing', got '{:?}'",
-                    workflow_instance.state()
-                );
-            }
-            WorkflowState::Processing {
-                current_stage: _,
-                current_stage_type: _,
-                stage_initialized,
-                stage_completed,
-            } => stage_initialized,
-        };
-
-        if *stage_completed {
-            continue;
-        }
-
-        if !*stage_initialized {
-            let setup_ecs_while = &mut stage.setup_ecs_while;
-            let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
-
-            let input = data_buffer;
-            let response = (setup_ecs_while)(input, world);
-            let handler = (handle_ecs_while_setup_response)(
-                module_name,
-                workflow_name,
-                response,
-                setup_sender.clone(),
-                failure_sender.clone(),
-            );
-            handler(stage);
-
-            *stage_initialized = true;
-
-            info!(
-                "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                workflow_name, module_name, current_stage
-            );
-        } else {
-            let state = data_buffer;
-            let response = (run_ecs_while)(state, world);
-            let handler = (handle_ecs_while_run_response)(
-                module_name,
-                workflow_name,
-                Some(response),
-                wait_sender.clone(),
-                completion_sender,
-                failure_sender,
-            );
-            handler(stage);
-
-            info!(
-                "Workflow '{}' in module '{}' has processed stage '{}'.",
-                workflow_name, module_name, current_stage
-            );
-        }
-    }
-}
-pub(super) fn poll_render_while_stage_buffer_system(world: &mut World) {
-    let drained_buffer = {
-        let mut buffer = world.resource_mut::<RenderWhileStageBuffer>();
-        std::mem::take(&mut buffer.0)
-    };
-
-    let setup_sender = get_stage_setup_sender();
-    let wait_sender = get_stage_wait_sender();
-    let completion_sender = get_stage_completion_sender();
-    let failure_sender = get_stage_failure_sender();
-
-    for (module_name, workflow_name, current_stage, mut stage, data_buffer) in drained_buffer {
-        let setup_sender = setup_sender.clone();
-        let wait_sender = wait_sender.clone();
-        let completion_sender = completion_sender.clone();
-        let failure_sender = if stage.signature.has_error() {
-            Some(failure_sender.clone())
-        } else {
-            None
-        };
-
-        let render_workflow_state_extract =
-            SystemState::<ResMut<RenderWhileWorkflowStateExtract>>::new(world).get_mut(world);
-        let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
-            .0
+    for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
+        let modules_metadata = crate::get_workflow_modules_metadata();
+        let module_metadata = modules_metadata
             .iter()
-            .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
-            .map(|(_, _, _, init, complete)| (*init, *complete))
-            .expect("Render while workflow state extract error: 'stage_initialized' not found in workflow state extract");
+            .find(|module_metadata| module_metadata.name == module_name)
+            .expect("Module metadata not found");
+        let workflow_metadata = module_metadata
+            .workflows
+            .iter()
+            .find(|workflow_metadata| workflow_metadata.name == workflow_name)
+            .expect("Workflow metadata not found");
+        let sender = workflow_metadata
+            .stages
+            .iter()
+            .find_map(|stage_metadata| match stage_metadata {
+                crate::WorkflowStageMetadata::Ecs { name, sender } => if *name == stage.name { 
+                    Some(sender) 
+                } else { 
+                    None 
+                },
+                crate::WorkflowStageMetadata::Render { .. } => None,
+                crate::WorkflowStageMetadata::Async { .. } => None,
+                crate::WorkflowStageMetadata::EcsWhile { .. } => None,
+                crate::WorkflowStageMetadata::RenderWhile { .. } => None,
+            })
+            .expect("Stage sender not found");
 
-        if *stage_completed {
-            continue;
-        }
-
-        if !*stage_initialized {
-            info!(
-                "Workflow '{}' in module '{}' is initializing stage '{}'..",
-                workflow_name, module_name, current_stage
-            );
-
-            let setup_render_while = &mut stage.setup_render_while;
-            let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
-
-            let input = data_buffer;
-            let response = (setup_render_while)(input, world);
-            let handler = (handle_render_while_setup_response)(
-                module_name,
-                workflow_name,
-                response,
-                setup_sender.clone(),
-                failure_sender.clone(),
-            );
-            handler(stage);
-
-            *stage_initialized = true;
-
-            info!(
-                "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                workflow_name, module_name, current_stage
-            );
-        } else {
-            let run_render_while = &mut stage.run_render_while;
-            let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
-
-            let state = data_buffer;
-            let response = (run_render_while)(state, world);
-            let handler = (handle_render_while_run_response)(
-                module_name,
-                workflow_name,
-                Some(response),
-                wait_sender.clone(),
-                completion_sender,
-                failure_sender,
-            );
-            handler(stage);
-
-            info!(
-                "Workflow '{}' in module '{}' has processed stage '{}'.",
-                workflow_name, module_name, current_stage
-            );
-        }
+        sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
     }
 }
+pub(super) fn send_render_stages_to_render_buffers_system(mut buffer: ResMut<RenderStageBuffer>) {
+    let drained_buffer = {
+        std::mem::take(&mut buffer.0)
+    };
+
+    for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
+        let modules_metadata = crate::get_workflow_modules_metadata();
+        let module_metadata = modules_metadata
+            .iter()
+            .find(|module_metadata| module_metadata.name == module_name)
+            .expect("Module metadata not found");
+        let workflow_metadata = module_metadata
+            .workflows
+            .iter()
+            .find(|workflow_metadata| workflow_metadata.name == workflow_name)
+            .expect("Workflow metadata not found");
+        let sender = workflow_metadata
+            .stages
+            .iter()
+            .find_map(|stage_metadata| match stage_metadata {
+                crate::WorkflowStageMetadata::Ecs { .. } => None,
+                crate::WorkflowStageMetadata::Render { name, sender } => if *name == stage.name { 
+                    Some(sender) 
+                } else { 
+                    None 
+                },
+                crate::WorkflowStageMetadata::Async { .. } => None,
+                crate::WorkflowStageMetadata::EcsWhile { .. } => None,
+                crate::WorkflowStageMetadata::RenderWhile { .. } => None,
+            })
+            .expect("Stage sender not found");
+
+        sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
+    }
+}
+pub(super) fn send_async_stages_to_async_buffers_system(mut buffer: ResMut<AsyncStageBuffer>) {
+    let drained_buffer = {
+        std::mem::take(&mut buffer.0)
+    };
+
+    for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
+        let modules_metadata = crate::get_workflow_modules_metadata();
+        let module_metadata = modules_metadata
+            .iter()
+            .find(|module_metadata| module_metadata.name == module_name)
+            .expect("Module metadata not found");
+        let workflow_metadata = module_metadata
+            .workflows
+            .iter()
+            .find(|workflow_metadata| workflow_metadata.name == workflow_name)
+            .expect("Workflow metadata not found");
+        let sender = workflow_metadata
+            .stages
+            .iter()
+            .find_map(|stage_metadata| match stage_metadata {
+                crate::WorkflowStageMetadata::Ecs { .. } => None,
+                crate::WorkflowStageMetadata::Render { .. } => None,
+                crate::WorkflowStageMetadata::Async { name, sender } => if *name == stage.name { 
+                    Some(sender) 
+                } else { 
+                    None 
+                },
+                crate::WorkflowStageMetadata::EcsWhile { .. } => None,
+                crate::WorkflowStageMetadata::RenderWhile { .. } => None,
+            })
+            .expect("Stage sender not found");
+
+        sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
+    }
+}
+pub(super) fn send_ecs_while_stages_to_ecs_while_buffers_system(mut buffer: ResMut<EcsWhileStageBuffer>) {
+    let drained_buffer = {
+        std::mem::take(&mut buffer.0)
+    };
+
+    for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
+        let modules_metadata = crate::get_workflow_modules_metadata();
+        let module_metadata = modules_metadata
+            .iter()
+            .find(|module_metadata| module_metadata.name == module_name)
+            .expect("Module metadata not found");
+        let workflow_metadata = module_metadata
+            .workflows
+            .iter()
+            .find(|workflow_metadata| workflow_metadata.name == workflow_name)
+            .expect("Workflow metadata not found");
+        let sender = workflow_metadata
+            .stages
+            .iter()
+            .find_map(|stage_metadata| match stage_metadata {
+                crate::WorkflowStageMetadata::Ecs { .. } => None,
+                crate::WorkflowStageMetadata::Render { .. } => None,
+                crate::WorkflowStageMetadata::Async { .. } => None,
+                crate::WorkflowStageMetadata::EcsWhile { name, sender } => if *name == stage.name { 
+                    Some(sender) 
+                } else { 
+                    None 
+                },
+                crate::WorkflowStageMetadata::RenderWhile { .. } => None,
+            })
+            .expect("Stage sender not found");
+
+        sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
+    }
+}
+pub(super) fn send_render_while_stages_to_render_while_buffers_system(mut buffer: ResMut<RenderWhileStageBuffer>) {
+    let drained_buffer = {
+        std::mem::take(&mut buffer.0)
+    };
+
+    for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
+        let modules_metadata = crate::get_workflow_modules_metadata();
+        let module_metadata = modules_metadata
+            .iter()
+            .find(|module_metadata| module_metadata.name == module_name)
+            .expect("Module metadata not found");
+        let workflow_metadata = module_metadata
+            .workflows
+            .iter()
+            .find(|workflow_metadata| workflow_metadata.name == workflow_name)
+            .expect("Workflow metadata not found");
+        let sender = workflow_metadata
+            .stages
+            .iter()
+            .find_map(|stage_metadata| match stage_metadata {
+                crate::WorkflowStageMetadata::Ecs { .. } => None,
+                crate::WorkflowStageMetadata::Render { .. } => None,
+                crate::WorkflowStageMetadata::Async { .. } => None,
+                crate::WorkflowStageMetadata::EcsWhile { .. } => None,
+                crate::WorkflowStageMetadata::RenderWhile { name, sender } => if *name == stage.name { 
+                    Some(sender) 
+                } else { 
+                    None 
+                },
+            })
+            .expect("Stage sender not found");
+
+        sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
+    }
+}
+
 
 /// Note: We actually convert the event from 'setup' to 'wait', seeing as the event handler logic from post-setup is identical to that of post-wait
 pub(super) fn stage_setup_relay_system(

@@ -312,8 +312,12 @@ impl Workflow {
         let workflow_plugin_ident =
             Ident::new(workflow_plugin_name.as_str(), workflow_ident.span());
 
-        let workflow_stage_plugin_usage_literals = {
-            let mut workflow_stage_plugin_usage_literals = vec![];
+        let (
+            workflow_stage_ecs_plugin_usage_literals, 
+            workflow_stage_render_plugin_usage_literals,
+        ) = {
+            let mut workflow_stage_ecs_plugin_usage_literals = vec![];
+            let mut workflow_stage_render_plugin_usage_literals = vec![];
 
             for stage in self.stages.0.iter() {
                 let stage_ident = stage.name();
@@ -322,68 +326,112 @@ impl Workflow {
                 let workflow_stage_module_ident =
                     Ident::new(workflow_stage_system_name.as_str(), stage_ident.span());
 
-                workflow_stage_plugin_usage_literals.push(
-                    match stage {
-                        Stage::Ecs(_) => {
+                match stage {
+                    Stage::Ecs(_) => {
+                        workflow_stage_ecs_plugin_usage_literals.push(
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::initialize_fill_workflow_stage_buffer_channel())
                                 .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system)
                             }
-                        },
-                        Stage::Render(_) => {
+                        );
+                    },
+                    Stage::Render(_) => {
+                        workflow_stage_render_plugin_usage_literals.push(
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::initialize_fill_workflow_stage_buffer_channel())
                                 .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system)
                             }
-                        },
-                        Stage::Async(_) => {
+                        );
+                    },
+                    Stage::Async(_) => {
+                        workflow_stage_ecs_plugin_usage_literals.push(
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::initialize_fill_workflow_stage_buffer_channel())
                                 .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system)
                             }
-                        },
-                        Stage::EcsWhile(_) => {
+                        );
+                    },
+                    Stage::EcsWhile(_) => {
+                        workflow_stage_ecs_plugin_usage_literals.push(
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::initialize_fill_workflow_stage_buffer_channel())
                                 .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system)
                             }
-                        },
-                        Stage::RenderWhile(_) => {
+                        );
+                    },
+                    Stage::RenderWhile(_) => {
+                        workflow_stage_render_plugin_usage_literals.push(
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::initialize_fill_workflow_stage_buffer_channel())
                                 .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)
                             }
-                        },
-                    }
-                );
+                        );
+                    },
+                }
             }
 
-            workflow_stage_plugin_usage_literals
+            (
+                workflow_stage_ecs_plugin_usage_literals, 
+                workflow_stage_render_plugin_usage_literals, 
+            )
         };
 
         let workflow_plugin_declaration = {
-            if workflow_stage_plugin_usage_literals.is_empty() {
-                quote! {
-                    pub(crate) struct #workflow_plugin_ident;
-                    impl bevy::prelude::Plugin for #workflow_plugin_ident {
-                        fn build(&self, app: &mut bevy::prelude::App) {}
-                    }
-                }
-            } else {
-                quote! {
-                    pub(crate) struct #workflow_plugin_ident;
-                    impl bevy::prelude::Plugin for #workflow_plugin_ident {
-                        fn build(&self, app: &mut bevy::prelude::App) {
-                            app
-                                #(#workflow_stage_plugin_usage_literals)*;
+            let has_ecs_stages = !workflow_stage_ecs_plugin_usage_literals.is_empty();
+            let has_render_stages = !workflow_stage_render_plugin_usage_literals.is_empty();
+
+            match (has_ecs_stages, has_render_stages) {
+                (false, false) => {
+                    quote! {
+                        pub(crate) struct #workflow_plugin_ident;
+                        impl bevy::prelude::Plugin for #workflow_plugin_ident {
+                            fn build(&self, app: &mut bevy::prelude::App) {}
                         }
                     }
-                }
+                },
+                (false, true) => {
+                    quote! {
+                        pub(crate) struct #workflow_plugin_ident;
+                        impl bevy::prelude::Plugin for #workflow_plugin_ident {
+                            fn build(&self, app: &mut bevy::prelude::App) {
+                                let render_app = app.sub_app_mut(bevy::render::RenderApp);
+                                render_app
+                                    #(#workflow_stage_render_plugin_usage_literals)*;
+                            }
+                        }
+                    }
+                },
+                (true, false) => {
+                    quote! {
+                        pub(crate) struct #workflow_plugin_ident;
+                        impl bevy::prelude::Plugin for #workflow_plugin_ident {
+                            fn build(&self, app: &mut bevy::prelude::App) {
+                                app
+                                    #(#workflow_stage_ecs_plugin_usage_literals)*;
+                            }
+                        }
+                    }
+                },
+                (true, true) => {
+                    quote! {
+                        pub(crate) struct #workflow_plugin_ident;
+                        impl bevy::prelude::Plugin for #workflow_plugin_ident {
+                            fn build(&self, app: &mut bevy::prelude::App) {
+                                app
+                                    #(#workflow_stage_ecs_plugin_usage_literals)*;
+
+                                let render_app = app.sub_app_mut(bevy::render::RenderApp);
+                                render_app
+                                    #(#workflow_stage_render_plugin_usage_literals)*;
+                            }
+                        }
+                    }
+                },
             }
         };
 

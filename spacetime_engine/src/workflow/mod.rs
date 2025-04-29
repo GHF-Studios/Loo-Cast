@@ -160,9 +160,9 @@ impl Plugin for WorkflowPlugin {
             .add_systems(
                 Update,
                 (
-                    poll_ecs_stage_buffer_system,
-                    poll_ecs_while_stage_buffer_system,
-                    poll_async_stage_buffer_system,
+                    send_ecs_stages_to_ecs_buffers_system,
+                    send_ecs_while_stages_to_ecs_while_buffers_system,
+                    send_async_stages_to_async_buffers_system,
                 ),
             )
             .add_systems(
@@ -187,8 +187,8 @@ impl Plugin for WorkflowPlugin {
             .add_systems(
                 Render,
                 (
-                    poll_render_stage_buffer_system,
-                    poll_render_while_stage_buffer_system,
+                    send_render_stages_to_render_buffers_system,
+                    send_render_while_stages_to_render_while_buffers_system,
                 ),
             );
     }

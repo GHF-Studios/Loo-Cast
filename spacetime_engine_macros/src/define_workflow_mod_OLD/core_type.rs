@@ -676,9 +676,15 @@ impl CoreTypes<Ecs> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn crate::AnyFillWorkflowStageEcsBufferEventMarker>) {
-                    let event = event.as_any().downcast::<FillWorkflowStageEcsBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
-                    self.sender.send(*event);
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageEcs, stage_buffer: Option<Box<dyn std::any::Any + Send + Sync>>) {
+                    let event = FillWorkflowStageEcsBufferEvent {
+                        module_name,
+                        workflow_name,
+                        stage_index,
+                        stage,
+                        stage_data: stage_buffer
+                    };
+                    self.sender.send(event);
                 }
 
                 fn as_any_ref(&self) -> &dyn std::any::Any {
@@ -761,9 +767,15 @@ impl CoreTypes<Render> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn crate::AnyFillWorkflowStageRenderBufferEventMarker>) {
-                    let event = event.as_any().downcast::<FillWorkflowStageRenderBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
-                    self.sender.send(*event);
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageRender, stage_buffer: Option<Box<dyn std::any::Any + Send + Sync>>) {
+                    let event = FillWorkflowStageRenderBufferEvent {
+                        module_name,
+                        workflow_name,
+                        stage_index,
+                        stage,
+                        stage_data: stage_buffer
+                    };
+                    self.sender.send(event);
                 }
 
                 fn as_any_ref(&self) -> &dyn std::any::Any {
@@ -846,9 +858,15 @@ impl CoreTypes<Async> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn crate::AnyFillWorkflowStageAsyncBufferEventMarker>) {
-                    let event = event.as_any().downcast::<FillWorkflowStageAsyncBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
-                    self.sender.send(*event);
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageAsync, stage_buffer: Option<Box<dyn std::any::Any + Send + Sync>>) {
+                    let event = FillWorkflowStageAsyncBufferEvent {
+                        module_name,
+                        workflow_name,
+                        stage_index,
+                        stage,
+                        stage_data: stage_buffer
+                    };
+                    self.sender.send(event);
                 }
 
                 fn as_any_ref(&self) -> &dyn std::any::Any {
@@ -931,9 +949,15 @@ impl CoreTypes<EcsWhile> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn crate::AnyFillWorkflowStageEcsWhileBufferEventMarker>) {
-                    let event = event.as_any().downcast::<FillWorkflowStageEcsWhileBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
-                    self.sender.send(*event);
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageEcsWhile, stage_buffer: Option<Box<dyn std::any::Any + Send + Sync>>) {
+                    let event = FillWorkflowStageEcsWhileBufferEvent {
+                        module_name,
+                        workflow_name,
+                        stage_index,
+                        stage,
+                        stage_data: stage_buffer
+                    };
+                    self.sender.send(event);
                 }
 
                 fn as_any_ref(&self) -> &dyn std::any::Any {
@@ -1016,9 +1040,15 @@ impl CoreTypes<RenderWhile> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn crate::AnyFillWorkflowStageRenderWhileBufferEventMarker>) {
-                    let event = event.as_any().downcast::<FillWorkflowStageRenderWhileBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
-                    self.sender.send(*event);
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageRenderWhile, stage_buffer: Option<Box<dyn std::any::Any + Send + Sync>>) {
+                    let event = FillWorkflowStageRenderWhileBufferEvent {
+                        module_name,
+                        workflow_name,
+                        stage_index,
+                        stage,
+                        stage_data: stage_buffer
+                    };
+                    self.sender.send(event);
                 }
 
                 fn as_any_ref(&self) -> &dyn std::any::Any {
