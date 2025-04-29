@@ -605,12 +605,24 @@ impl Parse for CoreTypes<Async> {
 }
 
 impl CoreTypes<Ecs> {
-    pub fn generate_stage_type_dependent_stuff(&self) -> TokenStream {
+    pub fn generate_stage_type_dependent_stuff(
+        &self,
+        module_name: &str,
+        workflow_name: &str,
+        stage_index: usize,
+    ) -> TokenStream {
         quote! {
-            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: OnceLock<Sender<FillWorkflowStageEcsBufferEvent>> = OnceLock::new();
+            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageEcsBufferEventSender> = std::sync::OnceLock::new();
 
-            pub fn initialize_fill_workflow_stage_buffer_channel() -> Receiver<FillWorkflowStageEcsBufferEvent> {
-                let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = unbounded();
+            pub fn initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageEcsBufferEventReceiver {
+                let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = crossbeam_channel::unbounded();
+                let fill_workflow_stage_buffer_sender = FillWorkflowStageEcsBufferEventSender {
+                    module_name: #module_name,
+                    workflow_name: #workflow_name,
+                    stage_index: #stage_index,
+                    sender: fill_workflow_stage_buffer_sender
+                };
+                let fill_workflow_stage_buffer_receiver = FillWorkflowStageEcsBufferEventReceiver(fill_workflow_stage_buffer_receiver);
 
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(fill_workflow_stage_buffer_sender)
@@ -619,11 +631,17 @@ impl CoreTypes<Ecs> {
                 fill_workflow_stage_buffer_receiver
             }
 
-            pub fn get_fill_workflow_stage_buffer_sender() -> Sender<FillWorkflowStageEcsBufferEvent> {
-                FILL_WORKFLOW_STAGE_BUFFER_SENDER
+            pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageEcsBufferEventSender {
+                let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .get()
-                    .expect("Fill workflow stage buffer sender not initialized!")
-                    .clone()
+                    .expect("Fill workflow stage buffer sender not initialized!");
+                let sender: Box<dyn crate::DynFillWorkflowStageEcsBufferEventSender> = dyn_clone::clone_box(sender);
+
+                if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageEcsBufferEventSender>() {
+                    sender.clone()
+                } else {
+                    panic!("Sender was not the expected concrete type!");
+                }
             }
 
             pub struct FillWorkflowStageEcsBufferEvent {
@@ -633,16 +651,21 @@ impl CoreTypes<Ecs> {
                 stage: crate::workflow::stage::StageEcs,
                 stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
             }
-            impl crate::FillWorkflowStageEcsBufferEventMarker for FillWorkflowStageEcsBufferEvent {}
+            impl crate::FillWorkflowStageEcsBufferEventMarker for FillWorkflowStageEcsBufferEvent {
+                fn as_any(self) -> Box<dyn std::any::Any> {
+                    Box::new(self)
+                }
+            }
 
             #[derive(Resource)]
-            pub struct FillWorkflowStageEcsBufferEventReceiver(pub Receiver<FillWorkflowStageEcsBufferEvent>);
+            pub struct FillWorkflowStageEcsBufferEventReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageEcsBufferEvent>);
 
+            #[derive(Clone, Debug)]
             pub struct FillWorkflowStageEcsBufferEventSender {
                 module_name: &'static str,
                 workflow_name: &'static str,
                 stage_index: usize,
-                sender: Sender<FillWorkflowStageEcsBufferEvent>
+                sender: crossbeam_channel::Sender<FillWorkflowStageEcsBufferEvent>
             }
             impl crate::DynFillWorkflowStageEcsBufferEventSender for FillWorkflowStageEcsBufferEventSender {
                 fn module_name(&self) -> &'static str {
@@ -657,8 +680,13 @@ impl CoreTypes<Ecs> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn FillWorkflowStageEcsBufferEventMarker>) {
-                    self.sender.clone()
+                fn send(&self, event: Box<dyn crate::FillWorkflowStageEcsBufferEventMarker>) {
+                    let event = event.as_any().downcast::<FillWorkflowStageEcsBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
+                    self.sender.send(*event);
+                }
+
+                fn as_any_ref(&self) -> &dyn std::any::Any {
+                    self
                 }
             }
         }
@@ -666,12 +694,24 @@ impl CoreTypes<Ecs> {
 }
 
 impl CoreTypes<Render> {
-    pub fn generate_stage_type_dependent_stuff(&self) -> TokenStream {
+    pub fn generate_stage_type_dependent_stuff(
+        &self,
+        module_name: &str,
+        workflow_name: &str,
+        stage_index: usize,
+    ) -> TokenStream {
         quote! {
-            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: OnceLock<Sender<FillWorkflowStageRenderBufferEvent>> = OnceLock::new();
+            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageRenderBufferEventSender> = std::sync::OnceLock::new();
 
-            pub fn initialize_fill_workflow_stage_buffer_channel() -> Receiver<FillWorkflowStageRenderBufferEvent> {
-                let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = unbounded();
+            pub fn initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageRenderBufferEventReceiver {
+                let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = crossbeam_channel::unbounded();
+                let fill_workflow_stage_buffer_sender = FillWorkflowStageRenderBufferEventSender {
+                    module_name: #module_name,
+                    workflow_name: #workflow_name,
+                    stage_index: #stage_index,
+                    sender: fill_workflow_stage_buffer_sender
+                };
+                let fill_workflow_stage_buffer_receiver = FillWorkflowStageRenderBufferEventReceiver(fill_workflow_stage_buffer_receiver);
 
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(fill_workflow_stage_buffer_sender)
@@ -680,11 +720,17 @@ impl CoreTypes<Render> {
                 fill_workflow_stage_buffer_receiver
             }
 
-            pub fn get_fill_workflow_stage_buffer_sender() -> Sender<FillWorkflowStageRenderBufferEvent> {
-                FILL_WORKFLOW_STAGE_BUFFER_SENDER
+            pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageRenderBufferEventSender {
+                let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .get()
-                    .expect("Fill workflow stage buffer sender not initialized!")
-                    .clone()
+                    .expect("Fill workflow stage buffer sender not initialized!");
+                let sender: Box<dyn crate::DynFillWorkflowStageRenderBufferEventSender> = dyn_clone::clone_box(sender);
+
+                if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageRenderBufferEventSender>() {
+                    sender.clone()
+                } else {
+                    panic!("Sender was not the expected concrete type!");
+                }
             }
 
             pub struct FillWorkflowStageRenderBufferEvent {
@@ -694,16 +740,21 @@ impl CoreTypes<Render> {
                 stage: crate::workflow::stage::StageRender,
                 stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
             }
-            impl crate::FillWorkflowStageRenderBufferEventMarker for FillWorkflowStageRenderBufferEvent {}
+            impl crate::FillWorkflowStageRenderBufferEventMarker for FillWorkflowStageRenderBufferEvent {
+                fn as_any(self) -> Box<dyn std::any::Any> {
+                    Box::new(self)
+                }
+            }
 
             #[derive(Resource)]
-            pub struct FillWorkflowStageRenderBufferEventReceiver(pub Receiver<FillWorkflowStageRenderBufferEvent>);
+            pub struct FillWorkflowStageRenderBufferEventReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageRenderBufferEvent>);
 
+            #[derive(Clone, Debug)]
             pub struct FillWorkflowStageRenderBufferEventSender {
                 module_name: &'static str,
                 workflow_name: &'static str,
                 stage_index: usize,
-                sender: Sender<FillWorkflowStageRenderBufferEvent>
+                sender: crossbeam_channel::Sender<FillWorkflowStageRenderBufferEvent>
             }
             impl crate::DynFillWorkflowStageRenderBufferEventSender for FillWorkflowStageRenderBufferEventSender {
                 fn module_name(&self) -> &'static str {
@@ -718,8 +769,13 @@ impl CoreTypes<Render> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn FillWorkflowStageRenderBufferEventMarker>) {
-                    self.sender.clone()
+                fn send(&self, event: Box<dyn crate::FillWorkflowStageRenderBufferEventMarker>) {
+                    let event = event.as_any().downcast::<FillWorkflowStageRenderBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
+                    self.sender.send(*event);
+                }
+
+                fn as_any_ref(&self) -> &dyn std::any::Any {
+                    self
                 }
             }
         }
@@ -727,12 +783,24 @@ impl CoreTypes<Render> {
 }
 
 impl CoreTypes<Async> {
-    pub fn generate_stage_type_dependent_stuff(&self) -> TokenStream {
+    pub fn generate_stage_type_dependent_stuff(
+        &self,
+        module_name: &str,
+        workflow_name: &str,
+        stage_index: usize,
+    ) -> TokenStream {
         quote! {
-            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: OnceLock<Sender<FillWorkflowStageAsyncBufferEvent>> = OnceLock::new();
+            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageAsyncBufferEventSender> = std::sync::OnceLock::new();
 
-            pub fn initialize_fill_workflow_stage_buffer_channel() -> Receiver<FillWorkflowStageAsyncBufferEvent> {
-                let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = unbounded();
+            pub fn initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageAsyncBufferEventReceiver {
+                let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = crossbeam_channel::unbounded();
+                let fill_workflow_stage_buffer_sender = FillWorkflowStageAsyncBufferEventSender {
+                    module_name: #module_name,
+                    workflow_name: #workflow_name,
+                    stage_index: #stage_index,
+                    sender: fill_workflow_stage_buffer_sender
+                };
+                let fill_workflow_stage_buffer_receiver = FillWorkflowStageAsyncBufferEventReceiver(fill_workflow_stage_buffer_receiver);
 
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(fill_workflow_stage_buffer_sender)
@@ -741,11 +809,17 @@ impl CoreTypes<Async> {
                 fill_workflow_stage_buffer_receiver
             }
 
-            pub fn get_fill_workflow_stage_buffer_sender() -> Sender<FillWorkflowStageAsyncBufferEvent> {
-                FILL_WORKFLOW_STAGE_BUFFER_SENDER
+            pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageAsyncBufferEventSender {
+                let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .get()
-                    .expect("Fill workflow stage buffer sender not initialized!")
-                    .clone()
+                    .expect("Fill workflow stage buffer sender not initialized!");
+                let sender: Box<dyn crate::DynFillWorkflowStageAsyncBufferEventSender> = dyn_clone::clone_box(sender);
+
+                if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageAsyncBufferEventSender>() {
+                    sender.clone()
+                } else {
+                    panic!("Sender was not the expected concrete type!");
+                }
             }
 
             pub struct FillWorkflowStageAsyncBufferEvent {
@@ -755,16 +829,21 @@ impl CoreTypes<Async> {
                 stage: crate::workflow::stage::StageAsync,
                 stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
             }
-            impl crate::FillWorkflowStageAsyncBufferEventMarker for FillWorkflowStageAsyncBufferEvent {}
+            impl crate::FillWorkflowStageAsyncBufferEventMarker for FillWorkflowStageAsyncBufferEvent {
+                fn as_any(self) -> Box<dyn std::any::Any> {
+                    Box::new(self)
+                }
+            }
 
             #[derive(Resource)]
-            pub struct FillWorkflowStageAsyncBufferEventReceiver(pub Receiver<FillWorkflowStageAsyncBufferEvent>);
+            pub struct FillWorkflowStageAsyncBufferEventReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageAsyncBufferEvent>);
 
+            #[derive(Clone, Debug)]
             pub struct FillWorkflowStageAsyncBufferEventSender {
                 module_name: &'static str,
                 workflow_name: &'static str,
                 stage_index: usize,
-                sender: Sender<FillWorkflowStageAsyncBufferEvent>
+                sender: crossbeam_channel::Sender<FillWorkflowStageAsyncBufferEvent>
             }
             impl crate::DynFillWorkflowStageAsyncBufferEventSender for FillWorkflowStageAsyncBufferEventSender {
                 fn module_name(&self) -> &'static str {
@@ -779,8 +858,13 @@ impl CoreTypes<Async> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn FillWorkflowStageAsyncBufferEventMarker>) {
-                    self.sender.clone()
+                fn send(&self, event: Box<dyn crate::FillWorkflowStageAsyncBufferEventMarker>) {
+                    let event = event.as_any().downcast::<FillWorkflowStageAsyncBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
+                    self.sender.send(*event);
+                }
+
+                fn as_any_ref(&self) -> &dyn std::any::Any {
+                    self
                 }
             }
         }
@@ -788,12 +872,24 @@ impl CoreTypes<Async> {
 }
 
 impl CoreTypes<EcsWhile> {
-    pub fn generate_stage_type_dependent_stuff(&self) -> TokenStream {
+    pub fn generate_stage_type_dependent_stuff(
+        &self,
+        module_name: &str,
+        workflow_name: &str,
+        stage_index: usize,
+    ) -> TokenStream {
         quote! {
-            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: OnceLock<Sender<FillWorkflowStageEcsWhileBufferEvent>> = OnceLock::new();
+            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageEcsWhileBufferEventSender> = std::sync::OnceLock::new();
 
-            pub fn initialize_fill_workflow_stage_buffer_channel() -> Receiver<FillWorkflowStageEcsWhileBufferEvent> {
-                let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = unbounded();
+            pub fn initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageEcsWhileBufferEventReceiver {
+                let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = crossbeam_channel::unbounded();
+                let fill_workflow_stage_buffer_sender = FillWorkflowStageEcsWhileBufferEventSender {
+                    module_name: #module_name,
+                    workflow_name: #workflow_name,
+                    stage_index: #stage_index,
+                    sender: fill_workflow_stage_buffer_sender
+                };
+                let fill_workflow_stage_buffer_receiver = FillWorkflowStageEcsWhileBufferEventReceiver(fill_workflow_stage_buffer_receiver);
 
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(fill_workflow_stage_buffer_sender)
@@ -802,11 +898,17 @@ impl CoreTypes<EcsWhile> {
                 fill_workflow_stage_buffer_receiver
             }
 
-            pub fn get_fill_workflow_stage_buffer_sender() -> Sender<FillWorkflowStageEcsWhileBufferEvent> {
-                FILL_WORKFLOW_STAGE_BUFFER_SENDER
+            pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageEcsWhileBufferEventSender {
+                let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .get()
-                    .expect("Fill workflow stage buffer sender not initialized!")
-                    .clone()
+                    .expect("Fill workflow stage buffer sender not initialized!");
+                let sender: Box<dyn crate::DynFillWorkflowStageEcsWhileBufferEventSender> = dyn_clone::clone_box(sender);
+
+                if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageEcsWhileBufferEventSender>() {
+                    sender.clone()
+                } else {
+                    panic!("Sender was not the expected concrete type!");
+                }
             }
 
             pub struct FillWorkflowStageEcsWhileBufferEvent {
@@ -816,16 +918,21 @@ impl CoreTypes<EcsWhile> {
                 stage: crate::workflow::stage::StageEcsWhile,
                 stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
             }
-            impl crate::FillWorkflowStageEcsWhileBufferEventMarker for FillWorkflowStageEcsWhileBufferEvent {}
+            impl crate::FillWorkflowStageEcsWhileBufferEventMarker for FillWorkflowStageEcsWhileBufferEvent {
+                fn as_any(self) -> Box<dyn std::any::Any> {
+                    Box::new(self)
+                }
+            }
 
             #[derive(Resource)]
-            pub struct FillWorkflowStageEcsWhileBufferEventReceiver(pub Receiver<FillWorkflowStageEcsWhileBufferEvent>);
+            pub struct FillWorkflowStageEcsWhileBufferEventReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageEcsWhileBufferEvent>);
 
+            #[derive(Clone, Debug)]
             pub struct FillWorkflowStageEcsWhileBufferEventSender {
                 module_name: &'static str,
                 workflow_name: &'static str,
                 stage_index: usize,
-                sender: Sender<FillWorkflowStageEcsWhileBufferEvent>
+                sender: crossbeam_channel::Sender<FillWorkflowStageEcsWhileBufferEvent>
             }
             impl crate::DynFillWorkflowStageEcsWhileBufferEventSender for FillWorkflowStageEcsWhileBufferEventSender {
                 fn module_name(&self) -> &'static str {
@@ -840,8 +947,13 @@ impl CoreTypes<EcsWhile> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn FillWorkflowStageEcsWhileBufferEventMarker>) {
-                    self.sender.clone()
+                fn send(&self, event: Box<dyn crate::FillWorkflowStageEcsWhileBufferEventMarker>) {
+                    let event = event.as_any().downcast::<FillWorkflowStageEcsWhileBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
+                    self.sender.send(*event);
+                }
+
+                fn as_any_ref(&self) -> &dyn std::any::Any {
+                    self
                 }
             }
         }
@@ -849,12 +961,24 @@ impl CoreTypes<EcsWhile> {
 }
 
 impl CoreTypes<RenderWhile> {
-    pub fn generate_stage_type_dependent_stuff(&self) -> TokenStream {
+    pub fn generate_stage_type_dependent_stuff(
+        &self,
+        module_name: &str,
+        workflow_name: &str,
+        stage_index: usize,
+    ) -> TokenStream {
         quote! {
-            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: OnceLock<Sender<FillWorkflowStageRenderWhileBufferEvent>> = OnceLock::new();
+            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageRenderWhileBufferEventSender> = std::sync::OnceLock::new();
 
-            pub fn initialize_fill_workflow_stage_buffer_channel() -> Receiver<FillWorkflowStageRenderWhileBufferEvent> {
-                let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = unbounded();
+            pub fn initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageRenderWhileBufferEventReceiver {
+                let (fill_workflow_stage_buffer_sender, fill_workflow_stage_buffer_receiver) = crossbeam_channel::unbounded();
+                let fill_workflow_stage_buffer_sender = FillWorkflowStageRenderWhileBufferEventSender {
+                    module_name: #module_name,
+                    workflow_name: #workflow_name,
+                    stage_index: #stage_index,
+                    sender: fill_workflow_stage_buffer_sender
+                };
+                let fill_workflow_stage_buffer_receiver = FillWorkflowStageRenderWhileBufferEventReceiver(fill_workflow_stage_buffer_receiver);
 
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(fill_workflow_stage_buffer_sender)
@@ -863,11 +987,17 @@ impl CoreTypes<RenderWhile> {
                 fill_workflow_stage_buffer_receiver
             }
 
-            pub fn get_fill_workflow_stage_buffer_sender() -> Sender<FillWorkflowStageRenderWhileBufferEvent> {
-                FILL_WORKFLOW_STAGE_BUFFER_SENDER
+            pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageRenderWhileBufferEventSender {
+                let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .get()
-                    .expect("Fill workflow stage buffer sender not initialized!")
-                    .clone()
+                    .expect("Fill workflow stage buffer sender not initialized!");
+                let sender: Box<dyn crate::DynFillWorkflowStageRenderWhileBufferEventSender> = dyn_clone::clone_box(sender);
+
+                if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageRenderWhileBufferEventSender>() {
+                    sender.clone()
+                } else {
+                    panic!("Sender was not the expected concrete type!");
+                }
             }
 
             pub struct FillWorkflowStageRenderWhileBufferEvent {
@@ -877,16 +1007,21 @@ impl CoreTypes<RenderWhile> {
                 stage: crate::workflow::stage::StageRenderWhile,
                 stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
             }
-            impl crate::FillWorkflowStageRenderWhileBufferEventMarker for FillWorkflowStageRenderWhileBufferEvent {}
+            impl crate::FillWorkflowStageRenderWhileBufferEventMarker for FillWorkflowStageRenderWhileBufferEvent {
+                fn as_any(self) -> Box<dyn std::any::Any> {
+                    Box::new(self)
+                }
+            }
 
             #[derive(Resource)]
-            pub struct FillWorkflowStageRenderWhileBufferEventReceiver(pub Receiver<FillWorkflowStageRenderWhileBufferEvent>);
+            pub struct FillWorkflowStageRenderWhileBufferEventReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageRenderWhileBufferEvent>);
 
+            #[derive(Clone, Debug)]
             pub struct FillWorkflowStageRenderWhileBufferEventSender {
                 module_name: &'static str,
                 workflow_name: &'static str,
                 stage_index: usize,
-                sender: Sender<FillWorkflowStageRenderWhileBufferEvent>
+                sender: crossbeam_channel::Sender<FillWorkflowStageRenderWhileBufferEvent>
             }
             impl crate::DynFillWorkflowStageRenderWhileBufferEventSender for FillWorkflowStageRenderWhileBufferEventSender {
                 fn module_name(&self) -> &'static str {
@@ -901,8 +1036,13 @@ impl CoreTypes<RenderWhile> {
                     self.stage_index
                 }
 
-                fn send(&self, event: Box<dyn FillWorkflowStageRenderWhileBufferEventMarker>) {
-                    self.sender.clone()
+                fn send(&self, event: Box<dyn crate::FillWorkflowStageRenderWhileBufferEventMarker>) {
+                    let event = event.as_any().downcast::<FillWorkflowStageRenderWhileBufferEvent>().expect("Downcast failed! Reason for type-mismatch unknown");
+                    self.sender.send(*event);
+                }
+
+                fn as_any_ref(&self) -> &dyn std::any::Any {
+                    self
                 }
             }
         }

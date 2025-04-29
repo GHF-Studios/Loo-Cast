@@ -326,31 +326,36 @@ impl Workflow {
                     match stage {
                         Stage::Ecs(_) => {
                             quote! {
-                                .insert_resource(stages::#workflow_stage_module_ident::core_types::TypedStageBuffer::default())
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::initialize_fill_workflow_stage_buffer_channel())
                                 .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system)
                             }
                         },
                         Stage::Render(_) => {
                             quote! {
-                                .insert_resource(stages::#workflow_stage_module_ident::core_types::TypedStageBuffer::default())
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::initialize_fill_workflow_stage_buffer_channel())
                                 .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system)
                             }
                         },
                         Stage::Async(_) => {
                             quote! {
-                                .insert_resource(stages::#workflow_stage_module_ident::core_types::TypedStageBuffer::default())
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::initialize_fill_workflow_stage_buffer_channel())
                                 .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system)
                             }
                         },
                         Stage::EcsWhile(_) => {
                             quote! {
-                                .insert_resource(stages::#workflow_stage_module_ident::core_types::TypedStageBuffer::default())
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::initialize_fill_workflow_stage_buffer_channel())
                                 .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system)
                             }
                         },
                         Stage::RenderWhile(_) => {
                             quote! {
-                                .insert_resource(stages::#workflow_stage_module_ident::core_types::TypedStageBuffer::default())
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::initialize_fill_workflow_stage_buffer_channel())
                                 .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)
                             }
                         },
@@ -445,6 +450,8 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_module_ident.to_string().as_str(),
+                            workflow_ident.to_string().as_str(),
                         )
                     })
                     .unzip();
@@ -585,6 +592,8 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_module_ident.to_string().as_str(),
+                            workflow_ident.to_string().as_str(),
                         )
                     })
                     .unzip();
@@ -698,6 +707,8 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_module_ident.to_string().as_str(),
+                            workflow_ident.to_string().as_str(),
                         )
                     })
                     .unzip();
@@ -847,6 +858,8 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_module_ident.to_string().as_str(),
+                            workflow_ident.to_string().as_str(),
                         )
                     })
                     .unzip();
@@ -961,6 +974,8 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_module_ident.to_string().as_str(),
+                            workflow_ident.to_string().as_str(),
                         )
                     })
                     .unzip();
@@ -1110,6 +1125,8 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_module_ident.to_string().as_str(),
+                            workflow_ident.to_string().as_str(),
                         )
                     })
                     .unzip();
@@ -1228,6 +1245,8 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_module_ident.to_string().as_str(),
+                            workflow_ident.to_string().as_str(),
                         )
                     })
                     .unzip();
@@ -1382,6 +1401,8 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_module_ident.to_string().as_str(),
+                            workflow_ident.to_string().as_str(),
                         )
                     })
                     .unzip();

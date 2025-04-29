@@ -1146,7 +1146,7 @@ impl CoreFunctions<Ecs> {
                 let poll_fn_inner = match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote! {
-                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1181,7 +1181,7 @@ impl CoreFunctions<Ecs> {
                     }
                     (false, false, true) => {
                         quote! {
-                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1217,7 +1217,7 @@ impl CoreFunctions<Ecs> {
                     }
                     (false, true, false) => {
                         quote! {
-                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1252,7 +1252,7 @@ impl CoreFunctions<Ecs> {
                     }
                     (false, true, true) => {
                         quote! {
-                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1288,7 +1288,7 @@ impl CoreFunctions<Ecs> {
                     }
                     (true, false, false) => {
                         quote! {
-                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1324,7 +1324,7 @@ impl CoreFunctions<Ecs> {
                     }
                     (true, false, true) => {
                         quote! {
-                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1361,7 +1361,7 @@ impl CoreFunctions<Ecs> {
                     }
                     (true, true, false) => {
                         quote! {
-                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1397,7 +1397,7 @@ impl CoreFunctions<Ecs> {
                     }
                     (true, true, true) => {
                         quote! {
-                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, main_access: MainAccess) {
+                            pub fn poll_ecs_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1457,7 +1457,7 @@ impl CoreFunctions<Render> {
                 let poll_fn_inner = match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote! {
-                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
+                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1492,7 +1492,7 @@ impl CoreFunctions<Render> {
                     }
                     (false, false, true) => {
                         quote! {
-                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
+                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1529,7 +1529,7 @@ impl CoreFunctions<Render> {
                     }
                     (false, true, false) => {
                         quote! {
-                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
+                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1565,7 +1565,7 @@ impl CoreFunctions<Render> {
                     }
                     (false, true, true) => {
                         quote! {
-                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
+                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1602,7 +1602,7 @@ impl CoreFunctions<Render> {
                     }
                     (true, false, false) => {
                         quote! {
-                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
+                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1639,7 +1639,7 @@ impl CoreFunctions<Render> {
                     }
                     (true, false, true) => {
                         quote! {
-                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
+                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1677,7 +1677,7 @@ impl CoreFunctions<Render> {
                     }
                     (true, true, false) => {
                         quote! {
-                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
+                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1715,7 +1715,7 @@ impl CoreFunctions<Render> {
                     }
                     (true, true, true) => {
                         quote! {
-                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, render_access: RenderAccess) {
+                            pub fn poll_render_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1775,7 +1775,7 @@ impl CoreFunctions<Async> {
                 let poll_fn_inner = match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote! {
-                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
+                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1818,7 +1818,7 @@ impl CoreFunctions<Async> {
                     }
                     (false, false, true) => {
                         quote! {
-                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
+                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1862,7 +1862,7 @@ impl CoreFunctions<Async> {
                     }
                     (false, true, false) => {
                         quote! {
-                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
+                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1905,7 +1905,7 @@ impl CoreFunctions<Async> {
                     }
                     (false, true, true) => {
                         quote! {
-                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
+                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1949,7 +1949,7 @@ impl CoreFunctions<Async> {
                     }
                     (true, false, false) => {
                         quote! {
-                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
+                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -1993,7 +1993,7 @@ impl CoreFunctions<Async> {
                     }
                     (true, false, true) => {
                         quote! {
-                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
+                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2038,7 +2038,7 @@ impl CoreFunctions<Async> {
                     }
                     (true, true, false) => {
                         quote! {
-                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
+                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2082,7 +2082,7 @@ impl CoreFunctions<Async> {
                     }
                     (true, true, true) => {
                         quote! {
-                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>) {
+                            pub fn poll_async_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2149,7 +2149,7 @@ impl CoreFunctions<EcsWhile> {
                 let poll_fn_inner = match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2236,7 +2236,7 @@ impl CoreFunctions<EcsWhile> {
                     }
                     (false, false, true) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2324,7 +2324,7 @@ impl CoreFunctions<EcsWhile> {
                     }
                     (false, true, false) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2410,7 +2410,7 @@ impl CoreFunctions<EcsWhile> {
                     }
                     (false, true, true) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2497,7 +2497,7 @@ impl CoreFunctions<EcsWhile> {
                     }
                     (true, false, false) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2584,7 +2584,7 @@ impl CoreFunctions<EcsWhile> {
                     }
                     (true, false, true) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2672,7 +2672,7 @@ impl CoreFunctions<EcsWhile> {
                     }
                     (true, true, false) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2759,7 +2759,7 @@ impl CoreFunctions<EcsWhile> {
                     }
                     (true, true, true) => {
                         quote! {
-                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
+                            pub fn poll_ecs_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut workflow_map: ResMut<crate::workflow::resources::WorkflowMap>, main_access: MainAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2871,7 +2871,7 @@ impl CoreFunctions<RenderWhile> {
                 let poll_fn_inner = match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2942,7 +2942,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (false, false, true) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -3013,7 +3013,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (false, true, false) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -3083,7 +3083,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (false, true, true) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -3154,7 +3154,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (true, false, false) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -3226,7 +3226,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (true, false, true) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -3298,7 +3298,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (true, true, false) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -3369,7 +3369,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (true, true, true) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<TypedStageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }

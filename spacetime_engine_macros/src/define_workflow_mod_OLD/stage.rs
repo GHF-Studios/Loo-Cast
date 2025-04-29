@@ -102,6 +102,8 @@ impl Stage {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
+        module_name: &str,
+        workflow_name: &str,
     ) -> (TokenStream, TokenStream) {
         match self {
             Stage::Ecs(stage) => {
@@ -113,6 +115,8 @@ impl Stage {
                     next_stage_in_type_path,
                     is_last,
                     signature,
+                    module_name,
+                    workflow_name,
                 )
             }
             Stage::Render(stage) => {
@@ -124,6 +128,8 @@ impl Stage {
                     next_stage_in_type_path,
                     is_last,
                     signature,
+                    module_name,
+                    workflow_name,
                 )
             }
             Stage::Async(stage) => {
@@ -135,6 +141,8 @@ impl Stage {
                     next_stage_in_type_path,
                     is_last,
                     signature,
+                    module_name,
+                    workflow_name,
                 )
             }
             Stage::EcsWhile(stage) => {
@@ -147,6 +155,8 @@ impl Stage {
                     next_stage_in_type_path,
                     is_last,
                     signature,
+                    module_name,
+                    workflow_name,
                 )
             }
             Stage::RenderWhile(stage) => {
@@ -159,6 +169,8 @@ impl Stage {
                     next_stage_in_type_path,
                     is_last,
                     signature,
+                    module_name,
+                    workflow_name,
                 )
             }
         }
@@ -477,6 +489,8 @@ impl TypedStage<Ecs> {
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
         signature: StageSignature,
+        module_name: &str,
+        workflow_name: &str,
     ) -> (TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
@@ -485,9 +499,13 @@ impl TypedStage<Ecs> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self
-            .core_types
-            .generate(self.core_types.generate_stage_type_dependent_stuff());
+        let core_types =
+            self.core_types
+                .generate(self.core_types.generate_stage_type_dependent_stuff(
+                    module_name,
+                    workflow_name,
+                    self.index,
+                ));
         let core_functions = self.core_functions.generate(signature);
         let signature = signature.generate();
 
@@ -879,6 +897,8 @@ impl TypedStage<Render> {
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
         signature: StageSignature,
+        module_name: &str,
+        workflow_name: &str,
     ) -> (TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
@@ -887,9 +907,13 @@ impl TypedStage<Render> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self
-            .core_types
-            .generate(self.core_types.generate_stage_type_dependent_stuff());
+        let core_types =
+            self.core_types
+                .generate(self.core_types.generate_stage_type_dependent_stuff(
+                    module_name,
+                    workflow_name,
+                    self.index,
+                ));
         let core_functions = self.core_functions.generate(signature);
         let signature = signature.generate();
 
@@ -1281,6 +1305,8 @@ impl TypedStage<Async> {
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
         signature: StageSignature,
+        module_name: &str,
+        workflow_name: &str,
     ) -> (TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
@@ -1289,9 +1315,13 @@ impl TypedStage<Async> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self
-            .core_types
-            .generate(self.core_types.generate_stage_type_dependent_stuff());
+        let core_types =
+            self.core_types
+                .generate(self.core_types.generate_stage_type_dependent_stuff(
+                    module_name,
+                    workflow_name,
+                    self.index,
+                ));
         let core_functions = self.core_functions.generate(signature);
         let signature = signature.generate();
 
@@ -1685,6 +1715,8 @@ impl TypedStage<EcsWhile> {
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
         signature: StageSignature,
+        module_name: &str,
+        workflow_name: &str,
     ) -> (TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
@@ -1693,9 +1725,13 @@ impl TypedStage<EcsWhile> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self
-            .core_types
-            .generate(self.core_types.generate_stage_type_dependent_stuff());
+        let core_types =
+            self.core_types
+                .generate(self.core_types.generate_stage_type_dependent_stuff(
+                    module_name,
+                    workflow_name,
+                    self.index,
+                ));
         let core_functions = self.core_functions.generate(signature);
         let signature = signature.generate();
 
@@ -2790,6 +2826,8 @@ impl TypedStage<RenderWhile> {
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
         signature: StageSignature,
+        module_name: &str,
+        workflow_name: &str,
     ) -> (TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
@@ -2798,9 +2836,13 @@ impl TypedStage<RenderWhile> {
             stage_ident.span(),
         );
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self
-            .core_types
-            .generate(self.core_types.generate_stage_type_dependent_stuff());
+        let core_types =
+            self.core_types
+                .generate(self.core_types.generate_stage_type_dependent_stuff(
+                    module_name,
+                    workflow_name,
+                    self.index,
+                ));
         let core_functions = self.core_functions.generate(signature);
         let signature = signature.generate();
 
