@@ -333,6 +333,7 @@ impl Workflow {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
                                 .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system)
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_stages_to_ecs_buffers_system)
                             }
                         );
                     },
@@ -342,6 +343,7 @@ impl Workflow {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
                                 .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system)
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_stages_to_render_buffers_system)
                             }
                         );
                     },
@@ -351,6 +353,7 @@ impl Workflow {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
                                 .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system)
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_async_stages_to_async_buffers_system)
                             }
                         );
                     },
@@ -360,6 +363,7 @@ impl Workflow {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
                                 .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system)
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_while_stages_to_ecs_while_buffers_system)
                             }
                         );
                     },
@@ -369,6 +373,7 @@ impl Workflow {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
                                 .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_while_stages_to_render_while_buffers_system)
                             }
                         );
                     },
