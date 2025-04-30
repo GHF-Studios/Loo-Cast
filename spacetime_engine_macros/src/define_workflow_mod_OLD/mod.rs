@@ -370,10 +370,13 @@ impl Workflow {
                     Stage::RenderWhile(_) => {
                         workflow_stage_render_plugin_usage_literals.push(
                             quote! {
+                                .insert_resource(stages::#workflow_stage_module_ident::core_types::RenderWhileWorkflowStateExtractShard::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_while_stages_to_render_while_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system))
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::split_render_while_workflow_state_extract_system.before(stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system))
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system))
                                 .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::fuse_render_while_workflow_state_extract_shards_system.after(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system))
                             }
                         );
                     },

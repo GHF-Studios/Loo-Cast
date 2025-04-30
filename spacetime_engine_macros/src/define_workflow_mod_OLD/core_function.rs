@@ -2647,7 +2647,7 @@ impl CoreFunctions<RenderWhile> {
                 let poll_fn_inner = match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract_shard: bevy::prelude::ResMut<RenderWhileWorkflowStateExtractShard>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2657,15 +2657,18 @@ impl CoreFunctions<RenderWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
-                                    .0
-                                    .iter()
-                                    .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
-                                    .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
+                                let mut stolen_render_workflow_state_extract_shard = std::mem::take(&mut *render_workflow_state_extract_shard);
+                                let (stage_initialized, stage_completed) = match stolen_render_workflow_state_extract_shard {
+                                    RenderWhileWorkflowStateExtractShard::Some { module_name, workflow_name, stage_type, ref mut stage_initialized, stage_completed } => {
+                                        (stage_initialized, stage_completed)
+                                    },
+                                    RenderWhileWorkflowStateExtractShard::None => {
+                                        unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
+                                    }
+                                };
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
-                                if *stage_completed {
+                                if stage_completed {
                                     return;
                                 }
 
@@ -2711,7 +2714,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (false, false, true) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract_shard: bevy::prelude::ResMut<RenderWhileWorkflowStateExtractShard>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2721,15 +2724,18 @@ impl CoreFunctions<RenderWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
-                                    .0
-                                    .iter()
-                                    .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
-                                    .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
+                                let mut stolen_render_workflow_state_extract_shard = std::mem::take(&mut *render_workflow_state_extract_shard);
+                                let (stage_initialized, stage_completed) = match stolen_render_workflow_state_extract_shard {
+                                    RenderWhileWorkflowStateExtractShard::Some { module_name, workflow_name, stage_type, ref mut stage_initialized, stage_completed } => {
+                                        (stage_initialized, stage_completed)
+                                    },
+                                    RenderWhileWorkflowStateExtractShard::None => {
+                                        unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
+                                    }
+                                };
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
-                                if *stage_completed {
+                                if stage_completed {
                                     return;
                                 }
 
@@ -2775,7 +2781,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (false, true, false) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract_shard: bevy::prelude::ResMut<RenderWhileWorkflowStateExtractShard>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2784,15 +2790,18 @@ impl CoreFunctions<RenderWhile> {
                                 let wait_sender = crate::workflow::channels::get_stage_wait_sender();
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
-                                    .0
-                                    .iter()
-                                    .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
-                                    .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
+                                let mut stolen_render_workflow_state_extract_shard = std::mem::take(&mut *render_workflow_state_extract_shard);
+                                let (stage_initialized, stage_completed) = match stolen_render_workflow_state_extract_shard {
+                                    RenderWhileWorkflowStateExtractShard::Some { module_name, workflow_name, stage_type, ref mut stage_initialized, stage_completed } => {
+                                        (stage_initialized, stage_completed)
+                                    },
+                                    RenderWhileWorkflowStateExtractShard::None => {
+                                        unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
+                                    }
+                                };
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
-                                if *stage_completed {
+                                if stage_completed {
                                     return;
                                 }
 
@@ -2838,7 +2847,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (false, true, true) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract_shard: bevy::prelude::ResMut<RenderWhileWorkflowStateExtractShard>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2848,15 +2857,18 @@ impl CoreFunctions<RenderWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
-                                    .0
-                                    .iter()
-                                    .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
-                                    .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
+                                let mut stolen_render_workflow_state_extract_shard = std::mem::take(&mut *render_workflow_state_extract_shard);
+                                let (stage_initialized, stage_completed) = match stolen_render_workflow_state_extract_shard {
+                                    RenderWhileWorkflowStateExtractShard::Some { module_name, workflow_name, stage_type, ref mut stage_initialized, stage_completed } => {
+                                        (stage_initialized, stage_completed)
+                                    },
+                                    RenderWhileWorkflowStateExtractShard::None => {
+                                        unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
+                                    }
+                                };
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
-                                if *stage_completed {
+                                if stage_completed {
                                     return;
                                 }
 
@@ -2902,7 +2914,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (true, false, false) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract_shard: bevy::prelude::ResMut<RenderWhileWorkflowStateExtractShard>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2912,15 +2924,18 @@ impl CoreFunctions<RenderWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
-                                    .0
-                                    .iter()
-                                    .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
-                                    .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
+                                let mut stolen_render_workflow_state_extract_shard = std::mem::take(&mut *render_workflow_state_extract_shard);
+                                let (stage_initialized, stage_completed) = match stolen_render_workflow_state_extract_shard {
+                                    RenderWhileWorkflowStateExtractShard::Some { module_name, workflow_name, stage_type, ref mut stage_initialized, stage_completed } => {
+                                        (stage_initialized, stage_completed)
+                                    },
+                                    RenderWhileWorkflowStateExtractShard::None => {
+                                        unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
+                                    }
+                                };
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
-                                if *stage_completed {
+                                if stage_completed {
                                     return;
                                 }
 
@@ -2967,7 +2982,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (true, false, true) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract_shard: bevy::prelude::ResMut<RenderWhileWorkflowStateExtractShard>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -2977,15 +2992,18 @@ impl CoreFunctions<RenderWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
-                                    .0
-                                    .iter()
-                                    .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
-                                    .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
+                                let mut stolen_render_workflow_state_extract_shard = std::mem::take(&mut *render_workflow_state_extract_shard);
+                                let (stage_initialized, stage_completed) = match stolen_render_workflow_state_extract_shard {
+                                    RenderWhileWorkflowStateExtractShard::Some { module_name, workflow_name, stage_type, ref mut stage_initialized, stage_completed } => {
+                                        (stage_initialized, stage_completed)
+                                    },
+                                    RenderWhileWorkflowStateExtractShard::None => {
+                                        unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
+                                    }
+                                };
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
-                                if *stage_completed {
+                                if stage_completed {
                                     return;
                                 }
 
@@ -3032,7 +3050,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (true, true, false) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract_shard: bevy::prelude::ResMut<RenderWhileWorkflowStateExtractShard>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -3041,15 +3059,18 @@ impl CoreFunctions<RenderWhile> {
                                 let wait_sender = crate::workflow::channels::get_stage_wait_sender();
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
-                                    .0
-                                    .iter()
-                                    .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
-                                    .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
+                                let mut stolen_render_workflow_state_extract_shard = std::mem::take(&mut *render_workflow_state_extract_shard);
+                                let (stage_initialized, stage_completed) = match stolen_render_workflow_state_extract_shard {
+                                    RenderWhileWorkflowStateExtractShard::Some { module_name, workflow_name, stage_type, ref mut stage_initialized, stage_completed } => {
+                                        (stage_initialized, stage_completed)
+                                    },
+                                    RenderWhileWorkflowStateExtractShard::None => {
+                                        unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
+                                    }
+                                };
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
-                                if *stage_completed {
+                                if stage_completed {
                                     return;
                                 }
 
@@ -3096,7 +3117,7 @@ impl CoreFunctions<RenderWhile> {
                     }
                     (true, true, true) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract_shard: bevy::prelude::ResMut<RenderWhileWorkflowStateExtractShard>, render_access: RenderAccess) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
@@ -3106,15 +3127,18 @@ impl CoreFunctions<RenderWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
-                                    .0
-                                    .iter()
-                                    .find(|(m, w, _, _, _)| m == &module_name && w == &workflow_name)
-                                    .map(|(_, _, _, init, complete)| (*init, *complete))
-                                    .expect(format!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name).as_str());
+                                let mut stolen_render_workflow_state_extract_shard = std::mem::take(&mut *render_workflow_state_extract_shard);
+                                let (stage_initialized, stage_completed) = match stolen_render_workflow_state_extract_shard {
+                                    RenderWhileWorkflowStateExtractShard::Some { module_name, workflow_name, stage_type, ref mut stage_initialized, stage_completed } => {
+                                        (stage_initialized, stage_completed)
+                                    },
+                                    RenderWhileWorkflowStateExtractShard::None => {
+                                        unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
+                                    }
+                                };
                                 let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
-                                if *stage_completed {
+                                if stage_completed {
                                     return;
                                 }
 

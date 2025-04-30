@@ -1436,8 +1436,31 @@ impl CoreTypes<RenderWhile> {
                     panic!("Sender was not the expected concrete type!");
                 }
             }
+
+            pub fn split_render_while_workflow_state_extract_system(mut state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, mut state_extract_shard: ResMut<RenderWhileWorkflowStateExtractShard>) {
+                let (module_name, workflow_name, stage_type, stage_initialized, stage_completed) = state_extract.remove_entry(#module_name, #workflow_name);
+                *state_extract_shard = RenderWhileWorkflowStateExtractShard::Some {
+                    module_name,
+                    workflow_name,
+                    stage_type,
+                    stage_initialized,
+                    stage_completed,
+                };
+            }
+
+            pub fn fuse_render_while_workflow_state_extract_shards_system(mut state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, mut state_extract_shard: ResMut<RenderWhileWorkflowStateExtractShard>) {
+                if let RenderWhileWorkflowStateExtractShard::Some {
+                    module_name,
+                    workflow_name,
+                    stage_type,
+                    stage_initialized,
+                    stage_completed,
+                } = std::mem::take(state_extract_shard.as_mut()) {
+                    state_extract.insert_entry(module_name, workflow_name, stage_type, stage_initialized, stage_completed);
+                }
+            }
             
-            pub fn receive_render_while_stages_to_render_while_buffers_system(mut receiver: ResMut<FillWorkflowStageRenderWhileBufferEventReceiver>, mut buffer: ResMut<StageBuffer>) {
+            pub fn receive_render_while_stage_to_render_while_buffer_system(mut receiver: ResMut<FillWorkflowStageRenderWhileBufferEventReceiver>, mut buffer: ResMut<StageBuffer>) {
                 match receiver.0.try_recv() {
                     Ok(event) => buffer.fill(event.module_name, event.workflow_name, event.stage_index, event.stage, event.stage_data),
                     Err(err) => match err {
@@ -1497,6 +1520,19 @@ impl CoreTypes<RenderWhile> {
 
                 fn as_any_ref(&self) -> &dyn std::any::Any {
                     self
+                }
+            }
+
+            #[derive(Resource, Default, Debug)]
+            pub enum RenderWhileWorkflowStateExtractShard {
+                #[default]
+                None,
+                Some {
+                    module_name: &'static str,
+                    workflow_name: &'static str,
+                    stage_type: crate::workflow::stage::StageType,
+                    stage_initialized: bool,
+                    stage_completed: bool,
                 }
             }
 

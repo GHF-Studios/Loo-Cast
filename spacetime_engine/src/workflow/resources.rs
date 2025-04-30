@@ -117,6 +117,52 @@ impl From<&WorkflowMap> for RenderWhileWorkflowStateExtract {
         render_workflow_state_extract
     }
 }
+impl RenderWhileWorkflowStateExtract {
+    pub fn insert_entry(
+        &mut self,
+        module_name: &'static str,
+        workflow_name: &'static str,
+        current_stage_type: StageType,
+        stage_initialized: bool,
+        stage_completed: bool,
+    ) {
+        self.0.push((
+            module_name,
+            workflow_name,
+            current_stage_type,
+            stage_initialized,
+            stage_completed,
+        ));
+    }
+
+    pub fn remove_entry(
+        &mut self,
+        module_name: &'static str,
+        workflow_name: &'static str,
+    ) -> (&'static str, &'static str, StageType, bool, bool) {
+        let index = self
+            .0
+            .iter()
+            .position(|(m, w, _, _, _)| *m == module_name && *w == workflow_name)
+            .unwrap_or_else(|| {
+                unreachable!(
+                    "Workflow '{}' in module '{}' not found in RenderWhileWorkflowStateExtract.",
+                    workflow_name, module_name
+                )
+            });
+        let entry = self.0.remove(index);
+        let (module_name, workflow_name, current_stage_type, stage_initialized, stage_completed) =
+            entry;
+
+        (
+            module_name,
+            workflow_name,
+            current_stage_type,
+            stage_initialized,
+            stage_completed,
+        )
+    }
+}
 
 // --- Stage Buffers ---
 #[derive(Resource, Default)]
