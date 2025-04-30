@@ -1152,14 +1152,7 @@ impl CoreFunctions<Ecs> {
                                 }
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
-                                let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(stage) => stage,
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, _data_buffer) = stage_buffer.empty();
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
 
                                 let _response = run_ecs(main_access);
@@ -1188,14 +1181,7 @@ impl CoreFunctions<Ecs> {
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                                let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(stage) => stage,
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, _data_buffer) = stage_buffer.empty();
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
 
                                 let response = run_ecs(main_access);
@@ -1223,14 +1209,7 @@ impl CoreFunctions<Ecs> {
                                 }
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
-                                let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(stage) => stage,
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, _data_buffer) = stage_buffer.empty();
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
 
                                 let response = run_ecs(main_access);
@@ -1259,14 +1238,7 @@ impl CoreFunctions<Ecs> {
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                                let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(stage) => stage,
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, _data_buffer) = stage_buffer.empty();
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
 
                                 let response = run_ecs(main_access);
@@ -1294,14 +1266,7 @@ impl CoreFunctions<Ecs> {
                                 }
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
-                                let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(stage) => stage,
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
 
                                 let input = data_buffer;
@@ -1331,14 +1296,7 @@ impl CoreFunctions<Ecs> {
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                                let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(stage) => stage,
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
 
                                 let input = data_buffer;
@@ -1367,14 +1325,7 @@ impl CoreFunctions<Ecs> {
                                 }
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
-                                let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(stage) => stage,
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
 
                                 let input = data_buffer;
@@ -1404,14 +1355,7 @@ impl CoreFunctions<Ecs> {
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                                let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(stage) => stage,
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Ecs stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Ecs stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Ecs stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Ecs stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let handle_ecs_run_response = &mut stage.handle_ecs_run_response;
 
                                 let input = data_buffer;
@@ -1463,14 +1407,7 @@ impl CoreFunctions<Render> {
                                 }
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
-                                let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(stage) => stage,
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Render stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Render stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
 
                                 let _response = run_render(render_access);
@@ -1499,14 +1436,7 @@ impl CoreFunctions<Render> {
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                                let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(stage) => stage,
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Render stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Render stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, _data_buffer) = stage_buffer.empty();
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
 
                                 let response = run_render(render_access);
@@ -1535,14 +1465,7 @@ impl CoreFunctions<Render> {
                                 }
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
-                                let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(stage) => stage,
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Render stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Render stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, _data_buffer) = stage_buffer.empty();
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
 
                                 let response = run_render(render_access);
@@ -1572,14 +1495,7 @@ impl CoreFunctions<Render> {
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                                let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(stage) => stage,
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Render stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Render stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, _data_buffer) = stage_buffer.empty();
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
 
                                 let response = run_render(render_access);
@@ -1608,14 +1524,7 @@ impl CoreFunctions<Render> {
                                 }
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
-                                let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(stage) => stage,
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Render stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Render stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
 
                                 let input = data_buffer;
@@ -1646,14 +1555,7 @@ impl CoreFunctions<Render> {
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                                let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(stage) => stage,
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Render stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Render stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
 
                                 let input = data_buffer;
@@ -1684,14 +1586,7 @@ impl CoreFunctions<Render> {
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                                let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(stage) => stage,
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Render stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Render stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
 
                                 let input = data_buffer;
@@ -1722,14 +1617,7 @@ impl CoreFunctions<Render> {
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                                let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Render stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(stage) => stage,
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected Render stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Render stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Render stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let handle_render_run_response = &mut stage.handle_render_run_response;
 
                                 let input = data_buffer;
@@ -1781,14 +1669,7 @@ impl CoreFunctions<Async> {
                                 }
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
-                                let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Async stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(stage) => stage,
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Async stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, _data_buffer) = stage_buffer.empty();
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
 
                                 let response_future = (run_async)();
@@ -1825,14 +1706,7 @@ impl CoreFunctions<Async> {
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                                let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Async stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(stage) => stage,
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Async stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, _data_buffer) = stage_buffer.empty();
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
 
                                 let response_future = (run_async)();
@@ -1868,14 +1742,7 @@ impl CoreFunctions<Async> {
                                 }
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
-                                let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Async stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(stage) => stage,
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Async stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, _data_buffer) = stage_buffer.empty();
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
 
                                 let response_future = (run_async)();
@@ -1912,14 +1779,7 @@ impl CoreFunctions<Async> {
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                                let (module_name, workflow_name, current_stage, stage, _data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Async stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(stage) => stage,
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Async stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, _data_buffer) = stage_buffer.empty();
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
 
                                 let response_future = (run_async)();
@@ -1955,14 +1815,7 @@ impl CoreFunctions<Async> {
                                 }
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
-                                let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Async stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(stage) => stage,
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Async stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
 
                                 let input = data_buffer;
@@ -2000,14 +1853,7 @@ impl CoreFunctions<Async> {
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                                let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Async stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(stage) => stage,
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Async stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
 
                                 let input = data_buffer;
@@ -2044,14 +1890,7 @@ impl CoreFunctions<Async> {
                                 }
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
-                                let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Async stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(stage) => stage,
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Async stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
 
                                 let input = data_buffer;
@@ -2089,14 +1928,7 @@ impl CoreFunctions<Async> {
 
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                                let (module_name, workflow_name, current_stage, stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected Async stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected Async stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(stage) => stage,
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected Async stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected Async stage, got RenderWhile stage"),
-                                };
+                                let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
 
                                 let input = data_buffer;
@@ -2159,13 +1991,6 @@ impl CoreFunctions<EcsWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(stage) => stage,
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
-                                };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
@@ -2246,13 +2071,6 @@ impl CoreFunctions<EcsWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(stage) => stage,
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
-                                };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
@@ -2333,13 +2151,6 @@ impl CoreFunctions<EcsWhile> {
                                 let wait_sender = crate::workflow::channels::get_stage_wait_sender();
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(stage) => stage,
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
-                                };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
@@ -2420,13 +2231,6 @@ impl CoreFunctions<EcsWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(stage) => stage,
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
-                                };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
@@ -2506,13 +2310,6 @@ impl CoreFunctions<EcsWhile> {
                                 let wait_sender = crate::workflow::channels::get_stage_wait_sender();
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(stage) => stage,
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
-                                };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
@@ -2594,13 +2391,6 @@ impl CoreFunctions<EcsWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(stage) => stage,
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
-                                };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
@@ -2681,13 +2471,6 @@ impl CoreFunctions<EcsWhile> {
                                 let wait_sender = crate::workflow::channels::get_stage_wait_sender();
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(stage) => stage,
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
-                                };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
@@ -2769,13 +2552,6 @@ impl CoreFunctions<EcsWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected EcsWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected EcsWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected EcsWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(stage) => stage,
-                                    crate::workflow::stage::Stage::RenderWhile(_) => unreachable!("Expected EcsWhile stage, got RenderWhile stage"),
-                                };
                                 let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
@@ -2881,13 +2657,6 @@ impl CoreFunctions<RenderWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(stage) => stage,
-                                };
                                 let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
                                     .0
                                     .iter()
@@ -2952,13 +2721,6 @@ impl CoreFunctions<RenderWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(stage) => stage,
-                                };
                                 let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
                                     .0
                                     .iter()
@@ -3022,13 +2784,6 @@ impl CoreFunctions<RenderWhile> {
                                 let wait_sender = crate::workflow::channels::get_stage_wait_sender();
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(stage) => stage,
-                                };
                                 let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
                                     .0
                                     .iter()
@@ -3093,13 +2848,6 @@ impl CoreFunctions<RenderWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(stage) => stage,
-                                };
                                 let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
                                     .0
                                     .iter()
@@ -3164,13 +2912,6 @@ impl CoreFunctions<RenderWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(stage) => stage,
-                                };
                                 let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
                                     .0
                                     .iter()
@@ -3236,13 +2977,6 @@ impl CoreFunctions<RenderWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(stage) => stage,
-                                };
                                 let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
                                     .0
                                     .iter()
@@ -3307,13 +3041,6 @@ impl CoreFunctions<RenderWhile> {
                                 let wait_sender = crate::workflow::channels::get_stage_wait_sender();
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(stage) => stage,
-                                };
                                 let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
                                     .0
                                     .iter()
@@ -3379,13 +3106,6 @@ impl CoreFunctions<RenderWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let mut stage = match stage {
-                                    crate::workflow::stage::Stage::Ecs(_) => unreachable!("Expected RenderWhile stage, got Ecs stage"),
-                                    crate::workflow::stage::Stage::Render(_) => unreachable!("Expected RenderWhile stage, got Render stage"),
-                                    crate::workflow::stage::Stage::Async(_) => unreachable!("Expected RenderWhile stage, got Async stage"),
-                                    crate::workflow::stage::Stage::EcsWhile(_) => unreachable!("Expected RenderWhile stage, got EcsWhile stage"),
-                                    crate::workflow::stage::Stage::RenderWhile(stage) => stage,
-                                };
                                 let (stage_initialized, stage_completed) = &mut render_workflow_state_extract
                                     .0
                                     .iter()

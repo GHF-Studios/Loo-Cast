@@ -616,7 +616,7 @@ impl CoreTypes<Ecs> {
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageEcsBufferEventReceiver>>> = std::sync::OnceLock::new();
             
             pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageEcsBufferEventSender {
-                let (tx, rx) = crossbeam_channel::unbounded();
+                let (tx, rx) = crossbeam_channel::bounded(1);
             
                 let sender = FillWorkflowStageEcsBufferEventSender {
                     module_name: #module_name,
@@ -658,6 +658,19 @@ impl CoreTypes<Ecs> {
                     sender.clone()
                 } else {
                     panic!("Sender was not the expected concrete type!");
+                }
+            }
+            
+            pub fn receive_ecs_stages_to_ecs_buffers_system(mut buffer: ResMut<StageBuffer>) {
+                let mut receiver = take_fill_workflow_stage_buffer_receiver();
+                match receiver.0.try_recv() {
+                    Ok(event) => buffer.fill(event.module_name, event.workflow_name, event.stage_index, event.stage, event.stage_data),
+                    Err(err) => match err {
+                        crossbeam_channel::TryRecvError::Empty => {},
+                        crossbeam_channel::TryRecvError::Disconnected => {
+                            panic!("Receiver disconnected");
+                        }
+                    }
                 }
             }
 
@@ -711,6 +724,77 @@ impl CoreTypes<Ecs> {
                     self
                 }
             }
+
+            #[derive(Resource, Default)]
+            pub enum StageBuffer {
+                #[default]
+                None,
+                Some {
+                    module_name: &'static str,
+                    workflow_name: &'static str,
+                    stage_index: usize,
+                    stage: crate::workflow::stage::StageEcs,
+                    stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
+                }
+            }
+            impl StageBuffer {
+                pub fn fill(
+                    &mut self,
+                    module_name: &'static str,
+                    workflow_name: &'static str,
+                    stage_index: usize,
+                    stage: crate::workflow::stage::StageEcs,
+                    stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
+                ) {
+                    match std::mem::take(self) {
+                        StageBuffer::None => {
+                            *self = StageBuffer::Some {
+                                module_name,
+                                workflow_name,
+                                stage_index,
+                                stage,
+                                stage_data,
+                            }
+                        },
+                        StageBuffer::Some { .. } => unreachable!("StageEcs buffer is not empty")
+                    }
+                }
+
+                pub fn empty(
+                    &mut self,
+                ) -> (
+                    &'static str,
+                    &'static str,
+                    usize,
+                    crate::workflow::stage::StageEcs,
+                    Option<Box<dyn std::any::Any + Send + Sync>>,
+                ) {
+                    match std::mem::take(self) {
+                        StageBuffer::None => {
+                            unreachable!("StageEcs buffer is not filled");
+                        }
+                        StageBuffer::Some {
+                            module_name,
+                            workflow_name,
+                            stage_index,
+                            stage,
+                            stage_data,
+                        } => {
+                            (
+                                module_name,
+                                workflow_name,
+                                stage_index,
+                                stage,
+                                stage_data,
+                            )
+                        }
+                    }
+                }
+
+                pub fn is_empty(&self) -> bool {
+                    matches!(self, StageBuffer::None)
+                }
+            }
         }
     }
 }
@@ -727,7 +811,7 @@ impl CoreTypes<Render> {
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageRenderBufferEventReceiver>>> = std::sync::OnceLock::new();
             
             pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageRenderBufferEventSender {
-                let (tx, rx) = crossbeam_channel::unbounded();
+                let (tx, rx) = crossbeam_channel::bounded(1);
             
                 let sender = FillWorkflowStageRenderBufferEventSender {
                     module_name: #module_name,
@@ -838,7 +922,7 @@ impl CoreTypes<Async> {
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageAsyncBufferEventReceiver>>> = std::sync::OnceLock::new();
             
             pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageAsyncBufferEventSender {
-                let (tx, rx) = crossbeam_channel::unbounded();
+                let (tx, rx) = crossbeam_channel::bounded(1);
             
                 let sender = FillWorkflowStageAsyncBufferEventSender {
                     module_name: #module_name,
@@ -949,7 +1033,7 @@ impl CoreTypes<EcsWhile> {
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageEcsWhileBufferEventReceiver>>> = std::sync::OnceLock::new();
             
             pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageEcsWhileBufferEventSender {
-                let (tx, rx) = crossbeam_channel::unbounded();
+                let (tx, rx) = crossbeam_channel::bounded(1);
             
                 let sender = FillWorkflowStageEcsWhileBufferEventSender {
                     module_name: #module_name,
@@ -1060,7 +1144,7 @@ impl CoreTypes<RenderWhile> {
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageRenderWhileBufferEventReceiver>>> = std::sync::OnceLock::new();
             
             pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageRenderWhileBufferEventSender {
-                let (tx, rx) = crossbeam_channel::unbounded();
+                let (tx, rx) = crossbeam_channel::bounded(1);
             
                 let sender = FillWorkflowStageRenderWhileBufferEventSender {
                     module_name: #module_name,
@@ -1185,77 +1269,6 @@ impl<T> CoreTypes<T> {
             #error
             #main_access
             #render_access
-
-            #[derive(Resource, Default)]
-            pub enum StageBuffer {
-                #[default]
-                None,
-                Some {
-                    module_name: &'static str,
-                    workflow_name: &'static str,
-                    stage_index: usize,
-                    stage: crate::workflow::stage::Stage,
-                    stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
-                }
-            }
-            impl StageBuffer {
-                pub fn fill(
-                    &mut self,
-                    module_name: &'static str,
-                    workflow_name: &'static str,
-                    stage_index: usize,
-                    stage: crate::workflow::stage::Stage,
-                    stage_data: Option<Box<dyn std::any::Any + Send + Sync>>,
-                ) {
-                    match std::mem::take(self) {
-                        StageBuffer::None => {
-                            *self = StageBuffer::Some {
-                                module_name,
-                                workflow_name,
-                                stage_index,
-                                stage,
-                                stage_data,
-                            }
-                        },
-                        StageBuffer::Some { .. } => unreachable!("Stage buffer is not empty")
-                    }
-                }
-
-                pub fn empty(
-                    &mut self,
-                ) -> (
-                    &'static str,
-                    &'static str,
-                    usize,
-                    crate::workflow::stage::Stage,
-                    Option<Box<dyn std::any::Any + Send + Sync>>,
-                ) {
-                    match std::mem::take(self) {
-                        StageBuffer::None => {
-                            unreachable!("Stage buffer is not filled");
-                        }
-                        StageBuffer::Some {
-                            module_name,
-                            workflow_name,
-                            stage_index,
-                            stage,
-                            stage_data,
-                        } => {
-                            (
-                                module_name,
-                                workflow_name,
-                                stage_index,
-                                stage,
-                                stage_data,
-                            )
-                        }
-                    }
-                }
-
-                pub fn is_empty(&self) -> bool {
-                    matches!(self, StageBuffer::None)
-                }
-            }
 
             #stage_type_dependent_stuff
         }
