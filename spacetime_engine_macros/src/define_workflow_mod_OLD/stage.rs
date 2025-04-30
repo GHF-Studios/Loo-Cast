@@ -511,7 +511,7 @@ impl TypedStage<Ecs> {
 
         let stage_module = quote! {
             pub mod #stage_ident {
-                pub const NAME: &str = stringify!(#stage_name);
+                pub const NAME: &str = #stage_name;
 
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
@@ -823,7 +823,7 @@ impl TypedStage<Ecs> {
         let stage_literal = quote! {
             crate::workflow::stage::Stage::Ecs(crate::workflow::stage::StageEcs {
                 index: #index_literal,
-                name: stringify!(#stage_name),
+                name: #stage_name,
                 signature: #signature,
                 handle_ecs_run_response: #ecs_run_response_handler,
                 completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
@@ -919,7 +919,7 @@ impl TypedStage<Render> {
 
         let stage_module = quote! {
             pub mod #stage_ident {
-                pub const NAME: &str = stringify!(#stage_name);
+                pub const NAME: &str = #stage_name;
 
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
@@ -1231,7 +1231,7 @@ impl TypedStage<Render> {
         let stage_literal = quote! {
             crate::workflow::stage::Stage::Render(crate::workflow::stage::StageRender {
                 index: #index_literal,
-                name: stringify!(#stage_name),
+                name: #stage_name,
                 signature: #signature,
                 handle_render_run_response: #render_run_response_handler,
                 completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
@@ -1327,7 +1327,7 @@ impl TypedStage<Async> {
 
         let stage_module = quote! {
             pub mod #stage_ident {
-                pub const NAME: &str = stringify!(#stage_name);
+                pub const NAME: &str = #stage_name;
 
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
@@ -1639,7 +1639,7 @@ impl TypedStage<Async> {
         let stage_literal = quote! {
             crate::workflow::stage::Stage::Async(crate::workflow::stage::StageAsync {
                 index: #index_literal,
-                name: stringify!(#stage_name),
+                name: #stage_name,
                 signature: #signature,
                 handle_async_run_response: #async_run_response_handler,
                 completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
@@ -1737,7 +1737,7 @@ impl TypedStage<EcsWhile> {
 
         let stage_module = quote! {
             pub mod #stage_ident {
-                pub const NAME: &str = stringify!(#stage_name);
+                pub const NAME: &str = #stage_name;
 
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
@@ -2732,7 +2732,7 @@ impl TypedStage<EcsWhile> {
         let stage_literal = quote! {
             crate::workflow::stage::Stage::EcsWhile(crate::workflow::stage::StageEcsWhile {
                 index: #index_literal,
-                name: stringify!(#stage_name),
+                name: #stage_name,
                 signature: #signature,
                 handle_ecs_while_setup_response: #ecs_while_setup_response_handler,
                 handle_ecs_while_run_response: #ecs_while_run_response_handler,
@@ -2848,7 +2848,7 @@ impl TypedStage<RenderWhile> {
 
         let stage_module = quote! {
             pub mod #stage_ident {
-                pub const NAME: &str = stringify!(#stage_name);
+                pub const NAME: &str = #stage_name;
 
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
@@ -3848,7 +3848,7 @@ impl TypedStage<RenderWhile> {
         let stage_literal = quote! {
             crate::workflow::stage::Stage::RenderWhile(crate::workflow::stage::StageRenderWhile {
                 index: #index_literal,
-                name: stringify!(#stage_name),
+                name: #stage_name,
                 signature: #signature,
                 handle_render_while_setup_response: #render_while_setup_response_handler,
                 handle_render_while_run_response: #render_while_run_response_handler,

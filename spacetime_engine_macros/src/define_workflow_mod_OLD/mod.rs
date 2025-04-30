@@ -100,7 +100,7 @@ impl WorkflowModule {
             pub mod #module_ident {
                 use bevy::prelude::*;
 
-                pub const NAME: &str = stringify!(#module_name);
+                pub const NAME: &str = #module_name;
 
                 pub struct #plugin_ident;
                 impl Plugin for #plugin_ident {
@@ -114,7 +114,7 @@ impl WorkflowModule {
                 fn register_workflow_type_module(mut workflow_type_module_registry: ResMut<crate::workflow::resources::WorkflowTypeModuleRegistry>) {
                     workflow_type_module_registry.register(
                         crate::workflow::types::WorkflowTypeModule {
-                            name: stringify!(#module_name),
+                            name: #module_name,
                             workflow_types: vec![
                                 #(#workflow_literals),*
                             ],
@@ -506,7 +506,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        pub const NAME: &str = stringify!(#workflow_name);
+                        pub const NAME: &str = #workflow_name;
 
                         pub async fn run() {
                             crate::workflow::functions::run_workflow::<Type>().await
@@ -648,7 +648,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        pub const NAME: &str = stringify!(#workflow_name);
+                        pub const NAME: &str = #workflow_name;
 
                         pub async fn run() -> Result<(), <TypeE as crate::workflow::traits::WorkflowTypeE>::Error> {
                             crate::workflow::functions::run_workflow_e::<TypeE>().await
@@ -763,7 +763,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        pub const NAME: &str = stringify!(#workflow_name);
+                        pub const NAME: &str = #workflow_name;
 
                         pub async fn run() -> <TypeO as crate::workflow::traits::WorkflowTypeO>::Output {
                             crate::workflow::functions::run_workflow_o::<TypeO>().await
@@ -914,7 +914,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        pub const NAME: &str = stringify!(#workflow_name);
+                        pub const NAME: &str = #workflow_name;
 
                         pub async fn run() -> Result<<TypeOE as crate::workflow::traits::WorkflowTypeOE>::Output, <TypeOE as crate::workflow::traits::WorkflowTypeOE>::Error> {
                             crate::workflow::functions::run_workflow_oe::<TypeOE>().await
@@ -1030,7 +1030,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        pub const NAME: &str = stringify!(#workflow_name);
+                        pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeI as crate::workflow::traits::WorkflowTypeI>::Input) -> () {
                             crate::workflow::functions::run_workflow_i::<TypeI>(input).await
@@ -1181,7 +1181,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        pub const NAME: &str = stringify!(#workflow_name);
+                        pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeIE as crate::workflow::traits::WorkflowTypeIE>::Input) -> Result<(), <TypeIE as crate::workflow::traits::WorkflowTypeIE>::Error> {
                             crate::workflow::functions::run_workflow_ie::<TypeIE>(input).await
@@ -1301,7 +1301,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        pub const NAME: &str = stringify!(#workflow_name);
+                        pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeIO as crate::workflow::traits::WorkflowTypeIO>::Input) -> <TypeIO as crate::workflow::traits::WorkflowTypeIO>::Output {
                             crate::workflow::functions::run_workflow_io::<TypeIO>(input).await
@@ -1457,7 +1457,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        pub const NAME: &str = stringify!(#workflow_name);
+                        pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Input) -> Result<<TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Output, <TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Error> {
                             crate::workflow::functions::run_workflow_ioe::<TypeIOE>(input).await
