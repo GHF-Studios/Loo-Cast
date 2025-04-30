@@ -265,8 +265,6 @@ impl WorkflowMods {
                         #(#workflow_modules_metadata),*
                     ]))
                     .expect("Workflow modules metadata already initialized!");
-
-                bevy::prelude::info!("Workflow modules metadata initialized");
             }
 
             pub fn get_workflow_modules_metadata() -> Box<[WorkflowModuleMetadata]> {
@@ -285,8 +283,12 @@ impl WorkflowMods {
             pub struct SpacetimeEngineWorkflowPlugins;
             impl bevy::prelude::PluginGroup for SpacetimeEngineWorkflowPlugins {
                 fn build(self) -> bevy::app::PluginGroupBuilder {
-                    bevy::app::PluginGroupBuilder::start::<Self>()
-                        #(#plugin_addition_literals)*
+                    let plugin_group_builder = bevy::app::PluginGroupBuilder::start::<Self>()
+                        #(#plugin_addition_literals)*;
+
+                    initialize_workflow_modules_metadata();
+
+                    plugin_group_builder
                 }
             }
         }
@@ -356,7 +358,7 @@ impl Stage {
                 quote! {
                     WorkflowStageMetadata::Ecs { 
                         name: #stage_name, 
-                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::get_fill_workflow_stage_buffer_sender())
+                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }
@@ -364,7 +366,7 @@ impl Stage {
                 quote! {
                     WorkflowStageMetadata::Render { 
                         name: #stage_name, 
-                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::get_fill_workflow_stage_buffer_sender())
+                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }
@@ -372,7 +374,7 @@ impl Stage {
                 quote! {
                     WorkflowStageMetadata::Async { 
                         name: #stage_name, 
-                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::get_fill_workflow_stage_buffer_sender())
+                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }
@@ -380,7 +382,7 @@ impl Stage {
                 quote! {
                     WorkflowStageMetadata::EcsWhile { 
                         name: #stage_name, 
-                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::get_fill_workflow_stage_buffer_sender())
+                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }
@@ -388,7 +390,7 @@ impl Stage {
                 quote! {
                     WorkflowStageMetadata::RenderWhile { 
                         name: #stage_name, 
-                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::get_fill_workflow_stage_buffer_sender())
+                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }
