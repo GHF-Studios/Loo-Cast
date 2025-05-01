@@ -100,14 +100,6 @@ impl From<&WorkflowMap> for RenderWhileWorkflowStateExtract {
                     ..
                 } = workflow_instance.state()
                 {
-                    bevy::prelude::debug!(
-                        "Extracted workflow state: Module: {}, Workflow: {}, StageType: {:?}, Stage Initialized: {}, Stage Completed: {}",
-                        module_name,
-                        workflow_name,
-                        current_stage_type,
-                        stage_initialized,
-                        stage_completed
-                    );
                     if matches!(current_stage_type, StageType::RenderWhile) {
                         render_workflow_state_extract.0.push((
                             module_name,

@@ -7,7 +7,7 @@ use super::functions::{chunk_pos_to_world, process_chunk_workflow, world_pos_to_
 use super::resources::ChunkRenderHandles;
 use super::{ChunkManager, ChunkWorkflowBuffer};
 
-pub(crate) fn startup_chunk_system(
+pub(crate) fn chunk_startup_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -23,7 +23,7 @@ pub(crate) fn startup_chunk_system(
     });
 }
 
-pub(crate) fn update_chunk_system(chunk_query: Query<(Entity, &Transform, &ChunkComponent)>) {
+pub(crate) fn chunk_update_system(chunk_query: Query<(Entity, &Transform, &ChunkComponent)>) {
     for (_, transform, chunk) in chunk_query.iter() {
         let world_pos = transform.translation.truncate();
         let chunk_pos = world_pos_to_chunk(world_pos);
@@ -37,7 +37,7 @@ pub(crate) fn update_chunk_system(chunk_query: Query<(Entity, &Transform, &Chunk
     }
 }
 
-pub(crate) fn process_chunk_workflows(
+pub(crate) fn process_chunk_workflows_system(
     mut commands: Commands,
     mut chunk_query: Query<(Entity, &mut ChunkComponent)>,
     chunk_loader_query: Query<Entity, With<ChunkLoaderComponent>>,

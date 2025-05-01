@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use super::enums::{ChunkWorkflow, ChunkWorkflowPriority};
 
 #[derive(Resource, Default)]
-pub(crate) struct ChunkWorkflowBuffer {
+pub struct ChunkWorkflowBuffer {
     pub workflows: HashMap<(i32, i32), ChunkWorkflow>,
     pub priority_buckets: BTreeMap<ChunkWorkflowPriority, HashSet<(i32, i32)>>,
 }
@@ -131,7 +131,7 @@ impl ChunkWorkflowBuffer {
 }
 
 #[derive(Resource, Default, Debug)]
-pub(crate) struct ChunkManager {
+pub struct ChunkManager {
     pub loaded_chunks: HashSet<(i32, i32)>,
     pub owned_chunks: HashMap<(i32, i32), Entity>,
 }
@@ -153,7 +153,7 @@ impl ChunkManager {
 }
 
 #[derive(Resource)]
-pub(crate) struct ChunkRenderHandles {
+pub struct ChunkRenderHandles {
     pub quad: Handle<Mesh>,
     pub light_material: Handle<ColorMaterial>,
     pub dark_material: Handle<ColorMaterial>,
