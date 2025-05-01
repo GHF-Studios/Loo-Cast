@@ -6,10 +6,10 @@ use crate::{
 };
 
 use super::{
-    enums::ChunkWorkflow,
+    enums::ChunkAction,
     errors::{DespawnError, SpawnError, TransferOwnershipError},
     resources::ChunkRenderHandles,
-    ChunkManager, ChunkWorkflowBuffer,
+    ChunkManager, ChunkActionBuffer,
 };
 
 pub(crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<(i32, i32)> {
@@ -68,16 +68,16 @@ pub(crate) fn chunk_pos_to_world(grid_coord: (i32, i32)) -> Vec2 {
 }
 
 pub(crate) fn process_chunk_workflow(
-    workflow: ChunkWorkflow,
+    workflow: ChunkAction,
     commands: &mut Commands,
     chunk_query: &mut Query<(Entity, &mut ChunkComponent)>,
     chunk_loader_query: &Query<Entity, With<ChunkLoaderComponent>>,
     chunk_manager: &mut ChunkManager,
-    chunk_workflow_buffer: &mut ChunkWorkflowBuffer,
+    chunk_workflow_buffer: &mut ChunkActionBuffer,
     chunk_render_handles: &ChunkRenderHandles,
 ) {
     match workflow {
-        ChunkWorkflow::Spawn {
+        ChunkAction::Spawn {
             coord,
             new_owner: owner,
             ..
@@ -107,7 +107,7 @@ pub(crate) fn process_chunk_workflow(
                 panic!("Failed to spawn chunk '{:?}': {:?}", coord, err);
             }
         }
-        ChunkWorkflow::Despawn { coord, .. } => {
+        ChunkAction::Despawn { coord, .. } => {
             if let Err(err) = despawn_chunk(
                 commands,
                 chunk_manager,
@@ -118,7 +118,7 @@ pub(crate) fn process_chunk_workflow(
                 panic!("Failed to despawn chunk '{:?}': {:?}", coord, err);
             }
         }
-        ChunkWorkflow::TransferOwnership {
+        ChunkAction::TransferOwnership {
             coord, new_owner, ..
         } => {
             if let Err(err) = transfer_chunk_ownership(
@@ -140,7 +140,7 @@ pub(crate) fn process_chunk_workflow(
 pub(crate) fn spawn_chunk(
     commands: &mut Commands,
     chunk_manager: &mut ChunkManager,
-    chunk_workflow_buffer: &mut ChunkWorkflowBuffer,
+    chunk_workflow_buffer: &mut ChunkActionBuffer,
     chunk_coord: (i32, i32),
     chunk_owner: Option<Entity>,
     quad_handle: Handle<Mesh>,
@@ -189,7 +189,7 @@ pub(crate) fn spawn_chunk(
     if let Some(chunk_owner) = chunk_owner {
         chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
     }
-    chunk_workflow_buffer.remove_workflow(&chunk_coord);
+    chunk_workflow_buffer.remove_action(&chunk_coord);
 
     Ok(())
 }
@@ -197,7 +197,7 @@ pub(crate) fn spawn_chunk(
 pub(crate) fn despawn_chunk(
     commands: &mut Commands,
     chunk_manager: &mut ChunkManager,
-    chunk_workflow_buffer: &mut ChunkWorkflowBuffer,
+    chunk_workflow_buffer: &mut ChunkActionBuffer,
     chunk_query: &mut Query<(Entity, &mut ChunkComponent)>,
     chunk_coord: (i32, i32),
 ) -> Result<(), DespawnError> {
@@ -227,14 +227,14 @@ pub(crate) fn despawn_chunk(
 
             chunk_manager.loaded_chunks.remove(&chunk_coord);
             chunk_manager.owned_chunks.remove(&chunk_coord);
-            chunk_workflow_buffer.remove_workflow(&chunk_coord);
+            chunk_workflow_buffer.remove_action(&chunk_coord);
 
             Ok(())
         }
         None => {
             chunk_manager.loaded_chunks.remove(&chunk_coord);
             chunk_manager.owned_chunks.remove(&chunk_coord);
-            chunk_workflow_buffer.remove_workflow(&chunk_coord);
+            chunk_workflow_buffer.remove_action(&chunk_coord);
 
             Ok(())
         }
@@ -243,7 +243,7 @@ pub(crate) fn despawn_chunk(
 
 pub(crate) fn transfer_chunk_ownership(
     chunk_manager: &mut ChunkManager,
-    chunk_workflow_buffer: &mut ChunkWorkflowBuffer,
+    chunk_workflow_buffer: &mut ChunkActionBuffer,
     chunk_query: &mut Query<(Entity, &mut ChunkComponent)>,
     chunk_coord: (i32, i32),
     new_chunk_owner: Entity,
@@ -277,7 +277,7 @@ pub(crate) fn transfer_chunk_ownership(
     chunk_manager
         .owned_chunks
         .insert(chunk_coord, new_chunk_owner);
-    chunk_workflow_buffer.remove_workflow(&chunk_coord);
+    chunk_workflow_buffer.remove_action(&chunk_coord);
 
     Ok(())
 }

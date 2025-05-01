@@ -84,13 +84,13 @@ register_workflow_mods!(
         },
     },
     Chunk {
-        SpawnChunk {
+        SpawnChunks {
             ValidateAndSpawn: Ecs,
         },
-        DespawnChunk {
+        DespawnChunks {
             FindAndDespawn: Ecs,
         },
-        TransferChunkOwnership {
+        TransferChunkOwnerships {
             FindAndTransferOwnership: Ecs,
         }
     },
@@ -146,10 +146,12 @@ fn startup_system() {
             texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
             param_data: vec![0.0]
         });
-        workflow!(IE, Chunk::SpawnChunk, Input {
-            chunk_coord: (0, 0),
-            chunk_owner: None,
-            metric_texture: generate_texture_output.texture_handle,
+        workflow!(IE, Chunk::SpawnChunks, Input {
+            inputs: vec![crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
+                chunk_coord: (0, 0),
+                chunk_owner: None,
+                metric_texture: generate_texture_output.texture_handle,
+            }]
         });
 
         workflow!(Debug::SpawnDebugObjects);

@@ -5,7 +5,7 @@ use crate::chunk_loader::components::ChunkLoaderComponent;
 use super::components::ChunkComponent;
 use super::functions::{chunk_pos_to_world, process_chunk_workflow, world_pos_to_chunk};
 use super::resources::ChunkRenderHandles;
-use super::{ChunkManager, ChunkWorkflowBuffer};
+use super::{ChunkManager, ChunkActionBuffer};
 
 pub(crate) fn chunk_startup_system(
     mut commands: Commands,
@@ -42,7 +42,7 @@ pub(crate) fn process_chunk_workflows_system(
     mut chunk_query: Query<(Entity, &mut ChunkComponent)>,
     chunk_loader_query: Query<Entity, With<ChunkLoaderComponent>>,
     mut chunk_manager: ResMut<ChunkManager>,
-    mut chunk_workflow_buffer: ResMut<ChunkWorkflowBuffer>,
+    mut chunk_workflow_buffer: ResMut<ChunkActionBuffer>,
     chunk_render_handles: Res<ChunkRenderHandles>,
 ) {
     let mut processed_workflows = vec![];
