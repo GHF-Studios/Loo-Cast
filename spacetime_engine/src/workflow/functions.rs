@@ -46,7 +46,7 @@ pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
         }
     }
 }
-pub async fn run_workflow_o<W: WorkflowTypeO>() -> Result<W::Output, ()> {
+pub async fn run_workflow_o<W: WorkflowTypeO>() -> W::Output {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
 
@@ -136,7 +136,7 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W
         }
     }
 }
-pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> Result<W::Output, ()> {
+pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> W::Output {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
 

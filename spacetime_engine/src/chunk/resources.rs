@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use super::enums::{ChunkAction, ChunkWorkflowPriority};
+use super::enums::{ChunkAction, ChunkActionPriority};
 
 #[derive(Resource, Default)]
 pub struct ChunkActionBuffer {
     pub actions: HashMap<(i32, i32), ChunkAction>,
-    pub priority_buckets: BTreeMap<ChunkWorkflowPriority, HashSet<(i32, i32)>>,
+    pub priority_buckets: BTreeMap<ChunkActionPriority, HashSet<(i32, i32)>>,
 }
 
 impl ChunkActionBuffer {

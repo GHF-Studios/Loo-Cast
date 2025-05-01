@@ -67,7 +67,7 @@ pub(crate) fn chunk_pos_to_world(grid_coord: (i32, i32)) -> Vec2 {
     Vec2::new(chunk_x, chunk_y)
 }
 
-pub(crate) fn process_chunk_workflow(
+pub(crate) fn process_chunk_action(
     workflow: ChunkAction,
     commands: &mut Commands,
     chunk_query: &mut Query<(Entity, &mut ChunkComponent)>,
@@ -152,7 +152,7 @@ pub(crate) fn spawn_chunk(
     }
 
     let (is_spawning, is_despawning, is_transfering_ownership) =
-        chunk_workflow_buffer.get_workflow_states(&chunk_coord);
+        chunk_workflow_buffer.get_action_states(&chunk_coord);
     if !is_spawning {
         return Err(SpawnError::NotSpawning { chunk_coord });
     }
@@ -207,7 +207,7 @@ pub(crate) fn despawn_chunk(
     }
 
     let (is_spawning, is_despawning, is_transfering_ownership) =
-        chunk_workflow_buffer.get_workflow_states(&chunk_coord);
+        chunk_workflow_buffer.get_action_states(&chunk_coord);
     if is_spawning {
         return Err(DespawnError::AlreadyBeingSpawned { chunk_coord });
     }
@@ -254,7 +254,7 @@ pub(crate) fn transfer_chunk_ownership(
     }
 
     let (is_spawning, is_despawning, is_transfering_ownership) =
-        chunk_workflow_buffer.get_workflow_states(&chunk_coord);
+        chunk_workflow_buffer.get_action_states(&chunk_coord);
     if is_spawning {
         return Err(TransferOwnershipError::AlreadyBeingSpawned { chunk_coord });
     }

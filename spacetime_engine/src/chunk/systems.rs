@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::chunk_loader::components::ChunkLoaderComponent;
 
 use super::components::ChunkComponent;
-use super::functions::{chunk_pos_to_world, process_chunk_workflow, world_pos_to_chunk};
+use super::functions::{chunk_pos_to_world, process_chunk_action, world_pos_to_chunk};
 use super::resources::ChunkRenderHandles;
 use super::{ChunkManager, ChunkActionBuffer};
 
@@ -37,39 +37,39 @@ pub(crate) fn chunk_update_system(chunk_query: Query<(Entity, &Transform, &Chunk
     }
 }
 
-pub(crate) fn process_chunk_workflows_system(
+pub(crate) fn process_chunk_actions_system(
     mut commands: Commands,
     mut chunk_query: Query<(Entity, &mut ChunkComponent)>,
     chunk_loader_query: Query<Entity, With<ChunkLoaderComponent>>,
     mut chunk_manager: ResMut<ChunkManager>,
-    mut chunk_workflow_buffer: ResMut<ChunkActionBuffer>,
+    mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
     chunk_render_handles: Res<ChunkRenderHandles>,
 ) {
-    let mut processed_workflows = vec![];
+    let mut processed_actions = vec![];
     let mut to_be_processed = vec![];
 
-    let bucket_iter = chunk_workflow_buffer.priority_buckets.iter();
+    let bucket_iter = chunk_action_buffer.priority_buckets.iter();
 
     for (_, coords) in bucket_iter {
         for coord in coords.iter().copied() {
-            if let Some(workflow) = chunk_workflow_buffer.workflows.get(&coord).cloned() {
-                to_be_processed.push(workflow);
-                processed_workflows.push(coord);
+            if let Some(action) = chunk_action_buffer.actions.get(&coord).cloned() {
+                to_be_processed.push(action);
+                processed_actions.push(coord);
             }
         }
     }
 
-    for workflow in to_be_processed {
-        process_chunk_workflow(
-            workflow,
+    for action in to_be_processed {
+        process_chunk_action(
+            action,
             &mut commands,
             &mut chunk_query,
             &chunk_loader_query,
             &mut chunk_manager,
-            &mut chunk_workflow_buffer,
+            &mut chunk_action_buffer,
             &chunk_render_handles,
         );
     }
 
-    chunk_workflow_buffer.remove_workflows(processed_workflows);
+    chunk_action_buffer.remove_actions(processed_actions);
 }
