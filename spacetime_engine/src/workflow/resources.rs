@@ -100,6 +100,14 @@ impl From<&WorkflowMap> for RenderWhileWorkflowStateExtract {
                     ..
                 } = workflow_instance.state()
                 {
+                    bevy::prelude::debug!(
+                        "Extracted workflow state: Module: {}, Workflow: {}, StageType: {:?}, Stage Initialized: {}, Stage Completed: {}",
+                        module_name,
+                        workflow_name,
+                        current_stage_type,
+                        stage_initialized,
+                        stage_completed
+                    );
                     if matches!(current_stage_type, StageType::RenderWhile) {
                         render_workflow_state_extract.0.push((
                             module_name,
@@ -139,28 +147,16 @@ impl RenderWhileWorkflowStateExtract {
         &mut self,
         module_name: &'static str,
         workflow_name: &'static str,
-    ) -> (&'static str, &'static str, StageType, bool, bool) {
-        let index = self
+    ) -> Option<(&'static str, &'static str, StageType, bool, bool)> {
+        if let Some(index) = self
             .0
             .iter()
             .position(|(m, w, _, _, _)| *m == module_name && *w == workflow_name)
-            .unwrap_or_else(|| {
-                unreachable!(
-                    "Workflow '{}' in module '{}' not found in RenderWhileWorkflowStateExtract.",
-                    workflow_name, module_name
-                )
-            });
-        let entry = self.0.remove(index);
-        let (module_name, workflow_name, current_stage_type, stage_initialized, stage_completed) =
-            entry;
-
-        (
-            module_name,
-            workflow_name,
-            current_stage_type,
-            stage_initialized,
-            stage_completed,
-        )
+        {
+            Some(self.0.remove(index))
+        } else {
+            None
+        }
     }
 }
 

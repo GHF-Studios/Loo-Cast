@@ -2660,6 +2660,13 @@ impl CoreFunctions<RenderWhile> {
                                 let mut stolen_render_workflow_state_extract_shard = std::mem::take(&mut *render_workflow_state_extract_shard);
                                 let (stage_initialized, stage_completed) = match stolen_render_workflow_state_extract_shard {
                                     RenderWhileWorkflowStateExtractShard::Some { module_name, workflow_name, stage_type, ref mut stage_initialized, stage_completed } => {
+                                        *render_workflow_state_extract_shard = RenderWhileWorkflowStateExtractShard::Some {
+                                            module_name,
+                                            workflow_name,
+                                            stage_type,
+                                            stage_initialized: *stage_initialized,
+                                            stage_completed,
+                                        };
                                         (stage_initialized, stage_completed)
                                     },
                                     RenderWhileWorkflowStateExtractShard::None => {

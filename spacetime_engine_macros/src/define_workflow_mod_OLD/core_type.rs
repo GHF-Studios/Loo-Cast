@@ -8,6 +8,7 @@ use syn::{
     token::Pub,
     Fields, ItemEnum, ItemStruct, Lifetime, LifetimeParam, Result, Visibility,
 };
+use heck::ToPascalCase;
 
 fn align_core_struct(item: &mut ItemStruct) {
     let span = item.ident.span();
@@ -1387,6 +1388,9 @@ impl CoreTypes<RenderWhile> {
         workflow_name: &str,
         stage_index: usize,
     ) -> TokenStream {
+        let module_name_pascal_case = module_name.to_pascal_case();
+        let workflow_name_pascal_case = workflow_name.to_pascal_case();
+
         quote! {
             static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageRenderWhileBufferEventSender> = std::sync::OnceLock::new();
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageRenderWhileBufferEventReceiver>>> = std::sync::OnceLock::new();
@@ -1438,14 +1442,17 @@ impl CoreTypes<RenderWhile> {
             }
 
             pub fn split_render_while_workflow_state_extract_system(mut state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, mut state_extract_shard: ResMut<RenderWhileWorkflowStateExtractShard>) {
-                let (module_name, workflow_name, stage_type, stage_initialized, stage_completed) = state_extract.remove_entry(#module_name, #workflow_name);
-                *state_extract_shard = RenderWhileWorkflowStateExtractShard::Some {
-                    module_name,
-                    workflow_name,
-                    stage_type,
-                    stage_initialized,
-                    stage_completed,
-                };
+                if let Some((module_name, workflow_name, stage_type, stage_initialized, stage_completed)) = state_extract.remove_entry(#module_name_pascal_case, #workflow_name_pascal_case) {
+                    *state_extract_shard = RenderWhileWorkflowStateExtractShard::Some {
+                        module_name,
+                        workflow_name,
+                        stage_type,
+                        stage_initialized,
+                        stage_completed,
+                    };
+                } else {
+                    *state_extract_shard = RenderWhileWorkflowStateExtractShard::None;
+                }
             }
 
             pub fn fuse_render_while_workflow_state_extract_shards_system(mut state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, mut state_extract_shard: ResMut<RenderWhileWorkflowStateExtractShard>) {
