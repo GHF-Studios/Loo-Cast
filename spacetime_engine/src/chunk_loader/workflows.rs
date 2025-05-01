@@ -23,9 +23,8 @@ define_workflow_mod_OLD! {
                         }
 
                         enum Error {
-                            InvalidChunkAction { 
-                                chunk_coord: (i32, i32), 
-                                loader_id: u32 
+                            InvalidChunkActions { 
+                                entries: Vec<((i32, i32), u32)>
                             },
                         }
                     ],
@@ -42,8 +41,8 @@ define_workflow_mod_OLD! {
                                     .collect::<HashSet<(i32, i32)>>();
                         
                                 let mut invalid_actions = vec![];
-                                for (chunk_coord, workflow) in chunk_action_buffer.iter() {
-                                    match workflow {
+                                for (chunk_coord, action) in chunk_action_buffer.iter() {
+                                    match action {
                                         ChunkAction::Spawn { .. } => {
                                             if !loader_range.contains(chunk_coord) {
                                                 invalid_actions.push(*chunk_coord);
@@ -58,10 +57,12 @@ define_workflow_mod_OLD! {
                                     }
                                 }
                         
+                                let mut invalid_chunk_actions = Vec::new();
                                 for chunk_coord in invalid_actions {
                                     chunk_action_buffer.remove_action(&chunk_coord);
-                                    return Err(Error::InvalidChunkAction { chunk_coord, loader_id: chunk_loader.id });
+                                    invalid_chunk_actions.push((chunk_coord, chunk_loader.id));
                                 }
+                                return Err(Error::InvalidChunkActions { entries: invalid_chunk_actions });
                             }
 
                             Ok(())
