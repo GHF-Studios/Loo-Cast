@@ -4,7 +4,8 @@ mod define_workflow_mod;
 mod define_workflow_mod_OLD;
 mod register_workflow_mods;
 
-use define_composite_workflow_inner::CompositeWorkflow;
+use composite_workflow::CompositeWorkflow as OuterCompositeWorkflow;
+use define_composite_workflow_inner::CompositeWorkflow as InnerCompositeWorkflow;
 use define_workflow_mod_OLD::WorkflowModule;
 use register_workflow_mods::WorkflowMods;
 
@@ -13,14 +14,14 @@ use quote::quote;
 use syn::{parse_macro_input, punctuated::Punctuated, Ident, Token};
 
 #[proc_macro]
-pub fn define_composite_workflow_inner(input: TokenStream) -> TokenStream {
-    let composite_workflow = parse_macro_input!(input as CompositeWorkflow);
+pub fn composite_workflow(input: TokenStream) -> TokenStream {
+    let composite_workflow = parse_macro_input!(input as OuterCompositeWorkflow);
     composite_workflow.generate().into()
 }
 
 #[proc_macro]
-pub fn composite_workflow(input: TokenStream) -> TokenStream {
-    let composite_workflow = parse_macro_input!(input as CompositeWorkflow);
+pub fn define_composite_workflow_inner(input: TokenStream) -> TokenStream {
+    let composite_workflow = parse_macro_input!(input as InnerCompositeWorkflow);
     composite_workflow.generate().into()
 }
 

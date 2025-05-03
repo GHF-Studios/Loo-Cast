@@ -4,13 +4,14 @@ use quote::quote;
 
 pub fn pre_process_workflows(input: TokenStream) -> TokenStream {
     let mut output = TokenStream::new();
-    let mut iter = input.into_iter();
+    let mut iter = input.into_iter().peekable();
 
     while let Some(token) = iter.next() {
         match &token {
             TokenTree::Ident(ident) if ident == "workflow" => {
-                if let Some(TokenTree::Punct(p)) = iter.next() {
+                if let Some(TokenTree::Punct(p)) = iter.peek() {
                     if p.as_char() == '!' {
+                        iter.next(); // consume '!'
                         if let Some(TokenTree::Group(group)) = iter.next() {
                             let transformed = transform_workflow_group(group.clone());
                             output.extend(transformed);
@@ -18,17 +19,27 @@ pub fn pre_process_workflows(input: TokenStream) -> TokenStream {
                         }
                     }
                 }
-                // If something went wrong, just push the tokens back in untouched
-                output.extend([token].into_iter());
+                // Not an actual workflow! macro, treat normally
+                output.extend(Some(token));
             }
+
+            TokenTree::Group(group) => {
+                let inner = pre_process_workflows(group.stream());
+                let mut new_group = Group::new(group.delimiter(), inner);
+                new_group.set_span(group.span());
+                output.extend(Some(TokenTree::Group(new_group)));
+            }
+
             _ => {
-                output.extend([token].into_iter());
+                output.extend(Some(token));
             }
         }
     }
 
     output
 }
+
+
 
 fn transform_workflow_group(group: Group) -> TokenStream {
     let tokens: Vec<TokenTree> = group.stream().into_iter().collect();

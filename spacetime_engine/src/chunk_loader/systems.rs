@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use tokio::task::JoinHandle;
-use spacetime_engine_macros::define_composite_workflow_inner;
+use spacetime_engine_macros::{composite_workflow, define_composite_workflow_inner};
 use std::collections::HashSet;
 
 use crate::chunk::enums::ChunkAction;
@@ -44,7 +44,12 @@ pub(crate) fn update_chunk_loader_system(
         }
     }
 
-    define_composite_workflow_inner!(JustDoIt {
+    let sex1 = 17;
+    let sex2 = 35;
+    let sex3 = 83;
+    let sex4 = 74;
+
+    composite_workflow!(sex1: i32, sex2: i32, sex3: i32, sex4: i32, JustDoIt {
         let categorize_chunks_output = workflow!(O, ChunkLoader::CategorizeChunks);
         workflow!(I, ChunkLoader::LoadChunks, Input {
             inputs: categorize_chunks_output.load_chunk_inputs
@@ -52,18 +57,39 @@ pub(crate) fn update_chunk_loader_system(
         workflow!(I, ChunkLoader::UnloadChunks, Input {
             inputs: categorize_chunks_output.unload_chunk_inputs
         });
+
+        println!("sex1: {:?}", sex1);
+        println!("sex2: {:?}", sex2);
+        println!("sex3: {:?}", sex3);
+        println!("sex3: {:?}", sex4);
     });
 
-    match *composite_workflow_handle {
-        Some(ref handle) if handle.is_finished() => {
-            *composite_workflow_handle = None;
-        },
-        Some(_) => todo!(),
-        None => {
-            *composite_workflow_handle = Some(crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
-                .lock()
-                .unwrap()
-                .spawn(Box::pin(just_do_it())));
-        }
-    }
+
+    println!("sex1: {:?}", sex1);
+    println!("sex2: {:?}", sex2);
+    println!("sex3: {:?}", sex3);
+    println!("sex3: {:?}", sex4);
+
+    //define_composite_workflow_inner!(JustDoIt {
+    //    let categorize_chunks_output = workflow!(O, ChunkLoader::CategorizeChunks);
+    //    workflow!(I, ChunkLoader::LoadChunks, Input {
+    //        inputs: categorize_chunks_output.load_chunk_inputs
+    //    });
+    //    workflow!(I, ChunkLoader::UnloadChunks, Input {
+    //        inputs: categorize_chunks_output.unload_chunk_inputs
+    //    });
+    //});
+//
+    //match *composite_workflow_handle {
+    //    Some(ref handle) if handle.is_finished() => {
+    //        *composite_workflow_handle = None;
+    //    },
+    //    Some(_) => todo!(),
+    //    None => {
+    //        *composite_workflow_handle = Some(crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
+    //            .lock()
+    //            .unwrap()
+    //            .spawn(Box::pin(just_do_it())));
+    //    }
+    //}
 }

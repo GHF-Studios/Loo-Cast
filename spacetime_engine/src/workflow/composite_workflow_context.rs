@@ -6,31 +6,22 @@ thread_local! {
 }
 
 pub fn set_context<T: 'static>(val: T) {
-    WORKFLOW_CONTEXT.with(|ctx| ctx.borrow_mut().insert::<T>(val));
+    WORKFLOW_CONTEXT.with(|ctx| ctx.borrow_mut().insert::<Option<T>>(Some(val)));
 }
 
-pub fn get_context<T: 'static + Clone>() -> T
-{
-    WORKFLOW_CONTEXT.with(|ctx| ctx.borrow().get::<T>().expect("Missing context").clone())
+pub fn get_context<T: 'static>() -> T {
+    let mut context: Option<T> = None;
+    WORKFLOW_CONTEXT.with(|ctx| {
+        let mut ctx = ctx.borrow_mut();
+        let ctx = ctx.get_mut::<Option<T>>().unwrap_or_else(|| unreachable!("Context not found"));
+        let ctx = ctx.take().unwrap_or_else(|| unreachable!("Context not found"));
+        context = Some(ctx);
+    });
+    context.unwrap_or_else(|| unreachable!("Context not found"))
 }
 
 pub fn clear_all_context() {
     WORKFLOW_CONTEXT.with(|ctx| {
         ctx.borrow_mut().clear();
     });
-}
-
-#[macro_export]
-macro_rules! define_composite_workflow {
-    ($($captured:expr),+ , $name:ident $block:block) => {{
-        $(
-            $crate::set_context($captured);
-        )+
-        define_composite_workflow_inner!($name:ident $block)
-        $crate::clear_context::<_>();
-    }};
-
-    ($name:ident $block:block) => {
-        define_composite_workflow_inner!($name:ident $block)
-    };
 }

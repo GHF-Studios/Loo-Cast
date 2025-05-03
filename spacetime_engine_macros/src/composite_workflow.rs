@@ -27,14 +27,7 @@ impl Parse for CompositeWorkflow {
         }
 
         let workflow_name: Ident = input.parse()?;
-        let content;
-        let brace_token = braced!(content in input);
-        let stmts = content.call(syn::Block::parse_within)?;
-            
-        let block = Block {
-            brace_token,
-            stmts,
-        };
+        let block: Block = input.parse()?;
 
         Ok(CompositeWorkflow {
             captures,
@@ -50,7 +43,7 @@ impl CompositeWorkflow {
             let ident = &var.ident;
             let ty = &var.ty;
             quote! {
-                crate::set_context::<#ty>(#ident);
+                set_context::<#ty>(#ident);
             }
         });
 
@@ -58,7 +51,7 @@ impl CompositeWorkflow {
             let ident = &var.ident;
             let ty = &var.ty;
             quote! {
-                let #ident: #ty = crate::get_context::<#ty>();
+                let #ident: #ty = get_context::<#ty>();
             }
         });
 
@@ -66,18 +59,23 @@ impl CompositeWorkflow {
         let block = &self.block;
 
         quote! {{
+            use crate::workflow::composite_workflow_context::set_context;
+            use crate::workflow::composite_workflow_context::get_context;
+            use crate::workflow::composite_workflow_context::clear_all_context;
+            use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
+
             define_composite_workflow_inner!(#workflow_name {
                 #(#get_contexts)*
                 #block
             });
 
-            let handle = crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
+            let handle = COMPOSITE_WORKFLOW_RUNTIME
                 .lock()
                 .unwrap()
                 .spawn(Box::pin(async move {
                     #(#set_contexts)*
                     just_do_it().await;
-                    crate::clear_all_context();
+                    clear_all_context();
                 }));
 
             handle

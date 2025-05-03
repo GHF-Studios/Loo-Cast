@@ -10,6 +10,10 @@ pub enum WorkflowSegment {
 }
 
 pub fn extract_workflow_segments(input: TokenStream) -> Vec<WorkflowSegment> {
+    extract_workflow_segments_recursive(input)
+}
+
+fn extract_workflow_segments_recursive(input: TokenStream) -> Vec<WorkflowSegment> {
     let mut segments = Vec::new();
     let mut plain_buffer = TokenStream::new();
     let mut invocation_parts = Vec::new();
@@ -24,8 +28,7 @@ pub fn extract_workflow_segments(input: TokenStream) -> Vec<WorkflowSegment> {
                         if let TokenTree::Group(group) = tokens.next().unwrap() {
                             let tokens = group.stream();
 
-                            let handled = if let Ok(ident) = extract_signature_ident(tokens.clone())
-                            {
+                            let handled = if let Ok(ident) = extract_signature_ident(tokens.clone()) {
                                 invocation_parts.push(InvocationPart::Signature(ident));
                                 true
                             } else if let Ok(path) = extract_type_path(tokens.clone()) {
@@ -59,6 +62,19 @@ pub fn extract_workflow_segments(input: TokenStream) -> Vec<WorkflowSegment> {
                 }
 
                 plain_buffer.extend(quote! { #tt });
+            }
+
+            TokenTree::Group(group) => {
+                // ✅ Recurse into group contents
+                let inner_segments = extract_workflow_segments_recursive(group.stream());
+
+                // Flush what we had before diving into group
+                flush_to_plain(&mut segments, &mut plain_buffer, &mut invocation_parts);
+
+                // Preserve group structure around nested segments
+                for seg in inner_segments {
+                    segments.push(seg);
+                }
             }
 
             _ => {
