@@ -74,8 +74,10 @@ define_workflow_mod_OLD! {
 
         ValidateOnRemoveChunkLoader {
             user_imports: {
-                
-            }
+
+            },
+            user_items: {},
+
         }
 
         CategorizeChunks {

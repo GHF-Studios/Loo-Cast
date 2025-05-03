@@ -102,7 +102,7 @@ impl WorkflowMods {
             .iter()
             .map(|workflow_module| {
                 let ident = &workflow_module.name;
-                let mod_name = ident.to_string().to_lowercase();
+                let mod_name = ident.to_string().to_snake_case();
                 let mod_ident = Ident::new(mod_name.as_str(), ident.span());
                 let plugin_name =
                     syn::Ident::new(&format!("{}WorkflowsPlugin", ident), ident.span());

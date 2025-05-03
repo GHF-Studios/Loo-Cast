@@ -39,9 +39,9 @@ pub mod player;
 pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
-use camera::CameraPlugin;
 use spacetime_engine_macros::{define_composite_workflow, register_workflow_mods};
-use workflow::{resources::WorkflowTypeModuleRegistry, WorkflowPlugin};
+use workflow::WorkflowPlugin;
+use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;
 //use chunk_actor::ChunkActorPlugin;
@@ -92,6 +92,17 @@ register_workflow_mods!(
         },
         TransferChunkOwnerships {
             FindAndTransferOwnership: Ecs,
+        }
+    },
+    ChunkLoader {
+        CategorizeChunks {
+            Categorize: Ecs,
+        },
+        LoadChunks {
+            ValidateAndLoad: Ecs,
+        },
+        UnloadChunks {
+            Unload: Ecs,
         }
     },
     Debug {

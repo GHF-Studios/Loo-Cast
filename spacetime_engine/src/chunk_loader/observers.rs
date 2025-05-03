@@ -17,9 +17,6 @@ pub(crate) fn observe_on_add_chunk_loader(
 ) {
     let loader_entity = trigger.entity();
 
-    // Phase 1: Re-Validate chunk actions
-
-    // Phase 2: Perform chunk loading logic
     let (loader_entity, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
         Ok(value) => value,
         Err(_) => {
@@ -87,8 +84,6 @@ pub(crate) fn observe_on_remove_chunk_loader(
         }
     };
 
-    // Phase 1: Re-Validate chunk actions
-
     let mut invalid_actions = vec![];
     for (chunk_coord, action) in chunk_action_buffer
         .iter()
@@ -103,11 +98,12 @@ pub(crate) fn observe_on_remove_chunk_loader(
         }
     }
 
+    let mut invalid_chunk_actions = Vec::new();
     for chunk_coord in invalid_actions {
         chunk_action_buffer.remove_action(&chunk_coord);
+        invalid_chunk_actions.push((chunk_coord, loader.id));
+        unreachable!("Invalid ChunkActions deteced OnUpdate: {:?}", invalid_chunk_actions);
     }
-
-    // Phase 2: Perform chunk unloading logic
 
     let position = loader_transform.translation.truncate();
     let radius = loader.radius;
