@@ -3,7 +3,7 @@ use spacetime_engine_macros::define_workflow_mod_OLD;
 define_workflow_mod_OLD! {
     name: "ChunkLoader",
     workflows: [
-        ValidateChunkActions {
+        ValidateOnUpdateChunkLoader {
             user_imports: {
                 use bevy::prelude::*;
                 use std::collections::HashSet;
@@ -70,6 +70,12 @@ define_workflow_mod_OLD! {
                     ]
                 }
             ]
+        }
+
+        ValidateOnRemoveChunkLoader {
+            user_imports: {
+                
+            }
         }
 
         CategorizeChunks {
