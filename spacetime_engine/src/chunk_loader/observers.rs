@@ -9,8 +9,6 @@ use crate::chunk::resources::{ChunkManager, ChunkActionBuffer};
 
 use super::components::ChunkLoaderComponent;
 
-// TODO: Re-Validate chunk actions before the chunk unloading logic
-// TODO: Post: Fuck you, you can't tell me what to do. This works perfectly fine without this weird suggested validation. I have no idea why it works and there are no timing/ordering issues, but who am I to challenge the time-proven mantra "If it ain't broken, don't fix it" lmao
 pub(crate) fn observe_on_add_chunk_loader(
     trigger: Trigger<OnAdd, ChunkLoaderComponent>,
     chunk_loader_query: Query<(Entity, &Transform, &mut ChunkLoaderComponent)>,
@@ -70,7 +68,6 @@ pub(crate) fn observe_on_add_chunk_loader(
     }
 }
 
-// TODO: Re-Validate chunk actions before the chunk unloading logic
 pub(crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
     chunk_query: Query<(Entity, &ChunkComponent)>,
