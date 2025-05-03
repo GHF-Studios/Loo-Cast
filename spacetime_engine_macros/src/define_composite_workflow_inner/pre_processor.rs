@@ -23,13 +23,6 @@ pub fn pre_process_workflows(input: TokenStream) -> TokenStream {
                 output.extend(Some(token));
             }
 
-            TokenTree::Group(group) => {
-                let inner = pre_process_workflows(group.stream());
-                let mut new_group = Group::new(group.delimiter(), inner);
-                new_group.set_span(group.span());
-                output.extend(Some(TokenTree::Group(new_group)));
-            }
-
             _ => {
                 output.extend(Some(token));
             }

@@ -1,3 +1,4 @@
+use heck::ToSnakeCase;
 use syn::{Ident, Type, Token, Block, braced};
 use syn::parse::{Parse, ParseStream, Result};
 use quote::quote;
@@ -56,6 +57,8 @@ impl CompositeWorkflow {
         });
 
         let workflow_name = &self.workflow_name;
+        let workflow_name_snake_case = format!("{}", workflow_name).as_str().to_snake_case();
+        let workflow_ident = Ident::new(&workflow_name_snake_case, workflow_name.span());
         let block = &self.block;
 
         quote! {{
@@ -74,7 +77,7 @@ impl CompositeWorkflow {
                 .unwrap()
                 .spawn(Box::pin(async move {
                     #(#set_contexts)*
-                    just_do_it().await;
+                    #workflow_ident().await;
                     clear_all_context();
                 }));
 
