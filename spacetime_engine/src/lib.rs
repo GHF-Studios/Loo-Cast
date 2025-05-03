@@ -39,7 +39,7 @@ pub mod player;
 pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
-use spacetime_engine_macros::{define_composite_workflow, register_workflow_mods};
+use spacetime_engine_macros::{define_composite_workflow_inner, register_workflow_mods};
 use workflow::WorkflowPlugin;
 use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
@@ -141,7 +141,7 @@ impl Plugin for SpacetimeEngineCorePlugin {
 }
 
 fn startup_system() {
-    define_composite_workflow!(Startup {
+    define_composite_workflow_inner!(Startup {
         workflow!(Camera::SpawnMainCamera);
         workflow!(Debug::SpawnDebugUI);
 

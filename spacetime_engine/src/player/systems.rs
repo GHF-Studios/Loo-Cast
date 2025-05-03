@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use spacetime_engine_macros::define_composite_workflow;
+use spacetime_engine_macros::define_composite_workflow_inner;
 
 use crate::config::statics::CONFIG;
 
@@ -59,7 +59,7 @@ pub(crate) fn process_player_workflow_queue(
         match workflow {
             PlayerWorkflow::Spawn => {
                 // TODO: MAJOR: POINTER: Invalid workflow! invocations in general seem to just disappear entirely, instead of outputting some error like `__Panic__`
-                define_composite_workflow!(JustDoIt {
+                define_composite_workflow_inner!(JustDoIt {
                     workflow!(E, Player::SpawnPlayer);
 
                     Ok(())

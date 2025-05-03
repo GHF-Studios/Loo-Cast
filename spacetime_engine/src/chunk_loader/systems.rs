@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use tokio::task::JoinHandle;
-use spacetime_engine_macros::define_composite_workflow;
+use spacetime_engine_macros::define_composite_workflow_inner;
 
 pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Option<JoinHandle<()>>>) {
     let some_stuff = do_something();

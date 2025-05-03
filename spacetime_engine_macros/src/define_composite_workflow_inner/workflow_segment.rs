@@ -1,4 +1,4 @@
-use crate::define_composite_workflow::workflow_invocation::*;
+use crate::define_composite_workflow_inner::workflow_invocation::*;
 use proc_macro2::{Delimiter, TokenStream, TokenTree};
 use quote::quote;
 use syn::{parse2, ExprPath, ExprStruct, Ident, Result};
