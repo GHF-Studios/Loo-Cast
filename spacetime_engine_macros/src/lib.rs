@@ -1,3 +1,4 @@
+mod composite_workflow;
 mod define_composite_workflow_inner;
 mod define_workflow_mod;
 mod define_workflow_mod_OLD;
@@ -13,6 +14,12 @@ use syn::{parse_macro_input, punctuated::Punctuated, Ident, Token};
 
 #[proc_macro]
 pub fn define_composite_workflow_inner(input: TokenStream) -> TokenStream {
+    let composite_workflow = parse_macro_input!(input as CompositeWorkflow);
+    composite_workflow.generate().into()
+}
+
+#[proc_macro]
+pub fn composite_workflow(input: TokenStream) -> TokenStream {
     let composite_workflow = parse_macro_input!(input as CompositeWorkflow);
     composite_workflow.generate().into()
 }

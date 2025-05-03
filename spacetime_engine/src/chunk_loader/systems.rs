@@ -1,13 +1,50 @@
 use bevy::prelude::*;
 use tokio::task::JoinHandle;
 use spacetime_engine_macros::define_composite_workflow_inner;
+use std::collections::HashSet;
 
-pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Option<JoinHandle<()>>>) {
-    let some_stuff = do_something();
+use crate::chunk::enums::ChunkAction;
+use crate::chunk::functions::calculate_chunks_in_radius;
+use crate::chunk_loader::components::ChunkLoaderComponent;
+use crate::chunk::resources::ChunkActionBuffer;
 
-    define_workflow_with_captured!(some_stuff, JustDoIt {
-        println!("{:?}", captured_context()); // <- how you access captured value inside
+pub(crate) fn update_chunk_loader_system(
+    mut composite_workflow_handle: Local<Option<JoinHandle<()>>>,
+    chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
+    mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
+) {
+    for (_, transform, chunk_loader) in chunk_loader_query.iter() {
+        let position = transform.translation.truncate();
+        let radius = chunk_loader.radius;
+        let loader_range = calculate_chunks_in_radius(position, radius)
+            .into_iter()
+            .collect::<HashSet<(i32, i32)>>();
 
+        let mut invalid_actions = vec![];
+        for (chunk_coord, action) in chunk_action_buffer.iter() {
+            match action {
+                ChunkAction::Spawn { .. } => {
+                    if !loader_range.contains(chunk_coord) {
+                        invalid_actions.push(*chunk_coord);
+                    }
+                }
+                ChunkAction::Despawn { .. } => {
+                    if loader_range.contains(chunk_coord) {
+                        invalid_actions.push(*chunk_coord);
+                    }
+                }
+                ChunkAction::TransferOwnership { .. } => {}
+            }
+        }
+
+        let mut invalid_chunk_actions = Vec::new();
+        for chunk_coord in invalid_actions {
+            chunk_action_buffer.remove_action(&chunk_coord);
+            invalid_chunk_actions.push((chunk_coord, chunk_loader.id));
+        }
+    }
+
+    define_composite_workflow_inner!(JustDoIt {
         let categorize_chunks_output = workflow!(O, ChunkLoader::CategorizeChunks);
         workflow!(I, ChunkLoader::LoadChunks, Input {
             inputs: categorize_chunks_output.load_chunk_inputs
@@ -15,9 +52,6 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
         workflow!(I, ChunkLoader::UnloadChunks, Input {
             inputs: categorize_chunks_output.unload_chunk_inputs
         });
-
-        other_things(captured_context());
-        println!("{:?}", captured_context());
     });
 
     match *composite_workflow_handle {
@@ -32,37 +66,4 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
                 .spawn(Box::pin(just_do_it())));
         }
     }
-}
-
-thread_local! {
-    pub static FOO: Cell<u32> = Cell::new(1);
-
-    static BAR: RefCell<Vec<f32>> = RefCell::new(vec![1.0, 2.0]);
-}
-
-fn foo() {
-    let msg = "Hello World!";
-
-    complex_macro_which_expands_to_a_function_and_some_types_and_is_baaaasically_a_glorified_function_declaration!(msg, Bar {
-        println!("sex");
-        println!(msg);
-    });
-
-    bar();
-
-    println!("Finished with message: {}", msg)
-}
-
-fn foo() {
-    let mut msg = "Hello World!";
-    
-    fn bar() {
-        println!("sex");
-        println!(msg);
-        msg = "Mashallah";
-    }
-
-    bar();
-
-    println!("Finished with message: {}", msg)
 }

@@ -1,4 +1,5 @@
 pub mod channels;
+pub mod composite_workflow_context;
 pub mod errors;
 pub mod events;
 pub mod functions;
