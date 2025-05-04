@@ -12,6 +12,48 @@ pub enum WorkflowSegment {
 pub fn extract_workflow_segments(input: TokenStream) -> Vec<WorkflowSegment> {
     let mut segments = Vec::new();
     let mut plain_buffer = TokenStream::new();
+    let mut group_found = false;
+
+    for token in input {
+        match &token {
+            TokenTree::Group(group) if group.delimiter() == Delimiter::Brace => {
+                if group_found {
+                    unreachable!("Only one group is allowed in composite workflow body.");
+                }
+
+                group_found = true;
+
+                // Flush any plain tokens before the group
+                if !plain_buffer.is_empty() {
+                    segments.push(WorkflowSegment::Plain(plain_buffer.clone()));
+                    plain_buffer = TokenStream::new();
+                }
+
+                segments.extend(extract_workflow_segments_inner(group.stream()));
+            }
+
+            _ => {
+                plain_buffer.extend(Some(token));
+            }
+        }
+    }
+
+    // Flush trailing plain tokens
+    if !plain_buffer.is_empty() {
+        segments.push(WorkflowSegment::Plain(plain_buffer));
+    }
+
+    if !group_found {
+        unreachable!("Expected exactly one brace-delimited group in composite workflow body.");
+    }
+
+    segments
+}
+
+
+pub fn extract_workflow_segments_inner(input: TokenStream) -> Vec<WorkflowSegment> {
+    let mut segments = Vec::new();
+    let mut plain_buffer = TokenStream::new();
     let mut invocation_parts = Vec::new();
 
     let mut tokens = input.into_iter().peekable();

@@ -39,7 +39,7 @@ pub mod player;
 pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
-use spacetime_engine_macros::{composite_workflow, define_composite_workflow_inner, register_workflow_mods};
+use spacetime_engine_macros::{register_workflow_mods, composite_workflow, composite_workflow_return};
 use workflow::WorkflowPlugin;
 use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
@@ -141,12 +141,7 @@ impl Plugin for SpacetimeEngineCorePlugin {
 }
 
 fn startup_system() {
-    let sex1 = 17;
-    let sex2 = 35;
-    let sex3 = 83;
-    let sex4 = 74;
-
-    composite_workflow!(sex1: i32, sex2: i32, sex3: i32, sex4: i32, Startup {
+    let handle = composite_workflow!(Startup {
         workflow!(Camera::SpawnMainCamera);
         workflow!(Debug::SpawnDebugUI);
         
@@ -171,51 +166,19 @@ fn startup_system() {
         });
     
         workflow!(Debug::SpawnDebugObjects);
-
-        println!("sex1: {:?}", sex1);
-        println!("sex2: {:?}", sex2);
-        println!("sex3: {:?}", sex3);
-        println!("sex3: {:?}", sex4);
-    
-        Ok(())
     });
 
-    println!("sex1: {:?}", sex1);
-    println!("sex2: {:?}", sex2);
-    println!("sex3: {:?}", sex3);
-    println!("sex3: {:?}", sex4);
-
-    //define_composite_workflow_inner!(Startup {
-    //    workflow!(Camera::SpawnMainCamera);
-    //    workflow!(Debug::SpawnDebugUI);
-    //    
-    //    let chunk_shader_name = "texture_generators/example_compute_uv";
-    //    let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
-    //    
-    //    workflow!(IE, Gpu::SetupTextureGenerator, Input {
-    //        shader_name: chunk_shader_name,
-    //        shader_path: chunk_shader_path,
-    //    });
-    //    let generate_texture_output = workflow!(IOE, Gpu::GenerateTexture, Input {
-    //        shader_name: chunk_shader_name,
-    //        texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
-    //        param_data: vec![0.0]
-    //    });
-    //    workflow!(IE, Chunk::SpawnChunks, Input {
-    //        inputs: vec![crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
-    //            chunk_coord: (0, 0),
-    //            chunk_owner: None,
-    //            metric_texture: generate_texture_output.texture_handle,
-    //        }]
-    //    });
-    //
-    //    workflow!(Debug::SpawnDebugObjects);
-    //
-    //    Ok(())
-    //});
-
-    //crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
+    //let _handler_handle = crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
     //    .lock()
     //    .unwrap()
-    //    .spawn_fallible(Box::pin(startup()));
+    //    .spawn(Box::pin(async move {
+    //        match handle.await {
+    //            Err(e) => {
+    //                unreachable!("{}", e);
+    //            }
+    //            Ok(_) => {
+    //                composite_workflow_return!();
+    //            }
+    //        }
+    //    }));
 }

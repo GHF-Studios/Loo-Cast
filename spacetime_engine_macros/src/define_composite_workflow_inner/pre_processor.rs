@@ -4,7 +4,39 @@ use quote::quote;
 
 pub fn pre_process_workflows(input: TokenStream) -> TokenStream {
     let mut output = TokenStream::new();
-    let mut iter = input.into_iter().peekable();
+    let mut group_found = false;
+
+    for token in input {
+        match &token {
+            TokenTree::Group(group) if group.delimiter() == Delimiter::Brace => {
+                if group_found {
+                    unreachable!("Expected exactly one brace-delimited group in composite workflow macro body.");
+                }
+
+                group_found = true;
+
+                let processed_inner = pre_process_workflows_inner(group.stream());
+                let mut new_group = Group::new(Delimiter::Brace, processed_inner);
+                new_group.set_span(group.span());
+                output.extend(Some(TokenTree::Group(new_group)));
+            }
+
+            _ => {
+                output.extend(Some(token));
+            }
+        }
+    }
+
+    if !group_found {
+        unreachable!("Expected exactly one brace-delimited group in composite workflow macro body.");
+    }
+
+    output
+}
+
+fn pre_process_workflows_inner(tokens: TokenStream) -> TokenStream {
+    let mut output = TokenStream::new();
+    let mut iter = tokens.into_iter().peekable();
 
     while let Some(token) = iter.next() {
         match &token {
@@ -19,7 +51,6 @@ pub fn pre_process_workflows(input: TokenStream) -> TokenStream {
                         }
                     }
                 }
-                // Not an actual workflow! macro, treat normally
                 output.extend(Some(token));
             }
 
@@ -31,8 +62,6 @@ pub fn pre_process_workflows(input: TokenStream) -> TokenStream {
 
     output
 }
-
-
 
 fn transform_workflow_group(group: Group) -> TokenStream {
     let tokens: Vec<TokenTree> = group.stream().into_iter().collect();
