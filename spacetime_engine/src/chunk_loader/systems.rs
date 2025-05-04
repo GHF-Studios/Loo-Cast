@@ -63,8 +63,7 @@ pub(crate) fn update_chunk_loader_system(
             return;
         } else {
             *composite_workflow_handle = None;
+            composite_workflow_return!();
         }
     }
-    
-    composite_workflow_return!();
 }

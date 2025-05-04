@@ -11,14 +11,38 @@ struct WorkflowMacroDetector {
 }
 
 impl<'ast> Visit<'ast> for WorkflowMacroDetector {
+    fn visit_stmt(&mut self, node: &'ast syn::Stmt) {
+        if let syn::Stmt::Macro(mac_stmt) = node {
+            let mac_path = &mac_stmt.mac.path;
+            if mac_path.is_ident("workflow") {
+                if let Some(first_token) = mac_stmt.mac.tokens.clone().into_iter().next() {
+                    if let TokenTree::Ident(ident) = first_token {
+                        let id = ident.to_string();
+                        if id == "E" || id == "OE" || id == "IE" || id == "IOE" {
+                            self.found = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Continue descending into the rest
+        syn::visit::visit_stmt(self, node);
+    }
+
     fn visit_expr_macro(&mut self, node: &'ast ExprMacro) {
         let mac_path = &node.mac.path;
         if mac_path.is_ident("workflow") {
-            let tokens = &node.mac.tokens.to_string();
-            if tokens.contains("E") || tokens.contains("OE") || tokens.contains("IE") || tokens.contains("IOE") {
-                self.found = true;
+            if let Some(first_token) = node.mac.tokens.clone().into_iter().next() {
+                if let TokenTree::Ident(ident) = first_token {
+                    let id = ident.to_string();
+                    if id == "E" || id == "OE" || id == "IE" || id == "IOE" {
+                        self.found = true;
+                    }
+                }
             }
         }
+
         syn::visit::visit_expr_macro(self, node);
     }
 }

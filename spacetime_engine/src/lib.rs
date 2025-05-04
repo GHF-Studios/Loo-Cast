@@ -40,6 +40,7 @@ pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use spacetime_engine_macros::{register_workflow_mods, composite_workflow, composite_workflow_return};
+use crate::workflow::functions::handle_composite_workflow_return;
 use workflow::WorkflowPlugin;
 use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
@@ -141,7 +142,7 @@ impl Plugin for SpacetimeEngineCorePlugin {
 }
 
 fn startup_system() {
-    let handle = composite_workflow!(Startup {
+    let handle = composite_workflow!(JustDoIt {
         workflow!(Camera::SpawnMainCamera);
         workflow!(Debug::SpawnDebugUI);
         
@@ -168,17 +169,7 @@ fn startup_system() {
         workflow!(Debug::SpawnDebugObjects);
     });
 
-    //let _handler_handle = crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
-    //    .lock()
-    //    .unwrap()
-    //    .spawn(Box::pin(async move {
-    //        match handle.await {
-    //            Err(e) => {
-    //                unreachable!("{}", e);
-    //            }
-    //            Ok(_) => {
-    //                composite_workflow_return!();
-    //            }
-    //        }
-    //    }));
+    handle_composite_workflow_return(handle, || {
+        composite_workflow_return!();
+    });
 }
