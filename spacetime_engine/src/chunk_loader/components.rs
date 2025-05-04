@@ -8,6 +8,7 @@ lazy_static! {
     static ref ID_COUNTER: Mutex<u32> = Mutex::new(0);
 }
 
+#[derive(Component)]
 pub struct ChunkLoaderComponent {
     pub radius: u32,
     pub id: u32,
@@ -22,14 +23,5 @@ impl Default for ChunkLoaderComponent {
             radius: CONFIG.get::<u32>("chunk_loader/default_radius"),
             id,
         }
-    }
-}
-impl Component for ChunkLoaderComponent {
-    const STORAGE_TYPE: StorageType = StorageType::Table;
-
-    fn register_component_hooks(hooks: &mut bevy::ecs::component::ComponentHooks) {
-        hooks.on_remove(|_world, entity, _component_id| {
-            debug!("Removed chunk loader {}", entity);
-        });
     }
 }

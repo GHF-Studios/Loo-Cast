@@ -14,10 +14,10 @@ pub fn get_context<T: 'static>() -> T {
     WORKFLOW_CONTEXT.with(|ctx| {
         let mut ctx = ctx.borrow_mut();
         let ctx = ctx.get_mut::<Option<T>>().unwrap_or_else(|| unreachable!("Context not found"));
-        let ctx = ctx.take().unwrap_or_else(|| unreachable!("Context not found"));
+        let ctx = ctx.take().unwrap_or_else(|| unreachable!("Context empty"));
         context = Some(ctx);
     });
-    context.unwrap_or_else(|| unreachable!("Context not found"))
+    context.unwrap_or_else(|| unreachable!())
 }
 
 pub fn clear_all_context() {

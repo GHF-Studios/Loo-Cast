@@ -24,6 +24,7 @@ pub(crate) fn observe_on_add_chunk_loader(
     }
 
     let handle = composite_workflow!(loader_entity: Entity, JustDoIt {
+        bevy::prelude::info!("Adding chunk loader: {:?}", loader_entity);
         let output = workflow!(IO, ChunkLoader::OnAddChunkLoader, Input {
             chunk_loader_entity: loader_entity,
         });
@@ -67,6 +68,7 @@ pub(crate) fn observe_on_remove_chunk_loader(
     }
 
     let handle = composite_workflow!(loader_entity: Entity, loader_id: u32, loader_position: Vec2, loader_radius: u32, JustDoIt {
+        bevy::prelude::info!("Removing chunk loader: {:?}", loader_entity);
         let output = workflow!(IO, ChunkLoader::OnRemoveChunkLoader, Input {
             chunk_loader_entity: loader_entity,
             chunk_loader_id: loader_id,
