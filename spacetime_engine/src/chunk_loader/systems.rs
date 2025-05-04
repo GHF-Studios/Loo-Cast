@@ -59,9 +59,7 @@ pub(crate) fn update_chunk_loader_system(
     }
 
     if let Some(ref handle) = *composite_workflow_handle {
-        if !handle.is_finished() {
-            return;
-        } else {
+        if handle.is_finished() {
             *composite_workflow_handle = None;
             composite_workflow_return!();
         }
