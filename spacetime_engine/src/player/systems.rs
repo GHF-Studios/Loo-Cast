@@ -59,6 +59,7 @@ pub(crate) fn process_player_workflow_queue(
         match workflow {
             PlayerWorkflow::Spawn => {
                 let _handle = composite_workflow!(JustDoIt {
+                    bevy::prelude::info!("Spawning player");
                     workflow!(E, Player::SpawnPlayer);
                 });
             }

@@ -149,6 +149,7 @@ impl Plugin for SpacetimeEngineCorePlugin {
 
 fn startup_system() {
     let handle = composite_workflow!(JustDoIt {
+        bevy::prelude::info!("Spacetime Engine: Starting up...");
         workflow!(Camera::SpawnMainCamera);
         workflow!(Debug::SpawnDebugUI);
         
