@@ -202,12 +202,15 @@ define_workflow_mod_OLD! {
                 ExtractUnloadChunkInputs: Ecs {
                     core_types: [
                         struct MainAccess<'w, 's> {
-                            chunk_loader_query: Query<'w, 's, (Entity, &'static Transform, &'static ChunkLoaderComponent)>,
                             chunk_manager: Res<'w, ChunkManager>,
                             chunk_action_buffer: ResMut<'w, ChunkActionBuffer>,
+                            phantom_data: std::marker::PhantomData<&'s ()>,
                         }
                         struct Input {
-                            chunk_loader_entity: Entity
+                            chunk_loader_entity: Entity,
+                            chunk_loader_id: u32,
+                            chunk_loader_position: Vec2,
+                            chunk_loader_radius: u32,
                         }
                         struct Output {
                             unload_chunk_inputs: Vec<UnloadChunkInput>,
@@ -215,27 +218,18 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn RunEcs |input, main_access| -> Output {
-                            let chunk_loader_query = main_access.chunk_loader_query;
                             let chunk_manager = main_access.chunk_manager;
                             let mut chunk_action_buffer = main_access.chunk_action_buffer;
 
                             let loader_entity = input.chunk_loader_entity;
-
-                            debug!("Handling removed chunk loader {}", loader_entity);
-                            let (_, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
-                                Ok(value) => value,
-                                Err(_) => {
-                                    panic!(
-                                        "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it",
-                                        loader_entity
-                                    );
-                                }
-                            };
+                            let loader_id = input.chunk_loader_id;
+                            let position = input.chunk_loader_position;
+                            let radius = input.chunk_loader_radius;
                         
                             let mut invalid_actions = vec![];
                             for (chunk_coord, action) in chunk_action_buffer
                                 .iter()
-                                .filter(|(_, action)| action.get_requester_id() == loader.id)
+                                .filter(|(_, action)| action.get_requester_id() == loader_id)
                             {
                                 match action {
                                     ChunkAction::Spawn { .. } => {
@@ -251,12 +245,9 @@ define_workflow_mod_OLD! {
                             #[allow(clippy::never_loop)]
                             for chunk_coord in invalid_actions {
                                 chunk_action_buffer.remove_action(&chunk_coord);
-                                invalid_chunk_actions.push((chunk_coord, loader.id));
+                                invalid_chunk_actions.push((chunk_coord, loader_id));
                                 unreachable!("Invalid ChunkActions deteced OnUpdate: {:?}", invalid_chunk_actions);
                             }
-                        
-                            let position = loader_transform.translation.truncate();
-                            let radius = loader.radius;
                         
                             let chunks_to_despawn: Vec<&(i32, i32)> = chunk_manager
                                 .owned_chunks
@@ -279,7 +270,7 @@ define_workflow_mod_OLD! {
                                 let chunk_loader_radius_squared = radius * radius;
                         
                                 unload_chunk_inputs.push(UnloadChunkInput {
-                                    requester_id: loader.id,
+                                    requester_id: loader_id,
                                     chunk_coord: *chunk_coord,
                                     chunk_loader_distance_squared,
                                     chunk_loader_radius_squared,

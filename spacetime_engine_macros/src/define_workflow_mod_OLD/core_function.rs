@@ -1164,11 +1164,6 @@ impl CoreFunctions<Ecs> {
                                     None,
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
                         }
                     }
@@ -1193,11 +1188,6 @@ impl CoreFunctions<Ecs> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
                         }
                     }
@@ -1221,11 +1211,6 @@ impl CoreFunctions<Ecs> {
                                     None,
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
                         }
                     }
@@ -1250,11 +1235,6 @@ impl CoreFunctions<Ecs> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
                         }
                     }
@@ -1279,11 +1259,6 @@ impl CoreFunctions<Ecs> {
                                     None,
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
                         }
                     }
@@ -1309,11 +1284,6 @@ impl CoreFunctions<Ecs> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
                         }
                     }
@@ -1338,11 +1308,6 @@ impl CoreFunctions<Ecs> {
                                     None,
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
                         }
                     }
@@ -1368,11 +1333,6 @@ impl CoreFunctions<Ecs> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
 
                         }
@@ -1419,11 +1379,6 @@ impl CoreFunctions<Render> {
                                     None,
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
                         }
                     }
@@ -1448,11 +1403,6 @@ impl CoreFunctions<Render> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
 
                         }
@@ -1477,11 +1427,6 @@ impl CoreFunctions<Render> {
                                     None,
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
 
                         }
@@ -1507,11 +1452,6 @@ impl CoreFunctions<Render> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
 
                         }
@@ -1537,11 +1477,6 @@ impl CoreFunctions<Render> {
                                     None,
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
 
                         }
@@ -1568,11 +1503,6 @@ impl CoreFunctions<Render> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
 
                         }
@@ -1599,11 +1529,6 @@ impl CoreFunctions<Render> {
                                     None,
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
 
                         }
@@ -1630,11 +1555,6 @@ impl CoreFunctions<Render> {
                                     Some(failure_sender),
                                 );
                                 handler(stage);
-
-                                bevy::prelude::info!(
-                                    "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                    workflow_name, module_name, current_stage
-                                );
                             }
 
                         }
@@ -1684,11 +1604,6 @@ impl CoreFunctions<Async> {
                                             None,
                                         );
                                         handler(stage);
-
-                                        bevy::prelude::info!(
-                                            "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                            workflow_name, module_name, current_stage
-                                        );
                                     })
                                     .await
                                 }) {
@@ -1721,11 +1636,6 @@ impl CoreFunctions<Async> {
                                             Some(failure_sender),
                                         );
                                         handler(stage);
-
-                                        bevy::prelude::info!(
-                                            "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                            workflow_name, module_name, current_stage
-                                        );
                                     })
                                     .await
                                 }) {
@@ -1757,11 +1667,6 @@ impl CoreFunctions<Async> {
                                             None,
                                         );
                                         handler(stage);
-
-                                        bevy::prelude::info!(
-                                            "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                            workflow_name, module_name, current_stage
-                                        );
                                     })
                                     .await
                                 }) {
@@ -1794,11 +1699,6 @@ impl CoreFunctions<Async> {
                                             Some(failure_sender),
                                         );
                                         handler(stage);
-
-                                        bevy::prelude::info!(
-                                            "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                            workflow_name, module_name, current_stage
-                                        );
                                     })
                                     .await
                                 }) {
@@ -1831,11 +1731,6 @@ impl CoreFunctions<Async> {
                                             None,
                                         );
                                         handler(stage);
-
-                                        bevy::prelude::info!(
-                                            "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                            workflow_name, module_name, current_stage
-                                        );
                                     })
                                     .await
                                 }) {
@@ -1869,11 +1764,6 @@ impl CoreFunctions<Async> {
                                             Some(failure_sender),
                                         );
                                         handler(stage);
-
-                                        bevy::prelude::info!(
-                                            "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                            workflow_name, module_name, current_stage
-                                        );
                                     })
                                     .await
                                 }) {
@@ -1906,11 +1796,6 @@ impl CoreFunctions<Async> {
                                             None,
                                         );
                                         handler(stage);
-
-                                        bevy::prelude::info!(
-                                            "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                            workflow_name, module_name, current_stage
-                                        );
                                     })
                                     .await
                                 }) {
@@ -1944,11 +1829,6 @@ impl CoreFunctions<Async> {
                                             Some(failure_sender),
                                         );
                                         handler(stage);
-
-                                        bevy::prelude::info!(
-                                            "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                            workflow_name, module_name, current_stage
-                                        );
                                     })
                                     .await
                                 }) {
@@ -2033,11 +1913,6 @@ impl CoreFunctions<EcsWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
@@ -2050,11 +1925,6 @@ impl CoreFunctions<EcsWhile> {
                                         None,
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -2113,11 +1983,6 @@ impl CoreFunctions<EcsWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
@@ -2130,11 +1995,6 @@ impl CoreFunctions<EcsWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
 
@@ -2193,11 +2053,6 @@ impl CoreFunctions<EcsWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
@@ -2210,11 +2065,6 @@ impl CoreFunctions<EcsWhile> {
                                         None,
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -2273,11 +2123,6 @@ impl CoreFunctions<EcsWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
@@ -2290,11 +2135,6 @@ impl CoreFunctions<EcsWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -2353,11 +2193,6 @@ impl CoreFunctions<EcsWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
@@ -2370,11 +2205,6 @@ impl CoreFunctions<EcsWhile> {
                                         None,
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -2434,11 +2264,6 @@ impl CoreFunctions<EcsWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
@@ -2451,11 +2276,6 @@ impl CoreFunctions<EcsWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -2514,11 +2334,6 @@ impl CoreFunctions<EcsWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
@@ -2531,11 +2346,6 @@ impl CoreFunctions<EcsWhile> {
                                         None,
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -2595,11 +2405,6 @@ impl CoreFunctions<EcsWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
@@ -2612,11 +2417,6 @@ impl CoreFunctions<EcsWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -2693,11 +2493,6 @@ impl CoreFunctions<RenderWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let _response = run_render_while(state, render_access);
@@ -2710,11 +2505,6 @@ impl CoreFunctions<RenderWhile> {
                                         None,
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -2760,11 +2550,6 @@ impl CoreFunctions<RenderWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
@@ -2777,11 +2562,6 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -2826,11 +2606,6 @@ impl CoreFunctions<RenderWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
@@ -2843,11 +2618,6 @@ impl CoreFunctions<RenderWhile> {
                                         None,
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -2893,11 +2663,6 @@ impl CoreFunctions<RenderWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
@@ -2910,11 +2675,6 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -2961,11 +2721,6 @@ impl CoreFunctions<RenderWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let _response = run_render_while(state, render_access);
@@ -2978,11 +2733,6 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -3029,11 +2779,6 @@ impl CoreFunctions<RenderWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
@@ -3046,11 +2791,6 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -3096,11 +2836,6 @@ impl CoreFunctions<RenderWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
@@ -3113,11 +2848,6 @@ impl CoreFunctions<RenderWhile> {
                                         None,
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }
@@ -3164,11 +2894,6 @@ impl CoreFunctions<RenderWhile> {
                                     handler(stage);
 
                                     *stage_initialized = true;
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 } else {
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
@@ -3181,11 +2906,6 @@ impl CoreFunctions<RenderWhile> {
                                         Some(failure_sender),
                                     );
                                     handler(stage);
-
-                                    bevy::prelude::info!(
-                                        "Workflow '{}' in module '{}' has processed stage '{}'.",
-                                        workflow_name, module_name, current_stage
-                                    );
                                 }
                             }
                         }

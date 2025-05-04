@@ -1,9 +1,11 @@
+use std::collections::VecDeque;
+
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use bevy::render::MainWorld;
 use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 
-use crate::{statics::TOKIO_RUNTIME, workflow::response::*};
+use crate::{config::statics::CONFIG, statics::TOKIO_RUNTIME, workflow::response::*};
 
 use super::{channels::*, events::*, instance::*, resources::*, stage::Stage, types::*};
 
@@ -325,14 +327,19 @@ pub(super) fn stage_failure_relay_system(
     }
 }
 
-pub(super) fn workflow_request_relay_system(world: &mut World) {
+pub(super) fn workflow_request_relay_system(
+    world: &mut World,
+) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
         ResMut<WorkflowRequestReceiver>,
         ResMut<WorkflowResponseSender>,
     )> = SystemState::new(world);
+
     let (
+        mut retry_requests,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -342,38 +349,62 @@ pub(super) fn workflow_request_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
-
-        if workflow_map.has_workflow(module_name, workflow_name) {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active.",
-                workflow_name, module_name
-            );
-        }
-
-        let workflow_type = workflow_registry
+        let num_stages = workflow_registry
             .get_workflow_type(module_name, workflow_name)
-            .unwrap();
-        let num_stages = workflow_type.stages.len();
-        let workflow_response_sender = workflow_response_sender.0.clone();
+            .unwrap()
+            .stages
+            .len();
 
-        workflow_map.insert_workflow(WorkflowInstance::new_request(
+        let response_sender = workflow_response_sender.0.clone();
+
+        let action = Box::new(move |workflow_map: &mut WorkflowMap| {
+            workflow_map.insert_workflow(WorkflowInstance::new_request(
+                module_name,
+                workflow_name,
+                num_stages,
+                Box::new(move || {
+                    response_sender.send(()).unwrap();
+                }),
+            ));
+        });
+        retry_requests.push_back(RetryRequest {
             module_name,
             workflow_name,
-            num_stages,
-            Box::new(move || {
-                workflow_response_sender.send(()).unwrap();
-            }),
-        ));
+            retry_count: 0,
+            action,
+        });
+    }
+
+    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+
+    while !retry_requests.is_empty() {
+        let mut retry = retry_requests.pop_front().unwrap();
+
+        if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
+            (retry.action)(&mut workflow_map);
+        } else if retry.retry_count < max_retries {
+            retry.retry_count += 1;
+            retry_requests.push_back(retry);
+        } else {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+                retry.workflow_name, retry.module_name
+            );
+        }
     }
 }
+
 pub(super) fn workflow_request_e_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
         ResMut<WorkflowRequestEReceiver>,
         ResMut<WorkflowResponseESender>,
     )> = SystemState::new(world);
+
     let (
+        mut retry_requests,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -383,39 +414,64 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
-
-        if workflow_map.has_workflow(module_name, workflow_name) {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active.",
-                workflow_name, module_name
-            );
-        }
-
-        let workflow_type = workflow_registry
+        let num_stages = workflow_registry
             .get_workflow_type(module_name, workflow_name)
-            .unwrap();
-        let num_stages = workflow_type.stages.len();
-        let workflow_response_sender = workflow_response_sender.0.clone();
+            .unwrap()
+            .stages
+            .len();
 
-        workflow_map.insert_workflow(WorkflowInstance::new_request_e(
+        let response_sender = workflow_response_sender.0.clone();
+
+        let action = Box::new(move |workflow_map: &mut WorkflowMap| {
+            workflow_map.insert_workflow(WorkflowInstance::new_request_e(
+                module_name,
+                workflow_name,
+                num_stages,
+                Box::new(move |response| {
+                    let response = response.downcast().unwrap();
+                    response_sender.send(*response).unwrap();
+                }),
+            ));
+        });
+
+        retry_requests.push_back(RetryRequest {
             module_name,
             workflow_name,
-            num_stages,
-            Box::new(move |response| {
-                let response = response.downcast().unwrap();
-                workflow_response_sender.send(*response).unwrap();
-            }),
-        ));
+            retry_count: 0,
+            action,
+        });
+    }
+
+    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+
+    while !retry_requests.is_empty() {
+        let mut retry = retry_requests.pop_front().unwrap();
+
+        if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
+            (retry.action)(&mut workflow_map);
+        } else if retry.retry_count < max_retries {
+            retry.retry_count += 1;
+            retry_requests.push_back(retry);
+        } else {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+                retry.workflow_name, retry.module_name
+            );
+        }
     }
 }
+
 pub(super) fn workflow_request_o_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
         ResMut<WorkflowRequestOReceiver>,
         ResMut<WorkflowResponseOSender>,
     )> = SystemState::new(world);
+
     let (
+        mut retry_requests,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -425,39 +481,64 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
-
-        if workflow_map.has_workflow(module_name, workflow_name) {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active.",
-                workflow_name, module_name
-            );
-        }
-
-        let workflow_type = workflow_registry
+        let num_stages = workflow_registry
             .get_workflow_type(module_name, workflow_name)
-            .unwrap();
-        let num_stages = workflow_type.stages.len();
-        let workflow_response_sender = workflow_response_sender.0.clone();
+            .unwrap()
+            .stages
+            .len();
 
-        workflow_map.insert_workflow(WorkflowInstance::new_request_o(
+        let response_sender = workflow_response_sender.0.clone();
+
+        let action = Box::new(move |workflow_map: &mut WorkflowMap| {
+            workflow_map.insert_workflow(WorkflowInstance::new_request_o(
+                module_name,
+                workflow_name,
+                num_stages,
+                Box::new(move |response| {
+                    let response = response.downcast().unwrap();
+                    response_sender.send(*response).unwrap();
+                }),
+            ));
+        });
+
+        retry_requests.push_back(RetryRequest {
             module_name,
             workflow_name,
-            num_stages,
-            Box::new(move |response| {
-                let response = response.downcast().unwrap();
-                workflow_response_sender.send(*response).unwrap();
-            }),
-        ));
+            retry_count: 0,
+            action,
+        });
+    }
+
+    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+
+    while !retry_requests.is_empty() {
+        let mut retry = retry_requests.pop_front().unwrap();
+
+        if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
+            (retry.action)(&mut workflow_map);
+        } else if retry.retry_count < max_retries {
+            retry.retry_count += 1;
+            retry_requests.push_back(retry);
+        } else {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+                retry.workflow_name, retry.module_name
+            );
+        }
     }
 }
+
 pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
         ResMut<WorkflowRequestOEReceiver>,
         ResMut<WorkflowResponseOESender>,
     )> = SystemState::new(world);
+
     let (
+        mut retry_requests,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -467,39 +548,64 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
-
-        if workflow_map.has_workflow(module_name, workflow_name) {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active.",
-                workflow_name, module_name
-            );
-        }
-
-        let workflow_type = workflow_registry
+        let num_stages = workflow_registry
             .get_workflow_type(module_name, workflow_name)
-            .unwrap();
-        let num_stages = workflow_type.stages.len();
-        let workflow_response_sender = workflow_response_sender.0.clone();
+            .unwrap()
+            .stages
+            .len();
 
-        workflow_map.insert_workflow(WorkflowInstance::new_request_oe(
+        let response_sender = workflow_response_sender.0.clone();
+
+        let action = Box::new(move |workflow_map: &mut WorkflowMap| {
+            workflow_map.insert_workflow(WorkflowInstance::new_request_oe(
+                module_name,
+                workflow_name,
+                num_stages,
+                Box::new(move |response| {
+                    let response = response.downcast().unwrap();
+                    response_sender.send(*response).unwrap();
+                }),
+            ));
+        });
+
+        retry_requests.push_back(RetryRequest {
             module_name,
             workflow_name,
-            num_stages,
-            Box::new(move |response| {
-                let response = response.downcast().unwrap();
-                workflow_response_sender.send(*response).unwrap();
-            }),
-        ));
+            retry_count: 0,
+            action,
+        });
+    }
+
+    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+
+    while !retry_requests.is_empty() {
+        let mut retry = retry_requests.pop_front().unwrap();
+
+        if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
+            (retry.action)(&mut workflow_map);
+        } else if retry.retry_count < max_retries {
+            retry.retry_count += 1;
+            retry_requests.push_back(retry);
+        } else {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+                retry.workflow_name, retry.module_name
+            );
+        }
     }
 }
+
 pub(super) fn workflow_request_i_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
         ResMut<WorkflowRequestIReceiver>,
         ResMut<WorkflowResponseISender>,
     )> = SystemState::new(world);
+
     let (
+        mut retry_requests,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -509,39 +615,65 @@ pub(super) fn workflow_request_i_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
-
-        if workflow_map.has_workflow(module_name, workflow_name) {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active.",
-                workflow_name, module_name
-            );
-        }
-
-        let workflow_type = workflow_registry
+        let input = request.input;
+        let num_stages = workflow_registry
             .get_workflow_type(module_name, workflow_name)
-            .unwrap();
-        let num_stages = workflow_type.stages.len();
-        let workflow_response_sender = workflow_response_sender.0.clone();
+            .unwrap()
+            .stages
+            .len();
 
-        workflow_map.insert_workflow(WorkflowInstance::new_request_i(
+        let response_sender = workflow_response_sender.0.clone();
+
+        let action = Box::new(move |workflow_map: &mut WorkflowMap| {
+            workflow_map.insert_workflow(WorkflowInstance::new_request_i(
+                module_name,
+                workflow_name,
+                input,
+                num_stages,
+                Box::new(move || {
+                    response_sender.send(()).unwrap();
+                }),
+            ));
+        });
+
+        retry_requests.push_back(RetryRequest {
             module_name,
             workflow_name,
-            request.input,
-            num_stages,
-            Box::new(move || {
-                workflow_response_sender.send(()).unwrap();
-            }),
-        ));
+            retry_count: 0,
+            action,
+        });
+    }
+
+    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+
+    while !retry_requests.is_empty() {
+        let mut retry = retry_requests.pop_front().unwrap();
+
+        if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
+            (retry.action)(&mut workflow_map);
+        } else if retry.retry_count < max_retries {
+            retry.retry_count += 1;
+            retry_requests.push_back(retry);
+        } else {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+                retry.workflow_name, retry.module_name
+            );
+        }
     }
 }
+
 pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
         ResMut<WorkflowRequestIEReceiver>,
         ResMut<WorkflowResponseIESender>,
     )> = SystemState::new(world);
+
     let (
+        mut retry_requests,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -551,40 +683,66 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
-
-        if workflow_map.has_workflow(module_name, workflow_name) {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active.",
-                workflow_name, module_name
-            );
-        }
-
-        let workflow_type = workflow_registry
+        let input = request.input;
+        let num_stages = workflow_registry
             .get_workflow_type(module_name, workflow_name)
-            .unwrap();
-        let num_stages = workflow_type.stages.len();
-        let workflow_response_sender = workflow_response_sender.0.clone();
+            .unwrap()
+            .stages
+            .len();
 
-        workflow_map.insert_workflow(WorkflowInstance::new_request_ie(
+        let response_sender = workflow_response_sender.0.clone();
+
+        let action = Box::new(move |workflow_map: &mut WorkflowMap| {
+            workflow_map.insert_workflow(WorkflowInstance::new_request_ie(
+                module_name,
+                workflow_name,
+                input,
+                num_stages,
+                Box::new(move |response| {
+                    let response = response.downcast().unwrap();
+                    response_sender.send(*response).unwrap();
+                }),
+            ));
+        });
+
+        retry_requests.push_back(RetryRequest {
             module_name,
             workflow_name,
-            request.input,
-            num_stages,
-            Box::new(move |response| {
-                let response = response.downcast().unwrap();
-                workflow_response_sender.send(*response).unwrap();
-            }),
-        ));
+            retry_count: 0,
+            action,
+        });
+    }
+
+    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+
+    while !retry_requests.is_empty() {
+        let mut retry = retry_requests.pop_front().unwrap();
+
+        if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
+            (retry.action)(&mut workflow_map);
+        } else if retry.retry_count < max_retries {
+            retry.retry_count += 1;
+            retry_requests.push_back(retry);
+        } else {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+                retry.workflow_name, retry.module_name
+            );
+        }
     }
 }
+
 pub(super) fn workflow_request_io_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
         ResMut<WorkflowRequestIOReceiver>,
         ResMut<WorkflowResponseIOSender>,
     )> = SystemState::new(world);
+
     let (
+        mut retry_requests,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -594,40 +752,66 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
-
-        if workflow_map.has_workflow(module_name, workflow_name) {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active.",
-                workflow_name, module_name
-            );
-        }
-
-        let workflow_type = workflow_registry
+        let input = request.input;
+        let num_stages = workflow_registry
             .get_workflow_type(module_name, workflow_name)
-            .unwrap();
-        let num_stages = workflow_type.stages.len();
-        let workflow_response_sender = workflow_response_sender.0.clone();
+            .unwrap()
+            .stages
+            .len();
 
-        workflow_map.insert_workflow(WorkflowInstance::new_request_io(
+        let response_sender = workflow_response_sender.0.clone();
+
+        let action = Box::new(move |workflow_map: &mut WorkflowMap| {
+            workflow_map.insert_workflow(WorkflowInstance::new_request_io(
+                module_name,
+                workflow_name,
+                input,
+                num_stages,
+                Box::new(move |response| {
+                    let response = response.downcast().unwrap();
+                    response_sender.send(*response).unwrap();
+                }),
+            ));
+        });
+
+        retry_requests.push_back(RetryRequest {
             module_name,
             workflow_name,
-            request.input,
-            num_stages,
-            Box::new(move |response| {
-                let response = response.downcast().unwrap();
-                workflow_response_sender.send(*response).unwrap();
-            }),
-        ));
+            retry_count: 0,
+            action,
+        });
+    }
+
+    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+
+    while !retry_requests.is_empty() {
+        let mut retry = retry_requests.pop_front().unwrap();
+
+        if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
+            (retry.action)(&mut workflow_map);
+        } else if retry.retry_count < max_retries {
+            retry.retry_count += 1;
+            retry_requests.push_back(retry);
+        } else {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+                retry.workflow_name, retry.module_name
+            );
+        }
     }
 }
+
 pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
         ResMut<WorkflowRequestIOEReceiver>,
         ResMut<WorkflowResponseIOESender>,
     )> = SystemState::new(world);
+
     let (
+        mut retry_requests,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -637,30 +821,52 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
-
-        if workflow_map.has_workflow(module_name, workflow_name) {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active.",
-                workflow_name, module_name
-            );
-        }
-
-        let workflow_type = workflow_registry
+        let input = request.input;
+        let num_stages = workflow_registry
             .get_workflow_type(module_name, workflow_name)
-            .unwrap();
-        let num_stages = workflow_type.stages.len();
-        let workflow_response_sender = workflow_response_sender.0.clone();
+            .unwrap()
+            .stages
+            .len();
 
-        workflow_map.insert_workflow(WorkflowInstance::new_request_ioe(
+        let response_sender = workflow_response_sender.0.clone();
+
+        let action = Box::new(move |workflow_map: &mut WorkflowMap| {
+            workflow_map.insert_workflow(WorkflowInstance::new_request_ioe(
+                module_name,
+                workflow_name,
+                input,
+                num_stages,
+                Box::new(move |response| {
+                    let response = response.downcast().unwrap();
+                    response_sender.send(*response).unwrap();
+                }),
+            ));
+        });
+
+        retry_requests.push_back(RetryRequest {
             module_name,
             workflow_name,
-            request.input,
-            num_stages,
-            Box::new(move |response| {
-                let response = response.downcast().unwrap();
-                workflow_response_sender.send(*response).unwrap();
-            }),
-        ));
+            retry_count: 0,
+            action,
+        });
+    }
+
+    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+
+    while !retry_requests.is_empty() {
+        let mut retry = retry_requests.pop_front().unwrap();
+
+        if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
+            (retry.action)(&mut workflow_map);
+        } else if retry.retry_count < max_retries {
+            retry.retry_count += 1;
+            retry_requests.push_back(retry);
+        } else {
+            unreachable!(
+                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+                retry.workflow_name, retry.module_name
+            );
+        }
     }
 }
 
@@ -701,11 +907,6 @@ pub(super) fn workflow_request_system(world: &mut World) {
                         workflow_name,
                         stage_input: input,
                     });
-
-                    info!(
-                        "Workflow '{}' in module '{}' has been requested. Initializing workflow..",
-                        workflow_name, module_name
-                    );
                 }
                 WorkflowState::Processing { .. } => {
                     // Skip this workflow instance, as it is already being processed
@@ -834,11 +1035,6 @@ pub(super) fn workflow_initialization_system(world: &mut World) {
                 ));
             }
         };
-
-        info!(
-            "Workflow '{}' in module '{}' has initialized stage '{}'. Processing stage..",
-            workflow_name, module_name, current_stage
-        );
     }
 }
 
@@ -933,11 +1129,6 @@ pub(super) fn workflow_wait_handling_system(world: &mut World) {
                 ));
             }
         };
-
-        info!(
-            "Workflow '{}' in module '{}' is awaiting completion of stage '{}'..",
-            workflow_name, module_name, current_stage
-        )
     }
 }
 
@@ -1093,11 +1284,6 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         ));
                     }
                 };
-
-                info!(
-                    "Workflow '{}' in module '{}' has completed intermediate stage '{}'. Moving on to next stage..",
-                    workflow_name, module_name, stage_index
-                );
             }
         }
     }
@@ -1108,11 +1294,6 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
     {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             workflows.remove(workflow_name);
-
-            info!(
-                "Workflow '{}' in module '{}' has completed final stage '{}'. Invoking callback..",
-                workflow_name, module_name, current_stage
-            );
 
             match callback {
                 WorkflowCallback::None(callback) => (callback)(),

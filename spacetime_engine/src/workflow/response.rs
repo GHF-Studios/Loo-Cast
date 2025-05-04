@@ -15,8 +15,6 @@ pub struct TypedWorkflowResponseOE(
 
 impl TypedWorkflowResponseE {
     pub fn unpack<E: 'static + Any + Send + Sync>(self) -> Result<(), E> {
-        info!("Unpacking TypedWorkflowResponseE");
-
         let downcast_error_result = match self.0 {
             Ok(_) => return Ok(()),
             Err(error) => error.downcast(),
@@ -32,8 +30,6 @@ impl TypedWorkflowResponseE {
 }
 impl TypedWorkflowResponseO {
     pub fn unpack<O: 'static + Any + Send + Sync>(self) -> O {
-        info!("Unpacking TypedWorkflowResponseO");
-
         let downcast_output_result = self.0.downcast();
 
         let output = match downcast_output_result {
@@ -48,8 +44,6 @@ impl TypedWorkflowResponseOE {
     pub fn unpack<O: 'static + Any + Send + Sync, E: 'static + Any + Send + Sync>(
         self,
     ) -> Result<O, E> {
-        info!("Unpacking TypedWorkflowResponseOE");
-
         match self.0 {
             Ok(output) => {
                 let downcast_output_result = output.downcast();

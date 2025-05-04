@@ -17,3 +17,4 @@ movement_speed = 250.0
 
 [workflow]
 timeout_frames_per_stage = 30
+max_retries = 1024

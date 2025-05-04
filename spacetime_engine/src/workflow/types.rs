@@ -2,8 +2,7 @@ use futures::future::BoxFuture;
 use tokio::task::JoinHandle;
 
 use super::{
-    stage::{Stage, StageType},
-    statics::TOKIO_RUNTIME,
+    resources::WorkflowMap, stage::{Stage, StageType}, statics::TOKIO_RUNTIME
 };
 
 pub struct CompositeWorkflowRuntime(tokio::runtime::Handle);
@@ -92,4 +91,11 @@ pub struct WorkflowType {
 pub enum Outcome<S, O> {
     Wait(S),
     Done(O),
+}
+
+pub(super) struct RetryRequest {
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub retry_count: usize,
+    pub action: Box<dyn FnOnce(&mut WorkflowMap) + Send>,
 }
