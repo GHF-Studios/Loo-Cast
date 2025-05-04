@@ -99,6 +99,200 @@ define_workflow_mod_OLD! {
             ]
         }
 
+        OnAddChunkLoader {
+            user_imports: {
+                use bevy::prelude::*;
+                use std::collections::HashSet;
+                
+                use crate::chunk::components::ChunkComponent;
+                use crate::chunk::enums::ChunkAction;
+                use crate::chunk::functions::*;
+                use crate::chunk::resources::{ChunkManager, ChunkActionBuffer};
+                use crate::chunk_loader::components::ChunkLoaderComponent;
+                use crate::chunk_loader::workflows::chunk_loader::load_chunks::user_items::LoadChunkInput;
+            },
+            user_items: {},
+            stages: [
+                ExtractLoadChunkInputs: Ecs {
+                    core_types: [
+                        struct MainAccess<'w, 's> {
+                            chunk_loader_query: Query<'w, 's, (Entity, &'static Transform, &'static ChunkLoaderComponent)>,
+                            chunk_manager: Res<'w, ChunkManager>,
+                        }
+                        struct Input {
+                            chunk_loader_entity: Entity
+                        }
+                        struct Output {
+                            load_chunk_inputs: Vec<LoadChunkInput>,
+                        }
+                    ],
+                    core_functions: [
+                        fn RunEcs |input, main_access| -> Output {
+                            let chunk_loader_query = main_access.chunk_loader_query;
+                            let chunk_manager = main_access.chunk_manager;
+
+                            let loader_entity = input.chunk_loader_entity;
+
+                            let (loader_entity, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
+                                Ok(value) => value,
+                                Err(_) => {
+                                    panic!(
+                                        "Failed to add chunk loader {:?}: Chunk Loader Query did not include it",
+                                        loader_entity
+                                    );
+                                }
+                            };
+                        
+                            let position = loader_transform.translation.truncate();
+                            let radius = loader.radius;
+                        
+                            let target_chunks = calculate_chunks_in_radius(position, radius)
+                                .into_iter()
+                                .collect::<HashSet<(i32, i32)>>();
+                        
+                            let current_chunks: HashSet<(i32, i32)> = chunk_manager
+                                .owned_chunks
+                                .iter()
+                                .filter_map(|(chunk, &owner)| {
+                                    if owner == loader_entity {
+                                        Some(*chunk)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect();
+                            
+                            let chunks_to_spawn: Vec<&(i32, i32)> = target_chunks.difference(&current_chunks).collect();
+
+                            let mut load_chunk_inputs = Vec::new();
+                            for chunk_coord in chunks_to_spawn {
+                                let chunk_loader_distance_squared =
+                                    calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
+                                let chunk_loader_radius_squared = radius * radius;
+                        
+                                load_chunk_inputs.push(LoadChunkInput {
+                                    requester_id: loader.id,
+                                    chunk_coord: *chunk_coord,
+                                    chunk_owner: Some(loader_entity),
+                                    chunk_loader_distance_squared,
+                                    chunk_loader_radius_squared,
+                                });
+                            }
+
+                            Output { load_chunk_inputs }
+                        }
+                    ]
+                }
+            ],
+        }
+
+        OnRemoveChunkLoader {
+            user_imports: {
+                use bevy::prelude::*;
+                
+                use crate::chunk::components::ChunkComponent;
+                use crate::chunk::enums::ChunkAction;
+                use crate::chunk::functions::*;
+                use crate::chunk::resources::{ChunkManager, ChunkActionBuffer};
+                use crate::chunk_loader::components::ChunkLoaderComponent;
+                use crate::chunk_loader::workflows::chunk_loader::unload_chunks::user_items::UnloadChunkInput;
+            },
+            user_items: {},
+            stages: [
+                ExtractUnloadChunkInputs: Ecs {
+                    core_types: [
+                        struct MainAccess<'w, 's> {
+                            chunk_loader_query: Query<'w, 's, (Entity, &'static Transform, &'static ChunkLoaderComponent)>,
+                            chunk_manager: Res<'w, ChunkManager>,
+                            chunk_action_buffer: ResMut<'w, ChunkActionBuffer>,
+                        }
+                        struct Input {
+                            chunk_loader_entity: Entity
+                        }
+                        struct Output {
+                            unload_chunk_inputs: Vec<UnloadChunkInput>,
+                        }
+                    ],
+                    core_functions: [
+                        fn RunEcs |input, main_access| -> Output {
+                            let chunk_loader_query = main_access.chunk_loader_query;
+                            let chunk_manager = main_access.chunk_manager;
+                            let mut chunk_action_buffer = main_access.chunk_action_buffer;
+
+                            let loader_entity = input.chunk_loader_entity;
+
+                            debug!("Handling removed chunk loader {}", loader_entity);
+                            let (_, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
+                                Ok(value) => value,
+                                Err(_) => {
+                                    panic!(
+                                        "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it",
+                                        loader_entity
+                                    );
+                                }
+                            };
+                        
+                            let mut invalid_actions = vec![];
+                            for (chunk_coord, action) in chunk_action_buffer
+                                .iter()
+                                .filter(|(_, action)| action.get_requester_id() == loader.id)
+                            {
+                                match action {
+                                    ChunkAction::Spawn { .. } => {
+                                        invalid_actions.push(*chunk_coord);
+                                    }
+                                    ChunkAction::Despawn { .. } => {}
+                                    ChunkAction::TransferOwnership { .. } => {}
+                                }
+                            }
+                        
+                            let mut invalid_chunk_actions = Vec::new();
+
+                            #[allow(clippy::never_loop)]
+                            for chunk_coord in invalid_actions {
+                                chunk_action_buffer.remove_action(&chunk_coord);
+                                invalid_chunk_actions.push((chunk_coord, loader.id));
+                                unreachable!("Invalid ChunkActions deteced OnUpdate: {:?}", invalid_chunk_actions);
+                            }
+                        
+                            let position = loader_transform.translation.truncate();
+                            let radius = loader.radius;
+                        
+                            let chunks_to_despawn: Vec<&(i32, i32)> = chunk_manager
+                                .owned_chunks
+                                .iter()
+                                .filter_map(|(chunk, &owner)| {
+                                    if owner == loader_entity {
+                                        chunk_action_buffer.remove_action(chunk);
+                        
+                                        Some(chunk)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect();
+
+                            let mut unload_chunk_inputs = Vec::new();
+                            for chunk_coord in chunks_to_despawn {
+                                let chunk_loader_distance_squared =
+                                    calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
+                                let chunk_loader_radius_squared = radius * radius;
+                        
+                                unload_chunk_inputs.push(UnloadChunkInput {
+                                    requester_id: loader.id,
+                                    chunk_coord: *chunk_coord,
+                                    chunk_loader_distance_squared,
+                                    chunk_loader_radius_squared,
+                                });
+                            }
+
+                            Output { unload_chunk_inputs }
+                        }
+                    ]
+                }
+            ],
+        }
+
         LoadChunks {
             user_imports: {
                 use bevy::prelude::*;

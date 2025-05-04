@@ -1,141 +1,41 @@
-use std::collections::HashSet;
-
 use bevy::prelude::*;
+use spacetime_engine_macros::{composite_workflow, composite_workflow_return};
 
 use crate::chunk::components::ChunkComponent;
-use crate::chunk::enums::ChunkAction;
-use crate::chunk::functions::*;
 use crate::chunk::resources::{ChunkManager, ChunkActionBuffer};
+use crate::chunk_loader::components::ChunkLoaderComponent;
+use crate::workflow::functions::handle_composite_workflow_return;
 
-use super::components::ChunkLoaderComponent;
-
-pub(crate) fn observe_on_add_chunk_loader(
-    trigger: Trigger<OnAdd, ChunkLoaderComponent>,
-    chunk_loader_query: Query<(Entity, &Transform, &mut ChunkLoaderComponent)>,
-    chunk_manager: Res<ChunkManager>,
-    mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
-) {
+pub(crate) fn observe_on_add_chunk_loader(trigger: Trigger<OnAdd, ChunkLoaderComponent>) {
     let loader_entity = trigger.entity();
 
-    let (loader_entity, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
-        Ok(value) => value,
-        Err(_) => {
-            panic!(
-                "Failed to add chunk loader {:?}: Chunk Loader Query did not include it",
-                loader_entity
-            );
-        }
-    };
+    let handle = composite_workflow!(loader_entity: Entity, JustDoIt {
+        let output = workflow!(IO, ChunkLoader::OnAddChunkLoader, Input {
+            chunk_loader_entity: loader_entity,
+        });
+        workflow!(I, ChunkLoader::LoadChunks, Input {
+            inputs: output.load_chunk_inputs
+        });
+    });
 
-    let position = loader_transform.translation.truncate();
-    let radius = loader.radius;
-
-    let target_chunks = calculate_chunks_in_radius(position, radius)
-        .into_iter()
-        .collect::<HashSet<(i32, i32)>>();
-
-    let current_chunks: HashSet<(i32, i32)> = chunk_manager
-        .owned_chunks
-        .iter()
-        .filter_map(|(chunk, &owner)| {
-            if owner == loader_entity {
-                Some(*chunk)
-            } else {
-                None
-            }
-        })
-        .collect();
-
-    let chunks_to_spawn: Vec<&(i32, i32)> = target_chunks.difference(&current_chunks).collect();
-
-    for chunk_coord in chunks_to_spawn {
-        let chunk_loader_distance_squared =
-            calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
-        let chunk_loader_radius_squared = radius * radius;
-
-        load_chunk(
-            &chunk_manager,
-            &mut chunk_action_buffer,
-            loader.id,
-            *chunk_coord,
-            Some(loader_entity),
-            chunk_loader_distance_squared,
-            chunk_loader_radius_squared,
-        );
-    }
+    handle_composite_workflow_return(handle, || {
+        composite_workflow_return!(loader_entity: Entity);
+    });
 }
 
-pub(crate) fn observe_on_remove_chunk_loader(
-    trigger: Trigger<OnRemove, ChunkLoaderComponent>,
-    chunk_query: Query<(Entity, &ChunkComponent)>,
-    chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
-    chunk_manager: Res<ChunkManager>,
-    mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
-) {
+pub(crate) fn observe_on_remove_chunk_loader(trigger: Trigger<OnRemove, ChunkLoaderComponent>) {
     let loader_entity = trigger.entity();
-    debug!("Handling removed chunk loader {}", loader_entity);
-    let (_, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
-        Ok(value) => value,
-        Err(_) => {
-            panic!(
-                "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it",
-                loader_entity
-            );
-        }
-    };
 
-    let mut invalid_actions = vec![];
-    for (chunk_coord, action) in chunk_action_buffer
-        .iter()
-        .filter(|(_, action)| action.get_requester_id() == loader.id)
-    {
-        match action {
-            ChunkAction::Spawn { .. } => {
-                invalid_actions.push(*chunk_coord);
-            }
-            ChunkAction::Despawn { .. } => {}
-            ChunkAction::TransferOwnership { .. } => {}
-        }
-    }
+    let handle = composite_workflow!(loader_entity: Entity, JustDoIt {
+        let output = workflow!(IO, ChunkLoader::OnRemoveChunkLoader, Input {
+            chunk_loader_entity: loader_entity,
+        });
+        workflow!(I, ChunkLoader::UnloadChunks, Input {
+            inputs: output.unload_chunk_inputs
+        });
+    });
 
-    let mut invalid_chunk_actions = Vec::new();
-    for chunk_coord in invalid_actions {
-        chunk_action_buffer.remove_action(&chunk_coord);
-        invalid_chunk_actions.push((chunk_coord, loader.id));
-        unreachable!("Invalid ChunkActions deteced OnUpdate: {:?}", invalid_chunk_actions);
-    }
-
-    let position = loader_transform.translation.truncate();
-    let radius = loader.radius;
-
-    let chunks_to_despawn: Vec<&(i32, i32)> = chunk_manager
-        .owned_chunks
-        .iter()
-        .filter_map(|(chunk, &owner)| {
-            if owner == loader_entity {
-                chunk_action_buffer.remove_action(chunk);
-
-                Some(chunk)
-            } else {
-                None
-            }
-        })
-        .collect();
-
-    for &chunk_coord in chunks_to_despawn {
-        let chunk_loader_distance_squared =
-            calculate_chunk_distance_from_owner(&chunk_coord, &world_pos_to_chunk(position));
-        let chunk_loader_radius_squared = radius * radius;
-
-        unload_chunk(
-            &chunk_manager,
-            &mut chunk_action_buffer,
-            &chunk_query,
-            &chunk_loader_query,
-            loader.id,
-            chunk_coord,
-            chunk_loader_distance_squared,
-            chunk_loader_radius_squared,
-        );
-    }
+    handle_composite_workflow_return(handle, || {
+        composite_workflow_return!(loader_entity: Entity);
+    });
 }

@@ -1,4 +1,3 @@
-use heck::ToSnakeCase;
 use syn::{Ident, Type, Token};
 use syn::parse::{Parse, ParseStream, Result};
 use syn::punctuated::Punctuated;

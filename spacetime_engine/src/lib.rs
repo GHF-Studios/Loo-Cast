@@ -99,6 +99,12 @@ register_workflow_mods!(
         CategorizeChunks {
             Categorize: Ecs,
         },
+        OnAddChunkLoader {
+            ExtractLoadChunkInputs: Ecs
+        },
+        OnRemoveChunkLoader {
+            ExtractUnloadChunkInputs: Ecs
+        },
         LoadChunks {
             ValidateAndLoad: Ecs,
         },
