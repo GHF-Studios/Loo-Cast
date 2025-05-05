@@ -1902,11 +1902,11 @@ impl CoreFunctions<EcsWhile> {
                                 if !*stage_initialized {
                                     let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
 
-                                    let _response = setup_ecs_while(main_access);
+                                    let response = setup_ecs_while(main_access);
                                     let handler = (handle_ecs_while_setup_response)(
                                         module_name,
                                         workflow_name,
-                                        None,
+                                        response,
                                         setup_sender,
                                         None,
                                     );
@@ -2182,11 +2182,11 @@ impl CoreFunctions<EcsWhile> {
                                     let handle_ecs_while_setup_response = &mut stage.handle_ecs_while_setup_response;
 
                                     let input = data_buffer;
-                                    let _response = setup_ecs_while(input, main_access);
+                                    let response = setup_ecs_while(input, main_access);
                                     let handler = (handle_ecs_while_setup_response)(
                                         module_name,
                                         workflow_name,
-                                        None,
+                                        response,
                                         setup_sender,
                                         None,
                                     );
@@ -2495,11 +2495,11 @@ impl CoreFunctions<RenderWhile> {
                                     *stage_initialized = true;
                                 } else {
                                     let state = data_buffer;
-                                    let _response = run_render_while(state, render_access);
+                                    let response = run_render_while(state, render_access);
                                     let handler = (handle_render_while_run_response)(
                                         module_name,
                                         workflow_name,
-                                        None,
+                                        response,
                                         wait_sender,
                                         completion_sender,
                                         None,
@@ -2723,11 +2723,11 @@ impl CoreFunctions<RenderWhile> {
                                     *stage_initialized = true;
                                 } else {
                                     let state = data_buffer;
-                                    let _response = run_render_while(state, render_access);
+                                    let response = run_render_while(state, render_access);
                                     let handler = (handle_render_while_run_response)(
                                         module_name,
                                         workflow_name,
-                                        None,
+                                        response,
                                         wait_sender,
                                         completion_sender,
                                         Some(failure_sender),

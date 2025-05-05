@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use crate::config::statics::CONFIG;
-use bevy::{ecs::component::StorageType, prelude::*};
+use bevy::prelude::*;
 use lazy_static::lazy_static;
 
 lazy_static! {

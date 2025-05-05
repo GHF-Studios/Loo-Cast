@@ -4,37 +4,6 @@ use spacetime_engine_macros::{composite_workflow, composite_workflow_return};
 
 use crate::chunk_loader::components::ChunkLoaderComponent;
 
-pub(crate) fn observe_on_add_chunk_loader(
-    trigger: Trigger<OnAdd, ChunkLoaderComponent>,
-    mut composite_workflow_handle: Local<Option<JoinHandle<()>>>,
-) {
-    let loader_entity = trigger.entity();
-    let handle_is_some = (*composite_workflow_handle).is_some();
-    let handle_is_finished = match *composite_workflow_handle {
-        Some(ref handle) => handle.is_finished(),
-        None => false,
-    };
-    
-    if handle_is_some && handle_is_finished {
-        *composite_workflow_handle = None;
-        composite_workflow_return!(loader_entity: Entity);
-    }
-    if handle_is_some && !handle_is_finished {
-        return;
-    }
-
-    let handle = composite_workflow!(loader_entity: Entity, JustDoIt {
-        bevy::prelude::info!("Adding chunk loader: {:?}", loader_entity);
-        let output = workflow!(IO, ChunkLoader::OnAddChunkLoader, Input {
-            chunk_loader_entity: loader_entity,
-        });
-        workflow!(I, ChunkLoader::LoadChunks, Input {
-            inputs: output.load_chunk_inputs
-        });
-    });
-    *composite_workflow_handle = Some(handle);
-}
-
 pub(crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
     mut composite_workflow_handle: Local<Option<JoinHandle<()>>>,

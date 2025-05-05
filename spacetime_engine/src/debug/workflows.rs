@@ -20,6 +20,7 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn RunEcs |main_access| {
+                            bevy::prelude::debug!("Spawning debug ui..");
                             let mut commands = main_access.commands;
 
                             commands.spawn((
@@ -41,20 +42,20 @@ define_workflow_mod_OLD! {
                 use crate::{
                     chunk_actor::components::ChunkActorComponent, chunk_loader::components::ChunkLoaderComponent,
                 };
-                use crate::debug::components::{TestObjectComponent, TestObjectMovement};
+                use crate::debug::components::{DebugObjectComponent, DebugObjectMovement};
             },
             user_items: {
-                pub fn spawn_test_object(
+                pub fn spawn_debug_object(
                     commands: &mut Commands,
                     position: Vec2,
                     rotation: f32,
                     scale: Vec2,
-                    movement: TestObjectMovement,
+                    movement: DebugObjectMovement,
                 ) {
                     commands.spawn((
                         ChunkActorComponent,
                         ChunkLoaderComponent::default(),
-                        TestObjectComponent { movement },
+                        DebugObjectComponent { movement },
                         SpriteBundle {
                             sprite: Sprite {
                                 color: Color::srgb(0.0, 0.0, 1.0),
@@ -80,36 +81,37 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn RunEcs |main_access| {
+                            bevy::prelude::debug!("Spawning debug objects..");
                             let mut commands = main_access.commands;
 
-                            spawn_test_object(
+                            spawn_debug_object(
                                 &mut commands,
                                 Vec2::new(350.0, 350.0),
                                 0.0,
                                 Vec2::ONE,
-                                TestObjectMovement::Circle {
+                                DebugObjectMovement::Circle {
                                     radius: 200.0,
                                     speed: 0.15,
                                 },
                             );
 
-                            spawn_test_object(
+                            spawn_debug_object(
                                 &mut commands,
                                 Vec2::new(-300.0, -400.0),
                                 0.0,
                                 Vec2::ONE,
-                                TestObjectMovement::Line {
+                                DebugObjectMovement::Line {
                                     distance: 500.0,
                                     speed: 0.15,
                                 },
                             );
 
-                            spawn_test_object(
+                            spawn_debug_object(
                                 &mut commands,
                                 Vec2::new(-350.0, 400.0),
                                 0.0,
                                 Vec2::ONE,
-                                TestObjectMovement::Static,
+                                DebugObjectMovement::Static,
                             );
                         }
                     ]

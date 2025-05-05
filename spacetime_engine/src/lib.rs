@@ -39,6 +39,7 @@ pub mod player;
 pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
+use iyes_perf_ui::{entries::{PerfUiFramerateEntries, PerfUiSystemEntries}, prelude::{PerfUiEntryEntityCount, PerfUiRoot}};
 use spacetime_engine_macros::{register_workflow_mods, composite_workflow, composite_workflow_return};
 use crate::workflow::functions::handle_composite_workflow_return;
 use workflow::WorkflowPlugin;
@@ -81,7 +82,7 @@ impl PluginGroup for SpacetimeEngineMainPlugins {
 register_workflow_mods!(
     Camera {
         SpawnMainCamera {
-            Spawn: Ecs,
+            Spawn: EcsWhile,
         },
     },
     Chunk {
@@ -98,9 +99,6 @@ register_workflow_mods!(
     ChunkLoader {
         CategorizeChunks {
             Categorize: Ecs,
-        },
-        OnAddChunkLoader {
-            ExtractLoadChunkInputs: Ecs
         },
         OnRemoveChunkLoader {
             ExtractUnloadChunkInputs: Ecs
@@ -147,9 +145,16 @@ impl Plugin for SpacetimeEngineCorePlugin {
     }
 }
 
-fn startup_system() {
+fn startup_system(mut commands: Commands) {
+    // TODO: Somehow this works, but doing it via the Debug::SpawnDebugUI workflow does not work???
+    //commands.spawn((
+    //    PerfUiRoot::default(),
+    //    PerfUiFramerateEntries::default(),
+    //    PerfUiSystemEntries::default(),
+    //    PerfUiEntryEntityCount::default(),
+    //));
+    
     let handle = composite_workflow!(JustDoIt {
-        bevy::prelude::info!("Spacetime Engine: Starting up...");
         workflow!(Camera::SpawnMainCamera);
         workflow!(Debug::SpawnDebugUI);
         

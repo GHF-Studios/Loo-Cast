@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy::render::MainWorld;
 use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 
-use crate::{config::statics::CONFIG, statics::TOKIO_RUNTIME, workflow::response::*};
+use crate::{config::statics::CONFIG, workflow::response::*};
 
 use super::{channels::*, events::*, instance::*, resources::*, stage::Stage, types::*};
 
@@ -1289,7 +1289,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
     }
 
     // Handle final stage completions
-    for (module_name, workflow_name, current_stage, callback, stage_output) in
+    for (module_name, workflow_name, _current_stage, callback, stage_output) in
         final_stage_completions
     {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {

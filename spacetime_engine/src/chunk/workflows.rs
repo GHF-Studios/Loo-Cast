@@ -44,7 +44,7 @@ define_workflow_mod_OLD! {
                                 let metric_texture = input.metric_texture.clone();
 
                                 if chunk_query.iter().any(|chunk| chunk.coord == chunk_coord) {
-                                    return Err(Error::ChunkAlreadyLoaded { chunk_coord: chunk_coord });
+                                    return Err(Error::ChunkAlreadyLoaded { chunk_coord });
                                 }
     
                                 let default_chunk_z = CONFIG.get::<f32>("chunk/default_z");

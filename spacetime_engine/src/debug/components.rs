@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 
 #[derive(Component, Default)]
-pub struct TestObjectComponent {
-    pub movement: TestObjectMovement,
+pub struct DebugObjectComponent {
+    pub movement: DebugObjectMovement,
 }
 
 #[derive(Default)]
-pub enum TestObjectMovement {
+pub enum DebugObjectMovement {
     #[default]
     Static,
     Circle {

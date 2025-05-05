@@ -63,7 +63,7 @@ macro_rules! workflow_stage_core_function_util {
 macro_rules! workflow_imports_util {
     () => {
         pub use super::user_items::*;
-        pub use crate::workflow::types::{Outcome, Outcome::Done, Outcome::Wait};
+        pub use $crate::workflow::types::{Outcome, Outcome::Done, Outcome::Wait};
         pub use bevy::prelude::World;
     };
 }

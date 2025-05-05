@@ -1,6 +1,4 @@
-use bevy::prelude::*;
 use crossbeam_channel::Sender;
-use futures::future::BoxFuture;
 use std::any::Any;
 
 use super::events::*;

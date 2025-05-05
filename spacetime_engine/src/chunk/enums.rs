@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum ChunkAction {
+pub enum ChunkAction {
     Spawn {
         requester_id: u32,
         coord: (i32, i32),

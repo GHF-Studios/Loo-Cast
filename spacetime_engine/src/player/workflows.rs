@@ -25,6 +25,7 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn RunEcs |main_access| -> Result<(), Error> {
+                            bevy::prelude::debug!("Spawning player..");
                             let mut commands = main_access.commands;
                             let player_query = main_access.player_query;
 
