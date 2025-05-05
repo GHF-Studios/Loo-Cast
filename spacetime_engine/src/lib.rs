@@ -82,7 +82,7 @@ impl PluginGroup for SpacetimeEngineMainPlugins {
 register_workflow_mods!(
     Camera {
         SpawnMainCamera {
-            Spawn: EcsWhile,
+            Spawn: Ecs,
         },
     },
     Chunk {
