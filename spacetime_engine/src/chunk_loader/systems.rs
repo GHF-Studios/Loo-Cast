@@ -8,6 +8,7 @@ use crate::chunk::functions::calculate_chunks_in_radius;
 use crate::chunk::resources::ChunkActionBuffer;
 use crate::chunk_loader::components::ChunkLoaderComponent;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
+use crate::workflow::functions::handle_composite_workflow_return;
 
 pub(crate) fn update_chunk_loader_system(
     mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>,
@@ -45,7 +46,13 @@ pub(crate) fn update_chunk_loader_system(
         }
     }
 
-    if (*composite_workflow_handle).is_none() {
+    let handle_is_some = (*composite_workflow_handle).is_some();
+    let handle_is_finished = match *composite_workflow_handle {
+        Some(ref handle) => handle.is_finished(),
+        None => false,
+    };
+
+    if !handle_is_some {
         let handle = composite_workflow!(JustDoIt {
             let categorize_chunks_output = workflow!(O, ChunkLoader::CategorizeChunks);
             workflow!(I, ChunkLoader::LoadChunks, Input {
@@ -58,11 +65,14 @@ pub(crate) fn update_chunk_loader_system(
 
         *composite_workflow_handle = Some(handle);
     }
+    if handle_is_some && !handle_is_finished {
+        return;
+    }
 
-    if let Some(ref handle) = *composite_workflow_handle {
-        if handle.is_finished() {
-            *composite_workflow_handle = None;
-            composite_workflow_return!();
-        }
+    if handle_is_some && handle_is_finished {
+        let handle = composite_workflow_handle.take().unwrap();
+        handle_composite_workflow_return(handle, |ctx| {
+            composite_workflow_return!(loader_entity: Entity, loader_id: u32, loader_position: Vec2, loader_radius: u32);
+        });
     }
 }

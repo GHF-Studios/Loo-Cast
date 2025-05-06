@@ -406,23 +406,24 @@ pub(super) fn workflow_request_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
+    let mut still_pending = VecDeque::new();
 
-    while !retry_requests.is_empty() {
-        let mut retry = retry_requests.pop_front().unwrap();
-
+    while let Some(mut retry) = retry_requests.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            retry_requests.push_back(retry);
+            still_pending.push_back(retry);
         } else {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+            error!(
+                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
                 retry.workflow_name, retry.module_name
             );
         }
     }
+
+    *retry_requests = still_pending;
 }
 
 pub(super) fn workflow_request_e_relay_system(world: &mut World) {
@@ -473,23 +474,24 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
+    let mut still_pending = VecDeque::new();
 
-    while !retry_requests.is_empty() {
-        let mut retry = retry_requests.pop_front().unwrap();
-
+    while let Some(mut retry) = retry_requests.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            retry_requests.push_back(retry);
+            still_pending.push_back(retry);
         } else {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+            error!(
+                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
                 retry.workflow_name, retry.module_name
             );
         }
     }
+
+    *retry_requests = still_pending;
 }
 
 pub(super) fn workflow_request_o_relay_system(world: &mut World) {
@@ -540,23 +542,24 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
+    let mut still_pending = VecDeque::new();
 
-    while !retry_requests.is_empty() {
-        let mut retry = retry_requests.pop_front().unwrap();
-
+    while let Some(mut retry) = retry_requests.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            retry_requests.push_back(retry);
+            still_pending.push_back(retry);
         } else {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+            error!(
+                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
                 retry.workflow_name, retry.module_name
             );
         }
     }
+
+    *retry_requests = still_pending;
 }
 
 pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
@@ -607,23 +610,24 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
+    let mut still_pending = VecDeque::new();
 
-    while !retry_requests.is_empty() {
-        let mut retry = retry_requests.pop_front().unwrap();
-
+    while let Some(mut retry) = retry_requests.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            retry_requests.push_back(retry);
+            still_pending.push_back(retry);
         } else {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+            error!(
+                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
                 retry.workflow_name, retry.module_name
             );
         }
     }
+
+    *retry_requests = still_pending;
 }
 
 pub(super) fn workflow_request_i_relay_system(world: &mut World) {
@@ -675,23 +679,24 @@ pub(super) fn workflow_request_i_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
+    let mut still_pending = VecDeque::new();
 
-    while !retry_requests.is_empty() {
-        let mut retry = retry_requests.pop_front().unwrap();
-
+    while let Some(mut retry) = retry_requests.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            retry_requests.push_back(retry);
+            still_pending.push_back(retry);
         } else {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+            error!(
+                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
                 retry.workflow_name, retry.module_name
             );
         }
     }
+
+    *retry_requests = still_pending;
 }
 
 pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
@@ -744,23 +749,24 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
+    let mut still_pending = VecDeque::new();
 
-    while !retry_requests.is_empty() {
-        let mut retry = retry_requests.pop_front().unwrap();
-
+    while let Some(mut retry) = retry_requests.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            retry_requests.push_back(retry);
+            still_pending.push_back(retry);
         } else {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+            error!(
+                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
                 retry.workflow_name, retry.module_name
             );
         }
     }
+
+    *retry_requests = still_pending;
 }
 
 pub(super) fn workflow_request_io_relay_system(world: &mut World) {
@@ -813,23 +819,24 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
+    let mut still_pending = VecDeque::new();
 
-    while !retry_requests.is_empty() {
-        let mut retry = retry_requests.pop_front().unwrap();
-
+    while let Some(mut retry) = retry_requests.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            retry_requests.push_back(retry);
+            still_pending.push_back(retry);
         } else {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+            error!(
+                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
                 retry.workflow_name, retry.module_name
             );
         }
     }
+
+    *retry_requests = still_pending;
 }
 
 pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
@@ -882,23 +889,24 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("chunk/size") as usize;
+    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
+    let mut still_pending = VecDeque::new();
 
-    while !retry_requests.is_empty() {
-        let mut retry = retry_requests.pop_front().unwrap();
-
+    while let Some(mut retry) = retry_requests.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            retry_requests.push_back(retry);
+            still_pending.push_back(retry);
         } else {
-            unreachable!(
-                "Workflow request error: Workflow '{}' in module '{}' is already active and max retries have been reached.",
+            error!(
+                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
                 retry.workflow_name, retry.module_name
             );
         }
     }
+
+    *retry_requests = still_pending;
 }
 
 pub(super) fn workflow_request_system(world: &mut World) {

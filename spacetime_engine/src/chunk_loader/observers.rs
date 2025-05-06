@@ -33,8 +33,6 @@ pub(crate) fn observe_on_remove_chunk_loader(
         handle_composite_workflow_return(handle, |ctx| {
             composite_workflow_return!(loader_entity: Entity, loader_id: u32, loader_position: Vec2, loader_radius: u32);
         });
-
-        *composite_workflow_handle = None;
     }
     if handle_is_some && !handle_is_finished {
         return;
