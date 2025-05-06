@@ -45,13 +45,11 @@ impl CompositeWorkflowReturn {
             let name = ident.to_string();
             let mut_token = if *is_mut { quote!(mut) } else { quote!() };
             quote! {
-                let #mut_token #ident: #ty = scoped_ctx.extract_return(#name).expect("Missing context return");
+                let #mut_token #ident: #ty = ctx.extract_return(#name).expect("Missing context return");
             }
         });
     
         quote! {
-            use crate::workflow::composite_workflow_context::get_context;
-    
             #(#return_contexts)*
         }
     }

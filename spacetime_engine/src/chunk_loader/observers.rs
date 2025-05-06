@@ -2,11 +2,11 @@ use bevy::prelude::*;
 use spacetime_engine_macros::{composite_workflow, composite_workflow_return};
 use tokio::task::JoinHandle;
 
-use crate::chunk_loader::components::ChunkLoaderComponent;
+use crate::{chunk_loader::components::ChunkLoaderComponent, workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return}};
 
 pub(crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
-    mut composite_workflow_handle: Local<Option<JoinHandle<()>>>,
+    mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
 ) {
     let loader_entity = trigger.entity();
@@ -29,8 +29,12 @@ pub(crate) fn observe_on_remove_chunk_loader(
     };
 
     if handle_is_some && handle_is_finished {
+        let handle = composite_workflow_handle.take().unwrap();
+        handle_composite_workflow_return(handle, |ctx| {
+            composite_workflow_return!(loader_entity: Entity, loader_id: u32, loader_position: Vec2, loader_radius: u32);
+        });
+
         *composite_workflow_handle = None;
-        composite_workflow_return!(loader_entity: Entity, loader_id: u32, loader_position: Vec2, loader_radius: u32);
     }
     if handle_is_some && !handle_is_finished {
         return;

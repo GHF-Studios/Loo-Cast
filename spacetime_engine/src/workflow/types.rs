@@ -2,9 +2,7 @@ use futures::future::BoxFuture;
 use tokio::task::JoinHandle;
 
 use super::{
-    resources::WorkflowMap,
-    stage::{Stage, StageType},
-    statics::TOKIO_RUNTIME,
+    composite_workflow_context::ScopedCompositeWorkflowContext, resources::WorkflowMap, stage::{Stage, StageType}, statics::TOKIO_RUNTIME
 };
 
 pub struct CompositeWorkflowRuntime(tokio::runtime::Handle);
@@ -13,27 +11,29 @@ impl CompositeWorkflowRuntime {
         Self::default()
     }
 
-    pub fn spawn(&mut self, future: BoxFuture<'static, ()>) -> JoinHandle<()> {
+    pub fn spawn(&mut self, future: BoxFuture<'static, ScopedCompositeWorkflowContext>) -> JoinHandle<ScopedCompositeWorkflowContext> {
         self.0.spawn(future)
     }
 
     pub fn spawn_fallible<E: 'static + Send + std::error::Error>(
         &mut self,
-        future: BoxFuture<'static, Result<(), E>>,
-    ) -> JoinHandle<()> {
+        future: BoxFuture<'static, (ScopedCompositeWorkflowContext, Result<(), E>)>,
+    ) -> JoinHandle<ScopedCompositeWorkflowContext> {
         self.0.spawn(Self::wrap_fallible_with_error_handler(future))
     }
 
     fn wrap_fallible_with_error_handler<E: 'static + Send + std::error::Error>(
-        future: BoxFuture<'static, Result<(), E>>,
-    ) -> BoxFuture<'static, ()> {
+        future: BoxFuture<'static, (ScopedCompositeWorkflowContext, Result<(), E>)>,
+    ) -> BoxFuture<'static, ScopedCompositeWorkflowContext> {
         Box::pin(async move {
-            match future.await {
+            let (ctx, result) = future.await;
+            match result {
                 Ok(_) => {}
                 Err(e) => {
                     unreachable!("Composite workflow failed: {}", e)
                 }
             };
+            ctx
         })
     }
 }

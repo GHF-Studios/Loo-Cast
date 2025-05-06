@@ -62,7 +62,7 @@ pub(crate) fn process_player_workflow_queue(
                     workflow!(E, Player::SpawnPlayer);
                 });
 
-                handle_composite_workflow_return(handle, || {
+                handle_composite_workflow_return(handle, |ctx| {
                     composite_workflow_return!();
                 });
             }

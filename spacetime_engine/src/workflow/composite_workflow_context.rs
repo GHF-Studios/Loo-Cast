@@ -72,36 +72,38 @@ pub struct ScopedCompositeWorkflowContext {
 
 impl ScopedCompositeWorkflowContext {
     fn new() -> Self {
-        let id = Uuid::new_v4();
+        let id: Uuid = Uuid::new_v4();
         let returns = Arc::new(Mutex::new(HashMap::new()));
         CONTEXTS.insert(id, Arc::new(Mutex::new(CompositeWorkflowContext::default())));
         Self { id, returns }
     }
 
-    pub async fn run<F, Fut>(self, f: F)
+    pub async fn run<F, Fut>(self, f: F) -> ScopedCompositeWorkflowContext
     where
-        F: FnOnce() -> Fut,
-        Fut: std::future::Future<Output = ()>,
+        F: FnOnce(Self) -> Fut,
+        Fut: std::future::Future<Output = ScopedCompositeWorkflowContext>,
     {
         let id = self.id;
         CURRENT_COMPOSITE_WORKFLOW_ID.scope(id, async {
-            f().await;
+            let ctx = f(self).await;
             clear_all_context(id);
-        }).await;
-    }
-
-    pub async fn run_fallible<F, Fut, E>(self, f: F) -> Result<(), E>
-    where
-        F: FnOnce() -> Fut,
-        Fut: std::future::Future<Output = Result<(), E>>,
-    {
-        let id = self.id;
-        CURRENT_COMPOSITE_WORKFLOW_ID.scope(id, async {
-            let result = f().await;
-            clear_all_context(id);
-            result
+            ctx
         }).await
     }
+
+    pub async fn run_fallible<F, Fut, E>(self, f: F) -> (ScopedCompositeWorkflowContext, Result<(), E>)
+    where
+        F: FnOnce(Self) -> Fut,
+        Fut: std::future::Future<Output = (ScopedCompositeWorkflowContext, Result<(), E>)>,
+    {
+        let id = self.id;
+        CURRENT_COMPOSITE_WORKFLOW_ID.scope(id, async {
+            let (ctx, result) = f(self).await;
+            clear_all_context(id);
+            (ctx, result)
+        }).await
+    }
+
     pub fn store_return<T: 'static + Send>(&self, name: &'static str, value: T) {
         let mut guard = self.returns.lock().unwrap();
         guard.insert(name.to_string(), Box::new(value));
@@ -119,9 +121,4 @@ impl Default for ScopedCompositeWorkflowContext {
     fn default() -> Self {
         Self::new()
     }
-}
-
-pub struct CompositeWorkflowHandle {
-    pub ctx: ScopedCompositeWorkflowContext,
-    pub handle: tokio::task::JoinHandle<()>,
 }

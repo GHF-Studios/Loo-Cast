@@ -174,7 +174,7 @@ fn startup_system() {
         workflow!(Debug::SpawnDebugObjects);
     });
 
-    handle_composite_workflow_return(handle, || {
+    handle_composite_workflow_return(handle, |ctx| {
         composite_workflow_return!();
     });
 }

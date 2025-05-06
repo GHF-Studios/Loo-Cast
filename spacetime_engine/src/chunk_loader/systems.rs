@@ -7,9 +7,10 @@ use crate::chunk::enums::ChunkAction;
 use crate::chunk::functions::calculate_chunks_in_radius;
 use crate::chunk::resources::ChunkActionBuffer;
 use crate::chunk_loader::components::ChunkLoaderComponent;
+use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 
 pub(crate) fn update_chunk_loader_system(
-    mut composite_workflow_handle: Local<Option<JoinHandle<()>>>,
+    mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
 ) {

@@ -138,7 +138,7 @@ impl CompositeWorkflow {
             let ident = &ret_var.ident;
             let name = ident.to_string();
             quote! {
-                scoped_ctx.store_return(#name, #ident);
+                ctx.store_return(#name, #ident);
             }
         });
 
@@ -166,12 +166,13 @@ impl CompositeWorkflow {
                     .unwrap()
                     .spawn_fallible(Box::pin(async move {
                         let scoped_ctx = ScopedCompositeWorkflowContext::default();
-                        scoped_ctx.run_fallible(|| async {
+                        let (scoped_ctx, result) = scoped_ctx.run_fallible(|ctx: ScopedCompositeWorkflowContext| async {
                             #(#pass_in_contexts)*
-                            let future = #composite_workflow_ident().await;
+                            let result = #composite_workflow_ident().await;
                             #(#return_contexts)*
-                            future
-                        }).await
+                            (ctx, result)
+                        }).await;
+                        (scoped_ctx, result)
                     }));
                 
                 handle
@@ -194,10 +195,13 @@ impl CompositeWorkflow {
                     .unwrap()
                     .spawn(Box::pin(async move {
                         let scoped_ctx = ScopedCompositeWorkflowContext::default();
-                        scoped_ctx.run(|| async {
+                        let scoped_ctx = scoped_ctx.run(|ctx: ScopedCompositeWorkflowContext| async {
                             #(#pass_in_contexts)*
-                            #composite_workflow_ident().await
+                            #composite_workflow_ident().await;
+                            #(#return_contexts)*
+                            ctx
                         }).await;
+                        scoped_ctx
                     }));
             
                 handle
