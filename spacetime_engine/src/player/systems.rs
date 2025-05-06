@@ -1,7 +1,7 @@
 use bevy::prelude::*;
-use spacetime_engine_macros::composite_workflow;
+use spacetime_engine_macros::{composite_workflow, composite_workflow_return};
 
-use crate::config::statics::CONFIG;
+use crate::{config::statics::CONFIG, workflow::functions::handle_composite_workflow_return};
 
 use super::{
     components::PlayerComponent,
@@ -58,8 +58,12 @@ pub(crate) fn process_player_workflow_queue(
     for workflow in queue.0.drain(..) {
         match workflow {
             PlayerWorkflow::Spawn => {
-                let _handle = composite_workflow!(JustDoIt {
+                let handle = composite_workflow!(JustDoIt {
                     workflow!(E, Player::SpawnPlayer);
+                });
+
+                handle_composite_workflow_return(handle, || {
+                    composite_workflow_return!();
                 });
             }
             PlayerWorkflow::Despawn(entity) => {

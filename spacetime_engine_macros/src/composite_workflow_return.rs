@@ -42,9 +42,10 @@ impl CompositeWorkflowReturn {
     pub fn generate(&self) -> TokenStream2 {
         let return_contexts = self.returns.iter().map(|ret_var| {
             let VarReturn { is_mut, ident, ty } = ret_var;
+            let name = ident.to_string();
             let mut_token = if *is_mut { quote!(mut) } else { quote!() };
             quote! {
-                let #mut_token #ident: #ty = get_context::<#ty>();
+                let #mut_token #ident: #ty = scoped_ctx.extract_return(#name).expect("Missing context return");
             }
         });
     

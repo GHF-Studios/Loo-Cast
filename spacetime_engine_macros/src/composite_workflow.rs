@@ -57,7 +57,7 @@ fn is_fallible(block: &Block) -> bool {
 
 pub struct CompositeWorkflow {
     pub captures: Vec<VarCapture>,
-    pub workflow_name: Ident,
+    pub name: Ident,
     pub block: Block,
 }
 
@@ -71,7 +71,6 @@ impl Parse for CompositeWorkflow {
     fn parse(input: ParseStream) -> Result<Self> {
         let mut captures = Vec::new();
 
-        // Continue parsing as long as the stream looks like a capture
         while input.peek(Token![mut]) || (input.peek(Ident) && input.peek2(Token![:])) {
             let is_mut = input.peek(Token![mut]);
 
@@ -87,12 +86,12 @@ impl Parse for CompositeWorkflow {
             captures.push(VarCapture { is_mut, ident, ty });
         }
 
-        let workflow_name: Ident = input.parse()?;
+        let composite_workflow_name: Ident = input.parse()?;
         let block: Block = input.parse()?;
 
         Ok(CompositeWorkflow {
             captures,
-            workflow_name,
+            name: composite_workflow_name,
             block,
         })
     }
@@ -102,39 +101,50 @@ impl CompositeWorkflow {
     pub fn generate(&self) -> TokenStream2 {
         let pass_in_contexts = self.captures.iter().map(|var| {
             let ident = &var.ident;
+            let name = ident.to_string();
             let ty = &var.ty;
             quote! {
-                set_context::<#ty>(#ident);
+                set_context::<#ty>(#name, #ident);
             }
         });
 
         let get_contexts = self.captures.iter().map(|var| {
             let is_mut = var.is_mut;
             let ident = &var.ident;
+            let name = ident.to_string();
             let ty = &var.ty;
         
             if is_mut {
                 quote! {
-                    let mut #ident: #ty = get_context::<#ty>();
+                    let mut #ident: #ty = get_context::<#ty>(#name);
                 }
             } else {
                 quote! {
-                    let #ident: #ty = get_context::<#ty>();
+                    let #ident: #ty = get_context::<#ty>(#name);
                 }
             }
         });
         
         let set_contexts = self.captures.iter().map(|var| {
             let ident = &var.ident;
+            let name = ident.to_string();
             let ty = &var.ty;
             quote! {
-                set_context::<#ty>(#ident);
+                set_context::<#ty>(#name, #ident);
             }
         });
 
-        let workflow_name = &self.workflow_name;
-        let workflow_name_snake_case = format!("{}", workflow_name).as_str().to_snake_case();
-        let workflow_ident = Ident::new(&workflow_name_snake_case, workflow_name.span());
+        let return_contexts = self.captures.iter().map(|ret_var| {
+            let ident = &ret_var.ident;
+            let name = ident.to_string();
+            quote! {
+                scoped_ctx.store_return(#name, #ident);
+            }
+        });
+
+        let composite_workflow_name = &self.name;
+        let composite_workflow_name_snake_case = format!("{}", composite_workflow_name).as_str().to_snake_case();
+        let composite_workflow_ident = Ident::new(&composite_workflow_name_snake_case, composite_workflow_name.span());
         let block = &self.block;
         let is_fallible = is_fallible(block);
 
@@ -144,7 +154,7 @@ impl CompositeWorkflow {
                 use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
                 use spacetime_engine_macros::define_composite_workflow;
                 
-                define_composite_workflow!(#workflow_name {
+                define_composite_workflow!(#composite_workflow_name {
                     #(#get_contexts)*
                     #block
                     #(#set_contexts)*
@@ -155,11 +165,12 @@ impl CompositeWorkflow {
                     .lock()
                     .unwrap()
                     .spawn_fallible(Box::pin(async move {
-                        #(#pass_in_contexts)*
-                    
-                        let scoped_ctx = ScopedCompositeWorkflowContext::new();
+                        let scoped_ctx = ScopedCompositeWorkflowContext::default();
                         scoped_ctx.run_fallible(|| async {
-                            #workflow_ident().await
+                            #(#pass_in_contexts)*
+                            let future = #composite_workflow_ident().await;
+                            #(#return_contexts)*
+                            future
                         }).await
                     }));
                 
@@ -172,7 +183,7 @@ impl CompositeWorkflow {
                 use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
                 use spacetime_engine_macros::define_composite_workflow;
             
-                define_composite_workflow!(#workflow_name {
+                define_composite_workflow!(#composite_workflow_name {
                     #(#get_contexts)*
                     #block
                     #(#set_contexts)*
@@ -182,11 +193,10 @@ impl CompositeWorkflow {
                     .lock()
                     .unwrap()
                     .spawn(Box::pin(async move {
-                        #(#pass_in_contexts)*
-            
-                        let scoped_ctx = ScopedCompositeWorkflowContext::new();
+                        let scoped_ctx = ScopedCompositeWorkflowContext::default();
                         scoped_ctx.run(|| async {
-                            #workflow_ident().await
+                            #(#pass_in_contexts)*
+                            #composite_workflow_ident().await
                         }).await;
                     }));
             

@@ -1,15 +1,19 @@
 use futures::FutureExt;
+use uuid::Uuid;
+use crate::workflow::composite_workflow_context::{CURRENT_COMPOSITE_WORKFLOW_ID, ScopedCompositeWorkflowContext};
 
 use super::{channels::*, request::*, traits::*};
 
 pub async fn run_workflow<W: WorkflowType>() {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
+    let workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
 
     get_request_sender()
         .send(TypedWorkflowRequest {
             module_name,
             workflow_name,
+            workflow_id,
         })
         .unwrap();
 
@@ -27,11 +31,13 @@ pub async fn run_workflow<W: WorkflowType>() {
 pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
+    let workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
 
     get_request_e_sender()
         .send(TypedWorkflowRequestE {
             module_name,
             workflow_name,
+            workflow_id,
         })
         .unwrap();
 
@@ -49,11 +55,13 @@ pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
 pub async fn run_workflow_o<W: WorkflowTypeO>() -> W::Output {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
+    let workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
 
     get_request_o_sender()
         .send(TypedWorkflowRequestO {
             module_name,
             workflow_name,
+            workflow_id,
         })
         .unwrap();
 
@@ -71,11 +79,13 @@ pub async fn run_workflow_o<W: WorkflowTypeO>() -> W::Output {
 pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error> {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
+    let workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
 
     get_request_oe_sender()
         .send(TypedWorkflowRequestOE {
             module_name,
             workflow_name,
+            workflow_id,
         })
         .unwrap();
 
@@ -93,12 +103,14 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error>
 pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
+    let workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
 
     get_request_i_sender()
         .send(TypedWorkflowRequestI {
             input: Box::new(input),
             module_name,
             workflow_name,
+            workflow_id,
         })
         .unwrap();
 
@@ -116,12 +128,14 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
 pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W::Error> {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
+    let workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
 
     get_request_ie_sender()
         .send(TypedWorkflowRequestIE {
             input: Box::new(input),
             module_name,
             workflow_name,
+            workflow_id,
         })
         .unwrap();
 
@@ -139,12 +153,14 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W
 pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> W::Output {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
+    let workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
 
     get_request_io_sender()
         .send(TypedWorkflowRequestIO {
             input: Box::new(input),
             module_name,
             workflow_name,
+            workflow_id,
         })
         .unwrap();
 
@@ -159,15 +175,18 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> W::Output {
         }
     }
 }
+
 pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::Output, W::Error> {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
+    let workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
 
     get_request_ioe_sender()
         .send(TypedWorkflowRequestIOE {
             input: Box::new(input),
             module_name,
             workflow_name,
+            workflow_id,
         })
         .unwrap();
 
