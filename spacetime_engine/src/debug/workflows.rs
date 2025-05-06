@@ -3,38 +3,6 @@ use spacetime_engine_macros::define_workflow_mod_OLD;
 define_workflow_mod_OLD! {
     name: "Debug",
     workflows: [
-        SpawnDebugUI {
-            user_imports: {
-                use iyes_perf_ui::{
-                    entries::{PerfUiFramerateEntries, PerfUiSystemEntries},
-                    prelude::{PerfUiEntryEntityCount, PerfUiRoot},
-                };
-            },
-            user_items: {},
-            stages: [
-                Spawn: Ecs {
-                    core_types: [
-                        struct MainAccess<'w, 's> {
-                            commands: Commands<'w, 's>
-                        }
-                    ],
-                    core_functions: [
-                        fn RunEcs |main_access| {
-                            bevy::prelude::debug!("Spawning debug ui..");
-                            let mut commands = main_access.commands;
-
-                            commands.spawn((
-                                PerfUiRoot::default(),
-                                PerfUiFramerateEntries::default(),
-                                PerfUiSystemEntries::default(),
-                                PerfUiEntryEntityCount::default(),
-                            ));
-                        }
-                    ]
-                }
-            ]
-        }
-
         SpawnDebugObjects {
             user_imports: {
                 use bevy::prelude::*;
@@ -81,7 +49,7 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn RunEcs |main_access| {
-                            bevy::prelude::debug!("Spawning debug objects..");
+                            debug!("Spawning debug objects..");
                             let mut commands = main_access.commands;
 
                             spawn_debug_object(

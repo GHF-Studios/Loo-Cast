@@ -111,9 +111,6 @@ register_workflow_mods!(
         }
     },
     Debug {
-        SpawnDebugUI {
-            Spawn: Ecs,
-        },
         SpawnDebugObjects {
             Spawn: Ecs,
         },
@@ -145,18 +142,9 @@ impl Plugin for SpacetimeEngineCorePlugin {
     }
 }
 
-fn startup_system(mut commands: Commands) {
-    // TODO: Somehow this works, but doing it via the Debug::SpawnDebugUI workflow does not work???
-    //commands.spawn((
-    //    PerfUiRoot::default(),
-    //    PerfUiFramerateEntries::default(),
-    //    PerfUiSystemEntries::default(),
-    //    PerfUiEntryEntityCount::default(),
-    //));
-    
+fn startup_system() {
     let handle = composite_workflow!(JustDoIt {
         workflow!(Camera::SpawnMainCamera);
-        workflow!(Debug::SpawnDebugUI);
         
         let chunk_shader_name = "texture_generators/example_compute_uv";
         let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
