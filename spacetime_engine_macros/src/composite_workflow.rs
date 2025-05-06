@@ -112,7 +112,7 @@ impl CompositeWorkflow {
             let is_mut = var.is_mut;
             let ident = &var.ident;
             let ty = &var.ty;
-
+        
             if is_mut {
                 quote! {
                     let mut #ident: #ty = get_context::<#ty>();
@@ -123,7 +123,7 @@ impl CompositeWorkflow {
                 }
             }
         });
-
+        
         let set_contexts = self.captures.iter().map(|var| {
             let ident = &var.ident;
             let ty = &var.ty;
@@ -140,49 +140,56 @@ impl CompositeWorkflow {
 
         if is_fallible {
             quote! {{
-                use crate::workflow::composite_workflow_context::set_context;
-                use crate::workflow::composite_workflow_context::get_context;
+                use crate::workflow::composite_workflow_context::{set_context, get_context, ScopedCompositeWorkflowContext};
                 use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
                 use spacetime_engine_macros::define_composite_workflow;
-
+                
                 define_composite_workflow!(#workflow_name {
                     #(#get_contexts)*
                     #block
                     #(#set_contexts)*
                     Ok(())
                 });
-
+            
                 let handle = COMPOSITE_WORKFLOW_RUNTIME
                     .lock()
                     .unwrap()
                     .spawn_fallible(Box::pin(async move {
                         #(#pass_in_contexts)*
-                        #workflow_ident().await
+                    
+                        let scoped_ctx = ScopedCompositeWorkflowContext::new();
+                        scoped_ctx.run_fallible(|| async {
+                            #workflow_ident().await
+                        }).await
                     }));
-
+                
                 handle
             }}
+        
         } else {
             quote! {{
-                use crate::workflow::composite_workflow_context::set_context;
-                use crate::workflow::composite_workflow_context::get_context;
+                use crate::workflow::composite_workflow_context::{set_context, get_context, ScopedCompositeWorkflowContext};
                 use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
                 use spacetime_engine_macros::define_composite_workflow;
-
+            
                 define_composite_workflow!(#workflow_name {
                     #(#get_contexts)*
                     #block
                     #(#set_contexts)*
                 });
-
+            
                 let handle = COMPOSITE_WORKFLOW_RUNTIME
                     .lock()
                     .unwrap()
                     .spawn(Box::pin(async move {
                         #(#pass_in_contexts)*
-                        #workflow_ident().await
+            
+                        let scoped_ctx = ScopedCompositeWorkflowContext::new();
+                        scoped_ctx.run(|| async {
+                            #workflow_ident().await
+                        }).await;
                     }));
-
+            
                 handle
             }}
         }

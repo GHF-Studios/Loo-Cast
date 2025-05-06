@@ -47,13 +47,12 @@ impl CompositeWorkflowReturn {
                 let #mut_token #ident: #ty = get_context::<#ty>();
             }
         });
-
+    
         quote! {
             use crate::workflow::composite_workflow_context::get_context;
-            use crate::workflow::composite_workflow_context::clear_all_context;
-
+    
             #(#return_contexts)*
-            clear_all_context();
         }
     }
+    
 }

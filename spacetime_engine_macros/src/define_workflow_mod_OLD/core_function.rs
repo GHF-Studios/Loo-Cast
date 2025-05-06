@@ -1163,7 +1163,19 @@ impl CoreFunctions<Ecs> {
                                     completion_sender,
                                     None,
                                 );
-                                handler(stage);
+
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
                             }
                         }
                     }
@@ -1187,7 +1199,19 @@ impl CoreFunctions<Ecs> {
                                     completion_sender,
                                     Some(failure_sender),
                                 );
-                                handler(stage);
+
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
                             }
                         }
                     }
@@ -1210,7 +1234,19 @@ impl CoreFunctions<Ecs> {
                                     completion_sender,
                                     None,
                                 );
-                                handler(stage);
+
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
                             }
                         }
                     }
@@ -1234,7 +1270,19 @@ impl CoreFunctions<Ecs> {
                                     completion_sender,
                                     Some(failure_sender),
                                 );
-                                handler(stage);
+
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
                             }
                         }
                     }
@@ -1258,7 +1306,19 @@ impl CoreFunctions<Ecs> {
                                     completion_sender,
                                     None,
                                 );
-                                handler(stage);
+
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
                             }
                         }
                     }
@@ -1283,7 +1343,19 @@ impl CoreFunctions<Ecs> {
                                     completion_sender,
                                     Some(failure_sender),
                                 );
-                                handler(stage);
+
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
                             }
                         }
                     }
@@ -1307,7 +1379,19 @@ impl CoreFunctions<Ecs> {
                                     completion_sender,
                                     None,
                                 );
-                                handler(stage);
+
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
                             }
                         }
                     }
@@ -1332,9 +1416,20 @@ impl CoreFunctions<Ecs> {
                                     completion_sender,
                                     Some(failure_sender),
                                 );
-                                handler(stage);
-                            }
 
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
+                            }
                         }
                     }
                 };
@@ -1378,7 +1473,19 @@ impl CoreFunctions<Render> {
                                     completion_sender,
                                     None,
                                 );
-                                handler(stage);
+
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
                             }
                         }
                     }
@@ -1402,9 +1509,20 @@ impl CoreFunctions<Render> {
                                     completion_sender,
                                     Some(failure_sender),
                                 );
-                                handler(stage);
-                            }
 
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
+                            }
                         }
                     }
                     (false, true, false) => {
@@ -1426,9 +1544,20 @@ impl CoreFunctions<Render> {
                                     completion_sender,
                                     None,
                                 );
-                                handler(stage);
-                            }
 
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
+                            }
                         }
                     }
                     (false, true, true) => {
@@ -1451,9 +1580,20 @@ impl CoreFunctions<Render> {
                                     completion_sender,
                                     Some(failure_sender),
                                 );
-                                handler(stage);
-                            }
 
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
+                            }
                         }
                     }
                     (true, false, false) => {
@@ -1476,9 +1616,20 @@ impl CoreFunctions<Render> {
                                     completion_sender,
                                     None,
                                 );
-                                handler(stage);
-                            }
 
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
+                            }
                         }
                     }
                     (true, false, true) => {
@@ -1502,9 +1653,20 @@ impl CoreFunctions<Render> {
                                     completion_sender,
                                     Some(failure_sender),
                                 );
-                                handler(stage);
-                            }
 
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
+                            }
                         }
                     }
                     (true, true, false) => {
@@ -1528,9 +1690,20 @@ impl CoreFunctions<Render> {
                                     completion_sender,
                                     None,
                                 );
-                                handler(stage);
-                            }
 
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
+                            }
                         }
                     }
                     (true, true, true) => {
@@ -1554,9 +1727,20 @@ impl CoreFunctions<Render> {
                                     completion_sender,
                                     Some(failure_sender),
                                 );
-                                handler(stage);
-                            }
 
+                                let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+
+                                handle.spawn(async move {
+                                    scoped_ctx.run(|| async {
+                                        handler(stage);
+                                    }).await;
+                                });
+                            }
                         }
                     }
                 };
@@ -1593,17 +1777,28 @@ impl CoreFunctions<Async> {
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
 
                                 let response_future = (run_async)();
+
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+                                
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
-                                    tokio::spawn(async move {
+                                    handle.spawn(async move {
                                         let _response = response_future.await;
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            None,
-                                            completion_sender,
-                                            None,
-                                        );
-                                        handler(stage);
+
+                                        let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                        scoped_ctx.run(|| async {
+                                            let handler = (stage.handle_async_run_response)(
+                                                module_name,
+                                                workflow_name,
+                                                None,
+                                                completion_sender,
+                                                None,
+                                            );
+                                            handler(stage);
+                                        }).await;
                                     })
                                     .await
                                 }) {
@@ -1625,17 +1820,28 @@ impl CoreFunctions<Async> {
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
 
                                 let response_future = (run_async)();
+
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+                                
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
-                                    tokio::spawn(async move {
+                                    handle.spawn(async move {
                                         let response = response_future.await;
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            response,
-                                            completion_sender,
-                                            Some(failure_sender),
-                                        );
-                                        handler(stage);
+
+                                        let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                        scoped_ctx.run(|| async {
+                                            let handler = (stage.handle_async_run_response)(
+                                                module_name,
+                                                workflow_name,
+                                                response,
+                                                completion_sender,
+                                                Some(failure_sender),
+                                            );
+                                            handler(stage);
+                                        }).await;
                                     })
                                     .await
                                 }) {
@@ -1656,17 +1862,28 @@ impl CoreFunctions<Async> {
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
 
                                 let response_future = (run_async)();
+
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+                                
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
-                                    tokio::spawn(async move {
+                                    handle.spawn(async move {
                                         let response = response_future.await;
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            response,
-                                            completion_sender,
-                                            None,
-                                        );
-                                        handler(stage);
+
+                                        let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                        scoped_ctx.run(|| async {
+                                            let handler = (stage.handle_async_run_response)(
+                                                module_name,
+                                                workflow_name,
+                                                response,
+                                                completion_sender,
+                                                None,
+                                            );
+                                            handler(stage);
+                                        }).await;
                                     })
                                     .await
                                 }) {
@@ -1688,17 +1905,28 @@ impl CoreFunctions<Async> {
                                 let handle_async_run_response = &mut stage.handle_async_run_response;
 
                                 let response_future = (run_async)();
+
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+                                
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
-                                    tokio::spawn(async move {
+                                    handle.spawn(async move {
                                         let response = response_future.await;
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            response,
-                                            completion_sender,
-                                            Some(failure_sender),
-                                        );
-                                        handler(stage);
+
+                                        let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                        scoped_ctx.run(|| async {
+                                            let handler = (stage.handle_async_run_response)(
+                                                module_name,
+                                                workflow_name,
+                                                response,
+                                                completion_sender,
+                                                Some(failure_sender),
+                                            );
+                                            handler(stage);
+                                        }).await;
                                     })
                                     .await
                                 }) {
@@ -1720,17 +1948,28 @@ impl CoreFunctions<Async> {
 
                                 let input = data_buffer;
                                 let response_future = (run_async)(input);
+
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+                                
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
-                                    tokio::spawn(async move {
+                                    handle.spawn(async move {
                                         let _response = response_future.await;
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            None,
-                                            completion_sender,
-                                            None,
-                                        );
-                                        handler(stage);
+
+                                        let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                        scoped_ctx.run(|| async {
+                                            let handler = (stage.handle_async_run_response)(
+                                                module_name,
+                                                workflow_name,
+                                                None,
+                                                completion_sender,
+                                                None,
+                                            );
+                                            handler(stage);
+                                        }).await;
                                     })
                                     .await
                                 }) {
@@ -1753,17 +1992,28 @@ impl CoreFunctions<Async> {
 
                                 let input = data_buffer;
                                 let response_future = (run_async)(input);
+
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+                                
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
-                                    tokio::spawn(async move {
+                                    handle.spawn(async move {
                                         let response = response_future.await;
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            response,
-                                            completion_sender,
-                                            Some(failure_sender),
-                                        );
-                                        handler(stage);
+
+                                        let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                        scoped_ctx.run(|| async {
+                                            let handler = (stage.handle_async_run_response)(
+                                                module_name,
+                                                workflow_name,
+                                                response,
+                                                completion_sender,
+                                                Some(failure_sender),
+                                            );
+                                            handler(stage);
+                                        }).await;
                                     })
                                     .await
                                 }) {
@@ -1785,17 +2035,28 @@ impl CoreFunctions<Async> {
 
                                 let input = data_buffer;
                                 let response_future = (run_async)(input);
+
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+                                
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
-                                    tokio::spawn(async move {
+                                    handle.spawn(async move {
                                         let response = response_future.await;
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            response,
-                                            completion_sender,
-                                            None,
-                                        );
-                                        handler(stage);
+
+                                        let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                        scoped_ctx.run(|| async {
+                                            let handler = (stage.handle_async_run_response)(
+                                                module_name,
+                                                workflow_name,
+                                                response,
+                                                completion_sender,
+                                                None,
+                                            );
+                                            handler(stage);
+                                        }).await;
                                     })
                                     .await
                                 }) {
@@ -1818,17 +2079,28 @@ impl CoreFunctions<Async> {
 
                                 let input = data_buffer;
                                 let response_future = (run_async)(input);
+
+                                let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                    .lock()
+                                    .unwrap()
+                                    .handle()
+                                    .clone();
+                                
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
-                                    tokio::spawn(async move {
+                                    handle.spawn(async move {
                                         let response = response_future.await;
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            response,
-                                            completion_sender,
-                                            Some(failure_sender),
-                                        );
-                                        handler(stage);
+
+                                        let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                        scoped_ctx.run(|| async {
+                                            let handler = (stage.handle_async_run_response)(
+                                                module_name,
+                                                workflow_name,
+                                                response,
+                                                completion_sender,
+                                                Some(failure_sender),
+                                            );
+                                            handler(stage);
+                                        }).await;
                                     })
                                     .await
                                 }) {
@@ -1871,7 +2143,6 @@ impl CoreFunctions<EcsWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
                                     .map
@@ -1910,10 +2181,23 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
                                     let handler = (handle_ecs_while_run_response)(
@@ -1924,7 +2208,18 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
@@ -1941,7 +2236,6 @@ impl CoreFunctions<EcsWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
                                     .map
@@ -1980,10 +2274,23 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
                                     let handler = (handle_ecs_while_run_response)(
@@ -1994,7 +2301,18 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
 
@@ -2011,7 +2329,6 @@ impl CoreFunctions<EcsWhile> {
                                 let wait_sender = crate::workflow::channels::get_stage_wait_sender();
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
                                     .map
@@ -2050,10 +2367,23 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
                                     let handler = (handle_ecs_while_run_response)(
@@ -2064,7 +2394,18 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
@@ -2081,7 +2422,6 @@ impl CoreFunctions<EcsWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
                                     .map
@@ -2120,10 +2460,23 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
                                     let handler = (handle_ecs_while_run_response)(
@@ -2134,7 +2487,18 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
@@ -2150,7 +2514,6 @@ impl CoreFunctions<EcsWhile> {
                                 let wait_sender = crate::workflow::channels::get_stage_wait_sender();
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
                                     .map
@@ -2190,10 +2553,23 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
                                     let handler = (handle_ecs_while_run_response)(
@@ -2204,7 +2580,18 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
@@ -2221,7 +2608,6 @@ impl CoreFunctions<EcsWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
                                     .map
@@ -2261,10 +2647,23 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
                                     let handler = (handle_ecs_while_run_response)(
@@ -2275,7 +2674,18 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
@@ -2291,7 +2701,6 @@ impl CoreFunctions<EcsWhile> {
                                 let wait_sender = crate::workflow::channels::get_stage_wait_sender();
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
                                     .map
@@ -2331,10 +2740,23 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
                                     let handler = (handle_ecs_while_run_response)(
@@ -2345,7 +2767,18 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
@@ -2362,7 +2795,6 @@ impl CoreFunctions<EcsWhile> {
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
-                                let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
 
                                 let workflow_instance = workflow_map
                                     .map
@@ -2402,10 +2834,23 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_ecs_while_run_response = &mut stage.handle_ecs_while_run_response;
+
                                     let state = data_buffer;
                                     let response = run_ecs_while(state, main_access);
                                     let handler = (handle_ecs_while_run_response)(
@@ -2416,7 +2861,18 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
@@ -2473,7 +2929,6 @@ impl CoreFunctions<RenderWhile> {
                                         unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
                                     }
                                 };
-                                let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
                                 if stage_completed {
                                     return;
@@ -2490,10 +2945,23 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+                                    
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
                                     let handler = (handle_render_while_run_response)(
@@ -2504,7 +2972,18 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
@@ -2530,7 +3009,6 @@ impl CoreFunctions<RenderWhile> {
                                         unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
                                     }
                                 };
-                                let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
                                 if stage_completed {
                                     return;
@@ -2547,10 +3025,23 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
                                     let handler = (handle_render_while_run_response)(
@@ -2561,7 +3052,18 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
@@ -2586,7 +3088,6 @@ impl CoreFunctions<RenderWhile> {
                                         unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
                                     }
                                 };
-                                let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
                                 if stage_completed {
                                     return;
@@ -2603,10 +3104,23 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
                                     let handler = (handle_render_while_run_response)(
@@ -2617,7 +3131,18 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
@@ -2643,7 +3168,6 @@ impl CoreFunctions<RenderWhile> {
                                         unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
                                     }
                                 };
-                                let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
                                 if stage_completed {
                                     return;
@@ -2660,10 +3184,23 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
                                     let handler = (handle_render_while_run_response)(
@@ -2674,7 +3211,18 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
@@ -2700,7 +3248,6 @@ impl CoreFunctions<RenderWhile> {
                                         unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
                                     }
                                 };
-                                let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
                                 if stage_completed {
                                     return;
@@ -2718,10 +3265,23 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
                                     let handler = (handle_render_while_run_response)(
@@ -2732,7 +3292,18 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
@@ -2758,7 +3329,6 @@ impl CoreFunctions<RenderWhile> {
                                         unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
                                     }
                                 };
-                                let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
                                 if stage_completed {
                                     return;
@@ -2776,10 +3346,23 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
+
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
                                     let handler = (handle_render_while_run_response)(
@@ -2790,7 +3373,18 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
@@ -2815,7 +3409,6 @@ impl CoreFunctions<RenderWhile> {
                                         unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
                                     }
                                 };
-                                let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
 
                                 if stage_completed {
                                     return;
@@ -2823,7 +3416,6 @@ impl CoreFunctions<RenderWhile> {
 
                                 if !*stage_initialized {
                                     let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
-
                                     let input = data_buffer;
                                     let response = setup_render_while(input, render_access);
                                     let handler = (handle_render_while_setup_response)(
@@ -2833,10 +3425,22 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
 
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
                                     let handler = (handle_render_while_run_response)(
@@ -2847,43 +3451,66 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         None,
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
                     }
                     (true, true, true) => {
                         quote! {
-                            pub fn poll_render_while_stage_buffer_system(mut stage_buffer: bevy::prelude::ResMut<StageBuffer>, mut render_workflow_state_extract_shard: bevy::prelude::ResMut<RenderWhileWorkflowStateExtractShard>, render_access: RenderAccess) {
+                            pub fn poll_render_while_stage_buffer_system(
+                                mut stage_buffer: bevy::prelude::ResMut<StageBuffer>,
+                                mut render_workflow_state_extract_shard: bevy::prelude::ResMut<RenderWhileWorkflowStateExtractShard>,
+                                render_access: RenderAccess,
+                            ) {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-
+                            
                                 let setup_sender = crate::workflow::channels::get_stage_setup_sender();
                                 let wait_sender = crate::workflow::channels::get_stage_wait_sender();
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
+                            
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stolen_render_workflow_state_extract_shard = std::mem::take(&mut *render_workflow_state_extract_shard);
+                            
                                 let (stage_initialized, stage_completed) = match stolen_render_workflow_state_extract_shard {
-                                    RenderWhileWorkflowStateExtractShard::Some { module_name, workflow_name, stage_type, ref mut stage_initialized, stage_completed } => {
-                                        (stage_initialized, stage_completed)
-                                    },
+                                    RenderWhileWorkflowStateExtractShard::Some {
+                                        module_name,
+                                        workflow_name,
+                                        stage_type,
+                                        ref mut stage_initialized,
+                                        stage_completed,
+                                    } => (stage_initialized, stage_completed),
                                     RenderWhileWorkflowStateExtractShard::None => {
-                                        unreachable!("Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract", module_name, workflow_name);
+                                        unreachable!(
+                                            "Render while workflow state extract error: Workflow '{}' in module '{}' not found in the extract",
+                                            module_name, workflow_name
+                                        );
                                     }
                                 };
-                                let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
-
+                            
                                 if stage_completed {
                                     return;
                                 }
-
+                            
                                 if !*stage_initialized {
                                     let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
-
                                     let input = data_buffer;
                                     let response = setup_render_while(input, render_access);
+                            
                                     let handler = (handle_render_while_setup_response)(
                                         module_name,
                                         workflow_name,
@@ -2891,12 +3518,25 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
-
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
+                            
                                     *stage_initialized = true;
                                 } else {
+                                    let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
+                            
                                     let handler = (handle_render_while_run_response)(
                                         module_name,
                                         workflow_name,
@@ -2905,7 +3545,18 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                                    handler(stage);
+                            
+                                    let scoped_ctx = crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext::new();
+                                    let handle = crate::workflow::statics::TOKIO_RUNTIME
+                                        .lock()
+                                        .unwrap()
+                                        .handle()
+                                        .clone();
+                                    handle.spawn(async move {
+                                        scoped_ctx.run(|| async {
+                                            handler(stage);
+                                        }).await;
+                                    });
                                 }
                             }
                         }
