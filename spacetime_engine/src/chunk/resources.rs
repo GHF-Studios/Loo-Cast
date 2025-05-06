@@ -111,9 +111,7 @@ impl ChunkActionBuffer {
     }
 
     pub fn has_despawns(&self) -> bool {
-        self.actions
-            .values()
-            .any(|action| action.is_despawn())
+        self.actions.values().any(|action| action.is_despawn())
     }
 
     pub fn has_ownership_transfers(&self) -> bool {

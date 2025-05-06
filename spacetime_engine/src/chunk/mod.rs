@@ -9,8 +9,8 @@ pub mod systems;
 pub mod workflows;
 
 use bevy::prelude::*;
-use resources::{ChunkManager, ChunkActionBuffer};
-use systems::{process_chunk_actions_system, chunk_startup_system, chunk_update_system};
+use resources::{ChunkActionBuffer, ChunkManager};
+use systems::{chunk_startup_system, chunk_update_system, process_chunk_actions_system};
 
 pub(crate) struct ChunkPlugin;
 impl Plugin for ChunkPlugin {

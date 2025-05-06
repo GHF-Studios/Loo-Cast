@@ -9,7 +9,7 @@ use super::{
     enums::ChunkAction,
     errors::{DespawnError, SpawnError, TransferOwnershipError},
     resources::ChunkRenderHandles,
-    ChunkManager, ChunkActionBuffer,
+    ChunkActionBuffer, ChunkManager,
 };
 
 pub(crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<(i32, i32)> {

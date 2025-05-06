@@ -1,8 +1,8 @@
-use syn::{Ident, Type, Token};
+use proc_macro2::TokenStream as TokenStream2;
+use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::punctuated::Punctuated;
-use quote::quote;
-use proc_macro2::TokenStream as TokenStream2;
+use syn::{Ident, Token, Type};
 
 pub struct CompositeWorkflowReturn {
     pub returns: Vec<VarReturn>,

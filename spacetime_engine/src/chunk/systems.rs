@@ -5,7 +5,7 @@ use crate::chunk_loader::components::ChunkLoaderComponent;
 use super::components::ChunkComponent;
 use super::functions::{chunk_pos_to_world, process_chunk_action, world_pos_to_chunk};
 use super::resources::ChunkRenderHandles;
-use super::{ChunkManager, ChunkActionBuffer};
+use super::{ChunkActionBuffer, ChunkManager};
 
 pub(crate) fn chunk_startup_system(
     mut commands: Commands,

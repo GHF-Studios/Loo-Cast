@@ -7,10 +7,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 
 use super::components::{DebugObjectComponent, DebugObjectMovement};
 
-pub(super) fn debug_ui_startup(
-    mut has_spawned: Local<bool>,
-    mut commands: Commands,
-) {
+pub(super) fn debug_ui_startup(mut has_spawned: Local<bool>, mut commands: Commands) {
     use iyes_perf_ui::{
         entries::{PerfUiFramerateEntries, PerfUiSystemEntries},
         prelude::{PerfUiEntryEntityCount, PerfUiRoot},

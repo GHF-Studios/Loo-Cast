@@ -1,12 +1,12 @@
 use bevy::prelude::*;
-use tokio::task::JoinHandle;
 use spacetime_engine_macros::{composite_workflow, composite_workflow_return};
 use std::collections::HashSet;
+use tokio::task::JoinHandle;
 
 use crate::chunk::enums::ChunkAction;
 use crate::chunk::functions::calculate_chunks_in_radius;
-use crate::chunk_loader::components::ChunkLoaderComponent;
 use crate::chunk::resources::ChunkActionBuffer;
+use crate::chunk_loader::components::ChunkLoaderComponent;
 
 pub(crate) fn update_chunk_loader_system(
     mut composite_workflow_handle: Local<Option<JoinHandle<()>>>,

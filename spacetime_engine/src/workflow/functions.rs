@@ -198,7 +198,7 @@ pub fn handle_composite_workflow_return(handle: tokio::task::JoinHandle<()>, han
                     }
                 }
             }));
-        };
+    };
 
     inner_handler(handle);
 }

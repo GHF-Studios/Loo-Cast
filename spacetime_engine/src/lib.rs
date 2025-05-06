@@ -38,12 +38,17 @@ pub mod player;
 //pub mod sprite_bundle;
 pub mod workflow;
 
-use bevy::{app::PluginGroupBuilder, prelude::*};
-use iyes_perf_ui::{entries::{PerfUiFramerateEntries, PerfUiSystemEntries}, prelude::{PerfUiEntryEntityCount, PerfUiRoot}};
-use spacetime_engine_macros::{register_workflow_mods, composite_workflow, composite_workflow_return};
 use crate::workflow::functions::handle_composite_workflow_return;
-use workflow::WorkflowPlugin;
+use bevy::{app::PluginGroupBuilder, prelude::*};
 use camera::CameraPlugin;
+use iyes_perf_ui::{
+    entries::{PerfUiFramerateEntries, PerfUiSystemEntries},
+    prelude::{PerfUiEntryEntityCount, PerfUiRoot},
+};
+use spacetime_engine_macros::{
+    composite_workflow, composite_workflow_return, register_workflow_mods,
+};
+use workflow::WorkflowPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;
 //use chunk_actor::ChunkActorPlugin;
@@ -145,10 +150,10 @@ impl Plugin for SpacetimeEngineCorePlugin {
 fn startup_system() {
     let handle = composite_workflow!(JustDoIt {
         workflow!(Camera::SpawnMainCamera);
-        
+
         let chunk_shader_name = "texture_generators/example_compute_uv";
         let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
-        
+
         workflow!(IE, Gpu::SetupTextureGenerator, Input {
             shader_name: chunk_shader_name,
             shader_path: chunk_shader_path,
@@ -165,7 +170,7 @@ fn startup_system() {
                 metric_texture: generate_texture_output.texture_handle,
             }]
         });
-    
+
         workflow!(Debug::SpawnDebugObjects);
     });
 

@@ -57,9 +57,7 @@ pub(super) fn extract_render_while_stage_buffer_system(world: &mut World) {
 }
 
 pub(super) fn send_ecs_stages_to_ecs_buffers_system(mut buffer: ResMut<EcsStageBuffer>) {
-    let drained_buffer = {
-        std::mem::take(&mut buffer.0)
-    };
+    let drained_buffer = { std::mem::take(&mut buffer.0) };
 
     for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
         let modules_metadata = crate::get_workflow_modules_metadata();
@@ -76,11 +74,13 @@ pub(super) fn send_ecs_stages_to_ecs_buffers_system(mut buffer: ResMut<EcsStageB
             .stages
             .iter()
             .find_map(|stage_metadata| match stage_metadata {
-                crate::WorkflowStageMetadata::Ecs { name, sender } => if *name == stage.name { 
-                    Some(sender) 
-                } else { 
-                    None 
-                },
+                crate::WorkflowStageMetadata::Ecs { name, sender } => {
+                    if *name == stage.name {
+                        Some(sender)
+                    } else {
+                        None
+                    }
+                }
                 crate::WorkflowStageMetadata::Render { .. } => None,
                 crate::WorkflowStageMetadata::Async { .. } => None,
                 crate::WorkflowStageMetadata::EcsWhile { .. } => None,
@@ -88,13 +88,17 @@ pub(super) fn send_ecs_stages_to_ecs_buffers_system(mut buffer: ResMut<EcsStageB
             })
             .expect("Stage sender not found");
 
-        sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
+        sender.send(
+            module_name,
+            workflow_name,
+            current_stage,
+            stage,
+            data_buffer,
+        );
     }
 }
 pub(super) fn send_render_stages_to_render_buffers_system(mut buffer: ResMut<RenderStageBuffer>) {
-    let drained_buffer = {
-        std::mem::take(&mut buffer.0)
-    };
+    let drained_buffer = { std::mem::take(&mut buffer.0) };
 
     for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
         let modules_metadata = crate::get_workflow_modules_metadata();
@@ -112,24 +116,30 @@ pub(super) fn send_render_stages_to_render_buffers_system(mut buffer: ResMut<Ren
             .iter()
             .find_map(|stage_metadata| match stage_metadata {
                 crate::WorkflowStageMetadata::Ecs { .. } => None,
-                crate::WorkflowStageMetadata::Render { name, sender } => if *name == stage.name { 
-                    Some(sender) 
-                } else { 
-                    None 
-                },
+                crate::WorkflowStageMetadata::Render { name, sender } => {
+                    if *name == stage.name {
+                        Some(sender)
+                    } else {
+                        None
+                    }
+                }
                 crate::WorkflowStageMetadata::Async { .. } => None,
                 crate::WorkflowStageMetadata::EcsWhile { .. } => None,
                 crate::WorkflowStageMetadata::RenderWhile { .. } => None,
             })
             .expect("Stage sender not found");
 
-        sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
+        sender.send(
+            module_name,
+            workflow_name,
+            current_stage,
+            stage,
+            data_buffer,
+        );
     }
 }
 pub(super) fn send_async_stages_to_async_buffers_system(mut buffer: ResMut<AsyncStageBuffer>) {
-    let drained_buffer = {
-        std::mem::take(&mut buffer.0)
-    };
+    let drained_buffer = { std::mem::take(&mut buffer.0) };
 
     for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
         let modules_metadata = crate::get_workflow_modules_metadata();
@@ -148,23 +158,31 @@ pub(super) fn send_async_stages_to_async_buffers_system(mut buffer: ResMut<Async
             .find_map(|stage_metadata| match stage_metadata {
                 crate::WorkflowStageMetadata::Ecs { .. } => None,
                 crate::WorkflowStageMetadata::Render { .. } => None,
-                crate::WorkflowStageMetadata::Async { name, sender } => if *name == stage.name { 
-                    Some(sender) 
-                } else { 
-                    None 
-                },
+                crate::WorkflowStageMetadata::Async { name, sender } => {
+                    if *name == stage.name {
+                        Some(sender)
+                    } else {
+                        None
+                    }
+                }
                 crate::WorkflowStageMetadata::EcsWhile { .. } => None,
                 crate::WorkflowStageMetadata::RenderWhile { .. } => None,
             })
             .expect("Stage sender not found");
 
-        sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
+        sender.send(
+            module_name,
+            workflow_name,
+            current_stage,
+            stage,
+            data_buffer,
+        );
     }
 }
-pub(super) fn send_ecs_while_stages_to_ecs_while_buffers_system(mut buffer: ResMut<EcsWhileStageBuffer>) {
-    let drained_buffer = {
-        std::mem::take(&mut buffer.0)
-    };
+pub(super) fn send_ecs_while_stages_to_ecs_while_buffers_system(
+    mut buffer: ResMut<EcsWhileStageBuffer>,
+) {
+    let drained_buffer = { std::mem::take(&mut buffer.0) };
 
     for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
         let modules_metadata = crate::get_workflow_modules_metadata();
@@ -184,22 +202,30 @@ pub(super) fn send_ecs_while_stages_to_ecs_while_buffers_system(mut buffer: ResM
                 crate::WorkflowStageMetadata::Ecs { .. } => None,
                 crate::WorkflowStageMetadata::Render { .. } => None,
                 crate::WorkflowStageMetadata::Async { .. } => None,
-                crate::WorkflowStageMetadata::EcsWhile { name, sender } => if *name == stage.name { 
-                    Some(sender) 
-                } else { 
-                    None 
-                },
+                crate::WorkflowStageMetadata::EcsWhile { name, sender } => {
+                    if *name == stage.name {
+                        Some(sender)
+                    } else {
+                        None
+                    }
+                }
                 crate::WorkflowStageMetadata::RenderWhile { .. } => None,
             })
             .expect("Stage sender not found");
 
-        sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
+        sender.send(
+            module_name,
+            workflow_name,
+            current_stage,
+            stage,
+            data_buffer,
+        );
     }
 }
-pub(super) fn send_render_while_stages_to_render_while_buffers_system(mut buffer: ResMut<RenderWhileStageBuffer>) {
-    let drained_buffer = {
-        std::mem::take(&mut buffer.0)
-    };
+pub(super) fn send_render_while_stages_to_render_while_buffers_system(
+    mut buffer: ResMut<RenderWhileStageBuffer>,
+) {
+    let drained_buffer = { std::mem::take(&mut buffer.0) };
 
     for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
         let modules_metadata = crate::get_workflow_modules_metadata();
@@ -220,18 +246,25 @@ pub(super) fn send_render_while_stages_to_render_while_buffers_system(mut buffer
                 crate::WorkflowStageMetadata::Render { .. } => None,
                 crate::WorkflowStageMetadata::Async { .. } => None,
                 crate::WorkflowStageMetadata::EcsWhile { .. } => None,
-                crate::WorkflowStageMetadata::RenderWhile { name, sender } => if *name == stage.name { 
-                    Some(sender) 
-                } else { 
-                    None 
-                },
+                crate::WorkflowStageMetadata::RenderWhile { name, sender } => {
+                    if *name == stage.name {
+                        Some(sender)
+                    } else {
+                        None
+                    }
+                }
             })
             .expect("Stage sender not found");
 
-        sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
+        sender.send(
+            module_name,
+            workflow_name,
+            current_stage,
+            stage,
+            data_buffer,
+        );
     }
 }
-
 
 /// Note: We actually convert the event from 'setup' to 'wait', seeing as the event handler logic from post-setup is identical to that of post-wait
 pub(super) fn stage_setup_relay_system(
@@ -327,9 +360,7 @@ pub(super) fn stage_failure_relay_system(
     }
 }
 
-pub(super) fn workflow_request_relay_system(
-    world: &mut World,
-) {
+pub(super) fn workflow_request_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
         Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,

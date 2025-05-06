@@ -2,7 +2,9 @@ use futures::future::BoxFuture;
 use tokio::task::JoinHandle;
 
 use super::{
-    resources::WorkflowMap, stage::{Stage, StageType}, statics::TOKIO_RUNTIME
+    resources::WorkflowMap,
+    stage::{Stage, StageType},
+    statics::TOKIO_RUNTIME,
 };
 
 pub struct CompositeWorkflowRuntime(tokio::runtime::Handle);

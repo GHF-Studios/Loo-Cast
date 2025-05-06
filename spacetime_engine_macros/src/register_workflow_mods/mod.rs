@@ -218,23 +218,23 @@ impl WorkflowMods {
             #[derive(Clone)]
             pub enum WorkflowStageMetadata {
                 Ecs {
-                    name: &'static str, 
+                    name: &'static str,
                     sender: Box<dyn DynFillWorkflowStageEcsBufferEventSender>
                 },
                 Render {
-                    name: &'static str, 
+                    name: &'static str,
                     sender: Box<dyn DynFillWorkflowStageRenderBufferEventSender>
                 },
                 Async {
-                    name: &'static str, 
+                    name: &'static str,
                     sender: Box<dyn DynFillWorkflowStageAsyncBufferEventSender>
                 },
                 EcsWhile {
-                    name: &'static str, 
+                    name: &'static str,
                     sender: Box<dyn DynFillWorkflowStageEcsWhileBufferEventSender>
                 },
                 RenderWhile {
-                    name: &'static str, 
+                    name: &'static str,
                     sender: Box<dyn DynFillWorkflowStageRenderWhileBufferEventSender>
                 },
             }
@@ -356,40 +356,40 @@ impl Stage {
         match self.ty {
             StageType::Ecs => {
                 quote! {
-                    WorkflowStageMetadata::Ecs { 
-                        name: #stage_name, 
+                    WorkflowStageMetadata::Ecs {
+                        name: #stage_name,
                         sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }
             StageType::Render => {
                 quote! {
-                    WorkflowStageMetadata::Render { 
-                        name: #stage_name, 
+                    WorkflowStageMetadata::Render {
+                        name: #stage_name,
                         sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }
             StageType::Async => {
                 quote! {
-                    WorkflowStageMetadata::Async { 
-                        name: #stage_name, 
+                    WorkflowStageMetadata::Async {
+                        name: #stage_name,
                         sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }
             StageType::EcsWhile => {
                 quote! {
-                    WorkflowStageMetadata::EcsWhile { 
-                        name: #stage_name, 
+                    WorkflowStageMetadata::EcsWhile {
+                        name: #stage_name,
                         sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }
             StageType::RenderWhile => {
                 quote! {
-                    WorkflowStageMetadata::RenderWhile { 
-                        name: #stage_name, 
+                    WorkflowStageMetadata::RenderWhile {
+                        name: #stage_name,
                         sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }

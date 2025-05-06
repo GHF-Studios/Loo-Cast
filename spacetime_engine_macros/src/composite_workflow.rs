@@ -1,10 +1,10 @@
 use heck::ToSnakeCase;
-use syn::{Ident, Type, Token, Block, ExprMacro};
-use syn::parse::{Parse, ParseStream, Result};
-use quote::quote;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2::TokenTree;
+use quote::quote;
+use syn::parse::{Parse, ParseStream, Result};
 use syn::visit::Visit;
+use syn::{Block, ExprMacro, Ident, Token, Type};
 
 struct WorkflowMacroDetector {
     found: bool,
@@ -54,7 +54,6 @@ fn is_fallible(block: &Block) -> bool {
     syn::visit::visit_block(&mut detector, block);
     detector.found
 }
-
 
 pub struct CompositeWorkflow {
     pub captures: Vec<VarCapture>,
@@ -144,15 +143,15 @@ impl CompositeWorkflow {
                 use crate::workflow::composite_workflow_context::set_context;
                 use crate::workflow::composite_workflow_context::get_context;
                 use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
-                use spacetime_engine_macros::define_composite_workflow_inner;
-    
-                define_composite_workflow_inner!(#workflow_name {
+                use spacetime_engine_macros::define_composite_workflow;
+
+                define_composite_workflow!(#workflow_name {
                     #(#get_contexts)*
                     #block
                     #(#set_contexts)*
                     Ok(())
                 });
-    
+
                 let handle = COMPOSITE_WORKFLOW_RUNTIME
                     .lock()
                     .unwrap()
@@ -160,7 +159,7 @@ impl CompositeWorkflow {
                         #(#pass_in_contexts)*
                         #workflow_ident().await
                     }));
-    
+
                 handle
             }}
         } else {
@@ -168,14 +167,14 @@ impl CompositeWorkflow {
                 use crate::workflow::composite_workflow_context::set_context;
                 use crate::workflow::composite_workflow_context::get_context;
                 use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
-                use spacetime_engine_macros::define_composite_workflow_inner;
-    
-                define_composite_workflow_inner!(#workflow_name {
+                use spacetime_engine_macros::define_composite_workflow;
+
+                define_composite_workflow!(#workflow_name {
                     #(#get_contexts)*
                     #block
                     #(#set_contexts)*
                 });
-    
+
                 let handle = COMPOSITE_WORKFLOW_RUNTIME
                     .lock()
                     .unwrap()
@@ -183,7 +182,7 @@ impl CompositeWorkflow {
                         #(#pass_in_contexts)*
                         #workflow_ident().await
                     }));
-    
+
                 handle
             }}
         }

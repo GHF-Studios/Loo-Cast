@@ -9,7 +9,7 @@ define_workflow_mod_OLD! {
                 use std::collections::HashSet;
 
                 use crate::chunk_loader::workflows::chunk_loader::{
-                    load_chunks::user_items::LoadChunkInput, 
+                    load_chunks::user_items::LoadChunkInput,
                     unload_chunks::user_items::UnloadChunkInput
                 };
                 use crate::chunk_loader::components::ChunkLoaderComponent;
@@ -39,15 +39,15 @@ define_workflow_mod_OLD! {
 
                             let mut load_chunk_inputs = Vec::new();
                             let mut unload_chunk_inputs = Vec::new();
-                        
+
                             for (loader_entity, transform, chunk_loader) in chunk_loader_query.iter() {
                                 let position = transform.translation.truncate();
                                 let radius = chunk_loader.radius;
-                        
+
                                 let target_chunks = calculate_chunks_in_radius(position, radius)
                                     .into_iter()
                                     .collect::<HashSet<(i32, i32)>>();
-                        
+
                                 let current_chunks: HashSet<(i32, i32)> = chunk_manager
                                     .owned_chunks
                                     .iter()
@@ -59,16 +59,16 @@ define_workflow_mod_OLD! {
                                         }
                                     })
                                     .collect();
-                        
+
                                 let chunks_to_load: Vec<&(i32, i32)> = target_chunks.difference(&current_chunks).collect();
                                 let chunks_to_unload: Vec<&(i32, i32)> =
                                     current_chunks.difference(&target_chunks).collect();
-                        
+
                                 for chunk_coord in chunks_to_load {
                                     let chunk_loader_distance_squared =
                                         calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
                                     let chunk_loader_radius_squared = radius * radius;
-                        
+
                                     load_chunk_inputs.push(crate::chunk_loader::workflows::chunk_loader::load_chunks::user_items::LoadChunkInput {
                                         requester_id: chunk_loader.id,
                                         chunk_coord: *chunk_coord,
@@ -77,12 +77,12 @@ define_workflow_mod_OLD! {
                                         chunk_loader_radius_squared,
                                     });
                                 }
-                        
+
                                 for chunk_coord in chunks_to_unload {
                                     let chunk_loader_distance_squared =
                                         calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
                                     let chunk_loader_radius_squared = radius * radius;
-                        
+
                                     unload_chunk_inputs.push(crate::chunk_loader::workflows::chunk_loader::unload_chunks::user_items::UnloadChunkInput {
                                         requester_id: chunk_loader.id,
                                         chunk_coord: *chunk_coord,
@@ -91,7 +91,7 @@ define_workflow_mod_OLD! {
                                     });
                                 }
                             }
-                        
+
                             Output { load_chunk_inputs, unload_chunk_inputs }
                         }
                     ]
@@ -102,7 +102,7 @@ define_workflow_mod_OLD! {
         OnRemoveChunkLoader {
             user_imports: {
                 use bevy::prelude::*;
-                
+
                 use crate::chunk::components::ChunkComponent;
                 use crate::chunk::enums::ChunkAction;
                 use crate::chunk::functions::*;
@@ -138,7 +138,7 @@ define_workflow_mod_OLD! {
                             let loader_id = input.chunk_loader_id;
                             let position = input.chunk_loader_position;
                             let radius = input.chunk_loader_radius;
-                        
+
                             let mut invalid_actions = vec![];
                             for (chunk_coord, action) in chunk_action_buffer
                                 .iter()
@@ -152,7 +152,7 @@ define_workflow_mod_OLD! {
                                     ChunkAction::TransferOwnership { .. } => {}
                                 }
                             }
-                        
+
                             let mut invalid_chunk_actions = Vec::new();
 
                             #[allow(clippy::never_loop)]
@@ -161,14 +161,14 @@ define_workflow_mod_OLD! {
                                 invalid_chunk_actions.push((chunk_coord, loader_id));
                                 unreachable!("Invalid ChunkActions deteced OnUpdate: {:?}", invalid_chunk_actions);
                             }
-                        
+
                             let chunks_to_despawn: Vec<&(i32, i32)> = chunk_manager
                                 .owned_chunks
                                 .iter()
                                 .filter_map(|(chunk, &owner)| {
                                     if owner == loader_entity {
                                         chunk_action_buffer.remove_action(chunk);
-                        
+
                                         Some(chunk)
                                     } else {
                                         None
@@ -181,7 +181,7 @@ define_workflow_mod_OLD! {
                                 let chunk_loader_distance_squared =
                                     calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
                                 let chunk_loader_radius_squared = radius * radius;
-                        
+
                                 unload_chunk_inputs.push(UnloadChunkInput {
                                     requester_id: loader_id,
                                     chunk_coord: *chunk_coord,
@@ -219,11 +219,11 @@ define_workflow_mod_OLD! {
                     has_pending_despawn: bool,
                 ) -> ChunkActionPriority {
                     let normalized_distance = distance_squared as f64 / radius_squared as f64;
-                
+
                     // Lower priority if a despawn is pending
                     let adjustment = if has_pending_despawn { 0.5 } else { 1.0 };
                     let priority_value = (i64::MAX as f64 * (1.0 - normalized_distance) * adjustment) as i64;
-                
+
                     ChunkActionPriority::Deferred(priority_value)
                 }
             },
@@ -255,11 +255,11 @@ define_workflow_mod_OLD! {
                                 let is_owned = chunk_manager.owned_chunks.contains_key(&chunk_coord);
                                 let (is_spawning, is_despawning, is_transfering_ownership) =
                                     chunk_action_buffer.get_action_states(&chunk_coord);
-                            
+
                                 if !is_loaded {
                                     if !is_spawning && !is_despawning && !is_transfering_ownership {
                                         let has_pending_despawn = chunk_action_buffer.has_despawns();
-                                
+
                                         chunk_action_buffer.add_action(ChunkAction::Spawn {
                                             requester_id,
                                             coord: chunk_coord,
@@ -304,7 +304,7 @@ define_workflow_mod_OLD! {
                 pub fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) -> ChunkActionPriority {
                     let normalized_distance = distance_squared as f64 / radius_squared as f64;
                     let priority_value = (normalized_distance * i64::MAX as f64) as i64;
-                
+
                     ChunkActionPriority::Deferred(priority_value)
                 }
 
@@ -314,11 +314,11 @@ define_workflow_mod_OLD! {
                     loader_radius: u32,
                 ) -> bool {
                     let (loader_chunk_x, loader_chunk_y) = world_pos_to_chunk(loader_position);
-                
+
                     let dx = chunk_coord.0 - loader_chunk_x;
                     let dy = chunk_coord.1 - loader_chunk_y;
                     let distance_squared = dx * dx + dy * dy;
-                
+
                     let radius_squared = (loader_radius as i32) * (loader_radius as i32);
                     distance_squared <= radius_squared
                 }
@@ -352,7 +352,7 @@ define_workflow_mod_OLD! {
                                 let is_loaded = chunk_manager.is_loaded(&chunk_coord);
                                 let (is_spawning, is_despawning, is_transfering_ownership) =
                                     chunk_action_buffer.get_action_states(&chunk_coord);
-                            
+
                                 if is_loaded && !is_spawning && !is_despawning && !is_transfering_ownership {
                                     let chunk = match chunk_query
                                         .iter()
@@ -367,7 +367,7 @@ define_workflow_mod_OLD! {
                                             return;
                                         }
                                     };
-                            
+
                                     match chunk_loader_query
                                         .iter()
                                         .find(|(loader_entity, transform, loader)| {
@@ -377,7 +377,7 @@ define_workflow_mod_OLD! {
                                             {
                                                 return false;
                                             }
-                            
+
                                             is_chunk_in_loader_range(
                                                 &chunk_coord,
                                                 transform.translation.truncate(),

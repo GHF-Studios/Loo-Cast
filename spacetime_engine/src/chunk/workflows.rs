@@ -46,7 +46,7 @@ define_workflow_mod_OLD! {
                                 if chunk_query.iter().any(|chunk| chunk.coord == chunk_coord) {
                                     return Err(Error::ChunkAlreadyLoaded { chunk_coord });
                                 }
-    
+
                                 let default_chunk_z = CONFIG.get::<f32>("chunk/default_z");
 
                                 let chunk_transform = Transform {
@@ -65,7 +65,7 @@ define_workflow_mod_OLD! {
                                         owner: chunk_owner,
                                     },
                                 ));
-    
+
                                 chunk_manager.loaded_chunks.insert(chunk_coord);
                                 if let Some(owner) = chunk_owner {
                                     chunk_manager.owned_chunks.insert(chunk_coord, owner);

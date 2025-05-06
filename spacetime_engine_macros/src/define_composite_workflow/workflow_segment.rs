@@ -1,4 +1,4 @@
-use crate::define_composite_workflow_inner::workflow_invocation::*;
+use crate::define_composite_workflow::workflow_invocation::*;
 use proc_macro2::{Delimiter, TokenStream, TokenTree};
 use quote::quote;
 use syn::{parse2, ExprPath, ExprStruct, Ident, Result};
@@ -50,7 +50,6 @@ pub fn extract_workflow_segments(input: TokenStream) -> Vec<WorkflowSegment> {
     segments
 }
 
-
 pub fn extract_workflow_segments_inner(input: TokenStream) -> Vec<WorkflowSegment> {
     let mut segments = Vec::new();
     let mut plain_buffer = TokenStream::new();
@@ -66,7 +65,8 @@ pub fn extract_workflow_segments_inner(input: TokenStream) -> Vec<WorkflowSegmen
                         if let TokenTree::Group(group) = tokens.next().unwrap() {
                             let tokens = group.stream();
 
-                            let handled = if let Ok(ident) = extract_signature_ident(tokens.clone()) {
+                            let handled = if let Ok(ident) = extract_signature_ident(tokens.clone())
+                            {
                                 invocation_parts.push(InvocationPart::Signature(ident));
                                 true
                             } else if let Ok(path) = extract_type_path(tokens.clone()) {

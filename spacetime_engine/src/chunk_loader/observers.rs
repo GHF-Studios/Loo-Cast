@@ -1,6 +1,6 @@
 use bevy::prelude::*;
-use tokio::task::JoinHandle;
 use spacetime_engine_macros::{composite_workflow, composite_workflow_return};
+use tokio::task::JoinHandle;
 
 use crate::chunk_loader::components::ChunkLoaderComponent;
 
@@ -27,7 +27,7 @@ pub(crate) fn observe_on_remove_chunk_loader(
         Some(ref handle) => handle.is_finished(),
         None => false,
     };
-    
+
     if handle_is_some && handle_is_finished {
         *composite_workflow_handle = None;
         composite_workflow_return!(loader_entity: Entity, loader_id: u32, loader_position: Vec2, loader_radius: u32);

@@ -28,7 +28,9 @@ pub fn pre_process_workflows(input: TokenStream) -> TokenStream {
     }
 
     if !group_found {
-        unreachable!("Expected exactly one brace-delimited group in composite workflow macro body.");
+        unreachable!(
+            "Expected exactly one brace-delimited group in composite workflow macro body."
+        );
     }
 
     output

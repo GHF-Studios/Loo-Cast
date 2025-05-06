@@ -312,10 +312,7 @@ impl Workflow {
         let workflow_plugin_ident =
             Ident::new(workflow_plugin_name.as_str(), workflow_ident.span());
 
-        let (
-            workflow_stage_ecs_plugin_usage_literals, 
-            workflow_stage_render_plugin_usage_literals,
-        ) = {
+        let (workflow_stage_ecs_plugin_usage_literals, workflow_stage_render_plugin_usage_literals) = {
             let mut workflow_stage_ecs_plugin_usage_literals = vec![];
             let mut workflow_stage_render_plugin_usage_literals = vec![];
 
@@ -336,7 +333,7 @@ impl Workflow {
                                 .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system)
                             }
                         );
-                    },
+                    }
                     Stage::Render(_) => {
                         workflow_stage_render_plugin_usage_literals.push(
                             quote! {
@@ -346,7 +343,7 @@ impl Workflow {
                                 .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system)
                             }
                         );
-                    },
+                    }
                     Stage::Async(_) => {
                         workflow_stage_ecs_plugin_usage_literals.push(
                             quote! {
@@ -356,7 +353,7 @@ impl Workflow {
                                 .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system)
                             }
                         );
-                    },
+                    }
                     Stage::EcsWhile(_) => {
                         workflow_stage_ecs_plugin_usage_literals.push(
                             quote! {
@@ -366,7 +363,7 @@ impl Workflow {
                                 .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system)
                             }
                         );
-                    },
+                    }
                     Stage::RenderWhile(_) => {
                         workflow_stage_render_plugin_usage_literals.push(
                             quote! {
@@ -379,13 +376,13 @@ impl Workflow {
                                 .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::fuse_render_while_workflow_state_extract_shards_system.after(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system))
                             }
                         );
-                    },
+                    }
                 }
             }
 
             (
-                workflow_stage_ecs_plugin_usage_literals, 
-                workflow_stage_render_plugin_usage_literals, 
+                workflow_stage_ecs_plugin_usage_literals,
+                workflow_stage_render_plugin_usage_literals,
             )
         };
 
@@ -401,7 +398,7 @@ impl Workflow {
                             fn build(&self, app: &mut bevy::prelude::App) {}
                         }
                     }
-                },
+                }
                 (false, true) => {
                     quote! {
                         pub(crate) struct #workflow_plugin_ident;
@@ -415,27 +412,27 @@ impl Workflow {
                             }
                         }
                     }
-                },
+                }
                 (true, false) => {
                     quote! {
                         pub(crate) struct #workflow_plugin_ident;
                         impl bevy::prelude::Plugin for #workflow_plugin_ident {
                             fn build(&self, app: &mut bevy::prelude::App) {
                                 use bevy::prelude::IntoSystemConfigs;
-                                
+
                                 app
                                     #(#workflow_stage_ecs_plugin_usage_literals)*;
                             }
                         }
                     }
-                },
+                }
                 (true, true) => {
                     quote! {
                         pub(crate) struct #workflow_plugin_ident;
                         impl bevy::prelude::Plugin for #workflow_plugin_ident {
                             fn build(&self, app: &mut bevy::prelude::App) {
                                 use bevy::prelude::IntoSystemConfigs;
-                                
+
                                 app
                                     #(#workflow_stage_ecs_plugin_usage_literals)*;
 
@@ -445,7 +442,7 @@ impl Workflow {
                             }
                         }
                     }
-                },
+                }
             }
         };
 

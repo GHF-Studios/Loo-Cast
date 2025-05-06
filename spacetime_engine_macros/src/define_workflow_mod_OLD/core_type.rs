@@ -1,4 +1,5 @@
 use super::stage::{Async, Ecs, EcsWhile, Render, RenderWhile, StageSignature};
+use heck::ToPascalCase;
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use std::marker::PhantomData;
@@ -7,7 +8,6 @@ use syn::{
     token::Pub,
     Fields, ItemEnum, ItemStruct, Result, Visibility,
 };
-use heck::ToPascalCase;
 
 fn align_core_struct(item: &mut ItemStruct) {
     let span = item.ident.span();
@@ -614,53 +614,53 @@ impl CoreTypes<Ecs> {
         quote! {
             static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageEcsBufferEventSender> = std::sync::OnceLock::new();
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageEcsBufferEventReceiver>>> = std::sync::OnceLock::new();
-            
+
             pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageEcsBufferEventSender {
                 let (tx, rx) = crossbeam_channel::bounded(1);
-            
+
                 let sender = FillWorkflowStageEcsBufferEventSender {
                     module_name: #module_name,
                     workflow_name: #workflow_name,
                     stage_index: #stage_index,
                     sender: tx,
                 };
-            
+
                 let receiver = FillWorkflowStageEcsBufferEventReceiver(rx);
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(sender.clone())
                     .expect("Sender already initialized!");
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE.set(std::sync::Mutex::new(Some(receiver))).expect("Receiver cache already initialized");
-            
+
                 sender
             }
-            
+
             pub fn take_fill_workflow_stage_buffer_receiver() -> FillWorkflowStageEcsBufferEventReceiver {
                 let cache = FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE
                     .get()
                     .expect("Receiver cache not initialized");
-            
+
                 let mut guard = cache.lock().unwrap();
                 guard
                     .take()
                     .expect("Receiver already taken or never initialized")
             }
-            
+
             pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageEcsBufferEventSender {
                 let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .get()
                     .expect("Sender not initialized!");
-                
+
                 let sender: Box<dyn crate::DynFillWorkflowStageEcsBufferEventSender> = dyn_clone::clone_box(sender);
-            
+
                 if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageEcsBufferEventSender>() {
                     sender.clone()
                 } else {
                     panic!("Sender was not the expected concrete type!");
                 }
             }
-            
+
             pub fn receive_ecs_stages_to_ecs_buffers_system(mut receiver: ResMut<FillWorkflowStageEcsBufferEventReceiver>, mut buffer: ResMut<StageBuffer>) {
                 match receiver.0.try_recv() {
                     Ok(event) => buffer.fill(event.module_name, event.workflow_name, event.stage_index, event.stage, event.stage_data),
@@ -808,53 +808,53 @@ impl CoreTypes<Render> {
         quote! {
             static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageRenderBufferEventSender> = std::sync::OnceLock::new();
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageRenderBufferEventReceiver>>> = std::sync::OnceLock::new();
-            
+
             pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageRenderBufferEventSender {
                 let (tx, rx) = crossbeam_channel::bounded(1);
-            
+
                 let sender = FillWorkflowStageRenderBufferEventSender {
                     module_name: #module_name,
                     workflow_name: #workflow_name,
                     stage_index: #stage_index,
                     sender: tx,
                 };
-            
+
                 let receiver = FillWorkflowStageRenderBufferEventReceiver(rx);
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(sender.clone())
                     .expect("Sender already initialized!");
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE.set(std::sync::Mutex::new(Some(receiver))).expect("Receiver cache already initialized");
-            
+
                 sender
             }
-            
+
             pub fn take_fill_workflow_stage_buffer_receiver() -> FillWorkflowStageRenderBufferEventReceiver {
                 let cache = FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE
                     .get()
                     .expect("Receiver cache not initialized");
-            
+
                 let mut guard = cache.lock().unwrap();
                 guard
                     .take()
                     .expect("Receiver already taken or never initialized")
             }
-            
+
             pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageRenderBufferEventSender {
                 let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .get()
                     .expect("Sender not initialized!");
-                
+
                 let sender: Box<dyn crate::DynFillWorkflowStageRenderBufferEventSender> = dyn_clone::clone_box(sender);
-            
+
                 if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageRenderBufferEventSender>() {
                     sender.clone()
                 } else {
                     panic!("Sender was not the expected concrete type!");
                 }
             }
-            
+
             pub fn receive_render_stages_to_render_buffers_system(mut receiver: ResMut<FillWorkflowStageRenderBufferEventReceiver>, mut buffer: ResMut<StageBuffer>) {
                 match receiver.0.try_recv() {
                     Ok(event) => buffer.fill(event.module_name, event.workflow_name, event.stage_index, event.stage, event.stage_data),
@@ -1002,53 +1002,53 @@ impl CoreTypes<Async> {
         quote! {
             static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageAsyncBufferEventSender> = std::sync::OnceLock::new();
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageAsyncBufferEventReceiver>>> = std::sync::OnceLock::new();
-            
+
             pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageAsyncBufferEventSender {
                 let (tx, rx) = crossbeam_channel::bounded(1);
-            
+
                 let sender = FillWorkflowStageAsyncBufferEventSender {
                     module_name: #module_name,
                     workflow_name: #workflow_name,
                     stage_index: #stage_index,
                     sender: tx,
                 };
-            
+
                 let receiver = FillWorkflowStageAsyncBufferEventReceiver(rx);
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(sender.clone())
                     .expect("Sender already initialized!");
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE.set(std::sync::Mutex::new(Some(receiver))).expect("Receiver cache already initialized");
-            
+
                 sender
             }
-            
+
             pub fn take_fill_workflow_stage_buffer_receiver() -> FillWorkflowStageAsyncBufferEventReceiver {
                 let cache = FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE
                     .get()
                     .expect("Receiver cache not initialized");
-            
+
                 let mut guard = cache.lock().unwrap();
                 guard
                     .take()
                     .expect("Receiver already taken or never initialized")
             }
-            
+
             pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageAsyncBufferEventSender {
                 let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .get()
                     .expect("Sender not initialized!");
-                
+
                 let sender: Box<dyn crate::DynFillWorkflowStageAsyncBufferEventSender> = dyn_clone::clone_box(sender);
-            
+
                 if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageAsyncBufferEventSender>() {
                     sender.clone()
                 } else {
                     panic!("Sender was not the expected concrete type!");
                 }
             }
-            
+
             pub fn receive_async_stages_to_async_buffers_system(mut receiver: ResMut<FillWorkflowStageAsyncBufferEventReceiver>, mut buffer: ResMut<StageBuffer>) {
                 match receiver.0.try_recv() {
                     Ok(event) => buffer.fill(event.module_name, event.workflow_name, event.stage_index, event.stage, event.stage_data),
@@ -1196,53 +1196,53 @@ impl CoreTypes<EcsWhile> {
         quote! {
             static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageEcsWhileBufferEventSender> = std::sync::OnceLock::new();
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageEcsWhileBufferEventReceiver>>> = std::sync::OnceLock::new();
-            
+
             pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageEcsWhileBufferEventSender {
                 let (tx, rx) = crossbeam_channel::bounded(1);
-            
+
                 let sender = FillWorkflowStageEcsWhileBufferEventSender {
                     module_name: #module_name,
                     workflow_name: #workflow_name,
                     stage_index: #stage_index,
                     sender: tx,
                 };
-            
+
                 let receiver = FillWorkflowStageEcsWhileBufferEventReceiver(rx);
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(sender.clone())
                     .expect("Sender already initialized!");
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE.set(std::sync::Mutex::new(Some(receiver))).expect("Receiver cache already initialized");
-            
+
                 sender
             }
-            
+
             pub fn take_fill_workflow_stage_buffer_receiver() -> FillWorkflowStageEcsWhileBufferEventReceiver {
                 let cache = FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE
                     .get()
                     .expect("Receiver cache not initialized");
-            
+
                 let mut guard = cache.lock().unwrap();
                 guard
                     .take()
                     .expect("Receiver already taken or never initialized")
             }
-            
+
             pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageEcsWhileBufferEventSender {
                 let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .get()
                     .expect("Sender not initialized!");
-                
+
                 let sender: Box<dyn crate::DynFillWorkflowStageEcsWhileBufferEventSender> = dyn_clone::clone_box(sender);
-            
+
                 if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageEcsWhileBufferEventSender>() {
                     sender.clone()
                 } else {
                     panic!("Sender was not the expected concrete type!");
                 }
             }
-            
+
             pub fn receive_ecs_while_stages_to_ecs_while_buffers_system(mut receiver: ResMut<FillWorkflowStageEcsWhileBufferEventReceiver>, mut buffer: ResMut<StageBuffer>) {
                 match receiver.0.try_recv() {
                     Ok(event) => buffer.fill(event.module_name, event.workflow_name, event.stage_index, event.stage, event.stage_data),
@@ -1393,46 +1393,46 @@ impl CoreTypes<RenderWhile> {
         quote! {
             static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageRenderWhileBufferEventSender> = std::sync::OnceLock::new();
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageRenderWhileBufferEventReceiver>>> = std::sync::OnceLock::new();
-            
+
             pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageRenderWhileBufferEventSender {
                 let (tx, rx) = crossbeam_channel::bounded(1);
-            
+
                 let sender = FillWorkflowStageRenderWhileBufferEventSender {
                     module_name: #module_name,
                     workflow_name: #workflow_name,
                     stage_index: #stage_index,
                     sender: tx,
                 };
-            
+
                 let receiver = FillWorkflowStageRenderWhileBufferEventReceiver(rx);
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .set(sender.clone())
                     .expect("Sender already initialized!");
-            
+
                 FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE.set(std::sync::Mutex::new(Some(receiver))).expect("Receiver cache already initialized");
-            
+
                 sender
             }
-            
+
             pub fn take_fill_workflow_stage_buffer_receiver() -> FillWorkflowStageRenderWhileBufferEventReceiver {
                 let cache = FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE
                     .get()
                     .expect("Receiver cache not initialized");
-            
+
                 let mut guard = cache.lock().unwrap();
                 guard
                     .take()
                     .expect("Receiver already taken or never initialized")
             }
-            
+
             pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageRenderWhileBufferEventSender {
                 let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
                     .get()
                     .expect("Sender not initialized!");
-                
+
                 let sender: Box<dyn crate::DynFillWorkflowStageRenderWhileBufferEventSender> = dyn_clone::clone_box(sender);
-            
+
                 if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageRenderWhileBufferEventSender>() {
                     sender.clone()
                 } else {
@@ -1465,7 +1465,7 @@ impl CoreTypes<RenderWhile> {
                     state_extract.insert_entry(module_name, workflow_name, stage_type, stage_initialized, stage_completed);
                 }
             }
-            
+
             pub fn receive_render_while_stage_to_render_while_buffer_system(mut receiver: ResMut<FillWorkflowStageRenderWhileBufferEventReceiver>, mut buffer: ResMut<StageBuffer>) {
                 match receiver.0.try_recv() {
                     Ok(event) => buffer.fill(event.module_name, event.workflow_name, event.stage_index, event.stage, event.stage_data),
@@ -1518,7 +1518,7 @@ impl CoreTypes<RenderWhile> {
                         stage,
                         stage_data: stage_buffer
                     };
-                    
+
                     if let Err(err) = self.sender.send(event) {
                         unreachable!("Failed to send FillWorkflowStageRenderWhileBufferEvent: {}", err);
                     };
