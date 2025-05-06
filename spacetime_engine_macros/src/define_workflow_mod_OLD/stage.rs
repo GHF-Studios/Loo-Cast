@@ -94,6 +94,7 @@ impl Stage {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn generate(
         self,
         workflow_path: &TokenStream,
@@ -481,6 +482,7 @@ impl Parse for Stages {
 }
 
 impl TypedStage<Ecs> {
+    #[allow(clippy::too_many_arguments)]
     pub fn generate(
         self,
         workflow_path: &TokenStream,
@@ -889,6 +891,7 @@ impl TypedStage<Ecs> {
 }
 
 impl TypedStage<Render> {
+    #[allow(clippy::too_many_arguments)]
     pub fn generate(
         self,
         workflow_path: &TokenStream,
@@ -1297,6 +1300,7 @@ impl TypedStage<Render> {
 }
 
 impl TypedStage<Async> {
+    #[allow(clippy::too_many_arguments)]
     pub fn generate(
         self,
         workflow_path: &TokenStream,

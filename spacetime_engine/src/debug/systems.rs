@@ -7,7 +7,27 @@ use bevy::{prelude::*, window::PrimaryWindow};
 
 use super::components::{DebugObjectComponent, DebugObjectMovement};
 
-pub(crate) fn debug_object_movement_system(
+pub(super) fn debug_ui_startup(
+    mut has_spawned: Local<bool>,
+    mut commands: Commands,
+) {
+    use iyes_perf_ui::{
+        entries::{PerfUiFramerateEntries, PerfUiSystemEntries},
+        prelude::{PerfUiEntryEntityCount, PerfUiRoot},
+    };
+
+    if !*has_spawned {
+        *has_spawned = true;
+        commands.spawn((
+            PerfUiRoot::default(),
+            PerfUiFramerateEntries::default(),
+            PerfUiSystemEntries::default(),
+            PerfUiEntryEntityCount::default(),
+        ));
+    }
+}
+
+pub(super) fn debug_object_movement_system(
     time: Res<Time>,
     mut query: Query<(&mut Transform, &DebugObjectComponent)>,
 ) {
@@ -28,7 +48,7 @@ pub(crate) fn debug_object_movement_system(
     }
 }
 
-pub(crate) fn chunk_inspection_system(
+pub(super) fn chunk_inspection_system(
     window_query: Query<&Window, With<PrimaryWindow>>,
     camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     chunk_query: Query<&ChunkComponent>,
@@ -51,7 +71,7 @@ pub(crate) fn chunk_inspection_system(
     }
 }
 
-pub(crate) fn chunk_loader_inspection_system(
+pub(super) fn chunk_loader_inspection_system(
     chunk_loader_query: Query<Entity, With<ChunkLoaderComponent>>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {

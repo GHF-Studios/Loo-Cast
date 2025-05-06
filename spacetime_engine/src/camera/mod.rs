@@ -2,9 +2,6 @@ pub mod components;
 pub mod systems;
 pub mod workflows;
 
-// pub mod workflows_MACROINPUT;
-// pub mod workflows_MACROOUTPUT;
-
 use bevy::prelude::*;
 use systems::main_camera_zoom_system;
 

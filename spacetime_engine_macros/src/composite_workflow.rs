@@ -1,9 +1,9 @@
 use heck::ToSnakeCase;
 use syn::{Ident, Type, Token, Block, ExprMacro};
 use syn::parse::{Parse, ParseStream, Result};
-use quote::{quote, ToTokens};
+use quote::quote;
 use proc_macro2::TokenStream as TokenStream2;
-use proc_macro2::{Delimiter, Group, TokenStream, TokenTree};
+use proc_macro2::TokenTree;
 use syn::visit::Visit;
 
 struct WorkflowMacroDetector {
@@ -11,6 +11,7 @@ struct WorkflowMacroDetector {
 }
 
 impl<'ast> Visit<'ast> for WorkflowMacroDetector {
+    #[allow(clippy::collapsible_match)]
     fn visit_stmt(&mut self, node: &'ast syn::Stmt) {
         if let syn::Stmt::Macro(mac_stmt) = node {
             let mac_path = &mac_stmt.mac.path;
@@ -30,6 +31,7 @@ impl<'ast> Visit<'ast> for WorkflowMacroDetector {
         syn::visit::visit_stmt(self, node);
     }
 
+    #[allow(clippy::collapsible_match)]
     fn visit_expr_macro(&mut self, node: &'ast ExprMacro) {
         let mac_path = &node.mac.path;
         if mac_path.is_ident("workflow") {

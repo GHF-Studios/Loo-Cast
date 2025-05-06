@@ -2,9 +2,6 @@ pub mod resources;
 
 pub mod workflows;
 
-// pub mod workflows_MACROINPUT;
-// pub mod workflows_MACROOUTPUT;
-
 use bevy::prelude::*;
 use resources::*;
 

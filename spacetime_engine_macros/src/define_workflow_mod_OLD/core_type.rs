@@ -4,9 +4,8 @@ use quote::{quote, ToTokens};
 use std::marker::PhantomData;
 use syn::{
     parse::{Parse, ParseStream},
-    spanned::Spanned,
     token::Pub,
-    Fields, ItemEnum, ItemStruct, Lifetime, LifetimeParam, Result, Visibility,
+    Fields, ItemEnum, ItemStruct, Result, Visibility,
 };
 use heck::ToPascalCase;
 

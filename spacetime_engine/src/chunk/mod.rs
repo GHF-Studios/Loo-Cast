@@ -8,9 +8,6 @@ pub mod systems;
 
 pub mod workflows;
 
-// pub mod workflows_MACROINPUT;
-// pub mod workflows_MACROOUTPUT;
-
 use bevy::prelude::*;
 use resources::{ChunkManager, ChunkActionBuffer};
 use systems::{process_chunk_actions_system, chunk_startup_system, chunk_update_system};
