@@ -85,9 +85,7 @@ impl ScopedCompositeWorkflowContext {
     {
         let id = self.id;
         CURRENT_COMPOSITE_WORKFLOW_ID.scope(id, async {
-            let ctx = f(self).await;
-            clear_all_context(id);
-            ctx
+            f(self).await
         }).await
     }
 
@@ -98,9 +96,7 @@ impl ScopedCompositeWorkflowContext {
     {
         let id = self.id;
         CURRENT_COMPOSITE_WORKFLOW_ID.scope(id, async {
-            let (ctx, result) = f(self).await;
-            clear_all_context(id);
-            (ctx, result)
+            f(self).await
         }).await
     }
 
