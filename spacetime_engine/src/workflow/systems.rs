@@ -360,8 +360,16 @@ pub(super) fn stage_failure_relay_system(
     }
 }
 
+pub(super) struct RetryRequest {
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub retry_count: usize,
+    pub action: Box<dyn FnOnce(&mut WorkflowMap) + Send + Sync>,
+}
+
 pub(super) fn workflow_request_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
@@ -370,7 +378,8 @@ pub(super) fn workflow_request_relay_system(world: &mut World) {
     )> = SystemState::new(world);
 
     let (
-        mut retry_requests,
+        mut retry_now,
+        mut retry_next_frame,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -398,7 +407,8 @@ pub(super) fn workflow_request_relay_system(world: &mut World) {
                 }),
             ));
         });
-        retry_requests.push_back(RetryRequest {
+
+        retry_now.push_back(RetryRequest {
             module_name,
             workflow_name,
             retry_count: 0,
@@ -406,15 +416,14 @@ pub(super) fn workflow_request_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
-    let mut still_pending = VecDeque::new();
+    let max_retries = CONFIG.get::<usize>("workflow/max_retries");
 
-    while let Some(mut retry) = retry_requests.pop_front() {
+    while let Some(mut retry) = retry_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            still_pending.push_back(retry);
+            retry_next_frame.push_back(retry);
         } else {
             error!(
                 "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
@@ -423,11 +432,12 @@ pub(super) fn workflow_request_relay_system(world: &mut World) {
         }
     }
 
-    *retry_requests = still_pending;
+    *retry_now = retry_next_frame.drain(..).collect();
 }
 
 pub(super) fn workflow_request_e_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
@@ -436,7 +446,8 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
     )> = SystemState::new(world);
 
     let (
-        mut retry_requests,
+        mut retry_now,
+        mut retry_next_frame,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -466,7 +477,7 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
             ));
         });
 
-        retry_requests.push_back(RetryRequest {
+        retry_now.push_back(RetryRequest {
             module_name,
             workflow_name,
             retry_count: 0,
@@ -474,15 +485,14 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
-    let mut still_pending = VecDeque::new();
+    let max_retries = CONFIG.get::<usize>("workflow/max_retries");
 
-    while let Some(mut retry) = retry_requests.pop_front() {
+    while let Some(mut retry) = retry_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            still_pending.push_back(retry);
+            retry_next_frame.push_back(retry);
         } else {
             error!(
                 "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
@@ -491,11 +501,12 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
         }
     }
 
-    *retry_requests = still_pending;
+    *retry_now = retry_next_frame.drain(..).collect();
 }
 
 pub(super) fn workflow_request_o_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
@@ -504,7 +515,8 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
     )> = SystemState::new(world);
 
     let (
-        mut retry_requests,
+        mut retry_now,
+        mut retry_next_frame,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -534,7 +546,7 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
             ));
         });
 
-        retry_requests.push_back(RetryRequest {
+        retry_now.push_back(RetryRequest {
             module_name,
             workflow_name,
             retry_count: 0,
@@ -542,15 +554,14 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
-    let mut still_pending = VecDeque::new();
+    let max_retries = CONFIG.get::<usize>("workflow/max_retries");
 
-    while let Some(mut retry) = retry_requests.pop_front() {
+    while let Some(mut retry) = retry_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            still_pending.push_back(retry);
+            retry_next_frame.push_back(retry);
         } else {
             error!(
                 "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
@@ -559,11 +570,12 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
         }
     }
 
-    *retry_requests = still_pending;
+    *retry_now = retry_next_frame.drain(..).collect();
 }
 
 pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
@@ -572,7 +584,8 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
     )> = SystemState::new(world);
 
     let (
-        mut retry_requests,
+        mut retry_now,
+        mut retry_next_frame,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -602,7 +615,7 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
             ));
         });
 
-        retry_requests.push_back(RetryRequest {
+        retry_now.push_back(RetryRequest {
             module_name,
             workflow_name,
             retry_count: 0,
@@ -610,15 +623,14 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
-    let mut still_pending = VecDeque::new();
+    let max_retries = CONFIG.get::<usize>("workflow/max_retries");
 
-    while let Some(mut retry) = retry_requests.pop_front() {
+    while let Some(mut retry) = retry_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            still_pending.push_back(retry);
+            retry_next_frame.push_back(retry);
         } else {
             error!(
                 "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
@@ -627,11 +639,12 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
         }
     }
 
-    *retry_requests = still_pending;
+    *retry_now = retry_next_frame.drain(..).collect();
 }
 
 pub(super) fn workflow_request_i_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
@@ -640,7 +653,8 @@ pub(super) fn workflow_request_i_relay_system(world: &mut World) {
     )> = SystemState::new(world);
 
     let (
-        mut retry_requests,
+        mut retry_now,
+        mut retry_next_frame,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -671,7 +685,7 @@ pub(super) fn workflow_request_i_relay_system(world: &mut World) {
             ));
         });
 
-        retry_requests.push_back(RetryRequest {
+        retry_now.push_back(RetryRequest {
             module_name,
             workflow_name,
             retry_count: 0,
@@ -679,15 +693,14 @@ pub(super) fn workflow_request_i_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
-    let mut still_pending = VecDeque::new();
+    let max_retries = CONFIG.get::<usize>("workflow/max_retries");
 
-    while let Some(mut retry) = retry_requests.pop_front() {
+    while let Some(mut retry) = retry_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            still_pending.push_back(retry);
+            retry_next_frame.push_back(retry);
         } else {
             error!(
                 "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
@@ -696,11 +709,12 @@ pub(super) fn workflow_request_i_relay_system(world: &mut World) {
         }
     }
 
-    *retry_requests = still_pending;
+    *retry_now = retry_next_frame.drain(..).collect();
 }
 
 pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
@@ -709,7 +723,8 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
     )> = SystemState::new(world);
 
     let (
-        mut retry_requests,
+        mut retry_now,
+        mut retry_next_frame,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -741,7 +756,7 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
             ));
         });
 
-        retry_requests.push_back(RetryRequest {
+        retry_now.push_back(RetryRequest {
             module_name,
             workflow_name,
             retry_count: 0,
@@ -749,15 +764,14 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
-    let mut still_pending = VecDeque::new();
+    let max_retries = CONFIG.get::<usize>("workflow/max_retries");
 
-    while let Some(mut retry) = retry_requests.pop_front() {
+    while let Some(mut retry) = retry_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            still_pending.push_back(retry);
+            retry_next_frame.push_back(retry);
         } else {
             error!(
                 "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
@@ -766,11 +780,12 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
         }
     }
 
-    *retry_requests = still_pending;
+    *retry_now = retry_next_frame.drain(..).collect();
 }
 
 pub(super) fn workflow_request_io_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
@@ -779,7 +794,8 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
     )> = SystemState::new(world);
 
     let (
-        mut retry_requests,
+        mut retry_now,
+        mut retry_next_frame,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -811,7 +827,7 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
             ));
         });
 
-        retry_requests.push_back(RetryRequest {
+        retry_now.push_back(RetryRequest {
             module_name,
             workflow_name,
             retry_count: 0,
@@ -819,15 +835,14 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
-    let mut still_pending = VecDeque::new();
+    let max_retries = CONFIG.get::<usize>("workflow/max_retries");
 
-    while let Some(mut retry) = retry_requests.pop_front() {
+    while let Some(mut retry) = retry_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            still_pending.push_back(retry);
+            retry_next_frame.push_back(retry);
         } else {
             error!(
                 "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
@@ -836,11 +851,12 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
         }
     }
 
-    *retry_requests = still_pending;
+    *retry_now = retry_next_frame.drain(..).collect();
 }
 
 pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
     let mut system_state: SystemState<(
+        Local<VecDeque<RetryRequest>>,
         Local<VecDeque<RetryRequest>>,
         ResMut<WorkflowTypeModuleRegistry>,
         ResMut<WorkflowMap>,
@@ -849,7 +865,8 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
     )> = SystemState::new(world);
 
     let (
-        mut retry_requests,
+        mut retry_now,
+        mut retry_next_frame,
         workflow_registry,
         mut workflow_map,
         mut workflow_request_receiver,
@@ -881,7 +898,7 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
             ));
         });
 
-        retry_requests.push_back(RetryRequest {
+        retry_now.push_back(RetryRequest {
             module_name,
             workflow_name,
             retry_count: 0,
@@ -889,15 +906,14 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = CONFIG.get::<f32>("workflow/max_retries").clamp(1.0, 100.0) as usize;
-    let mut still_pending = VecDeque::new();
+    let max_retries = CONFIG.get::<usize>("workflow/max_retries");
 
-    while let Some(mut retry) = retry_requests.pop_front() {
+    while let Some(mut retry) = retry_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
         } else if retry.retry_count < max_retries {
             retry.retry_count += 1;
-            still_pending.push_back(retry);
+            retry_next_frame.push_back(retry);
         } else {
             error!(
                 "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
@@ -906,7 +922,7 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
         }
     }
 
-    *retry_requests = still_pending;
+    *retry_now = retry_next_frame.drain(..).collect();
 }
 
 pub(super) fn workflow_request_system(world: &mut World) {

@@ -94,10 +94,3 @@ pub enum Outcome<S, O> {
     Wait(S),
     Done(O),
 }
-
-pub(super) struct RetryRequest {
-    pub module_name: &'static str,
-    pub workflow_name: &'static str,
-    pub retry_count: usize,
-    pub action: Box<dyn FnOnce(&mut WorkflowMap) + Send>,
-}
