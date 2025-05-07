@@ -203,22 +203,18 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
 }
 
 pub fn handle_composite_workflow_return(handle: tokio::task::JoinHandle<ScopedCompositeWorkflowContext>, handler: fn(&ScopedCompositeWorkflowContext)) {
-    let inner_handler = move |handle: tokio::task::JoinHandle<ScopedCompositeWorkflowContext>| {
-        crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
-            .lock()
-            .unwrap()
-            .spawn(Box::pin(async move {
-                match handle.await {
-                    Err(e) => {
-                        unreachable!("{}", e);
-                    }
-                    Ok(ctx) => {
-                        handler(&ctx);
-                        ctx
-                    }
+    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME
+        .lock()
+        .unwrap()
+        .spawn(Box::pin(async move {
+            match handle.await {
+                Err(e) => {
+                    unreachable!("{}", e);
                 }
-            }));
-    };
-
-    inner_handler(handle);
+                Ok(ctx) => {
+                    handler(&ctx);
+                    ctx
+                }
+            }
+        }));
 }
