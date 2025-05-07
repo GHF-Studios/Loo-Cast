@@ -432,7 +432,7 @@ pub(super) fn workflow_request_relay_system(world: &mut World) {
         }
     }
 
-    *retry_now = retry_next_frame.drain(..).collect();
+    std::mem::swap(&mut retry_next_frame, &mut retry_now);
 }
 
 pub(super) fn workflow_request_e_relay_system(world: &mut World) {
@@ -501,7 +501,7 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
         }
     }
 
-    *retry_now = retry_next_frame.drain(..).collect();
+    std::mem::swap(&mut retry_next_frame, &mut retry_now);
 }
 
 pub(super) fn workflow_request_o_relay_system(world: &mut World) {
@@ -570,7 +570,7 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
         }
     }
 
-    *retry_now = retry_next_frame.drain(..).collect();
+    std::mem::swap(&mut retry_next_frame, &mut retry_now);
 }
 
 pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
@@ -639,7 +639,7 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
         }
     }
 
-    *retry_now = retry_next_frame.drain(..).collect();
+    std::mem::swap(&mut retry_next_frame, &mut retry_now);
 }
 
 pub(super) fn workflow_request_i_relay_system(world: &mut World) {
@@ -709,7 +709,7 @@ pub(super) fn workflow_request_i_relay_system(world: &mut World) {
         }
     }
 
-    *retry_now = retry_next_frame.drain(..).collect();
+    std::mem::swap(&mut retry_next_frame, &mut retry_now);
 }
 
 pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
@@ -780,7 +780,7 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
         }
     }
 
-    *retry_now = retry_next_frame.drain(..).collect();
+    std::mem::swap(&mut retry_next_frame, &mut retry_now);
 }
 
 pub(super) fn workflow_request_io_relay_system(world: &mut World) {
@@ -851,7 +851,7 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
         }
     }
 
-    *retry_now = retry_next_frame.drain(..).collect();
+    std::mem::swap(&mut retry_next_frame, &mut retry_now);
 }
 
 pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
@@ -922,7 +922,7 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
         }
     }
 
-    *retry_now = retry_next_frame.drain(..).collect();
+    std::mem::swap(&mut retry_next_frame, &mut retry_now);
 }
 
 pub(super) fn workflow_request_system(world: &mut World) {
