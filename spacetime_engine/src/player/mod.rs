@@ -7,16 +7,14 @@ pub mod workflows;
 
 use bevy::prelude::*;
 use resources::PlayerWorkflowQueue;
-use systems::{process_player_workflow_queue, update_player_system};
+use systems::{update_player_system, PlayerLifecycle};
 
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(PlayerWorkflowQueue::default())
-            .add_systems(Update, update_player_system)
-            .add_systems(
-                Update,
-                process_player_workflow_queue.after(update_player_system),
-            );
+        app
+        .insert_resource(PlayerLifecycle::default())
+            .insert_resource(PlayerWorkflowQueue::default())
+            .add_systems(Update, update_player_system);
     }
 }

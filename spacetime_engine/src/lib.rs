@@ -38,7 +38,7 @@ pub mod player;
 //pub mod sprite_bundle;
 pub mod workflow;
 
-use crate::workflow::functions::handle_composite_workflow_return;
+use crate::workflow::functions::handle_composite_workflow_return_later;
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use camera::CameraPlugin;
 use iyes_perf_ui::{
@@ -174,7 +174,7 @@ fn startup_system() {
         workflow!(Debug::SpawnDebugObjects);
     });
 
-    handle_composite_workflow_return(handle, |ctx| {
+    handle_composite_workflow_return_later(handle, |ctx| {
         composite_workflow_return!();
     });
 }

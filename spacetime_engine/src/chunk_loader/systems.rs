@@ -8,7 +8,7 @@ use crate::chunk::functions::calculate_chunks_in_radius;
 use crate::chunk::resources::ChunkActionBuffer;
 use crate::chunk_loader::components::ChunkLoaderComponent;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
-use crate::workflow::functions::handle_composite_workflow_return;
+use crate::workflow::functions::handle_composite_workflow_return_now;
 
 pub(crate) fn update_chunk_loader_system(
     mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>,
@@ -71,8 +71,8 @@ pub(crate) fn update_chunk_loader_system(
 
     if handle_is_some && handle_is_finished {
         let handle = composite_workflow_handle.take().unwrap();
-        handle_composite_workflow_return(handle, |ctx| {
-            composite_workflow_return!(loader_entity: Entity, loader_id: u32, loader_position: Vec2, loader_radius: u32);
+        handle_composite_workflow_return_now(handle, |ctx| {
+            composite_workflow_return!();
         });
     }
 }

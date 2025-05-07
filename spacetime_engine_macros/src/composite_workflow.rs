@@ -136,8 +136,10 @@ impl CompositeWorkflow {
 
         let return_contexts = self.captures.iter().map(|ret_var| {
             let ident = &ret_var.ident;
+            let ty = &ret_var.ty;
             let name = ident.to_string();
             quote! {
+                let #ident: #ty = get_context::<#ty>(#name);
                 ctx.store_return(#name, #ident);
             }
         });

@@ -2,7 +2,7 @@ use futures::FutureExt;
 use uuid::Uuid;
 use crate::workflow::composite_workflow_context::{CURRENT_COMPOSITE_WORKFLOW_ID, ScopedCompositeWorkflowContext};
 
-use super::{channels::*, composite_workflow_context::clear_all_context, request::*, traits::*};
+use super::{channels::*, composite_workflow_context::clear_all_context, request::*, statics::PANIC_BUFFER, traits::*};
 
 pub async fn run_workflow<W: WorkflowType>() {
     let module_name = W::MODULE_NAME;
@@ -202,7 +202,7 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
     }
 }
 
-pub fn handle_composite_workflow_return<F>(handle: tokio::task::JoinHandle<ScopedCompositeWorkflowContext>, f: F)
+pub fn handle_composite_workflow_return_now<F>(handle: tokio::task::JoinHandle<ScopedCompositeWorkflowContext>, f: F)
 where
     F: FnOnce(&ScopedCompositeWorkflowContext),
 {
@@ -211,4 +211,28 @@ where
         Some(Err(e)) => panic!("Workflow panicked: {:?}", e),
         None => panic!("Expected workflow to be finished but it was not."),
     }
+}
+
+
+pub fn handle_composite_workflow_return_later<F>(
+    handle: tokio::task::JoinHandle<ScopedCompositeWorkflowContext>,
+    f: F,
+)
+where
+    F: FnOnce(&ScopedCompositeWorkflowContext) + Send + 'static,
+{
+    let panic_buffer = PANIC_BUFFER.clone();
+    crate::workflow::statics::TOKIO_RUNTIME
+        .lock()
+        .unwrap()
+        .handle()
+        .spawn(async move {
+            match handle.await {
+                Ok(ctx) => f(&ctx),
+                Err(e) => {
+                    let mut buffer = panic_buffer.lock().unwrap();
+                    buffer.push(format!("Composite workflow panicked: {e}"));
+                }
+            }
+        });
 }

@@ -7,7 +7,7 @@ use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 
 use crate::{config::statics::CONFIG, workflow::response::*};
 
-use super::{channels::*, events::*, instance::*, resources::*, stage::Stage, types::*};
+use super::{channels::*, events::*, instance::*, resources::*, stage::Stage, statics::PANIC_BUFFER, types::*};
 
 pub(super) fn extract_render_stage_buffer_system(world: &mut World) {
     let mut main_world = SystemState::<ResMut<MainWorld>>::new(world).get_mut(world);
@@ -1519,5 +1519,12 @@ pub(super) fn workflow_failure_handling_system(world: &mut World) {
 
             workflows.remove(workflow_name);
         }
+    }
+}
+
+pub(super) fn panic_relay_system() {
+    let mut buffer = PANIC_BUFFER.lock().unwrap();
+    if let Some(message) = buffer.pop() {
+        panic!("Async panic relayed to main thread: {}", message);
     }
 }
