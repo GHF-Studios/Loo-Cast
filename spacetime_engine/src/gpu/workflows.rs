@@ -536,5 +536,261 @@ define_workflow_mod_OLD! {
                 }
             ]
         }
+
+        GenerateTextures {
+            user_imports: {
+                use bevy::prelude::{Handle, Res, ResMut, Assets, Image};
+                use bevy::render::render_resource::{
+                    CachedComputePipelineId, BindGroupLayout,
+                    Buffer, TextureView, TextureDescriptor, Extent3d,
+                    TextureDimension, TextureFormat, TextureUsages,
+                    BufferInitDescriptor, BufferUsages, CommandEncoderDescriptor,
+                    ComputePassDescriptor, BindGroupEntry, BindingResource
+                };
+                use bevy::ecs::system::SystemState;
+                use bevy::render::render_asset::RenderAssets;
+                use bevy::render::texture::GpuImage;
+                use bevy::render::renderer::{RenderDevice, RenderQueue};
+                use bevy::render::render_resource::PipelineCache;
+                use crossbeam_channel::Receiver;
+
+                use crate::gpu::resources::ShaderRegistry;
+            },
+            user_items: {
+                pub struct BatchedGeneratorParams {
+                    pub shader_name: &'static str,
+                    pub pipeline_id: CachedComputePipelineId,
+                    pub bind_group_layout: BindGroupLayout,
+                    pub texture_handles: Vec<Handle<Image>>,
+                    pub param_buffers: Vec<Buffer>,
+                }
+
+                pub struct PreparedBatchedGenerator {
+                    pub shader_name: &'static str,
+                    pub pipeline_id: CachedComputePipelineId,
+                    pub bind_group_layout: BindGroupLayout,
+                    pub texture_handles: Vec<Handle<Image>>,
+                    pub texture_views: Vec<TextureView>,
+                    pub param_buffers: Vec<Buffer>,
+                }
+
+                pub struct DispatchedBatch {
+                    pub shader_name: &'static str,
+                    pub texture_handles: Vec<Handle<Image>>,
+                    pub receiver: Receiver<()>
+                }
+            },
+            stages: [
+                PrepareBatch: Ecs {
+                    core_types: [
+                        struct MainAccess<'w> {
+                            render_device: Res<'w, RenderDevice>,
+                            images: ResMut<'w, Assets<Image>>,
+                            shader_registry: Res<'w, ShaderRegistry>,
+                        }
+                        struct Input {
+                            shader_name: &'static str,
+                            texture_sizes: Vec<usize>,
+                            param_data: Vec<Vec<f32>>,
+                        }
+                        struct Output {
+                            params: BatchedGeneratorParams,
+                        }
+                    ],
+                    core_functions: [
+                        fn RunEcs |input, main_access| -> Output {
+                            let shader_name = input.shader_name;
+                            let render_device = main_access.render_device;
+                            let mut images = main_access.images;
+                            let shader_registry = main_access.shader_registry;
+
+                            let pipeline_id = *shader_registry.pipelines.get(shader_name).unwrap();
+                            let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name).unwrap().clone();
+
+                            let mut texture_handles = Vec::new();
+                            let mut param_buffers = Vec::new();
+
+                            for (size, param) in input.texture_sizes.iter().zip(&input.param_data) {
+                                let texture = Image {
+                                    texture_descriptor: TextureDescriptor {
+                                        label: Some("Compute Texture"),
+                                        size: Extent3d {
+                                            width: *size as u32,
+                                            height: *size as u32,
+                                            depth_or_array_layers: 1,
+                                        },
+                                        mip_level_count: 1,
+                                        sample_count: 1,
+                                        dimension: TextureDimension::D2,
+                                        format: TextureFormat::Rgba8Unorm,
+                                        usage: TextureUsages::COPY_DST
+                                            | TextureUsages::TEXTURE_BINDING
+                                            | TextureUsages::STORAGE_BINDING,
+                                        view_formats: &[],
+                                    },
+                                    data: vec![0; size * size * 4],
+                                    ..Default::default()
+                                };
+                                texture_handles.push(images.add(texture));
+
+                                let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+                                    label: Some("Param Buffer"),
+                                    contents: bytemuck::cast_slice(param),
+                                    usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
+                                });
+                                param_buffers.push(buffer);
+                            }
+
+                            Output {
+                                params: BatchedGeneratorParams {
+                                    shader_name,
+                                    pipeline_id,
+                                    bind_group_layout,
+                                    texture_handles,
+                                    param_buffers
+                                }
+                            }
+                        }
+                    ]
+                }
+
+                GetTextureViews: RenderWhile {
+                    core_types: [
+                        struct RenderAccess<'w> {
+                            gpu_images: Res<'w, RenderAssets<GpuImage>>,
+                        }
+                        struct Input {
+                            params: BatchedGeneratorParams,
+                        }
+                        struct State {
+                            params: BatchedGeneratorParams,
+                        }
+                        struct Output {
+                            prepared: PreparedBatchedGenerator,
+                        }
+                    ],
+                    core_functions: [
+                        fn SetupRenderWhile |input, render_access| -> State {
+                            State { params: input.params }
+                        }
+                        fn RunRenderWhile |state, render_access| -> Outcome<State, Output> {
+                            let mut texture_views = Vec::new();
+                            let gpu_images = render_access.gpu_images;
+
+                            for handle in &state.params.texture_handles {
+                                match gpu_images.get(handle) {
+                                    Some(gpu_image) => {
+                                        texture_views.push(gpu_image.texture_view.clone());
+                                    },
+                                    None => return Wait(state),
+                                }
+                            }
+
+                            Done(Output {
+                                prepared: PreparedBatchedGenerator {
+                                    shader_name: state.params.shader_name,
+                                    pipeline_id: state.params.pipeline_id,
+                                    bind_group_layout: state.params.bind_group_layout,
+                                    texture_handles: state.params.texture_handles,
+                                    texture_views,
+                                    param_buffers: state.params.param_buffers,
+                                }
+                            })
+                        }
+                    ]
+                }
+
+                DispatchBatch: Render {
+                    core_types: [
+                        struct RenderAccess<'w> {
+                            render_device: Res<'w, RenderDevice>,
+                            queue: Res<'w, RenderQueue>,
+                            pipeline_cache: Res<'w, PipelineCache>,
+                        }
+                        struct Input {
+                            prepared: PreparedBatchedGenerator,
+                        }
+                        struct Output {
+                            dispatched: DispatchedBatch,
+                        }
+                    ],
+                    core_functions: [
+                        fn RunRender |input, render_access| -> Output {
+                            let prepared = &input.prepared;
+                            let render_device = render_access.render_device;
+                            let queue = render_access.queue;
+                            let pipeline = render_access.pipeline_cache
+                                .get_compute_pipeline(prepared.pipeline_id)
+                                .expect("Pipeline missing");
+
+                            let mut encoder = render_device.create_command_encoder(&CommandEncoderDescriptor { label: None });
+
+                            for (view, buffer) in prepared.texture_views.iter().zip(&prepared.param_buffers) {
+                                let bind_group = render_device.create_bind_group(
+                                    Some("Compute Bind Group"),
+                                    &prepared.bind_group_layout,
+                                    &[
+                                        BindGroupEntry { binding: 0, resource: BindingResource::TextureView(view) },
+                                        BindGroupEntry { binding: 1, resource: buffer.as_entire_binding() },
+                                    ]
+                                );
+
+                                let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor { label: None, timestamp_writes: None });
+                                compute_pass.set_pipeline(pipeline);
+                                compute_pass.set_bind_group(0, &bind_group, &[]);
+                                compute_pass.dispatch_workgroups(8, 8, 1);
+                                drop(compute_pass);
+                            }
+
+                            queue.submit(Some(encoder.finish()));
+
+                            let (sender, receiver) = crossbeam_channel::unbounded();
+                            queue.on_submitted_work_done(move || {
+                                let _ = sender.send(());
+                            });
+
+                            Output {
+                                dispatched: DispatchedBatch {
+                                    shader_name: prepared.shader_name,
+                                    texture_handles: prepared.texture_handles.clone(),
+                                    receiver
+                                }
+                            }
+                        }
+                    ]
+                }
+
+                WaitForBatch: EcsWhile {
+                    core_types: [
+                        struct MainAccess {}
+                        struct Input {
+                            dispatched: DispatchedBatch,
+                        }
+                        struct State {
+                            dispatched: DispatchedBatch,
+                        }
+                        struct Output {
+                            shader_name: &'static str,
+                            texture_handles: Vec<Handle<Image>>,
+                        }
+                    ],
+                    core_functions: [
+                        fn SetupEcsWhile |input, main_access| -> State {
+                            State { dispatched: input.dispatched }
+                        }
+                        fn RunEcsWhile |state, main_access| -> Outcome<State, Output> {
+                            match state.dispatched.receiver.try_recv() {
+                                Ok(_) => Done(Output {
+                                    shader_name: state.dispatched.shader_name,
+                                    texture_handles: state.dispatched.texture_handles.clone(),
+                                }),
+                                Err(crossbeam_channel::TryRecvError::Empty) => Wait(state),
+                                Err(_) => panic!("GPU dispatch failed"),
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
     ]
 }

@@ -132,6 +132,12 @@ register_workflow_mods!(
             DispatchCompute: Render,
             WaitForCompute: EcsWhile,
         },
+        GenerateTextures {
+            PrepareBatch: Ecs,
+            GetTextureViews: RenderWhile,
+            DispatchBatch: Render,
+            WaitForBatch: EcsWhile,
+        },
     },
     Player {
         SpawnPlayer {
@@ -158,17 +164,39 @@ fn startup_system() {
             shader_name: chunk_shader_name,
             shader_path: chunk_shader_path,
         });
-        let generate_texture_output = workflow!(IOE, Gpu::GenerateTexture, Input {
+
+        // Generate grid of chunk coordinates
+        let chunk_coords: Vec<(i32, i32)> = (-8..=8)
+            .flat_map(|x| (-8..=8).map(move |y| (x, y)))
+            .collect();
+
+        let texture_size = crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize;
+
+        // Match param data to each chunk (same for now, customizable later)
+        let param_data: Vec<Vec<f32>> = chunk_coords
+            .iter()
+            .map(|_| vec![0.0])
+            .collect();
+
+        // Batched texture generation
+        let texture_output = workflow!(IO, Gpu::GenerateTextures, Input {
             shader_name: chunk_shader_name,
-            texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize,
-            param_data: vec![0.0]
+            texture_sizes: vec![texture_size; chunk_coords.len()],
+            param_data,
         });
-        workflow!(IE, Chunk::SpawnChunks, Input {
-            inputs: vec![crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
-                chunk_coord: (0, 0),
+
+        let spawn_inputs: Vec<_> = chunk_coords
+            .into_iter()
+            .zip(texture_output.texture_handles.into_iter())
+            .map(|(chunk_coord, texture_handle)| crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
+                chunk_coord,
                 chunk_owner: None,
-                metric_texture: generate_texture_output.texture_handle,
-            }]
+                metric_texture: texture_handle,
+            })
+            .collect();
+
+        workflow!(IE, Chunk::SpawnChunks, Input {
+            inputs: spawn_inputs
         });
 
         workflow!(Debug::SpawnDebugObjects);
@@ -178,3 +206,4 @@ fn startup_system() {
         composite_workflow_return!();
     });
 }
+
