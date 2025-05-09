@@ -30,15 +30,20 @@ pub(crate) fn observe_on_remove_chunk_loader(
 
     if handle_is_some && handle_is_finished {
         let handle = composite_workflow_handle.take().unwrap();
-        handle_composite_workflow_return_now(handle, |ctx| {
-            composite_workflow_return!(loader_entity: Entity, loader_id: u32, loader_position: Vec2, loader_radius: u32);
+        handle_composite_workflow_return_now(handle, |_ctx| {
+            composite_workflow_return!();
         });
     }
     if handle_is_some && !handle_is_finished {
         return;
     }
 
-    let handle = composite_workflow!(loader_entity: Entity, loader_id: u32, loader_position: Vec2, loader_radius: u32, JustDoIt {
+    let handle = composite_workflow!(
+        move in loader_entity: Entity, 
+        move in loader_id: u32, 
+        move in loader_position: Vec2, 
+        move in loader_radius: u32, 
+    {
         bevy::prelude::info!("Removing chunk loader: {:?}", loader_entity);
         let output = workflow!(IO, ChunkLoader::OnRemoveChunkLoader, Input {
             chunk_loader_entity: loader_entity,

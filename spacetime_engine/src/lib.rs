@@ -154,7 +154,7 @@ impl Plugin for SpacetimeEngineCorePlugin {
 }
 
 fn startup_system() {
-    let handle = composite_workflow!(JustDoIt {
+    let handle = composite_workflow!({
         workflow!(Camera::SpawnMainCamera);
 
         let chunk_shader_name = "texture_generators/example_compute_uv";
@@ -202,7 +202,7 @@ fn startup_system() {
         workflow!(Debug::SpawnDebugObjects);
     });
 
-    handle_composite_workflow_return_later(handle, |ctx| {
+    handle_composite_workflow_return_later(handle, |_ctx| {
         composite_workflow_return!();
     });
 }

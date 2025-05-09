@@ -5,6 +5,7 @@ pub mod errors;
 pub mod functions;
 pub mod resources;
 pub mod systems;
+pub mod types;
 
 pub mod workflows;
 

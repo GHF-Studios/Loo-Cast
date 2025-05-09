@@ -1,6 +1,5 @@
 use heck::ToSnakeCase;
-use proc_macro2::TokenStream as TokenStream2;
-use proc_macro2::TokenTree;
+use proc_macro2::{TokenStream as TokenStream2, TokenTree};
 use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::visit::Visit;
@@ -11,40 +10,27 @@ struct WorkflowMacroDetector {
 }
 
 impl<'ast> Visit<'ast> for WorkflowMacroDetector {
-    #[allow(clippy::collapsible_match)]
     fn visit_stmt(&mut self, node: &'ast syn::Stmt) {
         if let syn::Stmt::Macro(mac_stmt) = node {
-            let mac_path = &mac_stmt.mac.path;
-            if mac_path.is_ident("workflow") {
-                if let Some(first_token) = mac_stmt.mac.tokens.clone().into_iter().next() {
-                    if let TokenTree::Ident(ident) = first_token {
-                        let id = ident.to_string();
-                        if id == "E" || id == "OE" || id == "IE" || id == "IOE" {
-                            self.found = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Continue descending into the rest
-        syn::visit::visit_stmt(self, node);
-    }
-
-    #[allow(clippy::collapsible_match)]
-    fn visit_expr_macro(&mut self, node: &'ast ExprMacro) {
-        let mac_path = &node.mac.path;
-        if mac_path.is_ident("workflow") {
-            if let Some(first_token) = node.mac.tokens.clone().into_iter().next() {
-                if let TokenTree::Ident(ident) = first_token {
-                    let id = ident.to_string();
-                    if id == "E" || id == "OE" || id == "IE" || id == "IOE" {
+            if mac_stmt.mac.path.is_ident("workflow") {
+                if let Some(TokenTree::Ident(ident)) = mac_stmt.mac.tokens.clone().into_iter().next() {
+                    if matches!(ident.to_string().as_str(), "E" | "OE" | "IE" | "IOE") {
                         self.found = true;
                     }
                 }
             }
         }
+        syn::visit::visit_stmt(self, node);
+    }
 
+    fn visit_expr_macro(&mut self, node: &'ast ExprMacro) {
+        if node.mac.path.is_ident("workflow") {
+            if let Some(TokenTree::Ident(ident)) = node.mac.tokens.clone().into_iter().next() {
+                if matches!(ident.to_string().as_str(), "E" | "OE" | "IE" | "IOE") {
+                    self.found = true;
+                }
+            }
+        }
         syn::visit::visit_expr_macro(self, node);
     }
 }
@@ -55,98 +41,147 @@ fn is_fallible(block: &Block) -> bool {
     detector.found
 }
 
-pub struct CompositeWorkflow {
-    pub captures: Vec<VarCapture>,
-    pub name: Ident,
-    pub block: Block,
+#[derive(Debug, PartialEq)]
+pub enum MoveMode {
+    None,
+    In,
+    Out,
 }
 
 pub struct VarCapture {
+    pub move_mode: MoveMode,
     pub is_mut: bool,
     pub ident: Ident,
     pub ty: Type,
+}
+
+pub struct CompositeWorkflow {
+    pub captures: Vec<VarCapture>,
+    pub block: Block,
 }
 
 impl Parse for CompositeWorkflow {
     fn parse(input: ParseStream) -> Result<Self> {
         let mut captures = Vec::new();
 
-        while input.peek(Token![mut]) || (input.peek(Ident) && input.peek2(Token![:])) {
-            let is_mut = input.peek(Token![mut]);
-
-            if is_mut {
-                input.parse::<Token![mut]>()?;
+        while !input.is_empty() {
+            if input.peek(syn::token::Brace) {
+                break;
             }
+
+            let mut move_mode = MoveMode::None;
+            if input.peek(Token![move]) {
+                input.parse::<Token![move]>()?;
+
+                if input.peek(Token![in]) {
+                    input.parse::<Token![in]>()?;
+                    move_mode = MoveMode::In;
+                } else if input.peek(Ident) {
+                    let direction: Ident = input.parse()?;
+                    if direction == "out" {
+                        move_mode = MoveMode::Out;
+                    } else {
+                        return Err(syn::Error::new(
+                            direction.span(),
+                            format!("Expected `in` or `out` after `move`, found `{}`", direction),
+                        ));
+                    }
+                } else {
+                    return Err(input.error("Expected `in` or `out` after `move`"));
+                }
+            }
+
+            let is_mut = if input.peek(Token![mut]) {
+                if move_mode == MoveMode::Out {
+                    return Err(input.error("`move out mut` is not allowed"));
+                }
+                input.parse::<Token![mut]>()?;
+                true
+            } else {
+                false
+            };
 
             let ident: Ident = input.parse()?;
             input.parse::<Token![:]>()?;
             let ty: Type = input.parse()?;
             input.parse::<Token![,]>()?;
 
-            captures.push(VarCapture { is_mut, ident, ty });
+            captures.push(VarCapture {
+                move_mode,
+                is_mut,
+                ident,
+                ty,
+            });
         }
 
-        let composite_workflow_name: Ident = input.parse()?;
         let block: Block = input.parse()?;
 
-        Ok(CompositeWorkflow {
-            captures,
-            name: composite_workflow_name,
-            block,
-        })
+        Ok(CompositeWorkflow { captures, block })
     }
 }
 
 impl CompositeWorkflow {
     pub fn generate(&self) -> TokenStream2 {
-        let pass_in_contexts = self.captures.iter().map(|var| {
-            let ident = &var.ident;
-            let name = ident.to_string();
-            let ty = &var.ty;
-            quote! {
-                set_context::<#ty>(#name, #ident);
+        let pass_in_contexts = self.captures.iter().filter_map(|var| {
+            if var.move_mode == MoveMode::In || var.move_mode == MoveMode::None {
+                let ident = &var.ident;
+                let name = ident.to_string();
+                let ty = &var.ty;
+                Some(quote! {
+                    set_context::<#ty>(#name, #ident);
+                })
+            } else {
+                None
             }
         });
 
-        let get_contexts = self.captures.iter().map(|var| {
-            let is_mut = var.is_mut;
-            let ident = &var.ident;
-            let name = ident.to_string();
-            let ty = &var.ty;
-        
-            if is_mut {
-                quote! {
-                    let mut #ident: #ty = get_context::<#ty>(#name);
+        let get_contexts = self.captures.iter().filter_map(|var| {
+            if var.move_mode == MoveMode::In || var.move_mode == MoveMode::None {
+                let ident = &var.ident;
+                let ty = &var.ty;
+                let name = ident.to_string();
+                if var.is_mut {
+                    Some(quote! {
+                        let mut #ident: #ty = get_context::<#ty>(#name);
+                    })
+                } else {
+                    Some(quote! {
+                        let #ident: #ty = get_context::<#ty>(#name);
+                    })
                 }
             } else {
-                quote! {
+                None
+            }
+        });
+
+        let set_contexts = self.captures.iter().filter_map(|var| {
+            if var.move_mode == MoveMode::None || var.move_mode == MoveMode::Out {
+                let ident = &var.ident;
+                let name = ident.to_string();
+                let ty = &var.ty;
+                Some(quote! {
+                    set_context::<#ty>(#name, #ident);
+                })
+            } else {
+                None
+            }
+        });
+
+        let return_contexts = self.captures.iter().filter_map(|var| {
+            if var.move_mode == MoveMode::None || var.move_mode == MoveMode::In {
+                let ident = &var.ident;
+                let ty = &var.ty;
+                let name = ident.to_string();
+                Some(quote! {
                     let #ident: #ty = get_context::<#ty>(#name);
-                }
-            }
-        });
-        
-        let set_contexts = self.captures.iter().map(|var| {
-            let ident = &var.ident;
-            let name = ident.to_string();
-            let ty = &var.ty;
-            quote! {
-                set_context::<#ty>(#name, #ident);
+                    ctx.store_return(#name, #ident);
+                })
+            } else {
+                None
             }
         });
 
-        let return_contexts = self.captures.iter().map(|ret_var| {
-            let ident = &ret_var.ident;
-            let ty = &ret_var.ty;
-            let name = ident.to_string();
-            quote! {
-                let #ident: #ty = get_context::<#ty>(#name);
-                ctx.store_return(#name, #ident);
-            }
-        });
-
-        let composite_workflow_name = &self.name;
-        let composite_workflow_name_snake_case = format!("{}", composite_workflow_name).as_str().to_snake_case();
-        let composite_workflow_ident = Ident::new(&composite_workflow_name_snake_case, composite_workflow_name.span());
+        let composite_workflow_ident = Ident::new("composite_workflow", proc_macro2::Span::call_site());
         let block = &self.block;
         let is_fallible = is_fallible(block);
 
@@ -155,14 +190,14 @@ impl CompositeWorkflow {
                 use crate::workflow::composite_workflow_context::{set_context, get_context, ScopedCompositeWorkflowContext};
                 use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
                 use spacetime_engine_macros::define_composite_workflow;
-                
-                define_composite_workflow!(#composite_workflow_name {
+
+                define_composite_workflow!(CompositeWorkflow {
                     #(#get_contexts)*
                     #block
                     #(#set_contexts)*
                     Ok(())
                 });
-            
+
                 let handle = COMPOSITE_WORKFLOW_RUNTIME
                     .lock()
                     .unwrap()
@@ -176,22 +211,21 @@ impl CompositeWorkflow {
                         }).await;
                         (scoped_ctx, result)
                     }));
-                
+
                 handle
             }}
-        
         } else {
             quote! {{
                 use crate::workflow::composite_workflow_context::{set_context, get_context, ScopedCompositeWorkflowContext};
                 use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
                 use spacetime_engine_macros::define_composite_workflow;
-            
-                define_composite_workflow!(#composite_workflow_name {
+
+                define_composite_workflow!(CompositeWorkflow {
                     #(#get_contexts)*
                     #block
                     #(#set_contexts)*
                 });
-            
+
                 let handle = COMPOSITE_WORKFLOW_RUNTIME
                     .lock()
                     .unwrap()
@@ -205,7 +239,7 @@ impl CompositeWorkflow {
                         }).await;
                         scoped_ctx
                     }));
-            
+
                 handle
             }}
         }

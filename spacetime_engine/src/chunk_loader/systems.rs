@@ -53,7 +53,7 @@ pub(crate) fn update_chunk_loader_system(
     };
 
     if !handle_is_some {
-        let handle = composite_workflow!(JustDoIt {
+        let handle = composite_workflow!({
             let categorize_chunks_output = workflow!(O, ChunkLoader::CategorizeChunks);
             workflow!(I, ChunkLoader::LoadChunks, Input {
                 inputs: categorize_chunks_output.load_chunk_inputs
@@ -71,7 +71,7 @@ pub(crate) fn update_chunk_loader_system(
 
     if handle_is_some && handle_is_finished {
         let handle = composite_workflow_handle.take().unwrap();
-        handle_composite_workflow_return_now(handle, |ctx| {
+        handle_composite_workflow_return_now(handle, |_ctx| {
             composite_workflow_return!();
         });
     }

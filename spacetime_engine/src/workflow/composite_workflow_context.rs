@@ -10,14 +10,6 @@ struct ContextKey {
     type_id: TypeId,
     name: &'static str,
 }
-impl ContextKey {
-    fn new<T: 'static + Send>(name: &'static str) -> Self {
-        Self {
-            type_id: TypeId::of::<T>(),
-            name,
-        }
-    }
-}
 
 #[derive(Default)]
 pub struct CompositeWorkflowContext {

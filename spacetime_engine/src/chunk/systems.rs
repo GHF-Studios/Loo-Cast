@@ -1,20 +1,18 @@
 use bevy::prelude::*;
 use spacetime_engine_macros::{composite_workflow, composite_workflow_return};
-use tokio::task::JoinHandle;
 
 use crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInput;
 use crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput;
 use crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput;
-use crate::chunk_loader::components::ChunkLoaderComponent;
 use crate::config::statics::CONFIG;
-use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
 use super::components::ChunkComponent;
 use super::enums::ChunkAction;
-use super::functions::{chunk_pos_to_world, process_chunk_action, world_pos_to_chunk};
+use super::functions::{chunk_pos_to_world, world_pos_to_chunk};
 use super::resources::ChunkRenderHandles;
-use super::{ChunkActionBuffer, ChunkManager};
+use super::types::ChunkActionWorkflowHandles;
+use super::ChunkActionBuffer;
 
 pub(crate) fn chunk_startup_system(
     mut commands: Commands,
@@ -46,20 +44,8 @@ pub(crate) fn chunk_update_system(chunk_query: Query<(Entity, &Transform, &Chunk
     }
 }
 
-struct ChunkActionWorkflowHandles {
-    spawn: Option<JoinHandle<ScopedCompositeWorkflowContext>>,
-    despawn: Option<JoinHandle<ScopedCompositeWorkflowContext>>,
-    transfer: Option<JoinHandle<ScopedCompositeWorkflowContext>>,
-}
-
-
 pub(crate) fn process_chunk_actions_system(
-    mut commands: Commands,
-    mut chunk_query: Query<(Entity, &mut ChunkComponent)>,
-    chunk_loader_query: Query<Entity, With<ChunkLoaderComponent>>,
-    mut chunk_manager: ResMut<ChunkManager>,
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
-    chunk_render_handles: Res<ChunkRenderHandles>,
     mut workflow_handles: Local<Option<ChunkActionWorkflowHandles>>,
 ) {
     let mut processed_coords = vec![];
@@ -76,22 +62,17 @@ pub(crate) fn process_chunk_actions_system(
 
         // Cleanup finished handles
         if let Some(handle) = handles.spawn.take() {
-            handle_composite_workflow_return_now(handle, |ctx| {
-                composite_workflow_return!(
-                    texture_size: usize, 
-                    spawn_inputs: Vec<SpawnChunkInput>, 
-                    param_data: Vec<Vec<f32>>, 
-                    spawn_coords: Vec<(i32, i32)>
-                );
+            handle_composite_workflow_return_now(handle, |_ctx| {
+                composite_workflow_return!();
             });
         }
         if let Some(handle) = handles.despawn.take() {
-            handle_composite_workflow_return_now(handle, |ctx| {
-                composite_workflow_return!(despawn_inputs: Vec<DespawnChunkInput>);
+            handle_composite_workflow_return_now(handle, |_ctx| {
+                composite_workflow_return!();
             });
         }
         if let Some(handle) = handles.transfer.take() {
-            handle_composite_workflow_return_now(handle, |ctx| {
+            handle_composite_workflow_return_now(handle, |_ctx| {
                 composite_workflow_return!();
             });
         }
@@ -106,8 +87,8 @@ pub(crate) fn process_chunk_actions_system(
     let mut transfer_inputs = vec![];
 
     for (_, coords) in chunk_action_buffer.priority_buckets.iter() {
-        for coord in coords.iter().copied() {
-            if let Some(action) = chunk_action_buffer.actions.get(&coord).cloned() {
+        for coord in coords {
+            if let Some(action) = chunk_action_buffer.actions.get(coord).cloned() {
                 match action {
                     ChunkAction::Spawn { coord, new_owner, .. } => {
                         spawn_coords.push(coord);
@@ -146,11 +127,10 @@ pub(crate) fn process_chunk_actions_system(
         let param_data = vec![vec![0.0]; spawn_inputs.len()];
 
         Some(composite_workflow!(
-            texture_size: usize, 
-            spawn_inputs: Vec<SpawnChunkInput>, 
-            param_data: Vec<Vec<f32>>, 
-            spawn_coords: Vec<(i32, i32)>, 
-            SpawnChunkBatch
+            move in texture_size: usize, 
+            move in spawn_inputs: Vec<SpawnChunkInput>, 
+            move in param_data: Vec<Vec<f32>>, 
+            move in spawn_coords: Vec<(i32, i32)>, 
         {
             let generate_output = workflow!(IO, Gpu::GenerateTextures, Input {
                 shader_name: "texture_generators/example_compute_uv",
@@ -174,7 +154,7 @@ pub(crate) fn process_chunk_actions_system(
     } else { None };
 
     let despawn_handle = if !despawn_inputs.is_empty() {
-        Some(composite_workflow!(despawn_inputs: Vec<DespawnChunkInput>, DespawnChunkBatch {
+        Some(composite_workflow!(move in despawn_inputs: Vec<DespawnChunkInput>, {
             workflow!(IE, Chunk::DespawnChunks, Input {
                 inputs: despawn_inputs
             });
@@ -182,7 +162,7 @@ pub(crate) fn process_chunk_actions_system(
     } else { None };
 
     let transfer_handle = if !transfer_inputs.is_empty() {
-        Some(composite_workflow!(transfer_inputs: Vec<TransferChunkOwnershipInput>, TransferChunkBatch {
+        Some(composite_workflow!(move in transfer_inputs: Vec<TransferChunkOwnershipInput>, {
             workflow!(IE, Chunk::TransferChunkOwnerships, Input {
                 inputs: transfer_inputs
             });

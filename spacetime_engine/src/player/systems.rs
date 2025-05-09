@@ -33,10 +33,9 @@ pub(crate) fn update_player_system(
     match *player_state {
         PlayerLifecycle::None => {
             if keys.just_pressed(KeyCode::Space) {
-                let entity = Entity::from_raw(0);
-                let handle = composite_workflow!(mut entity: Entity, JustDoIt {
+                let handle = composite_workflow!(move out entity: Entity, {
                     let spawn_player_output = workflow!(OE, Player::SpawnPlayer);
-                    entity = spawn_player_output.player_entity;
+                    let entity = spawn_player_output.player_entity;
                 });
 
                 *player_state = PlayerLifecycle::Spawning(Some(handle));
