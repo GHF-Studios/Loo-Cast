@@ -147,7 +147,7 @@ pub(crate) fn process_chunk_actions_system(
                 })
                 .collect::<Vec<_>>();
 
-            workflow!(IE, Chunk::SpawnChunks, Input {
+            let _ = workflow!(IOE, Chunk::SpawnChunks, Input {
                 inputs: spawn_inputs_with_textures
             });
         }))
@@ -155,7 +155,7 @@ pub(crate) fn process_chunk_actions_system(
 
     let despawn_handle = if !despawn_inputs.is_empty() {
         Some(composite_workflow!(move in despawn_inputs: Vec<DespawnChunkInput>, {
-            workflow!(IE, Chunk::DespawnChunks, Input {
+            let _ = workflow!(IOE, Chunk::DespawnChunks, Input {
                 inputs: despawn_inputs
             });
         }))
@@ -163,7 +163,7 @@ pub(crate) fn process_chunk_actions_system(
 
     let transfer_handle = if !transfer_inputs.is_empty() {
         Some(composite_workflow!(move in transfer_inputs: Vec<TransferChunkOwnershipInput>, {
-            workflow!(IE, Chunk::TransferChunkOwnerships, Input {
+            let _ = workflow!(IOE, Chunk::TransferChunkOwnerships, Input {
                 inputs: transfer_inputs
             });
         }))

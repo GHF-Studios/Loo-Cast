@@ -34,6 +34,7 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn RunEcs |main_access| -> Output {
+                            bevy::prelude::debug!("Categorizing chunks..");
                             let chunk_loader_query = main_access.chunk_loader_query;
                             let chunk_manager = main_access.chunk_manager;
 
@@ -199,9 +200,9 @@ define_workflow_mod_OLD! {
 
         LoadChunks {
             user_imports: {
-                use bevy::prelude::*;
+                use bevy::prelude::{Entity, Res, ResMut, Query};
 
-                use crate::chunk::{enums::{ChunkAction, ChunkActionPriority}, resources::{ChunkManager, ChunkActionBuffer}};
+                use crate::chunk::{enums::{ChunkAction, ChunkActionPriority}, resources::{ChunkManager, ChunkActionBuffer}, components::ChunkComponent};
                 use crate::config::statics::CONFIG;
             },
             user_items: {
@@ -212,8 +213,15 @@ define_workflow_mod_OLD! {
                     pub chunk_loader_distance_squared: u32,
                     pub chunk_loader_radius_squared: u32,
                 }
-                pub struct DespawnChunkState {}
-                pub struct TransferChunkOwnershipState {}
+                pub struct SpawnChunkState {
+                    pub coord: (i32, i32),
+                    pub is_spawned: bool,
+                }
+                pub struct TransferChunkOwnershipState {
+                    pub coord: (i32, i32),
+                    pub owner: Option<Entity>,
+                    pub is_ownership_transfered: bool,
+                }
 
                 pub fn calculate_spawn_priority(
                     distance_squared: u32,
@@ -233,6 +241,7 @@ define_workflow_mod_OLD! {
                 ValidateAndLoadAndWait: EcsWhile {
                     core_types: [
                         struct MainAccess<'w, 's> {
+                            chunk_query: Query<'w, 's, &'static ChunkComponent>,
                             chunk_manager: Res<'w, ChunkManager>,
                             chunk_action_buffer: ResMut<'w, ChunkActionBuffer>,
                             phantom_data: std::marker::PhantomData<&'s ()>,
@@ -240,11 +249,19 @@ define_workflow_mod_OLD! {
                         struct Input {
                             inputs: Vec<LoadChunkInput>,
                         }
+                        struct State {
+                            spawn_chunk_states: Vec<SpawnChunkState>,
+                            transfer_chunk_ownership_states: Vec<TransferChunkOwnershipState>,
+                        }
                     ],
                     core_functions: [
-                        fn RunEcs |input, main_access| {
+                        fn SetupEcsWhile |input, main_access| -> State {
+                            bevy::prelude::debug!("Loading chunks..");
                             let chunk_manager = main_access.chunk_manager;
                             let mut chunk_action_buffer = main_access.chunk_action_buffer;
+
+                            let mut spawn_chunk_states = Vec::new();
+                            let mut transfer_chunk_ownership_states = Vec::new();
 
                             for input in input.inputs {
                                 let requester_id = input.requester_id;
@@ -272,6 +289,10 @@ define_workflow_mod_OLD! {
                                                 has_pending_despawn,
                                             ),
                                         });
+                                        spawn_chunk_states.push(SpawnChunkState {
+                                            coord: chunk_coord,
+                                            is_spawned: false
+                                        });
                                     }
                                 } else if !is_owned && !is_despawning && !is_transfering_ownership && chunk_owner.is_some() {
                                     chunk_action_buffer.add_action(ChunkAction::TransferOwnership {
@@ -280,7 +301,49 @@ define_workflow_mod_OLD! {
                                         new_owner: chunk_owner.unwrap(),
                                         priority: ChunkActionPriority::Realtime,
                                     });
+                                    transfer_chunk_ownership_states.push(TransferChunkOwnershipState {
+                                        coord: chunk_coord,
+                                        owner: chunk_owner,
+                                        is_ownership_transfered: false
+                                    });
                                 }
+                            }
+
+                            State {
+                                spawn_chunk_states,
+                                transfer_chunk_ownership_states,
+                            }
+                        }
+
+                        fn RunEcsWhile |state, main_access| -> Outcome<State, ()> {
+                            let chunk_query = main_access.chunk_query;
+
+                            let spawn_chunk_states = state.spawn_chunk_states.into_iter().map(|mut s| {
+                                if chunk_query.iter().any(|chunk| chunk.coord == s.coord) {
+                                    s.is_spawned = true;
+                                }
+
+                                s
+                            }).collect::<Vec<_>>();
+                            let transfer_chunk_ownership_states = state.transfer_chunk_ownership_states.into_iter().map(|mut s| {
+                                if let Some(chunk) = chunk_query.iter().find(|chunk| chunk.coord == s.coord) {
+                                    if chunk.owner == s.owner {
+                                        s.is_ownership_transfered = true;
+                                    }
+                                }
+
+                                s
+                            }).collect::<Vec<_>>();
+                            let is_done = spawn_chunk_states.iter().all(|s| s.is_spawned) && 
+                                transfer_chunk_ownership_states.iter().all(|s| s.is_ownership_transfered);
+
+                            if is_done {
+                                Outcome::Done(())
+                            } else {
+                                Outcome::Wait(State {
+                                    spawn_chunk_states,
+                                    transfer_chunk_ownership_states
+                                })
                             }
                         }
                     ]
@@ -290,7 +353,7 @@ define_workflow_mod_OLD! {
 
         UnloadChunks {
             user_imports: {
-                use bevy::prelude::*;
+                use bevy::prelude::{Res, ResMut, Entity, Transform, Query, Vec2};
 
                 use crate::chunk::{components::ChunkComponent, enums::{ChunkAction, ChunkActionPriority}, resources::{ChunkManager, ChunkActionBuffer}, functions::world_pos_to_chunk};
                 use crate::chunk_loader::components::ChunkLoaderComponent;
@@ -301,6 +364,15 @@ define_workflow_mod_OLD! {
                     pub chunk_coord: (i32, i32),
                     pub chunk_loader_distance_squared: u32,
                     pub chunk_loader_radius_squared: u32,
+                }
+                pub struct DespawnChunkState {
+                    pub coord: (i32, i32),
+                    pub is_despawned: bool,
+                }
+                pub struct TransferChunkOwnershipState {
+                    pub coord: (i32, i32),
+                    pub owner: Option<Entity>,
+                    pub is_ownership_transfered: bool,
                 }
 
                 pub fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) -> ChunkActionPriority {
@@ -331,19 +403,27 @@ define_workflow_mod_OLD! {
                         struct MainAccess<'w, 's> {
                             chunk_manager: Res<'w, ChunkManager>,
                             chunk_action_buffer: ResMut<'w, ChunkActionBuffer>,
-                            chunk_query: Query<'w, 's, (Entity, &'static ChunkComponent)>,
+                            chunk_query: Query<'w, 's, &'static ChunkComponent>,
                             chunk_loader_query: Query<'w, 's, (Entity, &'static Transform, &'static ChunkLoaderComponent)>,
                         }
                         struct Input {
                             inputs: Vec<UnloadChunkInput>,
                         }
+                        struct State {
+                            despawn_chunk_states: Vec<DespawnChunkState>,
+                            transfer_chunk_ownership_states: Vec<TransferChunkOwnershipState>,
+                        }
                     ],
                     core_functions: [
-                        fn RunEcs |input, main_access| {
+                        fn SetupEcsWhile |input, main_access| -> State {
+                            bevy::prelude::debug!("Unloading chunks..");
                             let chunk_manager = main_access.chunk_manager;
                             let mut chunk_action_buffer = main_access.chunk_action_buffer;
                             let chunk_query = main_access.chunk_query;
                             let chunk_loader_query = main_access.chunk_loader_query;
+
+                            let mut despawn_chunk_states = Vec::new();
+                            let mut transfer_chunk_ownership_states = Vec::new();
 
                             for input in input.inputs {
                                 let requester_id = input.requester_id;
@@ -358,15 +438,15 @@ define_workflow_mod_OLD! {
                                 if is_loaded && !is_spawning && !is_despawning && !is_transfering_ownership {
                                     let chunk = match chunk_query
                                         .iter()
-                                        .find(|(_, chunk)| chunk.coord == chunk_coord)
+                                        .find(|chunk| chunk.coord == chunk_coord)
                                     {
-                                        Some((_, chunk)) => chunk,
+                                        Some(chunk) => chunk,
                                         None => {
-                                            error!(
+                                            bevy::prelude::error!(
                                                 "Skipping unload for chunk '{:?}': it is already despawned",
                                                 chunk_coord
                                             );
-                                            return;
+                                            continue;
                                         }
                                     };
 
@@ -393,6 +473,11 @@ define_workflow_mod_OLD! {
                                                 new_owner,
                                                 priority: ChunkActionPriority::Realtime,
                                             });
+                                            transfer_chunk_ownership_states.push(TransferChunkOwnershipState {
+                                                coord: chunk_coord,
+                                                owner: Some(new_owner),
+                                                is_ownership_transfered: false
+                                            });
                                         }
                                         None => {
                                             chunk_action_buffer.add_action(ChunkAction::Despawn {
@@ -403,9 +488,50 @@ define_workflow_mod_OLD! {
                                                     chunk_loader_radius_squared,
                                                 ),
                                             });
+                                            despawn_chunk_states.push(DespawnChunkState {
+                                                coord: chunk_coord,
+                                                is_despawned: false
+                                            });
                                         }
                                     };
                                 }
+                            }
+
+                            State {
+                                despawn_chunk_states,
+                                transfer_chunk_ownership_states,
+                            }
+                        }
+
+                        fn RunEcsWhile |state, main_access| -> Outcome<State, ()> {
+                            let chunk_query = main_access.chunk_query;
+
+                            let despawn_chunk_states = state.despawn_chunk_states.into_iter().map(|mut s| {
+                                if chunk_query.iter().any(|chunk| chunk.coord == s.coord) {
+                                    s.is_despawned = true;
+                                }
+
+                                s
+                            }).collect::<Vec<_>>();
+                            let transfer_chunk_ownership_states = state.transfer_chunk_ownership_states.into_iter().map(|mut s| {
+                                if let Some(chunk) = chunk_query.iter().find(|chunk| chunk.coord == s.coord) {
+                                    if chunk.owner == s.owner {
+                                        s.is_ownership_transfered = true;
+                                    }
+                                }
+
+                                s
+                            }).collect::<Vec<_>>();
+                            let is_done = despawn_chunk_states.iter().all(|s| s.is_despawned) && 
+                                transfer_chunk_ownership_states.iter().all(|s| s.is_ownership_transfered);
+
+                            if is_done {
+                                Outcome::Done(())
+                            } else {
+                                Outcome::Wait(State {
+                                    despawn_chunk_states,
+                                    transfer_chunk_ownership_states
+                                })
                             }
                         }
                     ]

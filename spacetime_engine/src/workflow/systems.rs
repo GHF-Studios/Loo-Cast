@@ -1522,9 +1522,10 @@ pub(super) fn workflow_failure_handling_system(world: &mut World) {
     }
 }
 
-pub(super) fn panic_relay_system() {
+pub(super) fn workflow_panic_handling_system() {
     let mut buffer = PANIC_BUFFER.lock().unwrap();
-    if let Some(message) = buffer.pop() {
-        panic!("Async panic relayed to main thread: {}", message);
+    if buffer.pop().is_some() {
+        buffer.clear();
+        panic!("Async panic relayed to main thread.");
     }
 }
