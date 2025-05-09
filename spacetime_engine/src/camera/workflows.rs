@@ -5,7 +5,7 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnMainCamera {
             user_imports: {
-                use bevy::prelude::*;
+                use bevy::prelude::{Commands, Res, ResMut, Camera2dBundle, Vec2};
 
                 use crate::camera::components::MainCamera;
                 use crate::config::statics::CONFIG;
@@ -18,12 +18,18 @@ define_workflow_mod_OLD! {
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>
                         }
+                        struct State {
+                            camera_entity: Entity,
+                        }
+                        struct Output {
+                            spawned_camera_entity: Entity,
+                        }
                     ],
                     core_functions: [
-                        fn RunEcs |main_access| {
+                        fn SetupEcsWhile |main_access| -> State {
                             let mut commands = main_access.commands;
 
-                            commands.spawn((
+                            let camera_entity = commands.spawn((
                                 Camera2dBundle::default(),
                                 MainCamera,
                                 FollowerComponent::new(
@@ -31,7 +37,23 @@ define_workflow_mod_OLD! {
                                     Vec2::ZERO,
                                     CONFIG.get::<f32>("camera/follow_smoothness"),
                                 ),
-                            ));
+                            )).id();
+
+                            State {
+                                camera_entity
+                            }
+                        }
+
+                        fn RunEcsWhile |state, main_access| -> Outcome<State, Output> {
+                            let mut commands = main_access.commands;
+
+                            if commands.get_entity(state.camera_entity).is_some() {
+                                Outcome::Done(Output {
+                                    spawned_camera_entity: state.camera_entity
+                                })
+                            } else {
+                                Outcome::Wait(state)
+                            }
                         }
                     ]
                 }

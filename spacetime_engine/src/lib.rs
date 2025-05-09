@@ -109,12 +109,10 @@ register_workflow_mods!(
             ExtractUnloadChunkInputs: Ecs
         },
         LoadChunks {
-            ValidateAndLoad: Ecs,
-            WaitForSpawnsAndOwnershipTransfers: EcsWhile,
+            ValidateAndLoadAndWait: EcsWhile,
         },
         UnloadChunks {
-            Unload: Ecs,
-            WaitForDespawnsAndOwnershipTransfers: EcsWhile,
+            UnloadAndWait: EcsWhile,
         }
     },
     Debug {

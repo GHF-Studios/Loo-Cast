@@ -212,6 +212,8 @@ define_workflow_mod_OLD! {
                     pub chunk_loader_distance_squared: u32,
                     pub chunk_loader_radius_squared: u32,
                 }
+                pub struct DespawnChunkState {}
+                pub struct TransferChunkOwnershipState {}
 
                 pub fn calculate_spawn_priority(
                     distance_squared: u32,
@@ -228,7 +230,7 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                ValidateAndLoad: Ecs {
+                ValidateAndLoadAndWait: EcsWhile {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             chunk_manager: Res<'w, ChunkManager>,
@@ -282,8 +284,7 @@ define_workflow_mod_OLD! {
                             }
                         }
                     ]
-                },
-                WaitForSpawnsAndOwnershipTransfers: EcsWhile {}
+                }
             ]
         }
 
@@ -325,7 +326,7 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                Unload: Ecs {
+                UnloadAndWait: EcsWhile {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             chunk_manager: Res<'w, ChunkManager>,
@@ -408,8 +409,7 @@ define_workflow_mod_OLD! {
                             }
                         }
                     ]
-                },
-                WaitForDespawnsAndOwnershipTransfers: EcsWhile {}
+                }
             ]
         }
     ]

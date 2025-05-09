@@ -5,7 +5,7 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnChunks {
             user_imports: {
-                use bevy::prelude::*;
+                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, Handle, Image, Transform, SpriteBundle};
 
                 use crate::chunk::{components::ChunkComponent, resources::ChunkManager, functions::chunk_pos_to_world};
                 use crate::config::statics::CONFIG;
@@ -15,6 +15,11 @@ define_workflow_mod_OLD! {
                     pub chunk_coord: (i32, i32),
                     pub chunk_owner: Option<Entity>,
                     pub metric_texture: Handle<Image>
+                }
+                #[derive(Clone)]
+                pub struct SpawnChunkState {
+                    pub entity: Entity,
+                    pub is_spawned: bool,
                 }
             },
             stages: [
@@ -28,15 +33,23 @@ define_workflow_mod_OLD! {
                         struct Input {
                             inputs: Vec<SpawnChunkInput>,
                         }
+                        struct State {
+                            spawn_chunk_states: Vec<SpawnChunkState>,
+                        }
+                        struct Output {
+                            spawned_chunk_entities: Vec<Entity>,
+                        }
                         enum Error {
                             ChunkAlreadyLoaded { chunk_coord: (i32, i32) },
                         }
                     ],
                     core_functions: [
-                        fn RunEcs |input, main_access| -> Result<(), Error> {
+                        fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
                             let mut commands = main_access.commands;
                             let chunk_query = main_access.chunk_query;
                             let mut chunk_manager = main_access.chunk_manager;
+
+                            let mut spawn_chunk_states = Vec::new();
 
                             for input in input.inputs {
                                 let chunk_coord = input.chunk_coord;
@@ -54,7 +67,7 @@ define_workflow_mod_OLD! {
                                     ..Default::default()
                                 };
 
-                                commands.spawn((
+                                let chunk_entity = commands.spawn((
                                     SpriteBundle {
                                         texture: metric_texture,
                                         transform: chunk_transform,
@@ -64,15 +77,47 @@ define_workflow_mod_OLD! {
                                         coord: chunk_coord,
                                         owner: chunk_owner,
                                     },
-                                ));
+                                )).id();
 
                                 chunk_manager.loaded_chunks.insert(chunk_coord);
                                 if let Some(owner) = chunk_owner {
                                     chunk_manager.owned_chunks.insert(chunk_coord, owner);
                                 }
+
+                                spawn_chunk_states.push(SpawnChunkState {
+                                    entity: chunk_entity,
+                                    is_spawned: false,
+                                });
                             }
 
-                            Ok(())
+                            Ok(State {
+                                spawn_chunk_states
+                            })
+                        }
+
+                        fn RunEcsWhile |state, main_access| -> Outcome<State, Output> {
+                            let mut commands = main_access.commands;
+
+                            let spawn_chunk_states = state.spawn_chunk_states.into_iter().map(|mut spawn_chunk_state| {
+                                if commands.get_entity(spawn_chunk_state.entity).is_some() {
+                                    spawn_chunk_state.is_spawned = true;
+                                }
+
+                                spawn_chunk_state
+                            }).collect::<Vec<_>>();
+                            let is_done = spawn_chunk_states.iter().all(|spawn_chunk_state| spawn_chunk_state.is_spawned);
+
+                            if is_done {
+                                let spawned_chunk_entities = spawn_chunk_states.into_iter().map(|spawn_chunk_state| spawn_chunk_state.entity).collect();
+
+                                Outcome::Done(Output {
+                                    spawned_chunk_entities
+                                })
+                            } else {
+                                Outcome::Wait(State {
+                                    spawn_chunk_states
+                                })
+                            }
                         }
                     ]
                 }
@@ -81,13 +126,18 @@ define_workflow_mod_OLD! {
 
         DespawnChunks {
             user_imports: {
-                use bevy::prelude::*;
+                use bevy::prelude::{Res, ResMut, Commands, Query, Entity, DespawnRecursiveExt};
 
                 use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
             },
             user_items: {
                 pub struct DespawnChunkInput {
                     pub chunk_coord: (i32, i32)
+                }
+                #[derive(Clone)]
+                pub struct DespawnChunkState {
+                    pub entity: Entity,
+                    pub is_despawned: bool,
                 }
             },
             stages: [
@@ -101,15 +151,23 @@ define_workflow_mod_OLD! {
                         struct Input {
                             inputs: Vec<DespawnChunkInput>,
                         }
+                        struct State {
+                            despawn_chunk_states: Vec<DespawnChunkState>
+                        }
+                        struct Output {
+                            despawned_chunk_entities: Vec<Entity>
+                        }
                         enum Error {
                             ChunkNotLoaded { chunk_coord: (i32, i32) },
                         }
                     ],
                     core_functions: [
-                        fn RunEcs |input, main_access| -> Result<(), Error> {
+                        fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
                             let mut commands = main_access.commands;
                             let chunk_query = main_access.chunk_query;
                             let mut chunk_manager = main_access.chunk_manager;
+
+                            let mut despawn_chunk_states = Vec::new();
 
                             for input in input.inputs {
                                 let chunk_coord = input.chunk_coord;
@@ -118,13 +176,45 @@ define_workflow_mod_OLD! {
                                     chunk_manager.loaded_chunks.remove(&chunk_coord);
                                     chunk_manager.owned_chunks.remove(&chunk_coord);
 
-                                    commands.entity(entity).despawn_recursive();
+                                    let chunk_entity_commands = commands.entity(entity);
+                                    despawn_chunk_states.push(DespawnChunkState {
+                                        entity: chunk_entity_commands.id(),
+                                        is_despawned: false,
+                                    });
+                                    chunk_entity_commands.despawn_recursive();
                                 } else {
                                     return Err(Error::ChunkNotLoaded { chunk_coord });
                                 }
                             }
 
-                            Ok(())
+                            Ok(State {
+                                despawn_chunk_states
+                            })
+                        }
+
+                        fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
+                            let mut commands = main_access.commands;
+
+                            let despawn_chunk_states = state.despawn_chunk_states.into_iter().map(|mut despawn_chunk_state| {
+                                if commands.get_entity(despawn_chunk_state.entity).is_none() {
+                                    despawn_chunk_state.is_despawned = true;
+                                }
+
+                                despawn_chunk_state
+                            }).collect::<Vec<_>>();
+                            let is_done = despawn_chunk_states.iter().all(|despawn_chunk_state| despawn_chunk_state.is_despawned);
+
+                            if is_done {
+                                let despawned_chunk_entities = despawn_chunk_states.into_iter().map(|despawn_chunk_state| despawn_chunk_state.entity).collect();
+
+                                Ok(Outcome::Done(Output {
+                                    despawned_chunk_entities
+                                }))
+                            } else {
+                                Ok(Outcome::Wait(State {
+                                    despawn_chunk_states
+                                }))
+                            }
                         }
                     ]
                 }
@@ -133,7 +223,7 @@ define_workflow_mod_OLD! {
 
         TransferChunkOwnerships {
             user_imports: {
-                use bevy::prelude::*;
+                use bevy::prelude::{Res, ResMut, Entity};
 
                 use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
             },
@@ -147,38 +237,46 @@ define_workflow_mod_OLD! {
                 FindAndTransferOwnership: Ecs {
                     core_types: [
                         struct MainAccess<'w, 's> {
-                            chunk_query: Query<'w, 's, &'static mut ChunkComponent>,
+                            chunk_query: Query<'w, 's, (Entity, &'static mut ChunkComponent)>,
                             chunk_manager: ResMut<'w, ChunkManager>,
                         }
                         struct Input {
                             inputs: Vec<TransferChunkOwnershipInput>,
+                        }
+                        struct Output {
+                            ownership_transfered_chunk_entities: Vec<Entity>
                         }
                         enum Error {
                             ChunkNotLoaded { chunk_coord: (i32, i32) },
                         }
                     ],
                     core_functions: [
-                        fn RunEcs |input, main_access| -> Result<(), Error> {
+                        fn RunEcs |input, main_access| -> Result<Output, Error> {
                             let mut chunk_query = main_access.chunk_query;
                             let mut chunk_manager = main_access.chunk_manager;
+
+                            let mut chunk_entities = Vec::new();
 
                             for input in input.inputs {
                                 let chunk_coord = input.chunk_coord;
                                 let new_owner = input.new_owner;
 
-                                if let Some(mut chunk) = chunk_query.iter_mut().find(|chunk| chunk.coord == chunk_coord) {
+                                if let Some((entity, mut chunk)) = chunk_query.iter_mut().find(|(entity, chunk)| chunk.coord == chunk_coord) {
                                     if chunk.owner.is_some() {
                                         chunk_manager.owned_chunks.remove(&chunk_coord);
                                     }
-
                                     chunk.owner = Some(new_owner);
                                     chunk_manager.owned_chunks.insert(chunk_coord, new_owner);
+
+                                    chunk_entities.push(entity);
                                 } else {
                                     return Err(Error::ChunkNotLoaded { chunk_coord });
                                 }
                             }
 
-                            Ok(())
+                            Ok(Output {
+                                ownership_transfered_chunk_entities: chunk_entities
+                            })
                         }
                     ]
                 }
