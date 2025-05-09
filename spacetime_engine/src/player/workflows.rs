@@ -13,7 +13,7 @@ define_workflow_mod_OLD! {
             },
             user_items: {},
             stages: [
-                ValidateAndSpawn: Ecs {
+                ValidateAndSpawnAndWait: EcsWhile {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>,

@@ -2,6 +2,7 @@ mod composite_workflow;
 mod composite_workflow_return;
 mod define_composite_workflow;
 mod define_workflow_mod;
+#[allow(non_snake_case)]
 mod define_workflow_mod_OLD;
 mod register_workflow_mods;
 
@@ -13,7 +14,7 @@ use register_workflow_mods::WorkflowMods;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, punctuated::Punctuated, Ident, Token};
+use syn::parse_macro_input;
 
 #[proc_macro]
 pub fn composite_workflow(input: TokenStream) -> TokenStream {
@@ -34,6 +35,7 @@ pub fn define_composite_workflow(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+#[allow(non_snake_case)]
 pub fn define_workflow_mod_OLD(input: TokenStream) -> TokenStream {
     let workflow_module = parse_macro_input!(input as WorkflowModule);
     workflow_module.generate().into()
@@ -46,16 +48,16 @@ pub fn register_workflow_mods(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn define_workflow_mod(input: TokenStream) -> TokenStream {
+pub fn define_workflow_mod(_input: TokenStream) -> TokenStream {
     quote! {}.into()
 }
 
 #[proc_macro]
-pub fn define_workflow(input: TokenStream) -> TokenStream {
+pub fn define_workflow(_input: TokenStream) -> TokenStream {
     quote! {}.into()
 }
 
 #[proc_macro]
-pub fn define_worfklow_stages(input: TokenStream) -> TokenStream {
+pub fn define_worfklow_stages(_input: TokenStream) -> TokenStream {
     quote! {}.into()
 }

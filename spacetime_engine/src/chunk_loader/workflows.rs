@@ -282,7 +282,8 @@ define_workflow_mod_OLD! {
                             }
                         }
                     ]
-                }
+                },
+                WaitForSpawnsAndOwnershipTransfers: EcsWhile {}
             ]
         }
 
@@ -407,7 +408,8 @@ define_workflow_mod_OLD! {
                             }
                         }
                     ]
-                }
+                },
+                WaitForDespawnsAndOwnershipTransfers: EcsWhile {}
             ]
         }
     ]

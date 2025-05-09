@@ -1,4 +1,3 @@
-use heck::ToSnakeCase;
 use proc_macro2::{TokenStream as TokenStream2, TokenTree};
 use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};

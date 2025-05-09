@@ -1,8 +1,7 @@
 use futures::FutureExt;
-use uuid::Uuid;
 use crate::workflow::composite_workflow_context::{CURRENT_COMPOSITE_WORKFLOW_ID, ScopedCompositeWorkflowContext};
 
-use super::{channels::*, composite_workflow_context::clear_all_context, request::*, statics::PANIC_BUFFER, traits::*};
+use super::{channels::*, request::*, statics::PANIC_BUFFER, traits::*};
 
 pub async fn run_workflow<W: WorkflowType>() {
     let module_name = W::MODULE_NAME;

@@ -25,8 +25,9 @@ tokio::task_local! {
 
 pub fn set_context<T: 'static + Send>(name: &'static str, val: T) {
     let id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
-    let ctx = CONTEXTS.get(&id).expect("Missing workflow context").clone();
-    let mut ctx = ctx.lock().expect("Workflow context mutex poisoned");
+    let ctx = CONTEXTS.get(&id).unwrap_or_else(|| unreachable!("Missing workflow context for `{}`", name)).clone();
+    let mut ctx = ctx.lock().unwrap_or_else(|_| unreachable!("Workflow context mutex poisoned for `{}`", name));
+    
     ctx.map.insert(
         ContextKey {
             type_id: TypeId::of::<T>(),
@@ -38,19 +39,19 @@ pub fn set_context<T: 'static + Send>(name: &'static str, val: T) {
 
 pub fn get_context<T: 'static + Send>(name: &'static str) -> T {
     let id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
-    let ctx = CONTEXTS.get(&id).expect("Missing workflow context").clone();
-    let mut ctx = ctx.lock().expect("Workflow context mutex poisoned");
+    let ctx = CONTEXTS.get(&id).unwrap_or_else(|| unreachable!("Missing workflow context for `{}`", name)).clone();
+    let mut ctx = ctx.lock().unwrap_or_else(|_| unreachable!("Workflow context mutex poisoned for `{}`", name));
 
     ctx.map
         .get_mut(&ContextKey {
             type_id: TypeId::of::<T>(),
             name,
         })
-        .expect("Context value not found")
+        .expect("Context value not found for `{}`")
         .downcast_mut::<Option<T>>()
-        .expect("Context type mismatch")
+        .unwrap_or_else(|| unreachable!("Context type mismatch for `{}`", name))
         .take()
-        .expect("Context value was empty")
+        .unwrap_or_else(|| unreachable!("Context value was empty for `{}`", name))
 }
 
 pub fn clear_all_context(id: Uuid) {
