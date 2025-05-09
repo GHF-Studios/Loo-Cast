@@ -95,7 +95,7 @@ define_workflow_mod_OLD! {
                             })
                         }
 
-                        fn RunEcsWhile |state, main_access| -> Outcome<State, Output> {
+                        fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
                             let mut commands = main_access.commands;
 
                             let spawn_chunk_states = state.spawn_chunk_states.into_iter().map(|mut spawn_chunk_state| {
@@ -110,13 +110,13 @@ define_workflow_mod_OLD! {
                             if is_done {
                                 let spawned_chunk_entities = spawn_chunk_states.into_iter().map(|spawn_chunk_state| spawn_chunk_state.entity).collect();
 
-                                Outcome::Done(Output {
+                                Ok(Outcome::Done(Output {
                                     spawned_chunk_entities
-                                })
+                                }))
                             } else {
-                                Outcome::Wait(State {
+                                Ok(Outcome::Wait(State {
                                     spawn_chunk_states
-                                })
+                                }))
                             }
                         }
                     ]
@@ -261,7 +261,7 @@ define_workflow_mod_OLD! {
                                 let chunk_coord = input.chunk_coord;
                                 let new_owner = input.new_owner;
 
-                                if let Some((entity, mut chunk)) = chunk_query.iter_mut().find(|(entity, chunk)| chunk.coord == chunk_coord) {
+                                if let Some((entity, mut chunk)) = chunk_query.iter_mut().find(|(_, chunk)| chunk.coord == chunk_coord) {
                                     if chunk.owner.is_some() {
                                         chunk_manager.owned_chunks.remove(&chunk_coord);
                                     }

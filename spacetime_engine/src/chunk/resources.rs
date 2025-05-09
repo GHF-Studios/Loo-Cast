@@ -120,6 +120,10 @@ impl ChunkActionBuffer {
             .any(|action| action.is_transfer_ownership())
     }
 
+    pub fn has_any_actions(&self) -> bool {
+        !self.actions.is_empty()
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = (&(i32, i32), &ChunkAction)> {
         self.priority_buckets
             .iter()

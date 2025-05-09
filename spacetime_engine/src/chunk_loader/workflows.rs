@@ -34,7 +34,6 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn RunEcs |main_access| -> Output {
-                            bevy::prelude::debug!("Categorizing chunks..");
                             let chunk_loader_query = main_access.chunk_loader_query;
                             let chunk_manager = main_access.chunk_manager;
 
@@ -256,7 +255,6 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> State {
-                            bevy::prelude::debug!("Loading chunks..");
                             let chunk_manager = main_access.chunk_manager;
                             let mut chunk_action_buffer = main_access.chunk_action_buffer;
 
@@ -416,7 +414,6 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> State {
-                            bevy::prelude::debug!("Unloading chunks..");
                             let chunk_manager = main_access.chunk_manager;
                             let mut chunk_action_buffer = main_access.chunk_action_buffer;
                             let chunk_query = main_access.chunk_query;

@@ -51,13 +51,13 @@ define_workflow_mod_OLD! {
                             Ok(State { player_entity })
                         }
 
-                        fn RunEcsWhile |state, main_access| -> Outcome<State, Output> {
+                        fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
                             let mut commands = main_access.commands;
 
                             if commands.get_entity(state.player_entity).is_some() {
-                                Outcome::Done(Output { player_entity: state.player_entity })
+                                Ok(Outcome::Done(Output { player_entity: state.player_entity }))
                             } else {
-                                Outcome::Wait(state)
+                                Ok(Outcome::Wait(state))
                             }
                         }
                     ]

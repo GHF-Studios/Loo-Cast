@@ -101,8 +101,7 @@ impl ScopedCompositeWorkflowContext {
     pub fn extract_return<T: 'static + Send>(&self, name: &str) -> Option<T> {
         let mut guard = self.returns.lock().unwrap();
         guard.remove(name)
-            .and_then(|b| b.downcast::<T>().ok())
-            .map(|b| *b)
+            .map(|b| *(b.downcast::<T>().unwrap_or_else(|_| unreachable!("Context return type mismatch for `{}`", name))))
     }
 }
 

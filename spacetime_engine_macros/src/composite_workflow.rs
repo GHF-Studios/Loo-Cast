@@ -42,9 +42,9 @@ fn is_fallible(block: &Block) -> bool {
 
 #[derive(Debug, PartialEq)]
 pub enum MoveMode {
-    None,
     In,
     Out,
+    Both,
 }
 
 pub struct VarCapture {
@@ -68,7 +68,7 @@ impl Parse for CompositeWorkflow {
                 break;
             }
 
-            let mut move_mode = MoveMode::None;
+            let mut move_mode = MoveMode::Both;
             if input.peek(Token![move]) {
                 input.parse::<Token![move]>()?;
 
@@ -122,7 +122,7 @@ impl Parse for CompositeWorkflow {
 impl CompositeWorkflow {
     pub fn generate(&self) -> TokenStream2 {
         let pass_in_contexts = self.captures.iter().filter_map(|var| {
-            if var.move_mode == MoveMode::In || var.move_mode == MoveMode::None {
+            if var.move_mode == MoveMode::Both || var.move_mode == MoveMode::In {
                 let ident = &var.ident;
                 let name = ident.to_string();
                 let ty = &var.ty;
@@ -135,7 +135,7 @@ impl CompositeWorkflow {
         });
 
         let get_contexts = self.captures.iter().filter_map(|var| {
-            if var.move_mode == MoveMode::In || var.move_mode == MoveMode::None {
+            if var.move_mode == MoveMode::Both || var.move_mode == MoveMode::In {
                 let ident = &var.ident;
                 let ty = &var.ty;
                 let name = ident.to_string();
@@ -154,7 +154,7 @@ impl CompositeWorkflow {
         });
 
         let set_contexts = self.captures.iter().filter_map(|var| {
-            if var.move_mode == MoveMode::None || var.move_mode == MoveMode::Out {
+            if var.move_mode == MoveMode::Both || var.move_mode == MoveMode::Out {
                 let ident = &var.ident;
                 let name = ident.to_string();
                 let ty = &var.ty;
@@ -167,7 +167,7 @@ impl CompositeWorkflow {
         });
 
         let return_contexts = self.captures.iter().filter_map(|var| {
-            if var.move_mode == MoveMode::None || var.move_mode == MoveMode::In {
+            if var.move_mode == MoveMode::Both || var.move_mode == MoveMode::Out {
                 let ident = &var.ident;
                 let ty = &var.ty;
                 let name = ident.to_string();

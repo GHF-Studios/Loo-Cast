@@ -51,7 +51,6 @@ pub(crate) fn update_player_system(
             }
         }
         PlayerLifecycle::PendingActivation(entity) => {
-            println!("Pending activation of player entity: {:?}", entity);
             if transforms.contains(entity) {
                 *player_state = PlayerLifecycle::Active(entity);
             }
