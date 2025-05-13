@@ -1,5 +1,6 @@
 pub mod components;
 pub mod systems;
+pub mod type_name;
 
 pub mod workflows;
 

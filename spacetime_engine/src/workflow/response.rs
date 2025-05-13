@@ -1,4 +1,6 @@
-use std::any::Any;
+use std::any::{type_name, Any};
+
+use crate::debug::type_name::get_type_name;
 
 pub enum WorkflowResponse {
     E(TypedWorkflowResponseE),
@@ -21,24 +23,40 @@ impl TypedWorkflowResponseE {
 
         let error = match downcast_error_result {
             Ok(error) => error,
-            Err(_) => panic!("Failed to unpack TypedWorkflowResponseE"),
+            Err(original) => {
+                let actual_type = get_type_name(&original);
+                panic!(
+                    "Failed to unpack TypedWorkflowResponseE:\n  expected = {}\n  actual = {}",
+                    type_name::<E>(),
+                    actual_type
+                );
+            },
         };
 
         Err(*error)
     }
 }
+
 impl TypedWorkflowResponseO {
     pub fn unpack<O: 'static + Any + Send + Sync>(self) -> O {
         let downcast_output_result = self.0.downcast();
 
         let output = match downcast_output_result {
             Ok(output) => output,
-            Err(_) => panic!("Failed to unpack TypedWorkflowResponseO"),
+            Err(original) => {
+                let actual_type = get_type_name(&original);
+                panic!(
+                "Failed to unpack TypedWorkflowResponseO:\n  expected = {}\n  actual = {}",
+                    type_name::<O>(),
+                    actual_type
+                );
+            }
         };
 
         *output
     }
 }
+
 impl TypedWorkflowResponseOE {
     pub fn unpack<O: 'static + Any + Send + Sync, E: 'static + Any + Send + Sync>(
         self,
@@ -49,7 +67,14 @@ impl TypedWorkflowResponseOE {
 
                 let output = match downcast_output_result {
                     Ok(output) => output,
-                    Err(_) => panic!("Failed to unpack TypedWorkflowResponseOE"),
+                    Err(original) => {
+                        let actual_type = get_type_name(&original);
+                        panic!(
+                            "Failed to unpack TypedWorkflowResponseOE (Ok variant):\n  expected = {}\n  actual = {}",
+                            type_name::<O>(),
+                            actual_type
+                        );
+                    },
                 };
 
                 Ok(*output)
@@ -59,7 +84,14 @@ impl TypedWorkflowResponseOE {
 
                 let error = match downcast_error_result {
                     Ok(error) => error,
-                    Err(_) => panic!("Failed to unpack TypedWorkflowResponseOE"),
+                    Err(original) => {
+                        let actual_type = get_type_name(&original);
+                        panic!(
+                        "Failed to unpack TypedWorkflowResponseOE (Err variant):\n  expected = {}\n  actual = {}",
+                            type_name::<E>(),
+                            actual_type
+                        );
+                    },
                 };
 
                 Err(*error)
