@@ -188,7 +188,7 @@ impl CompositeWorkflow {
             quote! {{
                 use crate::workflow::composite_workflow_context::{set_context, get_context, ScopedCompositeWorkflowContext};
                 use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
-                use spacetime_engine_macros::define_composite_workflow;
+                use core_engine_macros::define_composite_workflow;
 
                 define_composite_workflow!(CompositeWorkflow {
                     #(#get_contexts)*
@@ -217,7 +217,7 @@ impl CompositeWorkflow {
             quote! {{
                 use crate::workflow::composite_workflow_context::{set_context, get_context, ScopedCompositeWorkflowContext};
                 use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
-                use spacetime_engine_macros::define_composite_workflow;
+                use core_engine_macros::define_composite_workflow;
 
                 define_composite_workflow!(CompositeWorkflow {
                     #(#get_contexts)*

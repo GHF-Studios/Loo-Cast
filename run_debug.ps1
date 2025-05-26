@@ -1,3 +1,3 @@
 Push-Location .\build\debug
-.\spacetime_engine.exe
+.\core_engine.exe
 Pop-Location

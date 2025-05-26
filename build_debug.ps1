@@ -4,7 +4,7 @@
 $looCastBuildSourceDir = ".\target\release"
 
 # Engine paths
-$engineProjectDir = ".\spacetime_engine"
+$engineProjectDir = ".\core_engine"
 $engineBuildTargetDir = ".\build\release"
 
 # General application assets folder
@@ -26,19 +26,19 @@ cargo build
 ########## COPY SPACETIME ENGINE FROM SOURCE TO TARGET ##########
 
 # Copy static Rust library
-$engineLibFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "libspacetime_engine.rlib" -Recurse
+$engineLibFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "libcore_engine.rlib" -Recurse
 Copy-Item -Path $engineLibFile.FullName -Destination $engineBuildTargetDir -Force
 
 # Copy C-compatible shared library
-$engineDllFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "spacetime_engine.dll" -Recurse
+$engineDllFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "core_engine.dll" -Recurse
 Copy-Item -Path $engineDllFile.FullName -Destination $engineBuildTargetDir -Force
 
 # Copy executable
-$engineExeFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "spacetime_engine.exe" -Recurse
+$engineExeFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "core_engine.exe" -Recurse
 Copy-Item -Path $engineExeFile.FullName -Destination $engineBuildTargetDir -Force
 
 # Copy program debug database
-$enginePdbFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "spacetime_engine.pdb" -Recurse
+$enginePdbFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "core_engine.pdb" -Recurse
 Copy-Item -Path $enginePdbFile.FullName -Destination $engineBuildTargetDir -Force
 
 ########## COPY APPLICATION ASSETS FROM SOURCE TO TARGET ##########

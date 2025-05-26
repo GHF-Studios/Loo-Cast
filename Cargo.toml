@@ -1,5 +1,7 @@
 [workspace]
-members = [ 
-  #"OLD_spacetime_engine",
-  "spacetime_engine", "spacetime_engine_macros",
+members = [
+  #"OLD_core_engine",
+  "core", 
+  "core_engine", 
+  "core_engine_macros",
 ]

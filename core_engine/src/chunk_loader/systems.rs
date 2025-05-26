@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use spacetime_engine_macros::{composite_workflow, composite_workflow_return};
+use core_engine_macros::{composite_workflow, composite_workflow_return};
 use std::collections::HashSet;
 use tokio::task::JoinHandle;
 

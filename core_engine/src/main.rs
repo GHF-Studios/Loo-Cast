@@ -1,4 +1,4 @@
-extern crate spacetime_engine;
+extern crate core_engine;
 
 use bevy::diagnostic::{
     EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin,
@@ -8,12 +8,12 @@ use bevy::prelude::*;
 use bevy::window::PresentMode;
 use bevy_rapier2d::prelude::*;
 use iyes_perf_ui::prelude::*;
-use spacetime_engine::*;
+use core_engine::*;
 
 const ENABLE_BACKTRACE: bool = true;
 const REROUTE_LOGS_TO_FILE: bool = false;
 const LOG_LEVEL: Level = Level::INFO;
-const LOG_FILTER: &str = "info,spacetime_engine=debug";
+const LOG_FILTER: &str = "info,core_engine=debug";
 
 fn main() {
     std::env::set_var("RUST_BACKTRACE", if ENABLE_BACKTRACE { "1" } else { "0" });
