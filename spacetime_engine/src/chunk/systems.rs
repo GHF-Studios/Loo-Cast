@@ -124,17 +124,26 @@ pub(crate) fn process_chunk_actions_system(
     // Step 3: Build & launch composite workflows
     let spawn_handle = if !spawn_inputs.is_empty() {
         let texture_size = CONFIG.get::<f32>("chunk/size") as usize;
-        let param_data = vec![vec![0.0]; spawn_inputs.len()];
+        let chunk_size = CONFIG.get::<f32>("chunk/size");
+
+        let param_data = spawn_coords
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                _padding: 0,
+            })
+            .collect::<Vec<_>>();
 
         Some(composite_workflow!(
             move in texture_size: usize, 
             move in spawn_inputs: Vec<SpawnChunkInput>, 
-            move in param_data: Vec<Vec<f32>>, 
+            move in param_data: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>, 
             move in spawn_coords: Vec<(i32, i32)>, 
         {
             let generate_output = workflow!(IO, Gpu::GenerateTextures, Input {
                 shader_name: "texture_generators/example_compute_uv",
-                texture_sizes: vec![texture_size; spawn_inputs.len()],
+                texture_size,
                 param_data,
             });
 

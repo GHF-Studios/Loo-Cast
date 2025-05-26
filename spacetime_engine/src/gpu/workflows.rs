@@ -128,7 +128,7 @@ define_workflow_mod_OLD! {
                                         binding: 1,
                                         visibility: ShaderStages::COMPUTE,
                                         ty: BindingType::Buffer {
-                                            ty: BufferBindingType::Storage { read_only: false },
+                                            ty: BufferBindingType::Storage { read_only: true },
                                             has_dynamic_offset: false,
                                             min_binding_size: None,
                                         },
@@ -230,7 +230,7 @@ define_workflow_mod_OLD! {
                 };
                 use bevy::ecs::system::SystemState;
                 use bevy::render::render_asset::RenderAssets;
-                use bevy::render::texture::GpuImage;
+                use bevy::render::texture::{GpuImage, ImageSampler};
                 use bevy::render::renderer::{RenderDevice, RenderQueue};
                 use bevy::render::render_resource::PipelineCache;
                 use crossbeam_channel::Receiver;
@@ -238,6 +238,16 @@ define_workflow_mod_OLD! {
                 use crate::gpu::resources::ShaderRegistry;
             },
             user_items: {
+                #[repr(C)]
+                #[derive(Clone, Copy, Debug)]
+                pub struct ShaderParams {
+                    pub chunk_pos: [i32; 2],
+                    pub chunk_size: f32,
+                    pub _padding: u32,
+                }
+                unsafe impl bytemuck::Pod for ShaderParams {}
+                unsafe impl bytemuck::Zeroable for ShaderParams {}
+
                 pub struct BatchedGeneratorParams {
                     pub shader_name: &'static str,
                     pub pipeline_id: CachedComputePipelineId,
@@ -271,8 +281,8 @@ define_workflow_mod_OLD! {
                         }
                         struct Input {
                             shader_name: &'static str,
-                            texture_sizes: Vec<usize>,
-                            param_data: Vec<Vec<f32>>,
+                            texture_size: usize,
+                            param_data: Vec<ShaderParams>,
                         }
                         struct Output {
                             params: BatchedGeneratorParams,
@@ -284,20 +294,21 @@ define_workflow_mod_OLD! {
                             let render_device = main_access.render_device;
                             let mut images = main_access.images;
                             let shader_registry = main_access.shader_registry;
-
+                                                
                             let pipeline_id = *shader_registry.pipelines.get(shader_name).unwrap();
                             let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name).unwrap().clone();
-
+                                                
                             let mut texture_handles = Vec::new();
                             let mut param_buffers = Vec::new();
-
-                            for (size, param) in input.texture_sizes.iter().zip(&input.param_data) {
+                                                
+                            for param in &input.param_data {
+                                // --- Create the texture ---
                                 let texture = Image {
                                     texture_descriptor: TextureDescriptor {
                                         label: Some("Compute Texture"),
                                         size: Extent3d {
-                                            width: *size as u32,
-                                            height: *size as u32,
+                                            width: input.texture_size as u32,
+                                            height: input.texture_size as u32,
                                             depth_or_array_layers: 1,
                                         },
                                         mip_level_count: 1,
@@ -309,26 +320,28 @@ define_workflow_mod_OLD! {
                                             | TextureUsages::STORAGE_BINDING,
                                         view_formats: &[],
                                     },
-                                    data: vec![0; size * size * 4],
+                                    sampler: ImageSampler::nearest(),
+                                    data: vec![0; input.texture_size * input.texture_size * 4],
                                     ..Default::default()
                                 };
                                 texture_handles.push(images.add(texture));
-
+                            
+                                // --- Create the param buffer ---
                                 let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
                                     label: Some("Param Buffer"),
-                                    contents: bytemuck::cast_slice(param),
+                                    contents: bytemuck::bytes_of(param),
                                     usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
                                 });
                                 param_buffers.push(buffer);
                             }
-
+                        
                             Output {
                                 params: BatchedGeneratorParams {
                                     shader_name,
                                     pipeline_id,
                                     bind_group_layout,
                                     texture_handles,
-                                    param_buffers
+                                    param_buffers,
                                 }
                             }
                         }
