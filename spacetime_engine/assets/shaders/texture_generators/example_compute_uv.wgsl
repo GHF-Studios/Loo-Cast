@@ -4,11 +4,6 @@ struct ShaderParams {
     _padding: u32, // 16-byte alignment
 };
 
-
-
-
-
-
 fn mod289(x: vec2<f32>) -> vec2<f32> {
     return x - floor(x * (1. / 289.)) * 289.;
 }
@@ -81,17 +76,9 @@ fn fbm(p: vec2<f32>, octaves: i32, lacunarity: f32, gain: f32) -> f32 {
         amplitude *= gain;
     }
 
-    return sum / total_amplitude;
+    let raw = sum / total_amplitude;
+    return raw * 0.5 + 0.5; // maps [-1.0, 1.0] → [0.0, 1.0]
 }
-
-
-
-
-
-
-
-
-
 
 @group(0) @binding(0) var output_texture: texture_storage_2d<rgba8unorm, write>;
 @group(0) @binding(1) var<storage, read> params: ShaderParams;
@@ -115,9 +102,41 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let norm = (world_pos - vec2<f32>(world_min)) / (world_max - world_min);
     let clamped = clamp(norm, vec2<f32>(0.0), vec2<f32>(1.0));
 
-    // Map X to red, Y to green
+    // Generate noise value
     let noise_val = fbm(world_pos * 0.01, 5, 2.0, 0.5);
-    let color = vec4<f32>(noise_val, noise_val, noise_val, 1.0);
+
+    // Biome thresholds and colors
+    let biome_thresholds = array<f32, 6>(
+        0.2, 0.4, 0.5, 0.7, 0.85, 1.0
+    );
+
+    let biome_colors = array<vec3<f32>, 6>(
+        vec3<f32>(0.0, 0.0, 0.3),  
+        vec3<f32>(0.0, 0.0, 0.6),  
+        vec3<f32>(0.9, 0.8, 0.5),  
+        vec3<f32>(0.1, 0.7, 0.1),  
+        vec3<f32>(0.0, 0.4, 0.0),  
+        vec3<f32>(0.5, 0.5, 0.5)   
+    );
+
+    // Find which biome the noise value falls into
+    var biome_color = vec3<f32>(1.0, 0.0, 1.0); // fallback
+
+    if (noise_val <= 0.2) {
+        biome_color = vec3<f32>(0.0, 0.0, 0.3); // Deep water
+    } else if (noise_val <= 0.4) {
+        biome_color = vec3<f32>(0.0, 0.0, 0.6); // Shallow water
+    } else if (noise_val <= 0.5) {
+        biome_color = vec3<f32>(0.83, 0.89, 0.09); // Beach
+    } else if (noise_val <= 0.7) {
+        biome_color = vec3<f32>(0.48, 0.93, 0.07); // Grassland
+    } else if (noise_val <= 0.85) {
+        biome_color = vec3<f32>(0.24, 0.48, 0.01); // Forest
+    } else {
+        biome_color = vec3<f32>(0.5, 0.5, 0.5); // Mountain
+    }
+
+    let color = vec4<f32>(biome_color, 1.0);
 
     textureStore(output_texture, global_id.xy, color);
 }
