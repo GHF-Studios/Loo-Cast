@@ -1,20 +1,20 @@
 use std::any::Any;
 
 pub struct DebugAnySendBox {
-    name: &'static str,
+    name: String,
     inner: Box<dyn Any + Send>,
 }
 
 impl DebugAnySendBox {
-    pub fn new<T: Any + Send + 'static>(value: T, name: &'static str) -> Self {
+    pub fn new<T: Any + Send + 'static>(value: T, name: String) -> Self {
         Self {
             name,
             inner: Box::new(value),
         }
     }
 
-    pub fn name(&self) -> &'static str {
-        self.name
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
@@ -31,20 +31,20 @@ impl DebugAnySendBox {
 }
 
 pub struct DebugAnySendSyncBox {
-    name: &'static str,
+    name: String,
     inner: Box<dyn Any + Send + Sync>,
 }
 
 impl DebugAnySendSyncBox {
-    pub fn new<T: Any + Send + Sync + 'static>(value: T, name: &'static str) -> Self {
+    pub fn new<T: Any + Send + Sync + 'static>(value: T, name: String) -> Self {
         Self {
             name,
             inner: Box::new(value),
         }
     }
 
-    pub fn name(&self) -> &'static str {
-        self.name
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn downcast_ref<T: Any>(&self) -> Option<&T> {

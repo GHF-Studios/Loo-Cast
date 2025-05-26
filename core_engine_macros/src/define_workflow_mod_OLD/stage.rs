@@ -544,14 +544,14 @@ impl TypedStage<Ecs> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcs
                     | {
                         let response = response.expect("Ecs stages with output and error must have a response");
@@ -560,7 +560,7 @@ impl TypedStage<Ecs> {
                         match result {
                             Ok(output) => {
                                 #stage_output_transmutation
-                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::Ecs,
@@ -574,8 +574,8 @@ impl TypedStage<Ecs> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -604,14 +604,14 @@ impl TypedStage<Ecs> {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageEcs
                         | {
                             let response = response.expect("Ecs stages with output and error (last stage) must have a response");
@@ -619,7 +619,7 @@ impl TypedStage<Ecs> {
 
                             match result {
                                 Ok(output) => {
-                                    let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                    let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::Ecs,
@@ -633,8 +633,8 @@ impl TypedStage<Ecs> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                    let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -668,20 +668,20 @@ impl TypedStage<Ecs> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcs
                     | {
                         let response = response.expect("Ecs stages with output must have a response");
                         let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
                         #stage_output_transmutation
-                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                        let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                             ty: crate::workflow::stage::StageType::Ecs,
@@ -698,19 +698,19 @@ impl TypedStage<Ecs> {
             }
             (Some(this_out_path), None, None) => {
                 if is_last {
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageEcs,
                         | {
                             let response = response.expect("Ecs stages with output and error must have a response");
                             let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
-                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                            let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                 ty: crate::workflow::stage::StageType::Ecs,
@@ -735,14 +735,14 @@ impl TypedStage<Ecs> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcs
                     | {
                         let response = response.expect("Ecs stages with error must have a response");
@@ -762,8 +762,8 @@ impl TypedStage<Ecs> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -791,14 +791,14 @@ impl TypedStage<Ecs> {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
             (None, None, None) => {
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    _response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    _response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcs
                     | {
                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
@@ -953,14 +953,14 @@ impl TypedStage<Render> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRender
                     | {
                         let response = response.expect("Render stages with output and error must have a response");
@@ -969,7 +969,7 @@ impl TypedStage<Render> {
                         match result {
                             Ok(output) => {
                                 #stage_output_transmutation
-                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::Render,
@@ -983,8 +983,8 @@ impl TypedStage<Render> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1013,14 +1013,14 @@ impl TypedStage<Render> {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageRender
                         | {
                             let response = response.expect("Render stages with output and error (last stage) must have a response");
@@ -1028,7 +1028,7 @@ impl TypedStage<Render> {
 
                             match result {
                                 Ok(output) => {
-                                    let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                    let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::Render,
@@ -1042,8 +1042,8 @@ impl TypedStage<Render> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                    let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -1077,20 +1077,20 @@ impl TypedStage<Render> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRender
                     | {
                         let response = response.expect("Render stages with output (last stage) must have a response");
                         let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
                         #stage_output_transmutation
-                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                        let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                             ty: crate::workflow::stage::StageType::Render,
@@ -1107,19 +1107,19 @@ impl TypedStage<Render> {
             }
             (Some(this_out_path), None, None) => {
                 if is_last {
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageRender,
                         | {
                             let response = response.expect("Render stages with output (last stage) must have a response");
                             let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
-                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                            let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                 ty: crate::workflow::stage::StageType::Render,
@@ -1144,14 +1144,14 @@ impl TypedStage<Render> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRender
                     | {
                         let response = response.expect("Render stages with error (last stage) must have a response");
@@ -1171,8 +1171,8 @@ impl TypedStage<Render> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1200,14 +1200,14 @@ impl TypedStage<Render> {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
             (None, None, None) => {
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    _response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    _response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRender
                     | {
                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
@@ -1362,14 +1362,14 @@ impl TypedStage<Async> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageAsync
                     | {
                         let response = response.expect("Async stages with output and error must have a response");
@@ -1378,7 +1378,7 @@ impl TypedStage<Async> {
                         match result {
                             Ok(output) => {
                                 #stage_output_transmutation
-                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::Async,
@@ -1392,8 +1392,8 @@ impl TypedStage<Async> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1422,14 +1422,14 @@ impl TypedStage<Async> {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageAsync
                         | {
                             let response = response.expect("Async stages with output and error (last stage) must have a response");
@@ -1437,7 +1437,7 @@ impl TypedStage<Async> {
 
                             match result {
                                 Ok(output) => {
-                                    let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                    let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::Async,
@@ -1451,8 +1451,8 @@ impl TypedStage<Async> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                    let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -1486,20 +1486,20 @@ impl TypedStage<Async> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageAsync
                     | {
                         let response = response.expect("Async stages with output must have a response");
                         let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
                         #stage_output_transmutation
-                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                        let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                             ty: crate::workflow::stage::StageType::Async,
@@ -1516,19 +1516,19 @@ impl TypedStage<Async> {
             }
             (Some(this_out_path), None, None) => {
                 if is_last {
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageAsync,
                         | {
                             let response = response.expect("Async stages with output (last stage) must have a response");
                             let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
-                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                            let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                 ty: crate::workflow::stage::StageType::Async,
@@ -1553,14 +1553,14 @@ impl TypedStage<Async> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageAsync
                     | {
                         let response = response.expect("Async stages with error must have a response");
@@ -1580,8 +1580,8 @@ impl TypedStage<Async> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1609,14 +1609,14 @@ impl TypedStage<Async> {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
             (None, None, None) => {
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    _response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    _response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageAsync
                     | {
                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
@@ -1766,14 +1766,14 @@ impl TypedStage<EcsWhile> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with state and error must have a response");
@@ -1781,7 +1781,7 @@ impl TypedStage<EcsWhile> {
 
                         match result {
                             Ok(state) => {
-                                let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                 if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
@@ -1795,8 +1795,8 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1821,19 +1821,19 @@ impl TypedStage<EcsWhile> {
                 })}
             }
             (Some(this_state_path), None) => {
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with state must have a response");
                         let state: #this_state_path = *response.downcast().expect("Failed to downcast response state data");
-                        let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                        let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                         if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
                             ty: crate::workflow::stage::StageType::EcsWhile,
@@ -1852,14 +1852,14 @@ impl TypedStage<EcsWhile> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with error must have a response");
@@ -1879,8 +1879,8 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1905,14 +1905,14 @@ impl TypedStage<EcsWhile> {
                 })}
             }
             (None, None) => {
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    _response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    _response: Option<core::utils::DebugAnySendSyncBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
@@ -1950,15 +1950,15 @@ impl TypedStage<EcsWhile> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output and error must have a response");
@@ -1968,7 +1968,7 @@ impl TypedStage<EcsWhile> {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(state) => {
-                                        let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                        let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                         if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
@@ -1983,7 +1983,7 @@ impl TypedStage<EcsWhile> {
                                     },
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
-                                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                        let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
@@ -1999,8 +1999,8 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2029,15 +2029,15 @@ impl TypedStage<EcsWhile> {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output and error (last stage) must have a response");
@@ -2047,7 +2047,7 @@ impl TypedStage<EcsWhile> {
                                 Ok(outcome) => {
                                     match outcome {
                                         crate::workflow::types::Outcome::Wait(state) => {
-                                            let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                            let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                             if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                                 ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2061,7 +2061,7 @@ impl TypedStage<EcsWhile> {
                                             }
                                         },
                                         crate::workflow::types::Outcome::Done(output) => {
-                                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                            let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                                 ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2077,8 +2077,8 @@ impl TypedStage<EcsWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                    let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -2112,15 +2112,15 @@ impl TypedStage<EcsWhile> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output must have a response");
@@ -2128,7 +2128,7 @@ impl TypedStage<EcsWhile> {
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(state) => {
-                                let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                 if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2143,7 +2143,7 @@ impl TypedStage<EcsWhile> {
                             },
                             crate::workflow::types::Outcome::Done(output) => {
                                 #stage_output_transmutation
-                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2162,15 +2162,15 @@ impl TypedStage<EcsWhile> {
             }
             (Some(this_state_path), Some(this_out_path), None, None) => {
                 if is_last {
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output (last stage) must have a response");
@@ -2178,7 +2178,7 @@ impl TypedStage<EcsWhile> {
 
                             match outcome {
                                 crate::workflow::types::Outcome::Wait(state) => {
-                                    let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                    let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                     if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                         ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2192,7 +2192,7 @@ impl TypedStage<EcsWhile> {
                                     }
                                 }
                                 crate::workflow::types::Outcome::Done(output) => {
-                                    let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                    let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2219,15 +2219,15 @@ impl TypedStage<EcsWhile> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with error must have a response");
@@ -2237,7 +2237,7 @@ impl TypedStage<EcsWhile> {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(state) => {
-                                        let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                        let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                         if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2266,7 +2266,7 @@ impl TypedStage<EcsWhile> {
                             }
                             Err(error) => {
                                 let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2294,15 +2294,15 @@ impl TypedStage<EcsWhile> {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
             (Some(this_state_path), None, None, None) => {
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages must have a response");
@@ -2310,7 +2310,7 @@ impl TypedStage<EcsWhile> {
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(state) => {
-                                let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                 if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2348,15 +2348,15 @@ impl TypedStage<EcsWhile> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output and error must have a response");
@@ -2379,7 +2379,7 @@ impl TypedStage<EcsWhile> {
                                     },
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
-                                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                        let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2395,8 +2395,8 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2425,15 +2425,15 @@ impl TypedStage<EcsWhile> {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output and error (last stage) must have a response");
@@ -2455,7 +2455,7 @@ impl TypedStage<EcsWhile> {
                                             }
                                         },
                                         crate::workflow::types::Outcome::Done(output) => {
-                                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                            let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                                 ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2471,8 +2471,8 @@ impl TypedStage<EcsWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                    let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -2506,15 +2506,15 @@ impl TypedStage<EcsWhile> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output must have a response");
@@ -2536,7 +2536,7 @@ impl TypedStage<EcsWhile> {
                             crate::workflow::types::Outcome::Done(_) => {
                                 let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
                                 #stage_output_transmutation
-                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2555,15 +2555,15 @@ impl TypedStage<EcsWhile> {
             }
             (None, Some(this_out_path), None, None) => {
                 if is_last {
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output (last stage) must have a response");
@@ -2583,7 +2583,7 @@ impl TypedStage<EcsWhile> {
                                     }
                                 }
                                 crate::workflow::types::Outcome::Done(output) => {
-                                    let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                    let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2610,14 +2610,14 @@ impl TypedStage<EcsWhile> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with error must have a response");
@@ -2654,7 +2654,7 @@ impl TypedStage<EcsWhile> {
                             }
                             Err(error) => {
                                 let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2682,15 +2682,15 @@ impl TypedStage<EcsWhile> {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
             (None, None, None, None) => {
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages must have a response");
@@ -2877,14 +2877,14 @@ impl TypedStage<RenderWhile> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with state and error must have a response");
@@ -2892,7 +2892,7 @@ impl TypedStage<RenderWhile> {
 
                         match result {
                             Ok(state) => {
-                                let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                 if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
@@ -2906,8 +2906,8 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2932,21 +2932,21 @@ impl TypedStage<RenderWhile> {
                 })}
             }
             (Some(this_state_path), None) => {
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with state must have a response");
                         // TODO: MINOR: Error message below should be "Failed to downcast setup reponse state data", and like `setup response` instead of `response` in general for all setup response handlers
                         let state: #this_state_path = *response.downcast().expect("Failed to downcast response result data");
 
-                        let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                        let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                         if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
                             ty: crate::workflow::stage::StageType::RenderWhile,
@@ -2965,14 +2965,14 @@ impl TypedStage<RenderWhile> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with error must have a response");
@@ -2992,8 +2992,8 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3018,14 +3018,14 @@ impl TypedStage<RenderWhile> {
                 })}
             }
             (None, None) => {
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages must have a response");
@@ -3066,15 +3066,15 @@ impl TypedStage<RenderWhile> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output and error must have a response");
@@ -3084,7 +3084,7 @@ impl TypedStage<RenderWhile> {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(state) => {
-                                        let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                        let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                         if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3099,7 +3099,7 @@ impl TypedStage<RenderWhile> {
                                     },
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
-                                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                        let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3115,8 +3115,8 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3145,15 +3145,15 @@ impl TypedStage<RenderWhile> {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output and error (last stage) must have a response");
@@ -3163,7 +3163,7 @@ impl TypedStage<RenderWhile> {
                                 Ok(outcome) => {
                                     match outcome {
                                         crate::workflow::types::Outcome::Wait(state) => {
-                                            let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                            let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                             if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                                 ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3177,7 +3177,7 @@ impl TypedStage<RenderWhile> {
                                             }
                                         },
                                         crate::workflow::types::Outcome::Done(output) => {
-                                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                            let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                                 ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3193,8 +3193,8 @@ impl TypedStage<RenderWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                    let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -3228,15 +3228,15 @@ impl TypedStage<RenderWhile> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output must have a response");
@@ -3244,7 +3244,7 @@ impl TypedStage<RenderWhile> {
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(state) => {
-                                let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                 if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3259,7 +3259,7 @@ impl TypedStage<RenderWhile> {
                             },
                             crate::workflow::types::Outcome::Done(output) => {
                                 #stage_output_transmutation
-                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3278,15 +3278,15 @@ impl TypedStage<RenderWhile> {
             }
             (Some(this_state_path), Some(this_out_path), None, None) => {
                 if is_last {
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output (last stage) must have a response");
@@ -3294,7 +3294,7 @@ impl TypedStage<RenderWhile> {
 
                             match outcome {
                                 crate::workflow::types::Outcome::Wait(state) => {
-                                    let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                    let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                     if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                         ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3308,7 +3308,7 @@ impl TypedStage<RenderWhile> {
                                     }
                                 }
                                 crate::workflow::types::Outcome::Done(output) => {
-                                    let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                    let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3335,15 +3335,15 @@ impl TypedStage<RenderWhile> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with error must have a response");
@@ -3353,7 +3353,7 @@ impl TypedStage<RenderWhile> {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(state) => {
-                                        let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                        let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                         if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3382,7 +3382,7 @@ impl TypedStage<RenderWhile> {
                             }
                             Err(error) => {
                                 let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3410,15 +3410,15 @@ impl TypedStage<RenderWhile> {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
             (Some(this_state_path), None, None, None) => {
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages must have a response");
@@ -3426,7 +3426,7 @@ impl TypedStage<RenderWhile> {
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(state) => {
-                                let state = Some(Box::new(state) as Box<dyn std::any::Any + Send + Sync>);
+                                let state = Some(core::utils::DebugAnySendSyncBox::new(state) as core::utils::DebugAnySendSyncBox);
 
                                 if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3464,15 +3464,15 @@ impl TypedStage<RenderWhile> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output and error must have a response");
@@ -3495,7 +3495,7 @@ impl TypedStage<RenderWhile> {
                                     },
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
-                                        let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                        let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3511,8 +3511,8 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3541,15 +3541,15 @@ impl TypedStage<RenderWhile> {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output and error (last stage) must have a response");
@@ -3571,7 +3571,7 @@ impl TypedStage<RenderWhile> {
                                             }
                                         },
                                         crate::workflow::types::Outcome::Done(output) => {
-                                            let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                            let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                                 ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3587,8 +3587,8 @@ impl TypedStage<RenderWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(Box::new(#workflow_path::Error::#stage_err_name(error))));
-                                    let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(core::utils::DebugAnySendSyncBox::new(#workflow_path::Error::#stage_err_name(error))));
+                                    let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -3622,15 +3622,15 @@ impl TypedStage<RenderWhile> {
                     quote! { let output: #next_in_path = unsafe { std::mem::transmute(output) }; }
                 };
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output must have a response");
@@ -3652,7 +3652,7 @@ impl TypedStage<RenderWhile> {
                             crate::workflow::types::Outcome::Done(_) => {
                                 let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
                                 #stage_output_transmutation
-                                let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3671,15 +3671,15 @@ impl TypedStage<RenderWhile> {
             }
             (None, Some(this_out_path), None, None) => {
                 if is_last {
-                    quote! { Box::new(|
+                    quote! { core::utils::DebugAnySendSyncBox::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                        response: Option<core::utils::DebugAnySendSyncBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
-                        Box::new(move |
+                        core::utils::DebugAnySendSyncBox::new(move |
                             stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output must have a response");
@@ -3699,7 +3699,7 @@ impl TypedStage<RenderWhile> {
                                     }
                                 }
                                 crate::workflow::types::Outcome::Done(output) => {
-                                    let output = Some(Box::new(output) as Box<dyn std::any::Any + Send + Sync>);
+                                    let output = Some(core::utils::DebugAnySendSyncBox::new(output) as core::utils::DebugAnySendSyncBox);
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3726,14 +3726,14 @@ impl TypedStage<RenderWhile> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
 
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with error must have a response");
@@ -3770,7 +3770,7 @@ impl TypedStage<RenderWhile> {
                             }
                             Err(error) => {
                                 let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(Box::new(error) as Box<dyn std::any::Any + Send + Sync>);
+                                let error = Some(core::utils::DebugAnySendSyncBox::new(error) as core::utils::DebugAnySendSyncBox);
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3798,15 +3798,15 @@ impl TypedStage<RenderWhile> {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
             (None, None, None, None) => {
-                quote! { Box::new(|
+                quote! { core::utils::DebugAnySendSyncBox::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<Box<dyn std::any::Any + Send + Sync>>,
+                    response: Option<core::utils::DebugAnySendSyncBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
-                    Box::new(move |
+                    core::utils::DebugAnySendSyncBox::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages must have a response");
