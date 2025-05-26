@@ -103,7 +103,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let clamped = clamp(norm, vec2<f32>(0.0), vec2<f32>(1.0));
 
     // Generate noise value
-    let noise_val = fbm(world_pos * 0.01, 5, 2.0, 0.5);
+    let noise_val = fbm(world_pos * 0.003, 5, 2.0, 0.5);
 
     // Biome thresholds and colors
     let biome_thresholds = array<f32, 6>(
@@ -127,11 +127,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     } else if (noise_val <= 0.4) {
         biome_color = vec3<f32>(0.0, 0.0, 0.6); // Shallow water
     } else if (noise_val <= 0.5) {
-        biome_color = vec3<f32>(0.83, 0.89, 0.09); // Beach
+        biome_color = vec3<f32>(0.83, 0.89, 0.0); // Beach
     } else if (noise_val <= 0.7) {
-        biome_color = vec3<f32>(0.48, 0.93, 0.07); // Grassland
+        biome_color = vec3<f32>(0.35, 1.0, 0.0); // Grassland
     } else if (noise_val <= 0.85) {
-        biome_color = vec3<f32>(0.24, 0.48, 0.01); // Forest
+        biome_color = vec3<f32>(0.18, 0.6, 0.0); // Forest
     } else {
         biome_color = vec3<f32>(0.5, 0.5, 0.5); // Mountain
     }

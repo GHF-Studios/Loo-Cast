@@ -1,7 +1,5 @@
 use std::any::{type_name, Any};
 
-use crate::debug::type_name::get_type_name;
-
 pub enum WorkflowResponse {
     E(TypedWorkflowResponseE),
     O(TypedWorkflowResponseO),
@@ -24,7 +22,7 @@ impl TypedWorkflowResponseE {
         let error = match downcast_error_result {
             Ok(error) => error,
             Err(original) => {
-                let actual_type = get_type_name(&original);
+                let actual_type = original.name();
                 panic!(
                     "Failed to unpack TypedWorkflowResponseE:\n  expected = {}\n  actual = {}",
                     type_name::<E>(),
@@ -44,7 +42,7 @@ impl TypedWorkflowResponseO {
         let output = match downcast_output_result {
             Ok(output) => output,
             Err(original) => {
-                let actual_type = get_type_name(&original);
+                let actual_type = original.name();
                 panic!(
                 "Failed to unpack TypedWorkflowResponseO:\n  expected = {}\n  actual = {}",
                     type_name::<O>(),
@@ -68,7 +66,7 @@ impl TypedWorkflowResponseOE {
                 let output = match downcast_output_result {
                     Ok(output) => output,
                     Err(original) => {
-                        let actual_type = get_type_name(&original);
+                        let actual_type = original.name();
                         panic!(
                             "Failed to unpack TypedWorkflowResponseOE (Ok variant):\n  expected = {}\n  actual = {}",
                             type_name::<O>(),
@@ -85,7 +83,7 @@ impl TypedWorkflowResponseOE {
                 let error = match downcast_error_result {
                     Ok(error) => error,
                     Err(original) => {
-                        let actual_type = get_type_name(&original);
+                        let actual_type = original.name();
                         panic!(
                         "Failed to unpack TypedWorkflowResponseOE (Err variant):\n  expected = {}\n  actual = {}",
                             type_name::<E>(),

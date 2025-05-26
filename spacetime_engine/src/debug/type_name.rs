@@ -1,31 +1,61 @@
-use std::any::{Any, TypeId};
-use std::collections::HashMap;
-use std::sync::RwLock;
-use once_cell::sync::Lazy;
+use std::any::Any;
 
-type TypeNameFn = fn() -> &'static str;
-
-static REGISTRY: Lazy<RwLock<HashMap<TypeId, TypeNameFn>>> = Lazy::new(|| {
-    RwLock::new(HashMap::new())
-});
-
-fn register_type<T: 'static + Any + Send + Sync>() {
-    let mut map = REGISTRY.write().unwrap();
-    map.entry(TypeId::of::<T>()).or_insert(|| std::any::type_name::<T>());
+pub struct DebugAnySendBox {
+    name: &'static str,
+    inner: Box<dyn Any + Send>,
 }
 
-/// To debug: Search `Box::new` and replace with `Box::new` and vice versa.
-pub fn box_any<T: 'static + Any + Send + Sync>(val: T) -> Box<dyn Any + Send + Sync> {
-    register_type::<T>();
-    Box::new(val)
+impl DebugAnySendBox {
+    pub fn new<T: Any + Send + 'static>(value: T, name: &'static str) -> Self {
+        Self {
+            name,
+            inner: Box::new(value),
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        self.name
+    }
+
+    pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
+        self.inner.downcast_ref()
+    }
+
+    pub fn downcast_mut<T: Any>(&mut self) -> Option<&mut T> {
+        self.inner.downcast_mut()
+    }
+
+    pub fn into_inner<T: Any>(self) -> Result<Box<T>, Box<dyn Any + Send>> {
+        self.inner.downcast()
+    }
 }
 
-pub fn get_type_name(value: &dyn Any) -> &'static str {
-    REGISTRY
-        .read()
-        .unwrap()
-        .get(&value.type_id())
-        .copied()
-        .expect("Type not registered")
-        ()
+pub struct DebugAnySendSyncBox {
+    name: &'static str,
+    inner: Box<dyn Any + Send + Sync>,
+}
+
+impl DebugAnySendSyncBox {
+    pub fn new<T: Any + Send + Sync + 'static>(value: T, name: &'static str) -> Self {
+        Self {
+            name,
+            inner: Box::new(value),
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        self.name
+    }
+
+    pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
+        self.inner.downcast_ref()
+    }
+
+    pub fn downcast_mut<T: Any>(&mut self) -> Option<&mut T> {
+        self.inner.downcast_mut()
+    }
+
+    pub fn into_inner<T: Any>(self) -> Result<Box<T>, Box<dyn Any + Send + Sync>> {
+        self.inner.downcast()
+    }
 }
