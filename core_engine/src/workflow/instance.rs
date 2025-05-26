@@ -2,16 +2,17 @@ use std::any::Any;
 
 use crate::config::statics::CONFIG;
 use crate::workflow::types::*;
+use crate::debug::types::AnySendSyncNamedBox;
 
 pub enum WorkflowCallback {
     None(Box<dyn FnOnce() + Send + Sync>),
-    E(Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>),
-    O(Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>),
-    OE(Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>),
+    E(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
+    O(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
+    OE(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
     I(Box<dyn FnOnce() + Send + Sync>),
-    IE(Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>),
-    IO(Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>),
-    IOE(Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>),
+    IE(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
+    IO(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
+    IOE(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
 }
 
 #[derive(Debug)]
@@ -43,7 +44,7 @@ impl WorkflowInstance {
         module_name: &'static str,
         workflow_name: &'static str,
         num_stages: usize,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::E(TypedWorkflowInstanceE::new_request(
             module_name,
@@ -56,7 +57,7 @@ impl WorkflowInstance {
         module_name: &'static str,
         workflow_name: &'static str,
         num_stages: usize,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::O(TypedWorkflowInstanceO::new_request(
             module_name,
@@ -69,7 +70,7 @@ impl WorkflowInstance {
         module_name: &'static str,
         workflow_name: &'static str,
         num_stages: usize,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::OE(TypedWorkflowInstanceOE::new_request(
             module_name,
@@ -81,7 +82,7 @@ impl WorkflowInstance {
     pub fn new_request_i(
         module_name: &'static str,
         workflow_name: &'static str,
-        input: Box<dyn Any + Send + Sync>,
+        input: AnySendSyncNamedBox,
         num_stages: usize,
         callback: Box<dyn FnOnce() + Send + Sync>,
     ) -> Self {
@@ -96,9 +97,9 @@ impl WorkflowInstance {
     pub fn new_request_ie(
         module_name: &'static str,
         workflow_name: &'static str,
-        input: Box<dyn Any + Send + Sync>,
+        input: AnySendSyncNamedBox,
         num_stages: usize,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::IE(TypedWorkflowInstanceIE::new_request(
             module_name,
@@ -111,9 +112,9 @@ impl WorkflowInstance {
     pub fn new_request_io(
         module_name: &'static str,
         workflow_name: &'static str,
-        input: Box<dyn Any + Send + Sync>,
+        input: AnySendSyncNamedBox,
         num_stages: usize,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::IO(TypedWorkflowInstanceIO::new_request(
             module_name,
@@ -126,9 +127,9 @@ impl WorkflowInstance {
     pub fn new_request_ioe(
         module_name: &'static str,
         workflow_name: &'static str,
-        input: Box<dyn Any + Send + Sync>,
+        input: AnySendSyncNamedBox,
         num_stages: usize,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::IOE(TypedWorkflowInstanceIOE::new_request(
             module_name,
@@ -230,32 +231,32 @@ impl WorkflowInstance {
         }
     }
 
-    pub fn take_data_buffer(&mut self) -> Option<Box<dyn Any + Send + Sync>> {
+    pub fn take_data_buffer(&mut self) -> Option<AnySendSyncNamedBox> {
         match self {
             WorkflowInstance::None(_) => None,
             WorkflowInstance::E(_) => None,
             WorkflowInstance::O(instance) => {
-                Some(std::mem::replace(&mut instance.data_buffer, Box::new(())))
+                Some(std::mem::replace(&mut instance.data_buffer, AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string())))
             }
             WorkflowInstance::OE(instance) => {
-                Some(std::mem::replace(&mut instance.data_buffer, Box::new(())))
+                Some(std::mem::replace(&mut instance.data_buffer, AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string())))
             }
             WorkflowInstance::I(instance) => {
-                Some(std::mem::replace(&mut instance.data_buffer, Box::new(())))
+                Some(std::mem::replace(&mut instance.data_buffer, AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string())))
             }
             WorkflowInstance::IE(instance) => {
-                Some(std::mem::replace(&mut instance.data_buffer, Box::new(())))
+                Some(std::mem::replace(&mut instance.data_buffer, AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string())))
             }
             WorkflowInstance::IO(instance) => {
-                Some(std::mem::replace(&mut instance.data_buffer, Box::new(())))
+                Some(std::mem::replace(&mut instance.data_buffer, AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string())))
             }
             WorkflowInstance::IOE(instance) => {
-                Some(std::mem::replace(&mut instance.data_buffer, Box::new(())))
+                Some(std::mem::replace(&mut instance.data_buffer, AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string())))
             }
         }
     }
 
-    pub fn set_data_buffer(&mut self, data_buffer: Box<dyn Any + Send + Sync>) {
+    pub fn set_data_buffer(&mut self, data_buffer: AnySendSyncNamedBox) {
         match self {
             WorkflowInstance::None(_) => {
                 unreachable!("Cannot set data buffer for WorkflowInstance::None")
@@ -409,7 +410,7 @@ pub struct TypedWorkflowInstanceE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
-    pub callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+    pub callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
@@ -417,8 +418,8 @@ pub struct TypedWorkflowInstanceO {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
-    pub data_buffer: Box<dyn Any + Send + Sync>,
-    pub callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+    pub data_buffer: AnySendSyncNamedBox,
+    pub callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
@@ -426,8 +427,8 @@ pub struct TypedWorkflowInstanceOE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
-    pub data_buffer: Box<dyn Any + Send + Sync>,
-    pub callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+    pub data_buffer: AnySendSyncNamedBox,
+    pub callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
@@ -435,7 +436,7 @@ pub struct TypedWorkflowInstanceI {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
-    pub data_buffer: Box<dyn Any + Send + Sync>,
+    pub data_buffer: AnySendSyncNamedBox,
     pub callback: Box<dyn FnOnce() + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
@@ -444,8 +445,8 @@ pub struct TypedWorkflowInstanceIE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
-    pub data_buffer: Box<dyn Any + Send + Sync>,
-    pub callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+    pub data_buffer: AnySendSyncNamedBox,
+    pub callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
@@ -453,8 +454,8 @@ pub struct TypedWorkflowInstanceIO {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
-    pub data_buffer: Box<dyn Any + Send + Sync>,
-    pub callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+    pub data_buffer: AnySendSyncNamedBox,
+    pub callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
@@ -462,8 +463,8 @@ pub struct TypedWorkflowInstanceIOE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
-    pub data_buffer: Box<dyn Any + Send + Sync>,
-    pub callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+    pub data_buffer: AnySendSyncNamedBox,
+    pub callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
@@ -548,7 +549,7 @@ impl TypedWorkflowInstanceE {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
         let timeout_frames = num_stages * CONFIG.get::<usize>("workflow/timeout_frames_per_stage");
@@ -567,7 +568,7 @@ impl TypedWorkflowInstanceO {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
         let timeout_frames = num_stages * CONFIG.get::<usize>("workflow/timeout_frames_per_stage");
@@ -576,7 +577,7 @@ impl TypedWorkflowInstanceO {
             module_name,
             workflow_name,
             state: WorkflowState::Requested,
-            data_buffer: Box::new(()),
+            data_buffer: AnySendSyncNamedBox::new((), "()".to_string()),
             callback,
             num_stages,
             timeout_frames,
@@ -587,7 +588,7 @@ impl TypedWorkflowInstanceOE {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
         let timeout_frames = num_stages * CONFIG.get::<usize>("workflow/timeout_frames_per_stage");
@@ -596,7 +597,7 @@ impl TypedWorkflowInstanceOE {
             module_name,
             workflow_name,
             state: WorkflowState::Requested,
-            data_buffer: Box::new(()),
+            data_buffer: AnySendSyncNamedBox::new((), "()".to_string()),
             callback,
             num_stages,
             timeout_frames,
@@ -607,7 +608,7 @@ impl TypedWorkflowInstanceI {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
-        input: Box<dyn Any + Send + Sync>,
+        input: AnySendSyncNamedBox,
         callback: Box<dyn FnOnce() + Send + Sync>,
         num_stages: usize,
     ) -> Self {
@@ -628,8 +629,8 @@ impl TypedWorkflowInstanceIE {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
-        input: Box<dyn Any + Send + Sync>,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+        input: AnySendSyncNamedBox,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
         let timeout_frames = num_stages * CONFIG.get::<usize>("workflow/timeout_frames_per_stage");
@@ -649,8 +650,8 @@ impl TypedWorkflowInstanceIO {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
-        input: Box<dyn Any + Send + Sync>,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+        input: AnySendSyncNamedBox,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
         let timeout_frames = num_stages * CONFIG.get::<usize>("workflow/timeout_frames_per_stage");
@@ -670,8 +671,8 @@ impl TypedWorkflowInstanceIOE {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
-        input: Box<dyn Any + Send + Sync>,
-        callback: Box<dyn FnOnce(Box<dyn Any + Send + Sync>) + Send + Sync>,
+        input: AnySendSyncNamedBox,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
         let timeout_frames = num_stages * CONFIG.get::<usize>("workflow/timeout_frames_per_stage");

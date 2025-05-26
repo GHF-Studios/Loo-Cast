@@ -133,7 +133,7 @@ pub struct StageEcs {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<Box<dyn Any + Send + Sync>>,
+                Option<crate::debug::types::AnySendSyncNamedBox>,
                 Sender<StageCompletionEvent>,
                 Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageEcs) + Send + Sync>
@@ -152,7 +152,7 @@ pub struct StageRender {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<Box<dyn Any + Send + Sync>>,
+                Option<crate::debug::types::AnySendSyncNamedBox>,
                 Sender<StageCompletionEvent>,
                 Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageRender) + Send + Sync>
@@ -171,7 +171,7 @@ pub struct StageAsync {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<Box<dyn Any + Send + Sync>>,
+                Option<crate::debug::types::AnySendSyncNamedBox>,
                 Sender<StageCompletionEvent>,
                 Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageAsync) + Send + Sync>
@@ -190,7 +190,7 @@ pub struct StageEcsWhile {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<Box<dyn Any + Send + Sync>>,
+                Option<crate::debug::types::AnySendSyncNamedBox>,
                 Sender<StageSetupEvent>,
                 Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageEcsWhile) + Send + Sync>
@@ -201,7 +201,7 @@ pub struct StageEcsWhile {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<Box<dyn Any + Send + Sync>>,
+                Option<crate::debug::types::AnySendSyncNamedBox>,
                 Sender<StageWaitEvent>,
                 Sender<StageCompletionEvent>,
                 Option<Sender<StageFailureEvent>>,
@@ -223,7 +223,7 @@ pub struct StageRenderWhile {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<Box<dyn Any + Send + Sync>>,
+                Option<crate::debug::types::AnySendSyncNamedBox>,
                 Sender<StageSetupEvent>,
                 Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageRenderWhile) + Send + Sync>
@@ -234,7 +234,7 @@ pub struct StageRenderWhile {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<Box<dyn Any + Send + Sync>>,
+                Option<crate::debug::types::AnySendSyncNamedBox>,
                 Sender<StageWaitEvent>,
                 Sender<StageCompletionEvent>,
                 Option<Sender<StageFailureEvent>>,

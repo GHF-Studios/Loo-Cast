@@ -1,6 +1,8 @@
 use std::any::Any;
 use uuid::Uuid;
 
+use crate::debug::types::AnySendSyncNamedBox;
+
 pub struct TypedWorkflowRequest {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
@@ -22,25 +24,25 @@ pub struct TypedWorkflowRequestOE {
     pub workflow_id: Uuid,
 }
 pub struct TypedWorkflowRequestI {
-    pub input: Box<dyn Any + Send + Sync>,
+    pub input: AnySendSyncNamedBox,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub workflow_id: Uuid,
 }
 pub struct TypedWorkflowRequestIE {
-    pub input: Box<dyn Any + Send + Sync>,
+    pub input: AnySendSyncNamedBox,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub workflow_id: Uuid,
 }
 pub struct TypedWorkflowRequestIO {
-    pub input: Box<dyn Any + Send + Sync>,
+    pub input: AnySendSyncNamedBox,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub workflow_id: Uuid,
 }
 pub struct TypedWorkflowRequestIOE {
-    pub input: Box<dyn Any + Send + Sync>,
+    pub input: AnySendSyncNamedBox,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub workflow_id: Uuid,

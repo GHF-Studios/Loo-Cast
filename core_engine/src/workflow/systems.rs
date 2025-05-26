@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy::render::MainWorld;
 use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 
-use crate::{config::statics::CONFIG, workflow::response::*};
+use crate::{config::statics::CONFIG, debug::types::AnySendSyncNamedBox, workflow::response::*};
 
 use super::{channels::*, events::*, instance::*, resources::*, stage::Stage, statics::PANIC_BUFFER, types::*};
 
@@ -471,8 +471,8 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
                 workflow_name,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.downcast().unwrap();
-                    response_sender.send(*response).unwrap();
+                    let response = response.into_inner();
+                    response_sender.send(response).unwrap();
                 }),
             ));
         });
@@ -540,8 +540,8 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
                 workflow_name,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.downcast().unwrap();
-                    response_sender.send(*response).unwrap();
+                    let response = response.into_inner();
+                    response_sender.send(response).unwrap();
                 }),
             ));
         });
@@ -609,8 +609,8 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
                 workflow_name,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.downcast().unwrap();
-                    response_sender.send(*response).unwrap();
+                    let response = response.into_inner();
+                    response_sender.send(response).unwrap();
                 }),
             ));
         });
@@ -750,8 +750,8 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.downcast().unwrap();
-                    response_sender.send(*response).unwrap();
+                    let response = response.into_inner();
+                    response_sender.send(response).unwrap();
                 }),
             ));
         });
@@ -821,8 +821,8 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.downcast().unwrap();
-                    response_sender.send(*response).unwrap();
+                    let response = response.into_inner();
+                    response_sender.send(response).unwrap();
                 }),
             ));
         });
@@ -892,8 +892,8 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.downcast().unwrap();
-                    response_sender.send(*response).unwrap();
+                    let response = response.into_inner();
+                    response_sender.send(response).unwrap();
                 }),
             ));
         });
@@ -1353,7 +1353,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
             match callback {
                 WorkflowCallback::None(callback) => (callback)(),
                 WorkflowCallback::E(callback) => {
-                    (callback)(Box::new(TypedWorkflowResponseE(Ok(()))))
+                    (callback)(AnySendSyncNamedBox::new(TypedWorkflowResponseE(Ok(())), "TypedWorkflowResponseE(Ok(()))".to_string()))
                 }
                 WorkflowCallback::O(callback) => {
                     let stage_output = match stage_output {
@@ -1365,7 +1365,8 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         }
                     };
 
-                    (callback)(Box::new(TypedWorkflowResponseO(stage_output)))
+                    let type_name = format!("TypedWorkflowResponseO({})", stage_output.name()).to_string();
+                    (callback)(AnySendSyncNamedBox::new(TypedWorkflowResponseO(stage_output), type_name))
                 }
                 WorkflowCallback::OE(callback) => {
                     let stage_output = match stage_output {
@@ -1377,11 +1378,12 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         }
                     };
 
-                    (callback)(Box::new(TypedWorkflowResponseOE(Ok(stage_output))))
+                    let type_name = format!("TypedWorkflowResponseOE({})", stage_output.name()).to_string();
+                    (callback)(AnySendSyncNamedBox::new(TypedWorkflowResponseOE(Ok(stage_output)), type_name))
                 }
                 WorkflowCallback::I(callback) => (callback)(),
                 WorkflowCallback::IE(callback) => {
-                    (callback)(Box::new(TypedWorkflowResponseE(Ok(()))))
+                    (callback)(AnySendSyncNamedBox::new(TypedWorkflowResponseE(Ok(())), "TypedWorkflowResponseE(Ok(()))".to_string()))
                 }
                 WorkflowCallback::IO(callback) => {
                     let stage_output = match stage_output {
@@ -1393,7 +1395,8 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         }
                     };
 
-                    (callback)(Box::new(TypedWorkflowResponseO(stage_output)))
+                    let type_name = format!("TypedWorkflowResponseO({})", stage_output.name()).to_string();
+                    (callback)(AnySendSyncNamedBox::new(TypedWorkflowResponseO(stage_output), type_name))
                 }
                 WorkflowCallback::IOE(callback) => {
                     let stage_output = match stage_output {
@@ -1405,7 +1408,8 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         }
                     };
 
-                    (callback)(Box::new(TypedWorkflowResponseOE(Ok(stage_output))))
+                    let type_name = format!("TypedWorkflowResponseOE({})", stage_output.name()).to_string();
+                    (callback)(AnySendSyncNamedBox::new(TypedWorkflowResponseOE(Ok(stage_output)), type_name))
                 }
             };
         }

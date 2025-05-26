@@ -68,20 +68,20 @@ pub trait WorkflowStageEcs {
     fn run_ecs(&mut self, world: &mut World);
     fn handle_ecs_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -94,20 +94,20 @@ pub trait WorkflowStageEcsE {
     fn run_ecs(&mut self, world: &mut World) -> Result<(), Self::Error>;
     fn handle_ecs_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -120,20 +120,20 @@ pub trait WorkflowStageEcsO {
     fn run_ecs(&mut self, world: &mut World) -> Self::Output;
     fn handle_ecs_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -147,20 +147,20 @@ pub trait WorkflowStageEcsOE {
     fn run_ecs(&mut self, world: &mut World) -> Result<Self::Output, Self::Error>;
     fn handle_ecs_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -173,20 +173,20 @@ pub trait WorkflowStageEcsI {
     fn run_ecs(&mut self, input: Self::Input, world: &mut World);
     fn handle_ecs_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -200,20 +200,20 @@ pub trait WorkflowStageEcsIE {
     fn run_ecs(&mut self, input: Self::Input, world: &mut World) -> Result<(), Self::Error>;
     fn handle_ecs_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -227,20 +227,20 @@ pub trait WorkflowStageEcsIO {
     fn run_ecs(&mut self, input: Self::Input, world: &mut World) -> Self::Output;
     fn handle_ecs_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -259,20 +259,20 @@ pub trait WorkflowStageEcsIOE {
     ) -> Result<Self::Output, Self::Error>;
     fn handle_ecs_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcs,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -285,20 +285,20 @@ pub trait WorkflowStageRender {
     fn run_render(&mut self, world: &mut World);
     fn handle_render_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -311,20 +311,20 @@ pub trait WorkflowStageRenderE {
     fn run_render(&mut self, world: &mut World) -> Result<(), Self::Error>;
     fn handle_render_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -337,20 +337,20 @@ pub trait WorkflowStageRenderO {
     fn run_render(&mut self, world: &mut World) -> Self::Output;
     fn handle_render_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -364,20 +364,20 @@ pub trait WorkflowStageRenderOE {
     fn run_render(&mut self, world: &mut World) -> Result<Self::Output, Self::Error>;
     fn handle_render_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -390,20 +390,20 @@ pub trait WorkflowStageRenderI {
     fn run_render(&mut self, input: Self::Input, world: &mut World);
     fn handle_render_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -417,20 +417,20 @@ pub trait WorkflowStageRenderIE {
     fn run_render(&mut self, input: Self::Input, world: &mut World) -> Result<(), Self::Error>;
     fn handle_render_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -444,20 +444,20 @@ pub trait WorkflowStageRenderIO {
     fn run_render(&mut self, input: Self::Input, world: &mut World) -> Self::Output;
     fn handle_render_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -476,20 +476,20 @@ pub trait WorkflowStageRenderIOE {
     ) -> Result<Self::Output, Self::Error>;
     fn handle_render_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRender,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -502,20 +502,20 @@ pub trait WorkflowStageAsync {
     fn run_render(&mut self, world: &mut World);
     fn handle_async_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -528,20 +528,20 @@ pub trait WorkflowStageAsyncE {
     fn run_render(&mut self, world: &mut World) -> Result<(), Self::Error>;
     fn handle_async_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -554,20 +554,20 @@ pub trait WorkflowStageAsyncO {
     fn run_render(&mut self, world: &mut World) -> Self::Output;
     fn handle_async_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -581,20 +581,20 @@ pub trait WorkflowStageAsyncOE {
     fn run_render(&mut self, world: &mut World) -> Result<Self::Output, Self::Error>;
     fn handle_async_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -607,20 +607,20 @@ pub trait WorkflowStageAsyncI {
     fn run_render(&mut self, input: Self::Input, world: &mut World);
     fn handle_async_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -634,20 +634,20 @@ pub trait WorkflowStageAsyncIE {
     fn run_render(&mut self, input: Self::Input, world: &mut World) -> Result<(), Self::Error>;
     fn handle_async_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -661,20 +661,20 @@ pub trait WorkflowStageAsyncIO {
     fn run_render(&mut self, input: Self::Input, world: &mut World) -> Self::Output;
     fn handle_async_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -693,20 +693,20 @@ pub trait WorkflowStageAsyncIOE {
     ) -> Result<Self::Output, Self::Error>;
     fn handle_async_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageAsync,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -720,20 +720,20 @@ pub trait WorkflowStageEcsWhile {
     fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), ()>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -747,20 +747,20 @@ pub trait WorkflowStageEcsWhileE {
     fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -774,20 +774,20 @@ pub trait WorkflowStageEcsWhileO {
     fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -805,20 +805,20 @@ pub trait WorkflowStageEcsWhileOE {
     ) -> Result<Outcome<(), Self::Output>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -832,20 +832,20 @@ pub trait WorkflowStageEcsWhileS {
     fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -864,20 +864,20 @@ pub trait WorkflowStageEcsWhileSE {
     ) -> Result<Outcome<Self::State, ()>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -896,20 +896,20 @@ pub trait WorkflowStageEcsWhileSO {
     ) -> Outcome<Self::State, Self::Output>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -929,20 +929,20 @@ pub trait WorkflowStageEcsWhileSOE {
     ) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -956,20 +956,20 @@ pub trait WorkflowStageEcsWhileI {
     fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), ()>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -984,20 +984,20 @@ pub trait WorkflowStageEcsWhileIE {
     fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1012,20 +1012,20 @@ pub trait WorkflowStageEcsWhileIO {
     fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1044,20 +1044,20 @@ pub trait WorkflowStageEcsWhileIOE {
     ) -> Result<Outcome<(), Self::Output>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1072,20 +1072,20 @@ pub trait WorkflowStageEcsWhileIS {
     fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1109,20 +1109,20 @@ pub trait WorkflowStageEcsWhileISE {
     ) -> Result<Outcome<Self::State, ()>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1142,20 +1142,20 @@ pub trait WorkflowStageEcsWhileISO {
     ) -> Outcome<Self::State, Self::Output>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1180,20 +1180,20 @@ pub trait WorkflowStageEcsWhileISOE {
     ) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageEcsWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1207,20 +1207,20 @@ pub trait WorkflowStageRenderWhile {
     fn run_render_while(&mut self, world: &mut World) -> Outcome<(), ()>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1234,20 +1234,20 @@ pub trait WorkflowStageRenderWhileE {
     fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1261,20 +1261,20 @@ pub trait WorkflowStageRenderWhileO {
     fn run_render_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1292,20 +1292,20 @@ pub trait WorkflowStageRenderWhileOE {
     ) -> Result<Outcome<(), Self::Output>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1323,20 +1323,20 @@ pub trait WorkflowStageRenderWhileS {
     ) -> Outcome<Self::State, ()>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1355,20 +1355,20 @@ pub trait WorkflowStageRenderWhileSE {
     ) -> Result<Outcome<Self::State, ()>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1387,20 +1387,20 @@ pub trait WorkflowStageRenderWhileSO {
     ) -> Outcome<Self::State, Self::Output>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1420,20 +1420,20 @@ pub trait WorkflowStageRenderWhileSOE {
     ) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1447,20 +1447,20 @@ pub trait WorkflowStageRenderWhileI {
     fn run_render_while(&mut self, world: &mut World) -> Outcome<(), ()>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1475,20 +1475,20 @@ pub trait WorkflowStageRenderWhileIE {
     fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1503,20 +1503,20 @@ pub trait WorkflowStageRenderWhileIO {
     fn run_render_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1535,20 +1535,20 @@ pub trait WorkflowStageRenderWhileIOE {
     ) -> Result<Outcome<(), Self::Output>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1567,20 +1567,20 @@ pub trait WorkflowStageRenderWhileIS {
     ) -> Outcome<Self::State, ()>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1604,20 +1604,20 @@ pub trait WorkflowStageRenderWhileISE {
     ) -> Result<Outcome<Self::State, ()>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1637,20 +1637,20 @@ pub trait WorkflowStageRenderWhileISO {
     ) -> Outcome<Self::State, Self::Output>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }
@@ -1675,20 +1675,20 @@ pub trait WorkflowStageRenderWhileISOE {
     ) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
     fn handle_ecs_while_run_response(
         &mut self,
-        stage_response: Option<Box<dyn Any + Send + Sync>>,
+        stage_response: Option<crate::debug::types::AnySendSyncNamedBox>,
         completion_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
         failure_sender: Sender<(
             &str,
             &str,
             usize,
             super::stage::StageRenderWhile,
-            Option<Box<dyn Any + Send + Sync>>,
+            Option<crate::debug::types::AnySendSyncNamedBox>,
         )>,
     );
 }

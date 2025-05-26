@@ -1,5 +1,6 @@
 use futures::FutureExt;
 use crate::workflow::composite_workflow_context::{CURRENT_COMPOSITE_WORKFLOW_ID, ScopedCompositeWorkflowContext};
+use crate::debug::types::AnySendSyncNamedBox;
 
 use super::{channels::*, request::*, statics::PANIC_BUFFER, traits::*};
 
@@ -103,10 +104,11 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
     let workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let input_type_name = format!("{}::{}::Input", module_name, workflow_name);
 
     get_request_i_sender()
         .send(TypedWorkflowRequestI {
-            input: Box::new(input),
+            input: AnySendSyncNamedBox::new(input, input_type_name),
             module_name,
             workflow_name,
             workflow_id,
@@ -128,10 +130,11 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
     let workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let input_type_name = format!("{}::{}::Input", module_name, workflow_name);
 
     get_request_ie_sender()
         .send(TypedWorkflowRequestIE {
-            input: Box::new(input),
+            input: AnySendSyncNamedBox::new(input, input_type_name),
             module_name,
             workflow_name,
             workflow_id,
@@ -153,10 +156,11 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> W::Output {
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
     let workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let input_type_name = format!("{}::{}::Input", module_name, workflow_name);
 
     get_request_io_sender()
         .send(TypedWorkflowRequestIO {
-            input: Box::new(input),
+            input: AnySendSyncNamedBox::new(input, input_type_name),
             module_name,
             workflow_name,
             workflow_id,
@@ -179,10 +183,11 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
     let module_name = W::MODULE_NAME;
     let workflow_name = W::WORKFLOW_NAME;
     let workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let input_type_name = format!("{}::{}::Input", module_name, workflow_name);
 
     get_request_ioe_sender()
         .send(TypedWorkflowRequestIOE {
-            input: Box::new(input),
+            input: AnySendSyncNamedBox::new(input, input_type_name),
             module_name,
             workflow_name,
             workflow_id,

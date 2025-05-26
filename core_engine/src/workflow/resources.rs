@@ -3,6 +3,8 @@ use crossbeam_channel::Receiver;
 use std::any::Any;
 use std::collections::HashMap;
 
+use crate::debug::types::AnySendSyncNamedBox;
+
 use super::{events::*, instance::*, stage::*, types::*};
 
 #[derive(Resource, Default)]
@@ -160,7 +162,7 @@ pub(super) struct EcsStageBuffer(
         &'static str,
         usize,
         StageEcs,
-        Option<Box<dyn Any + Send + Sync>>,
+        Option<AnySendSyncNamedBox>,
     )>,
 );
 #[derive(Resource, Default)]
@@ -170,7 +172,7 @@ pub(super) struct EcsWhileStageBuffer(
         &'static str,
         usize,
         StageEcsWhile,
-        Option<Box<dyn Any + Send + Sync>>,
+        Option<AnySendSyncNamedBox>,
     )>,
 );
 #[derive(Resource, Default)]
@@ -180,7 +182,7 @@ pub(super) struct RenderStageBuffer(
         &'static str,
         usize,
         StageRender,
-        Option<Box<dyn Any + Send + Sync>>,
+        Option<AnySendSyncNamedBox>,
     )>,
 );
 #[derive(Resource, Default)]
@@ -190,7 +192,7 @@ pub(super) struct RenderWhileStageBuffer(
         &'static str,
         usize,
         StageRenderWhile,
-        Option<Box<dyn Any + Send + Sync>>,
+        Option<AnySendSyncNamedBox>,
     )>,
 );
 #[derive(Resource, Default)]
@@ -200,7 +202,7 @@ pub(super) struct AsyncStageBuffer(
         &'static str,
         usize,
         StageAsync,
-        Option<Box<dyn Any + Send + Sync>>,
+        Option<AnySendSyncNamedBox>,
     )>,
 );
 

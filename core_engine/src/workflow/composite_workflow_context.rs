@@ -5,6 +5,8 @@ use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use uuid::Uuid;
 
+use crate::debug::types::AnySendNamedBox;
+
 #[derive(Hash, Eq, PartialEq)]
 struct ContextKey {
     type_id: TypeId,
@@ -13,7 +15,7 @@ struct ContextKey {
 
 #[derive(Default)]
 pub struct CompositeWorkflowContext {
-    map: HashMap<ContextKey, Box<dyn Any + Send>>,
+    map: HashMap<ContextKey, AnySendNamedBox>,
 }
 
 static CONTEXTS: Lazy<DashMap<Uuid, Arc<Mutex<CompositeWorkflowContext>>>> =
@@ -33,7 +35,7 @@ pub fn set_context<T: 'static + Send>(name: &'static str, val: T) {
             type_id: TypeId::of::<T>(),
             name,
         },
-        Box::new(Some(val)),
+        AnySendNamedBox::new(Some(val), std::any::type_name::<T>().to_string()),
     );
 }
 
@@ -49,7 +51,6 @@ pub fn get_context<T: 'static + Send>(name: &'static str) -> T {
         })
         .expect("Context value not found for `{}`")
         .downcast_mut::<Option<T>>()
-        .unwrap_or_else(|| unreachable!("Context type mismatch for `{}`", name))
         .take()
         .unwrap_or_else(|| unreachable!("Context value was empty for `{}`", name))
 }
@@ -60,7 +61,7 @@ pub fn clear_all_context(id: Uuid) {
 
 pub struct ScopedCompositeWorkflowContext {
     pub id: Uuid,
-    pub returns: Arc<Mutex<HashMap<String, Box<dyn Any + Send>>>>,
+    pub returns: Arc<Mutex<HashMap<String, AnySendNamedBox>>>,
 }
 
 impl ScopedCompositeWorkflowContext {
@@ -95,13 +96,12 @@ impl ScopedCompositeWorkflowContext {
 
     pub fn store_return<T: 'static + Send>(&self, name: &'static str, value: T) {
         let mut guard = self.returns.lock().unwrap();
-        guard.insert(name.to_string(), Box::new(value));
+        guard.insert(name.to_string(), AnySendNamedBox::new(value, std::any::type_name::<T>().to_string()));
     }
 
     pub fn extract_return<T: 'static + Send>(&self, name: &str) -> Option<T> {
         let mut guard = self.returns.lock().unwrap();
-        guard.remove(name)
-            .map(|b| *(b.downcast::<T>().unwrap_or_else(|_| unreachable!("Context return type mismatch for `{}`", name))))
+        guard.remove(name).map(|b| b.into_inner::<T>())
     }
 }
 
