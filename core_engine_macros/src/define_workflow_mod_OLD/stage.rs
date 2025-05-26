@@ -555,7 +555,7 @@ impl TypedStage<Ecs> {
                         stage: crate::workflow::stage::StageEcs
                     | {
                         let response = response.expect("Ecs stages with output and error must have a response");
-                        let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let result: Result<#this_out_path, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(output) => {
@@ -615,7 +615,7 @@ impl TypedStage<Ecs> {
                             stage: crate::workflow::stage::StageEcs
                         | {
                             let response = response.expect("Ecs stages with output and error (last stage) must have a response");
-                            let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                            let result: Result<#this_out_path, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                             match result {
                                 Ok(output) => {
@@ -679,7 +679,7 @@ impl TypedStage<Ecs> {
                         stage: crate::workflow::stage::StageEcs
                     | {
                         let response = response.expect("Ecs stages with output must have a response");
-                        let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
+                        let output: #this_out_path = response.into_inner().expect("Failed to downcast response output data");
                         #stage_output_transmutation
                         let output = Some(Box::new(output) as crate::debug::types::AnySendSyncNamedBox); // TODO: Properly construct the NamedBox, and SOMEHOW get the type_name lmao
 
@@ -709,7 +709,7 @@ impl TypedStage<Ecs> {
                             stage: crate::workflow::stage::StageEcs,
                         | {
                             let response = response.expect("Ecs stages with output and error must have a response");
-                            let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
+                            let output: #this_out_path = response.into_inner().expect("Failed to downcast response output data");
                             let output = Some(Box::new(output) as crate::debug::types::AnySendSyncNamedBox); // TODO: Properly construct the NamedBox, and SOMEHOW get the type_name lmao
 
                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
@@ -746,7 +746,7 @@ impl TypedStage<Ecs> {
                         stage: crate::workflow::stage::StageEcs
                     | {
                         let response = response.expect("Ecs stages with error must have a response");
-                        let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let result: Result<(), #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(_) => {
@@ -964,7 +964,7 @@ impl TypedStage<Render> {
                         stage: crate::workflow::stage::StageRender
                     | {
                         let response = response.expect("Render stages with output and error must have a response");
-                        let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let result: Result<#this_out_path, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(output) => {
@@ -1024,7 +1024,7 @@ impl TypedStage<Render> {
                             stage: crate::workflow::stage::StageRender
                         | {
                             let response = response.expect("Render stages with output and error (last stage) must have a response");
-                            let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                            let result: Result<#this_out_path, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                             match result {
                                 Ok(output) => {
@@ -1088,7 +1088,7 @@ impl TypedStage<Render> {
                         stage: crate::workflow::stage::StageRender
                     | {
                         let response = response.expect("Render stages with output (last stage) must have a response");
-                        let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
+                        let output: #this_out_path = response.into_inner().expect("Failed to downcast response output data");
                         #stage_output_transmutation
                         let output = Some(Box::new(output) as crate::debug::types::AnySendSyncNamedBox); // TODO: Properly construct the NamedBox, and SOMEHOW get the type_name lmao
 
@@ -1118,7 +1118,7 @@ impl TypedStage<Render> {
                             stage: crate::workflow::stage::StageRender,
                         | {
                             let response = response.expect("Render stages with output (last stage) must have a response");
-                            let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
+                            let output: #this_out_path = response.into_inner().expect("Failed to downcast response output data");
                             let output = Some(Box::new(output) as crate::debug::types::AnySendSyncNamedBox); // TODO: Properly construct the NamedBox, and SOMEHOW get the type_name lmao
 
                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
@@ -1155,7 +1155,7 @@ impl TypedStage<Render> {
                         stage: crate::workflow::stage::StageRender
                     | {
                         let response = response.expect("Render stages with error (last stage) must have a response");
-                        let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let result: Result<(), #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(_) => {
@@ -1373,7 +1373,7 @@ impl TypedStage<Async> {
                         stage: crate::workflow::stage::StageAsync
                     | {
                         let response = response.expect("Async stages with output and error must have a response");
-                        let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let result: Result<#this_out_path, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(output) => {
@@ -1433,7 +1433,7 @@ impl TypedStage<Async> {
                             stage: crate::workflow::stage::StageAsync
                         | {
                             let response = response.expect("Async stages with output and error (last stage) must have a response");
-                            let result: Result<#this_out_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                            let result: Result<#this_out_path, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                             match result {
                                 Ok(output) => {
@@ -1497,7 +1497,7 @@ impl TypedStage<Async> {
                         stage: crate::workflow::stage::StageAsync
                     | {
                         let response = response.expect("Async stages with output must have a response");
-                        let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
+                        let output: #this_out_path = response.into_inner().expect("Failed to downcast response output data");
                         #stage_output_transmutation
                         let output = Some(Box::new(output) as crate::debug::types::AnySendSyncNamedBox); // TODO: Properly construct the NamedBox, and SOMEHOW get the type_name lmao
 
@@ -1527,7 +1527,7 @@ impl TypedStage<Async> {
                             stage: crate::workflow::stage::StageAsync,
                         | {
                             let response = response.expect("Async stages with output (last stage) must have a response");
-                            let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
+                            let output: #this_out_path = response.into_inner().expect("Failed to downcast response output data");
                             let output = Some(Box::new(output) as crate::debug::types::AnySendSyncNamedBox); // TODO: Properly construct the NamedBox, and SOMEHOW get the type_name lmao
 
                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
@@ -1564,7 +1564,7 @@ impl TypedStage<Async> {
                         stage: crate::workflow::stage::StageAsync
                     | {
                         let response = response.expect("Async stages with error must have a response");
-                        let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let result: Result<(), #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(_) => {
@@ -1777,7 +1777,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with state and error must have a response");
-                        let result: Result<#this_state_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let result: Result<#this_state_path, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(state) => {
@@ -1832,7 +1832,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with state must have a response");
-                        let state: #this_state_path = *response.downcast().expect("Failed to downcast response state data");
+                        let state: #this_state_path = response.into_inner().expect("Failed to downcast response state data");
                         let state = Some(Box::new(state) as crate::debug::types::AnySendSyncNamedBox); // TODO: Properly construct the NamedBox, and SOMEHOW get the type_name lmao
 
                         if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
@@ -1863,7 +1863,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with error must have a response");
-                        let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let result: Result<(), #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(_) => {
@@ -1962,7 +1962,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output and error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match outcome_result {
                             Ok(outcome) => {
@@ -2041,7 +2041,7 @@ impl TypedStage<EcsWhile> {
                             stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output and error (last stage) must have a response");
-                            let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                            let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                             match outcome_result {
                                 Ok(outcome) => {
@@ -2124,7 +2124,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output must have a response");
-                        let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = response.into_inner().expect("Failed to downcast response outcome data");
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(state) => {
@@ -2174,7 +2174,7 @@ impl TypedStage<EcsWhile> {
                             stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output (last stage) must have a response");
-                            let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                            let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = response.into_inner().expect("Failed to downcast response outcome data");
 
                             match outcome {
                                 crate::workflow::types::Outcome::Wait(state) => {
@@ -2231,7 +2231,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, ()>, #this_err_path> = *response.downcast().expect("Failed to downcast response result outcome data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, ()>, #this_err_path> = response.into_inner().expect("Failed to downcast response result outcome data");
 
                         match result {
                             Ok(outcome) => {
@@ -2306,7 +2306,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages must have a response");
-                        let outcome: crate::workflow::types::Outcome<#this_state_path, ()> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<#this_state_path, ()> = response.into_inner().expect("Failed to downcast response outcome data");
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(state) => {
@@ -2360,7 +2360,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output and error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match outcome_result {
                             Ok(outcome) => {
@@ -2437,7 +2437,7 @@ impl TypedStage<EcsWhile> {
                             stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output and error (last stage) must have a response");
-                            let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                            let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                             match outcome_result {
                                 Ok(outcome) => {
@@ -2518,7 +2518,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output must have a response");
-                        let outcome: crate::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<(), #this_out_path> = response.into_inner().expect("Failed to downcast response outcome data");
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(_) => {
@@ -2534,7 +2534,7 @@ impl TypedStage<EcsWhile> {
                                 }
                             },
                             crate::workflow::types::Outcome::Done(_) => {
-                                let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
+                                let output: #this_out_path = response.into_inner().expect("Failed to downcast response output data");
                                 #stage_output_transmutation
                                 let output = Some(Box::new(output) as crate::debug::types::AnySendSyncNamedBox); // TODO: Properly construct the NamedBox, and SOMEHOW get the type_name lmao
 
@@ -2567,7 +2567,7 @@ impl TypedStage<EcsWhile> {
                             stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output (last stage) must have a response");
-                            let outcome: crate::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                            let outcome: crate::workflow::types::Outcome<(), #this_out_path> = response.into_inner().expect("Failed to downcast response outcome data");
 
                             match outcome {
                                 crate::workflow::types::Outcome::Wait(_) => {
@@ -2621,7 +2621,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<(), ()>, #this_err_path> = *response.downcast().expect("Failed to downcast response result outcome data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<(), ()>, #this_err_path> = response.into_inner().expect("Failed to downcast response result outcome data");
 
                         match result {
                             Ok(outcome) => {
@@ -2694,7 +2694,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages must have a response");
-                        let outcome: crate::workflow::types::Outcome<(), ()> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<(), ()> = response.into_inner().expect("Failed to downcast response outcome data");
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(_) => {
@@ -2888,7 +2888,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with state and error must have a response");
-                        let result: Result<#this_state_path, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let result: Result<#this_state_path, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(state) => {
@@ -2944,7 +2944,7 @@ impl TypedStage<RenderWhile> {
                     | {
                         let response = response.expect("RenderWhile stages with state must have a response");
                         // TODO: MINOR: Error message below should be "Failed to downcast setup reponse state data", and like `setup response` instead of `response` in general for all setup response handlers
-                        let state: #this_state_path = *response.downcast().expect("Failed to downcast response result data");
+                        let state: #this_state_path = response.into_inner().expect("Failed to downcast response result data");
 
                         let state = Some(Box::new(state) as crate::debug::types::AnySendSyncNamedBox); // TODO: Properly construct the NamedBox, and SOMEHOW get the type_name lmao
 
@@ -2976,7 +2976,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with error must have a response");
-                        let result: Result<(), #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let result: Result<(), #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match result {
                             Ok(_) => {
@@ -3078,7 +3078,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output and error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match outcome_result {
                             Ok(outcome) => {
@@ -3157,7 +3157,7 @@ impl TypedStage<RenderWhile> {
                             stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output and error (last stage) must have a response");
-                            let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                            let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, #this_out_path>, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                             match outcome_result {
                                 Ok(outcome) => {
@@ -3240,7 +3240,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output must have a response");
-                        let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = response.into_inner().expect("Failed to downcast response outcome data");
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(state) => {
@@ -3290,7 +3290,7 @@ impl TypedStage<RenderWhile> {
                             stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output (last stage) must have a response");
-                            let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                            let outcome: crate::workflow::types::Outcome<#this_state_path, #this_out_path> = response.into_inner().expect("Failed to downcast response outcome data");
 
                             match outcome {
                                 crate::workflow::types::Outcome::Wait(state) => {
@@ -3347,7 +3347,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, ()>, #this_err_path> = *response.downcast().expect("Failed to downcast response result outcome data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<#this_state_path, ()>, #this_err_path> = response.into_inner().expect("Failed to downcast response result outcome data");
 
                         match result {
                             Ok(outcome) => {
@@ -3422,7 +3422,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages must have a response");
-                        let outcome: crate::workflow::types::Outcome<#this_state_path, ()> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<#this_state_path, ()> = response.into_inner().expect("Failed to downcast response outcome data");
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(state) => {
@@ -3476,7 +3476,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output and error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                         match outcome_result {
                             Ok(outcome) => {
@@ -3553,7 +3553,7 @@ impl TypedStage<RenderWhile> {
                             stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output and error (last stage) must have a response");
-                            let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = *response.downcast().expect("Failed to downcast response result data");
+                            let outcome_result: Result<crate::workflow::types::Outcome<(), #this_out_path>, #this_err_path> = response.into_inner().expect("Failed to downcast response result data");
 
                             match outcome_result {
                                 Ok(outcome) => {
@@ -3634,7 +3634,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output must have a response");
-                        let outcome: crate::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<(), #this_out_path> = response.into_inner().expect("Failed to downcast response outcome data");
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(_) => {
@@ -3650,7 +3650,7 @@ impl TypedStage<RenderWhile> {
                                 }
                             },
                             crate::workflow::types::Outcome::Done(_) => {
-                                let output: #this_out_path = *response.downcast().expect("Failed to downcast response output data");
+                                let output: #this_out_path = response.into_inner().expect("Failed to downcast response output data");
                                 #stage_output_transmutation
                                 let output = Some(Box::new(output) as crate::debug::types::AnySendSyncNamedBox); // TODO: Properly construct the NamedBox, and SOMEHOW get the type_name lmao
 
@@ -3683,7 +3683,7 @@ impl TypedStage<RenderWhile> {
                             stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output must have a response");
-                            let outcome: crate::workflow::types::Outcome<(), #this_out_path> = *response.downcast().expect("Failed to downcast response outcome data");
+                            let outcome: crate::workflow::types::Outcome<(), #this_out_path> = response.into_inner().expect("Failed to downcast response outcome data");
 
                             match outcome {
                                 crate::workflow::types::Outcome::Wait(_) => {
@@ -3737,7 +3737,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<(), ()>, #this_err_path> = *response.downcast().expect("Failed to downcast response result outcome data");
+                        let outcome_result: Result<crate::workflow::types::Outcome<(), ()>, #this_err_path> = response.into_inner().expect("Failed to downcast response result outcome data");
 
                         match result {
                             Ok(outcome) => {
@@ -3810,7 +3810,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages must have a response");
-                        let outcome: crate::workflow::types::Outcome<(), ()> = *response.downcast().expect("Failed to downcast response outcome data");
+                        let outcome: crate::workflow::types::Outcome<(), ()> = response.into_inner().expect("Failed to downcast response outcome data");
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(_) => {
