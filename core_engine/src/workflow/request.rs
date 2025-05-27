@@ -1,4 +1,3 @@
-use std::any::Any;
 use uuid::Uuid;
 
 use crate::debug::types::AnySendSyncNamedBox;

@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use crossbeam_channel::Receiver;
-use std::any::Any;
 use std::collections::HashMap;
 
 use crate::debug::types::AnySendSyncNamedBox;

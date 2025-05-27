@@ -1,5 +1,4 @@
 use crossbeam_channel::Sender;
-use std::any::Any;
 
 use super::events::*;
 

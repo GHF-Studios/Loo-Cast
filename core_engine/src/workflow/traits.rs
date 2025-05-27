@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use bevy::ecs::world::World;
 use crossbeam_channel::Sender;
 

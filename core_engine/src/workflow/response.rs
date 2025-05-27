@@ -1,5 +1,5 @@
 use crate::debug::types::AnySendSyncNamedBox;
-use std::any::{type_name, Any};
+use std::any::Any;
 
 pub enum WorkflowResponse {
     E(TypedWorkflowResponseE),

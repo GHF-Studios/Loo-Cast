@@ -916,7 +916,7 @@ impl CoreFunction {
                         fn run_ecs_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_ecs_while_inner(state, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<{}, {}}>, {}>", #state_type_name.to_string(), #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<{}, {}>, {}>", #state_type_name.to_string(), #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(state: State, main_access: MainAccess) -> Result<Outcome<State, Output>, Error> #body
@@ -1002,7 +1002,7 @@ impl CoreFunction {
                         fn run_render_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_render_while_inner(state, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<{}, {}}>, {}>", #state_type_name.to_string(), #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<{}, {}>, {}>", #state_type_name.to_string(), #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(state: State, render_access: RenderAccess) -> Result<Outcome<State, Output>, Error> #body
