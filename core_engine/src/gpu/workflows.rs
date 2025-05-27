@@ -294,13 +294,13 @@ define_workflow_mod_OLD! {
                             let render_device = main_access.render_device;
                             let mut images = main_access.images;
                             let shader_registry = main_access.shader_registry;
-                                                
+
                             let pipeline_id = *shader_registry.pipelines.get(shader_name).unwrap();
                             let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name).unwrap().clone();
-                                                
+
                             let mut texture_handles = Vec::new();
                             let mut param_buffers = Vec::new();
-                                                
+
                             for param in &input.param_data {
                                 // --- Create the texture ---
                                 let texture = Image {
@@ -325,7 +325,7 @@ define_workflow_mod_OLD! {
                                     ..Default::default()
                                 };
                                 texture_handles.push(images.add(texture));
-                            
+
                                 // --- Create the param buffer ---
                                 let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
                                     label: Some("Param Buffer"),
@@ -334,7 +334,7 @@ define_workflow_mod_OLD! {
                                 });
                                 param_buffers.push(buffer);
                             }
-                        
+
                             Output {
                                 params: BatchedGeneratorParams {
                                     shader_name,

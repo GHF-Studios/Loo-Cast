@@ -1,8 +1,8 @@
+use dashmap::DashMap;
+use once_cell::sync::Lazy;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use dashmap::DashMap;
-use once_cell::sync::Lazy;
 use uuid::Uuid;
 
 use crate::debug::types::AnySendNamedBox;
@@ -27,9 +27,14 @@ tokio::task_local! {
 
 pub fn set_context<T: 'static + Send>(name: &'static str, val: T) {
     let id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
-    let ctx = CONTEXTS.get(&id).unwrap_or_else(|| unreachable!("Missing workflow context for `{}`", name)).clone();
-    let mut ctx = ctx.lock().unwrap_or_else(|_| unreachable!("Workflow context mutex poisoned for `{}`", name));
-    
+    let ctx = CONTEXTS
+        .get(&id)
+        .unwrap_or_else(|| unreachable!("Missing workflow context for `{}`", name))
+        .clone();
+    let mut ctx = ctx
+        .lock()
+        .unwrap_or_else(|_| unreachable!("Workflow context mutex poisoned for `{}`", name));
+
     ctx.map.insert(
         ContextKey {
             type_id: TypeId::of::<T>(),
@@ -41,8 +46,13 @@ pub fn set_context<T: 'static + Send>(name: &'static str, val: T) {
 
 pub fn get_context<T: 'static + Send>(name: &'static str) -> T {
     let id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
-    let ctx = CONTEXTS.get(&id).unwrap_or_else(|| unreachable!("Missing workflow context for `{}`", name)).clone();
-    let mut ctx = ctx.lock().unwrap_or_else(|_| unreachable!("Workflow context mutex poisoned for `{}`", name));
+    let ctx = CONTEXTS
+        .get(&id)
+        .unwrap_or_else(|| unreachable!("Missing workflow context for `{}`", name))
+        .clone();
+    let mut ctx = ctx
+        .lock()
+        .unwrap_or_else(|_| unreachable!("Workflow context mutex poisoned for `{}`", name));
 
     ctx.map
         .get_mut(&ContextKey {
@@ -68,7 +78,10 @@ impl ScopedCompositeWorkflowContext {
     fn new() -> Self {
         let id: Uuid = Uuid::new_v4();
         let returns = Arc::new(Mutex::new(HashMap::new()));
-        CONTEXTS.insert(id, Arc::new(Mutex::new(CompositeWorkflowContext::default())));
+        CONTEXTS.insert(
+            id,
+            Arc::new(Mutex::new(CompositeWorkflowContext::default())),
+        );
         Self { id, returns }
     }
 
@@ -78,25 +91,31 @@ impl ScopedCompositeWorkflowContext {
         Fut: std::future::Future<Output = ScopedCompositeWorkflowContext>,
     {
         let id = self.id;
-        CURRENT_COMPOSITE_WORKFLOW_ID.scope(id, async {
-            f(self).await
-        }).await
+        CURRENT_COMPOSITE_WORKFLOW_ID
+            .scope(id, async { f(self).await })
+            .await
     }
 
-    pub async fn run_fallible<F, Fut, E>(self, f: F) -> (ScopedCompositeWorkflowContext, Result<(), E>)
+    pub async fn run_fallible<F, Fut, E>(
+        self,
+        f: F,
+    ) -> (ScopedCompositeWorkflowContext, Result<(), E>)
     where
         F: FnOnce(Self) -> Fut,
         Fut: std::future::Future<Output = (ScopedCompositeWorkflowContext, Result<(), E>)>,
     {
         let id = self.id;
-        CURRENT_COMPOSITE_WORKFLOW_ID.scope(id, async {
-            f(self).await
-        }).await
+        CURRENT_COMPOSITE_WORKFLOW_ID
+            .scope(id, async { f(self).await })
+            .await
     }
 
     pub fn store_return<T: 'static + Send>(&self, name: &'static str, value: T) {
         let mut guard = self.returns.lock().unwrap();
-        guard.insert(name.to_string(), AnySendNamedBox::new(value, std::any::type_name::<T>().to_string()));
+        guard.insert(
+            name.to_string(),
+            AnySendNamedBox::new(value, std::any::type_name::<T>().to_string()),
+        );
     }
 
     pub fn extract_return<T: 'static + Send>(&self, name: &str) -> Option<T> {

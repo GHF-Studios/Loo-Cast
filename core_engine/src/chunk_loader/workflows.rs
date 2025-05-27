@@ -332,7 +332,7 @@ define_workflow_mod_OLD! {
 
                                 s
                             }).collect::<Vec<_>>();
-                            let is_done = spawn_chunk_states.iter().all(|s| s.is_spawned) && 
+                            let is_done = spawn_chunk_states.iter().all(|s| s.is_spawned) &&
                                 transfer_chunk_ownership_states.iter().all(|s| s.is_ownership_transfered);
 
                             if is_done {
@@ -519,7 +519,7 @@ define_workflow_mod_OLD! {
 
                                 s
                             }).collect::<Vec<_>>();
-                            let is_done = despawn_chunk_states.iter().all(|s| s.is_despawned) && 
+                            let is_done = despawn_chunk_states.iter().all(|s| s.is_despawned) &&
                                 transfer_chunk_ownership_states.iter().all(|s| s.is_ownership_transfered);
 
                             if is_done {

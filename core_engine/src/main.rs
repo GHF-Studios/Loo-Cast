@@ -7,8 +7,8 @@ use bevy::log::{Level, LogPlugin};
 use bevy::prelude::*;
 use bevy::window::PresentMode;
 use bevy_rapier2d::prelude::*;
-use iyes_perf_ui::prelude::*;
 use core_engine::*;
+use iyes_perf_ui::prelude::*;
 
 const ENABLE_BACKTRACE: bool = true;
 const REROUTE_LOGS_TO_FILE: bool = false;

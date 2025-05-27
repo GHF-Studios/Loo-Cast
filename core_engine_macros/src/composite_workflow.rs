@@ -12,7 +12,9 @@ impl<'ast> Visit<'ast> for WorkflowMacroDetector {
     fn visit_stmt(&mut self, node: &'ast syn::Stmt) {
         if let syn::Stmt::Macro(mac_stmt) = node {
             if mac_stmt.mac.path.is_ident("workflow") {
-                if let Some(TokenTree::Ident(ident)) = mac_stmt.mac.tokens.clone().into_iter().next() {
+                if let Some(TokenTree::Ident(ident)) =
+                    mac_stmt.mac.tokens.clone().into_iter().next()
+                {
                     if matches!(ident.to_string().as_str(), "E" | "OE" | "IE" | "IOE") {
                         self.found = true;
                     }
@@ -180,7 +182,8 @@ impl CompositeWorkflow {
             }
         });
 
-        let composite_workflow_ident = Ident::new("composite_workflow", proc_macro2::Span::call_site());
+        let composite_workflow_ident =
+            Ident::new("composite_workflow", proc_macro2::Span::call_site());
         let block = &self.block;
         let is_fallible = is_fallible(block);
 

@@ -174,10 +174,7 @@ impl Plugin for WorkflowPlugin {
                     workflow_failure_handling_system,
                 ),
             )
-            .add_systems(
-                Last,
-                workflow_panic_handling_system,
-            );
+            .add_systems(Last, workflow_panic_handling_system);
 
         let render_app = app.sub_app_mut(RenderApp);
         render_app

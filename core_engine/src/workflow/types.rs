@@ -2,7 +2,9 @@ use futures::future::BoxFuture;
 use tokio::task::JoinHandle;
 
 use super::{
-    composite_workflow_context::ScopedCompositeWorkflowContext, stage::{Stage, StageType}, statics::TOKIO_RUNTIME
+    composite_workflow_context::ScopedCompositeWorkflowContext,
+    stage::{Stage, StageType},
+    statics::TOKIO_RUNTIME,
 };
 
 pub struct CompositeWorkflowRuntime(tokio::runtime::Handle);
@@ -11,7 +13,10 @@ impl CompositeWorkflowRuntime {
         Self::default()
     }
 
-    pub fn spawn(&mut self, future: BoxFuture<'static, ScopedCompositeWorkflowContext>) -> JoinHandle<ScopedCompositeWorkflowContext> {
+    pub fn spawn(
+        &mut self,
+        future: BoxFuture<'static, ScopedCompositeWorkflowContext>,
+    ) -> JoinHandle<ScopedCompositeWorkflowContext> {
         self.0.spawn(future)
     }
 

@@ -7,7 +7,10 @@ use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 
 use crate::{config::statics::CONFIG, debug::types::AnySendSyncNamedBox, workflow::response::*};
 
-use super::{channels::*, events::*, instance::*, resources::*, stage::Stage, statics::PANIC_BUFFER, types::*};
+use super::{
+    channels::*, events::*, instance::*, resources::*, stage::Stage, statics::PANIC_BUFFER,
+    types::*,
+};
 
 pub(super) fn extract_render_stage_buffer_system(world: &mut World) {
     let mut main_world = SystemState::<ResMut<MainWorld>>::new(world).get_mut(world);
@@ -1352,9 +1355,10 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
 
             match callback {
                 WorkflowCallback::None(callback) => (callback)(),
-                WorkflowCallback::E(callback) => {
-                    (callback)(AnySendSyncNamedBox::new(TypedWorkflowResponseE(Ok(())), "TypedWorkflowResponseE(Ok(()))".to_string()))
-                }
+                WorkflowCallback::E(callback) => (callback)(AnySendSyncNamedBox::new(
+                    TypedWorkflowResponseE(Ok(())),
+                    "TypedWorkflowResponseE(Ok(()))".to_string(),
+                )),
                 WorkflowCallback::O(callback) => {
                     let stage_output = match stage_output {
                         Some(stage_output) => stage_output,
@@ -1365,8 +1369,12 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         }
                     };
 
-                    let type_name = format!("TypedWorkflowResponseO({})", stage_output.name()).to_string();
-                    (callback)(AnySendSyncNamedBox::new(TypedWorkflowResponseO(stage_output), type_name))
+                    let type_name =
+                        format!("TypedWorkflowResponseO({})", stage_output.name()).to_string();
+                    (callback)(AnySendSyncNamedBox::new(
+                        TypedWorkflowResponseO(stage_output),
+                        type_name,
+                    ))
                 }
                 WorkflowCallback::OE(callback) => {
                     let stage_output = match stage_output {
@@ -1378,13 +1386,18 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         }
                     };
 
-                    let type_name = format!("TypedWorkflowResponseOE({})", stage_output.name()).to_string();
-                    (callback)(AnySendSyncNamedBox::new(TypedWorkflowResponseOE(Ok(stage_output)), type_name))
+                    let type_name =
+                        format!("TypedWorkflowResponseOE({})", stage_output.name()).to_string();
+                    (callback)(AnySendSyncNamedBox::new(
+                        TypedWorkflowResponseOE(Ok(stage_output)),
+                        type_name,
+                    ))
                 }
                 WorkflowCallback::I(callback) => (callback)(),
-                WorkflowCallback::IE(callback) => {
-                    (callback)(AnySendSyncNamedBox::new(TypedWorkflowResponseE(Ok(())), "TypedWorkflowResponseE(Ok(()))".to_string()))
-                }
+                WorkflowCallback::IE(callback) => (callback)(AnySendSyncNamedBox::new(
+                    TypedWorkflowResponseE(Ok(())),
+                    "TypedWorkflowResponseE(Ok(()))".to_string(),
+                )),
                 WorkflowCallback::IO(callback) => {
                     let stage_output = match stage_output {
                         Some(stage_output) => stage_output,
@@ -1395,8 +1408,12 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         }
                     };
 
-                    let type_name = format!("TypedWorkflowResponseO({})", stage_output.name()).to_string();
-                    (callback)(AnySendSyncNamedBox::new(TypedWorkflowResponseO(stage_output), type_name))
+                    let type_name =
+                        format!("TypedWorkflowResponseO({})", stage_output.name()).to_string();
+                    (callback)(AnySendSyncNamedBox::new(
+                        TypedWorkflowResponseO(stage_output),
+                        type_name,
+                    ))
                 }
                 WorkflowCallback::IOE(callback) => {
                     let stage_output = match stage_output {
@@ -1408,8 +1425,12 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                         }
                     };
 
-                    let type_name = format!("TypedWorkflowResponseOE({})", stage_output.name()).to_string();
-                    (callback)(AnySendSyncNamedBox::new(TypedWorkflowResponseOE(Ok(stage_output)), type_name))
+                    let type_name =
+                        format!("TypedWorkflowResponseOE({})", stage_output.name()).to_string();
+                    (callback)(AnySendSyncNamedBox::new(
+                        TypedWorkflowResponseOE(Ok(stage_output)),
+                        type_name,
+                    ))
                 }
             };
         }

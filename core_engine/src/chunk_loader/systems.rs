@@ -55,12 +55,20 @@ pub(crate) fn update_chunk_loader_system(
     if !handle_is_some {
         let handle = composite_workflow!({
             let categorize_chunks_output = workflow!(O, ChunkLoader::CategorizeChunks);
-            workflow!(I, ChunkLoader::LoadChunks, Input {
-                inputs: categorize_chunks_output.load_chunk_inputs
-            });
-            workflow!(I, ChunkLoader::UnloadChunks, Input {
-                inputs: categorize_chunks_output.unload_chunk_inputs
-            });
+            workflow!(
+                I,
+                ChunkLoader::LoadChunks,
+                Input {
+                    inputs: categorize_chunks_output.load_chunk_inputs
+                }
+            );
+            workflow!(
+                I,
+                ChunkLoader::UnloadChunks,
+                Input {
+                    inputs: categorize_chunks_output.unload_chunk_inputs
+                }
+            );
         });
 
         *composite_workflow_handle = Some(handle);

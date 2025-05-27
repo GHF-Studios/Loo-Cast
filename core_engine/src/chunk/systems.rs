@@ -90,7 +90,9 @@ pub(crate) fn process_chunk_actions_system(
         for coord in coords {
             if let Some(action) = chunk_action_buffer.actions.get(coord).cloned() {
                 match action {
-                    ChunkAction::Spawn { coord, new_owner, .. } => {
+                    ChunkAction::Spawn {
+                        coord, new_owner, ..
+                    } => {
                         spawn_coords.push(coord);
                         spawn_inputs.push(crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
                             chunk_coord: coord,
@@ -105,7 +107,9 @@ pub(crate) fn process_chunk_actions_system(
                         });
                         processed_coords.push(coord);
                     }
-                    ChunkAction::TransferOwnership { coord, new_owner, .. } => {
+                    ChunkAction::TransferOwnership {
+                        coord, new_owner, ..
+                    } => {
                         transfer_inputs.push(crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput {
                             chunk_coord: coord,
                             new_owner,
@@ -128,18 +132,20 @@ pub(crate) fn process_chunk_actions_system(
 
         let param_data = spawn_coords
             .iter()
-            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
-                chunk_pos: [x, y],
-                chunk_size,
-                _padding: 0,
+            .map(|&(x, y)| {
+                crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                    chunk_pos: [x, y],
+                    chunk_size,
+                    _padding: 0,
+                }
             })
             .collect::<Vec<_>>();
 
         Some(composite_workflow!(
-            move in texture_size: usize, 
-            move in spawn_inputs: Vec<SpawnChunkInput>, 
-            move in param_data: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>, 
-            move in spawn_coords: Vec<(i32, i32)>, 
+            move in texture_size: usize,
+            move in spawn_inputs: Vec<SpawnChunkInput>,
+            move in param_data: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in spawn_coords: Vec<(i32, i32)>,
         {
             let generate_output = workflow!(IO, Gpu::GenerateTextures, Input {
                 shader_name: "texture_generators/example_compute_uv",
@@ -160,23 +166,33 @@ pub(crate) fn process_chunk_actions_system(
                 inputs: spawn_inputs_with_textures
             });
         }))
-    } else { None };
+    } else {
+        None
+    };
 
     let despawn_handle = if !despawn_inputs.is_empty() {
-        Some(composite_workflow!(move in despawn_inputs: Vec<DespawnChunkInput>, {
-            let _ = workflow!(IOE, Chunk::DespawnChunks, Input {
-                inputs: despawn_inputs
-            });
-        }))
-    } else { None };
+        Some(
+            composite_workflow!(move in despawn_inputs: Vec<DespawnChunkInput>, {
+                let _ = workflow!(IOE, Chunk::DespawnChunks, Input {
+                    inputs: despawn_inputs
+                });
+            }),
+        )
+    } else {
+        None
+    };
 
     let transfer_handle = if !transfer_inputs.is_empty() {
-        Some(composite_workflow!(move in transfer_inputs: Vec<TransferChunkOwnershipInput>, {
-            let _ = workflow!(IOE, Chunk::TransferChunkOwnerships, Input {
-                inputs: transfer_inputs
-            });
-        }))
-    } else { None };
+        Some(
+            composite_workflow!(move in transfer_inputs: Vec<TransferChunkOwnershipInput>, {
+                let _ = workflow!(IOE, Chunk::TransferChunkOwnerships, Input {
+                    inputs: transfer_inputs
+                });
+            }),
+        )
+    } else {
+        None
+    };
 
     *workflow_handles = Some(ChunkActionWorkflowHandles {
         spawn: spawn_handle,
@@ -187,4 +203,3 @@ pub(crate) fn process_chunk_actions_system(
     // Step 4: Mark all these actions as in-progress (done now)
     chunk_action_buffer.remove_actions(processed_coords);
 }
-

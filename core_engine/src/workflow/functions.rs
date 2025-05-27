@@ -1,6 +1,8 @@
-use futures::FutureExt;
-use crate::workflow::composite_workflow_context::{CURRENT_COMPOSITE_WORKFLOW_ID, ScopedCompositeWorkflowContext};
 use crate::debug::types::AnySendSyncNamedBox;
+use crate::workflow::composite_workflow_context::{
+    ScopedCompositeWorkflowContext, CURRENT_COMPOSITE_WORKFLOW_ID,
+};
+use futures::FutureExt;
 
 use super::{channels::*, request::*, statics::PANIC_BUFFER, traits::*};
 
@@ -206,8 +208,10 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
     }
 }
 
-pub fn handle_composite_workflow_return_now<F>(handle: tokio::task::JoinHandle<ScopedCompositeWorkflowContext>, f: F)
-where
+pub fn handle_composite_workflow_return_now<F>(
+    handle: tokio::task::JoinHandle<ScopedCompositeWorkflowContext>,
+    f: F,
+) where
     F: FnOnce(&ScopedCompositeWorkflowContext),
 {
     match handle.now_or_never() {
@@ -217,12 +221,10 @@ where
     }
 }
 
-
 pub fn handle_composite_workflow_return_later<F>(
     handle: tokio::task::JoinHandle<ScopedCompositeWorkflowContext>,
     f: F,
-)
-where
+) where
     F: FnOnce(&ScopedCompositeWorkflowContext) + Send + 'static,
 {
     let panic_buffer = PANIC_BUFFER.clone();

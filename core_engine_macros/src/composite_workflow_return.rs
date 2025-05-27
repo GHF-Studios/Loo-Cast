@@ -48,10 +48,9 @@ impl CompositeWorkflowReturn {
                 let #mut_token #ident: #ty = ctx.extract_return(#name).unwrap_or_else(|| unreachable!("Missing context return for `{:?}: #ty`", #name));
             }
         });
-    
+
         quote! {
             #(#return_contexts)*
         }
     }
-    
 }

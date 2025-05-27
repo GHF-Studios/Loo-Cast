@@ -1,8 +1,8 @@
 use std::any::Any;
 
 use crate::config::statics::CONFIG;
-use crate::workflow::types::*;
 use crate::debug::types::AnySendSyncNamedBox;
+use crate::workflow::types::*;
 
 pub enum WorkflowCallback {
     None(Box<dyn FnOnce() + Send + Sync>),
@@ -235,24 +235,30 @@ impl WorkflowInstance {
         match self {
             WorkflowInstance::None(_) => None,
             WorkflowInstance::E(_) => None,
-            WorkflowInstance::O(instance) => {
-                Some(std::mem::replace(&mut instance.data_buffer, AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string())))
-            }
-            WorkflowInstance::OE(instance) => {
-                Some(std::mem::replace(&mut instance.data_buffer, AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string())))
-            }
-            WorkflowInstance::I(instance) => {
-                Some(std::mem::replace(&mut instance.data_buffer, AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string())))
-            }
-            WorkflowInstance::IE(instance) => {
-                Some(std::mem::replace(&mut instance.data_buffer, AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string())))
-            }
-            WorkflowInstance::IO(instance) => {
-                Some(std::mem::replace(&mut instance.data_buffer, AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string())))
-            }
-            WorkflowInstance::IOE(instance) => {
-                Some(std::mem::replace(&mut instance.data_buffer, AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string())))
-            }
+            WorkflowInstance::O(instance) => Some(std::mem::replace(
+                &mut instance.data_buffer,
+                AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string()),
+            )),
+            WorkflowInstance::OE(instance) => Some(std::mem::replace(
+                &mut instance.data_buffer,
+                AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string()),
+            )),
+            WorkflowInstance::I(instance) => Some(std::mem::replace(
+                &mut instance.data_buffer,
+                AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string()),
+            )),
+            WorkflowInstance::IE(instance) => Some(std::mem::replace(
+                &mut instance.data_buffer,
+                AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string()),
+            )),
+            WorkflowInstance::IO(instance) => Some(std::mem::replace(
+                &mut instance.data_buffer,
+                AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string()),
+            )),
+            WorkflowInstance::IOE(instance) => Some(std::mem::replace(
+                &mut instance.data_buffer,
+                AnySendSyncNamedBox::new((), "__PLACEHOLDER__".to_string()),
+            )),
         }
     }
 

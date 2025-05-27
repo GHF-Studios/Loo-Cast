@@ -41,9 +41,7 @@ pub mod workflow;
 use crate::workflow::functions::handle_composite_workflow_return_later;
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use camera::CameraPlugin;
-use core_engine_macros::{
-    composite_workflow, composite_workflow_return, register_workflow_mods,
-};
+use core_engine_macros::{composite_workflow, composite_workflow_return, register_workflow_mods};
 use workflow::WorkflowPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;
@@ -76,7 +74,7 @@ impl PluginGroup for SpacetimeEngineMainPlugins {
             //.add(EntityPlugin)
             //.add(MathPlugin)
             .add(PlayerPlugin)
-            //.add(SpriteBundlePlugin)
+        //.add(SpriteBundlePlugin)
     }
 }
 
@@ -187,4 +185,3 @@ fn startup_system() {
         composite_workflow_return!();
     });
 }
-

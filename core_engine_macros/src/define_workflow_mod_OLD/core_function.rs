@@ -393,7 +393,12 @@ impl Parse for CoreFunction {
 }
 
 impl CoreFunction {
-    pub fn generate(&self) -> TokenStream {
+    pub fn generate(
+        &self,
+        state_type_name: String,
+        output_type_name: String,
+        error_type_name: String,
+    ) -> TokenStream {
         let has_input = self.signature.has_input;
         let has_state = self.signature.has_state;
         let has_output = self.signature.has_output;
@@ -416,7 +421,7 @@ impl CoreFunction {
                     quote! {
                         fn run_ecs(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let result = run_ecs_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_inner(main_access: MainAccess) -> Result<(), Error> #body
@@ -426,7 +431,7 @@ impl CoreFunction {
                     quote! {
                         fn run_ecs(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let output = run_ecs_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(output))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()))
                         }
 
                         fn run_ecs_inner(main_access: MainAccess) -> Output #body
@@ -436,7 +441,7 @@ impl CoreFunction {
                     quote! {
                         fn run_ecs(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let result = run_ecs_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_inner(main_access: MainAccess) -> Result<Output, Error> #body
@@ -445,7 +450,7 @@ impl CoreFunction {
                 (true, false, false) => {
                     quote! {
                         fn run_ecs(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             run_ecs_inner(input, main_access);
                             None
                         }
@@ -456,9 +461,9 @@ impl CoreFunction {
                 (true, false, true) => {
                     quote! {
                         fn run_ecs(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let result = run_ecs_inner(input, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_inner(input: Input, main_access: MainAccess) -> Result<(), Error> #body
@@ -467,9 +472,9 @@ impl CoreFunction {
                 (true, true, false) => {
                     quote! {
                         fn run_ecs(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let output = run_ecs_inner(input, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(output))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()))
                         }
 
                         fn run_ecs_inner(input: Input, main_access: MainAccess) -> Output #body
@@ -478,9 +483,9 @@ impl CoreFunction {
                 (true, true, true) => {
                     quote! {
                         fn run_ecs(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let result = run_ecs_inner(input, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_inner(input: Input, main_access: MainAccess) -> Result<Output, Error> #body
@@ -502,7 +507,7 @@ impl CoreFunction {
                     quote! {
                         fn run_render(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let result = run_render_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_inner(render_access: RenderAccess) -> Result<(), Error> #body
@@ -512,7 +517,7 @@ impl CoreFunction {
                     quote! {
                         fn run_render(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let output = run_render_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(output))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()))
                         }
 
                         fn run_render_inner(render_access: RenderAccess) -> Output #body
@@ -522,7 +527,7 @@ impl CoreFunction {
                     quote! {
                         fn run_render(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let result = run_render_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_inner(render_access: RenderAccess) -> Result<Output, Error> #body
@@ -531,7 +536,7 @@ impl CoreFunction {
                 (true, false, false) => {
                     quote! {
                         fn run_render(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             run_render_inner(input, render_access);
                             None
                         }
@@ -542,9 +547,9 @@ impl CoreFunction {
                 (true, false, true) => {
                     quote! {
                         fn run_render(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let result = run_render_inner(input, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_inner(input: Input, render_access: RenderAccess) -> Result<(), Error> #body
@@ -553,9 +558,9 @@ impl CoreFunction {
                 (true, true, false) => {
                     quote! {
                         fn run_render(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let output = run_render_inner(input, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(output))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()))
                         }
 
                         fn run_render_inner(input: Input, render_access: RenderAccess) -> Output #body
@@ -564,9 +569,9 @@ impl CoreFunction {
                 (true, true, true) => {
                     quote! {
                         fn run_render(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let result = run_render_inner(input, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_inner(input: Input, render_access: RenderAccess) -> Result<Output, Error> #body
@@ -588,7 +593,7 @@ impl CoreFunction {
                     quote! {
                         fn run_async() -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let result = run_async_inner();
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_async_inner() -> Result<(), Error> #body
@@ -598,7 +603,7 @@ impl CoreFunction {
                     quote! {
                         fn run_async() -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let output = run_async_inner();
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(output))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()))
                         }
 
                         fn run_async_inner() -> Output #body
@@ -608,7 +613,7 @@ impl CoreFunction {
                     quote! {
                         fn run_async() -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let result = run_async_inner();
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_async_inner() -> Result<Output, Error> #body
@@ -617,7 +622,7 @@ impl CoreFunction {
                 (true, false, false) => {
                     quote! {
                         fn run_async(input: Option<crate::debug::types::AnySendSyncNamedBox>) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             run_async_inner(input);
                             None
                         }
@@ -628,9 +633,9 @@ impl CoreFunction {
                 (true, false, true) => {
                     quote! {
                         fn run_async(input: Option<crate::debug::types::AnySendSyncNamedBox>) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let result = run_async_inner(input);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_async_inner(input: Input) -> Result<(), Error> #body
@@ -639,9 +644,9 @@ impl CoreFunction {
                 (true, true, false) => {
                     quote! {
                         fn run_async(input: Option<crate::debug::types::AnySendSyncNamedBox>) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let output = run_async_inner(input);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(output))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()))
                         }
 
                         fn run_async_inner(input: Input) -> Output #body
@@ -650,9 +655,9 @@ impl CoreFunction {
                 (true, true, true) => {
                     quote! {
                         fn run_async(input: Option<crate::debug::types::AnySendSyncNamedBox>) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let result = run_async_inner(input);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_async_inner(input: Input) -> Result<Output, Error> #body
@@ -674,7 +679,7 @@ impl CoreFunction {
                     quote! {
                         fn setup_ecs_while(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let result = setup_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_ecs_while_inner(main_access: MainAccess) -> Result<(), Error> #body
@@ -684,7 +689,7 @@ impl CoreFunction {
                     quote! {
                         fn setup_ecs_while(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let state = setup_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(state))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()))
                         }
 
                         fn setup_ecs_while_inner(main_access: MainAccess) -> State #body
@@ -694,7 +699,7 @@ impl CoreFunction {
                     quote! {
                         fn setup_ecs_while(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let result = setup_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_ecs_while_inner(main_access: MainAccess) -> Result<State, Error> #body
@@ -703,7 +708,7 @@ impl CoreFunction {
                 (true, false, false) => {
                     quote! {
                         fn setup_ecs_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             setup_ecs_while_inner(input, main_access);
                             None
                         }
@@ -714,9 +719,9 @@ impl CoreFunction {
                 (true, false, true) => {
                     quote! {
                         fn setup_ecs_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let result = setup_ecs_while_inner(input, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_ecs_while_inner(input: Input, main_access: MainAccess) -> Result<(), Error> #body
@@ -725,9 +730,9 @@ impl CoreFunction {
                 (true, true, false) => {
                     quote! {
                         fn setup_ecs_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let state = setup_ecs_while_inner(input, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(state))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()))
                         }
 
                         fn setup_ecs_while_inner(input: Input, main_access: MainAccess) -> State #body
@@ -736,9 +741,9 @@ impl CoreFunction {
                 (true, true, true) => {
                     quote! {
                         fn setup_ecs_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let result = setup_ecs_while_inner(input, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_ecs_while_inner(input: Input, main_access: MainAccess) -> Result<State, Error> #body
@@ -760,7 +765,7 @@ impl CoreFunction {
                     quote! {
                         fn setup_render_while(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let result = setup_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_render_while_inner(render_access: RenderAccess) -> Result<(), Error> #body
@@ -770,7 +775,7 @@ impl CoreFunction {
                     quote! {
                         fn setup_render_while(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let state = setup_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(state))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()))
                         }
 
                         fn setup_render_while_inner(render_access: RenderAccess) -> State #body
@@ -780,7 +785,7 @@ impl CoreFunction {
                     quote! {
                         fn setup_render_while(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let result = setup_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_render_while_inner(render_access: RenderAccess) -> Result<State, Error> #body
@@ -789,7 +794,7 @@ impl CoreFunction {
                 (true, false, false) => {
                     quote! {
                         fn setup_render_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             setup_render_while_inner(input, render_access);
                             None
                         }
@@ -800,9 +805,9 @@ impl CoreFunction {
                 (true, false, true) => {
                     quote! {
                         fn setup_render_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let result = setup_render_while_inner(input, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_render_while_inner(input: Input, render_access: RenderAccess) -> Result<(), Error> #body
@@ -811,9 +816,9 @@ impl CoreFunction {
                 (true, true, false) => {
                     quote! {
                         fn setup_render_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let state = setup_render_while_inner(input, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(state))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()))
                         }
 
                         fn setup_render_while_inner(input: Input, render_access: RenderAccess) -> State #body
@@ -823,9 +828,9 @@ impl CoreFunction {
                     quote! {
                         // TODO: MINOR: POINTER: Setup functions' responses (and data in general) do not need to be optional at all
                         fn setup_render_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let input = input.unwrap().into_inner::<Input>().unwrap();
+                            let input = input.unwrap().into_inner::<Input>();
                             let result = setup_render_while_inner(input, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_render_while_inner(input: Input, render_access: RenderAccess) -> Result<State, Error> #body
@@ -837,7 +842,7 @@ impl CoreFunction {
                     quote! {
                         fn run_ecs_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let outcome = run_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<(), ()>").to_string()))
                         }
 
                         fn run_ecs_while_inner(main_access: MainAccess) -> Outcome<(), ()> #body
@@ -847,7 +852,7 @@ impl CoreFunction {
                     quote! {
                         fn run_ecs_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let outcome_result = run_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<(), ()>, {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(main_access: MainAccess) -> Result<Outcome<(), ()>, Error> #body
@@ -857,7 +862,7 @@ impl CoreFunction {
                     quote! {
                         fn run_ecs_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let outcome = run_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<(), {}>", #output_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(main_access: MainAccess) -> Outcome<(), Output> #body
@@ -867,7 +872,7 @@ impl CoreFunction {
                     quote! {
                         fn run_ecs_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let outcome_result = run_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<(), {}>, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(main_access: MainAccess) -> Result<Outcome<(), Output>, Error> #body
@@ -876,9 +881,9 @@ impl CoreFunction {
                 (true, false, false) => {
                     quote! {
                         fn run_ecs_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let state = state.unwrap().into_inner::<State>().unwrap();
+                            let state = state.unwrap().into_inner::<State>();
                             let outcome = run_ecs_while_inner(state, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<{}, ()>", #state_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(state: State, main_access: MainAccess) -> Outcome<State, ()> #body
@@ -887,9 +892,9 @@ impl CoreFunction {
                 (true, false, true) => {
                     quote! {
                         fn run_ecs_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let state = state.unwrap().into_inner::<State>().unwrap();
+                            let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_ecs_while_inner(state, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<{}, ()>, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(state: State, main_access: MainAccess) -> Result<Outcome<State, ()>, Error> #body
@@ -898,9 +903,9 @@ impl CoreFunction {
                 (true, true, false) => {
                     quote! {
                         fn run_ecs_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let state = state.unwrap().into_inner::<State>().unwrap();
+                            let state = state.unwrap().into_inner::<State>();
                             let outcome = run_ecs_while_inner(state, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<{}, {}>", #state_type_name.to_string(), #output_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(state: State, main_access: MainAccess) -> Outcome<State, Output> #body
@@ -909,9 +914,9 @@ impl CoreFunction {
                 (true, true, true) => {
                     quote! {
                         fn run_ecs_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let state = state.unwrap().into_inner::<State>().unwrap();
+                            let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_ecs_while_inner(state, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<{}, {}}>, {}>", #state_type_name.to_string(), #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(state: State, main_access: MainAccess) -> Result<Outcome<State, Output>, Error> #body
@@ -923,7 +928,7 @@ impl CoreFunction {
                     quote! {
                         fn run_render_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let outcome = run_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<(), ()>").to_string()))
                         }
 
                         fn run_render_while_inner(render_access: RenderAccess) -> Outcome<(), ()> #body
@@ -933,7 +938,7 @@ impl CoreFunction {
                     quote! {
                         fn run_render_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let outcome_result = run_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<(), ()>, {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(render_access: RenderAccess) -> Result<Outcome<(), ()>, Error> #body
@@ -943,7 +948,7 @@ impl CoreFunction {
                     quote! {
                         fn run_render_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let outcome = run_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<(), {}>", #output_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(render_access: RenderAccess) -> Outcome<(), Output> #body
@@ -953,7 +958,7 @@ impl CoreFunction {
                     quote! {
                         fn run_render_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
                             let outcome_result = run_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<(), {}>, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(render_access: RenderAccess) -> Result<Outcome<(), Output>, Error> #body
@@ -962,9 +967,9 @@ impl CoreFunction {
                 (true, false, false) => {
                     quote! {
                         fn run_render_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let state = state.unwrap().into_inner::<State>().unwrap();
+                            let state = state.unwrap().into_inner::<State>();
                             let outcome = run_render_while_inner(state, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<{}, ()>", #state_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(state: State, render_access: RenderAccess) -> Outcome<State, ()> #body
@@ -973,9 +978,9 @@ impl CoreFunction {
                 (true, false, true) => {
                     quote! {
                         fn run_render_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let state = state.unwrap().into_inner::<State>().unwrap();
+                            let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_render_while_inner(state, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<{}, ()>, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(state: State, render_access: RenderAccess) -> Result<Outcome<State, ()>, Error> #body
@@ -984,9 +989,9 @@ impl CoreFunction {
                 (true, true, false) => {
                     quote! {
                         fn run_render_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let state = state.unwrap().into_inner::<State>().unwrap();
+                            let state = state.unwrap().into_inner::<State>();
                             let outcome = run_render_while_inner(state, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<{}, {}>", #state_type_name.to_string(), #output_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(state: State, render_access: RenderAccess) -> Outcome<State, Output> #body
@@ -995,9 +1000,9 @@ impl CoreFunction {
                 (true, true, true) => {
                     quote! {
                         fn run_render_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
-                            let state = state.unwrap().into_inner::<State>().unwrap();
+                            let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_render_while_inner(state, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result))
+                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<{}, {}}>, {}>", #state_type_name.to_string(), #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(state: State, render_access: RenderAccess) -> Result<Outcome<State, Output>, Error> #body
@@ -1136,10 +1141,16 @@ impl Parse for CoreFunctions<RenderWhile> {
 }
 
 impl CoreFunctions<Ecs> {
-    pub fn generate(&self, stage_signature: StageSignature) -> TokenStream {
+    pub fn generate(
+        &self,
+        stage_signature: StageSignature,
+        output_type_name: String,
+        error_type_name: String,
+    ) -> TokenStream {
         let has_input = stage_signature.has_input();
         let has_output = stage_signature.has_output();
         let has_error = stage_signature.has_error();
+        let state_type_name = "".to_string();
 
         match self {
             CoreFunctions::Default { run, .. } => {
@@ -1409,7 +1420,7 @@ impl CoreFunctions<Ecs> {
                         }
                     }
                 };
-                let run_fn = run.generate();
+                let run_fn = run.generate(state_type_name, output_type_name, error_type_name);
 
                 quote! {
                     #poll_fn_inner
@@ -1422,10 +1433,16 @@ impl CoreFunctions<Ecs> {
 }
 
 impl CoreFunctions<Render> {
-    pub fn generate(&self, stage_signature: StageSignature) -> TokenStream {
+    pub fn generate(
+        &self,
+        stage_signature: StageSignature,
+        output_type_name: String,
+        error_type_name: String,
+    ) -> TokenStream {
         let has_input = stage_signature.has_input();
         let has_output = stage_signature.has_output();
         let has_error = stage_signature.has_error();
+        let state_type_name = "".to_string();
 
         match self {
             CoreFunctions::Default { run, .. } => {
@@ -1696,7 +1713,7 @@ impl CoreFunctions<Render> {
                         }
                     }
                 };
-                let run_fn = run.generate();
+                let run_fn = run.generate(state_type_name, output_type_name, error_type_name);
 
                 quote! {
                     #poll_fn_inner
@@ -1709,10 +1726,16 @@ impl CoreFunctions<Render> {
 }
 
 impl CoreFunctions<Async> {
-    pub fn generate(&self, stage_signature: StageSignature) -> TokenStream {
+    pub fn generate(
+        &self,
+        stage_signature: StageSignature,
+        output_type_name: String,
+        error_type_name: String,
+    ) -> TokenStream {
         let has_input = stage_signature.has_input();
         let has_output = stage_signature.has_output();
         let has_error = stage_signature.has_error();
+        let state_type_name = "".to_string();
 
         match self {
             CoreFunctions::Default { run, .. } => {
@@ -1735,7 +1758,7 @@ impl CoreFunctions<Async> {
                                     .unwrap()
                                     .handle()
                                     .clone();
-                                
+
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
                                     handle.spawn(async move {
                                         let _response = response_future.await;
@@ -1775,7 +1798,7 @@ impl CoreFunctions<Async> {
                                     .unwrap()
                                     .handle()
                                     .clone();
-                                
+
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
                                     handle.spawn(async move {
                                         let response = response_future.await;
@@ -1814,7 +1837,7 @@ impl CoreFunctions<Async> {
                                     .unwrap()
                                     .handle()
                                     .clone();
-                                
+
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
                                     handle.spawn(async move {
                                         let response = response_future.await;
@@ -1854,7 +1877,7 @@ impl CoreFunctions<Async> {
                                     .unwrap()
                                     .handle()
                                     .clone();
-                                
+
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
                                     handle.spawn(async move {
                                         let response = response_future.await;
@@ -1894,7 +1917,7 @@ impl CoreFunctions<Async> {
                                     .unwrap()
                                     .handle()
                                     .clone();
-                                
+
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
                                     handle.spawn(async move {
                                         let _response = response_future.await;
@@ -1935,7 +1958,7 @@ impl CoreFunctions<Async> {
                                     .unwrap()
                                     .handle()
                                     .clone();
-                                
+
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
                                     handle.spawn(async move {
                                         let response = response_future.await;
@@ -1975,7 +1998,7 @@ impl CoreFunctions<Async> {
                                     .unwrap()
                                     .handle()
                                     .clone();
-                                
+
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
                                     handle.spawn(async move {
                                         let response = response_future.await;
@@ -2016,7 +2039,7 @@ impl CoreFunctions<Async> {
                                     .unwrap()
                                     .handle()
                                     .clone();
-                                
+
                                 if let Err(err) = TOKIO_RUNTIME.lock().unwrap().block_on(async move {
                                     handle.spawn(async move {
                                         let response = response_future.await;
@@ -2038,7 +2061,7 @@ impl CoreFunctions<Async> {
                         }
                     }
                 };
-                let run_fn = run.generate();
+                let run_fn = run.generate(state_type_name, output_type_name, error_type_name);
 
                 quote! {
                     #poll_fn_inner
@@ -2051,7 +2074,13 @@ impl CoreFunctions<Async> {
 }
 
 impl CoreFunctions<EcsWhile> {
-    pub fn generate(&self, stage_signature: StageSignature) -> TokenStream {
+    pub fn generate(
+        &self,
+        stage_signature: StageSignature,
+        state_type_name: String,
+        output_type_name: String,
+        error_type_name: String,
+    ) -> TokenStream {
         let has_input = stage_signature.has_input();
         let has_output = stage_signature.has_output();
         let has_error = stage_signature.has_error();
@@ -2109,7 +2138,7 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2133,7 +2162,7 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2196,7 +2225,7 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2220,7 +2249,7 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2283,7 +2312,7 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2307,7 +2336,7 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2370,7 +2399,7 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2394,7 +2423,7 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2457,7 +2486,7 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2481,7 +2510,7 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2545,7 +2574,7 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2569,7 +2598,7 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2632,7 +2661,7 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2656,7 +2685,7 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2720,7 +2749,7 @@ impl CoreFunctions<EcsWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2744,7 +2773,7 @@ impl CoreFunctions<EcsWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2758,8 +2787,12 @@ impl CoreFunctions<EcsWhile> {
                         }
                     }
                 };
-                let setup_fn = setup.generate();
-                let run_fn = run.generate();
+                let setup_fn = setup.generate(
+                    state_type_name.clone(),
+                    output_type_name.clone(),
+                    error_type_name.clone(),
+                );
+                let run_fn = run.generate(state_type_name, output_type_name, error_type_name);
 
                 quote! {
                     #poll_fn_inner
@@ -2773,7 +2806,13 @@ impl CoreFunctions<EcsWhile> {
 }
 
 impl CoreFunctions<RenderWhile> {
-    pub fn generate(&self, stage_signature: StageSignature) -> TokenStream {
+    pub fn generate(
+        &self,
+        stage_signature: StageSignature,
+        state_type_name: String,
+        output_type_name: String,
+        error_type_name: String,
+    ) -> TokenStream {
         let has_input = stage_signature.has_input();
         let has_output = stage_signature.has_output();
         let has_error = stage_signature.has_error();
@@ -2825,7 +2864,7 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2838,7 +2877,7 @@ impl CoreFunctions<RenderWhile> {
                                     *stage_initialized = true;
                                 } else {
                                     let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
-                                    
+
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
                                     let handler = (handle_render_while_run_response)(
@@ -2849,7 +2888,7 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2899,7 +2938,7 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2923,7 +2962,7 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2972,7 +3011,7 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -2996,7 +3035,7 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -3046,7 +3085,7 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -3070,7 +3109,7 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -3121,7 +3160,7 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -3145,7 +3184,7 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -3196,7 +3235,7 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -3220,7 +3259,7 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -3269,7 +3308,7 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -3292,7 +3331,7 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         None,
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -3315,15 +3354,15 @@ impl CoreFunctions<RenderWhile> {
                                 if stage_buffer.is_empty() {
                                     return;
                                 }
-                            
+
                                 let setup_sender = crate::workflow::channels::get_stage_setup_sender();
                                 let wait_sender = crate::workflow::channels::get_stage_wait_sender();
                                 let completion_sender = crate::workflow::channels::get_stage_completion_sender();
                                 let failure_sender = crate::workflow::channels::get_stage_failure_sender();
-                            
+
                                 let (module_name, workflow_name, current_stage, mut stage, data_buffer) = stage_buffer.empty();
                                 let mut stolen_render_workflow_state_extract_shard = std::mem::take(&mut *render_workflow_state_extract_shard);
-                            
+
                                 let (stage_initialized, stage_completed) = match stolen_render_workflow_state_extract_shard {
                                     RenderWhileWorkflowStateExtractShard::Some {
                                         module_name,
@@ -3339,16 +3378,16 @@ impl CoreFunctions<RenderWhile> {
                                         );
                                     }
                                 };
-                            
+
                                 if stage_completed {
                                     return;
                                 }
-                            
+
                                 if !*stage_initialized {
                                     let handle_render_while_setup_response = &mut stage.handle_render_while_setup_response;
                                     let input = data_buffer;
                                     let response = setup_render_while(input, render_access);
-                            
+
                                     let handler = (handle_render_while_setup_response)(
                                         module_name,
                                         workflow_name,
@@ -3356,7 +3395,7 @@ impl CoreFunctions<RenderWhile> {
                                         setup_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -3365,13 +3404,13 @@ impl CoreFunctions<RenderWhile> {
                                     handle.spawn(async move {
                                         handler(stage);
                                     });
-                            
+
                                     *stage_initialized = true;
                                 } else {
                                     let handle_render_while_run_response = &mut stage.handle_render_while_run_response;
                                     let state = data_buffer;
                                     let response = run_render_while(state, render_access);
-                            
+
                                     let handler = (handle_render_while_run_response)(
                                         module_name,
                                         workflow_name,
@@ -3380,7 +3419,7 @@ impl CoreFunctions<RenderWhile> {
                                         completion_sender,
                                         Some(failure_sender),
                                     );
-                            
+
                                     let handle = crate::workflow::statics::TOKIO_RUNTIME
                                         .lock()
                                         .unwrap()
@@ -3394,8 +3433,12 @@ impl CoreFunctions<RenderWhile> {
                         }
                     }
                 };
-                let setup_fn = setup.generate();
-                let run_fn = run.generate();
+                let setup_fn = setup.generate(
+                    state_type_name.clone(),
+                    output_type_name.clone(),
+                    error_type_name.clone(),
+                );
+                let run_fn = run.generate(state_type_name, output_type_name, error_type_name);
 
                 quote! {
                     #poll_fn_inner

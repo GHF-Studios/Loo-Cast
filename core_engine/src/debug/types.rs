@@ -18,15 +18,36 @@ impl AnySendNamedBox {
     }
 
     pub fn downcast_ref<T: Any>(&self) -> &T {
-        self.inner.downcast_ref().expect(format!("Failed to downcast AnyNamedBox from '{}' to '{}'", self.name, std::any::type_name::<T>()).as_str())
+        self.inner.downcast_ref().expect(
+            format!(
+                "Failed to downcast AnyNamedBox from '{}' to '{}'",
+                self.name,
+                std::any::type_name::<T>()
+            )
+            .as_str(),
+        )
     }
 
     pub fn downcast_mut<T: Any>(&mut self) -> &mut T {
-        self.inner.downcast_mut().expect(format!("Failed to downcast AnyNamedBox from '{}' to '{}'", self.name, std::any::type_name::<T>()).as_str())
+        self.inner.downcast_mut().expect(
+            format!(
+                "Failed to downcast AnyNamedBox from '{}' to '{}'",
+                self.name,
+                std::any::type_name::<T>()
+            )
+            .as_str(),
+        )
     }
 
     pub fn into_inner<T: Any>(self) -> T {
-        *self.inner.downcast().expect(format!("Failed to downcast AnyNamedBox from '{}' to '{}'", self.name, std::any::type_name::<T>()).as_str())
+        *self.inner.downcast().expect(
+            format!(
+                "Failed to downcast AnyNamedBox from '{}' to '{}'",
+                self.name,
+                std::any::type_name::<T>()
+            )
+            .as_str(),
+        )
     }
 }
 
@@ -48,14 +69,35 @@ impl AnySendSyncNamedBox {
     }
 
     pub fn downcast_ref<T: Any>(&self) -> &T {
-        self.inner.downcast_ref().expect(format!("Failed to downcast AnyNamedBox from '{}' to '{}'", self.name, std::any::type_name::<T>()).as_str())
+        self.inner.downcast_ref().expect(
+            format!(
+                "Failed to downcast AnyNamedBox from '{}' to '{}'",
+                self.name,
+                std::any::type_name::<T>()
+            )
+            .as_str(),
+        )
     }
 
     pub fn downcast_mut<T: Any>(&mut self) -> &mut T {
-        self.inner.downcast_mut().expect(format!("Failed to downcast AnyNamedBox from '{}' to '{}'", self.name, std::any::type_name::<T>()).as_str())
+        self.inner.downcast_mut().expect(
+            format!(
+                "Failed to downcast AnyNamedBox from '{}' to '{}'",
+                self.name,
+                std::any::type_name::<T>()
+            )
+            .as_str(),
+        )
     }
 
     pub fn into_inner<T: Any>(self) -> T {
-        *self.inner.downcast().expect(format!("Failed to downcast AnyNamedBox from '{}' to '{}'", self.name, std::any::type_name::<T>()).as_str())
+        *self.inner.downcast().expect(
+            format!(
+                "Failed to downcast AnyNamedBox from '{}' to '{}'",
+                self.name,
+                std::any::type_name::<T>()
+            )
+            .as_str(),
+        )
     }
 }

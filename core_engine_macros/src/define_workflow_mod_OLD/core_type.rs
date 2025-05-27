@@ -50,8 +50,20 @@ pub enum CoreType<T> {
 impl CoreType<Input> {
     pub fn generate(&self) -> TokenStream {
         match self {
-            CoreType::Struct(item, _) => item.to_token_stream(),
-            CoreType::Enum(item, _) => item.to_token_stream(),
+            CoreType::Struct(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[repr(C)]
+                    #item
+                }
+            }
+            CoreType::Enum(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[repr(C)]
+                    #item
+                }
+            }
         }
     }
 }
@@ -59,8 +71,20 @@ impl CoreType<Input> {
 impl CoreType<State> {
     pub fn generate(&self) -> TokenStream {
         match self {
-            CoreType::Struct(item, _) => item.to_token_stream(),
-            CoreType::Enum(item, _) => item.to_token_stream(),
+            CoreType::Struct(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[repr(C)]
+                    #item
+                }
+            }
+            CoreType::Enum(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[repr(C)]
+                    #item
+                }
+            }
         }
     }
 }
@@ -68,8 +92,20 @@ impl CoreType<State> {
 impl CoreType<Output> {
     pub fn generate(&self) -> TokenStream {
         match self {
-            CoreType::Struct(item, _) => item.to_token_stream(),
-            CoreType::Enum(item, _) => item.to_token_stream(),
+            CoreType::Struct(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[repr(C)]
+                    #item
+                }
+            }
+            CoreType::Enum(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[repr(C)]
+                    #item
+                }
+            }
         }
     }
 }
