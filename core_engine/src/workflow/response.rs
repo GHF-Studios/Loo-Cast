@@ -2,27 +2,41 @@ use crate::debug::types::AnySendSyncNamedBox;
 use std::any::Any;
 
 pub enum WorkflowResponse {
+    None(TypedWorkflowResponse),
     E(TypedWorkflowResponseE),
     O(TypedWorkflowResponseO),
     OE(TypedWorkflowResponseOE),
 }
 
-pub struct TypedWorkflowResponseE(pub Result<(), AnySendSyncNamedBox>);
-pub struct TypedWorkflowResponseO(pub AnySendSyncNamedBox);
-pub struct TypedWorkflowResponseOE(pub Result<AnySendSyncNamedBox, AnySendSyncNamedBox>);
+pub struct TypedWorkflowResponse {
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+}
+pub struct TypedWorkflowResponseE {
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub result: Result<(), AnySendSyncNamedBox>
+}
+pub struct TypedWorkflowResponseO {
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub output: AnySendSyncNamedBox
+}
+pub struct TypedWorkflowResponseOE {
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub result: Result<AnySendSyncNamedBox, AnySendSyncNamedBox>
+}
 
 impl TypedWorkflowResponseE {
     pub fn unpack<E: 'static + Any + Send + Sync>(self) -> Result<(), E> {
-        match self.0 {
-            Ok(_) => Ok(()),
-            Err(error) => Err(error.into_inner()),
-        }
+        self.result.map_err(|e| e.into_inner())
     }
 }
 
 impl TypedWorkflowResponseO {
     pub fn unpack<O: 'static + Any + Send + Sync>(self) -> O {
-        self.0.into_inner()
+        self.output.into_inner()
     }
 }
 
@@ -30,9 +44,8 @@ impl TypedWorkflowResponseOE {
     pub fn unpack<O: 'static + Any + Send + Sync, E: 'static + Any + Send + Sync>(
         self,
     ) -> Result<O, E> {
-        match self.0 {
-            Ok(output) => Ok(output.into_inner()),
-            Err(error) => Err(error.into_inner()),
-        }
+        self.result
+            .map(|o| o.into_inner())
+            .map_err(|e| e.into_inner())
     }
 }

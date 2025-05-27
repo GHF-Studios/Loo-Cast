@@ -19,7 +19,7 @@ pub(crate) fn observe_on_remove_chunk_loader(
     let (_, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
         Ok(value) => value,
         Err(_) => {
-            panic!(
+            unreachable!(
                 "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at trigger-time",
                 loader_entity
             );

@@ -3,11 +3,11 @@ use crate::debug::types::AnySendSyncNamedBox;
 use crate::workflow::types::*;
 
 pub enum WorkflowCallback {
-    None(Box<dyn FnOnce() + Send + Sync>),
+    None(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
     E(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
     O(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
     OE(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
-    I(Box<dyn FnOnce() + Send + Sync>),
+    I(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
     IE(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
     IO(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
     IOE(Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>),
@@ -29,7 +29,7 @@ impl WorkflowInstance {
         module_name: &'static str,
         workflow_name: &'static str,
         num_stages: usize,
-        callback: Box<dyn FnOnce() + Send + Sync>,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::None(TypedWorkflowInstance::new_request(
             module_name,
@@ -82,7 +82,7 @@ impl WorkflowInstance {
         workflow_name: &'static str,
         input: AnySendSyncNamedBox,
         num_stages: usize,
-        callback: Box<dyn FnOnce() + Send + Sync>,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     ) -> Self {
         WorkflowInstance::I(TypedWorkflowInstanceI::new_request(
             module_name,
@@ -281,7 +281,7 @@ impl WorkflowInstance {
         match self {
             WorkflowInstance::None(instance) => WorkflowCallback::None(std::mem::replace(
                 &mut instance.callback,
-                Box::new(|| {
+                Box::new(|_| {
                     unreachable!("Called invalid callback: WorkflowCallback::None(PLACEHOLDER)")
                 }),
             )),
@@ -305,7 +305,7 @@ impl WorkflowInstance {
             )),
             WorkflowInstance::I(instance) => WorkflowCallback::I(std::mem::replace(
                 &mut instance.callback,
-                Box::new(|| {
+                Box::new(|_| {
                     unreachable!("Called invalid callback: WorkflowCallback::I(PLACEHOLDER)")
                 }),
             )),
@@ -406,7 +406,7 @@ pub struct TypedWorkflowInstance {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
-    pub callback: Box<dyn FnOnce() + Send + Sync>,
+    pub callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
@@ -441,7 +441,7 @@ pub struct TypedWorkflowInstanceI {
     pub workflow_name: &'static str,
     pub state: WorkflowState,
     pub data_buffer: AnySendSyncNamedBox,
-    pub callback: Box<dyn FnOnce() + Send + Sync>,
+    pub callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
@@ -534,7 +534,7 @@ impl TypedWorkflowInstance {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
-        callback: Box<dyn FnOnce() + Send + Sync>,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
         let timeout_frames = num_stages * CONFIG.get::<usize>("workflow/timeout_frames_per_stage");
@@ -613,7 +613,7 @@ impl TypedWorkflowInstanceI {
         module_name: &'static str,
         workflow_name: &'static str,
         input: AnySendSyncNamedBox,
-        callback: Box<dyn FnOnce() + Send + Sync>,
+        callback: Box<dyn FnOnce(AnySendSyncNamedBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
         let timeout_frames = num_stages * CONFIG.get::<usize>("workflow/timeout_frames_per_stage");

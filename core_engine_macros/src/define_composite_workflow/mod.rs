@@ -150,7 +150,7 @@ impl CompositeWorkflow {
                         },
 
                         "I" | "IE" | "IO" | "IOE" => {
-                            let mut input_expr = wf.input_struct.as_ref().unwrap_or_else(|| panic!("Expected `Input {{ ... }}` block for workflow with signature '{}'", sig)).clone();
+                            let mut input_expr = wf.input_struct.as_ref().unwrap_or_else(|| unreachable!("Expected `Input {{ ... }}` block for workflow with signature '{}'", sig)).clone();
                             input_expr.path = syn::parse_quote! { I };
 
                             let mut inner = quote! {
@@ -172,7 +172,7 @@ impl CompositeWorkflow {
                             }
                         }
 
-                        _ => panic!("Unknown workflow signature: {}", sig),
+                        _ => unreachable!("Unknown workflow signature: {}", sig),
                     };
 
                     body_segments.push(block);

@@ -693,7 +693,7 @@ impl CoreTypes<Ecs> {
                 if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageEcsBufferEventSender>() {
                     sender.clone()
                 } else {
-                    panic!("Sender was not the expected concrete type!");
+                    unreachable!("Sender was not the expected concrete type!");
                 }
             }
 
@@ -703,7 +703,7 @@ impl CoreTypes<Ecs> {
                     Err(err) => match err {
                         crossbeam_channel::TryRecvError::Empty => {},
                         crossbeam_channel::TryRecvError::Disconnected => {
-                            panic!("Receiver disconnected");
+                            unreachable!("Receiver disconnected");
                         }
                     }
                 }
@@ -887,7 +887,7 @@ impl CoreTypes<Render> {
                 if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageRenderBufferEventSender>() {
                     sender.clone()
                 } else {
-                    panic!("Sender was not the expected concrete type!");
+                    unreachable!("Sender was not the expected concrete type!");
                 }
             }
 
@@ -897,7 +897,7 @@ impl CoreTypes<Render> {
                     Err(err) => match err {
                         crossbeam_channel::TryRecvError::Empty => {},
                         crossbeam_channel::TryRecvError::Disconnected => {
-                            panic!("Receiver disconnected");
+                            unreachable!("Receiver disconnected");
                         }
                     }
                 }
@@ -1081,7 +1081,7 @@ impl CoreTypes<Async> {
                 if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageAsyncBufferEventSender>() {
                     sender.clone()
                 } else {
-                    panic!("Sender was not the expected concrete type!");
+                    unreachable!("Sender was not the expected concrete type!");
                 }
             }
 
@@ -1091,7 +1091,7 @@ impl CoreTypes<Async> {
                     Err(err) => match err {
                         crossbeam_channel::TryRecvError::Empty => {},
                         crossbeam_channel::TryRecvError::Disconnected => {
-                            panic!("Receiver disconnected");
+                            unreachable!("Receiver disconnected");
                         }
                     }
                 }
@@ -1275,7 +1275,7 @@ impl CoreTypes<EcsWhile> {
                 if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageEcsWhileBufferEventSender>() {
                     sender.clone()
                 } else {
-                    panic!("Sender was not the expected concrete type!");
+                    unreachable!("Sender was not the expected concrete type!");
                 }
             }
 
@@ -1285,7 +1285,7 @@ impl CoreTypes<EcsWhile> {
                     Err(err) => match err {
                         crossbeam_channel::TryRecvError::Empty => {},
                         crossbeam_channel::TryRecvError::Disconnected => {
-                            panic!("Receiver disconnected");
+                            unreachable!("Receiver disconnected");
                         }
                     }
                 }
@@ -1472,7 +1472,7 @@ impl CoreTypes<RenderWhile> {
                 if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageRenderWhileBufferEventSender>() {
                     sender.clone()
                 } else {
-                    panic!("Sender was not the expected concrete type!");
+                    unreachable!("Sender was not the expected concrete type!");
                 }
             }
 
@@ -1508,7 +1508,7 @@ impl CoreTypes<RenderWhile> {
                     Err(err) => match err {
                         crossbeam_channel::TryRecvError::Empty => {},
                         crossbeam_channel::TryRecvError::Disconnected => {
-                            panic!("Receiver disconnected");
+                            unreachable!("Receiver disconnected");
                         }
                     }
                 }

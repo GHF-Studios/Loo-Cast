@@ -99,3 +99,9 @@ pub enum Outcome<S, O> {
     Wait(S),
     Done(O),
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct WorkflowID {
+    pub module: &'static str,
+    pub workflow: &'static str,
+}

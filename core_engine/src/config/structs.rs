@@ -89,11 +89,11 @@ impl Config {
         let value = self
             .data
             .get(path)
-            .unwrap_or_else(|| panic!("Config key not found: {}", path))
+            .unwrap_or_else(|| unreachable!("Config key not found: {}", path))
             .clone();
 
         let typed_value: T =
-            T::try_from(value).unwrap_or_else(|err| panic!("Type conversion error: {}", err));
+            T::try_from(value).unwrap_or_else(|err| unreachable!("Type conversion error: {}", err));
 
         // Cache the computed value
         {

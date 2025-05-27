@@ -295,8 +295,8 @@ define_workflow_mod_OLD! {
                             let mut images = main_access.images;
                             let shader_registry = main_access.shader_registry;
 
-                            let pipeline_id = *shader_registry.pipelines.get(shader_name).unwrap_or_else(|| panic!("Pipeline for shader '{}' not found", shader_name));
-                            let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name).unwrap_or_else(|| panic!("BindGroupLayout for shader '{}' not found", shader_name)).clone();
+                            let pipeline_id = *shader_registry.pipelines.get(shader_name).unwrap_or_else(|| unreachable!("Pipeline for shader '{}' not found", shader_name));
+                            let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name).unwrap_or_else(|| unreachable!("BindGroupLayout for shader '{}' not found", shader_name)).clone();
 
                             let mut texture_handles = Vec::new();
                             let mut param_buffers = Vec::new();
@@ -479,7 +479,7 @@ define_workflow_mod_OLD! {
                                     texture_handles: state.dispatched.texture_handles.clone(),
                                 }),
                                 Err(crossbeam_channel::TryRecvError::Empty) => Wait(state),
-                                Err(_) => panic!("GPU dispatch failed"),
+                                Err(_) => unreachable!("GPU dispatch failed"),
                             }
                         }
                     ]

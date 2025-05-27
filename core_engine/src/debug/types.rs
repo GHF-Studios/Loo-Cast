@@ -7,7 +7,7 @@ pub struct AnySendNamedBox {
 
 impl AnySendNamedBox {
     pub fn new<T: Any + Send + 'static>(value: T, name: String) -> Self {
-        bevy::prelude::debug!("AnySendNamedBoxed '{}'", name);
+        bevy::prelude::debug!("AnySendNamedBox'ed '{}'", name);
         
         Self {
             name,
@@ -19,22 +19,49 @@ impl AnySendNamedBox {
         &self.name
     }
 
-    pub fn downcast_ref<T: Any>(&self) -> &T {
-        self.inner.downcast_ref().unwrap_or_else(|| panic!("Failed to downcast AnyNamedBox from '{}' to '{}'",
-                self.name,
-                std::any::type_name::<T>()))
-    }
-
-    pub fn downcast_mut<T: Any>(&mut self) -> &mut T {
-        self.inner.downcast_mut().unwrap_or_else(|| panic!("Failed to downcast AnyNamedBox from '{}' to '{}'",
-                self.name,
-                std::any::type_name::<T>()))
-    }
-
     pub fn into_inner<T: Any>(self) -> T {
-        *self.inner.downcast().unwrap_or_else(|_| panic!("Failed to downcast AnyNamedBox from '{}' to '{}'",
-                self.name,
-                std::any::type_name::<T>()))
+        let value = *self.inner
+            .downcast()
+            .unwrap_or_else(|_| {
+                unreachable!("Failed to downcast AnySendNamedBox from '{}' to '{}'",
+                    self.name,
+                    std::any::type_name::<T>()
+                )
+            });
+
+        bevy::prelude::debug!("AnySendNamedBox'ed '{}' downcasted to '{}'", self.name, std::any::type_name::<T>());
+
+        value
+    }
+
+    pub fn inner_ref<T: Any>(&self) -> &T {
+        let value = self.inner
+            .downcast_ref()
+            .unwrap_or_else(|| {
+                unreachable!("Failed to downcast AnySendNamedBox from '{}' to '{}'",
+                    self.name,
+                    std::any::type_name::<T>()
+                )
+            });
+
+        bevy::prelude::debug!("AnySendNamedBox'ed '{}' downcasted to '{}'", self.name, std::any::type_name::<T>());
+
+        value
+    }
+
+    pub fn inner_mut<T: Any>(&mut self) -> &mut T {
+        let value = self.inner
+            .downcast_mut()
+            .unwrap_or_else(|| {
+                unreachable!("Failed to downcast AnySendNamedBox from '{}' to '{}'",
+                    self.name,
+                    std::any::type_name::<T>()
+                )
+            });
+
+        bevy::prelude::debug!("AnySendNamedBox'ed '{}' downcasted to '{}'", self.name, std::any::type_name::<T>());
+
+        value
     }
 }
 
@@ -45,7 +72,7 @@ pub struct AnySendSyncNamedBox {
 
 impl AnySendSyncNamedBox {
     pub fn new<T: Any + Send + Sync + 'static>(value: T, name: String) -> Self {
-        bevy::prelude::debug!("AnySendSyncNamedBoxed '{}'", name);
+        bevy::prelude::debug!("AnySendSyncNamedBox'ed '{}'", name);
 
         Self {
             name,
@@ -57,21 +84,48 @@ impl AnySendSyncNamedBox {
         &self.name
     }
 
-    pub fn downcast_ref<T: Any>(&self) -> &T {
-        self.inner.downcast_ref().unwrap_or_else(|| panic!("Failed to downcast AnyNamedBox from '{}' to '{}'",
-                self.name,
-                std::any::type_name::<T>()))
-    }
-
-    pub fn downcast_mut<T: Any>(&mut self) -> &mut T {
-        self.inner.downcast_mut().unwrap_or_else(|| panic!("Failed to downcast AnyNamedBox from '{}' to '{}'",
-                self.name,
-                std::any::type_name::<T>()))
-    }
-
     pub fn into_inner<T: Any>(self) -> T {
-        *self.inner.downcast().unwrap_or_else(|_| panic!("Failed to downcast AnyNamedBox from '{}' to '{}'",
-                self.name,
-                std::any::type_name::<T>()))
+        let value = *self.inner
+            .downcast()
+            .unwrap_or_else(|_| {
+                unreachable!("Failed to downcast AnySendSyncNamedBox from '{}' to '{}'",
+                    self.name,
+                    std::any::type_name::<T>()
+                )
+            });
+
+        bevy::prelude::debug!("AnySendSyncNamedBox'ed '{}' downcasted to '{}'", self.name, std::any::type_name::<T>());
+
+        value
+    }
+
+    pub fn inner_ref<T: Any>(&self) -> &T {
+        let value = self.inner
+            .downcast_ref()
+            .unwrap_or_else(|| {
+                unreachable!("Failed to downcast AnySendSyncNamedBox from '{}' to '{}'",
+                    self.name,
+                    std::any::type_name::<T>()
+                )
+            });
+
+        bevy::prelude::debug!("AnySendSyncNamedBox'ed '{}' downcasted to '{}'", self.name, std::any::type_name::<T>());
+
+        value
+    }
+
+    pub fn inner_mut<T: Any>(&mut self) -> &mut T {
+        let value = self.inner
+            .downcast_mut()
+            .unwrap_or_else(|| {
+                unreachable!("Failed to downcast AnySendSyncNamedBox from '{}' to '{}'",
+                    self.name,
+                    std::any::type_name::<T>()
+                )
+            });
+
+        bevy::prelude::debug!("AnySendSyncNamedBox'ed '{}' downcasted to '{}'", self.name, std::any::type_name::<T>());
+
+        value
     }
 }

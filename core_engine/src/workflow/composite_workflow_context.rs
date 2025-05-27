@@ -60,7 +60,7 @@ pub fn get_context<T: 'static + Send>(name: &'static str) -> T {
             name,
         })
         .expect("Context value not found for `{}`")
-        .downcast_mut::<Option<T>>()
+        .inner_mut::<Option<T>>()
         .take()
         .unwrap_or_else(|| unreachable!("Context value was empty for `{}`", name))
 }

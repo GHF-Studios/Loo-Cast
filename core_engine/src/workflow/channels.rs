@@ -29,7 +29,7 @@ pub(super) struct WorkflowRequestIOEReceiver(pub UnboundedReceiver<TypedWorkflow
 
 // --- Workflow Response Senders ---
 #[derive(Resource)]
-pub(super) struct WorkflowResponseSender(pub UnboundedSender<()>);
+pub(super) struct WorkflowResponseSender(pub UnboundedSender<TypedWorkflowResponse>);
 #[derive(Resource)]
 pub(super) struct WorkflowResponseESender(pub UnboundedSender<TypedWorkflowResponseE>);
 #[derive(Resource)]
@@ -37,7 +37,7 @@ pub(super) struct WorkflowResponseOSender(pub UnboundedSender<TypedWorkflowRespo
 #[derive(Resource)]
 pub(super) struct WorkflowResponseOESender(pub UnboundedSender<TypedWorkflowResponseOE>);
 #[derive(Resource)]
-pub(super) struct WorkflowResponseISender(pub UnboundedSender<()>);
+pub(super) struct WorkflowResponseISender(pub UnboundedSender<TypedWorkflowResponse>);
 #[derive(Resource)]
 pub(super) struct WorkflowResponseIESender(pub UnboundedSender<TypedWorkflowResponseE>);
 #[derive(Resource)]
@@ -112,16 +112,16 @@ pub fn get_stage_failure_sender() -> Sender<StageFailureEvent> {
 macro_rules! init_tokio_channel_pair {
     ($req_sender:ident, $resp_receiver:ident, $req_val:expr, $resp_val:expr) => {
         if $req_sender.set($req_val).is_err() {
-            panic!("Request sender already initialized!");
+            unreachable!("Request sender already initialized!");
         }
         if $resp_receiver.set(Mutex::new($resp_val)).is_err() {
-            panic!("Response receiver already initialized!");
+            unreachable!("Response receiver already initialized!");
         }
     };
 }
 
 static REQUEST_SENDER: OnceLock<UnboundedSender<TypedWorkflowRequest>> = OnceLock::new();
-static RESPONSE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<()>>> = OnceLock::new();
+static RESPONSE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponse>>> = OnceLock::new();
 static REQUEST_E_SENDER: OnceLock<UnboundedSender<TypedWorkflowRequestE>> = OnceLock::new();
 static RESPONSE_E_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseE>>> =
     OnceLock::new();
@@ -132,7 +132,7 @@ static REQUEST_OE_SENDER: OnceLock<UnboundedSender<TypedWorkflowRequestOE>> = On
 static RESPONSE_OE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseOE>>> =
     OnceLock::new();
 static REQUEST_I_SENDER: OnceLock<UnboundedSender<TypedWorkflowRequestI>> = OnceLock::new();
-static RESPONSE_I_RECEIVER: OnceLock<Mutex<UnboundedReceiver<()>>> = OnceLock::new();
+static RESPONSE_I_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponse>>> = OnceLock::new();
 static REQUEST_IE_SENDER: OnceLock<UnboundedSender<TypedWorkflowRequestIE>> = OnceLock::new();
 static RESPONSE_IE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseE>>> =
     OnceLock::new();
@@ -159,7 +159,7 @@ define_tokio_init_fn!(
     REQUEST_SENDER,
     RESPONSE_RECEIVER,
     TypedWorkflowRequest,
-    ()
+    TypedWorkflowResponse
 );
 define_tokio_init_fn!(
     initialize_e_channels,
@@ -187,7 +187,7 @@ define_tokio_init_fn!(
     REQUEST_I_SENDER,
     RESPONSE_I_RECEIVER,
     TypedWorkflowRequestI,
-    ()
+    TypedWorkflowResponse
 );
 define_tokio_init_fn!(
     initialize_ie_channels,
@@ -287,7 +287,7 @@ define_sender_getter!(
 define_receiver_getter!(
     get_response_receiver,
     RESPONSE_RECEIVER,
-    UnboundedReceiver<()>
+    UnboundedReceiver<TypedWorkflowResponse>
 );
 define_receiver_getter!(
     get_response_e_receiver,
@@ -307,7 +307,7 @@ define_receiver_getter!(
 define_receiver_getter!(
     get_response_i_receiver,
     RESPONSE_I_RECEIVER,
-    UnboundedReceiver<()>
+    UnboundedReceiver<TypedWorkflowResponse>
 );
 define_receiver_getter!(
     get_response_ie_receiver,

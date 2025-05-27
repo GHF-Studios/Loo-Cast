@@ -602,7 +602,11 @@ impl TypedStage<Ecs> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -671,7 +675,11 @@ impl TypedStage<Ecs> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                        module_name,
+                                        workflow_name,
+                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    };
                                     let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
@@ -816,7 +824,11 @@ impl TypedStage<Ecs> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -1065,7 +1077,11 @@ impl TypedStage<Render> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -1134,7 +1150,11 @@ impl TypedStage<Render> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                        module_name,
+                                        workflow_name,
+                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    };
                                     let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
@@ -1279,7 +1299,11 @@ impl TypedStage<Render> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -1528,7 +1552,11 @@ impl TypedStage<Async> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -1597,7 +1625,11 @@ impl TypedStage<Async> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                        module_name,
+                                        workflow_name,
+                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    };
                                     let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
@@ -1742,7 +1774,11 @@ impl TypedStage<Async> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -1996,7 +2032,11 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -2091,7 +2131,11 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -2226,7 +2270,11 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -2319,7 +2367,11 @@ impl TypedStage<EcsWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                        module_name,
+                                        workflow_name,
+                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    };
                                     let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
@@ -2684,7 +2736,11 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -2770,7 +2826,11 @@ impl TypedStage<EcsWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                        module_name,
+                                        workflow_name,
+                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    };
                                     let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
@@ -3260,7 +3320,11 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -3357,7 +3421,11 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -3495,7 +3563,11 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -3588,7 +3660,11 @@ impl TypedStage<RenderWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                        module_name,
+                                        workflow_name,
+                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    };
                                     let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
@@ -3953,7 +4029,11 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                    module_name,
+                                    workflow_name,
+                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                };
                                 let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
@@ -4039,7 +4119,11 @@ impl TypedStage<RenderWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE(Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string())));
+                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
+                                        module_name,
+                                        workflow_name,
+                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    };
                                     let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
