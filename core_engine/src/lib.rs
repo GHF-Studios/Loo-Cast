@@ -145,13 +145,14 @@ fn startup_system() {
     let handle = composite_workflow!({
         workflow!(Camera::SpawnMainCamera);
 
-        // NOTE!!!!!    Old code I left in because it show how complex stuff can get    !!!!!NOTE
-        //let chunk_shader_name = "texture_generators/example_compute_uv";
-        //let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
-        //workflow!(IE, Gpu::SetupTextureGenerator, Input {
-        //    shader_name: chunk_shader_name,
-        //    shader_path: chunk_shader_path,
-        //});
+        let chunk_shader_name = "texture_generators/example_compute_uv";
+        let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
+        workflow!(IE, Gpu::SetupTextureGenerator, Input {
+            shader_name: chunk_shader_name,
+            shader_path: chunk_shader_path,
+        });
+        //workflow!(Debug::SpawnDebugObjects);
+
         //let chunk_coords: Vec<(i32, i32)> = (-8..=8)
         //    .flat_map(|x| (-8..=8).map(move |y| (x, y)))
         //    .collect();
@@ -177,8 +178,6 @@ fn startup_system() {
         //workflow!(IOE, Chunk::SpawnChunks, Input {
         //    inputs: spawn_inputs
         //});
-
-        //workflow!(Debug::SpawnDebugObjects);
     });
 
     handle_composite_workflow_return_later(handle, |_ctx| {
