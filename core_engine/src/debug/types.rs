@@ -7,6 +7,8 @@ pub struct AnySendNamedBox {
 
 impl AnySendNamedBox {
     pub fn new<T: Any + Send + 'static>(value: T, name: String) -> Self {
+        bevy::prelude::debug!("AnySendNamedBoxed '{}'", name);
+        
         Self {
             name,
             inner: Box::new(value),
@@ -43,6 +45,8 @@ pub struct AnySendSyncNamedBox {
 
 impl AnySendSyncNamedBox {
     pub fn new<T: Any + Send + Sync + 'static>(value: T, name: String) -> Self {
+        bevy::prelude::debug!("AnySendSyncNamedBoxed '{}'", name);
+
         Self {
             name,
             inner: Box::new(value),
