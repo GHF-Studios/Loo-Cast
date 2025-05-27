@@ -31,10 +31,8 @@ pub async fn run_workflow<W: WorkflowType>() {
         .unwrap();
 
     loop {
-        if let Some(response) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            if let WorkflowResponse::None(_r) = response {
-                return;
-            }
+        if let Some(WorkflowResponse::None(_r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
+            return;
         }
 
         if let Some(Some(response)) = {
@@ -73,10 +71,8 @@ pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
         .unwrap();
 
     loop {
-        if let Some(response) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            if let WorkflowResponse::E(r) = response {
-                return r.unpack();
-            }
+        if let Some(WorkflowResponse::E(r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
+            return r.unpack();
         }
 
         if let Some(Some(response)) = {
@@ -115,10 +111,8 @@ pub async fn run_workflow_o<W: WorkflowTypeO>() -> W::Output {
         .unwrap();
 
     loop {
-        if let Some(response) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            if let WorkflowResponse::O(r) = response {
-                return r.unpack();
-            }
+        if let Some(WorkflowResponse::O(r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
+            return r.unpack();
         }
 
         if let Some(Some(response)) = {
@@ -157,10 +151,8 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error>
         .unwrap();
 
     loop {
-        if let Some(response) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            if let WorkflowResponse::OE(r) = response {
-                return r.unpack();
-            }
+        if let Some(WorkflowResponse::OE(r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
+            return r.unpack();
         }
 
         if let Some(Some(response)) = {
@@ -203,10 +195,8 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
         .unwrap();
 
     loop {
-        if let Some(response) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            if let WorkflowResponse::None(_r) = response {
-                return;
-            }
+        if let Some(WorkflowResponse::None(_r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
+            return;
         }
 
         if let Some(Some(response)) = {
@@ -249,10 +239,8 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W
         .unwrap();
 
     loop {
-        if let Some(response) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            if let WorkflowResponse::E(r) = response {
-                return r.unpack();
-            }
+        if let Some(WorkflowResponse::E(r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
+            return r.unpack();
         }
 
         if let Some(Some(response)) = {
@@ -295,10 +283,8 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> W::Output {
         .unwrap();
 
     loop {
-        if let Some(response) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            if let WorkflowResponse::O(r) = response {
-                return r.unpack();
-            }
+        if let Some(WorkflowResponse::O(r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
+            return r.unpack();
         }
 
         if let Some(Some(response)) = {
@@ -341,10 +327,8 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
         .unwrap();
 
     loop {
-        if let Some(response) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            if let WorkflowResponse::OE(r) = response {
-                return r.unpack();
-            }
+        if let Some(WorkflowResponse::OE(r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
+            return r.unpack();
         }
 
         if let Some(Some(response)) = {
