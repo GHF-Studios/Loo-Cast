@@ -62,7 +62,6 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn SetupEcsWhile |main_access| -> State {
-                            bevy::prelude::debug!("Spawning debug objects..");
                             let mut commands = main_access.commands;
 
                             let circle_entity = spawn_debug_object(
