@@ -15,62 +15,40 @@ impl WorkflowTypeModuleRegistry {
     pub fn register(&mut self, mut workflow_type_module: WorkflowTypeModule) {
         let workflow_type_module_name = workflow_type_module.name;
 
-        let mut registered_workflows: HashMap<&'static str, WorkflowType> =
-            match self.registry.get(workflow_type_module_name) {
-                Some(_) => {
-                    unreachable!(
-                        "Attempted to register workflow type module '{}' that is already in use.",
-                        workflow_type_module_name
-                    )
-                }
-                None => default(),
-            };
+        let mut registered_workflows: HashMap<&'static str, WorkflowType> = match self.registry.get(workflow_type_module_name) {
+            Some(_) => {
+                unreachable!(
+                    "Attempted to register workflow type module '{}' that is already in use.",
+                    workflow_type_module_name
+                )
+            }
+            None => default(),
+        };
 
         while let Some(workflow_type) = workflow_type_module.workflow_types.pop() {
             let workflow_type_name = workflow_type.name;
 
-            if registered_workflows
-                .insert(workflow_type_name, workflow_type)
-                .is_some()
-            {
-                unreachable!(
-                    "Attempted to register workflow type with name '{}' that is already in use.",
-                    workflow_type_name
-                )
+            if registered_workflows.insert(workflow_type_name, workflow_type).is_some() {
+                unreachable!("Attempted to register workflow type with name '{}' that is already in use.", workflow_type_name)
             }
         }
 
-        self.registry
-            .insert(workflow_type_module_name, registered_workflows);
+        self.registry.insert(workflow_type_module_name, registered_workflows);
     }
 
-    pub fn get_workflow_module_type(
-        &self,
-        module_name: &'static str,
-    ) -> Option<&HashMap<&'static str, WorkflowType>> {
+    pub fn get_workflow_module_type(&self, module_name: &'static str) -> Option<&HashMap<&'static str, WorkflowType>> {
         self.registry.get(module_name)
     }
 
-    pub fn get_workflow_module_type_mut(
-        &mut self,
-        module_name: &'static str,
-    ) -> Option<&mut HashMap<&'static str, WorkflowType>> {
+    pub fn get_workflow_module_type_mut(&mut self, module_name: &'static str) -> Option<&mut HashMap<&'static str, WorkflowType>> {
         self.registry.get_mut(module_name)
     }
 
-    pub fn get_workflow_type(
-        &self,
-        module_name: &'static str,
-        workflow_name: &'static str,
-    ) -> Option<&WorkflowType> {
+    pub fn get_workflow_type(&self, module_name: &'static str, workflow_name: &'static str) -> Option<&WorkflowType> {
         self.registry.get(module_name)?.get(workflow_name)
     }
 
-    pub fn get_workflow_type_mut(
-        &mut self,
-        module_name: &'static str,
-        workflow_name: &'static str,
-    ) -> Option<&mut WorkflowType> {
+    pub fn get_workflow_type_mut(&mut self, module_name: &'static str, workflow_name: &'static str) -> Option<&mut WorkflowType> {
         self.registry.get_mut(module_name)?.get_mut(workflow_name)
     }
 }
@@ -127,25 +105,12 @@ impl RenderWhileWorkflowStateExtract {
         stage_initialized: bool,
         stage_completed: bool,
     ) {
-        self.0.push((
-            module_name,
-            workflow_name,
-            current_stage_type,
-            stage_initialized,
-            stage_completed,
-        ));
+        self.0
+            .push((module_name, workflow_name, current_stage_type, stage_initialized, stage_completed));
     }
 
-    pub fn remove_entry(
-        &mut self,
-        module_name: &'static str,
-        workflow_name: &'static str,
-    ) -> Option<(&'static str, &'static str, StageType, bool, bool)> {
-        if let Some(index) = self
-            .0
-            .iter()
-            .position(|(m, w, _, _, _)| *m == module_name && *w == workflow_name)
-        {
+    pub fn remove_entry(&mut self, module_name: &'static str, workflow_name: &'static str) -> Option<(&'static str, &'static str, StageType, bool, bool)> {
+        if let Some(index) = self.0.iter().position(|(m, w, _, _, _)| *m == module_name && *w == workflow_name) {
             Some(self.0.remove(index))
         } else {
             None
@@ -155,55 +120,15 @@ impl RenderWhileWorkflowStateExtract {
 
 // --- Stage Buffers ---
 #[derive(Resource, Default)]
-pub(super) struct EcsStageBuffer(
-    pub  Vec<(
-        &'static str,
-        &'static str,
-        usize,
-        StageEcs,
-        Option<AnySendSyncNamedBox>,
-    )>,
-);
+pub(super) struct EcsStageBuffer(pub Vec<(&'static str, &'static str, usize, StageEcs, Option<AnySendSyncNamedBox>)>);
 #[derive(Resource, Default)]
-pub(super) struct EcsWhileStageBuffer(
-    pub  Vec<(
-        &'static str,
-        &'static str,
-        usize,
-        StageEcsWhile,
-        Option<AnySendSyncNamedBox>,
-    )>,
-);
+pub(super) struct EcsWhileStageBuffer(pub Vec<(&'static str, &'static str, usize, StageEcsWhile, Option<AnySendSyncNamedBox>)>);
 #[derive(Resource, Default)]
-pub(super) struct RenderStageBuffer(
-    pub  Vec<(
-        &'static str,
-        &'static str,
-        usize,
-        StageRender,
-        Option<AnySendSyncNamedBox>,
-    )>,
-);
+pub(super) struct RenderStageBuffer(pub Vec<(&'static str, &'static str, usize, StageRender, Option<AnySendSyncNamedBox>)>);
 #[derive(Resource, Default)]
-pub(super) struct RenderWhileStageBuffer(
-    pub  Vec<(
-        &'static str,
-        &'static str,
-        usize,
-        StageRenderWhile,
-        Option<AnySendSyncNamedBox>,
-    )>,
-);
+pub(super) struct RenderWhileStageBuffer(pub Vec<(&'static str, &'static str, usize, StageRenderWhile, Option<AnySendSyncNamedBox>)>);
 #[derive(Resource, Default)]
-pub(super) struct AsyncStageBuffer(
-    pub  Vec<(
-        &'static str,
-        &'static str,
-        usize,
-        StageAsync,
-        Option<AnySendSyncNamedBox>,
-    )>,
-);
+pub(super) struct AsyncStageBuffer(pub Vec<(&'static str, &'static str, usize, StageAsync, Option<AnySendSyncNamedBox>)>);
 
 // --- Stage Event Receivers ---
 #[derive(Resource)]
@@ -227,10 +152,7 @@ impl WorkflowMap {
 
         let module_entry = self.map.entry(module_name).or_default();
 
-        if module_entry
-            .insert(workflow_name, workflow_instance)
-            .is_some()
-        {
+        if module_entry.insert(workflow_name, workflow_instance).is_some() {
             unreachable!(
                 "Workflow insertion error: Workflow '{}' in module '{}' is already active.",
                 workflow_name, module_name
@@ -238,33 +160,19 @@ impl WorkflowMap {
         }
     }
 
-    pub fn get_workflow_module(
-        &self,
-        module_name: &'static str,
-    ) -> Option<&HashMap<&'static str, WorkflowInstance>> {
+    pub fn get_workflow_module(&self, module_name: &'static str) -> Option<&HashMap<&'static str, WorkflowInstance>> {
         self.map.get(module_name)
     }
 
-    pub fn get_workflow_module_mut(
-        &mut self,
-        module_name: &'static str,
-    ) -> Option<&mut HashMap<&'static str, WorkflowInstance>> {
+    pub fn get_workflow_module_mut(&mut self, module_name: &'static str) -> Option<&mut HashMap<&'static str, WorkflowInstance>> {
         self.map.get_mut(module_name)
     }
 
-    pub fn get_workflow(
-        &self,
-        module_name: &'static str,
-        workflow_name: &'static str,
-    ) -> Option<&WorkflowInstance> {
+    pub fn get_workflow(&self, module_name: &'static str, workflow_name: &'static str) -> Option<&WorkflowInstance> {
         self.map.get(module_name)?.get(workflow_name)
     }
 
-    pub fn get_workflow_mut(
-        &mut self,
-        module_name: &'static str,
-        workflow_name: &'static str,
-    ) -> Option<&mut WorkflowInstance> {
+    pub fn get_workflow_mut(&mut self, module_name: &'static str, workflow_name: &'static str) -> Option<&mut WorkflowInstance> {
         self.map.get_mut(module_name)?.get_mut(workflow_name)
     }
 

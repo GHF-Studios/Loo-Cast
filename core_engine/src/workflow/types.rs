@@ -13,10 +13,7 @@ impl CompositeWorkflowRuntime {
         Self::default()
     }
 
-    pub fn spawn(
-        &mut self,
-        future: BoxFuture<'static, ScopedCompositeWorkflowContext>,
-    ) -> JoinHandle<ScopedCompositeWorkflowContext> {
+    pub fn spawn(&mut self, future: BoxFuture<'static, ScopedCompositeWorkflowContext>) -> JoinHandle<ScopedCompositeWorkflowContext> {
         self.0.spawn(future)
     }
 
@@ -67,8 +64,12 @@ impl std::fmt::Display for WorkflowState {
                 current_stage,
                 current_stage_type,
                 stage_initialized: initialized,
-                stage_completed: completed
-            } => write!(f, "WorkflowState::Processing(current_stage: {}, current_stage_type: {}, initialized: {}, completed: {})", current_stage, current_stage_type, initialized, completed),
+                stage_completed: completed,
+            } => write!(
+                f,
+                "WorkflowState::Processing(current_stage: {}, current_stage_type: {}, initialized: {}, completed: {})",
+                current_stage, current_stage_type, initialized, completed
+            ),
         }
     }
 }

@@ -57,7 +57,7 @@ impl Parse for CoreFunctionType {
             "RunRenderWhile" => Ok(CoreFunctionType::RunRenderWhile { span }),
             _ => Err(syn::Error::new(
                 func_name.span(),
-                "Invalid function type. Expected one of: RunEcs, RunRender, RunAsync, SetupEcsWhile, RunEcsWhile, SetupRenderWhile, RunRenderWhile."
+                "Invalid function type. Expected one of: RunEcs, RunRender, RunAsync, SetupEcsWhile, RunEcsWhile, SetupRenderWhile, RunRenderWhile.",
             )),
         }
     }
@@ -114,40 +114,25 @@ impl Parse for CoreFunction {
             match param_name.to_string().as_str() {
                 "input" => {
                     if has_input {
-                        return Err(syn::Error::new(
-                            param_name.span(),
-                            "Duplicate parameter: `input`",
-                        ));
+                        return Err(syn::Error::new(param_name.span(), "Duplicate parameter: `input`"));
                     }
                     if has_state {
-                        return Err(syn::Error::new(
-                            param_name.span(),
-                            "Parameter `input` cannot be used with `state`",
-                        ));
+                        return Err(syn::Error::new(param_name.span(), "Parameter `input` cannot be used with `state`"));
                     }
                     has_input = true;
                 }
                 "state" => {
                     if has_state {
-                        return Err(syn::Error::new(
-                            param_name.span(),
-                            "Duplicate parameter: `state`",
-                        ));
+                        return Err(syn::Error::new(param_name.span(), "Duplicate parameter: `state`"));
                     }
                     if has_input {
-                        return Err(syn::Error::new(
-                            param_name.span(),
-                            "Parameter `state` cannot be used with `input`",
-                        ));
+                        return Err(syn::Error::new(param_name.span(), "Parameter `state` cannot be used with `input`"));
                     }
                     has_state = true;
                 }
                 "main_access" => {
                     if has_main_access {
-                        return Err(syn::Error::new(
-                            param_name.span(),
-                            "Duplicate parameter: `main_access`",
-                        ));
+                        return Err(syn::Error::new(param_name.span(), "Duplicate parameter: `main_access`"));
                     }
                     if has_render_access {
                         return Err(syn::Error::new(
@@ -159,10 +144,7 @@ impl Parse for CoreFunction {
                 }
                 "render_access" => {
                     if has_render_access {
-                        return Err(syn::Error::new(
-                            param_name.span(),
-                            "Duplicate parameter: `render_access`",
-                        ));
+                        return Err(syn::Error::new(param_name.span(), "Duplicate parameter: `render_access`"));
                     }
                     if has_main_access {
                         return Err(syn::Error::new(
@@ -219,10 +201,7 @@ impl Parse for CoreFunction {
         let mut has_error = false;
         let mut has_state = false;
         let mut has_outcome = false;
-        let requires_outcome = matches!(
-            function_type,
-            CoreFunctionType::RunEcsWhile { .. } | CoreFunctionType::RunRenderWhile { .. }
-        );
+        let requires_outcome = matches!(function_type, CoreFunctionType::RunEcsWhile { .. } | CoreFunctionType::RunRenderWhile { .. });
 
         if input.peek(Token![->]) {
             let _: Token![->] = input.parse()?;
@@ -250,10 +229,7 @@ impl Parse for CoreFunction {
                         let content_str = content.to_string();
                         return Err(syn::Error::new(
                             content.span(),
-                            format!(
-                                "Expected no content in unit type parantheses! Found content: `{}`",
-                                content_str
-                            ),
+                            format!("Expected no content in unit type parantheses! Found content: `{}`", content_str),
                         ));
                     }
                     ("()".to_string(), content.span())
@@ -310,10 +286,7 @@ impl Parse for CoreFunction {
                         let _ = input.parse::<Token![>]>()?;
                     }
                     (Expected::ResultSecond, _) => {
-                        return Err(syn::Error::new(
-                            ident_span,
-                            format!("Unexpected return type: `{}`. Expected: `Error`", ident),
-                        ));
+                        return Err(syn::Error::new(ident_span, format!("Unexpected return type: `{}`. Expected: `Error`", ident)));
                     }
 
                     (Expected::OutcomeFirst, "State") => {
@@ -349,10 +322,7 @@ impl Parse for CoreFunction {
                     }
 
                     _ => {
-                        return Err(syn::Error::new(
-                            ident_span,
-                            format!("Unexpected return type: `{}`", ident),
-                        ));
+                        return Err(syn::Error::new(ident_span, format!("Unexpected return type: `{}`", ident)));
                     }
                 }
             }
@@ -393,12 +363,7 @@ impl Parse for CoreFunction {
 }
 
 impl CoreFunction {
-    pub fn generate(
-        &self,
-        state_type_name: String,
-        output_type_name: String,
-        error_type_name: String,
-    ) -> TokenStream {
+    pub fn generate(&self, state_type_name: String, output_type_name: String, error_type_name: String) -> TokenStream {
         let has_input = self.signature.has_input;
         let has_state = self.signature.has_state;
         let has_output = self.signature.has_output;
@@ -1044,10 +1009,7 @@ impl Parse for CoreFunctions<Ecs> {
 impl Parse for CoreFunctions<Render> {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let run: CoreFunction = input.parse()?;
-        if !matches!(
-            run.signature.function_type,
-            CoreFunctionType::RunRender { .. }
-        ) {
+        if !matches!(run.signature.function_type, CoreFunctionType::RunRender { .. }) {
             return Err(syn::Error::new(
                 run.signature.function_type.span(),
                 "Expected a `RunRender` function in Render stage.",
@@ -1063,10 +1025,7 @@ impl Parse for CoreFunctions<Render> {
 impl Parse for CoreFunctions<Async> {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let run: CoreFunction = input.parse()?;
-        if !matches!(
-            run.signature.function_type,
-            CoreFunctionType::RunAsync { .. }
-        ) {
+        if !matches!(run.signature.function_type, CoreFunctionType::RunAsync { .. }) {
             return Err(syn::Error::new(
                 run.signature.function_type.span(),
                 "Expected a `RunAsync` function in Async stage.",
@@ -1084,19 +1043,13 @@ impl Parse for CoreFunctions<EcsWhile> {
         let setup: CoreFunction = input.parse()?;
         let run: CoreFunction = input.parse()?;
 
-        if !matches!(
-            setup.signature.function_type,
-            CoreFunctionType::SetupEcsWhile { .. }
-        ) {
+        if !matches!(setup.signature.function_type, CoreFunctionType::SetupEcsWhile { .. }) {
             return Err(syn::Error::new(
                 setup.signature.function_type.span(),
                 "Expected a `SetupEcsWhile` function as the first function in EcsWhile stage.",
             ));
         }
-        if !matches!(
-            run.signature.function_type,
-            CoreFunctionType::RunEcsWhile { .. }
-        ) {
+        if !matches!(run.signature.function_type, CoreFunctionType::RunEcsWhile { .. }) {
             return Err(syn::Error::new(
                 run.signature.function_type.span(),
                 "Expected a `RunEcsWhile` function as the second function in EcsWhile stage.",
@@ -1116,16 +1069,13 @@ impl Parse for CoreFunctions<RenderWhile> {
         let setup: CoreFunction = input.parse()?;
         let run: CoreFunction = input.parse()?;
 
-        if !matches!(
-            setup.signature.function_type,
-            CoreFunctionType::SetupRenderWhile { .. }
-        ) {
-            return Err(syn::Error::new(setup.signature.function_type.span(), "Expected a `SetupRenderWhile` function as the first function in RenderWhile stage."));
+        if !matches!(setup.signature.function_type, CoreFunctionType::SetupRenderWhile { .. }) {
+            return Err(syn::Error::new(
+                setup.signature.function_type.span(),
+                "Expected a `SetupRenderWhile` function as the first function in RenderWhile stage.",
+            ));
         }
-        if !matches!(
-            run.signature.function_type,
-            CoreFunctionType::RunRenderWhile { .. }
-        ) {
+        if !matches!(run.signature.function_type, CoreFunctionType::RunRenderWhile { .. }) {
             return Err(syn::Error::new(
                 run.signature.function_type.span(),
                 "Expected a `RunRenderWhile` function as the second function in RenderWhile stage.",
@@ -1141,12 +1091,7 @@ impl Parse for CoreFunctions<RenderWhile> {
 }
 
 impl CoreFunctions<Ecs> {
-    pub fn generate(
-        &self,
-        stage_signature: StageSignature,
-        output_type_name: String,
-        error_type_name: String,
-    ) -> TokenStream {
+    pub fn generate(&self, stage_signature: StageSignature, output_type_name: String, error_type_name: String) -> TokenStream {
         let has_input = stage_signature.has_input();
         let has_output = stage_signature.has_output();
         let has_error = stage_signature.has_error();
@@ -1433,12 +1378,7 @@ impl CoreFunctions<Ecs> {
 }
 
 impl CoreFunctions<Render> {
-    pub fn generate(
-        &self,
-        stage_signature: StageSignature,
-        output_type_name: String,
-        error_type_name: String,
-    ) -> TokenStream {
+    pub fn generate(&self, stage_signature: StageSignature, output_type_name: String, error_type_name: String) -> TokenStream {
         let has_input = stage_signature.has_input();
         let has_output = stage_signature.has_output();
         let has_error = stage_signature.has_error();
@@ -1726,12 +1666,7 @@ impl CoreFunctions<Render> {
 }
 
 impl CoreFunctions<Async> {
-    pub fn generate(
-        &self,
-        stage_signature: StageSignature,
-        output_type_name: String,
-        error_type_name: String,
-    ) -> TokenStream {
+    pub fn generate(&self, stage_signature: StageSignature, output_type_name: String, error_type_name: String) -> TokenStream {
         let has_input = stage_signature.has_input();
         let has_output = stage_signature.has_output();
         let has_error = stage_signature.has_error();
@@ -2074,13 +2009,7 @@ impl CoreFunctions<Async> {
 }
 
 impl CoreFunctions<EcsWhile> {
-    pub fn generate(
-        &self,
-        stage_signature: StageSignature,
-        state_type_name: String,
-        output_type_name: String,
-        error_type_name: String,
-    ) -> TokenStream {
+    pub fn generate(&self, stage_signature: StageSignature, state_type_name: String, output_type_name: String, error_type_name: String) -> TokenStream {
         let has_input = stage_signature.has_input();
         let has_output = stage_signature.has_output();
         let has_error = stage_signature.has_error();
@@ -2787,11 +2716,7 @@ impl CoreFunctions<EcsWhile> {
                         }
                     }
                 };
-                let setup_fn = setup.generate(
-                    state_type_name.clone(),
-                    output_type_name.clone(),
-                    error_type_name.clone(),
-                );
+                let setup_fn = setup.generate(state_type_name.clone(), output_type_name.clone(), error_type_name.clone());
                 let run_fn = run.generate(state_type_name, output_type_name, error_type_name);
 
                 quote! {
@@ -2806,13 +2731,7 @@ impl CoreFunctions<EcsWhile> {
 }
 
 impl CoreFunctions<RenderWhile> {
-    pub fn generate(
-        &self,
-        stage_signature: StageSignature,
-        state_type_name: String,
-        output_type_name: String,
-        error_type_name: String,
-    ) -> TokenStream {
+    pub fn generate(&self, stage_signature: StageSignature, state_type_name: String, output_type_name: String, error_type_name: String) -> TokenStream {
         let has_input = stage_signature.has_input();
         let has_output = stage_signature.has_output();
         let has_error = stage_signature.has_error();
@@ -3433,11 +3352,7 @@ impl CoreFunctions<RenderWhile> {
                         }
                     }
                 };
-                let setup_fn = setup.generate(
-                    state_type_name.clone(),
-                    output_type_name.clone(),
-                    error_type_name.clone(),
-                );
+                let setup_fn = setup.generate(state_type_name.clone(), output_type_name.clone(), error_type_name.clone());
                 let run_fn = run.generate(state_type_name, output_type_name, error_type_name);
 
                 quote! {

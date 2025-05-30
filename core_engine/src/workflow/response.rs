@@ -15,17 +15,17 @@ pub struct TypedWorkflowResponse {
 pub struct TypedWorkflowResponseE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
-    pub result: Result<(), AnySendSyncNamedBox>
+    pub result: Result<(), AnySendSyncNamedBox>,
 }
 pub struct TypedWorkflowResponseO {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
-    pub output: AnySendSyncNamedBox
+    pub output: AnySendSyncNamedBox,
 }
 pub struct TypedWorkflowResponseOE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
-    pub result: Result<AnySendSyncNamedBox, AnySendSyncNamedBox>
+    pub result: Result<AnySendSyncNamedBox, AnySendSyncNamedBox>,
 }
 
 impl TypedWorkflowResponseE {
@@ -41,11 +41,7 @@ impl TypedWorkflowResponseO {
 }
 
 impl TypedWorkflowResponseOE {
-    pub fn unpack<O: 'static + Any + Send + Sync, E: 'static + Any + Send + Sync>(
-        self,
-    ) -> Result<O, E> {
-        self.result
-            .map(|o| o.into_inner())
-            .map_err(|e| e.into_inner())
+    pub fn unpack<O: 'static + Any + Send + Sync, E: 'static + Any + Send + Sync>(self) -> Result<O, E> {
+        self.result.map(|o| o.into_inner()).map_err(|e| e.into_inner())
     }
 }

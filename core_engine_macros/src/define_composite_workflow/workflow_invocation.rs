@@ -27,12 +27,7 @@ impl Parse for WorkflowInvocation {
         let signature_attr = attrs
             .iter()
             .find(|attr| attr.path().is_ident("WorkflowSignature"))
-            .ok_or_else(|| {
-                syn::Error::new(
-                    Span::call_site(),
-                    "Missing #[WorkflowSignature(...)] attribute",
-                )
-            })?;
+            .ok_or_else(|| syn::Error::new(Span::call_site(), "Missing #[WorkflowSignature(...)] attribute"))?;
 
         let signature: Ident = signature_attr.parse_args()?;
 

@@ -14,11 +14,7 @@ use super::resources::ChunkRenderHandles;
 use super::types::ChunkActionWorkflowHandles;
 use super::ChunkActionBuffer;
 
-pub(crate) fn chunk_startup_system(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
+pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
     let quad = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
     let light_material = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
     let dark_material = materials.add(ColorMaterial::from_color(Color::srgb(0.25, 0.25, 0.25)));
@@ -36,11 +32,7 @@ pub(crate) fn chunk_update_system(chunk_query: Query<(Entity, &Transform, &Chunk
         let chunk_pos = world_pos_to_chunk(world_pos);
 
         assert_eq!(chunk.coord, chunk_pos, "Attempted to move chunk entity");
-        assert_eq!(
-            chunk_pos_to_world(chunk.coord),
-            world_pos,
-            "Attempted to move chunk entity"
-        );
+        assert_eq!(chunk_pos_to_world(chunk.coord), world_pos, "Attempted to move chunk entity");
     }
 }
 
@@ -90,9 +82,7 @@ pub(crate) fn process_chunk_actions_system(
         for coord in coords {
             if let Some(action) = chunk_action_buffer.actions.get(coord).cloned() {
                 match action {
-                    ChunkAction::Spawn {
-                        coord, new_owner, ..
-                    } => {
+                    ChunkAction::Spawn { coord, new_owner, .. } => {
                         spawn_coords.push(coord);
                         spawn_inputs.push(crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
                             chunk_coord: coord,
@@ -102,18 +92,16 @@ pub(crate) fn process_chunk_actions_system(
                         processed_coords.push(coord);
                     }
                     ChunkAction::Despawn { coord, .. } => {
-                        despawn_inputs.push(crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInput {
-                            chunk_coord: coord
-                        });
+                        despawn_inputs.push(crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInput { chunk_coord: coord });
                         processed_coords.push(coord);
                     }
-                    ChunkAction::TransferOwnership {
-                        coord, new_owner, ..
-                    } => {
-                        transfer_inputs.push(crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput {
-                            chunk_coord: coord,
-                            new_owner,
-                        });
+                    ChunkAction::TransferOwnership { coord, new_owner, .. } => {
+                        transfer_inputs.push(
+                            crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput {
+                                chunk_coord: coord,
+                                new_owner,
+                            },
+                        );
                         processed_coords.push(coord);
                     }
                 }
@@ -132,12 +120,10 @@ pub(crate) fn process_chunk_actions_system(
 
         let param_data = spawn_coords
             .iter()
-            .map(|&(x, y)| {
-                crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
-                    chunk_pos: [x, y],
-                    chunk_size,
-                    _padding: 0,
-                }
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                _padding: 0,
             })
             .collect::<Vec<_>>();
 
@@ -171,25 +157,21 @@ pub(crate) fn process_chunk_actions_system(
     };
 
     let despawn_handle = if !despawn_inputs.is_empty() {
-        Some(
-            composite_workflow!(move in despawn_inputs: Vec<DespawnChunkInput>, {
-                let _ = workflow!(IOE, Chunk::DespawnChunks, Input {
-                    inputs: despawn_inputs
-                });
-            }),
-        )
+        Some(composite_workflow!(move in despawn_inputs: Vec<DespawnChunkInput>, {
+            let _ = workflow!(IOE, Chunk::DespawnChunks, Input {
+                inputs: despawn_inputs
+            });
+        }))
     } else {
         None
     };
 
     let transfer_handle = if !transfer_inputs.is_empty() {
-        Some(
-            composite_workflow!(move in transfer_inputs: Vec<TransferChunkOwnershipInput>, {
-                let _ = workflow!(IOE, Chunk::TransferChunkOwnerships, Input {
-                    inputs: transfer_inputs
-                });
-            }),
-        )
+        Some(composite_workflow!(move in transfer_inputs: Vec<TransferChunkOwnershipInput>, {
+            let _ = workflow!(IOE, Chunk::TransferChunkOwnerships, Input {
+                inputs: transfer_inputs
+            });
+        }))
     } else {
         None
     };

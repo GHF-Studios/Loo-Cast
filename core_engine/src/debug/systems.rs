@@ -24,10 +24,7 @@ pub(super) fn debug_ui_startup(mut has_spawned: Local<bool>, mut commands: Comma
     }
 }
 
-pub(super) fn debug_object_movement_system(
-    time: Res<Time>,
-    mut query: Query<(&mut Transform, &DebugObjectComponent)>,
-) {
+pub(super) fn debug_object_movement_system(time: Res<Time>, mut query: Query<(&mut Transform, &DebugObjectComponent)>) {
     for (mut transform, debug_object) in query.iter_mut() {
         match &debug_object.movement {
             DebugObjectMovement::Static => {}
@@ -68,10 +65,7 @@ pub(super) fn chunk_inspection_system(
     }
 }
 
-pub(super) fn chunk_loader_inspection_system(
-    chunk_loader_query: Query<Entity, With<ChunkLoaderComponent>>,
-    keys: Res<ButtonInput<KeyCode>>,
-) {
+pub(super) fn chunk_loader_inspection_system(chunk_loader_query: Query<Entity, With<ChunkLoaderComponent>>, keys: Res<ButtonInput<KeyCode>>) {
     if keys.just_pressed(KeyCode::KeyL) {
         let mut chunk_loader_entities = vec![];
         for chunk_loader_entity in chunk_loader_query.iter() {

@@ -2,11 +2,6 @@ use bevy::prelude::*;
 
 #[derive(Event)]
 pub(crate) enum FollowerTargetLifecycleEvent {
-    Add {
-        follow_id: String,
-        followed_entity: Entity,
-    },
-    Remove {
-        follow_id: String,
-    },
+    Add { follow_id: String, followed_entity: Entity },
+    Remove { follow_id: String },
 }

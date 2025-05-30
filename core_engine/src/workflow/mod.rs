@@ -78,8 +78,7 @@ macro_rules! workflow_user_items_util {
 pub(crate) struct WorkflowPlugin;
 impl Plugin for WorkflowPlugin {
     fn build(&self, app: &mut App) {
-        let (setup_receiver, wait_receiver, completion_receiver, failure_receiver) =
-            initialize_stage_channels();
+        let (setup_receiver, wait_receiver, completion_receiver, failure_receiver) = initialize_stage_channels();
         let setup_receiver = StageSetupEventReceiver(setup_receiver);
         let wait_receiver = StageWaitEventReceiver(wait_receiver);
         let completion_receiver = StageCompletionEventReceiver(completion_receiver);
@@ -92,8 +91,7 @@ impl Plugin for WorkflowPlugin {
         let (workflow_request_i_receiver, workflow_response_i_sender) = initialize_i_channels();
         let (workflow_request_ie_receiver, workflow_response_ie_sender) = initialize_ie_channels();
         let (workflow_request_io_receiver, workflow_response_io_sender) = initialize_io_channels();
-        let (workflow_request_ioe_receiver, workflow_response_ioe_sender) =
-            initialize_ioe_channels();
+        let (workflow_request_ioe_receiver, workflow_response_ioe_sender) = initialize_ioe_channels();
 
         app.add_event::<StageInitializationEvent>()
             .add_event::<StageSetupEvent>()

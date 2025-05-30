@@ -245,10 +245,7 @@ impl Parse for CoreTypes<Ecs> {
                     }
                     error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
                 }
-                syn::Item::Struct(ref s)
-                    if s.ident == "State"
-                        || matches!(item, syn::Item::Enum(ref e) if e.ident == "State") =>
-                {
+                syn::Item::Struct(ref s) if s.ident == "State" || matches!(item, syn::Item::Enum(ref e) if e.ident == "State") => {
                     return Err(input.error("State is not allowed in Ecs stages"));
                 }
                 syn::Item::Struct(ref mut s) if s.ident == "MainAccess" => {
@@ -430,10 +427,7 @@ impl Parse for CoreTypes<Render> {
                     }
                     error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
                 }
-                syn::Item::Struct(ref s)
-                    if s.ident == "State"
-                        || matches!(item, syn::Item::Enum(ref e) if e.ident == "State") =>
-                {
+                syn::Item::Struct(ref s) if s.ident == "State" || matches!(item, syn::Item::Enum(ref e) if e.ident == "State") => {
                     return Err(input.error("State is not allowed in Render stages"));
                 }
                 syn::Item::Struct(ref mut s) if s.ident == "RenderAccess" => {
@@ -441,16 +435,14 @@ impl Parse for CoreTypes<Render> {
                     if render_access_type.is_some() {
                         return Err(input.error("Duplicate RenderAccess type"));
                     }
-                    render_access_type =
-                        Some(CoreType::<RenderAccess>::Struct(s.clone(), PhantomData));
+                    render_access_type = Some(CoreType::<RenderAccess>::Struct(s.clone(), PhantomData));
                 }
                 syn::Item::Enum(ref mut e) if e.ident == "RenderAccess" => {
                     align_core_enum(e);
                     if render_access_type.is_some() {
                         return Err(input.error("Duplicate RenderAccess type"));
                     }
-                    render_access_type =
-                        Some(CoreType::<RenderAccess>::Enum(e.clone(), PhantomData));
+                    render_access_type = Some(CoreType::<RenderAccess>::Enum(e.clone(), PhantomData));
                 }
                 _ => return Err(input.error("Invalid or misplaced core type declaration")),
             }
@@ -540,16 +532,14 @@ impl Parse for CoreTypes<RenderWhile> {
                     if render_access_type.is_some() {
                         return Err(input.error("Duplicate RenderAccess type"));
                     }
-                    render_access_type =
-                        Some(CoreType::<RenderAccess>::Struct(s.clone(), PhantomData));
+                    render_access_type = Some(CoreType::<RenderAccess>::Struct(s.clone(), PhantomData));
                 }
                 syn::Item::Enum(ref mut e) if e.ident == "RenderAccess" => {
                     align_core_enum(e);
                     if render_access_type.is_some() {
                         return Err(input.error("Duplicate RenderAccess type"));
                     }
-                    render_access_type =
-                        Some(CoreType::<RenderAccess>::Enum(e.clone(), PhantomData));
+                    render_access_type = Some(CoreType::<RenderAccess>::Enum(e.clone(), PhantomData));
                 }
                 _ => return Err(input.error("Invalid or misplaced core type declaration")),
             }
@@ -618,10 +608,7 @@ impl Parse for CoreTypes<Async> {
                     }
                     error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
                 }
-                syn::Item::Struct(ref s)
-                    if s.ident == "State"
-                        || matches!(item, syn::Item::Enum(ref e) if e.ident == "State") =>
-                {
+                syn::Item::Struct(ref s) if s.ident == "State" || matches!(item, syn::Item::Enum(ref e) if e.ident == "State") => {
                     return Err(input.error("State is not allowed in Async stages"));
                 }
                 _ => return Err(input.error("Invalid or misplaced core type declaration")),
@@ -641,12 +628,7 @@ impl Parse for CoreTypes<Async> {
 }
 
 impl CoreTypes<Ecs> {
-    pub fn generate_stage_type_dependent_stuff(
-        &self,
-        module_name: &str,
-        workflow_name: &str,
-        stage_index: usize,
-    ) -> TokenStream {
+    pub fn generate_stage_type_dependent_stuff(&self, module_name: &str, workflow_name: &str, stage_index: usize) -> TokenStream {
         quote! {
             static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageEcsBufferEventSender> = std::sync::OnceLock::new();
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageEcsBufferEventReceiver>>> = std::sync::OnceLock::new();
@@ -835,12 +817,7 @@ impl CoreTypes<Ecs> {
 }
 
 impl CoreTypes<Render> {
-    pub fn generate_stage_type_dependent_stuff(
-        &self,
-        module_name: &str,
-        workflow_name: &str,
-        stage_index: usize,
-    ) -> TokenStream {
+    pub fn generate_stage_type_dependent_stuff(&self, module_name: &str, workflow_name: &str, stage_index: usize) -> TokenStream {
         quote! {
             static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageRenderBufferEventSender> = std::sync::OnceLock::new();
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageRenderBufferEventReceiver>>> = std::sync::OnceLock::new();
@@ -1029,12 +1006,7 @@ impl CoreTypes<Render> {
 }
 
 impl CoreTypes<Async> {
-    pub fn generate_stage_type_dependent_stuff(
-        &self,
-        module_name: &str,
-        workflow_name: &str,
-        stage_index: usize,
-    ) -> TokenStream {
+    pub fn generate_stage_type_dependent_stuff(&self, module_name: &str, workflow_name: &str, stage_index: usize) -> TokenStream {
         quote! {
             static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageAsyncBufferEventSender> = std::sync::OnceLock::new();
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageAsyncBufferEventReceiver>>> = std::sync::OnceLock::new();
@@ -1223,12 +1195,7 @@ impl CoreTypes<Async> {
 }
 
 impl CoreTypes<EcsWhile> {
-    pub fn generate_stage_type_dependent_stuff(
-        &self,
-        module_name: &str,
-        workflow_name: &str,
-        stage_index: usize,
-    ) -> TokenStream {
+    pub fn generate_stage_type_dependent_stuff(&self, module_name: &str, workflow_name: &str, stage_index: usize) -> TokenStream {
         quote! {
             static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageEcsWhileBufferEventSender> = std::sync::OnceLock::new();
             static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageEcsWhileBufferEventReceiver>>> = std::sync::OnceLock::new();
@@ -1417,12 +1384,7 @@ impl CoreTypes<EcsWhile> {
 }
 
 impl CoreTypes<RenderWhile> {
-    pub fn generate_stage_type_dependent_stuff(
-        &self,
-        module_name: &str,
-        workflow_name: &str,
-        stage_index: usize,
-    ) -> TokenStream {
+    pub fn generate_stage_type_dependent_stuff(&self, module_name: &str, workflow_name: &str, stage_index: usize) -> TokenStream {
         let module_name_pascal_case = module_name.to_pascal_case();
         let workflow_name_pascal_case = workflow_name.to_pascal_case();
 

@@ -18,9 +18,7 @@ pub(crate) fn update_chunk_loader_system(
     for (_, transform, chunk_loader) in chunk_loader_query.iter() {
         let position = transform.translation.truncate();
         let radius = chunk_loader.radius;
-        let loader_range = calculate_chunks_in_radius(position, radius)
-            .into_iter()
-            .collect::<HashSet<(i32, i32)>>();
+        let loader_range = calculate_chunks_in_radius(position, radius).into_iter().collect::<HashSet<(i32, i32)>>();
 
         let mut invalid_actions = vec![];
         for (chunk_coord, action) in chunk_action_buffer.iter() {

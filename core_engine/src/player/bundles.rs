@@ -1,7 +1,5 @@
 use super::components::PlayerComponent;
-use crate::{
-    chunk_actor::components::ChunkActorComponent, chunk_loader::components::ChunkLoaderComponent,
-};
+use crate::{chunk_actor::components::ChunkActorComponent, chunk_loader::components::ChunkLoaderComponent};
 use bevy::prelude::*;
 
 #[derive(Bundle)]

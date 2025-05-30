@@ -4,10 +4,7 @@ use tokio::task::JoinHandle;
 
 use crate::{
     chunk_loader::components::ChunkLoaderComponent,
-    workflow::{
-        composite_workflow_context::ScopedCompositeWorkflowContext,
-        functions::handle_composite_workflow_return_now,
-    },
+    workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return_now},
 };
 
 pub(crate) fn observe_on_remove_chunk_loader(

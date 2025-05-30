@@ -16,10 +16,7 @@ impl ChunkActionBuffer {
 
         self.actions.insert(coord, action);
 
-        self.priority_buckets
-            .entry(priority)
-            .or_default()
-            .insert(coord);
+        self.priority_buckets.entry(priority).or_default().insert(coord);
     }
 
     pub fn add_actions<I>(&mut self, actions: I)
@@ -34,10 +31,7 @@ impl ChunkActionBuffer {
             self.actions.insert(coord, action);
 
             // Add to the priority bucket
-            self.priority_buckets
-                .entry(priority)
-                .or_default()
-                .insert(coord);
+            self.priority_buckets.entry(priority).or_default().insert(coord);
         }
     }
 
@@ -100,10 +94,7 @@ impl ChunkActionBuffer {
     }
 
     pub fn is_transfering_ownership(&self, chunk_coord: &(i32, i32)) -> bool {
-        matches!(
-            self.get(chunk_coord),
-            Some(ChunkAction::TransferOwnership { .. })
-        )
+        matches!(self.get(chunk_coord), Some(ChunkAction::TransferOwnership { .. }))
     }
 
     pub fn has_spawns(&self) -> bool {
@@ -115,9 +106,7 @@ impl ChunkActionBuffer {
     }
 
     pub fn has_ownership_transfers(&self) -> bool {
-        self.actions
-            .values()
-            .any(|action| action.is_transfer_ownership())
+        self.actions.values().any(|action| action.is_transfer_ownership())
     }
 
     pub fn has_any_actions(&self) -> bool {
@@ -139,10 +128,7 @@ pub struct ChunkManager {
 }
 impl ChunkManager {
     pub fn get_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool) {
-        (
-            self.loaded_chunks.contains(chunk_coord),
-            self.owned_chunks.contains_key(chunk_coord),
-        )
+        (self.loaded_chunks.contains(chunk_coord), self.owned_chunks.contains_key(chunk_coord))
     }
 
     pub fn is_loaded(&self, chunk_coord: &(i32, i32)) -> bool {

@@ -4,10 +4,7 @@ use tokio::task::JoinHandle;
 
 use crate::{
     config::statics::CONFIG,
-    workflow::{
-        composite_workflow_context::ScopedCompositeWorkflowContext,
-        functions::handle_composite_workflow_return_now,
-    },
+    workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return_now},
 };
 
 #[derive(Resource, Default)]
@@ -88,16 +85,12 @@ pub(crate) fn update_player_system(
 
                 if direction.length_squared() > 0.0 {
                     direction = direction.normalize();
-                    transform.translation += direction
-                        * CONFIG.get::<f32>("player/movement_speed")
-                        * time.delta_seconds();
+                    transform.translation += direction * CONFIG.get::<f32>("player/movement_speed") * time.delta_seconds();
                 }
             } else {
                 // Entity not found? Maybe it was deleted outside this system.
                 *player_state = PlayerLifecycle::None;
-                warn!(
-                    "Player entity not found in update_player_system. The player entity should not be manually despawned! Resetting player state..",
-                );
+                warn!("Player entity not found in update_player_system. The player entity should not be manually despawned! Resetting player state..",);
             }
         }
     }

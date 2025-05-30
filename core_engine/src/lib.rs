@@ -147,10 +147,14 @@ fn startup_system() {
 
         let chunk_shader_name = "texture_generators/example_compute_uv";
         let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
-        workflow!(IE, Gpu::SetupTextureGenerator, Input {
-            shader_name: chunk_shader_name,
-            shader_path: chunk_shader_path,
-        });
+        workflow!(
+            IE,
+            Gpu::SetupTextureGenerator,
+            Input {
+                shader_name: chunk_shader_name,
+                shader_path: chunk_shader_path,
+            }
+        );
         workflow!(Debug::SpawnDebugObjects);
 
         //let chunk_coords: Vec<(i32, i32)> = (-8..=8)

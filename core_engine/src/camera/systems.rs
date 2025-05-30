@@ -29,8 +29,7 @@ pub(crate) fn main_camera_zoom_system(
         let zoom_speed = base_zoom_speed * zoom_factor.0;
 
         // Calculate the new zoom factor
-        zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_seconds())
-            .clamp(min_zoom, max_zoom);
+        zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_seconds()).clamp(min_zoom, max_zoom);
     }
 
     // Adjust the camera's FOV based on the zoom factor

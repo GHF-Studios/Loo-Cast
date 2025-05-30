@@ -22,10 +22,7 @@ impl Component for ChunkComponent {
             };
 
             if world.get_entity(chunk_owner).is_none() {
-                error!(
-                    "Spawned chunk {:?} with invalid owner {}",
-                    chunk.coord, chunk_owner
-                );
+                error!("Spawned chunk {:?} with invalid owner {}", chunk.coord, chunk_owner);
             }
         });
     }

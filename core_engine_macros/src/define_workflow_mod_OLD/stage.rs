@@ -40,24 +40,15 @@ impl StageSignature {
     }
 
     pub fn has_input(&self) -> bool {
-        matches!(
-            self,
-            StageSignature::I | StageSignature::IE | StageSignature::IO | StageSignature::IOE
-        )
+        matches!(self, StageSignature::I | StageSignature::IE | StageSignature::IO | StageSignature::IOE)
     }
 
     pub fn has_output(&self) -> bool {
-        matches!(
-            self,
-            StageSignature::O | StageSignature::OE | StageSignature::IO | StageSignature::IOE
-        )
+        matches!(self, StageSignature::O | StageSignature::OE | StageSignature::IO | StageSignature::IOE)
     }
 
     pub fn has_error(&self) -> bool {
-        matches!(
-            self,
-            StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE
-        )
+        matches!(self, StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE)
     }
 }
 
@@ -227,73 +218,43 @@ impl Stage {
         }
     }
 
-    pub fn get_in_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         match self {
             Stage::Ecs(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
             Stage::Render(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
             Stage::Async(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
             Stage::EcsWhile(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
-            Stage::RenderWhile(stage) => {
-                stage.get_in_type_path(workflow_module_ident, workflow_ident)
-            }
+            Stage::RenderWhile(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
         }
     }
 
-    pub fn get_state_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_state_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         match self {
             Stage::Ecs(_) => None,
             Stage::Render(_) => None,
             Stage::Async(_) => None,
-            Stage::EcsWhile(stage) => {
-                stage.get_state_type_path(workflow_module_ident, workflow_ident)
-            }
-            Stage::RenderWhile(stage) => {
-                stage.get_state_type_path(workflow_module_ident, workflow_ident)
-            }
+            Stage::EcsWhile(stage) => stage.get_state_type_path(workflow_module_ident, workflow_ident),
+            Stage::RenderWhile(stage) => stage.get_state_type_path(workflow_module_ident, workflow_ident),
         }
     }
 
-    pub fn get_out_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         match self {
             Stage::Ecs(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
             Stage::Render(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
             Stage::Async(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
-            Stage::EcsWhile(stage) => {
-                stage.get_out_type_path(workflow_module_ident, workflow_ident)
-            }
-            Stage::RenderWhile(stage) => {
-                stage.get_out_type_path(workflow_module_ident, workflow_ident)
-            }
+            Stage::EcsWhile(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
+            Stage::RenderWhile(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
         }
     }
 
-    pub fn get_err_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_err_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         match self {
             Stage::Ecs(stage) => stage.get_err_type_path(workflow_module_ident, workflow_ident),
             Stage::Render(stage) => stage.get_err_type_path(workflow_module_ident, workflow_ident),
             Stage::Async(stage) => stage.get_err_type_path(workflow_module_ident, workflow_ident),
-            Stage::EcsWhile(stage) => {
-                stage.get_err_type_path(workflow_module_ident, workflow_ident)
-            }
-            Stage::RenderWhile(stage) => {
-                stage.get_err_type_path(workflow_module_ident, workflow_ident)
-            }
+            Stage::EcsWhile(stage) => stage.get_err_type_path(workflow_module_ident, workflow_ident),
+            Stage::RenderWhile(stage) => stage.get_err_type_path(workflow_module_ident, workflow_ident),
         }
     }
 }
@@ -496,18 +457,11 @@ impl TypedStage<Ecs> {
     ) -> (TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
-        let stage_ident = Ident::new(
-            stage_name.as_str().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types =
-            self.core_types
-                .generate(self.core_types.generate_stage_type_dependent_stuff(
-                    module_name,
-                    workflow_name,
-                    self.index,
-                ));
+        let core_types = self
+            .core_types
+            .generate(self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index));
         let core_functions = {
             let output_type_name: String = this_stage_out_type_path
                 .cloned()
@@ -524,8 +478,7 @@ impl TypedStage<Ecs> {
                 .filter(|c| !c.is_whitespace())
                 .collect();
 
-            self.core_functions
-                .generate(signature, output_type_name, error_type_name)
+            self.core_functions.generate(signature, output_type_name, error_type_name)
         };
         let signature = signature.generate();
 
@@ -548,11 +501,7 @@ impl TypedStage<Ecs> {
                 }
             }
         };
-        let ecs_run_response_handler = match (
-            this_stage_out_type_path,
-            this_stage_err_type_path,
-            next_stage_in_type_path,
-        ) {
+        let ecs_run_response_handler = match (this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path) {
             (Some(this_stage_out_type_path), Some(this_stage_err_type_path), Some(next_stage_in_type_path)) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
@@ -561,16 +510,8 @@ impl TypedStage<Ecs> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -635,16 +576,8 @@ impl TypedStage<Ecs> {
                 if is_last {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
-                    let error_type_name: String = this_stage_err_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -713,11 +646,7 @@ impl TypedStage<Ecs> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -749,11 +678,7 @@ impl TypedStage<Ecs> {
             }
             (Some(this_stage_out_type_path), None, None) => {
                 if is_last {
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -791,11 +716,7 @@ impl TypedStage<Ecs> {
             (None, Some(this_stage_err_type_path), None) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -910,49 +831,37 @@ impl TypedStage<Ecs> {
         self.index
     }
 
-    pub fn get_in_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
+        core_types
+            .input
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_out_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.output.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        core_types
+            .output
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
     }
 
-    pub fn get_err_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_err_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.error.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
+        core_types
+            .error
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
     }
 }
 
@@ -971,18 +880,11 @@ impl TypedStage<Render> {
     ) -> (TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
-        let stage_ident = Ident::new(
-            stage_name.as_str().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types =
-            self.core_types
-                .generate(self.core_types.generate_stage_type_dependent_stuff(
-                    module_name,
-                    workflow_name,
-                    self.index,
-                ));
+        let core_types = self
+            .core_types
+            .generate(self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index));
         let core_functions = {
             let output_type_name: String = this_stage_out_type_path
                 .cloned()
@@ -999,8 +901,7 @@ impl TypedStage<Render> {
                 .filter(|c| !c.is_whitespace())
                 .collect();
 
-            self.core_functions
-                .generate(signature, output_type_name, error_type_name)
+            self.core_functions.generate(signature, output_type_name, error_type_name)
         };
         let signature = signature.generate();
 
@@ -1023,11 +924,7 @@ impl TypedStage<Render> {
                 }
             }
         };
-        let render_run_response_handler = match (
-            this_stage_out_type_path,
-            this_stage_err_type_path,
-            next_stage_in_type_path,
-        ) {
+        let render_run_response_handler = match (this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path) {
             (Some(this_stage_out_type_path), Some(this_stage_err_type_path), Some(next_stage_in_type_path)) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
@@ -1036,16 +933,8 @@ impl TypedStage<Render> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -1110,16 +999,8 @@ impl TypedStage<Render> {
                 if is_last {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
-                    let error_type_name: String = this_stage_err_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -1188,11 +1069,7 @@ impl TypedStage<Render> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -1224,11 +1101,7 @@ impl TypedStage<Render> {
             }
             (Some(this_stage_out_type_path), None, None) => {
                 if is_last {
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -1266,11 +1139,7 @@ impl TypedStage<Render> {
             (None, Some(this_stage_err_type_path), None) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -1385,49 +1254,37 @@ impl TypedStage<Render> {
         self.index
     }
 
-    pub fn get_in_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
+        core_types
+            .input
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_out_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.output.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        core_types
+            .output
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
     }
 
-    pub fn get_err_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_err_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.error.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
+        core_types
+            .error
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
     }
 }
 
@@ -1446,18 +1303,11 @@ impl TypedStage<Async> {
     ) -> (TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
-        let stage_ident = Ident::new(
-            stage_name.as_str().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types =
-            self.core_types
-                .generate(self.core_types.generate_stage_type_dependent_stuff(
-                    module_name,
-                    workflow_name,
-                    self.index,
-                ));
+        let core_types = self
+            .core_types
+            .generate(self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index));
         let core_functions = {
             let output_type_name: String = this_stage_out_type_path
                 .cloned()
@@ -1474,8 +1324,7 @@ impl TypedStage<Async> {
                 .filter(|c| !c.is_whitespace())
                 .collect();
 
-            self.core_functions
-                .generate(signature, output_type_name, error_type_name)
+            self.core_functions.generate(signature, output_type_name, error_type_name)
         };
         let signature = signature.generate();
 
@@ -1498,11 +1347,7 @@ impl TypedStage<Async> {
                 }
             }
         };
-        let async_run_response_handler = match (
-            this_stage_out_type_path,
-            this_stage_err_type_path,
-            next_stage_in_type_path,
-        ) {
+        let async_run_response_handler = match (this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path) {
             (Some(this_stage_out_type_path), Some(this_stage_err_type_path), Some(next_stage_in_type_path)) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
@@ -1511,16 +1356,8 @@ impl TypedStage<Async> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -1585,16 +1422,8 @@ impl TypedStage<Async> {
                 if is_last {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
-                    let error_type_name: String = this_stage_err_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -1663,11 +1492,7 @@ impl TypedStage<Async> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -1699,11 +1524,7 @@ impl TypedStage<Async> {
             }
             (Some(this_stage_out_type_path), None, None) => {
                 if is_last {
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -1741,11 +1562,7 @@ impl TypedStage<Async> {
             (None, Some(this_stage_err_type_path), None) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -1860,49 +1677,37 @@ impl TypedStage<Async> {
         self.index
     }
 
-    pub fn get_in_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
+        core_types
+            .input
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_out_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.output.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        core_types
+            .output
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
     }
 
-    pub fn get_err_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_err_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.error.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
+        core_types
+            .error
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
     }
 }
 
@@ -1922,18 +1727,11 @@ impl TypedStage<EcsWhile> {
     ) -> (TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
-        let stage_ident = Ident::new(
-            stage_name.as_str().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types =
-            self.core_types
-                .generate(self.core_types.generate_stage_type_dependent_stuff(
-                    module_name,
-                    workflow_name,
-                    self.index,
-                ));
+        let core_types = self
+            .core_types
+            .generate(self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index));
         let core_functions = {
             let state_type_name: String = this_stage_state_type_path
                 .cloned()
@@ -1957,12 +1755,7 @@ impl TypedStage<EcsWhile> {
                 .filter(|c| !c.is_whitespace())
                 .collect();
 
-            self.core_functions.generate(
-                signature,
-                state_type_name,
-                output_type_name,
-                error_type_name,
-            )
+            self.core_functions.generate(signature, state_type_name, output_type_name, error_type_name)
         };
         let signature = signature.generate();
 
@@ -1985,23 +1778,12 @@ impl TypedStage<EcsWhile> {
                 }
             }
         };
-        let ecs_while_setup_response_handler = match (
-            this_stage_state_type_path,
-            this_stage_err_type_path,
-        ) {
+        let ecs_while_setup_response_handler = match (this_stage_state_type_path, this_stage_err_type_path) {
             (Some(this_stage_state_type_path), Some(this_stage_err_type_path)) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let state_type_name: String = this_stage_state_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2062,11 +1844,7 @@ impl TypedStage<EcsWhile> {
                 })}
             }
             (Some(this_stage_state_type_path), None) => {
-                let state_type_name: String = this_stage_state_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2098,11 +1876,7 @@ impl TypedStage<EcsWhile> {
             (None, Some(this_stage_err_type_path)) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2192,12 +1966,7 @@ impl TypedStage<EcsWhile> {
             this_stage_err_type_path,
             next_stage_in_type_path,
         ) {
-            (
-                Some(this_stage_state_type_path),
-                Some(this_stage_out_type_path),
-                Some(this_stage_err_type_path),
-                Some(next_stage_in_type_path),
-            ) => {
+            (Some(this_stage_state_type_path), Some(this_stage_out_type_path), Some(this_stage_err_type_path), Some(next_stage_in_type_path)) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                 let stage_output_transmutation = if is_last {
@@ -2205,21 +1974,9 @@ impl TypedStage<EcsWhile> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let state_type_name: String = this_stage_state_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2303,21 +2060,9 @@ impl TypedStage<EcsWhile> {
                 if is_last {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                    let state_type_name: String = this_stage_state_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
-                    let error_type_name: String = this_stage_err_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -2405,16 +2150,8 @@ impl TypedStage<EcsWhile> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let state_type_name: String = this_stage_state_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2466,16 +2203,8 @@ impl TypedStage<EcsWhile> {
             }
             (Some(this_stage_state_type_path), Some(this_stage_out_type_path), None, None) => {
                 if is_last {
-                    let state_type_name: String = this_stage_state_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -2533,16 +2262,8 @@ impl TypedStage<EcsWhile> {
             (Some(this_stage_state_type_path), None, Some(this_stage_err_type_path), None) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let state_type_name: String = this_stage_state_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2619,11 +2340,7 @@ impl TypedStage<EcsWhile> {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
             (Some(this_stage_state_type_path), None, None, None) => {
-                let state_type_name: String = this_stage_state_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2678,16 +2395,8 @@ impl TypedStage<EcsWhile> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2769,16 +2478,8 @@ impl TypedStage<EcsWhile> {
                 if is_last {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
-                    let error_type_name: String = this_stage_err_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -2864,11 +2565,7 @@ impl TypedStage<EcsWhile> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2919,11 +2616,7 @@ impl TypedStage<EcsWhile> {
             }
             (None, Some(this_stage_out_type_path), None, None) => {
                 if is_last {
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -2979,11 +2672,7 @@ impl TypedStage<EcsWhile> {
             (None, None, Some(this_stage_err_type_path), None) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3133,64 +2822,48 @@ impl TypedStage<EcsWhile> {
         self.index
     }
 
-    pub fn get_in_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
+        core_types
+            .input
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_state_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_state_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.state.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::State })
+        core_types
+            .state
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::State })
     }
 
-    pub fn get_out_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.output.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        core_types
+            .output
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
     }
 
-    pub fn get_err_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_err_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.error.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
+        core_types
+            .error
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
     }
 }
 
@@ -3210,18 +2883,11 @@ impl TypedStage<RenderWhile> {
     ) -> (TokenStream, TokenStream) {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
-        let stage_ident = Ident::new(
-            stage_name.as_str().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types =
-            self.core_types
-                .generate(self.core_types.generate_stage_type_dependent_stuff(
-                    module_name,
-                    workflow_name,
-                    self.index,
-                ));
+        let core_types = self
+            .core_types
+            .generate(self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index));
         let core_functions = {
             let state_type_name: String = this_stage_state_type_path
                 .cloned()
@@ -3245,12 +2911,7 @@ impl TypedStage<RenderWhile> {
                 .filter(|c| !c.is_whitespace())
                 .collect();
 
-            self.core_functions.generate(
-                signature,
-                state_type_name,
-                output_type_name,
-                error_type_name,
-            )
+            self.core_functions.generate(signature, state_type_name, output_type_name, error_type_name)
         };
         let signature = signature.generate();
 
@@ -3273,23 +2934,12 @@ impl TypedStage<RenderWhile> {
                 }
             }
         };
-        let render_while_setup_response_handler = match (
-            this_stage_state_type_path,
-            this_stage_err_type_path,
-        ) {
+        let render_while_setup_response_handler = match (this_stage_state_type_path, this_stage_err_type_path) {
             (Some(this_stage_state_type_path), Some(this_stage_err_type_path)) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let state_type_name: String = this_stage_state_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3350,11 +3000,7 @@ impl TypedStage<RenderWhile> {
                 })}
             }
             (Some(this_stage_state_type_path), None) => {
-                let state_type_name: String = this_stage_state_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3388,11 +3034,7 @@ impl TypedStage<RenderWhile> {
             (None, Some(this_stage_err_type_path)) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3485,12 +3127,7 @@ impl TypedStage<RenderWhile> {
             this_stage_err_type_path,
             next_stage_in_type_path,
         ) {
-            (
-                Some(this_stage_state_type_path),
-                Some(this_stage_out_type_path),
-                Some(this_stage_err_type_path),
-                Some(next_stage_in_type_path),
-            ) => {
+            (Some(this_stage_state_type_path), Some(this_stage_out_type_path), Some(this_stage_err_type_path), Some(next_stage_in_type_path)) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                 let stage_output_transmutation = if is_last {
@@ -3498,21 +3135,9 @@ impl TypedStage<RenderWhile> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let state_type_name: String = this_stage_state_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3596,21 +3221,9 @@ impl TypedStage<RenderWhile> {
                 if is_last {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                    let state_type_name: String = this_stage_state_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
-                    let error_type_name: String = this_stage_err_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -3698,16 +3311,8 @@ impl TypedStage<RenderWhile> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let state_type_name: String = this_stage_state_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3759,16 +3364,8 @@ impl TypedStage<RenderWhile> {
             }
             (Some(this_stage_state_type_path), Some(this_stage_out_type_path), None, None) => {
                 if is_last {
-                    let state_type_name: String = this_stage_state_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -3826,16 +3423,8 @@ impl TypedStage<RenderWhile> {
             (Some(this_stage_state_type_path), None, Some(this_stage_err_type_path), None) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let state_type_name: String = this_stage_state_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3912,11 +3501,7 @@ impl TypedStage<RenderWhile> {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
             (Some(this_stage_state_type_path), None, None, None) => {
-                let state_type_name: String = this_stage_state_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3971,16 +3556,8 @@ impl TypedStage<RenderWhile> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -4062,16 +3639,8 @@ impl TypedStage<RenderWhile> {
                 if is_last {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
-                    let error_type_name: String = this_stage_err_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -4157,11 +3726,7 @@ impl TypedStage<RenderWhile> {
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
-                let output_type_name: String = this_stage_out_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -4212,11 +3777,7 @@ impl TypedStage<RenderWhile> {
             }
             (None, Some(this_stage_out_type_path), None, None) => {
                 if is_last {
-                    let output_type_name: String = this_stage_out_type_path
-                        .to_string()
-                        .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect();
+                    let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -4272,11 +3833,7 @@ impl TypedStage<RenderWhile> {
             (None, None, Some(this_stage_err_type_path), None) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path
-                    .to_string()
-                    .chars()
-                    .filter(|c| !c.is_whitespace())
-                    .collect();
+                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -4426,63 +3983,47 @@ impl TypedStage<RenderWhile> {
         self.index
     }
 
-    pub fn get_in_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.input.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
+        core_types
+            .input
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_state_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_state_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.state.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::State })
+        core_types
+            .state
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::State })
     }
 
-    pub fn get_out_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.output.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+        core_types
+            .output
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
     }
 
-    pub fn get_err_type_path(
-        &self,
-        workflow_module_ident: Ident,
-        workflow_ident: Ident,
-    ) -> Option<TokenStream> {
+    pub fn get_err_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
-        let stage_ident = Ident::new(
-            stage_ident.to_string().to_snake_case().as_str(),
-            stage_ident.span(),
-        );
+        let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
 
-        core_types.error.as_ref().map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
+        core_types
+            .error
+            .as_ref()
+            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
     }
 }

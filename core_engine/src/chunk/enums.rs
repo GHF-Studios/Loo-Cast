@@ -35,17 +35,15 @@ impl ChunkAction {
 
     pub fn get_requester_id(&self) -> u32 {
         match self {
-            ChunkAction::Spawn { requester_id, .. }
-            | ChunkAction::Despawn { requester_id, .. }
-            | ChunkAction::TransferOwnership { requester_id, .. } => *requester_id,
+            ChunkAction::Spawn { requester_id, .. } | ChunkAction::Despawn { requester_id, .. } | ChunkAction::TransferOwnership { requester_id, .. } => {
+                *requester_id
+            }
         }
     }
 
     pub fn get_coord(&self) -> (i32, i32) {
         match self {
-            ChunkAction::Spawn { coord, .. }
-            | ChunkAction::Despawn { coord, .. }
-            | ChunkAction::TransferOwnership { coord, .. } => *coord,
+            ChunkAction::Spawn { coord, .. } | ChunkAction::Despawn { coord, .. } | ChunkAction::TransferOwnership { coord, .. } => *coord,
         }
     }
 
@@ -73,9 +71,7 @@ impl PartialOrd for ChunkActionPriority {
 impl Ord for ChunkActionPriority {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match (self, other) {
-            (ChunkActionPriority::Realtime, ChunkActionPriority::Realtime) => {
-                std::cmp::Ordering::Equal
-            }
+            (ChunkActionPriority::Realtime, ChunkActionPriority::Realtime) => std::cmp::Ordering::Equal,
             (ChunkActionPriority::Realtime, _) => std::cmp::Ordering::Greater,
             (_, ChunkActionPriority::Realtime) => std::cmp::Ordering::Less,
             (ChunkActionPriority::Deferred(a), ChunkActionPriority::Deferred(b)) => b.cmp(a),

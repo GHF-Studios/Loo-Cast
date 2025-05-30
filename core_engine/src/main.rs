@@ -1,8 +1,6 @@
 extern crate core_engine;
 
-use bevy::diagnostic::{
-    EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin,
-};
+use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
 use bevy::log::{Level, LogPlugin};
 use bevy::prelude::*;
 use bevy::window::PresentMode;
@@ -26,10 +24,7 @@ fn main() {
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
         // Configure the logger
-        tracing_subscriber::fmt()
-            .with_env_filter(LOG_FILTER)
-            .with_writer(non_blocking)
-            .init();
+        tracing_subscriber::fmt().with_env_filter(LOG_FILTER).with_writer(non_blocking).init();
     } else {
         bevy_plugins = bevy_plugins.set(LogPlugin {
             filter: LOG_FILTER.into(),

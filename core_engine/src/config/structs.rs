@@ -27,19 +27,11 @@ impl Config {
     }
 
     /// Flatten nested TOML tables
-    fn flatten(
-        prefix: &str,
-        value: &toml::Value,
-        data: &mut HashMap<String, ConfigValue>,
-    ) -> Result<(), String> {
+    fn flatten(prefix: &str, value: &toml::Value, data: &mut HashMap<String, ConfigValue>) -> Result<(), String> {
         match value {
             toml::Value::Table(table) => {
                 for (key, val) in table {
-                    let new_prefix = if prefix.is_empty() {
-                        key.clone()
-                    } else {
-                        format!("{}/{}", prefix, key)
-                    };
+                    let new_prefix = if prefix.is_empty() { key.clone() } else { format!("{}/{}", prefix, key) };
                     Self::flatten(&new_prefix, val, data)?;
                 }
             }
@@ -77,23 +69,15 @@ impl Config {
             let cache = self.cache.read().unwrap();
             if let Some(type_map) = cache.get(path) {
                 if let Some(cached_value) = type_map.get(&TypeId::of::<T>()) {
-                    return cached_value
-                        .downcast_ref::<T>()
-                        .expect("Cached value type mismatch")
-                        .clone();
+                    return cached_value.downcast_ref::<T>().expect("Cached value type mismatch").clone();
                 }
             }
         }
 
         // Compute the value if not cached
-        let value = self
-            .data
-            .get(path)
-            .unwrap_or_else(|| unreachable!("Config key not found: {}", path))
-            .clone();
+        let value = self.data.get(path).unwrap_or_else(|| unreachable!("Config key not found: {}", path)).clone();
 
-        let typed_value: T =
-            T::try_from(value).unwrap_or_else(|err| unreachable!("Type conversion error: {}", err));
+        let typed_value: T = T::try_from(value).unwrap_or_else(|err| unreachable!("Type conversion error: {}", err));
 
         // Cache the computed value
         {

@@ -36,9 +36,7 @@ pub enum StageType {
 
 impl Parse for WorkflowMods {
     fn parse(input: ParseStream) -> Result<Self> {
-        let modules = Punctuated::<WorkflowMod, Token![,]>::parse_terminated(input)?
-            .into_iter()
-            .collect();
+        let modules = Punctuated::<WorkflowMod, Token![,]>::parse_terminated(input)?.into_iter().collect();
         Ok(Self { modules })
     }
 }
@@ -49,9 +47,7 @@ impl Parse for WorkflowMod {
         let content;
         braced!(content in input);
 
-        let workflows = Punctuated::<Workflow, Token![,]>::parse_terminated(&content)?
-            .into_iter()
-            .collect();
+        let workflows = Punctuated::<Workflow, Token![,]>::parse_terminated(&content)?.into_iter().collect();
 
         Ok(Self { name, workflows })
     }
@@ -63,9 +59,7 @@ impl Parse for Workflow {
         let content;
         braced!(content in input);
 
-        let stages = Punctuated::<Stage, Token![,]>::parse_terminated(&content)?
-            .into_iter()
-            .collect();
+        let stages = Punctuated::<Stage, Token![,]>::parse_terminated(&content)?.into_iter().collect();
 
         Ok(Self { name, stages })
     }
@@ -90,7 +84,10 @@ impl Parse for StageType {
             "Async" => Ok(Self::Async),
             "EcsWhile" => Ok(Self::EcsWhile),
             "RenderWhile" => Ok(Self::RenderWhile),
-            _ => Err(syn::Error::new(input.span(), "Invalid stage type! Expected one of: `Ecs`, `Render`, `Async`, `EcsWhile`, `RenderWhile`"))
+            _ => Err(syn::Error::new(
+                input.span(),
+                "Invalid stage type! Expected one of: `Ecs`, `Render`, `Async`, `EcsWhile`, `RenderWhile`",
+            )),
         }
     }
 }
@@ -104,8 +101,7 @@ impl WorkflowMods {
                 let ident = &workflow_module.name;
                 let mod_name = ident.to_string().to_snake_case();
                 let mod_ident = Ident::new(mod_name.as_str(), ident.span());
-                let plugin_name =
-                    syn::Ident::new(&format!("{}WorkflowsPlugin", ident), ident.span());
+                let plugin_name = syn::Ident::new(&format!("{}WorkflowsPlugin", ident), ident.span());
 
                 quote! {
                     .add(crate::#mod_ident::workflows::#mod_ident::#plugin_name)
@@ -251,11 +247,7 @@ impl WorkflowMods {
             }
         };
 
-        let workflow_modules_metadata: Vec<_> = self
-            .modules
-            .into_iter()
-            .map(|workflow_module| workflow_module.generate())
-            .collect();
+        let workflow_modules_metadata: Vec<_> = self.modules.into_iter().map(|workflow_module| workflow_module.generate()).collect();
         let workflow_modules_metadata = quote! {
             static WORKFLOW_MODULES_METADATA: std::sync::OnceLock<Box<[WorkflowModuleMetadata]>> = std::sync::OnceLock::new();
 
@@ -302,12 +294,7 @@ impl WorkflowMod {
         let workflow_module_metadata: Vec<_> = self
             .workflows
             .into_iter()
-            .map(|workflow| {
-                workflow.generate(Ident::new(
-                    workflow_module_name_snake_case.as_str(),
-                    self.name.span(),
-                ))
-            })
+            .map(|workflow| workflow.generate(Ident::new(workflow_module_name_snake_case.as_str(), self.name.span())))
             .collect();
 
         quote! {
@@ -328,12 +315,7 @@ impl Workflow {
         let workflow_metadata: Vec<_> = self
             .stages
             .into_iter()
-            .map(|workflow| {
-                workflow.generate(
-                    module_name.clone(),
-                    Ident::new(workflow_name_snake_case.as_str(), self.name.span()),
-                )
-            })
+            .map(|workflow| workflow.generate(module_name.clone(), Ident::new(workflow_name_snake_case.as_str(), self.name.span())))
             .collect();
 
         quote! {

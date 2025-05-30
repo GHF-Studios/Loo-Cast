@@ -38,10 +38,7 @@ impl Parse for CompositeWorkflow {
 
 impl CompositeWorkflow {
     pub fn generate(self) -> TokenStream {
-        let function_ident = Ident::new(
-            self.name.to_string().as_str().to_snake_case().as_str(),
-            self.name.span(),
-        );
+        let function_ident = Ident::new(self.name.to_string().as_str().to_snake_case().as_str(), self.name.span());
         let error_enum_ident = Ident::new(&format!("{}Error", self.name), self.name.span());
 
         // --- Collect fallible invocations ---
@@ -49,11 +46,7 @@ impl CompositeWorkflow {
             .segments
             .iter()
             .filter_map(|seg| match seg {
-                WorkflowSegment::Invocation(wf)
-                    if matches!(wf.signature.to_string().as_str(), "E" | "OE" | "IE" | "IOE") =>
-                {
-                    Some(wf)
-                }
+                WorkflowSegment::Invocation(wf) if matches!(wf.signature.to_string().as_str(), "E" | "OE" | "IE" | "IOE") => Some(wf),
                 _ => None,
             })
             .collect();
@@ -150,7 +143,11 @@ impl CompositeWorkflow {
                         },
 
                         "I" | "IE" | "IO" | "IOE" => {
-                            let mut input_expr = wf.input_struct.as_ref().unwrap_or_else(|| unreachable!("Expected `Input {{ ... }}` block for workflow with signature '{}'", sig)).clone();
+                            let mut input_expr = wf
+                                .input_struct
+                                .as_ref()
+                                .unwrap_or_else(|| unreachable!("Expected `Input {{ ... }}` block for workflow with signature '{}'", sig))
+                                .clone();
                             input_expr.path = syn::parse_quote! { I };
 
                             let mut inner = quote! {
@@ -251,11 +248,7 @@ fn extract_error_variant(path: &ExprPath) -> Ident {
     let mut combined = format!("{}{}", module_name, workflow_name);
 
     // Strip Type-like suffixes if they snuck in
-    for &suffix in [
-        "Type", "TypeE", "TypeO", "TypeOe", "TypeI", "TypeIe", "TypeIo", "TypeIoe",
-    ]
-    .iter()
-    {
+    for &suffix in ["Type", "TypeE", "TypeO", "TypeOe", "TypeI", "TypeIe", "TypeIo", "TypeIoe"].iter() {
         if let Some(stripped) = combined.strip_suffix(suffix) {
             combined = stripped.to_string();
             break;

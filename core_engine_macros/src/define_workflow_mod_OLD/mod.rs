@@ -65,22 +65,12 @@ impl WorkflowModule {
     pub fn generate(self) -> TokenStream {
         let module_ident = &self.name;
         let module_name = module_ident.to_string();
-        let module_ident = Ident::new(
-            module_name.as_str().to_snake_case().as_str(),
-            module_ident.span(),
-        );
+        let module_ident = Ident::new(module_name.as_str().to_snake_case().as_str(), module_ident.span());
         let plugin_name = format!("{}WorkflowsPlugin", module_name);
         let plugin_ident = Ident::new(plugin_name.as_str(), module_ident.span());
 
-        let (workflow_modules, workflow_data, workflow_plugin_addition_literals): (
-            Vec<_>,
-            Vec<_>,
-            Vec<_>,
-        ) = self
-            .workflows
-            .into_iter()
-            .map(|w| w.generate(module_ident.clone()))
-            .unzip3();
+        let (workflow_modules, workflow_data, workflow_plugin_addition_literals): (Vec<_>, Vec<_>, Vec<_>) =
+            self.workflows.into_iter().map(|w| w.generate(module_ident.clone())).unzip3();
 
         let workflow_literals = workflow_data
             .into_iter()
@@ -188,20 +178,12 @@ impl Parse for Workflow {
             let (has_input, has_output, has_error) = if stages.len() == 1 {
                 let only_stage = stages.first().unwrap();
 
-                (
-                    only_stage.has_input(),
-                    only_stage.has_output(),
-                    only_stage.has_error(),
-                )
+                (only_stage.has_input(), only_stage.has_output(), only_stage.has_error())
             } else {
                 let first_stage = stages.first().unwrap();
                 let last_stage = stages.last().unwrap();
 
-                (
-                    first_stage.has_input(),
-                    last_stage.has_output(),
-                    stages.iter().any(|s| s.has_error()),
-                )
+                (first_stage.has_input(), last_stage.has_output(), stages.iter().any(|s| s.has_error()))
             };
 
             match (has_input, has_output, has_error) {
@@ -244,11 +226,7 @@ trait IteratorExt: Iterator {
             c.push(z);
         }
 
-        (
-            a.into_iter().collect(),
-            b.into_iter().collect(),
-            c.into_iter().collect(),
-        )
+        (a.into_iter().collect(), b.into_iter().collect(), c.into_iter().collect())
     }
 
     fn unzip4<A, B, C, D, IA, IB, IC, ID>(self) -> (IA, IB, IC, ID)
@@ -282,20 +260,11 @@ trait IteratorExt: Iterator {
 impl<T: ?Sized> IteratorExt for T where T: Iterator {}
 
 impl Workflow {
-    pub fn generate(
-        self,
-        workflow_module_ident: Ident,
-    ) -> (TokenStream, (WorkflowSignature, Ident), TokenStream) {
+    pub fn generate(self, workflow_module_ident: Ident) -> (TokenStream, (WorkflowSignature, Ident), TokenStream) {
         let workflow_ident = &self.name;
         let workflow_name = workflow_ident.to_string();
-        let workflow_ident = Ident::new(
-            workflow_name.as_str().to_snake_case().as_str(),
-            workflow_ident.span(),
-        );
-        let workflow_path = format!(
-            "crate::{}::workflows::{}::{}",
-            workflow_module_ident, workflow_module_ident, workflow_ident
-        );
+        let workflow_ident = Ident::new(workflow_name.as_str().to_snake_case().as_str(), workflow_ident.span());
+        let workflow_path = format!("crate::{}::workflows::{}::{}", workflow_module_ident, workflow_module_ident, workflow_ident);
         let workflow_path = Path {
             leading_colon: None,
             segments: workflow_path
@@ -309,8 +278,7 @@ impl Workflow {
         };
         let workflow_path = quote! { #workflow_path };
         let workflow_plugin_name = format!("{}WorkflowPlugin", workflow_name);
-        let workflow_plugin_ident =
-            Ident::new(workflow_plugin_name.as_str(), workflow_ident.span());
+        let workflow_plugin_ident = Ident::new(workflow_plugin_name.as_str(), workflow_ident.span());
 
         let (workflow_stage_ecs_plugin_usage_literals, workflow_stage_render_plugin_usage_literals) = {
             let mut workflow_stage_ecs_plugin_usage_literals = vec![];
@@ -318,10 +286,8 @@ impl Workflow {
 
             for stage in self.stages.0.iter() {
                 let stage_ident = stage.name();
-                let workflow_stage_system_name =
-                    format!("{}", stage_ident).as_str().to_snake_case();
-                let workflow_stage_module_ident =
-                    Ident::new(workflow_stage_system_name.as_str(), stage_ident.span());
+                let workflow_stage_system_name = format!("{}", stage_ident).as_str().to_snake_case();
+                let workflow_stage_module_ident = Ident::new(workflow_stage_system_name.as_str(), stage_ident.span());
 
                 match stage {
                     Stage::Ecs(_) => {
@@ -380,10 +346,7 @@ impl Workflow {
                 }
             }
 
-            (
-                workflow_stage_ecs_plugin_usage_literals,
-                workflow_stage_render_plugin_usage_literals,
-            )
+            (workflow_stage_ecs_plugin_usage_literals, workflow_stage_render_plugin_usage_literals)
         };
 
         let workflow_plugin_declaration = {
@@ -457,33 +420,16 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (
-                    stage_state_type_paths,
-                    stage_out_type_paths,
-                    stage_err_type_paths,
-                    stage_in_type_paths,
-                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_out_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_err_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_in_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
+                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -567,13 +513,8 @@ impl Workflow {
                         let stage_ident = s.name();
                         let stage_name_pascal_case = stage_ident.to_string();
                         let stage_name_snake_case = stage_name_pascal_case.to_snake_case();
-                        let stage_error_name: TokenStream =
-                            parse_str(format!("{}Error", stage_name_pascal_case).as_str()).unwrap();
-                        let stage_error_path: TokenStream = parse_str(
-                            format!("self::stages::{}::core_types::Error", stage_name_snake_case)
-                                .as_str(),
-                        )
-                        .unwrap();
+                        let stage_error_name: TokenStream = parse_str(format!("{}Error", stage_name_pascal_case).as_str()).unwrap();
+                        let stage_error_path: TokenStream = parse_str(format!("self::stages::{}::core_types::Error", stage_name_snake_case).as_str()).unwrap();
 
                         Some(quote! {
                             #stage_error_name(#stage_error_path)
@@ -599,33 +540,16 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (
-                    stage_state_type_paths,
-                    stage_out_type_paths,
-                    stage_err_type_paths,
-                    stage_in_type_paths,
-                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_out_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_err_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_in_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
+                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -707,40 +631,22 @@ impl Workflow {
                 let last_stage_ident = {
                     let first_stage_ident = self.stages.0.first().unwrap().name();
                     let first_stage_name = first_stage_ident.to_string().to_snake_case();
-                    let first_stage_ident =
-                        Ident::new(first_stage_name.as_str(), first_stage_ident.span());
+                    let first_stage_ident = Ident::new(first_stage_name.as_str(), first_stage_ident.span());
                     first_stage_ident
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (
-                    stage_state_type_paths,
-                    stage_out_type_paths,
-                    stage_err_type_paths,
-                    stage_in_type_paths,
-                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_out_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_err_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_in_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
+                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -820,8 +726,7 @@ impl Workflow {
                 let last_stage_ident = {
                     let first_stage_ident = self.stages.0.first().unwrap().name();
                     let first_stage_name = first_stage_ident.to_string().to_snake_case();
-                    let first_stage_ident =
-                        Ident::new(first_stage_name.as_str(), first_stage_ident.span());
+                    let first_stage_ident = Ident::new(first_stage_name.as_str(), first_stage_ident.span());
                     first_stage_ident
                 };
                 let error_enum = {
@@ -833,13 +738,8 @@ impl Workflow {
                         let stage_ident = s.name();
                         let stage_name_pascal_case = stage_ident.to_string();
                         let stage_name_snake_case = stage_name_pascal_case.to_snake_case();
-                        let stage_error_name: TokenStream =
-                            parse_str(format!("{}Error", stage_name_pascal_case).as_str()).unwrap();
-                        let stage_error_path: TokenStream = parse_str(
-                            format!("self::stages::{}::core_types::Error", stage_name_snake_case)
-                                .as_str(),
-                        )
-                        .unwrap();
+                        let stage_error_name: TokenStream = parse_str(format!("{}Error", stage_name_pascal_case).as_str()).unwrap();
+                        let stage_error_path: TokenStream = parse_str(format!("self::stages::{}::core_types::Error", stage_name_snake_case).as_str()).unwrap();
 
                         Some(quote! {
                             #stage_error_name(#stage_error_path)
@@ -865,33 +765,16 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (
-                    stage_state_type_paths,
-                    stage_out_type_paths,
-                    stage_err_type_paths,
-                    stage_in_type_paths,
-                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_out_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_err_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_in_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
+                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -974,40 +857,22 @@ impl Workflow {
                 let first_stage_ident = {
                     let first_stage_ident = self.stages.0.first().unwrap().name();
                     let first_stage_name = first_stage_ident.to_string().to_snake_case();
-                    let first_stage_ident =
-                        Ident::new(first_stage_name.as_str(), first_stage_ident.span());
+                    let first_stage_ident = Ident::new(first_stage_name.as_str(), first_stage_ident.span());
                     first_stage_ident
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (
-                    stage_state_type_paths,
-                    stage_out_type_paths,
-                    stage_err_type_paths,
-                    stage_in_type_paths,
-                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_out_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_err_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_in_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
+                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -1087,8 +952,7 @@ impl Workflow {
                 let first_stage_ident = {
                     let first_stage_ident = self.stages.0.first().unwrap().name();
                     let first_stage_name = first_stage_ident.to_string().to_snake_case();
-                    let first_stage_ident =
-                        Ident::new(first_stage_name.as_str(), first_stage_ident.span());
+                    let first_stage_ident = Ident::new(first_stage_name.as_str(), first_stage_ident.span());
                     first_stage_ident
                 };
                 let error_enum = {
@@ -1100,13 +964,8 @@ impl Workflow {
                         let stage_ident = s.name();
                         let stage_name_pascal_case = stage_ident.to_string();
                         let stage_name_snake_case = stage_name_pascal_case.to_snake_case();
-                        let stage_error_name: TokenStream =
-                            parse_str(format!("{}Error", stage_name_pascal_case).as_str()).unwrap();
-                        let stage_error_path: TokenStream = parse_str(
-                            format!("self::stages::{}::core_types::Error", stage_name_snake_case)
-                                .as_str(),
-                        )
-                        .unwrap();
+                        let stage_error_name: TokenStream = parse_str(format!("{}Error", stage_name_pascal_case).as_str()).unwrap();
+                        let stage_error_path: TokenStream = parse_str(format!("self::stages::{}::core_types::Error", stage_name_snake_case).as_str()).unwrap();
 
                         Some(quote! {
                             #stage_error_name(#stage_error_path)
@@ -1132,33 +991,16 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (
-                    stage_state_type_paths,
-                    stage_out_type_paths,
-                    stage_err_type_paths,
-                    stage_in_type_paths,
-                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_out_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_err_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_in_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
+                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -1243,42 +1085,23 @@ impl Workflow {
                     let last_stage_ident = self.stages.0.last().unwrap().name();
                     let first_stage_name = first_stage_ident.to_string().to_snake_case();
                     let last_stage_name = last_stage_ident.to_string().to_snake_case();
-                    let first_stage_ident =
-                        Ident::new(first_stage_name.as_str(), first_stage_ident.span());
-                    let last_stage_ident =
-                        Ident::new(last_stage_name.as_str(), last_stage_ident.span());
+                    let first_stage_ident = Ident::new(first_stage_name.as_str(), first_stage_ident.span());
+                    let last_stage_ident = Ident::new(last_stage_name.as_str(), last_stage_ident.span());
                     (first_stage_ident, last_stage_ident)
                 };
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (
-                    stage_state_type_paths,
-                    stage_out_type_paths,
-                    stage_err_type_paths,
-                    stage_in_type_paths,
-                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_out_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_err_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_in_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
+                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -1361,10 +1184,8 @@ impl Workflow {
                     let last_stage_ident = self.stages.0.last().unwrap().name();
                     let first_stage_name = first_stage_ident.to_string().to_snake_case();
                     let last_stage_name = last_stage_ident.to_string().to_snake_case();
-                    let first_stage_ident =
-                        Ident::new(first_stage_name.as_str(), first_stage_ident.span());
-                    let last_stage_ident =
-                        Ident::new(last_stage_name.as_str(), last_stage_ident.span());
+                    let first_stage_ident = Ident::new(first_stage_name.as_str(), first_stage_ident.span());
+                    let last_stage_ident = Ident::new(last_stage_name.as_str(), last_stage_ident.span());
                     (first_stage_ident, last_stage_ident)
                 };
                 let error_enum = {
@@ -1376,13 +1197,8 @@ impl Workflow {
                         let stage_ident = s.name();
                         let stage_name_pascal_case = stage_ident.to_string();
                         let stage_name_snake_case = stage_name_pascal_case.to_snake_case();
-                        let stage_error_name: TokenStream =
-                            parse_str(format!("{}Error", stage_name_pascal_case).as_str()).unwrap();
-                        let stage_error_path: TokenStream = parse_str(
-                            format!("self::stages::{}::core_types::Error", stage_name_snake_case)
-                                .as_str(),
-                        )
-                        .unwrap();
+                        let stage_error_name: TokenStream = parse_str(format!("{}Error", stage_name_pascal_case).as_str()).unwrap();
+                        let stage_error_path: TokenStream = parse_str(format!("self::stages::{}::core_types::Error", stage_name_snake_case).as_str()).unwrap();
 
                         Some(quote! {
                             #stage_error_name(#stage_error_path)
@@ -1408,33 +1224,16 @@ impl Workflow {
                 let imports = self.user_imports.generate();
                 let user_items = self.user_items.generate();
                 let stage_count = self.stages.0.len();
-                let (
-                    stage_state_type_paths,
-                    stage_out_type_paths,
-                    stage_err_type_paths,
-                    stage_in_type_paths,
-                ): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
+                let (stage_state_type_paths, stage_out_type_paths, stage_err_type_paths, stage_in_type_paths): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = self
                     .stages
                     .0
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_out_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_err_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
-                            stage.get_in_type_path(
-                                workflow_module_ident.clone(),
-                                workflow_ident.clone(),
-                            ),
+                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -1516,10 +1315,6 @@ impl Workflow {
             }
         };
 
-        (
-            workflow_module,
-            (self.signature, workflow_ident),
-            workflow_plugin_addition_literal,
-        )
+        (workflow_module, (self.signature, workflow_ident), workflow_plugin_addition_literal)
     }
 }
