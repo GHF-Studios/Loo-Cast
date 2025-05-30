@@ -142,7 +142,7 @@ define_workflow_mod_OLD! {
                             let mut invalid_actions = vec![];
                             for (chunk_coord, action) in chunk_action_buffer
                                 .iter()
-                                .filter(|(_, action)| action.get_requester_id() == loader_id)
+                                .filter(|(_, action)| action.requester_id() == loader_id)
                             {
                                 match action {
                                     ChunkAction::Spawn { .. } => {

@@ -33,7 +33,7 @@ impl ChunkAction {
         matches!(self, ChunkAction::TransferOwnership { .. })
     }
 
-    pub fn get_requester_id(&self) -> u32 {
+    pub fn requester_id(&self) -> u32 {
         match self {
             ChunkAction::Spawn { requester_id, .. } | ChunkAction::Despawn { requester_id, .. } | ChunkAction::TransferOwnership { requester_id, .. } => {
                 *requester_id
@@ -41,13 +41,13 @@ impl ChunkAction {
         }
     }
 
-    pub fn get_coord(&self) -> (i32, i32) {
+    pub fn coord(&self) -> (i32, i32) {
         match self {
             ChunkAction::Spawn { coord, .. } | ChunkAction::Despawn { coord, .. } | ChunkAction::TransferOwnership { coord, .. } => *coord,
         }
     }
 
-    pub fn get_priority(&self) -> ChunkActionPriority {
+    pub fn priority(&self) -> ChunkActionPriority {
         match self {
             ChunkAction::Spawn { priority, .. } => *priority,
             ChunkAction::Despawn { priority, .. } => *priority,

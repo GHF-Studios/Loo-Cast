@@ -11,8 +11,8 @@ pub struct ChunkActionBuffer {
 
 impl ChunkActionBuffer {
     pub fn add_action(&mut self, action: ChunkAction) {
-        let coord = action.get_coord();
-        let priority = action.get_priority();
+        let coord = action.coord();
+        let priority = action.priority();
 
         self.actions.insert(coord, action);
 
@@ -24,8 +24,8 @@ impl ChunkActionBuffer {
         I: IntoIterator<Item = ChunkAction>,
     {
         for action in actions {
-            let coord = action.get_coord();
-            let priority = action.get_priority();
+            let coord = action.coord();
+            let priority = action.priority();
 
             // Add to the actions map
             self.actions.insert(coord, action);
@@ -37,7 +37,7 @@ impl ChunkActionBuffer {
 
     pub fn remove_action(&mut self, coord: &(i32, i32)) {
         if let Some(action) = self.actions.remove(coord) {
-            let priority = action.get_priority();
+            let priority = action.priority();
 
             if let Some(bucket) = self.priority_buckets.get_mut(&priority) {
                 bucket.remove(coord);
@@ -55,7 +55,7 @@ impl ChunkActionBuffer {
         for coord in coords {
             // Remove from the actions map
             if let Some(action) = self.actions.remove(&coord) {
-                let priority = action.get_priority();
+                let priority = action.priority();
 
                 // Remove from the priority bucket
                 if let Some(bucket) = self.priority_buckets.get_mut(&priority) {
