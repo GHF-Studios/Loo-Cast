@@ -1,3 +1,5 @@
+use std::f64::consts::E;
+
 use crate::chunk::enums::ChunkAction;
 use bevy::prelude::Entity;
 
@@ -7,18 +9,28 @@ pub enum ChunkState {
     Unowned,
     Owned(Entity),
 }
+impl ChunkState {
+    pub fn current_owner(&self) -> Option<Entity> {
+        match self {
+            ChunkState::Absent | ChunkState::Unowned => None,
+            ChunkState::Owned(owner) => Some(*owner),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum ResolutionError {
-    IntentBufferNotFlushedAtResolutionTime,
-    CommittedRedundantActionIntent,
+    IntentBufferNotFlushed,
+    CommittedInvalidActionIntent,
 }
 
 #[derive(Debug)]
 pub enum ResolutionWarning {
-    OwnershipTransferOfNonexistentChunk,
+    OwnershipTransferIntentOfNonexistentChunk,
     RedundantActionIntent,
     IntentBufferUnavailable,
+    DespawnIntentAfterCommittingToOwnershipTransfer,
+    IntentWithoutOwnership
 }
 
 #[derive(Debug)]
@@ -42,7 +54,7 @@ pub fn resolve_chunk_intent(committed: Option<ChunkAction>, buffered: Option<Chu
     match (committed, buffered, chunk_state, incoming.clone()) {
         (None, None, Absent, Spawn { .. }) => PushCommit(incoming),
         (None, None, Absent, Despawn { .. }) => DiscardIncoming(RedundantActionIntent),
-        (None, None, Absent, TransferOwnership { .. }) => DiscardIncoming(OwnershipTransferOfNonexistentChunk),
+        (None, None, Absent, TransferOwnership { .. }) => DiscardIncoming(OwnershipTransferIntentOfNonexistentChunk),
 
         (None, None, Unowned, Spawn { .. }) => DiscardIncoming(RedundantActionIntent),
         (None, None, Unowned, Despawn { .. }) => PushCommit(incoming),
@@ -58,46 +70,73 @@ pub fn resolve_chunk_intent(committed: Option<ChunkAction>, buffered: Option<Chu
             }
         },
 
-        (None, Some(_), _, _) => Error(IntentBufferNotFlushedAtResolutionTime),
+        (None, Some(_), _, _) => Error(IntentBufferNotFlushed),
 
-        (Some(Spawn { .. }), None, Absent, Spawn { .. }) => DiscardIncoming(RedundantActionIntent),
-        (Some(Spawn { .. }), None, Absent, incoming) if matches!(incoming, ChunkAction::Despawn { .. }) => PushBuffer(incoming),
-        (Some(Spawn { .. }), None, Absent, incoming) if matches!(incoming, ChunkAction::TransferOwnership { .. }) => PushBuffer(incoming),
-
-        // TODO: Make use of chunk_state
-        (Some(Spawn { .. }), None, chunk_state, incoming) => match incoming {
-            Spawn { .. } => DiscardIncoming(RedundantActionIntent),
-            Despawn { .. } => PushBuffer(incoming),
-            TransferOwnership { .. } => PushBuffer(incoming),
-        },
-        // TODO: Make use of chunk_state
-        (Some(Despawn { .. }), None, chunk_state, incoming) => match incoming {
-            Spawn { .. } => PushBuffer(incoming),
-            Despawn { .. } => DiscardIncoming(RedundantActionIntent),
-            TransferOwnership { .. } => PushBuffer(incoming),
-        }
-        (Some(TransferOwnership { new_owner: committed_owner, .. }), None, chunk_state, incoming) => {
-            match chunk_state {
-                Absent => {
-                    // TODO: Implement
-                },
-                Unowned => {
-                    // TODO: Implement
-                },
-                Owned(current_owner) => {
-                    // TODO: Implement
-                },
+        (Some(Spawn { .. }), None, chunk_state, incoming) => {
+            if !matches!(chunk_state, ChunkState::Absent) {
+                return Error(CommittedInvalidActionIntent);
             }
 
+            // TODO: Add checks for Despawn and TransferOwnership
             match incoming {
-                Spawn { .. } => Error(CommittedRedundantActionIntent),
-                Despawn { .. } => PushBuffer(incoming),
-                TransferOwnership { new_owner: incoming_owner, .. } => {
-                    if committed_owner == incoming_owner {
-                        DiscardIncoming(RedundantActionIntent)
-                    } else {
+                Spawn { .. } => DiscardIncoming(RedundantActionIntent),
+                Despawn { .. } => {
+                    // TODO: Stub
+                    PushBuffer(incoming)
+                },
+                TransferOwnership { .. } => {
+                    // TODO: Stub
+                    PushBuffer(incoming)
+                },
+            }
+        },
+        (Some(Despawn { .. }), None, chunk_state, incoming) => {
+            if matches!(chunk_state, ChunkState::Absent) {
+                return Error(CommittedInvalidActionIntent);
+            }
+
+            // TODO: Add checks for Spawn and TransferOwnership
+            match incoming {
+                Spawn { .. } => {
+                    // TODO: Stub
+                    PushBuffer(incoming)
+                },
+                Despawn { .. } => DiscardIncoming(RedundantActionIntent),
+                TransferOwnership { .. } => {
+                    // TODO: Stub
+                    PushBuffer(incoming)
+                },
+            }
+        }
+        (Some(TransferOwnership { new_owner: committed_owner, .. }), None, chunk_state, incoming) => {
+            let current_owner = match chunk_state {
+                ChunkState::Absent => {
+                    return Error(CommittedInvalidActionIntent);
+                },
+                ChunkState::Unowned => None,
+                ChunkState::Owned(current_owner) => Some(current_owner),
+            };
+
+            let current_requester_id = current_owner.map_or(0, |owner| owner.id()); // Assuming Entity has an id() method
+
+            // TODO: Add checks for Despawn and TransferOwnership
+            match incoming {
+                Spawn { .. } => DiscardIncoming(RedundantActionIntent),
+                Despawn { requester_id: incoming_requester_id, .. } => {
+                    let incoming_owner = incoming_requester_id.entity(); // Assuming u32 has an entity() method
+                    let incoming_owner_is_current_owner = incoming_requester_id == current_requester_id;
+                    let incoming_owner_is_committed_owner = incoming_owner == committed_owner;
+
+                    if incoming_owner_is_current_owner {
+                        DiscardIncoming(DespawnIntentAfterCommittingToOwnershipTransfer)
+                    } else if incoming_owner_is_committed_owner {
                         PushBuffer(incoming)
+                    } else {
+                        DiscardIncoming(IntentWithoutOwnership)
                     }
+                },
+                TransferOwnership { new_owner: incoming_owner, .. } => {
+                    
                 }
             }
         }

@@ -5,7 +5,8 @@ use bevy::prelude::*;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref ID_COUNTER: Mutex<u32> = Mutex::new(0);
+    // 1 as first ID so that 0 can be used as a placeholder or default
+    static ref ID_COUNTER: Mutex<u32> = Mutex::new(1);
 }
 
 #[derive(Component)]
