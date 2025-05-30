@@ -86,38 +86,13 @@ pub fn resolve_chunk_intent(
         (None, Some(_), _, _) => Error(IntentBufferNotFlushed),
 
         // TODO: Completely rework this case
-        (Some(Spawn { .. }), None, chunk_state, incoming) => {
-            if !matches!(chunk_state, ChunkState::Absent) {
-                return Error(CommittedInvalidIntent);
-            }
-
-            match incoming {
-                Spawn { .. } => DiscardIncoming(RedundantIntent),
-                Despawn { .. } => {
-                    PushBuffer(incoming)
-                },
-                TransferOwnership { .. } => {
-                    PushBuffer(incoming)
-                },
-            }
+        (Some(Spawn { requester_id: committed_requester_id, .. }), None, chunk_state, incoming) => {
+            todo!()
         },
         // TODO: Completely rework this case
-        (Some(Despawn { .. }), None, chunk_state, incoming) => {
-            if matches!(chunk_state, ChunkState::Absent) {
-                return Error(CommittedInvalidIntent);
-            }
-
-            match incoming {
-                Spawn { .. } => {
-                    PushBuffer(incoming)
-                },
-                Despawn { .. } => DiscardIncoming(RedundantIntent),
-                TransferOwnership { .. } => {
-                    PushBuffer(incoming)
-                },
-            }
+        (Some(Despawn { requester_id: committed_requester_id, .. }), None, chunk_state, incoming) => {
+            todo!()
         }
-        // Completely reworked this case already!
         (Some(TransferOwnership { requester_id: committed_requester_id, .. }), None, chunk_state, incoming) => {
             let (current_owner, incoming_owner_is_current_owner) = match chunk_state {
                 ChunkState::Absent => {
@@ -155,18 +130,17 @@ pub fn resolve_chunk_intent(
                 IsUnrelated
             };
 
-            match incoming {
-                Spawn { .. } => DiscardIncoming(RedundantIntent),
-                Despawn { .. } => match incoming_ownership {
-                    IsCurrent => DiscardIncoming(IntentAfterCommittingToOwnershipTransfer),
-                    IsCommitted => PushBuffer(incoming),
-                    IsUnrelated => DiscardIncoming(IntentWithoutOwnership),
+            match incoming_ownership {
+                IsCurrent => match incoming {
+                    Spawn { .. } => DiscardIncoming(RedundantIntent),
+                    Despawn { .. } => DiscardIncoming(IntentAfterCommittingToOwnershipTransfer),
+                    TransferOwnership { .. } => DiscardIncoming(RedundantIntent),
                 },
-                TransferOwnership { .. } => match incoming_ownership {
-                    IsCurrent => DiscardIncoming(RedundantIntent),
-                    IsCommitted => PushBuffer(incoming),
-                    IsUnrelated => DiscardIncoming(IntentWithoutOwnership),
-                }
+                IsCommitted => match incoming {
+                    Spawn { .. } => DiscardIncoming(RedundantIntent),
+                    Despawn { .. } | TransferOwnership { .. } => PushBuffer(incoming),
+                },
+                IsUnrelated => DiscardIncoming(IntentWithoutOwnership),
             }
         }
 
