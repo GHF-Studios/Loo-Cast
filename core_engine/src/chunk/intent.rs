@@ -98,7 +98,6 @@ impl Default for ActionPriority {
     }
 }
 
-/// WIP
 #[derive(Debug)]
 pub enum ResolutionError {
     IntentBufferNotFlushed,
@@ -106,7 +105,6 @@ pub enum ResolutionError {
     CurrentOwnerNotFoundInQuery,
 }
 
-/// WIP
 #[derive(Debug)]
 pub enum ResolutionWarning {
     RedundantIntent,
@@ -133,7 +131,14 @@ pub fn get_intent(chunk_state: State, committed: Option<ActionIntent>, buffered:
     use State::*;
 
     match (chunk_state, committed, buffered, context) {
-        (Absent, None, None, LoadChunks { loader, coords }) => {}
+        //(Absent, None, None, LoadChunks { loader, coords }) => {
+        //    Some(Spawn {
+        //        owner: loader,
+        //        coord: coords[0],
+        //        priority: ActionPriority::Realtime,
+        //    })
+        //}
+        _ => todo!()
     }
 }
 
