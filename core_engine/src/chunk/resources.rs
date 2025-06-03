@@ -1,34 +1,34 @@
 use bevy::prelude::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use super::enums::{ChunkAction, ChunkActionPriority};
+use super::intent::{ActionIntent, ActionPriority};
 
 #[derive(Resource, Default)]
 pub struct ChunkActionBuffer {
-    pub actions: HashMap<(i32, i32), ChunkAction>,
-    pub priority_buckets: BTreeMap<ChunkActionPriority, HashSet<(i32, i32)>>,
+    pub actions: HashMap<(i32, i32), ActionIntent>,
+    pub priority_buckets: BTreeMap<ActionPriority, HashSet<(i32, i32)>>,
 }
 
 impl ChunkActionBuffer {
-    pub fn add_action(&mut self, action: ChunkAction) {
-        let coord = action.coord();
-        let priority = action.priority();
+    pub fn add_action(&mut self, action_intent: ActionIntent) {
+        let coord = action_intent.coord();
+        let priority = action_intent.priority();
 
-        self.actions.insert(coord, action);
+        self.actions.insert(coord, action_intent);
 
         self.priority_buckets.entry(priority).or_default().insert(coord);
     }
 
     pub fn add_actions<I>(&mut self, actions: I)
     where
-        I: IntoIterator<Item = ChunkAction>,
+        I: IntoIterator<Item = ActionIntent>,
     {
-        for action in actions {
-            let coord = action.coord();
-            let priority = action.priority();
+        for action_intent in actions {
+            let coord = action_intent.coord();
+            let priority = action_intent.priority();
 
             // Add to the actions map
-            self.actions.insert(coord, action);
+            self.actions.insert(coord, action_intent);
 
             // Add to the priority bucket
             self.priority_buckets.entry(priority).or_default().insert(coord);
@@ -36,8 +36,8 @@ impl ChunkActionBuffer {
     }
 
     pub fn remove_action(&mut self, coord: &(i32, i32)) {
-        if let Some(action) = self.actions.remove(coord) {
-            let priority = action.priority();
+        if let Some(action_intent) = self.actions.remove(coord) {
+            let priority = action_intent.priority();
 
             if let Some(bucket) = self.priority_buckets.get_mut(&priority) {
                 bucket.remove(coord);
@@ -54,8 +54,8 @@ impl ChunkActionBuffer {
     {
         for coord in coords {
             // Remove from the actions map
-            if let Some(action) = self.actions.remove(&coord) {
-                let priority = action.priority();
+            if let Some(action_intent) = self.actions.remove(&coord) {
+                let priority = action_intent.priority();
 
                 // Remove from the priority bucket
                 if let Some(bucket) = self.priority_buckets.get_mut(&priority) {
@@ -70,50 +70,50 @@ impl ChunkActionBuffer {
         }
     }
 
-    pub fn get(&self, chunk_coord: &(i32, i32)) -> Option<&ChunkAction> {
+    pub fn get(&self, chunk_coord: &(i32, i32)) -> Option<&ActionIntent> {
         self.actions.get(chunk_coord)
     }
 
     pub fn get_action_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool, bool) {
         match self.get(chunk_coord) {
-            Some(action) => match action {
-                ChunkAction::Spawn { .. } => (true, false, false),
-                ChunkAction::Despawn { .. } => (false, true, false),
-                ChunkAction::TransferOwnership { .. } => (false, false, true),
+            Some(action_intent) => match action_intent {
+                ActionIntent::Spawn { .. } => (true, false, false),
+                ActionIntent::Despawn { .. } => (false, true, false),
+                ActionIntent::TransferOwnership { .. } => (false, false, true),
             },
             None => (false, false, false),
         }
     }
 
     pub fn is_spawning(&self, chunk_coord: &(i32, i32)) -> bool {
-        matches!(self.get(chunk_coord), Some(ChunkAction::Spawn { .. }))
+        matches!(self.get(chunk_coord), Some(ActionIntent::Spawn { .. }))
     }
 
     pub fn is_despawning(&self, chunk_coord: &(i32, i32)) -> bool {
-        matches!(self.get(chunk_coord), Some(ChunkAction::Despawn { .. }))
+        matches!(self.get(chunk_coord), Some(ActionIntent::Despawn { .. }))
     }
 
     pub fn is_transfering_ownership(&self, chunk_coord: &(i32, i32)) -> bool {
-        matches!(self.get(chunk_coord), Some(ChunkAction::TransferOwnership { .. }))
+        matches!(self.get(chunk_coord), Some(ActionIntent::TransferOwnership { .. }))
     }
 
     pub fn has_spawns(&self) -> bool {
-        self.actions.values().any(|action| action.is_spawn())
+        self.actions.values().any(|action_intent| action_intent.is_spawn())
     }
 
     pub fn has_despawns(&self) -> bool {
-        self.actions.values().any(|action| action.is_despawn())
+        self.actions.values().any(|action_intent| action_intent.is_despawn())
     }
 
     pub fn has_ownership_transfers(&self) -> bool {
-        self.actions.values().any(|action| action.is_transfer_ownership())
+        self.actions.values().any(|action_intent| action_intent.is_transfer_ownership())
     }
 
     pub fn has_any_actions(&self) -> bool {
         !self.actions.is_empty()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&(i32, i32), &ChunkAction)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&(i32, i32), &ActionIntent)> {
         self.priority_buckets
             .iter()
             .flat_map(|(_, coords)| coords.iter())

@@ -1,13 +1,12 @@
 pub mod bundles;
 pub mod components;
-pub mod enums;
 pub mod errors;
 pub mod functions;
 pub mod resources;
 pub mod systems;
 pub mod types;
 
-pub mod intent_resolution;
+pub mod intent;
 pub mod workflows;
 
 use bevy::prelude::*;

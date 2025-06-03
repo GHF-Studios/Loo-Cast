@@ -8,8 +8,8 @@ use crate::config::statics::CONFIG;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
 use super::components::ChunkComponent;
-use super::enums::ChunkAction;
 use super::functions::{chunk_pos_to_world, world_pos_to_chunk};
+use super::intent::ActionIntent;
 use super::resources::ChunkRenderHandles;
 use super::types::ChunkActionWorkflowHandles;
 use super::ChunkActionBuffer;
@@ -80,27 +80,24 @@ pub(crate) fn process_chunk_actions_system(
 
     for (_, coords) in chunk_action_buffer.priority_buckets.iter() {
         for coord in coords {
-            if let Some(action) = chunk_action_buffer.actions.get(coord).cloned() {
-                match action {
-                    ChunkAction::Spawn { requester_id, coord, texture_handle, .. } => {
+            if let Some(action_intent) = chunk_action_buffer.actions.get(coord).cloned() {
+                match action_intent {
+                    ActionIntent::Spawn { owner, coord, .. } => {
                         spawn_coords.push(coord);
                         spawn_inputs.push(crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
                             chunk_coord: coord,
-                            chunk_owner: requester_id,
-                            metric_texture: texture_handle,
+                            chunk_owner: owner,
+                            metric_texture: Handle::default(), // Placeholder created
                         });
                         processed_coords.push(coord);
                     }
-                    ChunkAction::Despawn { coord, .. } => {
+                    ActionIntent::Despawn { coord, .. } => {
                         despawn_inputs.push(crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInput { chunk_coord: coord });
                         processed_coords.push(coord);
                     }
-                    ChunkAction::TransferOwnership { requester_id, coord, .. } => {
+                    ActionIntent::TransferOwnership { owner, coord, .. } => {
                         transfer_inputs.push(
-                            crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput {
-                                chunk_coord: coord,
-                                new_owner: requester_id,
-                            },
+                            crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput { owner, chunk_coord: coord },
                         );
                         processed_coords.push(coord);
                     }
@@ -123,7 +120,7 @@ pub(crate) fn process_chunk_actions_system(
             .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
                 chunk_pos: [x, y],
                 chunk_size,
-                _padding: 0,
+                _padding: u32::default(),
             })
             .collect::<Vec<_>>();
 
@@ -131,7 +128,6 @@ pub(crate) fn process_chunk_actions_system(
             move in texture_size: usize,
             move in spawn_inputs: Vec<SpawnChunkInput>,
             move in param_data: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
-            move in spawn_coords: Vec<(i32, i32)>,
         {
             let generate_output = workflow!(IO, Gpu::GenerateTextures, Input {
                 shader_name: "texture_generators/example_compute_uv",
@@ -139,12 +135,12 @@ pub(crate) fn process_chunk_actions_system(
                 param_data,
             });
 
-            let spawn_inputs_with_textures = spawn_coords.into_iter()
+            let spawn_inputs_with_textures = spawn_inputs
+                .into_iter()
                 .zip(generate_output.texture_handles.into_iter())
-                .map(|(coord, tex)| crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
-                    chunk_coord: coord,
-                    chunk_owner: spawn_inputs.iter().find(|i| i.chunk_coord == coord).unwrap().chunk_owner,
-                    metric_texture: tex,
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder overwritten
+                    input
                 })
                 .collect::<Vec<_>>();
 

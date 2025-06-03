@@ -75,14 +75,12 @@ define_workflow_mod_OLD! {
                                     },
                                     ChunkComponent {
                                         coord: chunk_coord,
-                                        owner: chunk_owner,
+                                        owner: Some(chunk_owner),
                                     },
                                 )).id();
 
                                 chunk_manager.loaded_chunks.insert(chunk_coord);
-                                if let Some(owner) = chunk_owner {
-                                    chunk_manager.owned_chunks.insert(chunk_coord, owner);
-                                }
+                                chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
 
                                 spawn_chunk_states.push(SpawnChunkState {
                                     entity: chunk_entity,
@@ -229,8 +227,8 @@ define_workflow_mod_OLD! {
             },
             user_items: {
                 pub struct TransferChunkOwnershipInput {
+                    pub owner: Entity,
                     pub chunk_coord: (i32, i32),
-                    pub new_owner: Entity
                 }
             },
             stages: [
@@ -258,8 +256,8 @@ define_workflow_mod_OLD! {
                             let mut chunk_entities = Vec::new();
 
                             for input in input.inputs {
+                                let new_owner = input.owner;
                                 let chunk_coord = input.chunk_coord;
-                                let new_owner = input.new_owner;
 
                                 if let Some((entity, mut chunk)) = chunk_query.iter_mut().find(|(_, chunk)| chunk.coord == chunk_coord) {
                                     if chunk.owner.is_some() {

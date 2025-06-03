@@ -3,8 +3,8 @@ use core_engine_macros::{composite_workflow, composite_workflow_return};
 use std::collections::HashSet;
 use tokio::task::JoinHandle;
 
-use crate::chunk::enums::ChunkAction;
 use crate::chunk::functions::calculate_chunks_in_radius;
+use crate::chunk::intent::ActionIntent;
 use crate::chunk::resources::ChunkActionBuffer;
 use crate::chunk_loader::components::ChunkLoaderComponent;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
@@ -23,24 +23,24 @@ pub(crate) fn update_chunk_loader_system(
         let mut invalid_actions = vec![];
         for (chunk_coord, action) in chunk_action_buffer.iter() {
             match action {
-                ChunkAction::Spawn { .. } => {
+                ActionIntent::Spawn { .. } => {
                     if !loader_range.contains(chunk_coord) {
                         invalid_actions.push(*chunk_coord);
                     }
                 }
-                ChunkAction::Despawn { .. } => {
+                ActionIntent::Despawn { .. } => {
                     if loader_range.contains(chunk_coord) {
                         invalid_actions.push(*chunk_coord);
                     }
                 }
-                ChunkAction::TransferOwnership { .. } => {}
+                ActionIntent::TransferOwnership { .. } => {}
             }
         }
 
         let mut invalid_chunk_actions = Vec::new();
         for chunk_coord in invalid_actions {
             chunk_action_buffer.remove_action(&chunk_coord);
-            invalid_chunk_actions.push((chunk_coord, chunk_loader.id));
+            invalid_chunk_actions.push((chunk_coord, chunk_loader.entity));
         }
     }
 
@@ -56,28 +56,8 @@ pub(crate) fn update_chunk_loader_system(
             let load_chunk_inputs = categorize_chunks_output.load_chunk_inputs;
             let unload_chunk_inputs = categorize_chunks_output.unload_chunk_inputs;
 
-            let chunk_texture_handles = workflow!(
-                IO,
-                ChunkLoader::GetChunkTextureHandles,
-                Input {
-                    inputs: load_chunk_inputs.clone().into_iter().map(|input| input.chunk_coord).collect::<Vec<_>>()
-                }
-            );
-            workflow!(
-                I,
-                ChunkLoader::LoadChunks,
-                Input {
-                    inputs: load_chunk_inputs,
-                    texture_handles: chunk_texture_handles
-                }
-            );
-            workflow!(
-                I,
-                ChunkLoader::UnloadChunks,
-                Input {
-                    inputs: unload_chunk_inputs
-                }
-            );
+            workflow!(I, ChunkLoader::LoadChunks, Input { inputs: load_chunk_inputs });
+            workflow!(I, ChunkLoader::UnloadChunks, Input { inputs: unload_chunk_inputs });
         });
 
         *composite_workflow_handle = Some(handle);

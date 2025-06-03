@@ -4,13 +4,13 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct ChunkLoaderComponent {
     pub radius: u32,
-    pub id: Entity,
+    pub entity: Entity,
 }
 impl Default for ChunkLoaderComponent {
     fn default() -> Self {
         ChunkLoaderComponent {
             radius: CONFIG.get::<u32>("chunk_loader/default_radius"),
-            id: reserve_entity_id(),
+            entity: reserve_entity_id(),
         }
     }
 }

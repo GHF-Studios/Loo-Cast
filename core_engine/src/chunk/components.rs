@@ -3,12 +3,7 @@ use bevy::{ecs::component::StorageType, prelude::*};
 #[derive(Default, Debug)]
 pub struct ChunkComponent {
     pub coord: (i32, i32),
-    owner: Option<Entity>,
-}
-impl ChunkComponent {
-    pub fn transfer_ownership(&mut self, new_owner: Entity) -> Entity {
-        self.owner.replace(new_owner).expect("Attempted to transfer ownership, but chunk state was invalidated: Chunk does not have an owner")
-    }
+    pub(crate) owner: Option<Entity>,
 }
 
 impl Component for ChunkComponent {

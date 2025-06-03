@@ -14,7 +14,7 @@ define_workflow_mod_OLD! {
                 };
                 use crate::chunk_loader::components::ChunkLoaderComponent;
                 use crate::chunk::resources::ChunkManager;
-                use crate::chunk::enums::ChunkAction;
+                use crate::chunk::intent::ActionIntent;
                 use crate::chunk::functions::{world_pos_to_chunk, calculate_chunks_in_radius, calculate_chunk_distance_from_owner};
                 use crate::chunk::resources::ChunkActionBuffer;
             },
@@ -70,9 +70,8 @@ define_workflow_mod_OLD! {
                                     let chunk_loader_radius_squared = radius * radius;
 
                                     load_chunk_inputs.push(crate::chunk_loader::workflows::chunk_loader::load_chunks::user_items::LoadChunkInput {
-                                        requester_id: chunk_loader.id,
+                                        owner: chunk_loader.entity,
                                         chunk_coord: *chunk_coord,
-                                        chunk_owner: Some(loader_entity),
                                         chunk_loader_distance_squared,
                                         chunk_loader_radius_squared,
                                     });
@@ -84,7 +83,7 @@ define_workflow_mod_OLD! {
                                     let chunk_loader_radius_squared = radius * radius;
 
                                     unload_chunk_inputs.push(crate::chunk_loader::workflows::chunk_loader::unload_chunks::user_items::UnloadChunkInput {
-                                        requester_id: chunk_loader.id,
+                                        owner: chunk_loader.entity,
                                         chunk_coord: *chunk_coord,
                                         chunk_loader_distance_squared,
                                         chunk_loader_radius_squared,
@@ -99,44 +98,12 @@ define_workflow_mod_OLD! {
             ]
         }
 
-        GetChunkTextureHandles {
-            user_imports: {
-                use bevy::prelude::{Entity, Res, ResMut, Query};
-
-                use crate::chunk::{enums::{ChunkAction, ChunkActionPriority}, resources::{ChunkManager, ChunkActionBuffer}, components::ChunkComponent};
-                use crate::config::statics::CONFIG;
-            },
-            user_items: {},
-            stages: [
-                DoShit: Ecs {
-                    core_types: [
-                        struct MainAccess<'w, 's> {
-                            chunk_query: Query<'w, 's, &'static ChunkComponent>,
-                            chunk_manager: Res<'w, ChunkManager>,
-                            chunk_action_buffer: ResMut<'w, ChunkActionBuffer>,
-                            phantom_data: std::marker::PhantomData<&'s ()>,
-                        }
-                        struct Input {
-                            chunk_coords: Vec<(i32, i32)>,
-                        }
-                        struct Output {
-                            chunk_texture_handles: Vec<Handle<Image>>,
-                        }
-                    ],
-                    core_functions: [
-                        fn RunEcs |input, main_access| -> Output {
-                        }
-                    ]
-                }
-            ]
-        }
-
         OnRemoveChunkLoader {
             user_imports: {
                 use bevy::prelude::*;
 
                 use crate::chunk::components::ChunkComponent;
-                use crate::chunk::enums::ChunkAction;
+                use crate::chunk::intent::ActionIntent;
                 use crate::chunk::functions::*;
                 use crate::chunk::resources::{ChunkManager, ChunkActionBuffer};
                 use crate::chunk_loader::components::ChunkLoaderComponent;
@@ -172,14 +139,14 @@ define_workflow_mod_OLD! {
                             let mut invalid_actions = vec![];
                             for (chunk_coord, action) in chunk_action_buffer
                                 .iter()
-                                .filter(|(_, action)| action.requester_id() == loader_entity)
+                                .filter(|(_, action)| action.owner() == loader_entity)
                             {
                                 match action {
-                                    ChunkAction::Spawn { .. } => {
+                                    ActionIntent::Spawn { .. } => {
                                         invalid_actions.push(*chunk_coord);
                                     }
-                                    ChunkAction::Despawn { .. } => {}
-                                    ChunkAction::TransferOwnership { .. } => {}
+                                    ActionIntent::Despawn { .. } => {}
+                                    ActionIntent::TransferOwnership { .. } => {}
                                 }
                             }
 
@@ -213,7 +180,7 @@ define_workflow_mod_OLD! {
                                 let chunk_loader_radius_squared = radius * radius;
 
                                 unload_chunk_inputs.push(UnloadChunkInput {
-                                    requester_id: loader_entity,
+                                    owner: loader_entity,
                                     chunk_coord: *chunk_coord,
                                     chunk_loader_distance_squared,
                                     chunk_loader_radius_squared,
@@ -231,12 +198,12 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use bevy::prelude::{Entity, Res, ResMut, Query, Image, Handle};
 
-                use crate::chunk::{enums::{ChunkAction, ChunkActionPriority}, resources::{ChunkManager, ChunkActionBuffer}, components::ChunkComponent};
+                use crate::chunk::{intent::{ActionIntent, ActionPriority}, resources::{ChunkManager, ChunkActionBuffer}, components::ChunkComponent};
                 use crate::config::statics::CONFIG;
             },
             user_items: {
                 pub struct LoadChunkInput {
-                    pub requester_id: Entity,
+                    pub owner: Entity,
                     pub chunk_coord: (i32, i32),
                     pub chunk_loader_distance_squared: u32,
                     pub chunk_loader_radius_squared: u32,
@@ -255,14 +222,14 @@ define_workflow_mod_OLD! {
                     distance_squared: u32,
                     radius_squared: u32,
                     has_pending_despawn: bool,
-                ) -> ChunkActionPriority {
+                ) -> ActionPriority {
                     let normalized_distance = distance_squared as f64 / radius_squared as f64;
 
                     // Lower priority if a despawn is pending
                     let adjustment = if has_pending_despawn { 0.5 } else { 1.0 };
                     let priority_value = (i64::MAX as f64 * (1.0 - normalized_distance) * adjustment) as i64;
 
-                    ChunkActionPriority::Deferred(priority_value)
+                    ActionPriority::Deferred(priority_value)
                 }
             },
             stages: [
@@ -276,7 +243,6 @@ define_workflow_mod_OLD! {
                         }
                         struct Input {
                             inputs: Vec<LoadChunkInput>,
-                            texture_handles: Vec<Handle<Image>>
                         }
                         struct State {
                             spawn_chunk_states: Vec<SpawnChunkState>,
@@ -292,7 +258,7 @@ define_workflow_mod_OLD! {
                             let mut transfer_chunk_ownership_states = Vec::new();
 
                             for input in input.inputs {
-                                let requester_id = input.requester_id;
+                                let owner = input.owner;
                                 let chunk_coord = input.chunk_coord;
                                 let chunk_loader_distance_squared = input.chunk_loader_distance_squared;
                                 let chunk_loader_radius_squared = input.chunk_loader_radius_squared;
@@ -306,8 +272,8 @@ define_workflow_mod_OLD! {
                                     if !is_spawning && !is_despawning && !is_transfering_ownership {
                                         let has_pending_despawn = chunk_action_buffer.has_despawns();
 
-                                        chunk_action_buffer.add_action(ChunkAction::Spawn {
-                                            requester_id,
+                                        chunk_action_buffer.add_action(ActionIntent::Spawn {
+                                            owner,
                                             coord: chunk_coord,
                                             priority: calculate_spawn_priority(
                                                 chunk_loader_distance_squared,
@@ -321,14 +287,14 @@ define_workflow_mod_OLD! {
                                         });
                                     }
                                 } else if !is_owned && !is_despawning && !is_transfering_ownership {
-                                    chunk_action_buffer.add_action(ChunkAction::TransferOwnership {
-                                        requester_id,
+                                    chunk_action_buffer.add_action(ActionIntent::TransferOwnership {
+                                        owner,
                                         coord: chunk_coord,
-                                        priority: ChunkActionPriority::Realtime,
+                                        priority: ActionPriority::Realtime,
                                     });
                                     transfer_chunk_ownership_states.push(TransferChunkOwnershipState {
                                         coord: chunk_coord,
-                                        owner: requester_id,
+                                        owner,
                                         is_ownership_transfered: false
                                     });
                                 }
@@ -352,7 +318,7 @@ define_workflow_mod_OLD! {
                             }).collect::<Vec<_>>();
                             let transfer_chunk_ownership_states = state.transfer_chunk_ownership_states.into_iter().map(|mut s| {
                                 if let Some(chunk) = chunk_query.iter().find(|chunk| chunk.coord == s.coord) {
-                                    if chunk.owner == s.owner {
+                                    if chunk.owner.expect("Unreachable state: Chunk has no owner") == s.owner {
                                         s.is_ownership_transfered = true;
                                     }
                                 }
@@ -380,12 +346,12 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use bevy::prelude::{Res, ResMut, Entity, Transform, Query, Vec2};
 
-                use crate::chunk::{components::ChunkComponent, enums::{ChunkAction, ChunkActionPriority}, resources::{ChunkManager, ChunkActionBuffer}, functions::world_pos_to_chunk};
+                use crate::chunk::{components::ChunkComponent, intent::{ActionIntent, ActionPriority}, resources::{ChunkManager, ChunkActionBuffer}, functions::world_pos_to_chunk};
                 use crate::chunk_loader::components::ChunkLoaderComponent;
             },
             user_items: {
                 pub struct UnloadChunkInput {
-                    pub requester_id: Entity,
+                    pub owner: Entity,
                     pub chunk_coord: (i32, i32),
                     pub chunk_loader_distance_squared: u32,
                     pub chunk_loader_radius_squared: u32,
@@ -400,11 +366,11 @@ define_workflow_mod_OLD! {
                     pub is_ownership_transfered: bool,
                 }
 
-                pub fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) -> ChunkActionPriority {
+                pub fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) -> ActionPriority {
                     let normalized_distance = distance_squared as f64 / radius_squared as f64;
                     let priority_value = (normalized_distance * i64::MAX as f64) as i64;
 
-                    ChunkActionPriority::Deferred(priority_value)
+                    ActionPriority::Deferred(priority_value)
                 }
 
                 pub fn is_chunk_in_loader_range(
@@ -450,7 +416,7 @@ define_workflow_mod_OLD! {
                             let mut transfer_chunk_ownership_states = Vec::new();
 
                             for input in input.inputs {
-                                let requester_id = input.requester_id;
+                                let owner = input.owner;
                                 let chunk_coord = input.chunk_coord;
                                 let chunk_loader_distance_squared = input.chunk_loader_distance_squared;
                                 let chunk_loader_radius_squared = input.chunk_loader_radius_squared;
@@ -491,21 +457,20 @@ define_workflow_mod_OLD! {
                                             )
                                         }) {
                                         Some((new_owner, _, _)) => {
-                                            chunk_action_buffer.add_action(ChunkAction::TransferOwnership {
-                                                requester_id,
+                                            chunk_action_buffer.add_action(ActionIntent::TransferOwnership {
+                                                owner,
                                                 coord: chunk_coord,
-                                                new_owner,
-                                                priority: ChunkActionPriority::Realtime,
+                                                priority: ActionPriority::Realtime,
                                             });
                                             transfer_chunk_ownership_states.push(TransferChunkOwnershipState {
                                                 coord: chunk_coord,
-                                                owner: Some(new_owner),
+                                                owner: new_owner,
                                                 is_ownership_transfered: false
                                             });
                                         }
                                         None => {
-                                            chunk_action_buffer.add_action(ChunkAction::Despawn {
-                                                requester_id,
+                                            chunk_action_buffer.add_action(ActionIntent::Despawn {
+                                                owner,
                                                 coord: chunk_coord,
                                                 priority: calculate_despawn_priority(
                                                     chunk_loader_distance_squared,
@@ -539,7 +504,12 @@ define_workflow_mod_OLD! {
                             }).collect::<Vec<_>>();
                             let transfer_chunk_ownership_states = state.transfer_chunk_ownership_states.into_iter().map(|mut s| {
                                 if let Some(chunk) = chunk_query.iter().find(|chunk| chunk.coord == s.coord) {
-                                    if chunk.owner == s.owner {
+                                    let this_chunk_owner = match chunk.owner {
+                                        Some(owner) => owner,
+                                        None => unreachable!("Unreachable state: Chunk has no owner"),
+                                    };
+
+                                    if this_chunk_owner == s.owner {
                                         s.is_ownership_transfered = true;
                                     }
                                 }
