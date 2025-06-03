@@ -12,6 +12,9 @@ default_z = -10.0
 [chunk_loader]
 default_radius = 8
 
+[entity]
+reservation_buffer_size = 1024
+
 [player]
 movement_speed = 250.0
 

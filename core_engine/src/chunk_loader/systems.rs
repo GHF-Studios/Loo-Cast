@@ -53,18 +53,29 @@ pub(crate) fn update_chunk_loader_system(
     if !handle_is_some {
         let handle = composite_workflow!({
             let categorize_chunks_output = workflow!(O, ChunkLoader::CategorizeChunks);
+            let load_chunk_inputs = categorize_chunks_output.load_chunk_inputs;
+            let unload_chunk_inputs = categorize_chunks_output.unload_chunk_inputs;
+
+            let chunk_texture_handles = workflow!(
+                IO,
+                ChunkLoader::GetChunkTextureHandles,
+                Input {
+                    inputs: load_chunk_inputs.clone().into_iter().map(|input| input.chunk_coord).collect::<Vec<_>>()
+                }
+            );
             workflow!(
                 I,
                 ChunkLoader::LoadChunks,
                 Input {
-                    inputs: categorize_chunks_output.load_chunk_inputs
+                    inputs: load_chunk_inputs,
+                    texture_handles: chunk_texture_handles
                 }
             );
             workflow!(
                 I,
                 ChunkLoader::UnloadChunks,
                 Input {
-                    inputs: categorize_chunks_output.unload_chunk_inputs
+                    inputs: unload_chunk_inputs
                 }
             );
         });

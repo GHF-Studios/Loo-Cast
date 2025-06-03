@@ -22,7 +22,6 @@ pub(crate) fn observe_on_remove_chunk_loader(
             );
         }
     };
-    let loader_id = loader.id;
     let loader_position = loader_transform.translation.truncate();
     let loader_radius = loader.radius;
     let handle_is_some = (*composite_workflow_handle).is_some();
@@ -43,14 +42,12 @@ pub(crate) fn observe_on_remove_chunk_loader(
 
     let handle = composite_workflow!(
         move in loader_entity: Entity,
-        move in loader_id: u32,
         move in loader_position: Vec2,
         move in loader_radius: u32,
     {
         bevy::prelude::info!("Removing chunk loader: {:?}", loader_entity);
         let output = workflow!(IO, ChunkLoader::OnRemoveChunkLoader, Input {
             chunk_loader_entity: loader_entity,
-            chunk_loader_id: loader_id,
             chunk_loader_position: loader_position,
             chunk_loader_radius: loader_radius,
         });

@@ -99,6 +99,38 @@ define_workflow_mod_OLD! {
             ]
         }
 
+        GetChunkTextureHandles {
+            user_imports: {
+                use bevy::prelude::{Entity, Res, ResMut, Query};
+
+                use crate::chunk::{enums::{ChunkAction, ChunkActionPriority}, resources::{ChunkManager, ChunkActionBuffer}, components::ChunkComponent};
+                use crate::config::statics::CONFIG;
+            },
+            user_items: {},
+            stages: [
+                DoShit: Ecs {
+                    core_types: [
+                        struct MainAccess<'w, 's> {
+                            chunk_query: Query<'w, 's, &'static ChunkComponent>,
+                            chunk_manager: Res<'w, ChunkManager>,
+                            chunk_action_buffer: ResMut<'w, ChunkActionBuffer>,
+                            phantom_data: std::marker::PhantomData<&'s ()>,
+                        }
+                        struct Input {
+                            chunk_coords: Vec<(i32, i32)>,
+                        }
+                        struct Output {
+                            chunk_texture_handles: Vec<Handle<Image>>,
+                        }
+                    ],
+                    core_functions: [
+                        fn RunEcs |input, main_access| -> Output {
+                        }
+                    ]
+                }
+            ]
+        }
+
         OnRemoveChunkLoader {
             user_imports: {
                 use bevy::prelude::*;
@@ -121,7 +153,6 @@ define_workflow_mod_OLD! {
                         }
                         struct Input {
                             chunk_loader_entity: Entity,
-                            chunk_loader_id: u32,
                             chunk_loader_position: Vec2,
                             chunk_loader_radius: u32,
                         }
@@ -135,14 +166,13 @@ define_workflow_mod_OLD! {
                             let mut chunk_action_buffer = main_access.chunk_action_buffer;
 
                             let loader_entity = input.chunk_loader_entity;
-                            let loader_id = input.chunk_loader_id;
                             let position = input.chunk_loader_position;
                             let radius = input.chunk_loader_radius;
 
                             let mut invalid_actions = vec![];
                             for (chunk_coord, action) in chunk_action_buffer
                                 .iter()
-                                .filter(|(_, action)| action.requester_id() == loader_id)
+                                .filter(|(_, action)| action.requester_id() == loader_entity)
                             {
                                 match action {
                                     ChunkAction::Spawn { .. } => {
@@ -158,7 +188,7 @@ define_workflow_mod_OLD! {
                             #[allow(clippy::never_loop)]
                             for chunk_coord in invalid_actions {
                                 chunk_action_buffer.remove_action(&chunk_coord);
-                                invalid_chunk_actions.push((chunk_coord, loader_id));
+                                invalid_chunk_actions.push((chunk_coord, loader_entity));
                                 unreachable!("Invalid ChunkActions deteced OnUpdate: {:?}", invalid_chunk_actions);
                             }
 
@@ -183,7 +213,7 @@ define_workflow_mod_OLD! {
                                 let chunk_loader_radius_squared = radius * radius;
 
                                 unload_chunk_inputs.push(UnloadChunkInput {
-                                    requester_id: loader_id,
+                                    requester_id: loader_entity,
                                     chunk_coord: *chunk_coord,
                                     chunk_loader_distance_squared,
                                     chunk_loader_radius_squared,
@@ -199,16 +229,15 @@ define_workflow_mod_OLD! {
 
         LoadChunks {
             user_imports: {
-                use bevy::prelude::{Entity, Res, ResMut, Query};
+                use bevy::prelude::{Entity, Res, ResMut, Query, Image, Handle};
 
                 use crate::chunk::{enums::{ChunkAction, ChunkActionPriority}, resources::{ChunkManager, ChunkActionBuffer}, components::ChunkComponent};
                 use crate::config::statics::CONFIG;
             },
             user_items: {
                 pub struct LoadChunkInput {
-                    pub requester_id: u32,
+                    pub requester_id: Entity,
                     pub chunk_coord: (i32, i32),
-                    pub chunk_owner: Option<Entity>,
                     pub chunk_loader_distance_squared: u32,
                     pub chunk_loader_radius_squared: u32,
                 }
@@ -218,7 +247,7 @@ define_workflow_mod_OLD! {
                 }
                 pub struct TransferChunkOwnershipState {
                     pub coord: (i32, i32),
-                    pub owner: Option<Entity>,
+                    pub owner: Entity,
                     pub is_ownership_transfered: bool,
                 }
 
@@ -247,6 +276,7 @@ define_workflow_mod_OLD! {
                         }
                         struct Input {
                             inputs: Vec<LoadChunkInput>,
+                            texture_handles: Vec<Handle<Image>>
                         }
                         struct State {
                             spawn_chunk_states: Vec<SpawnChunkState>,
@@ -264,7 +294,6 @@ define_workflow_mod_OLD! {
                             for input in input.inputs {
                                 let requester_id = input.requester_id;
                                 let chunk_coord = input.chunk_coord;
-                                let chunk_owner = input.chunk_owner;
                                 let chunk_loader_distance_squared = input.chunk_loader_distance_squared;
                                 let chunk_loader_radius_squared = input.chunk_loader_radius_squared;
 
@@ -280,7 +309,6 @@ define_workflow_mod_OLD! {
                                         chunk_action_buffer.add_action(ChunkAction::Spawn {
                                             requester_id,
                                             coord: chunk_coord,
-                                            new_owner: chunk_owner,
                                             priority: calculate_spawn_priority(
                                                 chunk_loader_distance_squared,
                                                 chunk_loader_radius_squared,
@@ -292,16 +320,15 @@ define_workflow_mod_OLD! {
                                             is_spawned: false
                                         });
                                     }
-                                } else if !is_owned && !is_despawning && !is_transfering_ownership && chunk_owner.is_some() {
+                                } else if !is_owned && !is_despawning && !is_transfering_ownership {
                                     chunk_action_buffer.add_action(ChunkAction::TransferOwnership {
                                         requester_id,
                                         coord: chunk_coord,
-                                        new_owner: chunk_owner.unwrap(),
                                         priority: ChunkActionPriority::Realtime,
                                     });
                                     transfer_chunk_ownership_states.push(TransferChunkOwnershipState {
                                         coord: chunk_coord,
-                                        owner: chunk_owner,
+                                        owner: requester_id,
                                         is_ownership_transfered: false
                                     });
                                 }
@@ -358,7 +385,7 @@ define_workflow_mod_OLD! {
             },
             user_items: {
                 pub struct UnloadChunkInput {
-                    pub requester_id: u32,
+                    pub requester_id: Entity,
                     pub chunk_coord: (i32, i32),
                     pub chunk_loader_distance_squared: u32,
                     pub chunk_loader_radius_squared: u32,
@@ -369,7 +396,7 @@ define_workflow_mod_OLD! {
                 }
                 pub struct TransferChunkOwnershipState {
                     pub coord: (i32, i32),
-                    pub owner: Option<Entity>,
+                    pub owner: Entity,
                     pub is_ownership_transfered: bool,
                 }
 

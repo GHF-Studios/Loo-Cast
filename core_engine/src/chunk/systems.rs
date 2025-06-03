@@ -82,12 +82,12 @@ pub(crate) fn process_chunk_actions_system(
         for coord in coords {
             if let Some(action) = chunk_action_buffer.actions.get(coord).cloned() {
                 match action {
-                    ChunkAction::Spawn { coord, new_owner, .. } => {
+                    ChunkAction::Spawn { requester_id, coord, texture_handle, .. } => {
                         spawn_coords.push(coord);
                         spawn_inputs.push(crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
                             chunk_coord: coord,
-                            chunk_owner: new_owner,
-                            metric_texture: Default::default(), // placeholder
+                            chunk_owner: requester_id,
+                            metric_texture: texture_handle,
                         });
                         processed_coords.push(coord);
                     }
@@ -95,11 +95,11 @@ pub(crate) fn process_chunk_actions_system(
                         despawn_inputs.push(crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInput { chunk_coord: coord });
                         processed_coords.push(coord);
                     }
-                    ChunkAction::TransferOwnership { coord, new_owner, .. } => {
+                    ChunkAction::TransferOwnership { requester_id, coord, .. } => {
                         transfer_inputs.push(
                             crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput {
                                 chunk_coord: coord,
-                                new_owner,
+                                new_owner: requester_id,
                             },
                         );
                         processed_coords.push(coord);

@@ -29,7 +29,8 @@ pub enum ResolutionWarning {
     RedundantIntent,
     IntentBufferUnavailable,
     IntentAfterCommittingToOwnershipTransfer,
-    IntentWithoutOwnership
+    IntentWithoutOwnership,
+    OwnershipTransferItentOfDespawningChunk,
 }
 
 #[derive(Debug)]
@@ -50,7 +51,7 @@ enum IncomingOwnership {
     IsUnrelated
 }
 
-pub fn resolve_chunk_intent(
+pub fn resolve_intent(
     committed: Option<ChunkAction>, 
     buffered: Option<ChunkAction>, 
     chunk_state: ChunkState, 
@@ -85,13 +86,55 @@ pub fn resolve_chunk_intent(
 
         (None, Some(_), _, _) => Error(IntentBufferNotFlushed),
 
-        // TODO: Completely rework this case
-        (Some(Spawn { requester_id: committed_requester_id, .. }), None, chunk_state, incoming) => {
-            todo!()
-        },
-        // TODO: Completely rework this case
-        (Some(Despawn { requester_id: committed_requester_id, .. }), None, chunk_state, incoming) => {
-            todo!()
+        (Some(Spawn { requester_id: committed_id, .. }), None, _, incoming) => {
+            match incoming {
+                Spawn { requester_id, .. } => {
+                    if requester_id == committed_id {
+                        DiscardIncoming(RedundantIntent)
+                    } else {
+                        DiscardIncoming(IntentWithoutOwnership)
+                    }
+                }
+                Despawn { requester_id, .. } => {
+                    if requester_id == committed_id {
+                        PushBuffer(incoming)
+                    } else {
+                        DiscardIncoming(IntentWithoutOwnership)
+                    }
+                }
+                TransferOwnership { requester_id, .. } => {
+                    if requester_id == committed_id {
+                        PushBuffer(incoming)
+                    } else {
+                        DiscardIncoming(IntentWithoutOwnership)
+                    }
+                }
+            }
+        }
+        (Some(Despawn { requester_id: committed_id, .. }), None, _, incoming) => {
+            match incoming {
+                Spawn { requester_id, .. } => {
+                    if requester_id == committed_id {
+                        PushBuffer(incoming)
+                    } else {
+                        DiscardIncoming(IntentWithoutOwnership)
+                    }
+                }
+                Despawn { requester_id, .. } => {
+                    if requester_id == committed_id {
+                        DiscardIncoming(RedundantIntent)
+                    } else {
+                        DiscardIncoming(IntentWithoutOwnership)
+                    }
+                }
+                TransferOwnership { requester_id, .. } => {
+                    if requester_id == committed_id {
+                        DiscardIncoming(OwnershipTransferItentOfDespawningChunk)
+                    } else {
+                        DiscardIncoming(IntentWithoutOwnership)
+                    }
+                }
+            }
         }
         (Some(TransferOwnership { requester_id: committed_requester_id, .. }), None, chunk_state, incoming) => {
             let (current_owner, incoming_owner_is_current_owner) = match chunk_state {
@@ -143,6 +186,27 @@ pub fn resolve_chunk_intent(
                 IsUnrelated => DiscardIncoming(IntentWithoutOwnership),
             }
         }
+
+        (
+            Some(Spawn { requester_id: committed_id, .. }), 
+            Some(Despawn { requester_id: buffered_id, .. }), 
+            _, 
+            Spawn { requester_id: incoming_id, .. }
+        ) if committed_id == buffered_id && committed_id == incoming_id => CancelIntent,
+
+        (
+            Some(Despawn { requester_id: committed_id, .. }), 
+            Some(Despawn { requester_id: buffered_id, .. }), 
+            _, 
+            Despawn { requester_id: incoming_id, .. }
+        ) if committed_id == buffered_id && committed_id == incoming_id => CancelIntent,
+
+        (
+            Some(TransferOwnership { requester_id: committed_id, new_owner: committed_owner, .. }), 
+            Some(TransferOwnership { requester_id: buffered_id, new_owner: buffered_owner, .. }), 
+            _, 
+            TransferOwnership { requester_id: incoming_id, new_owner: incoming_owner, .. }
+        ) if committed_id ==  => CancelIntent,
 
         (Some(_), Some(_), _, _) => DiscardIncoming(IntentBufferUnavailable)
     }

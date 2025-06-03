@@ -32,7 +32,7 @@ pub mod config;
 pub mod debug;
 pub mod follower;
 pub mod gpu;
-//pub mod entity;
+pub mod entity;
 //pub mod math;
 pub mod player;
 //pub mod sprite_bundle;
@@ -51,7 +51,7 @@ use chunk_loader::ChunkLoaderPlugin;
 use debug::DebugPlugin;
 use follower::FollowerPlugin;
 use gpu::GpuPlugin;
-//use entity::EntityPlugin;
+use entity::EntityPlugin;
 //use math::MathPlugin;
 use player::PlayerPlugin;
 //use sprite_bundle::SpriteBundlePlugin;
@@ -71,7 +71,7 @@ impl PluginGroup for SpacetimeEngineMainPlugins {
             .add(DebugPlugin)
             .add(FollowerPlugin)
             .add(GpuPlugin)
-            //.add(EntityPlugin)
+            .add(EntityPlugin)
             //.add(MathPlugin)
             .add(PlayerPlugin)
         //.add(SpriteBundlePlugin)

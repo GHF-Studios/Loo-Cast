@@ -13,7 +13,7 @@ define_workflow_mod_OLD! {
             user_items: {
                 pub struct SpawnChunkInput {
                     pub chunk_coord: (i32, i32),
-                    pub chunk_owner: Option<Entity>,
+                    pub chunk_owner: Entity,
                     pub metric_texture: Handle<Image>
                 }
                 #[derive(Clone)]

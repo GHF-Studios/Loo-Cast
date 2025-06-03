@@ -3,20 +3,19 @@ use bevy::prelude::*;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChunkAction {
     Spawn {
-        requester_id: u32,
+        requester_id: Entity,
         coord: (i32, i32),
-        new_owner: Option<Entity>,
         priority: ChunkActionPriority,
+        texture_handle: Handle<Image>
     },
     Despawn {
-        requester_id: u32,
+        requester_id: Entity,
         coord: (i32, i32),
         priority: ChunkActionPriority,
     },
     TransferOwnership {
-        requester_id: u32,
+        requester_id: Entity,
         coord: (i32, i32),
-        new_owner: Entity,
         priority: ChunkActionPriority,
     },
 }
@@ -33,7 +32,7 @@ impl ChunkAction {
         matches!(self, ChunkAction::TransferOwnership { .. })
     }
 
-    pub fn requester_id(&self) -> u32 {
+    pub fn requester_id(&self) -> Entity {
         match self {
             ChunkAction::Spawn { requester_id, .. } | ChunkAction::Despawn { requester_id, .. } | ChunkAction::TransferOwnership { requester_id, .. } => {
                 *requester_id

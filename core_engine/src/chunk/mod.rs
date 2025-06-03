@@ -7,7 +7,7 @@ pub mod resources;
 pub mod systems;
 pub mod types;
 
-pub mod action_intent_resolution;
+pub mod intent_resolution;
 pub mod workflows;
 
 use bevy::prelude::*;
