@@ -87,7 +87,7 @@ pub(crate) fn process_chunk_actions_system(
                         spawn_inputs.push(crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
                             chunk_coord: coord,
                             chunk_owner: owner,
-                            metric_texture: Handle::default(), // Placeholder created
+                            metric_texture: Handle::default(), // Placeholder handle
                         });
                         processed_coords.push(coord);
                     }
@@ -107,7 +107,7 @@ pub(crate) fn process_chunk_actions_system(
     }
 
     if spawn_inputs.is_empty() && despawn_inputs.is_empty() && transfer_inputs.is_empty() {
-        return; // Nothing to do
+        return;
     }
 
     // Step 3: Build & launch composite workflows
@@ -139,7 +139,7 @@ pub(crate) fn process_chunk_actions_system(
                 .into_iter()
                 .zip(generate_output.texture_handles.into_iter())
                 .map(|(mut input, tex)| {
-                    input.metric_texture = tex; // Placeholder overwritten
+                    input.metric_texture = tex; // Placeholder handle replaced
                     input
                 })
                 .collect::<Vec<_>>();

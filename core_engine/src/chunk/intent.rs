@@ -16,8 +16,8 @@ impl State {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionContext {
-    LoadChunks { loader: Entity, coords: Vec<(i32, i32)> },
-    UnloadChunks { loader: Entity, coords: Vec<(i32, i32)> },
+    LoadChunks { loader: Entity, current_coord: (i32, i32) },
+    UnloadChunks { loader: Entity, current_coord: (i32, i32) },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -125,7 +125,7 @@ pub enum ResolvedActionIntent {
     Error(ResolutionError),
 }
 
-pub fn get_intent(chunk_state: State, committed: Option<ActionIntent>, buffered: Option<ActionIntent>, context: ActionContext) -> Option<ActionIntent> {
+pub fn propose_intent(chunk_state: State, committed: Option<ActionIntent>, buffered: Option<ActionIntent>, context: ActionContext) -> Option<ActionIntent> {
     use ActionContext::*;
     use ActionIntent::*;
     use State::*;
