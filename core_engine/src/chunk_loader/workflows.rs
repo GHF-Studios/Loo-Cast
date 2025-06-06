@@ -16,7 +16,7 @@ define_workflow_mod_OLD! {
                 use crate::chunk::resources::ChunkManager;
                 use crate::chunk::intent::ActionIntent;
                 use crate::chunk::functions::{world_pos_to_chunk, calculate_chunks_in_radius, calculate_chunk_distance_from_owner};
-                use crate::chunk::resources::ChunkActionBuffer;
+                use crate::chunk::resources::ActionIntentCommitBuffer;
             },
             user_items: {},
             stages: [
@@ -105,7 +105,7 @@ define_workflow_mod_OLD! {
                 use crate::chunk::components::ChunkComponent;
                 use crate::chunk::intent::ActionIntent;
                 use crate::chunk::functions::*;
-                use crate::chunk::resources::{ChunkManager, ChunkActionBuffer};
+                use crate::chunk::resources::{ChunkManager, ActionIntentCommitBuffer};
                 use crate::chunk_loader::components::ChunkLoaderComponent;
                 use crate::chunk_loader::workflows::chunk_loader::unload_chunks::user_items::UnloadChunkInput;
             },
@@ -115,7 +115,7 @@ define_workflow_mod_OLD! {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             chunk_manager: Res<'w, ChunkManager>,
-                            chunk_action_buffer: ResMut<'w, ChunkActionBuffer>,
+                            action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer>,
                             phantom_data: std::marker::PhantomData<&'s ()>,
                         }
                         struct Input {
@@ -130,14 +130,14 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn RunEcs |input, main_access| -> Output {
                             let chunk_manager = main_access.chunk_manager;
-                            let mut chunk_action_buffer = main_access.chunk_action_buffer;
+                            let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
 
                             let loader_entity = input.chunk_loader_entity;
                             let position = input.chunk_loader_position;
                             let radius = input.chunk_loader_radius;
 
                             let mut invalid_actions = vec![];
-                            for (chunk_coord, action) in chunk_action_buffer
+                            for (chunk_coord, action) in action_intent_commit_buffer
                                 .iter()
                                 .filter(|(_, action)| action.owner() == loader_entity)
                             {
@@ -154,7 +154,7 @@ define_workflow_mod_OLD! {
 
                             #[allow(clippy::never_loop)]
                             for chunk_coord in invalid_actions {
-                                chunk_action_buffer.remove_action(&chunk_coord);
+                                action_intent_commit_buffer.remove_intent(&chunk_coord);
                                 invalid_chunk_actions.push((chunk_coord, loader_entity));
                                 unreachable!("Invalid ChunkActions deteced OnUpdate: {:?}", invalid_chunk_actions);
                             }
@@ -164,7 +164,7 @@ define_workflow_mod_OLD! {
                                 .iter()
                                 .filter_map(|(chunk, &owner)| {
                                     if owner == loader_entity {
-                                        chunk_action_buffer.remove_action(chunk);
+                                        action_intent_commit_buffer.remove_intent(chunk);
 
                                         Some(chunk)
                                     } else {
@@ -198,7 +198,7 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use bevy::prelude::{Entity, Res, ResMut, Query, Image, Handle};
 
-                use crate::chunk::{intent::{ActionIntent, ActionPriority}, resources::{ChunkManager, ChunkActionBuffer}, components::ChunkComponent};
+                use crate::chunk::{intent::{ActionIntent, ActionPriority}, resources::{ChunkManager, ActionIntentCommitBuffer}, components::ChunkComponent};
                 use crate::config::statics::CONFIG;
             },
             user_items: {
@@ -238,7 +238,7 @@ define_workflow_mod_OLD! {
                         struct MainAccess<'w, 's> {
                             chunk_query: Query<'w, 's, &'static ChunkComponent>,
                             chunk_manager: Res<'w, ChunkManager>,
-                            chunk_action_buffer: ResMut<'w, ChunkActionBuffer>,
+                            action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer>,
                             phantom_data: std::marker::PhantomData<&'s ()>,
                         }
                         struct Input {
@@ -252,7 +252,7 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> State {
                             let chunk_manager = main_access.chunk_manager;
-                            let mut chunk_action_buffer = main_access.chunk_action_buffer;
+                            let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
 
                             let mut spawn_chunk_states = Vec::new();
                             let mut transfer_chunk_ownership_states = Vec::new();
@@ -266,13 +266,13 @@ define_workflow_mod_OLD! {
                                 let is_loaded = chunk_manager.loaded_chunks.contains(&chunk_coord);
                                 let is_owned = chunk_manager.owned_chunks.contains_key(&chunk_coord);
                                 let (is_spawning, is_despawning, is_transfering_ownership) =
-                                    chunk_action_buffer.get_action_states(&chunk_coord);
+                                    action_intent_commit_buffer.get_action_states(&chunk_coord);
 
                                 if !is_loaded {
                                     if !is_spawning && !is_despawning && !is_transfering_ownership {
-                                        let has_pending_despawn = chunk_action_buffer.has_despawns();
+                                        let has_pending_despawn = action_intent_commit_buffer.has_despawns();
 
-                                        chunk_action_buffer.add_action(ActionIntent::Spawn {
+                                        action_intent_commit_buffer.commit_intent(ActionIntent::Spawn {
                                             owner,
                                             coord: chunk_coord,
                                             priority: calculate_spawn_priority(
@@ -287,7 +287,7 @@ define_workflow_mod_OLD! {
                                         });
                                     }
                                 } else if !is_owned && !is_despawning && !is_transfering_ownership {
-                                    chunk_action_buffer.add_action(ActionIntent::TransferOwnership {
+                                    action_intent_commit_buffer.commit_intent(ActionIntent::TransferOwnership {
                                         owner,
                                         coord: chunk_coord,
                                         priority: ActionPriority::Realtime,
@@ -346,7 +346,7 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use bevy::prelude::{Res, ResMut, Entity, Transform, Query, Vec2};
 
-                use crate::chunk::{components::ChunkComponent, intent::{ActionIntent, ActionPriority}, resources::{ChunkManager, ChunkActionBuffer}, functions::world_pos_to_chunk};
+                use crate::chunk::{components::ChunkComponent, intent::{ActionIntent, ActionPriority}, resources::{ChunkManager, ActionIntentCommitBuffer}, functions::world_pos_to_chunk};
                 use crate::chunk_loader::components::ChunkLoaderComponent;
             },
             user_items: {
@@ -393,7 +393,7 @@ define_workflow_mod_OLD! {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             chunk_manager: Res<'w, ChunkManager>,
-                            chunk_action_buffer: ResMut<'w, ChunkActionBuffer>,
+                            action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer>,
                             chunk_query: Query<'w, 's, &'static ChunkComponent>,
                             chunk_loader_query: Query<'w, 's, (Entity, &'static Transform, &'static ChunkLoaderComponent)>,
                         }
@@ -408,7 +408,7 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> State {
                             let chunk_manager = main_access.chunk_manager;
-                            let mut chunk_action_buffer = main_access.chunk_action_buffer;
+                            let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
                             let chunk_query = main_access.chunk_query;
                             let chunk_loader_query = main_access.chunk_loader_query;
 
@@ -423,7 +423,7 @@ define_workflow_mod_OLD! {
 
                                 let is_loaded = chunk_manager.is_loaded(&chunk_coord);
                                 let (is_spawning, is_despawning, is_transfering_ownership) =
-                                    chunk_action_buffer.get_action_states(&chunk_coord);
+                                    action_intent_commit_buffer.get_action_states(&chunk_coord);
 
                                 if is_loaded && !is_spawning && !is_despawning && !is_transfering_ownership {
                                     let chunk = match chunk_query
@@ -457,7 +457,7 @@ define_workflow_mod_OLD! {
                                             )
                                         }) {
                                         Some((new_owner, _, _)) => {
-                                            chunk_action_buffer.add_action(ActionIntent::TransferOwnership {
+                                            action_intent_commit_buffer.commit_intent(ActionIntent::TransferOwnership {
                                                 owner,
                                                 coord: chunk_coord,
                                                 priority: ActionPriority::Realtime,
@@ -469,7 +469,7 @@ define_workflow_mod_OLD! {
                                             });
                                         }
                                         None => {
-                                            chunk_action_buffer.add_action(ActionIntent::Despawn {
+                                            action_intent_commit_buffer.commit_intent(ActionIntent::Despawn {
                                                 owner,
                                                 coord: chunk_coord,
                                                 priority: calculate_despawn_priority(

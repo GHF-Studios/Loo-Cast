@@ -12,7 +12,7 @@ use super::functions::{chunk_pos_to_world, world_pos_to_chunk};
 use super::intent::ActionIntent;
 use super::resources::ChunkRenderHandles;
 use super::types::ChunkActionWorkflowHandles;
-use super::ChunkActionBuffer;
+use super::ActionIntentCommitBuffer;
 
 pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
     let quad = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
@@ -37,7 +37,7 @@ pub(crate) fn chunk_update_system(chunk_query: Query<(Entity, &Transform, &Chunk
 }
 
 pub(crate) fn process_chunk_actions_system(
-    mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
+    mut action_intent_commit_buffer: ResMut<ActionIntentCommitBuffer>,
     mut workflow_handles: Local<Option<ChunkActionWorkflowHandles>>,
 ) {
     let mut processed_coords = vec![];
@@ -78,9 +78,9 @@ pub(crate) fn process_chunk_actions_system(
     let mut despawn_inputs = vec![];
     let mut transfer_inputs = vec![];
 
-    for (_, coords) in chunk_action_buffer.priority_buckets.iter() {
+    for (_, coords) in action_intent_commit_buffer.priority_buckets.iter() {
         for coord in coords {
-            if let Some(action_intent) = chunk_action_buffer.actions.get(coord).cloned() {
+            if let Some(action_intent) = action_intent_commit_buffer.committed_action_intents.get(coord).cloned() {
                 match action_intent {
                     ActionIntent::Spawn { owner, coord, .. } => {
                         spawn_coords.push(coord);
@@ -179,5 +179,5 @@ pub(crate) fn process_chunk_actions_system(
     });
 
     // Step 4: Mark all these actions as in-progress (done now)
-    chunk_action_buffer.remove_actions(processed_coords);
+    action_intent_commit_buffer.remove_intents(processed_coords);
 }

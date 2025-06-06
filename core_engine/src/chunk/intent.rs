@@ -15,12 +15,6 @@ impl State {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ActionContext {
-    LoadChunks { loader: Entity, current_coord: (i32, i32) },
-    UnloadChunks { loader: Entity, current_coord: (i32, i32) },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionIntent {
     Spawn {
         owner: Entity,
@@ -123,23 +117,6 @@ pub enum ResolvedActionIntent {
     CancelIntent,
     DiscardIncoming(ResolutionWarning),
     Error(ResolutionError),
-}
-
-pub fn propose_intent(chunk_state: State, committed: Option<ActionIntent>, buffered: Option<ActionIntent>, context: ActionContext) -> Option<ActionIntent> {
-    use ActionContext::*;
-    use ActionIntent::*;
-    use State::*;
-
-    match (chunk_state, committed, buffered, context) {
-        //(Absent, None, None, LoadChunks { loader, coords }) => {
-        //    Some(Spawn {
-        //        owner: loader,
-        //        coord: coords[0],
-        //        priority: ActionPriority::Realtime,
-        //    })
-        //}
-        _ => todo!()
-    }
 }
 
 pub fn resolve_intent(chunk_state: State, committed: Option<ActionIntent>, buffered: Option<ActionIntent>, incoming: ActionIntent) -> ResolvedActionIntent {
@@ -261,5 +238,3 @@ pub fn resolve_intent(chunk_state: State, committed: Option<ActionIntent>, buffe
         (_, Some(_), Some(_), _) => DiscardIncoming(IntentBufferUnavailable),
     }
 }
-
-pub fn apply_intent(chunk_state: State, committed: Option<ActionIntent>, buffered: Option<ActionIntent>, resolved: ResolvedActionIntent) {}
