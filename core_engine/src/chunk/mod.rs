@@ -16,8 +16,7 @@ use systems::{chunk_startup_system, chunk_update_system, process_chunk_actions_s
 pub(crate) struct ChunkPlugin;
 impl Plugin for ChunkPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(ActionIntentBuffer::default())
+        app.insert_resource(ActionIntentBuffer::default())
             .insert_resource(ActionIntentCommitBuffer::default())
             .insert_resource(ChunkManager::default())
             .add_systems(Startup, chunk_startup_system)

@@ -196,9 +196,13 @@ define_workflow_mod_OLD! {
 
         LoadChunks {
             user_imports: {
-                use bevy::prelude::{Entity, Res, ResMut, Query, Image, Handle};
-
-                use crate::chunk::{intent::{ActionIntent, ActionPriority}, resources::{ChunkManager, ActionIntentCommitBuffer}, components::ChunkComponent};
+                use bevy::prelude::{Entity, Res, ResMut, Query};
+            
+                use crate::chunk::{
+                    intent::{ActionIntent, ActionPriority, resolve_intent, ResolvedActionIntent},
+                    resources::{ChunkManager, ActionIntentCommitBuffer},
+                    components::ChunkComponent,
+                };
                 use crate::config::statics::CONFIG;
             },
             user_items: {
@@ -208,27 +212,27 @@ define_workflow_mod_OLD! {
                     pub chunk_loader_distance_squared: u32,
                     pub chunk_loader_radius_squared: u32,
                 }
+            
                 pub struct SpawnChunkState {
                     pub coord: (i32, i32),
                     pub is_spawned: bool,
                 }
+            
                 pub struct TransferChunkOwnershipState {
                     pub coord: (i32, i32),
                     pub owner: Entity,
                     pub is_ownership_transfered: bool,
                 }
-
+            
                 pub fn calculate_spawn_priority(
                     distance_squared: u32,
                     radius_squared: u32,
                     has_pending_despawn: bool,
                 ) -> ActionPriority {
                     let normalized_distance = distance_squared as f64 / radius_squared as f64;
-
-                    // Lower priority if a despawn is pending
                     let adjustment = if has_pending_despawn { 0.5 } else { 1.0 };
                     let priority_value = (i64::MAX as f64 * (1.0 - normalized_distance) * adjustment) as i64;
-
+                
                     ActionPriority::Deferred(priority_value)
                 }
             },
@@ -253,87 +257,126 @@ define_workflow_mod_OLD! {
                         fn SetupEcsWhile |input, main_access| -> State {
                             let chunk_manager = main_access.chunk_manager;
                             let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
-
+                        
                             let mut spawn_chunk_states = Vec::new();
                             let mut transfer_chunk_ownership_states = Vec::new();
-
+                        
                             for input in input.inputs {
                                 let owner = input.owner;
-                                let chunk_coord = input.chunk_coord;
-                                let chunk_loader_distance_squared = input.chunk_loader_distance_squared;
-                                let chunk_loader_radius_squared = input.chunk_loader_radius_squared;
-
-                                let is_loaded = chunk_manager.loaded_chunks.contains(&chunk_coord);
-                                let is_owned = chunk_manager.owned_chunks.contains_key(&chunk_coord);
-                                let (is_spawning, is_despawning, is_transfering_ownership) =
-                                    action_intent_commit_buffer.get_action_states(&chunk_coord);
-
-                                if !is_loaded {
-                                    if !is_spawning && !is_despawning && !is_transfering_ownership {
-                                        let has_pending_despawn = action_intent_commit_buffer.has_despawns();
-
-                                        action_intent_commit_buffer.commit_intent(ActionIntent::Spawn {
-                                            owner,
-                                            coord: chunk_coord,
-                                            priority: calculate_spawn_priority(
-                                                chunk_loader_distance_squared,
-                                                chunk_loader_radius_squared,
-                                                has_pending_despawn,
-                                            ),
-                                        });
-                                        spawn_chunk_states.push(SpawnChunkState {
-                                            coord: chunk_coord,
-                                            is_spawned: false
-                                        });
+                                let coord = input.chunk_coord;
+                            
+                                let is_loaded = chunk_manager.loaded_chunks.contains(&coord);
+                                let is_owned = chunk_manager.owned_chunks.contains_key(&coord);
+                            
+                                let committed = action_intent_commit_buffer.get_commit(&coord);
+                                let buffered = action_intent_commit_buffer.get_buffer(&coord);
+                                let chunk_state = if is_loaded {
+                                    chunk_manager.owned_chunks.get(&coord).map_or_else(
+                                        || panic!("Invariant violated: Loaded chunk with no owner."),
+                                        |o| crate::chunk::intent::State::Owned(*o),
+                                    )
+                                } else {
+                                    crate::chunk::intent::State::Absent
+                                };
+                            
+                                let proposed_intent = if !is_loaded {
+                                    ActionIntent::Spawn {
+                                        owner,
+                                        coord,
+                                        priority: calculate_spawn_priority(
+                                            input.chunk_loader_distance_squared,
+                                            input.chunk_loader_radius_squared,
+                                            action_intent_commit_buffer.has_despawns(),
+                                        ),
                                     }
-                                } else if !is_owned && !is_despawning && !is_transfering_ownership {
-                                    action_intent_commit_buffer.commit_intent(ActionIntent::TransferOwnership {
+                                } else if !is_owned {
+                                    ActionIntent::TransferOwnership {
                                         owner,
-                                        coord: chunk_coord,
+                                        coord,
                                         priority: ActionPriority::Realtime,
-                                    });
-                                    transfer_chunk_ownership_states.push(TransferChunkOwnershipState {
-                                        coord: chunk_coord,
-                                        owner,
-                                        is_ownership_transfered: false
-                                    });
+                                    }
+                                } else {
+                                    continue; // Nothing to do
+                                };
+                            
+                                let resolution = resolve_intent(chunk_state, committed, buffered, proposed_intent.clone());
+                            
+                                match resolution {
+                                    ResolvedActionIntent::PushCommit(action) => match action {
+                                        ActionIntent::Spawn { .. } => {
+                                            action_intent_commit_buffer.add_commit(action.clone());
+                                            spawn_chunk_states.push(SpawnChunkState { coord, is_spawned: false });
+                                        }
+                                        ActionIntent::TransferOwnership { owner, .. } => {
+                                            action_intent_commit_buffer.add_commit(action.clone());
+                                            transfer_chunk_ownership_states.push(TransferChunkOwnershipState {
+                                                coord,
+                                                owner,
+                                                is_ownership_transfered: false,
+                                            });
+                                        }
+                                        ActionIntent::Despawn { .. } => {
+                                            panic!("LoadChunks received a Despawn intent to commit. Invalid logic path.");
+                                        }
+                                    },
+                                    ResolvedActionIntent::PushBuffer(action) => match action {
+                                        ActionIntent::Spawn { .. } => {
+                                            action_intent_commit_buffer.set_buffer(action);
+                                        }
+                                        ActionIntent::TransferOwnership { .. } => {
+                                            action_intent_commit_buffer.set_buffer(action);
+                                        }
+                                        ActionIntent::Despawn { .. } => {
+                                            panic!("LoadChunks received a Despawn intent to buffer. Invalid logic path.");
+                                        }
+                                    },
+                                    ResolvedActionIntent::CancelIntent => {
+                                        action_intent_commit_buffer.clear_buffer(&coord);
+                                    }
+                                    ResolvedActionIntent::DiscardIncoming(reason) => {
+                                        // Optionally: log warning or metrics here
+                                        continue;
+                                    }
+                                    ResolvedActionIntent::Error(error) => {
+                                        panic!("Intent resolution failed: {:?}", error);
+                                    }
                                 }
                             }
-
+                        
                             State {
                                 spawn_chunk_states,
                                 transfer_chunk_ownership_states,
                             }
                         }
-
+                    
                         fn RunEcsWhile |state, main_access| -> Outcome<State, ()> {
                             let chunk_query = main_access.chunk_query;
-
+                        
                             let spawn_chunk_states = state.spawn_chunk_states.into_iter().map(|mut s| {
                                 if chunk_query.iter().any(|chunk| chunk.coord == s.coord) {
                                     s.is_spawned = true;
                                 }
-
                                 s
                             }).collect::<Vec<_>>();
+                        
                             let transfer_chunk_ownership_states = state.transfer_chunk_ownership_states.into_iter().map(|mut s| {
                                 if let Some(chunk) = chunk_query.iter().find(|chunk| chunk.coord == s.coord) {
                                     if chunk.owner.expect("Unreachable state: Chunk has no owner") == s.owner {
                                         s.is_ownership_transfered = true;
                                     }
                                 }
-
                                 s
                             }).collect::<Vec<_>>();
-                            let is_done = spawn_chunk_states.iter().all(|s| s.is_spawned) &&
-                                transfer_chunk_ownership_states.iter().all(|s| s.is_ownership_transfered);
-
+                        
+                            let is_done = spawn_chunk_states.iter().all(|s| s.is_spawned)
+                                && transfer_chunk_ownership_states.iter().all(|s| s.is_ownership_transfered);
+                        
                             if is_done {
                                 Outcome::Done(())
                             } else {
                                 Outcome::Wait(State {
                                     spawn_chunk_states,
-                                    transfer_chunk_ownership_states
+                                    transfer_chunk_ownership_states,
                                 })
                             }
                         }
@@ -345,8 +388,13 @@ define_workflow_mod_OLD! {
         UnloadChunks {
             user_imports: {
                 use bevy::prelude::{Res, ResMut, Entity, Transform, Query, Vec2};
-
-                use crate::chunk::{components::ChunkComponent, intent::{ActionIntent, ActionPriority}, resources::{ChunkManager, ActionIntentCommitBuffer}, functions::world_pos_to_chunk};
+            
+                use crate::chunk::{
+                    components::ChunkComponent,
+                    intent::{ActionIntent, ActionPriority, resolve_intent, ResolvedActionIntent, State as ChunkState},
+                    resources::{ChunkManager, ActionIntentCommitBuffer},
+                    functions::world_pos_to_chunk
+                };
                 use crate::chunk_loader::components::ChunkLoaderComponent;
             },
             user_items: {
@@ -356,34 +404,29 @@ define_workflow_mod_OLD! {
                     pub chunk_loader_distance_squared: u32,
                     pub chunk_loader_radius_squared: u32,
                 }
+            
                 pub struct DespawnChunkState {
                     pub coord: (i32, i32),
                     pub is_despawned: bool,
                 }
+            
                 pub struct TransferChunkOwnershipState {
                     pub coord: (i32, i32),
                     pub owner: Entity,
                     pub is_ownership_transfered: bool,
                 }
-
+            
                 pub fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) -> ActionPriority {
                     let normalized_distance = distance_squared as f64 / radius_squared as f64;
                     let priority_value = (normalized_distance * i64::MAX as f64) as i64;
-
                     ActionPriority::Deferred(priority_value)
                 }
-
-                pub fn is_chunk_in_loader_range(
-                    chunk_coord: &(i32, i32),
-                    loader_position: Vec2,
-                    loader_radius: u32,
-                ) -> bool {
+            
+                pub fn is_chunk_in_loader_range(chunk_coord: &(i32, i32), loader_position: Vec2, loader_radius: u32) -> bool {
                     let (loader_chunk_x, loader_chunk_y) = world_pos_to_chunk(loader_position);
-
                     let dx = chunk_coord.0 - loader_chunk_x;
                     let dy = chunk_coord.1 - loader_chunk_y;
                     let distance_squared = dx * dx + dy * dy;
-
                     let radius_squared = (loader_radius as i32) * (loader_radius as i32);
                     distance_squared <= radius_squared
                 }
@@ -411,120 +454,137 @@ define_workflow_mod_OLD! {
                             let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
                             let chunk_query = main_access.chunk_query;
                             let chunk_loader_query = main_access.chunk_loader_query;
-
+                        
                             let mut despawn_chunk_states = Vec::new();
                             let mut transfer_chunk_ownership_states = Vec::new();
-
+                        
                             for input in input.inputs {
                                 let owner = input.owner;
-                                let chunk_coord = input.chunk_coord;
-                                let chunk_loader_distance_squared = input.chunk_loader_distance_squared;
-                                let chunk_loader_radius_squared = input.chunk_loader_radius_squared;
-
-                                let is_loaded = chunk_manager.is_loaded(&chunk_coord);
-                                let (is_spawning, is_despawning, is_transfering_ownership) =
-                                    action_intent_commit_buffer.get_action_states(&chunk_coord);
-
-                                if is_loaded && !is_spawning && !is_despawning && !is_transfering_ownership {
-                                    let chunk = match chunk_query
-                                        .iter()
-                                        .find(|chunk| chunk.coord == chunk_coord)
-                                    {
-                                        Some(chunk) => chunk,
-                                        None => {
-                                            bevy::prelude::error!(
-                                                "Skipping unload for chunk '{:?}': it is already despawned",
-                                                chunk_coord
-                                            );
-                                            continue;
+                                let coord = input.chunk_coord;
+                                let distance_squared = input.chunk_loader_distance_squared;
+                                let radius_squared = input.chunk_loader_radius_squared;
+                            
+                                let is_loaded = chunk_manager.is_loaded(&coord);
+                                if !is_loaded {
+                                    continue;
+                                }
+                            
+                                let committed = action_intent_commit_buffer.get_commit(&coord);
+                                let buffered = action_intent_commit_buffer.get_buffer(&coord);
+                            
+                                let chunk_state = if let Some(owner) = chunk_manager.owned_chunks.get(&coord) {
+                                    ChunkState::Owned(*owner)
+                                } else {
+                                    ChunkState::Absent // shouldn’t happen if is_loaded, but we’ll roll with it for now
+                                };
+                            
+                                let chunk = match chunk_query.iter().find(|chunk| chunk.coord == coord) {
+                                    Some(c) => c,
+                                    None => continue, // Already despawned
+                                };
+                            
+                                let transfer_candidate = chunk_loader_query
+                                    .iter()
+                                    .find(|(loader_entity, transform, loader)| {
+                                        if Some(*loader_entity) == chunk.owner {
+                                            return false;
                                         }
-                                    };
-
-                                    match chunk_loader_query
-                                        .iter()
-                                        .find(|(loader_entity, transform, loader)| {
-                                            if chunk
-                                                .owner
-                                                .is_some_and(|chunk_owner| chunk_owner == *loader_entity)
-                                            {
-                                                return false;
-                                            }
-
-                                            is_chunk_in_loader_range(
-                                                &chunk_coord,
-                                                transform.translation.truncate(),
-                                                loader.radius,
-                                            )
-                                        }) {
-                                        Some((new_owner, _, _)) => {
-                                            action_intent_commit_buffer.commit_intent(ActionIntent::TransferOwnership {
-                                                owner,
-                                                coord: chunk_coord,
-                                                priority: ActionPriority::Realtime,
-                                            });
-                                            transfer_chunk_ownership_states.push(TransferChunkOwnershipState {
-                                                coord: chunk_coord,
-                                                owner: new_owner,
-                                                is_ownership_transfered: false
-                                            });
-                                        }
-                                        None => {
-                                            action_intent_commit_buffer.commit_intent(ActionIntent::Despawn {
-                                                owner,
-                                                coord: chunk_coord,
-                                                priority: calculate_despawn_priority(
-                                                    chunk_loader_distance_squared,
-                                                    chunk_loader_radius_squared,
-                                                ),
-                                            });
+                                        is_chunk_in_loader_range(&coord, transform.translation.truncate(), loader.radius)
+                                    });
+                                
+                                let proposed_intent = match transfer_candidate {
+                                    Some((new_owner, _, _)) => ActionIntent::TransferOwnership {
+                                        owner: new_owner,
+                                        coord,
+                                        priority: ActionPriority::Realtime,
+                                    },
+                                    None => ActionIntent::Despawn {
+                                        owner,
+                                        coord,
+                                        priority: calculate_despawn_priority(distance_squared, radius_squared),
+                                    },
+                                };
+                            
+                                let resolution = resolve_intent(chunk_state, committed, buffered, proposed_intent.clone());
+                            
+                                match resolution {
+                                    ResolvedActionIntent::PushCommit(action) => match action {
+                                        ActionIntent::Despawn { .. } => {
+                                            action_intent_commit_buffer.add_commit(action.clone());
                                             despawn_chunk_states.push(DespawnChunkState {
-                                                coord: chunk_coord,
-                                                is_despawned: false
+                                                coord,
+                                                is_despawned: false,
                                             });
                                         }
-                                    };
+                                        ActionIntent::TransferOwnership { owner, .. } => {
+                                            action_intent_commit_buffer.add_commit(action.clone());
+                                            transfer_chunk_ownership_states.push(TransferChunkOwnershipState {
+                                                coord,
+                                                owner,
+                                                is_ownership_transfered: false,
+                                            });
+                                        }
+                                        ActionIntent::Spawn { .. } => {
+                                            panic!("UnloadChunks should never emit or commit a Spawn intent.");
+                                        }
+                                    },
+                                    ResolvedActionIntent::PushBuffer(action) => match action {
+                                        ActionIntent::Despawn { .. } => {
+                                            action_intent_commit_buffer.set_buffer(action);
+                                        }
+                                        ActionIntent::TransferOwnership { .. } => {
+                                            action_intent_commit_buffer.set_buffer(action);
+                                        }
+                                        ActionIntent::Spawn { .. } => {
+                                            panic!("UnloadChunks should never buffer a Spawn intent.");
+                                        }
+                                    },
+                                    ResolvedActionIntent::CancelIntent => {
+                                        action_intent_commit_buffer.clear_buffer(&coord);
+                                    }
+                                    ResolvedActionIntent::DiscardIncoming(_) => {
+                                        continue;
+                                    }
+                                    ResolvedActionIntent::Error(error) => {
+                                        panic!("UnloadChunks resolution error: {:?}", error);
+                                    }
                                 }
                             }
-
+                        
                             State {
                                 despawn_chunk_states,
                                 transfer_chunk_ownership_states,
                             }
                         }
-
+                    
                         fn RunEcsWhile |state, main_access| -> Outcome<State, ()> {
                             let chunk_query = main_access.chunk_query;
-
+                        
                             let despawn_chunk_states = state.despawn_chunk_states.into_iter().map(|mut s| {
-                                if chunk_query.iter().any(|chunk| chunk.coord == s.coord) {
+                                if chunk_query.iter().all(|chunk| chunk.coord != s.coord) {
                                     s.is_despawned = true;
                                 }
-
                                 s
                             }).collect::<Vec<_>>();
+                        
                             let transfer_chunk_ownership_states = state.transfer_chunk_ownership_states.into_iter().map(|mut s| {
                                 if let Some(chunk) = chunk_query.iter().find(|chunk| chunk.coord == s.coord) {
-                                    let this_chunk_owner = match chunk.owner {
-                                        Some(owner) => owner,
-                                        None => unreachable!("Unreachable state: Chunk has no owner"),
-                                    };
-
-                                    if this_chunk_owner == s.owner {
+                                    if chunk.owner == Some(s.owner) {
                                         s.is_ownership_transfered = true;
                                     }
                                 }
-
                                 s
                             }).collect::<Vec<_>>();
-                            let is_done = despawn_chunk_states.iter().all(|s| s.is_despawned) &&
-                                transfer_chunk_ownership_states.iter().all(|s| s.is_ownership_transfered);
-
+                        
+                            let is_done = despawn_chunk_states.iter().all(|s| s.is_despawned)
+                                && transfer_chunk_ownership_states.iter().all(|s| s.is_ownership_transfered);
+                        
                             if is_done {
                                 Outcome::Done(())
                             } else {
                                 Outcome::Wait(State {
                                     despawn_chunk_states,
-                                    transfer_chunk_ownership_states
+                                    transfer_chunk_ownership_states,
                                 })
                             }
                         }

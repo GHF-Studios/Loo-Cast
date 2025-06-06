@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use super::intent::{ActionIntent, ActionPriority};
 
 #[derive(Resource, Default)]
-pub(in crate) struct ActionIntentCommitBuffer {
+pub(crate) struct ActionIntentCommitBuffer {
     pub committed_action_intents: HashMap<(i32, i32), ActionIntent>,
     pub priority_buckets: BTreeMap<ActionPriority, HashSet<(i32, i32)>>,
 }
@@ -73,7 +73,7 @@ impl ActionIntentCommitBuffer {
 }
 
 #[derive(Resource, Default)]
-pub(in crate) struct ActionIntentBuffer {
+pub(crate) struct ActionIntentBuffer {
     pub action_intents: HashMap<(i32, i32), ActionIntent>,
     pub priority_buckets: BTreeMap<ActionPriority, HashSet<(i32, i32)>>,
 }
