@@ -4,8 +4,8 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use super::intent::{ActionIntent, ActionPriority};
 
 #[derive(Resource, Default)]
-pub(crate) struct ActionIntentCommitBuffer {
-    pub committed_action_intents: HashMap<(i32, i32), ActionIntent>,
+pub struct ActionIntentCommitBuffer {
+    pub action_intent: HashMap<(i32, i32), ActionIntent>,
     pub priority_buckets: BTreeMap<ActionPriority, HashSet<(i32, i32)>>,
 }
 impl ActionIntentCommitBuffer {
@@ -13,28 +13,25 @@ impl ActionIntentCommitBuffer {
         let coord = action_intent.coord();
         let priority = action_intent.priority();
 
-        self.committed_action_intents.insert(coord, action_intent);
+        self.action_intent.insert(coord, action_intent);
 
         self.priority_buckets.entry(priority).or_default().insert(coord);
     }
 
-    pub fn commit_intents<I>(&mut self, committed_action_intents: I)
-    where
-        I: IntoIterator<Item = ActionIntent>,
-    {
-        for committed_action_intent in committed_action_intents {
-            let coord = committed_action_intent.coord();
-            let priority = committed_action_intent.priority();
+    pub fn commit_intents(&mut self, action_intents: impl IntoIterator<Item = ActionIntent>) {
+        for action_intent in action_intents {
+            let coord = action_intent.coord();
+            let priority = action_intent.priority();
 
-            self.committed_action_intents.insert(coord, committed_action_intent);
+            self.action_intent.insert(coord, action_intent);
 
             self.priority_buckets.entry(priority).or_default().insert(coord);
         }
     }
 
     pub fn remove_intent(&mut self, coord: &(i32, i32)) {
-        if let Some(committed_action_intent) = self.committed_action_intents.remove(coord) {
-            let priority = committed_action_intent.priority();
+        if let Some(action_intent) = self.action_intent.remove(coord) {
+            let priority = action_intent.priority();
 
             if let Some(bucket) = self.priority_buckets.get_mut(&priority) {
                 bucket.remove(coord);
@@ -45,13 +42,10 @@ impl ActionIntentCommitBuffer {
         }
     }
 
-    pub fn remove_intents<I>(&mut self, coords: I)
-    where
-        I: IntoIterator<Item = (i32, i32)>,
-    {
+    pub fn remove_intents(&mut self, coords: impl IntoIterator<Item = (i32, i32)>) {
         for coord in coords {
-            if let Some(committed_action_intent) = self.committed_action_intents.remove(&coord) {
-                let priority = committed_action_intent.priority();
+            if let Some(action_intent) = self.action_intent.remove(&coord) {
+                let priority = action_intent.priority();
 
                 if let Some(bucket) = self.priority_buckets.get_mut(&priority) {
                     bucket.remove(&coord);
@@ -68,12 +62,16 @@ impl ActionIntentCommitBuffer {
         self.priority_buckets
             .iter()
             .flat_map(|(_, coords)| coords.iter())
-            .filter_map(|coord| self.committed_action_intents.get_key_value(coord))
+            .filter_map(|coord| self.action_intent.get_key_value(coord))
+    }
+
+    pub fn get(&self, coord: &(i32, i32)) -> Option<&ActionIntent> {
+        self.action_intent.get(coord)
     }
 }
 
 #[derive(Resource, Default)]
-pub(crate) struct ActionIntentBuffer {
+pub struct ActionIntentBuffer {
     pub action_intents: HashMap<(i32, i32), ActionIntent>,
     pub priority_buckets: BTreeMap<ActionPriority, HashSet<(i32, i32)>>,
 }
@@ -87,9 +85,21 @@ impl ActionIntentBuffer {
         self.priority_buckets.entry(priority).or_default().insert(coord);
     }
 
-    pub fn clear_buffer(&mut self) {
-        self.action_intents.clear();
-        self.priority_buckets.clear();
+    pub fn cancel_intent(&mut self, coord: &(i32, i32)) {
+        if let Some(committed_action_intent) = self.action_intents.remove(coord) {
+            let priority = committed_action_intent.priority();
+
+            if let Some(bucket) = self.priority_buckets.get_mut(&priority) {
+                bucket.remove(coord);
+                if bucket.is_empty() {
+                    self.priority_buckets.remove(&priority);
+                }
+            }
+        }
+    }
+
+    pub fn get(&self, coord: &(i32, i32)) -> Option<&ActionIntent> {
+        self.action_intents.get(coord)
     }
 }
 

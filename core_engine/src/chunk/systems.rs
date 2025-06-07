@@ -80,7 +80,7 @@ pub(crate) fn process_chunk_actions_system(
 
     for (_, coords) in action_intent_commit_buffer.priority_buckets.iter() {
         for coord in coords {
-            if let Some(action_intent) = action_intent_commit_buffer.committed_action_intents.get(coord).cloned() {
+            if let Some(action_intent) = action_intent_commit_buffer.action_intent.get(coord).cloned() {
                 match action_intent {
                     ActionIntent::Spawn { owner, coord, .. } => {
                         spawn_coords.push(coord);

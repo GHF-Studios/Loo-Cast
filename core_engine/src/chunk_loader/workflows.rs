@@ -200,7 +200,7 @@ define_workflow_mod_OLD! {
             
                 use crate::chunk::{
                     intent::{ActionIntent, ActionPriority, resolve_intent, ResolvedActionIntent},
-                    resources::{ChunkManager, ActionIntentCommitBuffer},
+                    resources::{ChunkManager, ActionIntentBuffer, ActionIntentCommitBuffer},
                     components::ChunkComponent,
                 };
                 use crate::config::statics::CONFIG;
@@ -227,11 +227,9 @@ define_workflow_mod_OLD! {
                 pub fn calculate_spawn_priority(
                     distance_squared: u32,
                     radius_squared: u32,
-                    has_pending_despawn: bool,
                 ) -> ActionPriority {
                     let normalized_distance = distance_squared as f64 / radius_squared as f64;
-                    let adjustment = if has_pending_despawn { 0.5 } else { 1.0 };
-                    let priority_value = (i64::MAX as f64 * (1.0 - normalized_distance) * adjustment) as i64;
+                    let priority_value = (i64::MAX as f64 * (1.0 - normalized_distance)) as i64;
                 
                     ActionPriority::Deferred(priority_value)
                 }
@@ -243,6 +241,7 @@ define_workflow_mod_OLD! {
                             chunk_query: Query<'w, 's, &'static ChunkComponent>,
                             chunk_manager: Res<'w, ChunkManager>,
                             action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer>,
+                            action_intent_buffer: ResMut<'w, ActionIntentBuffer>,
                             phantom_data: std::marker::PhantomData<&'s ()>,
                         }
                         struct Input {
@@ -257,6 +256,7 @@ define_workflow_mod_OLD! {
                         fn SetupEcsWhile |input, main_access| -> State {
                             let chunk_manager = main_access.chunk_manager;
                             let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
+                            let mut action_intent_buffer = main_access.action_intent_buffer;
                         
                             let mut spawn_chunk_states = Vec::new();
                             let mut transfer_chunk_ownership_states = Vec::new();
@@ -265,11 +265,11 @@ define_workflow_mod_OLD! {
                                 let owner = input.owner;
                                 let coord = input.chunk_coord;
                             
-                                let is_loaded = chunk_manager.loaded_chunks.contains(&coord);
-                                let is_owned = chunk_manager.owned_chunks.contains_key(&coord);
+                                let is_loaded = chunk_manager.is_loaded(&coord);
+                                let is_owned = chunk_manager.is_owned(&coord);
                             
-                                let committed = action_intent_commit_buffer.get_commit(&coord);
-                                let buffered = action_intent_commit_buffer.get_buffer(&coord);
+                                let committed = action_intent_commit_buffer.get(&coord);
+                                let buffered = action_intent_buffer.get(&coord);
                                 let chunk_state = if is_loaded {
                                     chunk_manager.owned_chunks.get(&coord).map_or_else(
                                         || panic!("Invariant violated: Loaded chunk with no owner."),
@@ -286,7 +286,6 @@ define_workflow_mod_OLD! {
                                         priority: calculate_spawn_priority(
                                             input.chunk_loader_distance_squared,
                                             input.chunk_loader_radius_squared,
-                                            action_intent_commit_buffer.has_despawns(),
                                         ),
                                     }
                                 } else if !is_owned {
@@ -299,16 +298,16 @@ define_workflow_mod_OLD! {
                                     continue; // Nothing to do
                                 };
                             
-                                let resolution = resolve_intent(chunk_state, committed, buffered, proposed_intent.clone());
+                                let resolution = resolve_intent(&chunk_state, committed, buffered, proposed_intent.clone());
                             
                                 match resolution {
                                     ResolvedActionIntent::PushCommit(action) => match action {
                                         ActionIntent::Spawn { .. } => {
-                                            action_intent_commit_buffer.add_commit(action.clone());
+                                            action_intent_commit_buffer.commit_intent(action.clone());
                                             spawn_chunk_states.push(SpawnChunkState { coord, is_spawned: false });
                                         }
                                         ActionIntent::TransferOwnership { owner, .. } => {
-                                            action_intent_commit_buffer.add_commit(action.clone());
+                                            action_intent_commit_buffer.commit_intent(action.clone());
                                             transfer_chunk_ownership_states.push(TransferChunkOwnershipState {
                                                 coord,
                                                 owner,
@@ -321,17 +320,17 @@ define_workflow_mod_OLD! {
                                     },
                                     ResolvedActionIntent::PushBuffer(action) => match action {
                                         ActionIntent::Spawn { .. } => {
-                                            action_intent_commit_buffer.set_buffer(action);
+                                            action_intent_buffer.buffer_intent(action);
                                         }
                                         ActionIntent::TransferOwnership { .. } => {
-                                            action_intent_commit_buffer.set_buffer(action);
+                                            action_intent_buffer.buffer_intent(action);
                                         }
                                         ActionIntent::Despawn { .. } => {
                                             panic!("LoadChunks received a Despawn intent to buffer. Invalid logic path.");
                                         }
                                     },
                                     ResolvedActionIntent::CancelIntent => {
-                                        action_intent_commit_buffer.clear_buffer(&coord);
+                                        action_intent_buffer.cancel_intent(&coord);
                                     }
                                     ResolvedActionIntent::DiscardIncoming(reason) => {
                                         // Optionally: log warning or metrics here
@@ -392,7 +391,7 @@ define_workflow_mod_OLD! {
                 use crate::chunk::{
                     components::ChunkComponent,
                     intent::{ActionIntent, ActionPriority, resolve_intent, ResolvedActionIntent, State as ChunkState},
-                    resources::{ChunkManager, ActionIntentCommitBuffer},
+                    resources::{ChunkManager, ActionIntentBuffer, ActionIntentCommitBuffer},
                     functions::world_pos_to_chunk
                 };
                 use crate::chunk_loader::components::ChunkLoaderComponent;
@@ -437,6 +436,7 @@ define_workflow_mod_OLD! {
                         struct MainAccess<'w, 's> {
                             chunk_manager: Res<'w, ChunkManager>,
                             action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer>,
+                            action_intent_buffer: ResMut<'w, ActionIntentBuffer>,
                             chunk_query: Query<'w, 's, &'static ChunkComponent>,
                             chunk_loader_query: Query<'w, 's, (Entity, &'static Transform, &'static ChunkLoaderComponent)>,
                         }
@@ -452,6 +452,7 @@ define_workflow_mod_OLD! {
                         fn SetupEcsWhile |input, main_access| -> State {
                             let chunk_manager = main_access.chunk_manager;
                             let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
+                            let mut action_intent_buffer = main_access.action_intent_buffer;
                             let chunk_query = main_access.chunk_query;
                             let chunk_loader_query = main_access.chunk_loader_query;
                         
@@ -469,8 +470,8 @@ define_workflow_mod_OLD! {
                                     continue;
                                 }
                             
-                                let committed = action_intent_commit_buffer.get_commit(&coord);
-                                let buffered = action_intent_commit_buffer.get_buffer(&coord);
+                                let committed = action_intent_commit_buffer.get(&coord);
+                                let buffered = action_intent_buffer.get(&coord);
                             
                                 let chunk_state = if let Some(owner) = chunk_manager.owned_chunks.get(&coord) {
                                     ChunkState::Owned(*owner)
@@ -505,19 +506,19 @@ define_workflow_mod_OLD! {
                                     },
                                 };
                             
-                                let resolution = resolve_intent(chunk_state, committed, buffered, proposed_intent.clone());
+                                let resolution = resolve_intent(&chunk_state, committed, buffered, proposed_intent.clone());
                             
                                 match resolution {
                                     ResolvedActionIntent::PushCommit(action) => match action {
                                         ActionIntent::Despawn { .. } => {
-                                            action_intent_commit_buffer.add_commit(action.clone());
+                                            action_intent_commit_buffer.commit_intent(action.clone());
                                             despawn_chunk_states.push(DespawnChunkState {
                                                 coord,
                                                 is_despawned: false,
                                             });
                                         }
                                         ActionIntent::TransferOwnership { owner, .. } => {
-                                            action_intent_commit_buffer.add_commit(action.clone());
+                                            action_intent_commit_buffer.commit_intent(action.clone());
                                             transfer_chunk_ownership_states.push(TransferChunkOwnershipState {
                                                 coord,
                                                 owner,
@@ -530,19 +531,19 @@ define_workflow_mod_OLD! {
                                     },
                                     ResolvedActionIntent::PushBuffer(action) => match action {
                                         ActionIntent::Despawn { .. } => {
-                                            action_intent_commit_buffer.set_buffer(action);
+                                            action_intent_buffer.buffer_intent(action);
                                         }
                                         ActionIntent::TransferOwnership { .. } => {
-                                            action_intent_commit_buffer.set_buffer(action);
+                                            action_intent_buffer.buffer_intent(action);
                                         }
                                         ActionIntent::Spawn { .. } => {
                                             panic!("UnloadChunks should never buffer a Spawn intent.");
                                         }
                                     },
                                     ResolvedActionIntent::CancelIntent => {
-                                        action_intent_commit_buffer.clear_buffer(&coord);
+                                        action_intent_buffer.cancel_intent(&coord);
                                     }
-                                    ResolvedActionIntent::DiscardIncoming(_) => {
+                                    ResolvedActionIntent::DiscardIncoming(reason) => {
                                         continue;
                                     }
                                     ResolvedActionIntent::Error(error) => {

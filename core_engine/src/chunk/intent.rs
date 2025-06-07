@@ -119,7 +119,7 @@ pub enum ResolvedActionIntent {
     Error(ResolutionError),
 }
 
-pub fn resolve_intent(chunk_state: State, committed: Option<ActionIntent>, buffered: Option<ActionIntent>, incoming: ActionIntent) -> ResolvedActionIntent {
+pub fn resolve_intent(chunk_state: &State, committed: Option<&ActionIntent>, buffered: Option<&ActionIntent>, incoming: ActionIntent) -> ResolvedActionIntent {
     use ActionIntent::*;
     use ResolutionError::*;
     use ResolutionWarning::*;
@@ -137,7 +137,7 @@ pub fn resolve_intent(chunk_state: State, committed: Option<ActionIntent>, buffe
         (Owned(_), None, None, Spawn { .. }) => DiscardIncoming(RedundantIntent),
         (Owned(_), None, None, Despawn { .. }) => PushCommit(incoming),
         (Owned(current_owner), None, None, TransferOwnership { owner: new_owner, .. }) => {
-            if current_owner == new_owner {
+            if *current_owner == new_owner {
                 DiscardIncoming(RedundantIntent)
             } else {
                 PushCommit(incoming)
@@ -146,21 +146,21 @@ pub fn resolve_intent(chunk_state: State, committed: Option<ActionIntent>, buffe
 
         (_, Some(Spawn { owner: committed_owner, .. }), None, incoming) => match incoming {
             Spawn { owner: incoming_owner, .. } => {
-                if incoming_owner == committed_owner {
+                if incoming_owner == *committed_owner {
                     DiscardIncoming(RedundantIntent)
                 } else {
                     DiscardIncoming(IntentWithoutOwnership)
                 }
             }
             Despawn { owner: incoming_owner, .. } => {
-                if incoming_owner == committed_owner {
+                if incoming_owner == *committed_owner {
                     PushBuffer(incoming)
                 } else {
                     DiscardIncoming(IntentWithoutOwnership)
                 }
             }
             TransferOwnership { owner: incoming_owner, .. } => {
-                if incoming_owner == committed_owner {
+                if incoming_owner == *committed_owner {
                     DiscardIncoming(RedundantIntent)
                 } else {
                     PushBuffer(incoming)
@@ -169,21 +169,21 @@ pub fn resolve_intent(chunk_state: State, committed: Option<ActionIntent>, buffe
         },
         (_, Some(Despawn { owner: committed_owner, .. }), None, incoming) => match incoming {
             Spawn { owner: incoming_owner, .. } => {
-                if incoming_owner == committed_owner {
+                if incoming_owner == *committed_owner {
                     PushBuffer(incoming)
                 } else {
                     DiscardIncoming(IntentWithoutOwnership)
                 }
             }
             Despawn { owner: incoming_owner, .. } => {
-                if incoming_owner == committed_owner {
+                if incoming_owner == *committed_owner {
                     DiscardIncoming(RedundantIntent)
                 } else {
                     DiscardIncoming(IntentWithoutOwnership)
                 }
             }
             TransferOwnership { owner: incoming_owner, .. } => {
-                if incoming_owner == committed_owner {
+                if incoming_owner == *committed_owner {
                     DiscardIncoming(RedundantIntent)
                 } else {
                     DiscardIncoming(OwnershipTransferItentOfDespawningChunk)
@@ -194,7 +194,7 @@ pub fn resolve_intent(chunk_state: State, committed: Option<ActionIntent>, buffe
             Spawn { .. } => DiscardIncoming(SpawnIntentAfterCommittingToOwnershipTransfer),
             Despawn { .. } => DiscardIncoming(DespawnIntentAfterCommittingToOwnershipTransfer),
             TransferOwnership { .. } => {
-                if incoming.owner() == committed_owner {
+                if incoming.owner() == *committed_owner {
                     return DiscardIncoming(RedundantIntent);
                 }
 
@@ -203,7 +203,7 @@ pub fn resolve_intent(chunk_state: State, committed: Option<ActionIntent>, buffe
         },
 
         (State::Absent, Some(Spawn { owner: committed_owner, .. }), Some(Despawn { owner: buffered_owner, .. }), Spawn { owner: incoming_owner, .. })
-            if buffered_owner == committed_owner && incoming_owner == committed_owner =>
+            if buffered_owner == committed_owner && incoming_owner == *committed_owner =>
         {
             CancelIntent
         }
@@ -213,10 +213,10 @@ pub fn resolve_intent(chunk_state: State, committed: Option<ActionIntent>, buffe
             Some(Spawn { owner: committed_owner, .. }),
             Some(TransferOwnership { owner: buffered_owner, .. }),
             TransferOwnership { owner: incoming_owner, .. },
-        ) if buffered_owner == committed_owner && incoming_owner == committed_owner => CancelIntent,
+        ) if buffered_owner == committed_owner && incoming_owner == *committed_owner => CancelIntent,
 
         (State::Owned(_), Some(Despawn { owner: committed_owner, .. }), Some(Spawn { owner: buffered_owner, .. }), Despawn { owner: incoming_owner, .. })
-            if buffered_owner == committed_owner && incoming_owner == committed_owner =>
+            if buffered_owner == committed_owner && incoming_owner == *committed_owner =>
         {
             CancelIntent
         }
@@ -226,14 +226,14 @@ pub fn resolve_intent(chunk_state: State, committed: Option<ActionIntent>, buffe
             Some(TransferOwnership { owner: committed_owner, .. }),
             Some(Despawn { owner: buffered_owner, .. }),
             Spawn { owner: incoming_owner, .. },
-        ) if buffered_owner == committed_owner && incoming_owner == committed_owner => CancelIntent,
+        ) if buffered_owner == committed_owner && incoming_owner == *committed_owner => CancelIntent,
 
         (
             State::Owned(current_owner),
             Some(TransferOwnership { owner: committed_owner, .. }),
             Some(TransferOwnership { owner: buffered_owner, .. }),
             TransferOwnership { owner: incoming_owner, .. },
-        ) if buffered_owner == current_owner && incoming_owner == committed_owner => CancelIntent,
+        ) if buffered_owner == current_owner && incoming_owner == *committed_owner => CancelIntent,
 
         (_, Some(_), Some(_), _) => DiscardIncoming(IntentBufferUnavailable),
     }
