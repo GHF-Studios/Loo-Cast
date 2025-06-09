@@ -122,7 +122,7 @@ pub fn chunk_manager_debug_ui(
                             chunk_manager
                                 .owned_chunks
                                 .iter()
-                                .map(|(coord, owner)| format!("{:?} → {:?}", coord, owner)),
+                                .map(|(coord, owner_id)| format!("{:?} → {:?}", coord, owner_id)),
                         );
                     });
                 });

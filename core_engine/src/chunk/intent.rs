@@ -8,10 +8,10 @@ pub enum State {
     Owned(ChunkOwnerId),
 }
 impl State {
-    pub fn owner(&self) -> Option<ChunkOwnerId> {
+    pub fn owner_id(&self) -> Option<ChunkOwnerId> {
         match self {
             State::Absent => None,
-            State::Owned(owner) => Some(owner.clone()),
+            State::Owned(owner_id) => Some(owner_id.clone()),
         }
     }
 }
@@ -19,17 +19,17 @@ impl State {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionIntent {
     Spawn {
-        owner: ChunkOwnerId,
+        owner_id: ChunkOwnerId,
         coord: (i32, i32),
         priority: ActionPriority,
     },
     Despawn {
-        owner: ChunkOwnerId,
+        owner_id: ChunkOwnerId,
         coord: (i32, i32),
         priority: ActionPriority,
     },
     TransferOwnership {
-        owner: ChunkOwnerId,
+        new_owner_id: ChunkOwnerId,
         coord: (i32, i32),
         priority: ActionPriority,
     },
@@ -47,9 +47,9 @@ impl ActionIntent {
         matches!(self, ActionIntent::TransferOwnership { .. })
     }
 
-    pub fn owner(&self) -> ChunkOwnerId {
+    pub fn owner_id(&self) -> ChunkOwnerId {
         match self {
-            ActionIntent::Spawn { owner, .. } | ActionIntent::Despawn { owner, .. } | ActionIntent::TransferOwnership { owner, .. } => owner.clone(),
+            ActionIntent::Spawn { owner_id, .. } | ActionIntent::Despawn { owner_id, .. } | ActionIntent::TransferOwnership { new_owner_id: owner_id, .. } => owner_id.clone(),
         }
     }
 
@@ -143,7 +143,7 @@ pub fn resolve_intent(
 
         (Owned(_), None, None, Spawn { .. }) => DiscardIncoming(RedundantIntent),
         (Owned(_), None, None, Despawn { .. }) => PushCommit(incoming.clone()),
-        (Owned(current_owner), None, None, TransferOwnership { owner: new_owner, .. }) => {
+        (Owned(current_owner), None, None, TransferOwnership { new_owner_id: new_owner, .. }) => {
             if *current_owner == new_owner {
                 DiscardIncoming(RedundantIntent)
             } else {
@@ -151,22 +151,22 @@ pub fn resolve_intent(
             }
         }
 
-        (_, Some(Spawn { owner: committed_owner, .. }), None, incoming) => match incoming.clone() {
-            Spawn { owner: incoming_owner, .. } => {
+        (_, Some(Spawn { owner_id: committed_owner, .. }), None, incoming) => match incoming.clone() {
+            Spawn { owner_id: incoming_owner, .. } => {
                 if incoming_owner == *committed_owner {
                     DiscardIncoming(RedundantIntent)
                 } else {
                     DiscardIncoming(IntentWithoutOwnership)
                 }
             }
-            Despawn { owner: incoming_owner, .. } => {
+            Despawn { owner_id: incoming_owner, .. } => {
                 if incoming_owner == *committed_owner {
                     PushBuffer(incoming)
                 } else {
                     DiscardIncoming(IntentWithoutOwnership)
                 }
             }
-            TransferOwnership { owner: incoming_owner, .. } => {
+            TransferOwnership { new_owner_id: incoming_owner, .. } => {
                 if incoming_owner == *committed_owner {
                     DiscardIncoming(RedundantIntent)
                 } else {
@@ -174,22 +174,22 @@ pub fn resolve_intent(
                 }
             }
         },
-        (_, Some(Despawn { owner: committed_owner, .. }), None, incoming) => match incoming.clone() {
-            Spawn { owner: incoming_owner, .. } => {
+        (_, Some(Despawn { owner_id: committed_owner, .. }), None, incoming) => match incoming.clone() {
+            Spawn { owner_id: incoming_owner, .. } => {
                 if incoming_owner == *committed_owner {
                     PushBuffer(incoming)
                 } else {
                     DiscardIncoming(IntentWithoutOwnership)
                 }
             }
-            Despawn { owner: incoming_owner, .. } => {
+            Despawn { owner_id: incoming_owner, .. } => {
                 if incoming_owner == *committed_owner {
                     DiscardIncoming(RedundantIntent)
                 } else {
                     DiscardIncoming(IntentWithoutOwnership)
                 }
             }
-            TransferOwnership { owner: incoming_owner, .. } => {
+            TransferOwnership { new_owner_id: incoming_owner, .. } => {
                 if incoming_owner == *committed_owner {
                     DiscardIncoming(RedundantIntent)
                 } else {
@@ -197,11 +197,11 @@ pub fn resolve_intent(
                 }
             }
         },
-        (State::Owned(_current_owner), Some(TransferOwnership { owner: committed_owner, .. }), None, incoming) => match incoming.clone() {
+        (State::Owned(_current_owner), Some(TransferOwnership { new_owner_id: committed_owner, .. }), None, incoming) => match incoming.clone() {
             Spawn { .. } => DiscardIncoming(SpawnIntentAfterCommittingToOwnershipTransfer),
             Despawn { .. } => DiscardIncoming(DespawnIntentAfterCommittingToOwnershipTransfer),
             TransferOwnership { .. } => {
-                if incoming.owner() == *committed_owner {
+                if incoming.owner_id() == *committed_owner {
                     return DiscardIncoming(RedundantIntent);
                 }
 
@@ -209,7 +209,7 @@ pub fn resolve_intent(
             }
         },
 
-        (State::Absent, Some(Spawn { owner: committed_owner, .. }), Some(Despawn { owner: buffered_owner, .. }), Spawn { owner: incoming_owner, .. })
+        (State::Absent, Some(Spawn { owner_id: committed_owner, .. }), Some(Despawn { owner_id: buffered_owner, .. }), Spawn { owner_id: incoming_owner, .. })
             if buffered_owner == committed_owner && incoming_owner == *committed_owner =>
         {
             CancelIntent
@@ -217,12 +217,12 @@ pub fn resolve_intent(
 
         (
             State::Absent,
-            Some(Spawn { owner: committed_owner, .. }),
-            Some(TransferOwnership { owner: buffered_owner, .. }),
-            TransferOwnership { owner: incoming_owner, .. },
+            Some(Spawn { owner_id: committed_owner, .. }),
+            Some(TransferOwnership { new_owner_id: buffered_owner, .. }),
+            TransferOwnership { new_owner_id: incoming_owner, .. },
         ) if buffered_owner == committed_owner && incoming_owner == *committed_owner => CancelIntent,
 
-        (State::Owned(_), Some(Despawn { owner: committed_owner, .. }), Some(Spawn { owner: buffered_owner, .. }), Despawn { owner: incoming_owner, .. })
+        (State::Owned(_), Some(Despawn { owner_id: committed_owner, .. }), Some(Spawn { owner_id: buffered_owner, .. }), Despawn { owner_id: incoming_owner, .. })
             if buffered_owner == committed_owner && incoming_owner == *committed_owner =>
         {
             CancelIntent
@@ -230,16 +230,16 @@ pub fn resolve_intent(
 
         (
             State::Owned(_),
-            Some(TransferOwnership { owner: committed_owner, .. }),
-            Some(Despawn { owner: buffered_owner, .. }),
-            Spawn { owner: incoming_owner, .. },
+            Some(TransferOwnership { new_owner_id: committed_owner, .. }),
+            Some(Despawn { owner_id: buffered_owner, .. }),
+            Spawn { owner_id: incoming_owner, .. },
         ) if buffered_owner == committed_owner && incoming_owner == *committed_owner => CancelIntent,
 
         (
             State::Owned(current_owner),
-            Some(TransferOwnership { owner: committed_owner, .. }),
-            Some(TransferOwnership { owner: buffered_owner, .. }),
-            TransferOwnership { owner: incoming_owner, .. },
+            Some(TransferOwnership { new_owner_id: committed_owner, .. }),
+            Some(TransferOwnership { new_owner_id: buffered_owner, .. }),
+            TransferOwnership { new_owner_id: incoming_owner, .. },
         ) if buffered_owner == current_owner && incoming_owner == *committed_owner => CancelIntent,
 
         (_, Some(_), Some(_), _) => DiscardIncoming(IntentBufferUnavailable),

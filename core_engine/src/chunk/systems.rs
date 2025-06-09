@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use core_engine_macros::{composite_workflow, composite_workflow_return};
 
+use crate::chunk::types::ChunkOwnerId;
 use crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInput;
 use crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput;
 use crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput;
@@ -84,11 +85,11 @@ pub(crate) fn process_chunk_actions_system(
         for coord in coords {
             if let Some(action_intent) = action_intent_commit_buffer.action_intent.get(coord).cloned() {
                 match action_intent {
-                    ActionIntent::Spawn { owner, coord, .. } => {
+                    ActionIntent::Spawn { owner_id, coord, .. } => {
                         spawn_coords.push(coord);
                         spawn_inputs.push(crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
                             chunk_coord: coord,
-                            chunk_owner_id: owner,
+                            chunk_owner_id: owner_id,
                             metric_texture: Handle::default(), // Placeholder handle
                         });
                         processed_coords.push(coord);
@@ -97,9 +98,9 @@ pub(crate) fn process_chunk_actions_system(
                         despawn_inputs.push(crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInput { chunk_coord: coord });
                         processed_coords.push(coord);
                     }
-                    ActionIntent::TransferOwnership { owner, coord, .. } => {
+                    ActionIntent::TransferOwnership { new_owner_id: owner_id, coord, .. } => {
                         transfer_inputs.push(
-                            crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput { owner, chunk_coord: coord },
+                            crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput { owner_id, chunk_coord: coord },
                         );
                         processed_coords.push(coord);
                     }
@@ -198,9 +199,9 @@ pub(in super) fn chunk_debug_log_system(
         let new_state = chunk_query
             .iter()
             .find(|chunk| chunk.coord == coord)
-            .map(|chunk| State::Owned(chunk.owner.unwrap_or_else(|| {
-                warn!("Chunk at {:?} has no owner — invalid state!", coord);
-                Entity::from_raw(0)
+            .map(|chunk| State::Owned(chunk.owner_id.clone().unwrap_or_else(|| {
+                warn!("Chunk at {:?} has no owner_id — invalid state!", coord);
+                ChunkOwnerId::default()
             })))
             .unwrap_or(State::Absent);
 

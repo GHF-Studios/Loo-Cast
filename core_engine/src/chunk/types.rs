@@ -30,6 +30,14 @@ impl ChunkOwnerId {
         self.entity
     }
 }
+impl Default for ChunkOwnerId {
+    fn default() -> Self {
+        Self {
+            id: "PLACEHOLDER".to_string(),
+            entity: Entity::from_raw(0)
+        }
+    }
+}
 impl std::hash::Hash for ChunkOwnerId {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);

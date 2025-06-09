@@ -75,7 +75,7 @@ define_workflow_mod_OLD! {
                                     },
                                     ChunkComponent {
                                         coord: chunk_coord,
-                                        owner: Some(chunk_owner_id),
+                                        owner_id: Some(chunk_owner_id),
                                     },
                                 )).id();
 
@@ -227,7 +227,7 @@ define_workflow_mod_OLD! {
             },
             user_items: {
                 pub struct TransferChunkOwnershipInput {
-                    pub owner: Entity,
+                    pub owner_id: Entity,
                     pub chunk_coord: (i32, i32),
                 }
             },
@@ -256,14 +256,14 @@ define_workflow_mod_OLD! {
                             let mut chunk_entities = Vec::new();
 
                             for input in input.inputs {
-                                let new_owner = input.owner;
+                                let new_owner = input.owner_id;
                                 let chunk_coord = input.chunk_coord;
 
                                 if let Some((entity, mut chunk)) = chunk_query.iter_mut().find(|(_, chunk)| chunk.coord == chunk_coord) {
-                                    if chunk.owner.is_some() {
+                                    if chunk.owner_id.is_some() {
                                         chunk_manager.owned_chunks.remove(&chunk_coord);
                                     }
-                                    chunk.owner = Some(new_owner);
+                                    chunk.owner_id = Some(new_owner);
                                     chunk_manager.owned_chunks.insert(chunk_coord, new_owner);
 
                                     chunk_entities.push(entity);

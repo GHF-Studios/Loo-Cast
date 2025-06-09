@@ -5,11 +5,11 @@ use super::types::ChunkOwnerId;
 #[derive(Default, Debug)]
 pub struct ChunkComponent {
     pub coord: (i32, i32),
-    pub(crate) owner: Option<ChunkOwnerId>,
+    pub(crate) owner_id: Option<ChunkOwnerId>,
 }
 impl ChunkComponent {
-    pub fn owner(&self) -> &ChunkOwnerId {
-        self.owner.as_ref().expect("Unreachable state: Chunk has no owner")
+    pub fn owner_id(&self) -> &ChunkOwnerId {
+        self.owner_id.as_ref().expect("Unreachable state: Chunk has no owner_id")
     }
 }
 
@@ -23,13 +23,13 @@ impl Component for ChunkComponent {
                 None => return,
             };
 
-            let chunk_owner_id = match chunk.owner.clone() {
-                Some(owner) => owner,
+            let chunk_owner_id = match chunk.owner_id.clone() {
+                Some(owner_id) => owner_id,
                 None => return,
             };
 
             if world.get_entity(chunk_owner_id.entity()).is_none() {
-                error!("Spawned chunk {:?} with non-existent owner {:?}", chunk.coord, chunk_owner_id);
+                error!("Spawned chunk {:?} with non-existent owner_id {:?}", chunk.coord, chunk_owner_id);
             }
         });
     }
