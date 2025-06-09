@@ -155,7 +155,7 @@ fn startup_system() {
                 shader_path: chunk_shader_path,
             }
         );
-        //workflow!(Debug::SpawnDebugObjects);
+        workflow!(Debug::SpawnDebugObjects);
 
         //let chunk_coords: Vec<(i32, i32)> = (-8..=8)
         //    .flat_map(|x| (-8..=8).map(move |y| (x, y)))

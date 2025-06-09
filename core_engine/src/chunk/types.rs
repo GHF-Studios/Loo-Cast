@@ -51,7 +51,7 @@ impl PartialEq for ChunkOwnerId {
 impl Eq for ChunkOwnerId {}
 impl PartialOrd for ChunkOwnerId {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.id.partial_cmp(&other.id)
+        Some(self.cmp(other))
     }
 }
 impl Ord for ChunkOwnerId {

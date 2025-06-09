@@ -63,15 +63,8 @@ define_workflow_mod_OLD! {
                                     })
                                     .collect();
                                 
-                                debug!("Loader {:?} - Target Chunks: {:?}", chunk_owner_entity, target_chunks.len());
-                                debug!("Loader {:?} - Current Owned Chunks: {:?}", chunk_owner_entity, current_chunks.len());
-
                                 let chunks_to_load: Vec<_> = target_chunks.difference(&current_chunks).cloned().collect();
                                 let chunks_to_unload: Vec<_> = current_chunks.difference(&target_chunks).cloned().collect();
-
-                                debug!("Loader {:?} - Chunks to Load: {:?}", chunk_owner_entity, chunks_to_load.len());
-                                debug!("Loader {:?} - Chunks to Unload: {:?}", chunk_owner_entity, chunks_to_unload.len());
-                                debug!("PLACEHOLDER");
 
                                 for chunk_coord in chunks_to_load {
                                     let chunk_loader_distance_squared =

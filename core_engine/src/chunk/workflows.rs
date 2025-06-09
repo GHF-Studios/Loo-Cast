@@ -67,7 +67,7 @@ define_workflow_mod_OLD! {
                                     ..Default::default()
                                 };
 
-                                commands.entity(chunk_owner_id.entity()).insert((
+                                let chunk_entity = commands.spawn((
                                     SpriteBundle {
                                         texture: metric_texture,
                                         transform: chunk_transform,
@@ -83,7 +83,7 @@ define_workflow_mod_OLD! {
                                 chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner_id.clone());
 
                                 spawn_chunk_states.push(SpawnChunkState {
-                                    chunk_entity: chunk_owner_id.entity(),
+                                    chunk_entity,
                                     is_spawned: false,
                                 });
                             }
