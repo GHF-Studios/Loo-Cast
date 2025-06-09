@@ -12,7 +12,7 @@ impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, debug_ui_startup)
             .add_systems(Update, (debug_object_movement_system, chunk_inspection_system, chunk_loader_inspection_system))
-            //.add_systems(Update, chunk_manager_debug_ui)
+            .add_systems(Update, chunk_manager_debug_ui)
             ;
     }
 }
