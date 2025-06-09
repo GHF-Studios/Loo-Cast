@@ -11,7 +11,7 @@ pub mod workflows;
 
 use bevy::prelude::*;
 use resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager};
-use systems::{chunk_startup_system, chunk_update_system, process_chunk_actions_system};
+use systems::{chunk_startup_system, chunk_update_system, process_chunk_actions_system, chunk_debug_log_system};
 
 pub(crate) struct ChunkPlugin;
 impl Plugin for ChunkPlugin {
@@ -21,6 +21,7 @@ impl Plugin for ChunkPlugin {
             .insert_resource(ChunkManager::default())
             .add_systems(Startup, chunk_startup_system)
             .add_systems(Update, chunk_update_system)
-            .add_systems(PostUpdate, process_chunk_actions_system);
+            .add_systems(PostUpdate, process_chunk_actions_system)
+            .add_systems(Update, chunk_debug_log_system);
     }
 }

@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
+use crate::chunk::types::ChunkOwnerId;
+
 use super::intent::{ActionIntent, ActionPriority};
 
 #[derive(Resource, Default)]
@@ -13,19 +15,15 @@ impl ActionIntentCommitBuffer {
         let coord = action_intent.coord();
         let priority = action_intent.priority();
 
-        self.action_intent.insert(coord, action_intent);
+        info!("[INTENT COMMIT] {:?} at {:?}", action_intent, coord);
 
+        self.action_intent.insert(coord, action_intent);
         self.priority_buckets.entry(priority).or_default().insert(coord);
     }
 
     pub fn commit_intents(&mut self, action_intents: impl IntoIterator<Item = ActionIntent>) {
         for action_intent in action_intents {
-            let coord = action_intent.coord();
-            let priority = action_intent.priority();
-
-            self.action_intent.insert(coord, action_intent);
-
-            self.priority_buckets.entry(priority).or_default().insert(coord);
+            self.commit_intent(action_intent);
         }
     }
 
@@ -44,17 +42,7 @@ impl ActionIntentCommitBuffer {
 
     pub fn remove_intents(&mut self, coords: impl IntoIterator<Item = (i32, i32)>) {
         for coord in coords {
-            if let Some(action_intent) = self.action_intent.remove(&coord) {
-                let priority = action_intent.priority();
-
-                if let Some(bucket) = self.priority_buckets.get_mut(&priority) {
-                    bucket.remove(&coord);
-
-                    if bucket.is_empty() {
-                        self.priority_buckets.remove(&priority);
-                    }
-                }
-            }
+            self.remove_intent(&coord);
         }
     }
 
@@ -80,8 +68,9 @@ impl ActionIntentBuffer {
         let coord = action_intent.coord();
         let priority = action_intent.priority();
 
-        self.action_intents.insert(coord, action_intent);
+        info!("[INTENT BUFFER] {:?}", action_intent);
 
+        self.action_intents.insert(coord, action_intent);
         self.priority_buckets.entry(priority).or_default().insert(coord);
     }
 
@@ -106,7 +95,7 @@ impl ActionIntentBuffer {
 #[derive(Resource, Default, Debug)]
 pub struct ChunkManager {
     pub loaded_chunks: HashSet<(i32, i32)>,
-    pub owned_chunks: HashMap<(i32, i32), Entity>,
+    pub owned_chunks: HashMap<(i32, i32), ChunkOwnerId>,
 }
 impl ChunkManager {
     pub fn get_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool) {

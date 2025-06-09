@@ -14,7 +14,7 @@ impl Default for PlayerBundle {
     fn default() -> Self {
         PlayerBundle {
             chunk_actor: Default::default(),
-            chunk_loader: Default::default(),
+            chunk_loader: ChunkLoaderComponent::new("player".to_string()),
             player: Default::default(),
             sprite_bundle: SpriteBundle {
                 sprite: Sprite {

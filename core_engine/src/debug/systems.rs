@@ -1,9 +1,11 @@
 use crate::{
     camera::components::MainCamera,
-    chunk::{components::ChunkComponent, functions::world_pos_to_chunk},
+    chunk::{components::ChunkComponent, functions::world_pos_to_chunk, resources::ChunkManager},
     chunk_loader::components::ChunkLoaderComponent,
 };
+
 use bevy::{prelude::*, window::PrimaryWindow};
+use bevy_egui::{egui::{self, ScrollArea}, EguiContexts};
 
 use super::components::{DebugObjectComponent, DebugObjectMovement};
 
@@ -74,4 +76,55 @@ pub(super) fn chunk_loader_inspection_system(chunk_loader_query: Query<Entity, W
 
         debug!("Inspecting chunk loaders: {:?}", chunk_loader_entities);
     }
+}
+
+pub fn chunk_manager_debug_ui(
+    chunk_manager: Res<ChunkManager>,
+    mut egui_ctxs: EguiContexts,
+) {
+    const GROUP_SIZE: usize = 50;
+
+    fn display_chunk_group<T: std::fmt::Debug>(
+        ui: &mut egui::Ui,
+        label: &str,
+        items: impl Iterator<Item = T>,
+    ) {
+        let grouped = items.collect::<Vec<_>>();
+        let total = grouped.len();
+
+        for (i, group) in grouped.chunks(GROUP_SIZE).enumerate() {
+            let range = i * GROUP_SIZE..(i + 1) * GROUP_SIZE;
+            let range_end = range.end.min(total);
+            let header = format!("{label} [{}–{})", range.start, range_end);
+
+            ui.collapsing(header, |ui| {
+                for item in group {
+                    ui.monospace(format!(" - {:?}", item));
+                }
+            });
+        }
+    }
+    
+    egui::Window::new("Chunk Manager")
+        .vscroll(true) // Optional: ensures vertical scrollbar appears
+        .show(egui_ctxs.ctx_mut(), |ui| {
+            ScrollArea::vertical()
+                .auto_shrink([false; 2]) // Prevents weird size compression
+                .show(ui, |ui| {
+                    ui.collapsing("Loaded Chunks", |ui| {
+                        display_chunk_group(ui, "Loaded", chunk_manager.loaded_chunks.iter());
+                    });
+
+                    ui.collapsing("Owned Chunks", |ui| {
+                        display_chunk_group(
+                            ui,
+                            "Owned",
+                            chunk_manager
+                                .owned_chunks
+                                .iter()
+                                .map(|(coord, owner)| format!("{:?} → {:?}", coord, owner)),
+                        );
+                    });
+                });
+        });
 }

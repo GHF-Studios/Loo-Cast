@@ -13,7 +13,7 @@ define_workflow_mod_OLD! {
             user_items: {
                 pub struct SpawnChunkInput {
                     pub chunk_coord: (i32, i32),
-                    pub chunk_owner: Entity,
+                    pub chunk_owner_id: Entity,
                     pub metric_texture: Handle<Image>
                 }
                 #[derive(Clone)]
@@ -53,7 +53,7 @@ define_workflow_mod_OLD! {
 
                             for input in input.inputs {
                                 let chunk_coord = input.chunk_coord;
-                                let chunk_owner = input.chunk_owner;
+                                let chunk_owner_id = input.chunk_owner_id;
                                 let metric_texture = input.metric_texture.clone();
 
                                 if chunk_query.iter().any(|chunk| chunk.coord == chunk_coord) {
@@ -75,12 +75,12 @@ define_workflow_mod_OLD! {
                                     },
                                     ChunkComponent {
                                         coord: chunk_coord,
-                                        owner: Some(chunk_owner),
+                                        owner: Some(chunk_owner_id),
                                     },
                                 )).id();
 
                                 chunk_manager.loaded_chunks.insert(chunk_coord);
-                                chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
+                                chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner_id);
 
                                 spawn_chunk_states.push(SpawnChunkState {
                                     entity: chunk_entity,

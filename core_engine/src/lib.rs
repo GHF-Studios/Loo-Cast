@@ -56,8 +56,8 @@ use gpu::GpuPlugin;
 use player::PlayerPlugin;
 //use sprite_bundle::SpriteBundlePlugin;
 
-pub struct SpacetimeEngineMainPlugins;
-impl PluginGroup for SpacetimeEngineMainPlugins {
+pub struct SpacetimeEngineCorePlugins;
+impl PluginGroup for SpacetimeEngineCorePlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
             .add(SpacetimeEngineCorePlugin)
@@ -175,7 +175,7 @@ fn startup_system() {
         //    .zip(texture_output.texture_handles.into_iter())
         //    .map(|(chunk_coord, texture_handle)| crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
         //        chunk_coord,
-        //        chunk_owner: None,
+        //        chunk_owner_id: None,
         //        metric_texture: texture_handle,
         //    })
         //    .collect();

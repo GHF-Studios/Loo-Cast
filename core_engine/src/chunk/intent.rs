@@ -1,15 +1,17 @@
-use bevy::prelude::Entity;
+use bevy::prelude::debug;
+use super::types::ChunkOwnerId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub enum State {
+    #[default]
     Absent,
-    Owned(Entity),
+    Owned(ChunkOwnerId),
 }
 impl State {
-    pub fn owner(&self) -> Option<Entity> {
+    pub fn owner(&self) -> Option<ChunkOwnerId> {
         match self {
             State::Absent => None,
-            State::Owned(owner) => Some(*owner),
+            State::Owned(owner) => Some(owner.clone()),
         }
     }
 }
@@ -17,17 +19,17 @@ impl State {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionIntent {
     Spawn {
-        owner: Entity,
+        owner: ChunkOwnerId,
         coord: (i32, i32),
         priority: ActionPriority,
     },
     Despawn {
-        owner: Entity,
+        owner: ChunkOwnerId,
         coord: (i32, i32),
         priority: ActionPriority,
     },
     TransferOwnership {
-        owner: Entity,
+        owner: ChunkOwnerId,
         coord: (i32, i32),
         priority: ActionPriority,
     },
@@ -45,9 +47,9 @@ impl ActionIntent {
         matches!(self, ActionIntent::TransferOwnership { .. })
     }
 
-    pub fn owner(&self) -> Entity {
+    pub fn owner(&self) -> ChunkOwnerId {
         match self {
-            ActionIntent::Spawn { owner, .. } | ActionIntent::Despawn { owner, .. } | ActionIntent::TransferOwnership { owner, .. } => *owner,
+            ActionIntent::Spawn { owner, .. } | ActionIntent::Despawn { owner, .. } | ActionIntent::TransferOwnership { owner, .. } => owner.clone(),
         }
     }
 
@@ -119,32 +121,37 @@ pub enum ResolvedActionIntent {
     Error(ResolutionError),
 }
 
-pub fn resolve_intent(chunk_state: &State, committed: Option<&ActionIntent>, buffered: Option<&ActionIntent>, incoming: ActionIntent) -> ResolvedActionIntent {
+pub fn resolve_intent(
+    chunk_state: &State,
+    committed: Option<&ActionIntent>,
+    buffered: Option<&ActionIntent>,
+    incoming: ActionIntent,
+) -> ResolvedActionIntent {
     use ActionIntent::*;
     use ResolutionError::*;
     use ResolutionWarning::*;
     use ResolvedActionIntent::*;
     use State::*;
 
-    match (chunk_state, committed, buffered, incoming.clone()) {
+    let result = match (chunk_state, committed, buffered, incoming.clone()) {
         (_, None, Some(_), _) => Error(IntentBufferNotFlushed),
         (Absent, Some(TransferOwnership { .. }), _, _) => Error(InvalidIntentCommitted),
 
-        (Absent, None, None, Spawn { .. }) => PushCommit(incoming),
+        (Absent, None, None, Spawn { .. }) => PushCommit(incoming.clone()),
         (Absent, None, None, Despawn { .. }) => DiscardIncoming(RedundantIntent),
         (Absent, None, None, TransferOwnership { .. }) => DiscardIncoming(OwnershipTransferIntentOfNonexistentChunk),
 
         (Owned(_), None, None, Spawn { .. }) => DiscardIncoming(RedundantIntent),
-        (Owned(_), None, None, Despawn { .. }) => PushCommit(incoming),
+        (Owned(_), None, None, Despawn { .. }) => PushCommit(incoming.clone()),
         (Owned(current_owner), None, None, TransferOwnership { owner: new_owner, .. }) => {
             if *current_owner == new_owner {
                 DiscardIncoming(RedundantIntent)
             } else {
-                PushCommit(incoming)
+                PushCommit(incoming.clone())
             }
         }
 
-        (_, Some(Spawn { owner: committed_owner, .. }), None, incoming) => match incoming {
+        (_, Some(Spawn { owner: committed_owner, .. }), None, incoming) => match incoming.clone() {
             Spawn { owner: incoming_owner, .. } => {
                 if incoming_owner == *committed_owner {
                     DiscardIncoming(RedundantIntent)
@@ -167,7 +174,7 @@ pub fn resolve_intent(chunk_state: &State, committed: Option<&ActionIntent>, buf
                 }
             }
         },
-        (_, Some(Despawn { owner: committed_owner, .. }), None, incoming) => match incoming {
+        (_, Some(Despawn { owner: committed_owner, .. }), None, incoming) => match incoming.clone() {
             Spawn { owner: incoming_owner, .. } => {
                 if incoming_owner == *committed_owner {
                     PushBuffer(incoming)
@@ -190,7 +197,7 @@ pub fn resolve_intent(chunk_state: &State, committed: Option<&ActionIntent>, buf
                 }
             }
         },
-        (State::Owned(_current_owner), Some(TransferOwnership { owner: committed_owner, .. }), None, incoming) => match incoming {
+        (State::Owned(_current_owner), Some(TransferOwnership { owner: committed_owner, .. }), None, incoming) => match incoming.clone() {
             Spawn { .. } => DiscardIncoming(SpawnIntentAfterCommittingToOwnershipTransfer),
             Despawn { .. } => DiscardIncoming(DespawnIntentAfterCommittingToOwnershipTransfer),
             TransferOwnership { .. } => {
@@ -236,5 +243,17 @@ pub fn resolve_intent(chunk_state: &State, committed: Option<&ActionIntent>, buf
         ) if buffered_owner == current_owner && incoming_owner == *committed_owner => CancelIntent,
 
         (_, Some(_), Some(_), _) => DiscardIncoming(IntentBufferUnavailable),
-    }
+    };
+
+    debug!(
+        target: "intent::resolution",
+        "ResolveIntent =>\n  State: {:?}\n  Committed: {:?}\n  Buffered: {:?}\n  Incoming: {:?}\n  Result: {:?}",
+        chunk_state,
+        committed,
+        buffered,
+        incoming,
+        result
+    );
+
+    result
 }

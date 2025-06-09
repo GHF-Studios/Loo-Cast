@@ -7,6 +7,7 @@ use bevy::window::PresentMode;
 use bevy_rapier2d::prelude::*;
 use core_engine::*;
 use iyes_perf_ui::prelude::*;
+use bevy_egui::EguiPlugin;
 
 const ENABLE_BACKTRACE: bool = true;
 const REROUTE_LOGS_TO_FILE: bool = false;
@@ -44,13 +45,14 @@ fn main() {
         })
         .add(FrameTimeDiagnosticsPlugin)
         .add(EntityCountDiagnosticsPlugin)
-        .add(SystemInformationDiagnosticsPlugin);
+        .add(SystemInformationDiagnosticsPlugin)
+        .add(EguiPlugin);
 
     App::new()
         .add_plugins(bevy_plugins)
         .add_plugins(PerfUiPlugin)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugins(SpacetimeEngineMainPlugins)
+        .add_plugins(SpacetimeEngineCorePlugins)
         .add_plugins(SpacetimeEngineWorkflowPlugins)
         .run();
 }

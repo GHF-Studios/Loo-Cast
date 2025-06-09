@@ -15,6 +15,7 @@ define_workflow_mod_OLD! {
             user_items: {
                 pub fn spawn_debug_object(
                     commands: &mut Commands,
+                    chunk_loader_id: String,
                     position: Vec2,
                     rotation: f32,
                     scale: Vec2,
@@ -22,7 +23,7 @@ define_workflow_mod_OLD! {
                 ) -> Entity {
                     commands.spawn((
                         ChunkActorComponent,
-                        ChunkLoaderComponent::default(),
+                        ChunkLoaderComponent::new(chunk_loader_id),
                         DebugObjectComponent { movement },
                         SpriteBundle {
                             sprite: Sprite {
@@ -66,6 +67,7 @@ define_workflow_mod_OLD! {
 
                             let circle_entity = spawn_debug_object(
                                 &mut commands,
+                                "circle_entity_chunk_loader".to_string(),
                                 Vec2::new(350.0, 350.0),
                                 0.0,
                                 Vec2::ONE,
@@ -77,6 +79,7 @@ define_workflow_mod_OLD! {
 
                             let line_entity = spawn_debug_object(
                                 &mut commands,
+                                "line_entity_chunk_loader".to_string(),
                                 Vec2::new(-300.0, -400.0),
                                 0.0,
                                 Vec2::ONE,
@@ -88,6 +91,7 @@ define_workflow_mod_OLD! {
 
                             let static_entity = spawn_debug_object(
                                 &mut commands,
+                                "static_entity_chunk_loader".to_string(),
                                 Vec2::new(-350.0, 400.0),
                                 0.0,
                                 Vec2::ONE,

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bevy::prelude::*;
 use core_engine_macros::{composite_workflow, composite_workflow_return};
 
@@ -86,7 +88,7 @@ pub(crate) fn process_chunk_actions_system(
                         spawn_coords.push(coord);
                         spawn_inputs.push(crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
                             chunk_coord: coord,
-                            chunk_owner: owner,
+                            chunk_owner_id: owner,
                             metric_texture: Handle::default(), // Placeholder handle
                         });
                         processed_coords.push(coord);
@@ -178,6 +180,41 @@ pub(crate) fn process_chunk_actions_system(
         transfer: transfer_handle,
     });
 
-    // Step 4: Mark all these actions as in-progress (done now)
+    // Step 4: Mark all these actions as in-progress (remove them from the commit buffer)
     action_intent_commit_buffer.remove_intents(processed_coords);
+}
+
+pub(in super) fn chunk_debug_log_system(
+    chunk_query: Query<&ChunkComponent>,
+    mut chunk_states: Local<HashMap<(i32, i32), super::intent::State>>,
+) {
+    use super::intent::State;
+
+    // Define which chunk coords we want to track
+    const TRACKED_CHUNKS: &[(i32, i32)] = &[(23, 1)];
+
+    for &coord in TRACKED_CHUNKS {
+        // Try to find the chunk entity at this coord
+        let new_state = chunk_query
+            .iter()
+            .find(|chunk| chunk.coord == coord)
+            .map(|chunk| State::Owned(chunk.owner.unwrap_or_else(|| {
+                warn!("Chunk at {:?} has no owner — invalid state!", coord);
+                Entity::from_raw(0)
+            })))
+            .unwrap_or(State::Absent);
+
+        let prev_state = chunk_states.get(&coord);
+
+        if prev_state != Some(&new_state) {
+            debug!(
+                "Chunk state changed at {:?}: {:?} → {:?}",
+                coord,
+                prev_state.unwrap_or(&State::Absent),
+                new_state
+            );
+
+            chunk_states.insert(coord, new_state);
+        }
+    }
 }
