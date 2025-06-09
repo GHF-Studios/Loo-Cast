@@ -7,18 +7,18 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use bevy::prelude::{Commands, Entity, Query, Res, ResMut, Handle, Image, Transform, SpriteBundle};
 
-                use crate::chunk::{components::ChunkComponent, resources::ChunkManager, functions::chunk_pos_to_world};
+                use crate::chunk::{components::ChunkComponent, resources::ChunkManager, functions::chunk_pos_to_world, types::ChunkOwnerId};
                 use crate::config::statics::CONFIG;
             },
             user_items: {
                 pub struct SpawnChunkInput {
                     pub chunk_coord: (i32, i32),
-                    pub chunk_owner_id: Entity,
+                    pub chunk_owner_id: ChunkOwnerId,
                     pub metric_texture: Handle<Image>
                 }
                 #[derive(Clone)]
                 pub struct SpawnChunkState {
-                    pub entity: Entity,
+                    pub chunk_entity: Entity,
                     pub is_spawned: bool,
                 }
             },
@@ -67,7 +67,7 @@ define_workflow_mod_OLD! {
                                     ..Default::default()
                                 };
 
-                                let chunk_entity = commands.spawn((
+                                commands.entity(chunk_owner_id.entity()).insert((
                                     SpriteBundle {
                                         texture: metric_texture,
                                         transform: chunk_transform,
@@ -75,15 +75,15 @@ define_workflow_mod_OLD! {
                                     },
                                     ChunkComponent {
                                         coord: chunk_coord,
-                                        owner_id: Some(chunk_owner_id),
+                                        owner_id: Some(chunk_owner_id.clone()),
                                     },
                                 )).id();
 
                                 chunk_manager.loaded_chunks.insert(chunk_coord);
-                                chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner_id);
+                                chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner_id.clone());
 
                                 spawn_chunk_states.push(SpawnChunkState {
-                                    entity: chunk_entity,
+                                    chunk_entity: chunk_owner_id.entity(),
                                     is_spawned: false,
                                 });
                             }
@@ -97,7 +97,7 @@ define_workflow_mod_OLD! {
                             let mut commands = main_access.commands;
 
                             let spawn_chunk_states = state.spawn_chunk_states.into_iter().map(|mut spawn_chunk_state| {
-                                if commands.get_entity(spawn_chunk_state.entity).is_some() {
+                                if commands.get_entity(spawn_chunk_state.chunk_entity).is_some() {
                                     spawn_chunk_state.is_spawned = true;
                                 }
 
@@ -106,7 +106,7 @@ define_workflow_mod_OLD! {
                             let is_done = spawn_chunk_states.iter().all(|spawn_chunk_state| spawn_chunk_state.is_spawned);
 
                             if is_done {
-                                let spawned_chunk_entities = spawn_chunk_states.into_iter().map(|spawn_chunk_state| spawn_chunk_state.entity).collect();
+                                let spawned_chunk_entities = spawn_chunk_states.into_iter().map(|spawn_chunk_state| spawn_chunk_state.chunk_entity).collect();
 
                                 Ok(Outcome::Done(Output {
                                     spawned_chunk_entities
@@ -223,11 +223,11 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use bevy::prelude::{Res, ResMut, Entity};
 
-                use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
+                use crate::chunk::{components::ChunkComponent, resources::ChunkManager, types::ChunkOwnerId};
             },
             user_items: {
                 pub struct TransferChunkOwnershipInput {
-                    pub owner_id: Entity,
+                    pub new_chunk_owner_id: ChunkOwnerId,
                     pub chunk_coord: (i32, i32),
                 }
             },
@@ -256,15 +256,15 @@ define_workflow_mod_OLD! {
                             let mut chunk_entities = Vec::new();
 
                             for input in input.inputs {
-                                let new_owner = input.owner_id;
+                                let new_chunk_owner_id = input.new_chunk_owner_id;
                                 let chunk_coord = input.chunk_coord;
 
                                 if let Some((entity, mut chunk)) = chunk_query.iter_mut().find(|(_, chunk)| chunk.coord == chunk_coord) {
                                     if chunk.owner_id.is_some() {
                                         chunk_manager.owned_chunks.remove(&chunk_coord);
                                     }
-                                    chunk.owner_id = Some(new_owner);
-                                    chunk_manager.owned_chunks.insert(chunk_coord, new_owner);
+                                    chunk.owner_id = Some(new_chunk_owner_id.clone());
+                                    chunk_manager.owned_chunks.insert(chunk_coord, new_chunk_owner_id);
 
                                     chunk_entities.push(entity);
                                 } else {

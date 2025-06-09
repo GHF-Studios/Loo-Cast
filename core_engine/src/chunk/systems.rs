@@ -98,9 +98,9 @@ pub(crate) fn process_chunk_actions_system(
                         despawn_inputs.push(crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInput { chunk_coord: coord });
                         processed_coords.push(coord);
                     }
-                    ActionIntent::TransferOwnership { new_owner_id: owner_id, coord, .. } => {
+                    ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
                         transfer_inputs.push(
-                            crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput { owner_id, chunk_coord: coord },
+                            crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput { new_chunk_owner_id: new_owner_id, chunk_coord: coord },
                         );
                         processed_coords.push(coord);
                     }

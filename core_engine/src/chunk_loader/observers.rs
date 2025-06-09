@@ -3,8 +3,7 @@ use core_engine_macros::{composite_workflow, composite_workflow_return};
 use tokio::task::JoinHandle;
 
 use crate::{
-    chunk_loader::components::ChunkLoaderComponent,
-    workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return_now},
+    chunk::types::ChunkOwnerId, chunk_loader::components::ChunkLoaderComponent, workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return_now}
 };
 
 pub(crate) fn observe_on_remove_chunk_loader(
@@ -40,14 +39,15 @@ pub(crate) fn observe_on_remove_chunk_loader(
         return;
     }
 
+    let owner_id = loader.owner_id().clone();
     let handle = composite_workflow!(
-        move in loader_entity: Entity,
+        move in owner_id: ChunkOwnerId,
         move in loader_position: Vec2,
         move in loader_radius: u32,
     {
-        bevy::prelude::info!("Removing chunk loader: {:?}", loader_entity);
+        bevy::prelude::info!("Removing chunk loader: {:?}", owner_id.entity());
         let output = workflow!(IO, ChunkLoader::OnRemoveChunkLoader, Input {
-            chunk_loader_entity: loader_entity,
+            chunk_owner_id: owner_id,
             chunk_loader_position: loader_position,
             chunk_loader_radius: loader_radius,
         });
