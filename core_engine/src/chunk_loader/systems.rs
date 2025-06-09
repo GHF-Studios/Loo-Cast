@@ -5,9 +5,7 @@ use tokio::task::JoinHandle;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
-pub(crate) fn update_chunk_loader_system(
-    mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>,
-) {
+pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>) {
     let handle_is_some = (*composite_workflow_handle).is_some();
     let handle_is_finished = match *composite_workflow_handle {
         Some(ref handle) => handle.is_finished(),

@@ -15,8 +15,6 @@ impl ActionIntentCommitBuffer {
         let coord = action_intent.coord();
         let priority = action_intent.priority();
 
-        info!("[INTENT COMMIT] {:?} at {:?}", action_intent, coord);
-
         self.action_intent.insert(coord, action_intent);
         self.priority_buckets.entry(priority).or_default().insert(coord);
     }
@@ -67,8 +65,6 @@ impl ActionIntentBuffer {
     pub fn buffer_intent(&mut self, action_intent: ActionIntent) {
         let coord = action_intent.coord();
         let priority = action_intent.priority();
-
-        info!("[INTENT BUFFER] {:?}", action_intent);
 
         self.action_intents.insert(coord, action_intent);
         self.priority_buckets.entry(priority).or_default().insert(coord);

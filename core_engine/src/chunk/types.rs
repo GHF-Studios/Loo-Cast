@@ -16,10 +16,7 @@ pub struct ChunkOwnerId {
 }
 impl ChunkOwnerId {
     pub fn new(id: String, entity: Entity) -> Self {
-        Self {
-            id,
-            entity
-        }
+        Self { id, entity }
     }
 
     pub fn id(&self) -> &str {
@@ -34,7 +31,7 @@ impl Default for ChunkOwnerId {
     fn default() -> Self {
         Self {
             id: "PLACEHOLDER".to_string(),
-            entity: Entity::from_raw(0)
+            entity: Entity::from_raw(0),
         }
     }
 }

@@ -9,6 +9,11 @@ pub struct PlayerBundle {
     player: PlayerComponent,
     sprite_bundle: SpriteBundle,
 }
+impl PlayerBundle {
+    pub fn chunk_loader(&self) -> &ChunkLoaderComponent {
+        &self.chunk_loader
+    }
+}
 
 impl Default for PlayerBundle {
     fn default() -> Self {

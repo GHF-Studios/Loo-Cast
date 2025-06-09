@@ -3,7 +3,9 @@ use core_engine_macros::{composite_workflow, composite_workflow_return};
 use tokio::task::JoinHandle;
 
 use crate::{
-    chunk::types::ChunkOwnerId, chunk_loader::components::ChunkLoaderComponent, workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return_now}
+    chunk::types::ChunkOwnerId,
+    chunk_loader::components::ChunkLoaderComponent,
+    workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return_now},
 };
 
 pub(crate) fn observe_on_remove_chunk_loader(

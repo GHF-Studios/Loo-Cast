@@ -5,7 +5,10 @@ use crate::{
 };
 
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_egui::{egui::{self, ScrollArea}, EguiContexts};
+use bevy_egui::{
+    egui::{self, ScrollArea},
+    EguiContexts,
+};
 
 use super::components::{DebugObjectComponent, DebugObjectMovement};
 
@@ -78,17 +81,10 @@ pub(super) fn chunk_loader_inspection_system(chunk_loader_query: Query<Entity, W
     }
 }
 
-pub fn chunk_manager_debug_ui(
-    chunk_manager: Res<ChunkManager>,
-    mut egui_ctxs: EguiContexts,
-) {
+pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctxs: EguiContexts) {
     const GROUP_SIZE: usize = 50;
 
-    fn display_chunk_group<T: std::fmt::Debug>(
-        ui: &mut egui::Ui,
-        label: &str,
-        items: impl Iterator<Item = T>,
-    ) {
+    fn display_chunk_group<T: std::fmt::Debug>(ui: &mut egui::Ui, label: &str, items: impl Iterator<Item = T>) {
         let grouped = items.collect::<Vec<_>>();
         let total = grouped.len();
 
@@ -104,7 +100,7 @@ pub fn chunk_manager_debug_ui(
             });
         }
     }
-    
+
     egui::Window::new("Chunk Manager")
         .vscroll(true) // Optional: ensures vertical scrollbar appears
         .show(egui_ctxs.ctx_mut(), |ui| {

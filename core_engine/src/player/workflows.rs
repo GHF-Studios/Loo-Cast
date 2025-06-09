@@ -33,7 +33,6 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn SetupEcsWhile |main_access| -> Result<State, Error> {
-                            bevy::prelude::debug!("Spawning player..");
                             let mut commands = main_access.commands;
                             let player_query = main_access.player_query;
 
@@ -41,12 +40,16 @@ define_workflow_mod_OLD! {
                                 return Err(Error::PlayerAlreadySpawned);
                             }
 
-                            let player_entity = commands.spawn((
-                                PlayerBundle::default(),
+                            let player_bundle = PlayerBundle::default();
+                            let player_entity = player_bundle.chunk_loader().owner_id().entity();
+
+                            commands.entity(player_entity).insert((
+                                player_bundle,
                                 FollowerTargetComponent {
                                     id: "main_camera".to_string(),
                                 },
-                            )).id();
+                            ));
+                            bevy::prelude::debug!("Spawned player entity: {:?}", player_entity);
 
                             Ok(State { player_entity })
                         }

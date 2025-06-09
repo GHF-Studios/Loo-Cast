@@ -11,7 +11,7 @@ lazy_static! {
 #[derive(Component)]
 pub struct ChunkLoaderComponent {
     pub radius: u32,
-    owner_id: ChunkOwnerId
+    owner_id: ChunkOwnerId,
 }
 impl ChunkLoaderComponent {
     pub fn new(owner_id: String) -> Self {
@@ -19,10 +19,10 @@ impl ChunkLoaderComponent {
         if owner_id_registry.contains(&owner_id) {
             unreachable!("ChunkOwnerID '{}' is already in use", owner_id);
         }
-        
+
         ChunkLoaderComponent {
             radius: CONFIG.get::<u32>("chunk_loader/default_radius"),
-            owner_id: ChunkOwnerId::new(owner_id, reserve_entity_id())
+            owner_id: ChunkOwnerId::new(owner_id, reserve_entity_id()),
         }
     }
 

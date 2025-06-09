@@ -80,7 +80,6 @@ define_workflow_mod_OLD! {
                                 }
 
                                 for chunk_coord in chunks_to_unload {
-                                    warn!("omg we got chunk unloading before gta 6!!!111!!!11!!1");
                                     let chunk_loader_distance_squared =
                                         calculate_chunk_distance_from_owner(&chunk_coord, &world_pos_to_chunk(position));
                                     let chunk_loader_radius_squared = radius * radius;
@@ -153,6 +152,7 @@ define_workflow_mod_OLD! {
                                 .collect();
 
                             for chunk_coord in chunks_to_despawn {
+                                warn!("omg we got chunk unloading before gta 6!!!111!!!11!!1");
                                 let chunk_loader_distance_squared =
                                     calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
                                 let chunk_loader_radius_squared = radius * radius;

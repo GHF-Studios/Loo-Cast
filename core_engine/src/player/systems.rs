@@ -85,7 +85,13 @@ pub(crate) fn update_player_system(
 
                 if direction.length_squared() > 0.0 {
                     direction = direction.normalize();
-                    transform.translation += direction * CONFIG.get::<f32>("player/movement_speed") * time.delta_seconds();
+                    let movement_speed = CONFIG.get::<f32>("player/movement_speed");
+                    let sprint_multiplier = if keys.pressed(KeyCode::ShiftLeft) {
+                        CONFIG.get::<f32>("player/sprint_multiplier")
+                    } else {
+                        1.0
+                    };
+                    transform.translation += direction * movement_speed * sprint_multiplier * time.delta_seconds();
                 }
             } else {
                 // Entity not found? Maybe it was deleted outside this system.
