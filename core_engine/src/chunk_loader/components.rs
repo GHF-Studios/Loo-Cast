@@ -11,7 +11,7 @@ lazy_static! {
 #[derive(Component)]
 pub struct ChunkLoaderComponent {
     pub radius: u32,
-    owner_id: ChunkOwnerId,
+    chunk_owner_id: ChunkOwnerId,
 }
 impl ChunkLoaderComponent {
     pub fn new(owner_id: String) -> Self {
@@ -22,11 +22,11 @@ impl ChunkLoaderComponent {
 
         ChunkLoaderComponent {
             radius: CONFIG.get::<u32>("chunk_loader/default_radius"),
-            owner_id: ChunkOwnerId::new(owner_id, reserve_entity_id()),
+            chunk_owner_id: ChunkOwnerId::new(owner_id, reserve_entity_id()),
         }
     }
 
-    pub fn owner_id(&self) -> &ChunkOwnerId {
-        &self.owner_id
+    pub fn chunk_owner_id(&self) -> &ChunkOwnerId {
+        &self.chunk_owner_id
     }
 }

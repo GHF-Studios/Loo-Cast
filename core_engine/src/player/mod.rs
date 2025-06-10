@@ -2,12 +2,14 @@ pub mod bundles;
 pub mod components;
 pub mod resources;
 pub mod systems;
+pub mod types;
 
 pub mod workflows;
 
+use crate::player::resources::PlayerWorkflowQueue;
 use bevy::prelude::*;
-use resources::PlayerWorkflowQueue;
-use systems::{update_player_system, PlayerLifecycle};
+use systems::update_player_system;
+use types::PlayerLifecycle;
 
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {

@@ -41,7 +41,7 @@ define_workflow_mod_OLD! {
                             }
 
                             let player_bundle = PlayerBundle::default();
-                            let player_entity = player_bundle.chunk_loader().owner_id().entity();
+                            let player_entity = player_bundle.chunk_loader().chunk_owner_id().entity();
 
                             commands.entity(player_entity).insert((
                                 player_bundle,

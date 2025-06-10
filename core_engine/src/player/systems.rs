@@ -1,43 +1,28 @@
 use bevy::prelude::*;
 use core_engine_macros::{composite_workflow, composite_workflow_return};
-use tokio::task::JoinHandle;
 
 use crate::{
-    config::statics::CONFIG,
-    workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return_now},
+    chunk_loader::components::ChunkLoaderComponent, config::statics::CONFIG, player::types::PlayerLifecycle, utils::InitHook,
+    workflow::functions::handle_composite_workflow_return_now,
 };
 
-#[derive(Resource, Default)]
-pub enum PlayerLifecycle {
-    #[default]
-    None,
-    Spawning(Option<JoinHandle<ScopedCompositeWorkflowContext>>),
-    PendingActivation(Entity),
-    Active(Entity),
-}
-impl std::fmt::Debug for PlayerLifecycle {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PlayerLifecycle::None => write!(f, "None"),
-            PlayerLifecycle::Spawning(_) => write!(f, "Spawning"),
-            PlayerLifecycle::PendingActivation(entity) => {
-                write!(f, "PendingActivation({:?})", entity)
-            }
-            PlayerLifecycle::Active(entity) => write!(f, "Active({:?})", entity),
-        }
-    }
-}
-
-pub(crate) fn update_player_system(
+pub(super) fn update_player_system(
     mut commands: Commands,
+    chunk_loader_init_hook_query: Query<(&ChunkLoaderComponent, &InitHook<ChunkLoaderComponent>)>,
+    mut transform_query: Query<&mut Transform>,
     mut player_state: ResMut<PlayerLifecycle>,
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
-    mut transforms: Query<&mut Transform>,
 ) {
+    let can_player_transition_state = if let Some((_, init_hook)) = chunk_loader_init_hook_query.iter().find(|(l, _)| l.chunk_owner_id().id() == "player") {
+        init_hook.has_fired()
+    } else {
+        true
+    };
+
     match *player_state {
         PlayerLifecycle::None => {
-            if keys.just_pressed(KeyCode::Space) {
+            if can_player_transition_state && keys.just_pressed(KeyCode::Space) {
                 let handle = composite_workflow!(move out entity: Entity, {
                     let spawn_player_output = workflow!(OE, Player::SpawnPlayer);
                     let entity = spawn_player_output.player_entity;
@@ -56,18 +41,18 @@ pub(crate) fn update_player_system(
             }
         }
         PlayerLifecycle::PendingActivation(entity) => {
-            if transforms.contains(entity) {
+            if transform_query.contains(entity) {
                 *player_state = PlayerLifecycle::Active(entity);
             }
         }
         PlayerLifecycle::Active(entity) => {
-            if keys.just_pressed(KeyCode::Space) {
+            if can_player_transition_state && keys.just_pressed(KeyCode::Space) {
                 commands.entity(entity).despawn_recursive();
                 *player_state = PlayerLifecycle::None;
                 return;
             }
 
-            if let Ok(mut transform) = transforms.get_mut(entity) {
+            if let Ok(mut transform) = transform_query.get_mut(entity) {
                 let mut direction = Vec3::ZERO;
 
                 if keys.pressed(KeyCode::KeyW) {

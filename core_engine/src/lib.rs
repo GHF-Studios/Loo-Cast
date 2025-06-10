@@ -36,6 +36,7 @@ pub mod gpu;
 //pub mod math;
 pub mod player;
 //pub mod sprite_bundle;
+pub mod utils;
 pub mod workflow;
 
 use crate::workflow::functions::handle_composite_workflow_return_later;
@@ -107,7 +108,7 @@ register_workflow_mods!(
         },
         UnloadChunks {
             UnloadAndWait: EcsWhile,
-        }
+        },
     },
     Debug {
         SpawnDebugObjects {

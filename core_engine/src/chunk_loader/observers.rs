@@ -41,13 +41,13 @@ pub(crate) fn observe_on_remove_chunk_loader(
         return;
     }
 
-    let owner_id = loader.owner_id().clone();
+    let owner_id = loader.chunk_owner_id().clone();
     let handle = composite_workflow!(
         move in owner_id: ChunkOwnerId,
         move in loader_position: Vec2,
         move in loader_radius: u32,
     {
-        bevy::prelude::info!("Removing chunk loader: {:?}", owner_id.entity());
+        debug!("Removing chunk loader: {:?}", owner_id.entity());
         let output = workflow!(IO, ChunkLoader::OnRemoveChunkLoader, Input {
             chunk_owner_id: owner_id,
             chunk_loader_position: loader_position,
