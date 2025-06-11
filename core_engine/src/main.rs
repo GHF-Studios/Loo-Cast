@@ -15,6 +15,11 @@ const LOG_LEVEL: Level = Level::INFO;
 const LOG_FILTER: &str = "info,core_engine=debug";
 
 fn main() {
+    std::panic::set_hook(Box::new(|panic_info| {
+        // You can also downcast panic_info.payload() if needed
+        error!("{}", panic_info);
+    }));
+
     std::env::set_var("RUST_BACKTRACE", if ENABLE_BACKTRACE { "1" } else { "0" });
 
     let mut bevy_plugins = DefaultPlugins.build();

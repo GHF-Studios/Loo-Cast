@@ -58,9 +58,9 @@ define_workflow_mod_OLD! {
                             let mut commands = main_access.commands;
 
                             if commands.get_entity(state.player_entity).is_some() {
-                                Ok(Outcome::Done(Output { player_entity: state.player_entity }))
+                                Ok(Done(Output { player_entity: state.player_entity }))
                             } else {
-                                Ok(Outcome::Wait(state))
+                                Ok(Wait(state))
                             }
                         }
                     ]
@@ -120,8 +120,6 @@ define_workflow_mod_OLD! {
                         }
 
                         fn RunEcsWhile |state, main_access| -> Result<Outcome<State, ()>, Error> {
-                            // Despawn the player entity if the DropHook<ChunkLoader> marker has been removed, else wait
-
                             let mut commands = main_access.commands;
                             let chunk_loader_with_drop_hook_query = main_access.chunk_loader_with_drop_hook_query;
                             let chunk_loader_without_drop_hook_query = main_access.chunk_loader_without_drop_hook_query;

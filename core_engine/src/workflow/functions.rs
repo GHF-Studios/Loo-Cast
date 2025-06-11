@@ -336,6 +336,7 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
     }
 }
 
+#[track_caller]
 pub fn handle_composite_workflow_return_now<F>(handle: tokio::task::JoinHandle<ScopedCompositeWorkflowContext>, f: F)
 where
     F: FnOnce(&ScopedCompositeWorkflowContext),
@@ -347,6 +348,7 @@ where
     }
 }
 
+#[track_caller]
 pub fn handle_composite_workflow_return_later<F>(handle: tokio::task::JoinHandle<ScopedCompositeWorkflowContext>, f: F)
 where
     F: FnOnce(&ScopedCompositeWorkflowContext) + Send + 'static,

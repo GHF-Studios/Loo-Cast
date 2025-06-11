@@ -68,8 +68,10 @@ impl CompositeWorkflow {
             let variant = extract_error_variant(path);
             let name_str = variant.to_string();
 
+            let formatted_error = format!("{}: {{0:?}}", name_str);
+
             quote! {
-                #[error(#name_str)]
+                #[error(#formatted_error)]
                 #variant(<#path as crate::workflow::traits::#trait_ident>::Error)
             }
         });

@@ -13,10 +13,12 @@ impl CompositeWorkflowRuntime {
         Self::default()
     }
 
+    #[track_caller]
     pub fn spawn(&mut self, future: BoxFuture<'static, ScopedCompositeWorkflowContext>) -> JoinHandle<ScopedCompositeWorkflowContext> {
         self.0.spawn(future)
     }
 
+    #[track_caller]
     pub fn spawn_fallible<E: 'static + Send + std::error::Error>(
         &mut self,
         future: BoxFuture<'static, (ScopedCompositeWorkflowContext, Result<(), E>)>,
@@ -32,7 +34,7 @@ impl CompositeWorkflowRuntime {
             match result {
                 Ok(_) => {}
                 Err(e) => {
-                    unreachable!("Composite workflow failed: {}", e)
+                    panic!("Composite workflow failed: {}", e)
                 }
             };
             ctx
