@@ -3,13 +3,13 @@ use bevy::{ecs::component::StorageType, prelude::*};
 use super::hooks::{hook_on_add_follower_target, hook_on_remove_follower_target};
 
 #[derive(Component)]
-pub struct FollowerComponent {
+pub struct Follower {
     pub follow_id: String,
     pub offset: Vec2,
     pub smoothness: f32,
     followed_entity: Option<Entity>,
 }
-impl FollowerComponent {
+impl Follower {
     pub fn new(follow_id: String, offset: Vec2, smoothness: f32) -> Self {
         Self {
             follow_id,
@@ -28,10 +28,10 @@ impl FollowerComponent {
     }
 }
 
-pub struct FollowerTargetComponent {
+pub struct FollowerTarget {
     pub id: String,
 }
-impl Component for FollowerTargetComponent {
+impl Component for FollowerTarget {
     const STORAGE_TYPE: bevy::ecs::component::StorageType = StorageType::Table;
 
     fn register_component_hooks(hooks: &mut bevy::ecs::component::ComponentHooks) {

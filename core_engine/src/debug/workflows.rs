@@ -8,7 +8,7 @@ define_workflow_mod_OLD! {
                 use bevy::prelude::{Commands, Entity, SpriteBundle, Sprite, Color, Rect, Transform, Quat, Vec2, Res, ResMut};
 
                 use crate::{
-                    chunk_actor::components::ChunkActorComponent, chunk_loader::components::ChunkLoaderComponent,
+                    chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader,
                 };
                 use crate::debug::components::{DebugObjectComponent, DebugObjectMovement};
             },
@@ -21,9 +21,11 @@ define_workflow_mod_OLD! {
                     scale: Vec2,
                     movement: DebugObjectMovement,
                 ) -> Entity {
-                    commands.spawn((
-                        ChunkActorComponent,
-                        ChunkLoaderComponent::new(chunk_loader_id),
+                    let chunk_loader = ChunkLoader::new(chunk_loader_id);
+                    
+                    commands.entity(chunk_loader.chunk_owner_id().entity()).insert((
+                        ChunkActor,
+                        chunk_loader,
                         DebugObjectComponent { movement },
                         SpriteBundle {
                             sprite: Sprite {
@@ -42,18 +44,10 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                SpawnAndWait: EcsWhile {
+                Spawn: Ecs {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>
-                        }
-                        struct State {
-                            circle_entity: Entity,
-                            line_entity: Entity,
-                            static_entity: Entity,
-                            is_circle_entity_spawned: bool,
-                            is_line_entity_spawned: bool,
-                            is_static_entity_spawned: bool,
                         }
                         struct Output {
                             circle_entity: Entity,
@@ -62,7 +56,7 @@ define_workflow_mod_OLD! {
                         }
                     ],
                     core_functions: [
-                        fn SetupEcsWhile |main_access| -> State {
+                        fn RunEcs |main_access| -> Output {
                             let mut commands = main_access.commands;
 
                             let circle_entity = spawn_debug_object(
@@ -98,46 +92,10 @@ define_workflow_mod_OLD! {
                                 DebugObjectMovement::Static,
                             );
 
-                            State {
+                            Output {
                                 circle_entity,
                                 line_entity,
                                 static_entity,
-                                is_circle_entity_spawned: false,
-                                is_line_entity_spawned: false,
-                                is_static_entity_spawned: false,
-                            }
-                        }
-
-                        fn RunEcsWhile |state, main_access| -> Outcome<State, Output> {
-                            let mut commands = main_access.commands;
-
-                            let mut updated_state = State {
-                                circle_entity: state.circle_entity,
-                                line_entity: state.line_entity,
-                                static_entity: state.static_entity,
-                                is_circle_entity_spawned: state.is_circle_entity_spawned,
-                                is_line_entity_spawned: state.is_line_entity_spawned,
-                                is_static_entity_spawned: state.is_static_entity_spawned,
-                            };
-
-                            if commands.get_entity(updated_state.circle_entity).is_some() {
-                                updated_state.is_circle_entity_spawned = true;
-                            }
-                            if commands.get_entity(updated_state.line_entity).is_some() {
-                                updated_state.is_line_entity_spawned = true;
-                            }
-                            if commands.get_entity(updated_state.static_entity).is_some() {
-                                updated_state.is_static_entity_spawned = true;
-                            }
-
-                            if state.is_circle_entity_spawned && state.is_line_entity_spawned && state.is_static_entity_spawned {
-                                Outcome::Done(Output {
-                                    circle_entity: state.circle_entity,
-                                    line_entity: state.line_entity,
-                                    static_entity: state.static_entity,
-                                })
-                            } else {
-                                Outcome::Wait(updated_state)
                             }
                         }
                     ]

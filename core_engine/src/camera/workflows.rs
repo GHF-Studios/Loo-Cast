@@ -9,7 +9,7 @@ define_workflow_mod_OLD! {
 
                 use crate::camera::components::MainCamera;
                 use crate::config::statics::CONFIG;
-                use crate::follower::components::{FollowerComponent, FollowerTargetComponent};
+                use crate::follower::components::{Follower, FollowerTarget};
             },
             user_items: {},
             stages: [
@@ -32,7 +32,7 @@ define_workflow_mod_OLD! {
                             let camera_entity = commands.spawn((
                                 Camera2dBundle::default(),
                                 MainCamera,
-                                FollowerComponent::new(
+                                Follower::new(
                                     "main_camera".to_string(),
                                     Vec2::ZERO,
                                     CONFIG.get::<f32>("camera/follow_smoothness"),

@@ -9,8 +9,8 @@ define_workflow_mod_OLD! {
 
                 use crate::{
                     player::bundles::PlayerBundle,
-                    player::components::PlayerComponent,
-                    follower::components::FollowerTargetComponent,
+                    player::components::Player,
+                    follower::components::FollowerTarget,
                 };
             },
             user_items: {},
@@ -19,7 +19,7 @@ define_workflow_mod_OLD! {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>,
-                            player_query: Query<'w, 's, &'static PlayerComponent>,
+                            player_query: Query<'w, 's, &'static Player>,
                         }
                         struct State {
                             player_entity: Entity,
@@ -45,7 +45,7 @@ define_workflow_mod_OLD! {
 
                             commands.entity(player_entity).insert((
                                 player_bundle,
-                                FollowerTargetComponent {
+                                FollowerTarget {
                                     id: "main_camera".to_string(),
                                 },
                             ));
@@ -66,6 +66,84 @@ define_workflow_mod_OLD! {
                     ]
                 }
             ]
+        }
+
+        DespawnPlayer {
+            user_imports: {
+                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, debug, DespawnRecursiveExt};
+
+                use crate::{
+                    chunk_loader::components::ChunkLoader,
+                    player::bundles::PlayerBundle,
+                    player::components::Player,
+                    follower::components::FollowerTarget,
+                    utils::DropHook,
+                };
+            },
+            user_items: {},
+            stages: [
+                ValidateAndDespawnAndWait: EcsWhile {
+                    core_types: [
+                        struct MainAccess<'w, 's> {
+                            commands: Commands<'w, 's>,
+                            chunk_loader_with_drop_hook_query: Query<'w, 's, Entity, (With<Player>, Without<DropHook<ChunkLoader>>)>,
+                            chunk_loader_without_drop_hook_query: Query<'w, 's, Entity, (With<Player>, With<DropHook<ChunkLoader>>)>,
+                        }
+                        struct State {}
+                        enum Error {
+                            PlayerAlreadyMarkedForDespawn,
+                            PlayerAlreadyDespawned,
+                        }
+                    ],
+                    core_functions: [
+                        fn SetupEcsWhile |main_access| -> Result<State, Error> {
+                            let mut commands = main_access.commands;
+                            let chunk_loader_with_drop_hook_query = main_access.chunk_loader_with_drop_hook_query;
+                            let chunk_loader_without_drop_hook_query = main_access.chunk_loader_without_drop_hook_query;
+
+                            match (chunk_loader_with_drop_hook_query.get_single().is_err(), chunk_loader_without_drop_hook_query.get_single().is_err()) {
+                                (true, true) => { unreachable!() },
+                                (true, false) => {},
+                                (false, true) => {
+                                    return Err(Error::PlayerAlreadyMarkedForDespawn);
+                                },
+                                (false, false) => {
+                                    return Err(Error::PlayerAlreadyDespawned);
+                                }
+                            }
+
+                            let player_entity = chunk_loader_without_drop_hook_query.single();
+                            commands.entity(player_entity).insert(DropHook::<ChunkLoader>::default());
+                            debug!("Marked player entity for despawning");
+
+                            Ok(State {})
+                        }
+
+                        fn RunEcsWhile |state, main_access| -> Result<Outcome<State, ()>, Error> {
+                            // Despawn the player entity if the DropHook<ChunkLoader> marker has been removed, else wait
+
+                            let mut commands = main_access.commands;
+                            let chunk_loader_with_drop_hook_query = main_access.chunk_loader_with_drop_hook_query;
+                            let chunk_loader_without_drop_hook_query = main_access.chunk_loader_without_drop_hook_query;
+
+                            match (chunk_loader_with_drop_hook_query.get_single().is_err(), chunk_loader_without_drop_hook_query.get_single().is_err()) {
+                                (true, true) => { unreachable!() },
+                                (true, false) => {},
+                                (false, true) => return Ok(Wait(State {})),
+                                (false, false) => {
+                                    return Err(Error::PlayerAlreadyDespawned);
+                                }
+                            }
+
+                            let player_entity = chunk_loader_without_drop_hook_query.single();
+                            commands.entity(player_entity).despawn_recursive();
+                            debug!("Despawned player entity: {:?}", player_entity);
+
+                            Ok(Done(()))
+                        }
+                    ]
+                }
+            ],
         }
     ]
 }

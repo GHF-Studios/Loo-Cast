@@ -7,7 +7,7 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use bevy::prelude::{Commands, Entity, Query, Res, ResMut, Handle, Image, Transform, SpriteBundle};
 
-                use crate::chunk::{components::ChunkComponent, resources::ChunkManager, functions::chunk_pos_to_world, types::ChunkOwnerId};
+                use crate::chunk::{components::Chunk, resources::ChunkManager, functions::chunk_pos_to_world, types::ChunkOwnerId};
                 use crate::config::statics::CONFIG;
             },
             user_items: {
@@ -27,7 +27,7 @@ define_workflow_mod_OLD! {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>,
-                            chunk_query: Query<'w, 's, &'static ChunkComponent>,
+                            chunk_query: Query<'w, 's, &'static Chunk>,
                             chunk_manager: ResMut<'w, ChunkManager>,
                         }
                         struct Input {
@@ -73,7 +73,7 @@ define_workflow_mod_OLD! {
                                         transform: chunk_transform,
                                         ..Default::default()
                                     },
-                                    ChunkComponent {
+                                    Chunk {
                                         coord: chunk_coord,
                                         owner_id: Some(chunk_owner_id.clone()),
                                     },
@@ -126,7 +126,7 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use bevy::prelude::{Res, ResMut, Commands, Query, Entity, DespawnRecursiveExt};
 
-                use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
+                use crate::chunk::{components::Chunk, resources::ChunkManager};
             },
             user_items: {
                 pub struct DespawnChunkInput {
@@ -143,7 +143,7 @@ define_workflow_mod_OLD! {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>,
-                            chunk_query: Query<'w, 's, (Entity, &'static ChunkComponent)>,
+                            chunk_query: Query<'w, 's, (Entity, &'static Chunk)>,
                             chunk_manager: ResMut<'w, ChunkManager>,
                         }
                         struct Input {
@@ -223,7 +223,7 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use bevy::prelude::{Res, ResMut, Entity};
 
-                use crate::chunk::{components::ChunkComponent, resources::ChunkManager, types::ChunkOwnerId};
+                use crate::chunk::{components::Chunk, resources::ChunkManager, types::ChunkOwnerId};
             },
             user_items: {
                 pub struct TransferChunkOwnershipInput {
@@ -235,7 +235,7 @@ define_workflow_mod_OLD! {
                 FindAndTransferOwnership: Ecs {
                     core_types: [
                         struct MainAccess<'w, 's> {
-                            chunk_query: Query<'w, 's, (Entity, &'static mut ChunkComponent)>,
+                            chunk_query: Query<'w, 's, (Entity, &'static mut Chunk)>,
                             chunk_manager: ResMut<'w, ChunkManager>,
                         }
                         struct Input {

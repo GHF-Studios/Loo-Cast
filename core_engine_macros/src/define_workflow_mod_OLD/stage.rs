@@ -2279,7 +2279,7 @@ impl TypedStage<EcsWhile> {
                         let response = response.expect("EcsWhile stages with error must have a response");
                         let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, ()>, #this_stage_err_type_path> = response.into_inner();
 
-                        match result {
+                        match outcome_result {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(state) => {
@@ -2687,7 +2687,7 @@ impl TypedStage<EcsWhile> {
                         let response = response.expect("EcsWhile stages with error must have a response");
                         let outcome_result: Result<crate::workflow::types::Outcome<(), ()>, #this_stage_err_type_path> = response.into_inner();
 
-                        match result {
+                        match outcome_result {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(_) => {
@@ -3440,7 +3440,7 @@ impl TypedStage<RenderWhile> {
                         let response = response.expect("RenderWhile stages with error must have a response");
                         let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, ()>, #this_stage_err_type_path> = response.into_inner();
 
-                        match result {
+                        match outcome_result {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(state) => {
@@ -3848,7 +3848,7 @@ impl TypedStage<RenderWhile> {
                         let response = response.expect("RenderWhile stages with error must have a response");
                         let outcome_result: Result<crate::workflow::types::Outcome<(), ()>, #this_stage_err_type_path> = response.into_inner();
 
-                        match result {
+                        match outcome_result {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(_) => {

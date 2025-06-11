@@ -8,6 +8,7 @@ pub enum PlayerLifecycle {
     #[default]
     None,
     Spawning(Option<JoinHandle<ScopedCompositeWorkflowContext>>),
+    Despawning(Option<JoinHandle<ScopedCompositeWorkflowContext>>),
     PendingActivation(Entity),
     Active(Entity),
 }
@@ -16,6 +17,7 @@ impl std::fmt::Debug for PlayerLifecycle {
         match self {
             PlayerLifecycle::None => write!(f, "None"),
             PlayerLifecycle::Spawning(_) => write!(f, "Spawning"),
+            PlayerLifecycle::Despawning(_) => write!(f, "Despawning"),
             PlayerLifecycle::PendingActivation(entity) => {
                 write!(f, "PendingActivation({:?})", entity)
             }

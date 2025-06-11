@@ -2,27 +2,32 @@ use bevy::prelude::*;
 use core_engine_macros::{composite_workflow, composite_workflow_return};
 
 use crate::{
-    chunk_loader::components::ChunkLoaderComponent, config::statics::CONFIG, player::types::PlayerLifecycle, utils::InitHook,
+    chunk_loader::components::ChunkLoader, config::statics::CONFIG, player::types::PlayerLifecycle, utils::{InitHook, DropHook},
     workflow::functions::handle_composite_workflow_return_now,
 };
 
 pub(super) fn update_player_system(
-    mut commands: Commands,
-    chunk_loader_init_hook_query: Query<(&ChunkLoaderComponent, &InitHook<ChunkLoaderComponent>)>,
+    chunk_loader_init_hook_query: Query<(&ChunkLoader, &InitHook<ChunkLoader>)>,
+    chunk_loader_drop_hook_query: Query<(&ChunkLoader, &DropHook<ChunkLoader>)>,
     mut transform_query: Query<&mut Transform>,
     mut player_state: ResMut<PlayerLifecycle>,
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    let can_player_transition_state = if let Some((_, init_hook)) = chunk_loader_init_hook_query.iter().find(|(l, _)| l.chunk_owner_id().id() == "player") {
-        init_hook.has_fired()
-    } else {
-        true
+    let is_player_input_allowed = {
+        let condition_1 = if let Some((_, init_hook)) = chunk_loader_init_hook_query.iter().find(|(l, _)| l.chunk_owner_id().id() == "player") {
+            init_hook.has_fired()
+        } else {
+            true
+        };
+        let condition_2 = !chunk_loader_drop_hook_query.iter().any(|(l, _)| l.chunk_owner_id().id() == "player");
+
+        condition_1 && condition_2
     };
 
     match *player_state {
         PlayerLifecycle::None => {
-            if can_player_transition_state && keys.just_pressed(KeyCode::Space) {
+            if is_player_input_allowed && keys.just_pressed(KeyCode::Space) {
                 let handle = composite_workflow!(move out entity: Entity, {
                     let spawn_player_output = workflow!(OE, Player::SpawnPlayer);
                     let entity = spawn_player_output.player_entity;
@@ -40,15 +45,30 @@ pub(super) fn update_player_system(
                 });
             }
         }
+        PlayerLifecycle::Despawning(ref mut handle) => {
+            if handle.as_ref().unwrap().is_finished() {
+                let handle = handle.take().unwrap();
+                handle_composite_workflow_return_now(handle, |_ctx| {
+                    composite_workflow_return!();
+                    *player_state = PlayerLifecycle::None;
+                });
+            }
+        }
         PlayerLifecycle::PendingActivation(entity) => {
             if transform_query.contains(entity) {
                 *player_state = PlayerLifecycle::Active(entity);
             }
         }
         PlayerLifecycle::Active(entity) => {
-            if can_player_transition_state && keys.just_pressed(KeyCode::Space) {
-                commands.entity(entity).despawn_recursive();
-                *player_state = PlayerLifecycle::None;
+            if !is_player_input_allowed {
+                return;
+            }
+
+            if keys.just_pressed(KeyCode::Space) {
+                let handle = composite_workflow!({
+                    workflow!(E, Player::DespawnPlayer);
+                });
+                *player_state = PlayerLifecycle::Despawning(Some(handle));
                 return;
             }
 

@@ -12,18 +12,19 @@ define_workflow_mod_OLD! {
                     load_chunks::user_items::LoadChunkInput,
                     unload_chunks::user_items::UnloadChunkInput
                 };
-                use crate::chunk_loader::components::ChunkLoaderComponent;
+                use crate::chunk_loader::components::ChunkLoader;
                 use crate::chunk::resources::ChunkManager;
                 use crate::chunk::intent::ActionIntent;
                 use crate::chunk::functions::{world_pos_to_chunk, calculate_chunks_in_radius, calculate_chunk_distance_from_owner};
                 use crate::chunk::resources::ActionIntentCommitBuffer;
+                use crate::utils::DropHook;
             },
             user_items: {},
             stages: [
                 Categorize: Ecs {
                     core_types: [
                         struct MainAccess<'w, 's> {
-                            chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoaderComponent)>,
+                            chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader, Option<&'static DropHook::<ChunkLoader>>)>,
                             chunk_manager: Res<'w, ChunkManager>,
                         }
 
@@ -40,7 +41,11 @@ define_workflow_mod_OLD! {
                             let mut load_chunk_inputs = Vec::new();
                             let mut unload_chunk_inputs = Vec::new();
 
-                            for (transform, chunk_loader) in chunk_loader_query.iter() {
+                            for (transform, chunk_loader, drop_hook) in chunk_loader_query.iter() {
+                                if drop_hook.is_some() {
+                                    continue;
+                                }
+
                                 let position = transform.translation.truncate();
                                 let radius = chunk_loader.radius;
 
@@ -90,6 +95,10 @@ define_workflow_mod_OLD! {
                                         chunk_loader_radius_squared,
                                     });
                                 }
+
+                                debug!(
+                                    "Ran CategorizeChunks for {:?}", chunk_owner_id.id()
+                                );
                             }
 
                             Output { load_chunk_inputs, unload_chunk_inputs }
@@ -103,12 +112,12 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use bevy::prelude::*;
 
-                use crate::chunk::components::ChunkComponent;
+                use crate::chunk::components::Chunk;
                 use crate::chunk::intent::ActionIntent;
                 use crate::chunk::functions::*;
                 use crate::chunk::resources::{ChunkManager, ActionIntentCommitBuffer};
                 use crate::chunk::types::ChunkOwnerId;
-                use crate::chunk_loader::components::ChunkLoaderComponent;
+                use crate::chunk_loader::components::ChunkLoader;
                 use crate::chunk_loader::workflows::chunk_loader::unload_chunks::user_items::UnloadChunkInput;
             },
             user_items: {},
@@ -163,7 +172,7 @@ define_workflow_mod_OLD! {
                                 });
                             }
 
-                            debug!("UnloadChunkInputs on remove: {:?}", unload_chunk_inputs.len());
+                            debug!("Ran OnRemoveChunkLoader for {:?} with # of unload targets: {}", chunk_owner_id.id(), unload_chunk_inputs.len());
 
                             Output { unload_chunk_inputs }
                         }
@@ -174,15 +183,16 @@ define_workflow_mod_OLD! {
 
         LoadChunks {
             user_imports: {
-                use bevy::prelude::{Entity, Res, ResMut, Query, debug};
+                use bevy::prelude::{Entity, Res, ResMut, Query, debug, warn};
+                use std::collections::HashSet;
 
                 use crate::chunk::{
                     intent::{ActionIntent, ActionPriority, resolve_intent, ResolvedActionIntent},
                     resources::{ChunkManager, ActionIntentBuffer, ActionIntentCommitBuffer},
-                    components::ChunkComponent,
+                    components::Chunk,
                     types::ChunkOwnerId,
                 };
-                use crate::chunk_loader::components::ChunkLoaderComponent;
+                use crate::chunk_loader::components::ChunkLoader;
                 use crate::config::statics::CONFIG;
                 use crate::utils::InitHook;
             },
@@ -220,8 +230,7 @@ define_workflow_mod_OLD! {
                 ValidateAndLoadAndWait: EcsWhile {
                     core_types: [
                         struct MainAccess<'w, 's> {
-                            chunk_query: Query<'w, 's, &'static ChunkComponent>,
-                            chunk_loader_init_hook_query: Query<'w, 's, &'static InitHook<ChunkLoaderComponent>, With<ChunkLoaderComponent>>,
+                            chunk_query: Query<'w, 's, &'static Chunk>,
                             chunk_manager: Res<'w, ChunkManager>,
                             action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer>,
                             action_intent_buffer: ResMut<'w, ActionIntentBuffer>,
@@ -243,10 +252,13 @@ define_workflow_mod_OLD! {
 
                             let mut spawn_chunk_states = Vec::new();
                             let mut transfer_chunk_ownership_states = Vec::new();
+                            let mut affected_owners = HashSet::new();
 
                             for input in input.inputs {
                                 let owner_id = input.owner_id;
                                 let coord = input.chunk_coord;
+                                
+                                affected_owners.insert(owner_id.clone());
 
                                 let is_loaded = chunk_manager.is_loaded(&coord);
                                 let is_owned = chunk_manager.is_owned(&coord);
@@ -321,13 +333,17 @@ define_workflow_mod_OLD! {
                                         action_intent_buffer.cancel_intent(&coord);
                                     }
                                     ResolvedActionIntent::DiscardIncoming(reason) => {
-                                        // Optionally: log warning or metrics here
+                                        warn!("LoadChunks intent was discarded: {:?}", reason);
                                         continue;
                                     }
                                     ResolvedActionIntent::Error(error) => {
                                         panic!("Intent resolution failed: {:?}", error);
                                     }
                                 }
+                            }
+
+                            for affected_owner in affected_owners {
+                                debug!("Setup LoadChunks for {:?}", affected_owner.id());
                             }
 
                             State {
@@ -361,7 +377,7 @@ define_workflow_mod_OLD! {
                             if is_done {
                                 let loaded_chunks_count = spawn_chunk_states.len() + transfer_chunk_ownership_states.len();
                                 if loaded_chunks_count != 0 {
-                                    debug!("Loading chunk loader: Loaded chunks: {}", loaded_chunks_count);
+                                    debug!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
                                 }
 
                                 Outcome::Done(())
@@ -379,16 +395,17 @@ define_workflow_mod_OLD! {
 
         UnloadChunks {
             user_imports: {
-                use bevy::prelude::{Res, ResMut, Entity, Transform, Query, Vec2, debug};
+                use bevy::prelude::{Res, ResMut, Entity, Transform, Query, Vec2, debug, warn};
+                use std::collections::HashSet;
 
                 use crate::chunk::{
-                    components::ChunkComponent,
+                    components::Chunk,
                     intent::{ActionIntent, ActionPriority, resolve_intent, ResolvedActionIntent, State as ChunkState},
                     resources::{ChunkManager, ActionIntentBuffer, ActionIntentCommitBuffer},
                     functions::world_pos_to_chunk,
                     types::ChunkOwnerId,
                 };
-                use crate::chunk_loader::components::ChunkLoaderComponent;
+                use crate::chunk_loader::components::ChunkLoader;
             },
             user_items: {
                 pub struct UnloadChunkInput {
@@ -431,8 +448,8 @@ define_workflow_mod_OLD! {
                             chunk_manager: Res<'w, ChunkManager>,
                             action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer>,
                             action_intent_buffer: ResMut<'w, ActionIntentBuffer>,
-                            chunk_query: Query<'w, 's, &'static ChunkComponent>,
-                            chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoaderComponent)>,
+                            chunk_query: Query<'w, 's, &'static Chunk>,
+                            chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader)>,
                         }
                         struct Input {
                             inputs: Vec<UnloadChunkInput>,
@@ -452,12 +469,15 @@ define_workflow_mod_OLD! {
 
                             let mut despawn_chunk_states = Vec::new();
                             let mut transfer_chunk_ownership_states = Vec::new();
+                            let mut affected_owners = HashSet::new();
 
                             for input in input.inputs {
                                 let owner_id = input.owner_id;
                                 let coord = input.chunk_coord;
                                 let distance_squared = input.chunk_loader_distance_squared;
                                 let radius_squared = input.chunk_loader_radius_squared;
+                                
+                                affected_owners.insert(owner_id.clone());
 
                                 let is_loaded = chunk_manager.is_loaded(&coord);
                                 if !is_loaded {
@@ -543,12 +563,17 @@ define_workflow_mod_OLD! {
                                         action_intent_buffer.cancel_intent(&coord);
                                     }
                                     ResolvedActionIntent::DiscardIncoming(reason) => {
+                                        warn!("UnloadChunks intent was discarded: {:?}", reason);
                                         continue;
                                     }
                                     ResolvedActionIntent::Error(error) => {
                                         panic!("UnloadChunks resolution error: {:?}", error);
                                     }
                                 }
+                            }
+
+                            for affected_owner in affected_owners {
+                                debug!("Setup UnloadChunks for {:?}", affected_owner.id());
                             }
 
                             State {
@@ -582,7 +607,7 @@ define_workflow_mod_OLD! {
                             if is_done {
                                 let unloaded_chunks_count = despawn_chunk_states.len() + transfer_chunk_ownership_states.len();
                                 if unloaded_chunks_count != 0 {
-                                    debug!("Unloading chunk loader: Unloaded chunks: {}", unloaded_chunks_count);
+                                    debug!("Ran UnloadChunks for # of chunks: {}", unloaded_chunks_count);
                                 }
 
                                 Outcome::Done(())

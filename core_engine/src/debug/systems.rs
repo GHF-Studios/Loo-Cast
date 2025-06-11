@@ -1,7 +1,7 @@
 use crate::{
     camera::components::MainCamera,
-    chunk::{components::ChunkComponent, functions::world_pos_to_chunk, resources::ChunkManager},
-    chunk_loader::components::ChunkLoaderComponent,
+    chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager},
+    chunk_loader::components::ChunkLoader,
 };
 
 use bevy::{prelude::*, window::PrimaryWindow};
@@ -50,7 +50,7 @@ pub(super) fn debug_object_movement_system(time: Res<Time>, mut query: Query<(&m
 pub(super) fn chunk_inspection_system(
     window_query: Query<&Window, With<PrimaryWindow>>,
     camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
-    chunk_query: Query<&ChunkComponent>,
+    chunk_query: Query<&Chunk>,
     mouse: Res<ButtonInput<MouseButton>>,
 ) {
     if mouse.just_pressed(MouseButton::Right) {
@@ -70,7 +70,7 @@ pub(super) fn chunk_inspection_system(
     }
 }
 
-pub(super) fn chunk_loader_inspection_system(chunk_loader_query: Query<Entity, With<ChunkLoaderComponent>>, keys: Res<ButtonInput<KeyCode>>) {
+pub(super) fn chunk_loader_inspection_system(chunk_loader_query: Query<Entity, With<ChunkLoader>>, keys: Res<ButtonInput<KeyCode>>) {
     if keys.just_pressed(KeyCode::KeyL) {
         let mut chunk_loader_entities = vec![];
         for chunk_loader_entity in chunk_loader_query.iter() {

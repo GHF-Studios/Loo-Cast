@@ -4,14 +4,14 @@ use tokio::task::JoinHandle;
 
 use crate::{
     chunk::types::ChunkOwnerId,
-    chunk_loader::components::ChunkLoaderComponent,
+    chunk_loader::components::ChunkLoader,
     workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return_now},
 };
 
 pub(crate) fn observe_on_remove_chunk_loader(
-    trigger: Trigger<OnRemove, ChunkLoaderComponent>,
+    trigger: Trigger<OnRemove, ChunkLoader>,
     mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>,
-    chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
+    chunk_loader_query: Query<(Entity, &Transform, &ChunkLoader)>,
 ) {
     let loader_entity = trigger.entity();
     let (_, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
@@ -47,7 +47,7 @@ pub(crate) fn observe_on_remove_chunk_loader(
         move in loader_position: Vec2,
         move in loader_radius: u32,
     {
-        debug!("Removing chunk loader: {:?}", owner_id.entity());
+        debug!("Removing chunk loader: {:?}", owner_id.id());
         let output = workflow!(IO, ChunkLoader::OnRemoveChunkLoader, Input {
             chunk_owner_id: owner_id,
             chunk_loader_position: loader_position,

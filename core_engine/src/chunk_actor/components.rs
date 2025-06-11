@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct ChunkActorComponent;
-impl Default for ChunkActorComponent {
+pub struct ChunkActor;
+impl Default for ChunkActor {
     fn default() -> Self {
-        ChunkActorComponent
+        ChunkActor
     }
 }

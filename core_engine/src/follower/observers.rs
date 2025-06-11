@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 
-use super::components::{FollowerComponent, FollowerTargetComponent};
+use super::components::{Follower, FollowerTarget};
 
 pub(crate) fn observe_on_add_follower(
-    trigger: Trigger<OnAdd, FollowerComponent>,
-    mut param_set: ParamSet<(Query<(Entity, &mut FollowerComponent)>, Query<(Entity, &FollowerTargetComponent, &Transform)>)>,
+    trigger: Trigger<OnAdd, Follower>,
+    mut param_set: ParamSet<(Query<(Entity, &mut Follower)>, Query<(Entity, &FollowerTarget, &Transform)>)>,
 ) {
     let follower_entity = trigger.entity();
 

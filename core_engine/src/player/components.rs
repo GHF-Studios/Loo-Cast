@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct PlayerComponent;
-impl Default for PlayerComponent {
+pub struct Player;
+impl Default for Player {
     fn default() -> Self {
-        PlayerComponent
+        Player
     }
 }

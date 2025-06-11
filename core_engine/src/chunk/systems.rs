@@ -5,12 +5,12 @@ use crate::chunk::types::ChunkOwnerId;
 use crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInput;
 use crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput;
 use crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput;
-use crate::chunk_loader::components::ChunkLoaderComponent;
+use crate::chunk_loader::components::ChunkLoader;
 use crate::config::statics::CONFIG;
 use crate::utils::InitHook;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
-use super::components::ChunkComponent;
+use super::components::Chunk;
 use super::functions::{chunk_pos_to_world, world_pos_to_chunk};
 use super::intent::ActionIntent;
 use super::resources::ChunkRenderHandles;
@@ -29,7 +29,7 @@ pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<As
     });
 }
 
-pub(crate) fn chunk_update_system(chunk_query: Query<(Entity, &Transform, &ChunkComponent)>) {
+pub(crate) fn chunk_update_system(chunk_query: Query<(Entity, &Transform, &Chunk)>) {
     for (_, transform, chunk) in chunk_query.iter() {
         let world_pos = transform.translation.truncate();
         let chunk_pos = world_pos_to_chunk(world_pos);
@@ -40,7 +40,7 @@ pub(crate) fn chunk_update_system(chunk_query: Query<(Entity, &Transform, &Chunk
 }
 
 pub(crate) fn process_chunk_actions_system(
-    mut chunk_loader_init_hook_query: Query<&mut InitHook<ChunkLoaderComponent>>,
+    mut chunk_loader_init_hook_query: Query<&mut InitHook<ChunkLoader>>,
     mut action_intent_commit_buffer: ResMut<ActionIntentCommitBuffer>,
     mut workflow_handles: Local<Option<ChunkActionWorkflowHandles>>,
 ) {
