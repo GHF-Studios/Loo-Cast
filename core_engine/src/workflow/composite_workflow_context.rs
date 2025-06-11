@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
-use crate::debug::types::AnySendNamedBox;
+use crate::debug::types::AnySendPremiumBox;
 
 #[derive(Hash, Eq, PartialEq)]
 struct ContextKey {
@@ -15,7 +15,7 @@ struct ContextKey {
 
 #[derive(Default)]
 pub struct CompositeWorkflowContext {
-    map: HashMap<ContextKey, AnySendNamedBox>,
+    map: HashMap<ContextKey, AnySendPremiumBox>,
 }
 
 static CONTEXTS: Lazy<DashMap<Uuid, Arc<Mutex<CompositeWorkflowContext>>>> = Lazy::new(DashMap::new);
@@ -37,7 +37,7 @@ pub fn set_context<T: 'static + Send>(name: &'static str, val: T) {
             type_id: TypeId::of::<T>(),
             name,
         },
-        AnySendNamedBox::new(Some(val), std::any::type_name::<T>().to_string()),
+        AnySendPremiumBox::new(Some(val), std::any::type_name::<T>().to_string()),
     );
 }
 
@@ -66,7 +66,7 @@ pub fn clear_all_context(id: Uuid) {
 
 pub struct ScopedCompositeWorkflowContext {
     pub id: Uuid,
-    pub returns: Arc<Mutex<HashMap<String, AnySendNamedBox>>>,
+    pub returns: Arc<Mutex<HashMap<String, AnySendPremiumBox>>>,
 }
 
 impl ScopedCompositeWorkflowContext {
@@ -97,7 +97,7 @@ impl ScopedCompositeWorkflowContext {
 
     pub fn store_return<T: 'static + Send>(&self, name: &'static str, value: T) {
         let mut guard = self.returns.lock().unwrap();
-        guard.insert(name.to_string(), AnySendNamedBox::new(value, std::any::type_name::<T>().to_string()));
+        guard.insert(name.to_string(), AnySendPremiumBox::new(value, std::any::type_name::<T>().to_string()));
     }
 
     pub fn extract_return<T: 'static + Send>(&self, name: &str) -> Option<T> {

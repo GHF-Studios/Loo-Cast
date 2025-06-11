@@ -5,9 +5,9 @@ use bevy::prelude::*;
 use bevy::render::MainWorld;
 use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 
-use crate::{config::statics::CONFIG, debug::types::AnySendSyncNamedBox, workflow::response::*};
+use crate::{config::statics::CONFIG, debug::types::AnySendSyncPremiumBox, workflow::response::*};
 
-use super::{channels::*, events::*, instance::*, resources::*, stage::Stage, statics::PANIC_BUFFER, types::*};
+use super::{channels::*, events::*, instance::*, resources::*, stage::Stage, types::*};
 
 pub(super) fn extract_render_stage_buffer_system(world: &mut World) {
     let mut main_world = SystemState::<ResMut<MainWorld>>::new(world).get_mut(world);
@@ -1133,12 +1133,12 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
             workflows.remove(workflow_name);
 
             match callback {
-                WorkflowCallback::None(callback) => callback(AnySendSyncNamedBox::new(
+                WorkflowCallback::None(callback) => callback(AnySendSyncPremiumBox::new(
                     TypedWorkflowResponse { module_name, workflow_name },
                     format!("{module_name}::{workflow_name}::Response"),
                 )),
 
-                WorkflowCallback::E(callback) => callback(AnySendSyncNamedBox::new(
+                WorkflowCallback::E(callback) => callback(AnySendSyncPremiumBox::new(
                     TypedWorkflowResponseE {
                         module_name,
                         workflow_name,
@@ -1149,7 +1149,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
 
                 WorkflowCallback::O(callback) => {
                     let output = stage_output.expect("Expected Some(output), got None");
-                    callback(AnySendSyncNamedBox::new(
+                    callback(AnySendSyncPremiumBox::new(
                         TypedWorkflowResponseO {
                             module_name,
                             workflow_name,
@@ -1161,7 +1161,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
 
                 WorkflowCallback::OE(callback) => {
                     let output = stage_output.expect("Expected Some(output), got None");
-                    callback(AnySendSyncNamedBox::new(
+                    callback(AnySendSyncPremiumBox::new(
                         TypedWorkflowResponseOE {
                             module_name,
                             workflow_name,
@@ -1171,12 +1171,12 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                     ))
                 }
 
-                WorkflowCallback::I(callback) => callback(AnySendSyncNamedBox::new(
+                WorkflowCallback::I(callback) => callback(AnySendSyncPremiumBox::new(
                     TypedWorkflowResponse { module_name, workflow_name },
                     format!("{module_name}::{workflow_name}::ResponseI"),
                 )),
 
-                WorkflowCallback::IE(callback) => callback(AnySendSyncNamedBox::new(
+                WorkflowCallback::IE(callback) => callback(AnySendSyncPremiumBox::new(
                     TypedWorkflowResponseE {
                         module_name,
                         workflow_name,
@@ -1187,7 +1187,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
 
                 WorkflowCallback::IO(callback) => {
                     let output = stage_output.expect("Expected Some(output), got None");
-                    callback(AnySendSyncNamedBox::new(
+                    callback(AnySendSyncPremiumBox::new(
                         TypedWorkflowResponseO {
                             module_name,
                             workflow_name,
@@ -1199,7 +1199,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
 
                 WorkflowCallback::IOE(callback) => {
                     let output = stage_output.expect("Expected Some(output), got None");
-                    callback(AnySendSyncNamedBox::new(
+                    callback(AnySendSyncPremiumBox::new(
                         TypedWorkflowResponseOE {
                             module_name,
                             workflow_name,
@@ -1301,13 +1301,5 @@ pub(super) fn workflow_failure_handling_system(world: &mut World) {
 
             workflows.remove(workflow_name);
         }
-    }
-}
-
-pub(super) fn workflow_panic_handling_system() {
-    let mut buffer = PANIC_BUFFER.lock().unwrap();
-    if buffer.pop().is_some() {
-        buffer.clear();
-        unreachable!("Async panic relayed to main thread.");
     }
 }

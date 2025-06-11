@@ -6,10 +6,7 @@ use super::events::FollowerTargetLifecycleEvent;
 
 pub(crate) fn update_follower_system(
     mut follower_target_lifecycle_event_reader: EventReader<FollowerTargetLifecycleEvent>,
-    mut param_set: ParamSet<(
-        Query<(Entity, &mut Transform, &mut Follower)>,
-        Query<(&FollowerTarget, &Transform)>,
-    )>,
+    mut param_set: ParamSet<(Query<(Entity, &mut Transform, &mut Follower)>, Query<(&FollowerTarget, &Transform)>)>,
     time: Res<Time>,
 ) {
     process_lifecycle_events(&mut follower_target_lifecycle_event_reader, &mut param_set.p0());
@@ -17,10 +14,7 @@ pub(crate) fn update_follower_system(
     update_followers(&mut param_set.p0(), &targets, &time);
 }
 
-fn process_lifecycle_events(
-    events: &mut EventReader<FollowerTargetLifecycleEvent>,
-    followers_query: &mut Query<(Entity, &mut Transform, &mut Follower)>,
-) {
+fn process_lifecycle_events(events: &mut EventReader<FollowerTargetLifecycleEvent>, followers_query: &mut Query<(Entity, &mut Transform, &mut Follower)>) {
     for event in events.read() {
         match event {
             FollowerTargetLifecycleEvent::Add { follow_id, followed_entity } => {

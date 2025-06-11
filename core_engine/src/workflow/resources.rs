@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use crossbeam_channel::Receiver;
 use std::collections::HashMap;
 
-use crate::debug::types::AnySendSyncNamedBox;
+use crate::debug::types::AnySendSyncPremiumBox;
 
 use super::{events::*, instance::*, stage::*, types::*};
 
@@ -120,15 +120,15 @@ impl RenderWhileWorkflowStateExtract {
 
 // --- Stage Buffers ---
 #[derive(Resource, Default)]
-pub(super) struct EcsStageBuffer(pub Vec<(&'static str, &'static str, usize, StageEcs, Option<AnySendSyncNamedBox>)>);
+pub(super) struct EcsStageBuffer(pub Vec<(&'static str, &'static str, usize, StageEcs, Option<AnySendSyncPremiumBox>)>);
 #[derive(Resource, Default)]
-pub(super) struct EcsWhileStageBuffer(pub Vec<(&'static str, &'static str, usize, StageEcsWhile, Option<AnySendSyncNamedBox>)>);
+pub(super) struct EcsWhileStageBuffer(pub Vec<(&'static str, &'static str, usize, StageEcsWhile, Option<AnySendSyncPremiumBox>)>);
 #[derive(Resource, Default)]
-pub(super) struct RenderStageBuffer(pub Vec<(&'static str, &'static str, usize, StageRender, Option<AnySendSyncNamedBox>)>);
+pub(super) struct RenderStageBuffer(pub Vec<(&'static str, &'static str, usize, StageRender, Option<AnySendSyncPremiumBox>)>);
 #[derive(Resource, Default)]
-pub(super) struct RenderWhileStageBuffer(pub Vec<(&'static str, &'static str, usize, StageRenderWhile, Option<AnySendSyncNamedBox>)>);
+pub(super) struct RenderWhileStageBuffer(pub Vec<(&'static str, &'static str, usize, StageRenderWhile, Option<AnySendSyncPremiumBox>)>);
 #[derive(Resource, Default)]
-pub(super) struct AsyncStageBuffer(pub Vec<(&'static str, &'static str, usize, StageAsync, Option<AnySendSyncNamedBox>)>);
+pub(super) struct AsyncStageBuffer(pub Vec<(&'static str, &'static str, usize, StageAsync, Option<AnySendSyncPremiumBox>)>);
 
 // --- Stage Event Receivers ---
 #[derive(Resource)]

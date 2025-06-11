@@ -516,7 +516,7 @@ impl TypedStage<Ecs> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -529,7 +529,7 @@ impl TypedStage<Ecs> {
                         match result {
                             Ok(output) => {
                                 #stage_output_transmutation
-                                let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::Ecs,
@@ -546,9 +546,9 @@ impl TypedStage<Ecs> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -582,7 +582,7 @@ impl TypedStage<Ecs> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
@@ -594,7 +594,7 @@ impl TypedStage<Ecs> {
 
                             match result {
                                 Ok(output) => {
-                                    let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                    let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::Ecs,
@@ -611,9 +611,9 @@ impl TypedStage<Ecs> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -651,7 +651,7 @@ impl TypedStage<Ecs> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -661,7 +661,7 @@ impl TypedStage<Ecs> {
                         let response = response.expect("Ecs stages with output must have a response");
                         let output: #this_stage_out_type_path = response.into_inner();
                         #stage_output_transmutation
-                        let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                        let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                             ty: crate::workflow::stage::StageType::Ecs,
@@ -683,7 +683,7 @@ impl TypedStage<Ecs> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
@@ -692,7 +692,7 @@ impl TypedStage<Ecs> {
                         | {
                             let response = response.expect("Ecs stages with output and error must have a response");
                             let output: #this_stage_out_type_path = response.into_inner();
-                            let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                            let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                 ty: crate::workflow::stage::StageType::Ecs,
@@ -721,7 +721,7 @@ impl TypedStage<Ecs> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -748,9 +748,9 @@ impl TypedStage<Ecs> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -781,7 +781,7 @@ impl TypedStage<Ecs> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    _response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    _response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -939,7 +939,7 @@ impl TypedStage<Render> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -952,7 +952,7 @@ impl TypedStage<Render> {
                         match result {
                             Ok(output) => {
                                 #stage_output_transmutation
-                                let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::Render,
@@ -969,9 +969,9 @@ impl TypedStage<Render> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1005,7 +1005,7 @@ impl TypedStage<Render> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
@@ -1017,7 +1017,7 @@ impl TypedStage<Render> {
 
                             match result {
                                 Ok(output) => {
-                                    let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                    let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::Render,
@@ -1034,9 +1034,9 @@ impl TypedStage<Render> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -1074,7 +1074,7 @@ impl TypedStage<Render> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -1084,7 +1084,7 @@ impl TypedStage<Render> {
                         let response = response.expect("Render stages with output (last stage) must have a response");
                         let output: #this_stage_out_type_path = response.into_inner();
                         #stage_output_transmutation
-                        let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                        let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                             ty: crate::workflow::stage::StageType::Render,
@@ -1106,7 +1106,7 @@ impl TypedStage<Render> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
@@ -1115,7 +1115,7 @@ impl TypedStage<Render> {
                         | {
                             let response = response.expect("Render stages with output (last stage) must have a response");
                             let output: #this_stage_out_type_path = response.into_inner();
-                            let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                            let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                 ty: crate::workflow::stage::StageType::Render,
@@ -1144,7 +1144,7 @@ impl TypedStage<Render> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -1171,9 +1171,9 @@ impl TypedStage<Render> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1204,7 +1204,7 @@ impl TypedStage<Render> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    _response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    _response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -1362,7 +1362,7 @@ impl TypedStage<Async> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -1375,7 +1375,7 @@ impl TypedStage<Async> {
                         match result {
                             Ok(output) => {
                                 #stage_output_transmutation
-                                let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::Async,
@@ -1392,9 +1392,9 @@ impl TypedStage<Async> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1428,7 +1428,7 @@ impl TypedStage<Async> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
@@ -1440,7 +1440,7 @@ impl TypedStage<Async> {
 
                             match result {
                                 Ok(output) => {
-                                    let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                    let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::Async,
@@ -1457,9 +1457,9 @@ impl TypedStage<Async> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -1497,7 +1497,7 @@ impl TypedStage<Async> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -1507,7 +1507,7 @@ impl TypedStage<Async> {
                         let response = response.expect("Async stages with output must have a response");
                         let output: #this_stage_out_type_path = response.into_inner();
                         #stage_output_transmutation
-                        let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                        let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                             ty: crate::workflow::stage::StageType::Async,
@@ -1529,7 +1529,7 @@ impl TypedStage<Async> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                     | {
@@ -1538,7 +1538,7 @@ impl TypedStage<Async> {
                         | {
                             let response = response.expect("Async stages with output (last stage) must have a response");
                             let output: #this_stage_out_type_path = response.into_inner();
-                            let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                            let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                 ty: crate::workflow::stage::StageType::Async,
@@ -1567,7 +1567,7 @@ impl TypedStage<Async> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -1594,9 +1594,9 @@ impl TypedStage<Async> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1627,7 +1627,7 @@ impl TypedStage<Async> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    _response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    _response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -1788,7 +1788,7 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
                 | {
@@ -1800,7 +1800,7 @@ impl TypedStage<EcsWhile> {
 
                         match result {
                             Ok(state) => {
-                                let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                 if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
@@ -1817,9 +1817,9 @@ impl TypedStage<EcsWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1849,7 +1849,7 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -1858,7 +1858,7 @@ impl TypedStage<EcsWhile> {
                     | {
                         let response = response.expect("EcsWhile stages with state must have a response");
                         let state: #this_stage_state_type_path = response.into_inner();
-                        let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                        let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                         if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
                             ty: crate::workflow::stage::StageType::EcsWhile,
@@ -1881,7 +1881,7 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
                 | {
@@ -1908,9 +1908,9 @@ impl TypedStage<EcsWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1938,7 +1938,7 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    _response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    _response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -1981,7 +1981,7 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -1996,7 +1996,7 @@ impl TypedStage<EcsWhile> {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(state) => {
-                                        let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                        let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                         if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2011,7 +2011,7 @@ impl TypedStage<EcsWhile> {
                                     },
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
-                                        let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                        let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2030,9 +2030,9 @@ impl TypedStage<EcsWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2067,7 +2067,7 @@ impl TypedStage<EcsWhile> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -2082,7 +2082,7 @@ impl TypedStage<EcsWhile> {
                                 Ok(outcome) => {
                                     match outcome {
                                         crate::workflow::types::Outcome::Wait(state) => {
-                                            let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                            let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                             if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                                 ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2096,7 +2096,7 @@ impl TypedStage<EcsWhile> {
                                             }
                                         },
                                         crate::workflow::types::Outcome::Done(output) => {
-                                            let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                            let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                                 ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2115,9 +2115,9 @@ impl TypedStage<EcsWhile> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -2156,7 +2156,7 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -2169,7 +2169,7 @@ impl TypedStage<EcsWhile> {
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(state) => {
-                                let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                 if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2184,7 +2184,7 @@ impl TypedStage<EcsWhile> {
                             },
                             crate::workflow::types::Outcome::Done(output) => {
                                 #stage_output_transmutation
-                                let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2209,7 +2209,7 @@ impl TypedStage<EcsWhile> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -2222,7 +2222,7 @@ impl TypedStage<EcsWhile> {
 
                             match outcome {
                                 crate::workflow::types::Outcome::Wait(state) => {
-                                    let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                    let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                     if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                         ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2236,7 +2236,7 @@ impl TypedStage<EcsWhile> {
                                     }
                                 }
                                 crate::workflow::types::Outcome::Done(output) => {
-                                    let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                    let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2268,7 +2268,7 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -2283,7 +2283,7 @@ impl TypedStage<EcsWhile> {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(state) => {
-                                        let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                        let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                         if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2312,7 +2312,7 @@ impl TypedStage<EcsWhile> {
                             }
                             Err(error) => {
                                 let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2345,7 +2345,7 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -2358,7 +2358,7 @@ impl TypedStage<EcsWhile> {
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(state) => {
-                                let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                 if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2401,7 +2401,7 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -2429,7 +2429,7 @@ impl TypedStage<EcsWhile> {
                                     },
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
-                                        let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                        let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2448,9 +2448,9 @@ impl TypedStage<EcsWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2484,7 +2484,7 @@ impl TypedStage<EcsWhile> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -2511,7 +2511,7 @@ impl TypedStage<EcsWhile> {
                                             }
                                         },
                                         crate::workflow::types::Outcome::Done(output) => {
-                                            let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                            let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                                 ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2530,9 +2530,9 @@ impl TypedStage<EcsWhile> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -2570,7 +2570,7 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -2597,7 +2597,7 @@ impl TypedStage<EcsWhile> {
                             crate::workflow::types::Outcome::Done(_) => {
                                 let output: #this_stage_out_type_path = response.into_inner();
                                 #stage_output_transmutation
-                                let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2621,7 +2621,7 @@ impl TypedStage<EcsWhile> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -2646,7 +2646,7 @@ impl TypedStage<EcsWhile> {
                                     }
                                 }
                                 crate::workflow::types::Outcome::Done(output) => {
-                                    let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                    let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2677,7 +2677,7 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -2718,7 +2718,7 @@ impl TypedStage<EcsWhile> {
                             }
                             Err(error) => {
                                 let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2749,7 +2749,7 @@ impl TypedStage<EcsWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -2944,7 +2944,7 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
                 | {
@@ -2956,7 +2956,7 @@ impl TypedStage<RenderWhile> {
 
                         match result {
                             Ok(state) => {
-                                let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                 if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
@@ -2973,9 +2973,9 @@ impl TypedStage<RenderWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3005,7 +3005,7 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -3016,7 +3016,7 @@ impl TypedStage<RenderWhile> {
                         // TODO: MINOR: Error message below should be "Failed to downcast setup reponse state data", and like `setup response` instead of `response` in general for all setup response handlers
                         let state: #this_stage_state_type_path = response.into_inner();
 
-                        let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                        let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                         if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
                             ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3039,7 +3039,7 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -3066,9 +3066,9 @@ impl TypedStage<RenderWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3096,7 +3096,7 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -3142,7 +3142,7 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -3157,7 +3157,7 @@ impl TypedStage<RenderWhile> {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(state) => {
-                                        let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                        let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                         if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3172,7 +3172,7 @@ impl TypedStage<RenderWhile> {
                                     },
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
-                                        let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                        let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3191,9 +3191,9 @@ impl TypedStage<RenderWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3228,7 +3228,7 @@ impl TypedStage<RenderWhile> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -3243,7 +3243,7 @@ impl TypedStage<RenderWhile> {
                                 Ok(outcome) => {
                                     match outcome {
                                         crate::workflow::types::Outcome::Wait(state) => {
-                                            let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                            let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                             if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                                 ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3257,7 +3257,7 @@ impl TypedStage<RenderWhile> {
                                             }
                                         },
                                         crate::workflow::types::Outcome::Done(output) => {
-                                            let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                            let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                                 ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3276,9 +3276,9 @@ impl TypedStage<RenderWhile> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -3317,7 +3317,7 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -3330,7 +3330,7 @@ impl TypedStage<RenderWhile> {
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(state) => {
-                                let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                 if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3345,7 +3345,7 @@ impl TypedStage<RenderWhile> {
                             },
                             crate::workflow::types::Outcome::Done(output) => {
                                 #stage_output_transmutation
-                                let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3370,7 +3370,7 @@ impl TypedStage<RenderWhile> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -3383,7 +3383,7 @@ impl TypedStage<RenderWhile> {
 
                             match outcome {
                                 crate::workflow::types::Outcome::Wait(state) => {
-                                    let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                    let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                     if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                         ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3397,7 +3397,7 @@ impl TypedStage<RenderWhile> {
                                     }
                                 }
                                 crate::workflow::types::Outcome::Done(output) => {
-                                    let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                    let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3429,7 +3429,7 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -3444,7 +3444,7 @@ impl TypedStage<RenderWhile> {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(state) => {
-                                        let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                        let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                         if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3473,7 +3473,7 @@ impl TypedStage<RenderWhile> {
                             }
                             Err(error) => {
                                 let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3506,7 +3506,7 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -3519,7 +3519,7 @@ impl TypedStage<RenderWhile> {
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(state) => {
-                                let state = Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()));
+                                let state = Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
                                 if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3562,7 +3562,7 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -3590,7 +3590,7 @@ impl TypedStage<RenderWhile> {
                                     },
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
-                                        let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                        let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3609,9 +3609,9 @@ impl TypedStage<RenderWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                 };
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3645,7 +3645,7 @@ impl TypedStage<RenderWhile> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -3672,7 +3672,7 @@ impl TypedStage<RenderWhile> {
                                             }
                                         },
                                         crate::workflow::types::Outcome::Done(output) => {
-                                            let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                            let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                             if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                                 ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3691,9 +3691,9 @@ impl TypedStage<RenderWhile> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::debug::types::AnySendSyncNamedBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::debug::types::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -3731,7 +3731,7 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -3758,7 +3758,7 @@ impl TypedStage<RenderWhile> {
                             crate::workflow::types::Outcome::Done(_) => {
                                 let output: #this_stage_out_type_path = response.into_inner();
                                 #stage_output_transmutation
-                                let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3782,7 +3782,7 @@ impl TypedStage<RenderWhile> {
                     quote! { Box::new(|
                         module_name: &'static str,
                         workflow_name: &'static str,
-                        response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                        response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                         wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                         completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                         _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
@@ -3807,7 +3807,7 @@ impl TypedStage<RenderWhile> {
                                     }
                                 }
                                 crate::workflow::types::Outcome::Done(output) => {
-                                    let output = Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()));
+                                    let output = Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()));
 
                                     if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                         ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3838,7 +3838,7 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
                 | {
@@ -3879,7 +3879,7 @@ impl TypedStage<RenderWhile> {
                             }
                             Err(error) => {
                                 let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(crate::debug::types::AnySendSyncNamedBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::debug::types::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3910,7 +3910,7 @@ impl TypedStage<RenderWhile> {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
-                    response: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    response: Option<crate::debug::types::AnySendSyncPremiumBox>,
                     wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
                     completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
                     _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>

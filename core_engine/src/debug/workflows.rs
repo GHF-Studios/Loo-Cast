@@ -22,7 +22,7 @@ define_workflow_mod_OLD! {
                     movement: DebugObjectMovement,
                 ) -> Entity {
                     let chunk_loader = ChunkLoader::new(chunk_loader_id);
-                    
+
                     commands.entity(chunk_loader.chunk_owner_id().entity()).insert((
                         ChunkActor,
                         chunk_loader,

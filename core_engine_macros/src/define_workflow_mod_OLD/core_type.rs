@@ -696,7 +696,7 @@ impl CoreTypes<Ecs> {
                 workflow_name: &'static str,
                 stage_index: usize,
                 stage: crate::workflow::stage::StageEcs,
-                stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
             }
             impl crate::FillWorkflowStageEcsBufferEventMarker for FillWorkflowStageEcsBufferEvent {}
 
@@ -723,7 +723,7 @@ impl CoreTypes<Ecs> {
                     self.stage_index
                 }
 
-                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageEcs, stage_buffer: Option<crate::debug::types::AnySendSyncNamedBox>) {
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageEcs, stage_buffer: Option<crate::debug::types::AnySendSyncPremiumBox>) {
                     let event = FillWorkflowStageEcsBufferEvent {
                         module_name,
                         workflow_name,
@@ -751,7 +751,7 @@ impl CoreTypes<Ecs> {
                     workflow_name: &'static str,
                     stage_index: usize,
                     stage: crate::workflow::stage::StageEcs,
-                    stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
                 }
             }
             impl StageBuffer {
@@ -761,7 +761,7 @@ impl CoreTypes<Ecs> {
                     workflow_name: &'static str,
                     stage_index: usize,
                     stage: crate::workflow::stage::StageEcs,
-                    stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
                 ) {
                     match std::mem::take(self) {
                         StageBuffer::None => {
@@ -784,7 +784,7 @@ impl CoreTypes<Ecs> {
                     &'static str,
                     usize,
                     crate::workflow::stage::StageEcs,
-                    Option<crate::debug::types::AnySendSyncNamedBox>,
+                    Option<crate::debug::types::AnySendSyncPremiumBox>,
                 ) {
                     match std::mem::take(self) {
                         StageBuffer::None => {
@@ -885,7 +885,7 @@ impl CoreTypes<Render> {
                 workflow_name: &'static str,
                 stage_index: usize,
                 stage: crate::workflow::stage::StageRender,
-                stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
             }
             impl crate::FillWorkflowStageRenderBufferEventMarker for FillWorkflowStageRenderBufferEvent {}
 
@@ -912,7 +912,7 @@ impl CoreTypes<Render> {
                     self.stage_index
                 }
 
-                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageRender, stage_buffer: Option<crate::debug::types::AnySendSyncNamedBox>) {
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageRender, stage_buffer: Option<crate::debug::types::AnySendSyncPremiumBox>) {
                     let event = FillWorkflowStageRenderBufferEvent {
                         module_name,
                         workflow_name,
@@ -940,7 +940,7 @@ impl CoreTypes<Render> {
                     workflow_name: &'static str,
                     stage_index: usize,
                     stage: crate::workflow::stage::StageRender,
-                    stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
                 }
             }
             impl StageBuffer {
@@ -950,7 +950,7 @@ impl CoreTypes<Render> {
                     workflow_name: &'static str,
                     stage_index: usize,
                     stage: crate::workflow::stage::StageRender,
-                    stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
                 ) {
                     match std::mem::take(self) {
                         StageBuffer::None => {
@@ -973,7 +973,7 @@ impl CoreTypes<Render> {
                     &'static str,
                     usize,
                     crate::workflow::stage::StageRender,
-                    Option<crate::debug::types::AnySendSyncNamedBox>,
+                    Option<crate::debug::types::AnySendSyncPremiumBox>,
                 ) {
                     match std::mem::take(self) {
                         StageBuffer::None => {
@@ -1074,7 +1074,7 @@ impl CoreTypes<Async> {
                 workflow_name: &'static str,
                 stage_index: usize,
                 stage: crate::workflow::stage::StageAsync,
-                stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
             }
             impl crate::FillWorkflowStageAsyncBufferEventMarker for FillWorkflowStageAsyncBufferEvent {}
 
@@ -1101,7 +1101,7 @@ impl CoreTypes<Async> {
                     self.stage_index
                 }
 
-                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageAsync, stage_buffer: Option<crate::debug::types::AnySendSyncNamedBox>) {
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageAsync, stage_buffer: Option<crate::debug::types::AnySendSyncPremiumBox>) {
                     let event = FillWorkflowStageAsyncBufferEvent {
                         module_name,
                         workflow_name,
@@ -1129,7 +1129,7 @@ impl CoreTypes<Async> {
                     workflow_name: &'static str,
                     stage_index: usize,
                     stage: crate::workflow::stage::StageAsync,
-                    stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
                 }
             }
             impl StageBuffer {
@@ -1139,7 +1139,7 @@ impl CoreTypes<Async> {
                     workflow_name: &'static str,
                     stage_index: usize,
                     stage: crate::workflow::stage::StageAsync,
-                    stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
                 ) {
                     match std::mem::take(self) {
                         StageBuffer::None => {
@@ -1162,7 +1162,7 @@ impl CoreTypes<Async> {
                     &'static str,
                     usize,
                     crate::workflow::stage::StageAsync,
-                    Option<crate::debug::types::AnySendSyncNamedBox>,
+                    Option<crate::debug::types::AnySendSyncPremiumBox>,
                 ) {
                     match std::mem::take(self) {
                         StageBuffer::None => {
@@ -1263,7 +1263,7 @@ impl CoreTypes<EcsWhile> {
                 workflow_name: &'static str,
                 stage_index: usize,
                 stage: crate::workflow::stage::StageEcsWhile,
-                stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
             }
             impl crate::FillWorkflowStageEcsWhileBufferEventMarker for FillWorkflowStageEcsWhileBufferEvent {}
 
@@ -1290,7 +1290,7 @@ impl CoreTypes<EcsWhile> {
                     self.stage_index
                 }
 
-                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageEcsWhile, stage_buffer: Option<crate::debug::types::AnySendSyncNamedBox>) {
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageEcsWhile, stage_buffer: Option<crate::debug::types::AnySendSyncPremiumBox>) {
                     let event = FillWorkflowStageEcsWhileBufferEvent {
                         module_name,
                         workflow_name,
@@ -1318,7 +1318,7 @@ impl CoreTypes<EcsWhile> {
                     workflow_name: &'static str,
                     stage_index: usize,
                     stage: crate::workflow::stage::StageEcsWhile,
-                    stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
                 }
             }
             impl StageBuffer {
@@ -1328,7 +1328,7 @@ impl CoreTypes<EcsWhile> {
                     workflow_name: &'static str,
                     stage_index: usize,
                     stage: crate::workflow::stage::StageEcsWhile,
-                    stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
                 ) {
                     match std::mem::take(self) {
                         StageBuffer::None => {
@@ -1351,7 +1351,7 @@ impl CoreTypes<EcsWhile> {
                     &'static str,
                     usize,
                     crate::workflow::stage::StageEcsWhile,
-                    Option<crate::debug::types::AnySendSyncNamedBox>,
+                    Option<crate::debug::types::AnySendSyncPremiumBox>,
                 ) {
                     match std::mem::take(self) {
                         StageBuffer::None => {
@@ -1481,7 +1481,7 @@ impl CoreTypes<RenderWhile> {
                 workflow_name: &'static str,
                 stage_index: usize,
                 stage: crate::workflow::stage::StageRenderWhile,
-                stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
             }
             impl crate::FillWorkflowStageRenderWhileBufferEventMarker for FillWorkflowStageRenderWhileBufferEvent {}
 
@@ -1508,7 +1508,7 @@ impl CoreTypes<RenderWhile> {
                     self.stage_index
                 }
 
-                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageRenderWhile, stage_buffer: Option<crate::debug::types::AnySendSyncNamedBox>) {
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageRenderWhile, stage_buffer: Option<crate::debug::types::AnySendSyncPremiumBox>) {
                     let event = FillWorkflowStageRenderWhileBufferEvent {
                         module_name,
                         workflow_name,
@@ -1549,7 +1549,7 @@ impl CoreTypes<RenderWhile> {
                     workflow_name: &'static str,
                     stage_index: usize,
                     stage: crate::workflow::stage::StageRenderWhile,
-                    stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
                 }
             }
             impl StageBuffer {
@@ -1559,7 +1559,7 @@ impl CoreTypes<RenderWhile> {
                     workflow_name: &'static str,
                     stage_index: usize,
                     stage: crate::workflow::stage::StageRenderWhile,
-                    stage_data: Option<crate::debug::types::AnySendSyncNamedBox>,
+                    stage_data: Option<crate::debug::types::AnySendSyncPremiumBox>,
                 ) {
                     match std::mem::take(self) {
                         StageBuffer::None => {
@@ -1582,7 +1582,7 @@ impl CoreTypes<RenderWhile> {
                     &'static str,
                     usize,
                     crate::workflow::stage::StageRenderWhile,
-                    Option<crate::debug::types::AnySendSyncNamedBox>,
+                    Option<crate::debug::types::AnySendSyncPremiumBox>,
                 ) {
                     match std::mem::take(self) {
                         StageBuffer::None => {

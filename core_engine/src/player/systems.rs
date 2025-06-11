@@ -2,7 +2,10 @@ use bevy::prelude::*;
 use core_engine_macros::{composite_workflow, composite_workflow_return};
 
 use crate::{
-    chunk_loader::components::ChunkLoader, config::statics::CONFIG, player::types::PlayerLifecycle, utils::{InitHook, DropHook},
+    chunk_loader::components::ChunkLoader,
+    config::statics::CONFIG,
+    player::types::PlayerLifecycle,
+    utils::{DropHook, InitHook},
     workflow::functions::handle_composite_workflow_return_now,
 };
 
@@ -10,7 +13,7 @@ pub(super) fn update_player_system(
     chunk_loader_init_hook_query: Query<(&ChunkLoader, &InitHook<ChunkLoader>)>,
     chunk_loader_drop_hook_query: Query<(&ChunkLoader, &DropHook<ChunkLoader>)>,
     mut transform_query: Query<&mut Transform>,
-    mut player_state: ResMut<PlayerLifecycle>,
+    mut player_state_resource: ResMut<PlayerLifecycle>,
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
@@ -25,7 +28,9 @@ pub(super) fn update_player_system(
         condition_1 && condition_2
     };
 
-    match *player_state {
+    let player_state = std::mem::take(&mut *player_state_resource);
+
+    match player_state {
         PlayerLifecycle::None => {
             if is_player_input_allowed && keys.just_pressed(KeyCode::Space) {
                 let handle = composite_workflow!(move out entity: Entity, {
@@ -33,30 +38,36 @@ pub(super) fn update_player_system(
                     let entity = spawn_player_output.player_entity;
                 });
 
-                *player_state = PlayerLifecycle::Spawning(Some(handle));
+                *player_state_resource = PlayerLifecycle::Spawning(Some(handle));
             }
         }
-        PlayerLifecycle::Spawning(ref mut handle) => {
-            if handle.as_ref().unwrap().is_finished() {
-                let handle = handle.take().unwrap();
+        PlayerLifecycle::Spawning(handle) => {
+            if let Some(handle) = handle {
+                if !handle.is_finished() {
+                    return;
+                }
+
                 handle_composite_workflow_return_now(handle, |ctx| {
                     composite_workflow_return!(entity: Entity);
-                    *player_state = PlayerLifecycle::PendingActivation(entity);
+                    *player_state_resource = PlayerLifecycle::PendingActivation(entity);
                 });
             }
         }
-        PlayerLifecycle::Despawning(ref mut handle) => {
-            if handle.as_ref().unwrap().is_finished() {
-                let handle = handle.take().unwrap();
+        PlayerLifecycle::Despawning(handle) => {
+            if let Some(handle) = handle {
+                if !handle.is_finished() {
+                    return;
+                }
+
                 handle_composite_workflow_return_now(handle, |_ctx| {
                     composite_workflow_return!();
-                    *player_state = PlayerLifecycle::None;
+                    *player_state_resource = PlayerLifecycle::None;
                 });
             }
         }
         PlayerLifecycle::PendingActivation(entity) => {
             if transform_query.contains(entity) {
-                *player_state = PlayerLifecycle::Active(entity);
+                *player_state_resource = PlayerLifecycle::Active(entity);
             }
         }
         PlayerLifecycle::Active(entity) => {
@@ -68,7 +79,7 @@ pub(super) fn update_player_system(
                 let handle = composite_workflow!({
                     workflow!(E, Player::DespawnPlayer);
                 });
-                *player_state = PlayerLifecycle::Despawning(Some(handle));
+                *player_state_resource = PlayerLifecycle::Despawning(Some(handle));
                 return;
             }
 
@@ -100,7 +111,7 @@ pub(super) fn update_player_system(
                 }
             } else {
                 // Entity not found? Maybe it was deleted outside this system.
-                *player_state = PlayerLifecycle::None;
+                *player_state_resource = PlayerLifecycle::None;
                 warn!("Player entity not found in update_player_system. The player entity should not be manually despawned! Resetting player state..",);
             }
         }

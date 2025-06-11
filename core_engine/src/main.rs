@@ -8,6 +8,7 @@ use bevy_egui::EguiPlugin;
 use bevy_rapier2d::prelude::*;
 use core_engine::*;
 use iyes_perf_ui::prelude::*;
+use tracing_subscriber::fmt::format::FmtSpan;
 
 const ENABLE_BACKTRACE: bool = true;
 const REROUTE_LOGS_TO_FILE: bool = false;
@@ -30,7 +31,12 @@ fn main() {
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
         // Configure the logger
-        tracing_subscriber::fmt().with_env_filter(LOG_FILTER).with_writer(non_blocking).init();
+        tracing_subscriber::fmt()
+            .with_env_filter(LOG_FILTER)
+            .with_writer(non_blocking)
+            .with_span_events(FmtSpan::CLOSE)
+            .with_ansi(true)
+            .init();
     } else {
         bevy_plugins = bevy_plugins.set(LogPlugin {
             filter: LOG_FILTER.into(),

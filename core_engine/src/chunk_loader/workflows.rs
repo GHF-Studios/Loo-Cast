@@ -96,9 +96,7 @@ define_workflow_mod_OLD! {
                                     });
                                 }
 
-                                debug!(
-                                    "Ran CategorizeChunks for {:?}", chunk_owner_id.id()
-                                );
+                                //debug!("Ran CategorizeChunks for {:?}", chunk_owner_id.id());
                             }
 
                             Output { load_chunk_inputs, unload_chunk_inputs }
@@ -172,7 +170,7 @@ define_workflow_mod_OLD! {
                                 });
                             }
 
-                            debug!("Ran OnRemoveChunkLoader for {:?} with # of unload targets: {}", chunk_owner_id.id(), unload_chunk_inputs.len());
+                            //debug!("Ran OnRemoveChunkLoader for {:?} with # of unload targets: {}", chunk_owner_id.id(), unload_chunk_inputs.len());
 
                             Output { unload_chunk_inputs }
                         }
@@ -257,7 +255,7 @@ define_workflow_mod_OLD! {
                             for input in input.inputs {
                                 let owner_id = input.owner_id;
                                 let coord = input.chunk_coord;
-                                
+
                                 affected_owners.insert(owner_id.clone());
 
                                 let is_loaded = chunk_manager.is_loaded(&coord);
@@ -300,10 +298,10 @@ define_workflow_mod_OLD! {
                                     ResolvedActionIntent::PushCommit(action) => match action.clone() {
                                         ActionIntent::Spawn { owner_id, .. } => {
                                             action_intent_commit_buffer.commit_intent(action);
-                                            spawn_chunk_states.push(SpawnChunkState { 
-                                                coord, 
-                                                owner_id, 
-                                                is_spawned: false 
+                                            spawn_chunk_states.push(SpawnChunkState {
+                                                coord,
+                                                owner_id,
+                                                is_spawned: false
                                             });
                                         }
                                         ActionIntent::TransferOwnership { new_owner_id, .. } => {
@@ -343,7 +341,7 @@ define_workflow_mod_OLD! {
                             }
 
                             for affected_owner in affected_owners {
-                                debug!("Setup LoadChunks for {:?}", affected_owner.id());
+                                //debug!("Setup LoadChunks for {:?}", affected_owner.id());
                             }
 
                             State {
@@ -377,7 +375,7 @@ define_workflow_mod_OLD! {
                             if is_done {
                                 let loaded_chunks_count = spawn_chunk_states.len() + transfer_chunk_ownership_states.len();
                                 if loaded_chunks_count != 0 {
-                                    debug!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
+                                    //debug!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
                                 }
 
                                 Outcome::Done(())
@@ -476,7 +474,7 @@ define_workflow_mod_OLD! {
                                 let coord = input.chunk_coord;
                                 let distance_squared = input.chunk_loader_distance_squared;
                                 let radius_squared = input.chunk_loader_radius_squared;
-                                
+
                                 affected_owners.insert(owner_id.clone());
 
                                 let is_loaded = chunk_manager.is_loaded(&coord);
@@ -573,7 +571,7 @@ define_workflow_mod_OLD! {
                             }
 
                             for affected_owner in affected_owners {
-                                debug!("Setup UnloadChunks for {:?}", affected_owner.id());
+                                //debug!("Setup UnloadChunks for {:?}", affected_owner.id());
                             }
 
                             State {
@@ -607,7 +605,7 @@ define_workflow_mod_OLD! {
                             if is_done {
                                 let unloaded_chunks_count = despawn_chunk_states.len() + transfer_chunk_ownership_states.len();
                                 if unloaded_chunks_count != 0 {
-                                    debug!("Ran UnloadChunks for # of chunks: {}", unloaded_chunks_count);
+                                    //debug!("Ran UnloadChunks for # of chunks: {}", unloaded_chunks_count);
                                 }
 
                                 Outcome::Done(())

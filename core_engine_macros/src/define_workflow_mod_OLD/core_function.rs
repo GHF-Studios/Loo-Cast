@@ -374,7 +374,7 @@ impl CoreFunction {
             CoreFunctionType::RunEcs { .. } => match (has_input, has_output, has_error) {
                 (false, false, false) => {
                     quote! {
-                        fn run_ecs(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             run_ecs_inner(main_access);
                             None
                         }
@@ -384,9 +384,9 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        fn run_ecs(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let result = run_ecs_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_inner(main_access: MainAccess) -> Result<(), Error> #body
@@ -394,9 +394,9 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        fn run_ecs(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let output = run_ecs_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()))
                         }
 
                         fn run_ecs_inner(main_access: MainAccess) -> Output #body
@@ -404,9 +404,9 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        fn run_ecs(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let result = run_ecs_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_inner(main_access: MainAccess) -> Result<Output, Error> #body
@@ -414,7 +414,7 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        fn run_ecs(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs(input: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             run_ecs_inner(input, main_access);
                             None
@@ -425,10 +425,10 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        fn run_ecs(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs(input: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let result = run_ecs_inner(input, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_inner(input: Input, main_access: MainAccess) -> Result<(), Error> #body
@@ -436,10 +436,10 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        fn run_ecs(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs(input: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let output = run_ecs_inner(input, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()))
                         }
 
                         fn run_ecs_inner(input: Input, main_access: MainAccess) -> Output #body
@@ -447,10 +447,10 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        fn run_ecs(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs(input: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let result = run_ecs_inner(input, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_inner(input: Input, main_access: MainAccess) -> Result<Output, Error> #body
@@ -460,7 +460,7 @@ impl CoreFunction {
             CoreFunctionType::RunRender { .. } => match (has_input, has_output, has_error) {
                 (false, false, false) => {
                     quote! {
-                        fn run_render(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             run_render_inner(render_access);
                             None
                         }
@@ -470,9 +470,9 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        fn run_render(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let result = run_render_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_inner(render_access: RenderAccess) -> Result<(), Error> #body
@@ -480,9 +480,9 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        fn run_render(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let output = run_render_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()))
                         }
 
                         fn run_render_inner(render_access: RenderAccess) -> Output #body
@@ -490,9 +490,9 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        fn run_render(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let result = run_render_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_inner(render_access: RenderAccess) -> Result<Output, Error> #body
@@ -500,7 +500,7 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        fn run_render(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render(input: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             run_render_inner(input, render_access);
                             None
@@ -511,10 +511,10 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        fn run_render(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render(input: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let result = run_render_inner(input, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_inner(input: Input, render_access: RenderAccess) -> Result<(), Error> #body
@@ -522,10 +522,10 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        fn run_render(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render(input: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let output = run_render_inner(input, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()))
                         }
 
                         fn run_render_inner(input: Input, render_access: RenderAccess) -> Output #body
@@ -533,10 +533,10 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        fn run_render(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render(input: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let result = run_render_inner(input, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_inner(input: Input, render_access: RenderAccess) -> Result<Output, Error> #body
@@ -546,7 +546,7 @@ impl CoreFunction {
             CoreFunctionType::RunAsync { .. } => match (has_input, has_output, has_error) {
                 (false, false, false) => {
                     quote! {
-                        fn run_async() -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_async() -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             run_async_inner();
                             None
                         }
@@ -556,9 +556,9 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        fn run_async() -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_async() -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let result = run_async_inner();
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_async_inner() -> Result<(), Error> #body
@@ -566,9 +566,9 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        fn run_async() -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_async() -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let output = run_async_inner();
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()))
                         }
 
                         fn run_async_inner() -> Output #body
@@ -576,9 +576,9 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        fn run_async() -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_async() -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let result = run_async_inner();
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_async_inner() -> Result<Output, Error> #body
@@ -586,7 +586,7 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        fn run_async(input: Option<crate::debug::types::AnySendSyncNamedBox>) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_async(input: Option<crate::debug::types::AnySendSyncPremiumBox>) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             run_async_inner(input);
                             None
@@ -597,10 +597,10 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        fn run_async(input: Option<crate::debug::types::AnySendSyncNamedBox>) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_async(input: Option<crate::debug::types::AnySendSyncPremiumBox>) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let result = run_async_inner(input);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_async_inner(input: Input) -> Result<(), Error> #body
@@ -608,10 +608,10 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        fn run_async(input: Option<crate::debug::types::AnySendSyncNamedBox>) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_async(input: Option<crate::debug::types::AnySendSyncPremiumBox>) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let output = run_async_inner(input);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(output, #output_type_name.to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(output, #output_type_name.to_string()))
                         }
 
                         fn run_async_inner(input: Input) -> Output #body
@@ -619,10 +619,10 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        fn run_async(input: Option<crate::debug::types::AnySendSyncNamedBox>) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_async(input: Option<crate::debug::types::AnySendSyncPremiumBox>) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let result = run_async_inner(input);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_async_inner(input: Input) -> Result<Output, Error> #body
@@ -632,7 +632,7 @@ impl CoreFunction {
             CoreFunctionType::SetupEcsWhile { .. } => match (has_input, has_state, has_error) {
                 (false, false, false) => {
                     quote! {
-                        fn setup_ecs_while(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_ecs_while(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             setup_ecs_while_inner(main_access);
                             None
                         }
@@ -642,9 +642,9 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        fn setup_ecs_while(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_ecs_while(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let result = setup_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_ecs_while_inner(main_access: MainAccess) -> Result<(), Error> #body
@@ -652,9 +652,9 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        fn setup_ecs_while(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_ecs_while(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let state = setup_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()))
                         }
 
                         fn setup_ecs_while_inner(main_access: MainAccess) -> State #body
@@ -662,9 +662,9 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        fn setup_ecs_while(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_ecs_while(main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let result = setup_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_ecs_while_inner(main_access: MainAccess) -> Result<State, Error> #body
@@ -672,7 +672,7 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        fn setup_ecs_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_ecs_while(input: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             setup_ecs_while_inner(input, main_access);
                             None
@@ -683,10 +683,10 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        fn setup_ecs_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_ecs_while(input: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let result = setup_ecs_while_inner(input, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_ecs_while_inner(input: Input, main_access: MainAccess) -> Result<(), Error> #body
@@ -694,10 +694,10 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        fn setup_ecs_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_ecs_while(input: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let state = setup_ecs_while_inner(input, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()))
                         }
 
                         fn setup_ecs_while_inner(input: Input, main_access: MainAccess) -> State #body
@@ -705,10 +705,10 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        fn setup_ecs_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_ecs_while(input: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let result = setup_ecs_while_inner(input, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_ecs_while_inner(input: Input, main_access: MainAccess) -> Result<State, Error> #body
@@ -718,7 +718,7 @@ impl CoreFunction {
             CoreFunctionType::SetupRenderWhile { .. } => match (has_input, has_state, has_error) {
                 (false, false, false) => {
                     quote! {
-                        fn setup_render_while(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_render_while(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             setup_render_while_inner(render_access);
                             None
                         }
@@ -728,9 +728,9 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        fn setup_render_while(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_render_while(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let result = setup_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_render_while_inner(render_access: RenderAccess) -> Result<(), Error> #body
@@ -738,9 +738,9 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        fn setup_render_while(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_render_while(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let state = setup_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()))
                         }
 
                         fn setup_render_while_inner(render_access: RenderAccess) -> State #body
@@ -748,9 +748,9 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        fn setup_render_while(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_render_while(render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let result = setup_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_render_while_inner(render_access: RenderAccess) -> Result<State, Error> #body
@@ -758,7 +758,7 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        fn setup_render_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_render_while(input: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             setup_render_while_inner(input, render_access);
                             None
@@ -769,10 +769,10 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        fn setup_render_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_render_while(input: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let result = setup_render_while_inner(input, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_render_while_inner(input: Input, render_access: RenderAccess) -> Result<(), Error> #body
@@ -780,10 +780,10 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        fn setup_render_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_render_while(input: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let state = setup_render_while_inner(input, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(state, #state_type_name.to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()))
                         }
 
                         fn setup_render_while_inner(input: Input, render_access: RenderAccess) -> State #body
@@ -792,10 +792,10 @@ impl CoreFunction {
                 (true, true, true) => {
                     quote! {
                         // TODO: MINOR: POINTER: Setup functions' responses (and data in general) do not need to be optional at all
-                        fn setup_render_while(input: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn setup_render_while(input: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let input = input.unwrap().into_inner::<Input>();
                             let result = setup_render_while_inner(input, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn setup_render_while_inner(input: Input, render_access: RenderAccess) -> Result<State, Error> #body
@@ -805,9 +805,9 @@ impl CoreFunction {
             CoreFunctionType::RunEcsWhile { .. } => match (has_state, has_output, has_error) {
                 (false, false, false) => {
                     quote! {
-                        fn run_ecs_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs_while(_state: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let outcome = run_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<(), ()>").to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome, format!("Outcome<(), ()>").to_string()))
                         }
 
                         fn run_ecs_while_inner(main_access: MainAccess) -> Outcome<(), ()> #body
@@ -815,9 +815,9 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        fn run_ecs_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs_while(_state: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let outcome_result = run_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<(), ()>, {}>", #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<(), ()>, {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(main_access: MainAccess) -> Result<Outcome<(), ()>, Error> #body
@@ -825,9 +825,9 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        fn run_ecs_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs_while(_state: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let outcome = run_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<(), {}>", #output_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome, format!("Outcome<(), {}>", #output_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(main_access: MainAccess) -> Outcome<(), Output> #body
@@ -835,9 +835,9 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        fn run_ecs_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs_while(_state: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let outcome_result = run_ecs_while_inner(main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<(), {}>, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<(), {}>, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(main_access: MainAccess) -> Result<Outcome<(), Output>, Error> #body
@@ -845,10 +845,10 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        fn run_ecs_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs_while(state: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let state = state.unwrap().into_inner::<State>();
                             let outcome = run_ecs_while_inner(state, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<{}, ()>", #state_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome, format!("Outcome<{}, ()>", #state_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(state: State, main_access: MainAccess) -> Outcome<State, ()> #body
@@ -856,10 +856,10 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        fn run_ecs_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs_while(state: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_ecs_while_inner(state, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<{}, ()>, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<{}, ()>, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(state: State, main_access: MainAccess) -> Result<Outcome<State, ()>, Error> #body
@@ -867,10 +867,10 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        fn run_ecs_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs_while(state: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let state = state.unwrap().into_inner::<State>();
                             let outcome = run_ecs_while_inner(state, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<{}, {}>", #state_type_name.to_string(), #output_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome, format!("Outcome<{}, {}>", #state_type_name.to_string(), #output_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(state: State, main_access: MainAccess) -> Outcome<State, Output> #body
@@ -878,10 +878,10 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        fn run_ecs_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_ecs_while(state: Option<crate::debug::types::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_ecs_while_inner(state, main_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<{}, {}>, {}>", #state_type_name.to_string(), #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<{}, {}>, {}>", #state_type_name.to_string(), #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_ecs_while_inner(state: State, main_access: MainAccess) -> Result<Outcome<State, Output>, Error> #body
@@ -891,9 +891,9 @@ impl CoreFunction {
             CoreFunctionType::RunRenderWhile { .. } => match (has_state, has_output, has_error) {
                 (false, false, false) => {
                     quote! {
-                        fn run_render_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render_while(_state: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let outcome = run_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<(), ()>").to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome, format!("Outcome<(), ()>").to_string()))
                         }
 
                         fn run_render_while_inner(render_access: RenderAccess) -> Outcome<(), ()> #body
@@ -901,9 +901,9 @@ impl CoreFunction {
                 }
                 (false, false, true) => {
                     quote! {
-                        fn run_render_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render_while(_state: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let outcome_result = run_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<(), ()>, {}>", #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<(), ()>, {}>", #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(render_access: RenderAccess) -> Result<Outcome<(), ()>, Error> #body
@@ -911,9 +911,9 @@ impl CoreFunction {
                 }
                 (false, true, false) => {
                     quote! {
-                        fn run_render_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render_while(_state: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let outcome = run_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<(), {}>", #output_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome, format!("Outcome<(), {}>", #output_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(render_access: RenderAccess) -> Outcome<(), Output> #body
@@ -921,9 +921,9 @@ impl CoreFunction {
                 }
                 (false, true, true) => {
                     quote! {
-                        fn run_render_while(_state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render_while(_state: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let outcome_result = run_render_while_inner(render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<(), {}>, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<(), {}>, {}>", #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(render_access: RenderAccess) -> Result<Outcome<(), Output>, Error> #body
@@ -931,10 +931,10 @@ impl CoreFunction {
                 }
                 (true, false, false) => {
                     quote! {
-                        fn run_render_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render_while(state: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let state = state.unwrap().into_inner::<State>();
                             let outcome = run_render_while_inner(state, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<{}, ()>", #state_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome, format!("Outcome<{}, ()>", #state_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(state: State, render_access: RenderAccess) -> Outcome<State, ()> #body
@@ -942,10 +942,10 @@ impl CoreFunction {
                 }
                 (true, false, true) => {
                     quote! {
-                        fn run_render_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render_while(state: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_render_while_inner(state, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<{}, ()>, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<{}, ()>, {}>", #state_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(state: State, render_access: RenderAccess) -> Result<Outcome<State, ()>, Error> #body
@@ -953,10 +953,10 @@ impl CoreFunction {
                 }
                 (true, true, false) => {
                     quote! {
-                        fn run_render_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render_while(state: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let state = state.unwrap().into_inner::<State>();
                             let outcome = run_render_while_inner(state, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome, format!("Outcome<{}, {}>", #state_type_name.to_string(), #output_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome, format!("Outcome<{}, {}>", #state_type_name.to_string(), #output_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(state: State, render_access: RenderAccess) -> Outcome<State, Output> #body
@@ -964,10 +964,10 @@ impl CoreFunction {
                 }
                 (true, true, true) => {
                     quote! {
-                        fn run_render_while(state: Option<crate::debug::types::AnySendSyncNamedBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncNamedBox> {
+                        fn run_render_while(state: Option<crate::debug::types::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::debug::types::AnySendSyncPremiumBox> {
                             let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_render_while_inner(state, render_access);
-                            Some(crate::debug::types::AnySendSyncNamedBox::new(outcome_result, format!("Result<Outcome<{}, {}>, {}>", #state_type_name.to_string(), #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
+                            Some(crate::debug::types::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<{}, {}>, {}>", #state_type_name.to_string(), #output_type_name.to_string(), #error_type_name.to_string()).to_string()))
                         }
 
                         fn run_render_while_inner(state: State, render_access: RenderAccess) -> Result<Outcome<State, Output>, Error> #body
