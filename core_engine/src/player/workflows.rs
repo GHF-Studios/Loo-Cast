@@ -58,8 +58,10 @@ define_workflow_mod_OLD! {
                             let mut commands = main_access.commands;
 
                             if commands.get_entity(state.player_entity).is_some() {
+                                bevy::prelude::debug!("Player entity is ready: {:?}", state.player_entity);
                                 Ok(Done(Output { player_entity: state.player_entity }))
                             } else {
+                                bevy::prelude::debug!("Player entity is not ready yet: {:?}", state.player_entity);
                                 Ok(Wait(state))
                             }
                         }

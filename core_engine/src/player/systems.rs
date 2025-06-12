@@ -39,17 +39,20 @@ pub(super) fn update_player_system(
                 });
 
                 *player_state_resource = PlayerLifecycle::Spawning(Some(handle));
+                info!("Player entity is being spawned.");
             }
         }
         PlayerLifecycle::Spawning(handle) => {
             if let Some(handle) = handle {
                 if !handle.is_finished() {
+                    info!("Player entity is still spawning, waiting for completion.");
                     return;
                 }
 
                 handle_composite_workflow_return_now(handle, |ctx| {
                     composite_workflow_return!(entity: Entity);
                     *player_state_resource = PlayerLifecycle::PendingActivation(entity);
+                    info!("Player entity has been spawned: {:?}", entity);
                 });
             }
         }
@@ -62,16 +65,19 @@ pub(super) fn update_player_system(
                 handle_composite_workflow_return_now(handle, |_ctx| {
                     composite_workflow_return!();
                     *player_state_resource = PlayerLifecycle::None;
+                info!("Player entity has been despawned.");
                 });
             }
         }
         PlayerLifecycle::PendingActivation(entity) => {
             if transform_query.contains(entity) {
                 *player_state_resource = PlayerLifecycle::Active(entity);
+                info!("Player entity is now active: {:?}", entity);
             }
         }
         PlayerLifecycle::Active(entity) => {
             if !is_player_input_allowed {
+                warn!("Player input is not allowed at this time. The player entity will not be updated.");
                 return;
             }
 
@@ -80,6 +86,7 @@ pub(super) fn update_player_system(
                     workflow!(E, Player::DespawnPlayer);
                 });
                 *player_state_resource = PlayerLifecycle::Despawning(Some(handle));
+                info!("Player entity is being despawned.");
                 return;
             }
 

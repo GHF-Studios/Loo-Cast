@@ -2,7 +2,7 @@ use std::any::Any;
 use std::panic::Location;
 use bevy::prelude::info;
 
-const SUCCESS_INFO_LOGGING: bool = true;
+const SUCCESS_INFO_LOGGING: bool = false;
 
 pub struct AnySendPremiumBox {
     name: String,
