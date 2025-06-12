@@ -1,5 +1,8 @@
 use std::any::Any;
 use std::panic::Location;
+use bevy::prelude::info;
+
+const SUCCESS_INFO_LOGGING: bool = true;
 
 pub struct AnySendPremiumBox {
     name: String,
@@ -22,18 +25,30 @@ impl AnySendPremiumBox {
         let src_call_site = self.src_call_site;
         let dest_call_site = Location::caller();
         
-        *self
+        let inner = *self
             .inner
             .downcast()
             .unwrap_or_else(|_| {
-                unreachable!(
-                    "Failed to downcast AnySendPremiumBox(SRC '{}' -> DEST '{}') from SrcType '{}' to DestType '{}'",
+                panic!(
+                    "Failed to downcast AnySendPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
                     src_call_site,
-                    dest_call_site,
                     self.name,
-                    std::any::type_name::<T>()
+                    dest_call_site,
+                    std::any::type_name::<T>(),
                 )
-            })
+            });
+
+        if SUCCESS_INFO_LOGGING {
+            info!(
+                "Succeeded to downcast AnySendPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
+                src_call_site,
+                self.name,
+                dest_call_site,
+                std::any::type_name::<T>(),
+            );
+        }
+
+        inner
     }
 
     #[track_caller]
@@ -41,17 +56,29 @@ impl AnySendPremiumBox {
         let src_call_site = self.src_call_site;
         let dest_call_site = Location::caller();
 
-        self.inner
+        let inner = self.inner
             .downcast_ref()
             .unwrap_or_else(|| {
-                unreachable!(
-                    "Failed to downcast AnySendPremiumBox(SRC '{}' -> DEST '{}') from SrcType '{}' to DestType '{}'",
+                panic!(
+                    "Failed to downcast AnySendPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
                     src_call_site,
-                    dest_call_site,
                     self.name,
-                    std::any::type_name::<T>()
+                    dest_call_site,
+                    std::any::type_name::<T>(),
                 )
-            })
+            });
+
+        if SUCCESS_INFO_LOGGING {
+            info!(
+                "Succeeded to downcast AnySendPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
+                src_call_site,
+                self.name,
+                dest_call_site,
+                std::any::type_name::<T>(),
+            );
+        }
+
+        inner
     }
 
     #[track_caller]
@@ -59,17 +86,29 @@ impl AnySendPremiumBox {
         let src_call_site = self.src_call_site;
         let dest_call_site = Location::caller();
 
-        self.inner
+        let inner = self.inner
             .downcast_mut()
             .unwrap_or_else(|| {
-                unreachable!(
-                    "Failed to downcast AnySendPremiumBox(SRC '{}' -> DEST '{}') from SrcType '{}' to DestType '{}'",
+                panic!(
+                    "Failed to downcast AnySendPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
                     src_call_site,
-                    dest_call_site,
                     self.name,
-                    std::any::type_name::<T>()
+                    dest_call_site,
+                    std::any::type_name::<T>(),
                 )
-            })
+            });
+
+        if SUCCESS_INFO_LOGGING {
+            info!(
+                "Succeeded to downcast AnySendPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
+                src_call_site,
+                self.name,
+                dest_call_site,
+                std::any::type_name::<T>(),
+            );
+        }
+
+        inner
     }
 }
 
@@ -94,15 +133,30 @@ impl AnySendSyncPremiumBox {
         let src_call_site = self.src_call_site;
         let dest_call_site = Location::caller();
 
-        *self.inner.downcast().unwrap_or_else(|_| {
-            unreachable!(
-                "Failed to downcast AnySendSyncPremiumBox(SRC '{}' -> DEST '{}') from SrcType '{}' to DestType '{}'",
+        let inner = *self.inner
+            .downcast()
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Failed to downcast AnySendSyncPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
+                    src_call_site,
+                    self.name,
+                    dest_call_site,
+                    std::any::type_name::<T>(),
+                )
+            }
+        );
+
+        if SUCCESS_INFO_LOGGING {
+            info!(
+                "Succeeded to downcast AnySendSyncPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
                 src_call_site,
-                dest_call_site,
                 self.name,
-                std::any::type_name::<T>()
-            )
-        })
+                dest_call_site,
+                std::any::type_name::<T>(),
+            );
+        }
+
+        inner
     }
 
     #[track_caller]
@@ -110,15 +164,30 @@ impl AnySendSyncPremiumBox {
         let src_call_site = self.src_call_site;
         let dest_call_site = Location::caller();
 
-        self.inner.downcast_ref().unwrap_or_else(|| {
-            unreachable!(
-                "Failed to downcast AnySendSyncPremiumBox(SRC '{}' -> DEST '{}') from SrcType '{}' to DestType '{}'",
+        let inner = self.inner
+            .downcast_ref()
+            .unwrap_or_else(|| {
+                panic!(
+                    "Failed to downcast AnySendSyncPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
+                    src_call_site,
+                    self.name,
+                    dest_call_site,
+                    std::any::type_name::<T>(),
+                )
+            }
+        );
+
+        if SUCCESS_INFO_LOGGING {
+            info!(
+                "Succeeded to downcast AnySendSyncPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
                 src_call_site,
-                dest_call_site,
                 self.name,
-                std::any::type_name::<T>()
-            )
-        })
+                dest_call_site,
+                std::any::type_name::<T>(),
+            );
+        }
+
+        inner
     }
 
     #[track_caller]
@@ -126,14 +195,29 @@ impl AnySendSyncPremiumBox {
         let src_call_site = self.src_call_site;
         let dest_call_site = Location::caller();
 
-        self.inner.downcast_mut().unwrap_or_else(|| {
-            unreachable!(
-                "Failed to downcast AnySendSyncPremiumBox(SRC '{}' -> DEST '{}') from SrcType '{}' to DestType '{}'",
+        let inner = self.inner
+            .downcast_mut()
+            .unwrap_or_else(|| {
+                panic!(
+                    "Failed to downcast AnySendSyncPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
+                    src_call_site,
+                    self.name,
+                    dest_call_site,
+                    std::any::type_name::<T>(),
+                )
+            }
+        );
+
+        if SUCCESS_INFO_LOGGING {
+            info!(
+                "Succeeded to downcast AnySendSyncPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
                 src_call_site,
-                dest_call_site,
                 self.name,
-                std::any::type_name::<T>()
-            )
-        })
+                dest_call_site,
+                std::any::type_name::<T>(),
+            );
+        }
+
+        inner
     }
 }

@@ -8,12 +8,28 @@ use bevy_egui::EguiPlugin;
 use bevy_rapier2d::prelude::*;
 use core_engine::*;
 use iyes_perf_ui::prelude::*;
-use tracing_subscriber::fmt::format::FmtSpan;
+use tracing_subscriber::fmt::{format::FmtSpan, time::FormatTime};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const ENABLE_BACKTRACE: bool = true;
 const REROUTE_LOGS_TO_FILE: bool = false;
 const LOG_LEVEL: Level = Level::INFO;
 const LOG_FILTER: &str = "info,core_engine=debug";
+
+struct ShortTime;
+impl FormatTime for ShortTime {
+    fn format_time(&self, w: &mut tracing_subscriber::fmt::format::Writer<'_>) -> std::fmt::Result {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default();
+
+        let millis = now.as_millis() % 1000;
+        let secs = now.as_secs() % 60;
+        let mins = (now.as_secs() / 60) % 60;
+
+        write!(w, "{:02}:{:02}.{:03}", mins, secs, millis)
+    }
+}
 
 fn main() {
     std::panic::set_hook(Box::new(|panic_info| {
@@ -34,6 +50,7 @@ fn main() {
         tracing_subscriber::fmt()
             .with_env_filter(LOG_FILTER)
             .with_writer(non_blocking)
+            .with_timer(ShortTime)
             .with_span_events(FmtSpan::CLOSE)
             .with_ansi(true)
             .init();
