@@ -17,6 +17,8 @@ pub(super) fn update_player_system(
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
+    let _system_span = info_span!("update_system").entered();
+
     let is_player_input_allowed = {
         let condition_1 = if let Some((_, init_hook)) = chunk_loader_init_hook_query.iter().find(|(l, _)| l.chunk_owner_id().id() == "player") {
             init_hook.has_fired()
@@ -28,10 +30,13 @@ pub(super) fn update_player_system(
         condition_1 && condition_2
     };
 
-    let player_state = std::mem::take(&mut *player_state_resource);
+    let _fsm_span = info_span!("state_machine").entered();
 
+    let player_state = std::mem::take(&mut *player_state_resource);
     match player_state {
         PlayerLifecycle::None => {
+            let _fsm_case_span = info_span!("current_state: None").entered();
+
             if is_player_input_allowed && keys.just_pressed(KeyCode::Space) {
                 let handle = composite_workflow!(move out entity: Entity, {
                     let spawn_player_output = workflow!(OE, Player::SpawnPlayer);
@@ -43,6 +48,8 @@ pub(super) fn update_player_system(
             }
         }
         PlayerLifecycle::Spawning(handle) => {
+            let _fsm_case_span = info_span!("current_state: Spawning").entered();
+
             if let Some(handle) = handle {
                 if !handle.is_finished() {
                     info!("Player entity is still spawning, waiting for completion.");
@@ -57,6 +64,8 @@ pub(super) fn update_player_system(
             }
         }
         PlayerLifecycle::Despawning(handle) => {
+            let _fsm_case_span = info_span!("current_state: Despawning").entered();
+
             if let Some(handle) = handle {
                 if !handle.is_finished() {
                     return;
@@ -70,12 +79,16 @@ pub(super) fn update_player_system(
             }
         }
         PlayerLifecycle::PendingActivation(entity) => {
+            let _fsm_case_span = info_span!("current_state: PendingActivation").entered();
+
             if transform_query.contains(entity) {
                 *player_state_resource = PlayerLifecycle::Active(entity);
                 info!("Player entity is now active: {:?}", entity);
             }
         }
         PlayerLifecycle::Active(entity) => {
+            let _fsm_case_span = info_span!("current_state: Active").entered();
+
             if !is_player_input_allowed {
                 warn!("Player input is not allowed at this time. The player entity will not be updated.");
                 return;
@@ -89,6 +102,7 @@ pub(super) fn update_player_system(
                 info!("Player entity is being despawned.");
                 return;
             }
+            let _fsm_case_span = info_span!("movement").entered();
 
             if let Ok(mut transform) = transform_query.get_mut(entity) {
                 let mut direction = Vec3::ZERO;

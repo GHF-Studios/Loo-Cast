@@ -1,7 +1,7 @@
 extern crate core_engine;
 
 use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
-use bevy::log::{Level, LogPlugin};
+use bevy::log::{Level, LogPlugin, info, error, info_span};
 use bevy::prelude::*;
 use bevy::window::PresentMode;
 use bevy_egui::EguiPlugin;
@@ -12,9 +12,7 @@ use tracing_subscriber::fmt::{format::FmtSpan, time::FormatTime};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const ENABLE_BACKTRACE: bool = true;
-const REROUTE_LOGS_TO_FILE: bool = false;
-const LOG_LEVEL: Level = Level::INFO;
-const LOG_FILTER: &str = "info,core_engine=debug";
+const LOG_FILTER: &str = "warn,core_engine=debug,core_engine_macros=debug";
 
 struct ShortTime;
 impl FormatTime for ShortTime {
@@ -27,42 +25,32 @@ impl FormatTime for ShortTime {
         let secs = now.as_secs() % 60;
         let mins = (now.as_secs() / 60) % 60;
 
-        write!(w, "{:02}:{:02}.{:03}", mins, secs, millis)
+        write!(w, "T+{:02}m:{:02}s:{:04}ms", mins, secs, millis)
     }
 }
 
 fn main() {
+    tracing_subscriber::fmt()
+        .with_env_filter(LOG_FILTER)
+        .with_timer(ShortTime)
+        .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
+        .with_ansi(true)
+        .init();
+
+    let span = info_span!("main", on = true);
+    let _guard = span.enter();
+
+    info!("Configuring low level stuff");
+
     std::panic::set_hook(Box::new(|panic_info| {
-        // You can also downcast panic_info.payload() if needed
         error!("{}", panic_info);
     }));
-
     std::env::set_var("RUST_BACKTRACE", if ENABLE_BACKTRACE { "1" } else { "0" });
 
-    let mut bevy_plugins = DefaultPlugins.build();
+    info!("Configuring Bevy's DefaultPlugins");
 
-    if REROUTE_LOGS_TO_FILE {
-        // Redirect logs to a file
-        let file_appender = tracing_appender::rolling::daily("logs", "bevy_log.txt");
-        let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
-
-        // Configure the logger
-        tracing_subscriber::fmt()
-            .with_env_filter(LOG_FILTER)
-            .with_writer(non_blocking)
-            .with_timer(ShortTime)
-            .with_span_events(FmtSpan::CLOSE)
-            .with_ansi(true)
-            .init();
-    } else {
-        bevy_plugins = bevy_plugins.set(LogPlugin {
-            filter: LOG_FILTER.into(),
-            level: LOG_LEVEL,
-            ..Default::default()
-        });
-    };
-
-    bevy_plugins = bevy_plugins
+    let bevy_plugins = DefaultPlugins.build()
+        .disable::<LogPlugin>()
         .set(WindowPlugin {
             primary_window: Some(Window {
                 present_mode: PresentMode::AutoNoVsync,
@@ -75,6 +63,8 @@ fn main() {
         .add(EntityCountDiagnosticsPlugin)
         .add(SystemInformationDiagnosticsPlugin)
         .add(EguiPlugin);
+
+    info!("Building App...");
 
     App::new()
         .add_plugins(bevy_plugins)
