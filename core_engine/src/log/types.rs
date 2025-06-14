@@ -1,6 +1,3 @@
-//! Tracing layer that pipes spans/events into the arena.
-
-use std::sync::Arc;
 use tracing::{span::Attributes, span::Id, Event};
 use tracing_subscriber::{
     layer::{Context, Layer},
@@ -16,23 +13,16 @@ pub struct LogTreeTracingLayer {
     pub handle: LogTreeHandle,
 }
 
-/* ------------------------------------------------------------------------- */
-/* Layer impl                                                                */
-/* ------------------------------------------------------------------------- */
-
 impl<S> Layer<S> for LogTreeTracingLayer
 where
     S: tracing::Subscriber + for<'lookup> LookupSpan<'lookup>,
 {
     fn on_new_span(&self, attrs: &Attributes<'_>, id: &Id, ctx: Context<'_, S>) {
-        // ── build hierarchical keys ───────────────────────────────────────
-        let span_path      = span_chain(attrs, id, &ctx);                        // Vec<&'static str>
+        let span_path      = span_chain(attrs, id, &ctx);
         let module_path: Vec<&'static str> =
             attrs.metadata().module_path().unwrap_or_default().split("::").collect();
         let file           = attrs.metadata().file().unwrap_or("unknown");
         let line           = attrs.metadata().line().unwrap_or(0);
-        // col unknown here
-        // -----------------------------------------------------------------
 
         self.handle.0.insert(
             &span_path,

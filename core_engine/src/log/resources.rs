@@ -8,8 +8,17 @@ use crate::log::arena::{Arena, NodeIdx};
 #[derive(Resource, Clone)]
 pub struct LogTreeHandle(pub Arc<Arena>);
 
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct LogViewerState {
-    pub selected: BTreeSet<NodeIdx>,
-    pub autoscroll: bool,
+    pub selected:    BTreeSet<NodeIdx>,
+    pub autoscroll:  bool,
+}
+
+impl Default for LogViewerState {
+    fn default() -> Self {
+        Self {
+            selected: BTreeSet::new(),
+            autoscroll: true,
+        }
+    }
 }

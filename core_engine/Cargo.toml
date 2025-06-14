@@ -28,7 +28,8 @@ debug = false
 [dependencies]
 core_engine_macros = { path = "../core_engine_macros" }
 bevy = "0.14.2"
-bevy_egui = "0.29.0"
+bevy_egui = "0.29"
+egui = "0.29"
 bevy_rapier2d = { version = "0.27.0", features = [ "debug-render-2d", "serde-serialize" ] }
 mlua = { version = "0.6.1", features = ["vendored", "lua54"] }
 rand = "0.8.5"
@@ -49,6 +50,7 @@ glam = "0.27.0"
 tokio = { version = "1.0", features = ["full"] }
 iyes_perf_ui = "0.3.0"
 toml = "0.8.19"
+crossbeam = "0.8"
 crossbeam-channel = "0.5.14"
 bevy_consumable_event = "0.4.0"
 bytemuck = "1.21.0"
@@ -58,6 +60,4 @@ dyn-clone = "1.0.19"
 anymap = "0.12.1"
 uuid = "1.16.0"
 dashmap = "6.1.0"
-egui = "0.29"
 parking_lot = "0.12.1"
-crossbeam = "0.8"
