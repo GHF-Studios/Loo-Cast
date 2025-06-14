@@ -42,7 +42,7 @@ pub fn render_selectable_tree(
     state: &mut LogViewerState,
 ) {
     for root in arena.roots() {
-        paint_branch(ui, arena, state, root, 0);
+        paint_branch(ui, arena, state, root);
     }
 }
 
@@ -51,38 +51,31 @@ fn paint_branch(
     arena: &Arena,
     state: &mut LogViewerState,
     idx:   NodeIdx,
-    depth: usize,
 ) {
-    let indent = "  ".repeat(depth);
-    let label: String = match arena.kind(idx) {
-        Kind::Span | Kind::Module | Kind::File =>
-            format!("{indent}📂 {}", arena.tok_str(arena.name_tok(idx))),
-        Kind::Line => {
-            if let Some((l, c)) = arena.line_col(idx) {
-                format!("{indent}📄 {l}:{c}")
-            } else {
-                format!("{indent}📄 <line>")
+    ui.indent(idx, |ui| {
+        ui.horizontal(|ui| {
+            // checkbox
+            let mut checked = state.selected.contains(&idx);
+            if ui.checkbox(&mut checked, "").changed() {
+                if checked { state.selected.insert(idx); }
+                else       { state.selected.remove(&idx); }
             }
-        }
-    };
 
-    // one horizontal row: [checkbox] [collapsing header]
-    ui.horizontal(|ui| {
-        // ----- checkbox:
-        let mut checked = state.selected.contains(&idx);
-        if ui.checkbox(&mut checked, "").clicked() {
-            if checked {
-                state.selected.insert(idx);
-            } else {
-                state.selected.remove(&idx);
-            }
-        }
+            // collapsible header (arrow + icon + text)
+            let (icon, label) = match arena.kind(idx) {
+                Kind::Span | Kind::Module => ("📂", arena.tok_str(arena.name_tok(idx))),
+                Kind::File               => ("📄", arena.tok_str(arena.name_tok(idx))),
+                Kind::Line => {
+                    let (l, c) = arena.line_col(idx).unwrap_or((0, 0));
+                    ("📑", format!("{l}:{c}").into())
+                }
+            };
 
-        // ----- collapsible subtree:
-        ui.collapsing(label, |ui| {
-            for child in arena.child_iter(idx) {
-                paint_branch(ui, arena, state, child, depth + 1);
-            }
+            ui.collapsing(format!("{icon} {label}"), |ui| {
+                for child in arena.child_iter(idx) {
+                    paint_branch(ui, arena, state, child);
+                }
+            });
         });
     });
 }

@@ -11,14 +11,17 @@ pub struct LogTreeHandle(pub Arc<Arena>);
 #[derive(Resource)]
 pub struct LogViewerState {
     pub selected:    BTreeSet<NodeIdx>,
-    pub autoscroll:  bool,
 }
 
 impl Default for LogViewerState {
     fn default() -> Self {
         Self {
             selected: BTreeSet::new(),
-            autoscroll: true,
         }
     }
+}
+
+#[derive(Resource, Default)]
+pub struct UiWindows {
+    pub show_log_viewer: bool,
 }

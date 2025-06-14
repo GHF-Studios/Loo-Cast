@@ -65,10 +65,6 @@ where
     }
 }
 
-/* ------------------------------------------------------------------------- */
-/* Helpers                                                                   */
-/* ------------------------------------------------------------------------- */
-
 /// Walk from the new span up to root, collecting names (root-first order).
 fn span_chain<S>(
     attrs: &Attributes<'_>,
