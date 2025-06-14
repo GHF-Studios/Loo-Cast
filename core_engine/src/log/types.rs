@@ -1,103 +1,120 @@
-use std::collections::HashMap;
-use tracing_subscriber::layer::{Context, Layer};
-use tracing::{span::{Attributes, Id}, Event};
-use tracing::metadata::Level;
+//! Tracing layer that pipes spans/events into the arena.
 
-use crate::log::resources::LogTreeHandle;
+use std::sync::Arc;
+use tracing::{span::Attributes, span::Id, Event};
+use tracing_subscriber::{
+    layer::{Context, Layer},
+    registry::{LookupSpan, SpanRef},
+};
 
-#[derive(Debug)]
-pub struct LogSpan {
-    pub id: tracing::span::Id,
-    pub name: String,
-    pub parent: Option<tracing::span::Id>,
-    pub fields: HashMap<String, String>,
-    pub children: Vec<tracing::span::Id>,
-    pub logs: Vec<LogEvent>,
-    pub is_closed: bool,
-}
-
-#[derive(Debug)]
-pub struct LogEvent {
-    pub message: String,
-    pub time: std::time::SystemTime,
-    pub level: tracing::Level,
-    pub fields: HashMap<String, String>,
-}
-
-#[derive(Default)]
-pub struct LogTree {
-    pub spans: HashMap<tracing::span::Id, LogSpan>,
-    pub root_spans: Vec<tracing::span::Id>,
-}
+use crate::log::{
+    arena::{Level},
+    resources::LogTreeHandle,
+};
 
 pub struct LogTreeTracingLayer {
-    pub log_tree: LogTreeHandle,
+    pub handle: LogTreeHandle,
 }
+
+/* ------------------------------------------------------------------------- */
+/* Layer impl                                                                */
+/* ------------------------------------------------------------------------- */
 
 impl<S> Layer<S> for LogTreeTracingLayer
 where
-    S: tracing::Subscriber,
-    S: for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+    S: tracing::Subscriber + for<'lookup> LookupSpan<'lookup>,
 {
     fn on_new_span(&self, attrs: &Attributes<'_>, id: &Id, ctx: Context<'_, S>) {
-        let mut tree = self.log_tree.0.lock().unwrap();
-        let mut fields = HashMap::new();
-        
-        attrs.record(&mut |field: &tracing::field::Field, value: &dyn std::fmt::Debug| {
-            fields.insert(field.to_string(), format!("{:?}", value));
-        });
+        // ── build hierarchical keys ───────────────────────────────────────
+        let span_path      = span_chain(attrs, id, &ctx);                        // Vec<&'static str>
+        let module_path: Vec<&'static str> =
+            attrs.metadata().module_path().unwrap_or_default().split("::").collect();
+        let file           = attrs.metadata().file().unwrap_or("unknown");
+        let line           = attrs.metadata().line().unwrap_or(0);
+        // col unknown here
+        // -----------------------------------------------------------------
 
-        let parent = ctx.span(id).and_then(|span_ref| span_ref.parent().map(|p| p.id()));
-        tree.spans.insert(id.clone(), LogSpan {
-            id: id.clone(),
-            name: attrs.metadata().name().to_string(),
-            parent: parent.clone(),
-            fields,
-            children: vec![],
-            logs: vec![],
-            is_closed: false,
-        });
-
-        if let Some(parent_id) = parent {
-            if let Some(parent_span) = tree.spans.get_mut(&parent_id) {
-                parent_span.children.push(id.clone());
-            }
-        } else {
-            tree.root_spans.push(id.clone());
-        }
+        self.handle.0.insert(
+            &span_path,
+            &module_path,
+            file,
+            line,
+            0,
+            Level::Trace,
+            format!("span_open {:?}", id),
+        );
     }
 
     fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
-        let mut fields = HashMap::new();
+        let scope  = ctx.lookup_current();
+        let span_path = scope_path(scope);
 
-        event.record(&mut |field: &tracing::field::Field, value: &dyn std::fmt::Debug| {
-            fields.insert(field.to_string(), format!("{:?}", value));
-        });
+        let meta = event.metadata();
+        let module_path: Vec<&'static str> =
+            meta.module_path().unwrap_or_default().split("::").collect();
+        let file  = meta.file().unwrap_or("unknown");
+        let line  = meta.line().unwrap_or(0);
 
-        let level = *event.metadata().level();
-        if level == Level::TRACE || level == Level::DEBUG || level == Level::INFO {
-            return;
-        }
-
-        let log = LogEvent {
-            message: format!("{:?}", event),
-            level,
-            time: std::time::SystemTime::now(),
-            fields,
+        let lvl = match *meta.level() {
+            tracing::Level::TRACE => Level::Trace,
+            tracing::Level::DEBUG => Level::Debug,
+            tracing::Level::INFO  => Level::Info,
+            tracing::Level::WARN  => Level::Warn,
+            tracing::Level::ERROR => Level::Error,
         };
 
-        let mut tree = self.log_tree.0.lock().unwrap();
-        if let Some(scope) = ctx.lookup_current() {
-            if let Some(span) = tree.spans.get_mut(&scope.id()) {
-                span.logs.push(log);
-            }
+        self.handle.0.insert(
+            &span_path,
+            &module_path,
+            file,
+            line,
+            0,
+            lvl,
+            format!("{:?}", event),
+        );
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+/* Helpers                                                                   */
+/* ------------------------------------------------------------------------- */
+
+/// Walk from the new span up to root, collecting names (root-first order).
+fn span_chain<S>(
+    attrs: &Attributes<'_>,
+    id: &Id,
+    ctx: &Context<'_, S>,
+) -> Vec<&'static str>
+where
+    S: tracing::Subscriber + for<'lookup> LookupSpan<'lookup>,
+{
+    let mut out = Vec::new();
+
+    if let Some(span_ref) = ctx.span(id) {
+        let mut cur = Some(span_ref);
+        while let Some(s) = cur {
+            out.push(s.name());
+            cur = s.parent();
         }
+    } else {
+        out.push(attrs.metadata().name());
     }
 
-    fn on_close(&self, id: Id, _ctx: Context<'_, S>) {
-        let mut tree = self.log_tree.0.lock().unwrap();
-        if let Some(span) = tree.spans.get_mut(&id) {
-            span.is_closed = true;
-        }
+    out.reverse();
+    out
+}
+
+/// Same as `span_chain` but for the current scope (if any).
+fn scope_path<'a, C>(scope: Option<SpanRef<'a, C>>) -> Vec<&'static str>
+where
+    C: LookupSpan<'a>,
+{
+    let mut out = Vec::new();
+    let mut cur = scope;
+    while let Some(s) = cur {
+        out.push(s.name());
+        cur = s.parent();
     }
+    out.reverse();
+    out
 }

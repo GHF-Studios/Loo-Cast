@@ -34,7 +34,7 @@ impl FormatTime for ShortTime {
 }
 
 fn main() {
-    let log_tree_tracing_layer = LogTreeTracingLayer { log_tree: LOG_TREE_HANDLE.clone() };
+    let log_tree_tracing_layer = LogTreeTracingLayer { handle: LOG_TREE_HANDLE.clone() };
 
     let subscriber = tracing_subscriber::registry()
         .with(log_tree_tracing_layer)
