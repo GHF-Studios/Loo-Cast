@@ -33,6 +33,7 @@ pub mod debug;
 pub mod entity;
 pub mod follower;
 pub mod gpu;
+pub mod log;
 //pub mod math;
 pub mod player;
 //pub mod sprite_bundle;
@@ -53,6 +54,7 @@ use debug::DebugPlugin;
 use entity::EntityPlugin;
 use follower::FollowerPlugin;
 use gpu::GpuPlugin;
+use log::LogPlugin;
 //use math::MathPlugin;
 use player::PlayerPlugin;
 //use sprite_bundle::SpriteBundlePlugin;
@@ -72,6 +74,7 @@ impl PluginGroup for SpacetimeEngineCorePlugins {
             .add(DebugPlugin)
             .add(FollowerPlugin)
             .add(GpuPlugin)
+            .add(LogPlugin)
             .add(EntityPlugin)
             //.add(MathPlugin)
             .add(PlayerPlugin)

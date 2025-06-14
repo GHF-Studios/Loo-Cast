@@ -1,18 +1,22 @@
 extern crate core_engine;
 
 use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
-use bevy::log::{Level, LogPlugin, info, error, info_span};
+use bevy::log::{LogPlugin, info, error, info_span};
 use bevy::prelude::*;
 use bevy::window::PresentMode;
 use bevy_egui::EguiPlugin;
 use bevy_rapier2d::prelude::*;
+use core_engine::log::statics::LOG_TREE_HANDLE;
+use core_engine::log::types::LogTreeTracingLayer;
 use core_engine::*;
 use iyes_perf_ui::prelude::*;
-use tracing_subscriber::fmt::{format::FmtSpan, time::FormatTime};
+use tracing_subscriber::{EnvFilter, Layer};
+use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+use tracing_subscriber::fmt::{self, format::FmtSpan, time::FormatTime};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const ENABLE_BACKTRACE: bool = true;
-const LOG_FILTER: &str = "warn,core_engine=debug,core_engine_macros=debug";
+const CLI_LOG_FILTER: &str = "warn,core_engine=warn,core_engine_macros=warn";
 
 struct ShortTime;
 impl FormatTime for ShortTime {
@@ -25,22 +29,29 @@ impl FormatTime for ShortTime {
         let secs = now.as_secs() % 60;
         let mins = (now.as_secs() / 60) % 60;
 
-        write!(w, "T+{:02}m:{:02}s:{:04}ms", mins, secs, millis)
+        write!(w, "T+ {:02}m:{:02}s.{:03}ms", mins, secs, millis)
     }
 }
 
 fn main() {
-    tracing_subscriber::fmt()
-        .with_env_filter(LOG_FILTER)
-        .with_timer(ShortTime)
-        .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
-        .with_ansi(true)
-        .init();
+    let log_tree_tracing_layer = LogTreeTracingLayer { log_tree: LOG_TREE_HANDLE.clone() };
+
+    let subscriber = tracing_subscriber::registry()
+        .with(log_tree_tracing_layer)
+        .with(
+            fmt::layer()
+                .with_timer(ShortTime)
+                .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
+                .with_ansi(true)
+                .with_filter(EnvFilter::new(CLI_LOG_FILTER)),
+        );
+
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to set global subscriber");
 
     let span = info_span!("main", on = true);
     let _guard = span.enter();
 
-    info!("Configuring low level stuff");
+    info!("Configuring low-level stuff");
 
     std::panic::set_hook(Box::new(|panic_info| {
         error!("{}", panic_info);
@@ -66,11 +77,15 @@ fn main() {
 
     info!("Building App...");
 
-    App::new()
+    let mut app = App::new();
+    app
         .add_plugins(bevy_plugins)
         .add_plugins(PerfUiPlugin)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(SpacetimeEngineCorePlugins)
-        .add_plugins(SpacetimeEngineWorkflowPlugins)
-        .run();
+        .add_plugins(SpacetimeEngineWorkflowPlugins);
+
+    info!("Running App...");
+
+    app.run();
 }
