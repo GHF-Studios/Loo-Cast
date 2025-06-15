@@ -83,6 +83,7 @@ pub fn gather_logs(arena: &Arena, state: &LogViewerState) -> Vec<Log> {
     for &node in &state.selected {
         collect_logs(arena, node, &mut out);
     }
+    out.retain(|log| log.lvl >= state.threshold);
     out.sort_by_key(|l| l.ts);
     out
 }
@@ -101,8 +102,70 @@ pub fn format_log_line(log: &Log) -> RichText {
     match log.lvl {
         Level::Error => RichText::new(base).color(Color32::RED),
         Level::Warn  => RichText::new(base).color(Color32::YELLOW),
-        Level::Info  => RichText::new(base).color(Color32::LIGHT_GREEN),
+        Level::Info  => RichText::new(base).color(Color32::GREEN),
         Level::Debug => RichText::new(base).color(Color32::LIGHT_BLUE),
         Level::Trace => RichText::new(base).color(Color32::KHAKI),
     }
 }
+
+pub fn right_panel_filter_ui(ui: &mut egui::Ui, threshold: &mut Level) {
+    use Level::*;
+
+    let all_levels = [Error, Warn, Info, Debug, Trace];
+    let level_symbols = ["E", "W", "I", "D", "T"];
+    let level_colors = [
+        Color32::RED,
+        Color32::YELLOW,
+        Color32::GREEN,
+        Color32::LIGHT_BLUE,
+        Color32::KHAKI,
+    ];
+    
+    let level_index = all_levels
+        .iter()
+        .position(|l| l == threshold)
+        .unwrap_or(2);
+    let mut slider_value = level_index as f32;
+
+    egui::Frame::none()
+        .fill(Color32::from_gray(30))
+        .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
+        .rounding(egui::Rounding::same(4.0))
+        .inner_margin(egui::Margin::symmetric(6.0, 4.0))
+        .show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.label("Log Level:");
+
+                // Reserve space first
+                let slider = egui::Slider::new(&mut slider_value, 0.0..=4.0)
+                    .step_by(1.0)
+                    .show_value(false);
+                let response = ui.add(slider);
+
+                // Compute actual knob position manually
+                let track_rect = response.rect.shrink(6.0); // account for padding/margin
+                let knob_range = 4.0;
+                let norm = (slider_value / knob_range).clamp(0.0, 1.0);
+
+                let x = track_rect.left() + norm * track_rect.width();
+                let y = track_rect.center().y;
+                let center = egui::pos2(x, y);
+
+                let idx = slider_value.round().clamp(0.0, 4.0) as usize;
+                let symbol = level_symbols[idx];
+                let color = level_colors[idx];
+
+                ui.painter().circle_filled(center, 11.0, color);
+                ui.painter().text(
+                    center,
+                    egui::Align2::CENTER_CENTER,
+                    symbol,
+                    egui::TextStyle::Button.resolve(ui.style()),
+                    Color32::BLACK,
+                );
+
+                *threshold = all_levels[idx];
+            });
+        });
+}
+
