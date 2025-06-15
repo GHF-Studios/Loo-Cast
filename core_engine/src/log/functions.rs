@@ -1,8 +1,6 @@
-//! UI helpers & misc queries.
-
 use bevy_egui::egui::{self, Color32, RichText, ScrollArea};
 use crate::log::arena::{Arena, Kind, Level, NodeIdx, Log};
-use crate::log::resources::{LogTreeHandle, LogViewerState};
+use crate::log::resources::*;
 
 pub fn render_log_tree(ui: &mut egui::Ui, arena: &Arena) {
     ScrollArea::vertical().show(ui, |ui| {

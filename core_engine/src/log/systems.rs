@@ -3,7 +3,6 @@ use bevy_egui::{egui, EguiContexts};
 use egui::{vec2, Sense, Rect, Color32};
 
 use crate::log::{
-    arena::*,
     functions::*,
     resources::*,
 };
@@ -36,19 +35,15 @@ pub(super) fn show_log_viewer_ui(
         .min_width(350.0)
         .min_height(250.0)
         .show(egui_ctx.ctx_mut(), |ui| {
-            // -------- split geometry --------
             let avail      = ui.available_size();
             let splitter_w = 5.0;
             state.split_ratio = state.split_ratio.clamp(0.15, 0.85);
 
-            let tree_w   = (avail.x * state.split_ratio).clamp(150.0, avail.x - 150.0 - splitter_w);
+            let tree_w    = (avail.x * state.split_ratio).clamp(150.0, avail.x - 150.0 - splitter_w);
             let console_w = avail.x - tree_w - splitter_w;
 
             // tree rect
-            let tree_rect = ui.allocate_rect(
-                Rect::from_min_size(ui.min_rect().min, vec2(tree_w, avail.y)),
-                Sense::hover(),
-            ).rect;
+            let tree_rect = Rect::from_min_size(ui.min_rect().min, vec2(tree_w, avail.y));
 
             // splitter rect
             let split_rect = Rect::from_min_max(
@@ -58,39 +53,50 @@ pub(super) fn show_log_viewer_ui(
             let split_resp = ui.allocate_rect(split_rect, Sense::click_and_drag());
 
             // console rect
-            let console_rect = Rect::from_min_max(
-                split_rect.right_top(),
-                ui.min_rect().max,
-            );
+            let console_rect = Rect::from_min_size(split_rect.right_top(), vec2(console_w, avail.y));
+
             // ----- drag logic
-            if split_resp.dragged() {
-                state.split_ratio += split_resp.drag_delta().x / avail.x;
+            let mut new_split_x = tree_rect.width();
+
+            if split_resp.dragged_by(egui::PointerButton::Primary) {
+                new_split_x += split_resp.drag_delta().x;
             }
+            
+            let min_tree = 150.0;
+            let max_tree = avail.x - 150.0 - splitter_w;
+            
+            new_split_x = new_split_x.clamp(min_tree, max_tree);
+            state.split_ratio = new_split_x / avail.x;
+
             // paint splitter bar
             ui.painter().rect_filled(split_rect, 0.0, Color32::DARK_GRAY);
 
             // -------- left pane (tree) --------
-            let mut tree_ui = ui.child_ui_with_id_source(tree_rect, *ui.layout(), "tree_area", None);
-            // tighter spacing:
-            let old_spacing = tree_ui.spacing().item_spacing;
-            tree_ui.spacing_mut().item_spacing.x = 4.0;
-            render_selectable_tree(&mut tree_ui, &log_tree.0, &mut state);
-            tree_ui.spacing_mut().item_spacing = old_spacing;
+            let tree_inner = ui.allocate_ui_at_rect(tree_rect, |ui| {
+                let old_spacing = ui.spacing().item_spacing;
+                ui.spacing_mut().item_spacing.x = 4.0;
 
-            // -------- right pane (console) --------
-            let mut con_ui = ui.child_ui_with_id_source(console_rect, *ui.layout(), "console_area", None);
+                render_selectable_tree(ui, &log_tree.0, &mut state);
 
-            con_ui.horizontal(|ui| {
-                ui.heading("Logs");
+                ui.spacing_mut().item_spacing = old_spacing;
             });
 
-            let logs = gather_logs(&log_tree.0, &state);
-            let row_h = con_ui.text_style_height(&egui::TextStyle::Monospace);
-            egui::ScrollArea::vertical()
-                .stick_to_bottom(true)
-                .show_rows(&mut con_ui, row_h, logs.len(), |ui, range| {
-                    for i in range { ui.label(format_log_line(&logs[i])); }
+            // -------- right pane (console) --------
+            let console_inner = ui.allocate_ui_at_rect(console_rect, |ui| {
+                ui.horizontal(|ui| {
+                    ui.heading("Logs");
                 });
+
+                let logs = gather_logs(&log_tree.0, &state);
+                let row_h = ui.text_style_height(&egui::TextStyle::Monospace);
+
+                egui::ScrollArea::vertical()
+                    .stick_to_bottom(true)
+                    .show_rows(ui, row_h, logs.len(), |ui, range| {
+                        for i in range {
+                            ui.label(format_log_line(&logs[i]));
+                        }
+                    });
+            });
         });
 }
-

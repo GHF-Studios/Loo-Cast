@@ -316,6 +316,12 @@ impl Arena {
     }
 }
 
+impl Default for Arena {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /* ---------- child iterator ---------- */
 
 pub struct ChildIter<'a> {
