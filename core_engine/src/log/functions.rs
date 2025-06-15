@@ -98,15 +98,26 @@ fn collect_logs(arena: &Arena, idx: NodeIdx, v: &mut Vec<Log>) {
 }
 
 pub fn format_log_line(log: &Log) -> RichText {
-    let base = format!("{:?} — {}", log.lvl, log.msg);
+    use crate::log::arena::Level;
+
+    // Convert log.ts (nanoseconds) to ms for a clean "T+..." timestamp
+    let millis = log.ts / 1_000_000;
+    let secs = millis / 1000 % 60;
+    let mins = millis / 1000 / 60 % 60;
+    let ms   = millis % 1000;
+
+    let time = format!("T+ {:02}m:{:02}s.{:03}ms", mins, secs, ms);
+    let base = format!("[{}] — {}", time, log.msg);
+
     match log.lvl {
         Level::Error => RichText::new(base).color(Color32::RED),
         Level::Warn  => RichText::new(base).color(Color32::YELLOW),
-        Level::Info  => RichText::new(base).color(Color32::GREEN),
+        Level::Info  => RichText::new(base).color(Color32::LIGHT_GREEN),
         Level::Debug => RichText::new(base).color(Color32::LIGHT_BLUE),
         Level::Trace => RichText::new(base).color(Color32::KHAKI),
     }
 }
+
 
 pub fn right_panel_filter_ui(ui: &mut egui::Ui, threshold: &mut Level) {
     use Level::*;

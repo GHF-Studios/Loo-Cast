@@ -1,6 +1,3 @@
-//! Append-only log arena – fixed to compile with parking_lot locks
-//! (no more SegQueue::iter trouble).
-
 use std::{
     sync::atomic::{AtomicU32, Ordering},
     sync::Arc,
