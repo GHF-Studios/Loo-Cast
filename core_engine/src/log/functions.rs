@@ -1,4 +1,6 @@
-use bevy_egui::egui::{self, Color32, RichText, ScrollArea};
+use bevy_egui::egui::{self, Color32, RichText, ScrollArea, TextFormat, FontId};
+use egui::{text::LayoutJob, WidgetText};
+
 use crate::log::arena::{Arena, Kind, Level, NodeIdx, Log};
 use crate::log::resources::*;
 
@@ -97,27 +99,67 @@ fn collect_logs(arena: &Arena, idx: NodeIdx, v: &mut Vec<Log>) {
     }
 }
 
-pub fn format_log_line(log: &Log) -> RichText {
+pub fn format_log_line(log: &Log) -> WidgetText {
     use crate::log::arena::Level;
 
-    // Convert log.ts (nanoseconds) to ms for a clean "T+..." timestamp
-    let millis = log.ts / 1_000_000;
-    let secs = millis / 1000 % 60;
-    let mins = millis / 1000 / 60 % 60;
-    let ms   = millis % 1000;
+    let ns = log.ts;
+    let ms = ns / 1_000_000;
+    let secs = ms / 1000 % 60;
+    let mins = ms / 1000 / 60 % 60;
+    let hrs  = ms / 1000 / 60 / 60 % 24;
+    let days = ms / 1000 / 60 / 60 / 24;
+    let sub_ms = ms % 1000;
 
-    let time = format!("T+ {:02}m:{:02}s.{:03}ms", mins, secs, ms);
-    let base = format!("[{}] — {}", time, log.msg);
+    let time = if days > 0 {
+        format!("T+ {}d:{:02}h:{:02}m:{:02}s.{:03}ms", days, hrs, mins, secs, sub_ms)
+    } else if hrs > 0 {
+        format!("T+ {:02}h:{:02}m:{:02}s.{:03}ms", hrs, mins, secs, sub_ms)
+    } else {
+        format!("T+ {:02}m:{:02}s.{:03}ms", mins, secs, sub_ms)
+    };
 
-    match log.lvl {
-        Level::Error => RichText::new(base).color(Color32::RED),
-        Level::Warn  => RichText::new(base).color(Color32::YELLOW),
-        Level::Info  => RichText::new(base).color(Color32::LIGHT_GREEN),
-        Level::Debug => RichText::new(base).color(Color32::LIGHT_BLUE),
-        Level::Trace => RichText::new(base).color(Color32::KHAKI),
-    }
+    let (level_str, level_color) = match log.lvl {
+        Level::Error => ("[ERROR]", Color32::RED),
+        Level::Warn  => ("[WARN]",  Color32::YELLOW),
+        Level::Info  => ("[INFO]",  Color32::LIGHT_GREEN),
+        Level::Debug => ("[DEBUG]", Color32::LIGHT_BLUE),
+        Level::Trace => ("[TRACE]", Color32::KHAKI),
+    };
+
+    let mut job = LayoutJob::default();
+
+    job.append(
+        &format!("[{time}]"),
+        0.0,
+        TextFormat {
+            font_id: FontId::monospace(12.0),
+            color: Color32::GRAY,
+            ..Default::default()
+        },
+    );
+
+    job.append(
+        level_str,
+        0.0,
+        TextFormat {
+            font_id: FontId::monospace(12.0),
+            color: level_color,
+            ..Default::default()
+        },
+    );
+
+    job.append(
+        &format!(" — {}", log.msg),
+        0.0,
+        TextFormat {
+            font_id: FontId::monospace(12.0),
+            color: Color32::WHITE,
+            ..Default::default()
+        },
+    );
+
+    WidgetText::from(job)
 }
-
 
 pub fn right_panel_filter_ui(ui: &mut egui::Ui, threshold: &mut Level) {
     use Level::*;

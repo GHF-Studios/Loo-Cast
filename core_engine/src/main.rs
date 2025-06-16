@@ -6,47 +6,35 @@ use bevy::prelude::*;
 use bevy::window::PresentMode;
 use bevy_egui::EguiPlugin;
 use bevy_rapier2d::prelude::*;
+use core_engine::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
 use core_engine::log::statics::LOG_TREE_HANDLE;
 use core_engine::log::types::LogTreeTracingLayer;
+use core_engine::types::ShortTime;
 use core_engine::*;
 use iyes_perf_ui::prelude::*;
 use tracing_subscriber::{EnvFilter, Layer};
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
-use tracing_subscriber::fmt::{self, format::FmtSpan, time::FormatTime};
-use std::time::{SystemTime, UNIX_EPOCH};
+use tracing_subscriber::fmt::{self, format::{FmtSpan, Writer}, time::FormatTime};
 
-const ENABLE_BACKTRACE: bool = true;
-const CLI_LOG_FILTER: &str = "warn,core_engine=warn,core_engine_macros=warn";
-
-struct ShortTime;
-impl FormatTime for ShortTime {
-    fn format_time(&self, w: &mut tracing_subscriber::fmt::format::Writer<'_>) -> std::fmt::Result {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default();
-
-        let millis = now.as_millis() % 1000;
-        let secs = now.as_secs() % 60;
-        let mins = (now.as_secs() / 60) % 60;
-
-        write!(w, "T+ {:02}m:{:02}s.{:03}ms", mins, secs, millis)
-    }
-}
+use crate::statics::START_TIME;
 
 fn main() {
-    let log_tree_tracing_layer = LogTreeTracingLayer { handle: LOG_TREE_HANDLE.clone() };
+    let log_tree_tracing_layer = LogTreeTracingLayer {
+        handle: LOG_TREE_HANDLE.clone(),
+    };
+
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_timer(ShortTime)
+        .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
+        .with_ansi(true)
+        .with_filter(EnvFilter::new(CLI_LOG_FILTER));
 
     let subscriber = tracing_subscriber::registry()
         .with(log_tree_tracing_layer)
-        .with(
-            fmt::layer()
-                .with_timer(ShortTime)
-                .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
-                .with_ansi(true)
-                .with_filter(EnvFilter::new(CLI_LOG_FILTER)),
-        );
+        .with(fmt_layer);
 
-    tracing::subscriber::set_global_default(subscriber).expect("Failed to set global subscriber");
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("Failed to set global subscriber");
 
     let span = info_span!("main", on = true);
     let _guard = span.enter();

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
-use egui::{vec2, Sense, Rect, Color32};
+use egui::Color32;
 
 use crate::log::{
     functions::*,
@@ -34,7 +34,6 @@ pub(super) fn show_log_viewer_ui(
         .default_size([700.0, 450.0])
         .min_width(350.0)
         .min_height(250.0)
-        .movable(false)
         .show(egui_ctx.ctx_mut(), |ui| {
             ui.columns(2, |cols| {
                 // Left panel (Tree)

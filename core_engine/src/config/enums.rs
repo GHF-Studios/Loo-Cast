@@ -8,6 +8,16 @@ pub enum ConfigValue {
     Boolean(bool),
     String(String),
 }
+impl TryFrom<ConfigValue> for bool {
+    type Error = String;
+
+    fn try_from(value: ConfigValue) -> Result<Self, Self::Error> {
+        match value {
+            ConfigValue::Boolean(b) => Ok(b),
+            _ => Err(format!("Cannot convert {:?} to bool", value)),
+        }
+    }
+}
 impl TryFrom<ConfigValue> for i8 {
     type Error = String;
 

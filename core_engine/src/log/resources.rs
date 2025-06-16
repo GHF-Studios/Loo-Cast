@@ -20,7 +20,7 @@ impl Default for LogViewerState {
         Self {
             selected: BTreeSet::new(),
             split_ratio: 0.35,
-            threshold: Level::Trace,
+            threshold: Level::Warn,
         }
     }
 }

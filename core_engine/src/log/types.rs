@@ -1,13 +1,62 @@
-use tracing::{span::Attributes, span::Id, Event};
+use tracing::{field::{Visit, Field}, span::Attributes, span::Id, Event};
 use tracing_subscriber::{
     layer::{Context, Layer},
     registry::{LookupSpan, SpanRef},
 };
+use std::sync::Arc;
+use std::fmt::Debug;
 
-use crate::log::{
-    arena::{Level},
+use crate::{config::statics::CONFIG, log::{
+    arena::Level,
     resources::LogTreeHandle,
-};
+}};
+
+pub struct MsgAndMetaVisitor {
+    pub message: Option<Arc<str>>,
+    pub meta_fields: Vec<(String, String)>,
+    pub target: Option<String>,
+    pub module_path: Option<String>,
+    pub file: Option<String>,
+    pub line: Option<String>,
+}
+
+impl MsgAndMetaVisitor {
+    pub fn new() -> Self {
+        Self {
+            message: None,
+            meta_fields: Vec::new(),
+            target: None,
+            module_path: None,
+            file: None,
+            line: None,
+        }
+    }
+}
+
+impl Visit for MsgAndMetaVisitor {
+    fn record_str(&mut self, field: &Field, value: &str) {
+        match field.name() {
+            "message" => {
+                self.message = Some(Arc::from(value));
+            }
+            name => {
+                self.meta_fields.push((name.to_string(), value.to_string()));
+            }
+        }
+    }
+
+    fn record_debug(&mut self, field: &Field, value: &dyn Debug) {
+        match field.name() {
+            "message" => {
+                self.message = Some(Arc::from(format!("{value:?}")));
+            }
+            name => {
+                self.meta_fields
+                    .push((name.to_string(), format!("{value:?}")));
+            }
+        }
+    }
+}
 
 pub struct LogTreeTracingLayer {
     pub handle: LogTreeHandle,
@@ -44,6 +93,47 @@ where
             meta.module_path().unwrap_or_default().split("::").collect();
         let file  = meta.file().unwrap_or("unknown");
         let line  = meta.line().unwrap_or(0);
+        
+        let mut visitor = MsgAndMetaVisitor::new();
+        event.record(&mut visitor);
+
+        let mut msg = visitor
+            .message
+            .unwrap_or_else(|| Arc::from("<no message>"));
+
+        // === Optional: append [META] if enabled ===
+        let mut meta_parts = Vec::new();
+
+        if CONFIG.get::<bool>("log/show_target") {
+            meta_parts.push(format!("target={}", meta.target()));
+        }
+        if CONFIG.get::<bool>("log/show_module") {
+            if let Some(module) = meta.module_path() {
+                meta_parts.push(format!("module={}", module));
+            }
+        }
+        if CONFIG.get::<bool>("log/show_file") {
+            if let Some(file) = meta.file() {
+                meta_parts.push(format!("file={}", file));
+            }
+        }
+        if CONFIG.get::<bool>("log/show_line") {
+            if let Some(line) = meta.line() {
+                meta_parts.push(format!("line={}", line));
+            }
+        }
+
+        if CONFIG.get::<bool>("log/show_other_fields") {
+            for (k, v) in visitor.meta_fields {
+                meta_parts.push(format!("{k}={v}"));
+            }
+        }
+
+        if !meta_parts.is_empty() {
+            let meta_str = meta_parts.join(", ");
+            let combined = format!("{msg} [META] {{ {meta_str} }}");
+            msg = Arc::from(combined);
+        }
 
         let lvl = match *meta.level() {
             tracing::Level::TRACE => Level::Trace,
@@ -60,7 +150,7 @@ where
             line,
             0,
             lvl,
-            format!("{:?}", event),
+            msg,
         );
     }
 }

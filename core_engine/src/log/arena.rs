@@ -6,6 +6,8 @@ use std::{
 use dashmap::DashMap;
 use parking_lot::{Mutex, RwLock, RwLockReadGuard};
 
+use crate::{functions::now_since_start_ns, statics::START_TIME};
+
 /* ---------- public basics ---------- */
 
 pub type NodeIdx = u32;
@@ -145,7 +147,7 @@ impl Arena {
             .push(leaf);
 
         let log = Log {
-            ts: now_ns(),
+            ts: now_since_start_ns(),
             lvl,
             msg: msg.into(),
         };
@@ -333,14 +335,4 @@ impl<'a> Iterator for ChildIter<'a> {
         self.cur = self.arena.next_sib(out);
         Some(out)
     }
-}
-
-/* ---------- time util ---------- */
-
-fn now_ns() -> u64 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos() as u64
 }
