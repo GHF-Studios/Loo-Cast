@@ -5,6 +5,7 @@ use egui::Color32;
 use crate::log::{
     functions::*,
     resources::*,
+    arena::{TreeKind},
 };
 
 pub(super) fn show_toolbar_ui(mut egui_ctx: EguiContexts, mut win: ResMut<UiWindows>) {
@@ -36,9 +37,9 @@ pub(super) fn show_log_viewer_ui(
         .min_height(250.0)
         .show(egui_ctx.ctx_mut(), |ui| {
             ui.columns(2, |cols| {
-                // Left panel (Tree)
+                // Left panel (Tree + Toolbar)
                 cols[0].vertical(|ui| {
-                    left_panel_toolbar_ui(ui);
+                    left_panel_toolbar_ui(ui, &mut state.tree_mode);
                     render_selectable_tree(ui, &log_tree.0, &mut state);
                 });
 
@@ -59,13 +60,24 @@ pub(super) fn show_log_viewer_ui(
         });
 }
 
-fn left_panel_toolbar_ui(ui: &mut egui::Ui) {
+fn left_panel_toolbar_ui(ui: &mut egui::Ui, tree_mode: &mut TreeKind) {
     egui::Frame::none()
         .fill(Color32::from_gray(25))
         .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
         .inner_margin(egui::Margin::symmetric(6.0, 4.0))
         .show(ui, |ui| {
-            ui.label("PLACEHOLDER");
+            ui.label("Filter Mode:");
+            ui.horizontal(|ui| {
+                let selected = matches!(tree_mode, TreeKind::Span);
+                if ui.selectable_label(selected, "↔ Spans").clicked() {
+                    *tree_mode = TreeKind::Span;
+                }
+
+                let selected = matches!(tree_mode, TreeKind::Loc(_));
+                if ui.selectable_label(selected, "📦 Location").clicked() {
+                    *tree_mode = TreeKind::Loc(crate::log::arena::LocKind::Crate);
+                }
+            });
         });
 }
 

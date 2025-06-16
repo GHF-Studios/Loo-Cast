@@ -1,23 +1,31 @@
-use tracing::{field::{Visit, Field}, span::Attributes, span::Id, Event};
+use tracing::{
+    field::{Visit, Field},
+    span::Attributes,
+    span::Id,
+    Event,
+    Metadata,
+    Level as TracingLevel,
+};
 use tracing_subscriber::{
     layer::{Context, Layer},
     registry::{LookupSpan, SpanRef},
 };
+
 use std::sync::Arc;
 use std::fmt::Debug;
 
-use crate::{config::statics::CONFIG, log::{
-    arena::Level,
-    resources::LogTreeHandle,
-}};
+use crate::{
+    config::statics::CONFIG,
+    log::{
+        arena::Level,
+        resources::LogTreeHandle,
+        functions::resolve_log_location, // assume exists
+    },
+};
 
 pub struct MsgAndMetaVisitor {
     pub message: Option<Arc<str>>,
     pub meta_fields: Vec<(String, String)>,
-    pub target: Option<String>,
-    pub module_path: Option<String>,
-    pub file: Option<String>,
-    pub line: Option<String>,
 }
 
 impl MsgAndMetaVisitor {
@@ -25,10 +33,6 @@ impl MsgAndMetaVisitor {
         Self {
             message: None,
             meta_fields: Vec::new(),
-            target: None,
-            module_path: None,
-            file: None,
-            line: None,
         }
     }
 }
@@ -51,8 +55,7 @@ impl Visit for MsgAndMetaVisitor {
                 self.message = Some(Arc::from(format!("{value:?}")));
             }
             name => {
-                self.meta_fields
-                    .push((name.to_string(), format!("{value:?}")));
+                self.meta_fields.push((name.to_string(), format!("{value:?}")));
             }
         }
     }
@@ -68,32 +71,23 @@ where
 {
     fn on_new_span(&self, attrs: &Attributes<'_>, id: &Id, ctx: Context<'_, S>) {
         let span_path = span_chain(attrs, id, &ctx);
-        let module_path: Vec<&'static str> =
-            attrs.metadata().module_path().unwrap_or_default().split("::").collect();
-        let file = attrs.metadata().file().unwrap_or("unknown");
-        let line = attrs.metadata().line().unwrap_or(0);
-
-        self.handle.0.insert(
-            &span_path,
-            &module_path,
-            file,
-            line,
-            0,
-            Level::Trace,
-            "", // no message
-        );
+        self.handle.0.insert_span(&span_path);
     }
 
     fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
-        let scope  = ctx.lookup_current();
+        let scope = ctx.lookup_current();
         let span_path = scope_path(scope);
 
         let meta = event.metadata();
-        let module_path: Vec<&'static str> =
-            meta.module_path().unwrap_or_default().split("::").collect();
-        let file  = meta.file().unwrap_or("unknown");
-        let line  = meta.line().unwrap_or(0);
-        
+
+        // === LOCATION ===
+        let Some((crate_name, module_path, file_path)) = resolve_log_location(meta) else {
+            return;
+        };
+        let module_path: Vec<&str> = module_path.iter().map(String::as_str).collect();
+        let line = meta.line().unwrap_or(0);
+
+        // === MESSAGE ===
         let mut visitor = MsgAndMetaVisitor::new();
         event.record(&mut visitor);
 
@@ -101,7 +95,6 @@ where
             .message
             .unwrap_or_else(|| Arc::from("<no message>"));
 
-        // === Optional: append [META] if enabled ===
         let mut meta_parts = Vec::new();
 
         if CONFIG.get::<bool>("log/show_target") {
@@ -136,17 +129,18 @@ where
         }
 
         let lvl = match *meta.level() {
-            tracing::Level::TRACE => Level::Trace,
-            tracing::Level::DEBUG => Level::Debug,
-            tracing::Level::INFO  => Level::Info,
-            tracing::Level::WARN  => Level::Warn,
-            tracing::Level::ERROR => Level::Error,
+            TracingLevel::TRACE => Level::Trace,
+            TracingLevel::DEBUG => Level::Debug,
+            TracingLevel::INFO => Level::Info,
+            TracingLevel::WARN => Level::Warn,
+            TracingLevel::ERROR => Level::Error,
         };
 
-        self.handle.0.insert(
+        self.handle.0.insert_log(
             &span_path,
+            &crate_name,
             &module_path,
-            file,
+            &file_path,
             line,
             0,
             lvl,
@@ -155,7 +149,6 @@ where
     }
 }
 
-/// Walk from the new span up to root, collecting names (root-first order).
 fn span_chain<S>(
     attrs: &Attributes<'_>,
     id: &Id,
@@ -180,7 +173,6 @@ where
     out
 }
 
-/// Same as `span_chain` but for the current scope (if any).
 fn scope_path<'a, C>(scope: Option<SpanRef<'a, C>>) -> Vec<&'static str>
 where
     C: LookupSpan<'a>,
@@ -192,5 +184,6 @@ where
         cur = s.parent();
     }
     out.reverse();
+
     out
 }

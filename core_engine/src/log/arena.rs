@@ -6,20 +6,12 @@ use std::{
 use dashmap::DashMap;
 use parking_lot::{Mutex, RwLock, RwLockReadGuard};
 
-use crate::{functions::now_since_start_ns, statics::START_TIME};
+use crate::functions::now_since_start_ns;
 
-/* ---------- public basics ---------- */
+/* ---------- node + type system ---------- */
 
 pub type NodeIdx = u32;
 const NONE: u32 = 0;
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Kind {
-    Span,
-    Module,
-    File,
-    Line,
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Level {
@@ -35,6 +27,61 @@ pub struct Log {
     pub ts:  u64,
     pub lvl: Level,
     pub msg: Arc<str>,
+}
+
+/* ---------- span hierarchy ---------- */
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum LocKind {
+    Crate,
+    Module,
+    File,
+    Line,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum TreeKind {
+    Span,
+    Loc(LocKind),
+}
+
+struct Node {
+    kind: TreeKind,
+    name_tok: u32, // for all except Line
+    line: u32,     // Line nodes only
+    col: u16,      // Line nodes only
+    parent: Option<NodeIdx>,
+    first_child: AtomicU32,
+    next_sib: AtomicU32,
+    logs: RwLock<Vec<Log>>, // only Line nodes fill this
+}
+
+impl Node {
+    fn new(kind: TreeKind, name_tok: u32, parent: Option<NodeIdx>) -> Self {
+        Self {
+            kind,
+            name_tok,
+            line: 0,
+            col: 0,
+            parent,
+            first_child: AtomicU32::new(NONE),
+            next_sib: AtomicU32::new(NONE),
+            logs: RwLock::new(Vec::new()),
+        }
+    }
+
+    fn new_line(parent: Option<NodeIdx>, line: u32, col: u16) -> Self {
+        Self {
+            kind: TreeKind::Loc(LocKind::Line),
+            name_tok: 0,
+            line,
+            col,
+            parent,
+            first_child: AtomicU32::new(NONE),
+            next_sib: AtomicU32::new(NONE),
+            logs: RwLock::new(Vec::new()),
+        }
+    }
 }
 
 /* ---------- interned strings ---------- */
@@ -54,51 +101,21 @@ impl Interns {
         self.map.insert(Arc::<str>::from(s), tok);
         tok
     }
+
     pub fn lookup(&self, s: &str) -> Option<u32> {
         self.map.get(s).map(|e| *e)
     }
-}
 
-/* ---------- the node slab ---------- */
-
-struct Node {
-    kind: Kind,
-    name_tok: u32, // Span / Module / File
-    line: u32,     // Line nodes only
-    col: u16,      // Line nodes only
-    parent: Option<NodeIdx>,
-    first_child: AtomicU32,
-    next_sib: AtomicU32,
-    logs: RwLock<Vec<Log>>, // only Line nodes fill this
-}
-
-impl Node {
-    fn new(kind: Kind, name_tok: u32, parent: Option<NodeIdx>) -> Self {
-        Self {
-            kind,
-            name_tok,
-            line: 0,
-            col: 0,
-            parent,
-            first_child: AtomicU32::new(NONE),
-            next_sib: AtomicU32::new(NONE),
-            logs: RwLock::new(Vec::new()),
-        }
-    }
-
-    fn new_line(parent: Option<NodeIdx>, line: u32, col: u16) -> Self {
-        Self {
-            kind: Kind::Line,
-            name_tok: 0,
-            line,
-            col,
-            parent,
-            first_child: AtomicU32::new(NONE),
-            next_sib: AtomicU32::new(NONE),
-            logs: RwLock::new(Vec::new()),
-        }
+    pub fn str_for(&self, tok: u32) -> Arc<str> {
+        self.map
+            .iter()
+            .find(|kv| *kv.value() == tok)
+            .map(|kv| kv.key().clone())
+            .unwrap_or_else(|| Arc::<str>::from("<unknown>"))
     }
 }
+
+/* ---------- the dual arena ---------- */
 
 pub struct Arena {
     vec: Mutex<Vec<Node>>,
@@ -109,18 +126,18 @@ pub struct Arena {
 impl Arena {
     pub fn new() -> Self {
         Self {
-            vec: Mutex::new(Vec::with_capacity(1024)),
+            vec: Mutex::new(Vec::with_capacity(2048)),
             ints: Interns::default(),
             by_file: DashMap::new(),
         }
     }
 
-    /* ---------- hot-path insert ---------- */
-
+    /// Inserts a log message into both trees.
     #[allow(clippy::too_many_arguments)]
-    pub fn insert(
+    pub fn insert_log(
         &self,
         span_path: &[&str],
+        crate_name: &str,
         module_path: &[&str],
         file_path: &str,
         line: u32,
@@ -128,40 +145,76 @@ impl Arena {
         lvl: Level,
         msg: impl Into<Arc<str>>,
     ) {
-        let mut parent = None;
-
+        let mut span_parent = None;
         for seg in span_path {
-            parent = Some(self.child(parent, Kind::Span, self.ints.get(seg)));
+            span_parent = Some(self.child(span_parent, TreeKind::Span, self.ints.get(seg)));
         }
+
+        let mut loc_parent = Some(self.child(None, TreeKind::Loc(LocKind::Crate), self.ints.get(crate_name)));
         for seg in module_path {
-            parent = Some(self.child(parent, Kind::Module, self.ints.get(seg)));
+            loc_parent = Some(self.child(loc_parent, TreeKind::Loc(LocKind::Module), self.ints.get(seg)));
         }
 
         let file_tok = self.ints.get(file_path);
-        parent = Some(self.child(parent, Kind::File, file_tok));
+        loc_parent = Some(self.child(loc_parent, TreeKind::Loc(LocKind::File), file_tok));
+        let line_node = self.child_line(loc_parent, line, col);
 
-        let leaf = self.child_line(parent, line, col);
-        self.by_file
-            .entry(file_tok)
-            .or_default()
-            .push(leaf);
+        self.by_file.entry(file_tok).or_default().push(line_node);
 
         let log = Log {
             ts: now_since_start_ns(),
             lvl,
             msg: msg.into(),
         };
-        self.node(leaf).logs.write().push(log);
+
+        self.node(line_node).logs.write().push(log);
     }
 
-    /* ---------- queries ---------- */
+    
+    pub fn insert_span(&self, span_path: &[&str]) {
+        let mut parent = None;
+        for seg in span_path {
+            parent = Some(self.child(parent, TreeKind::Span, self.ints.get(seg)));
+        }
+    }
+
+    /* ---------- traversal + lookup ---------- */
 
     pub fn roots(&self) -> Vec<NodeIdx> {
         let vec = self.vec.lock();
         (0..vec.len())
-            .filter(|&i| vec[i].kind == Kind::Span && vec[i].parent.is_none())
+            .filter(|&i| self.root_predicate(&vec[i]))
             .map(|i| i as NodeIdx)
             .collect()
+    }
+
+    fn root_predicate(&self, node: &Node) -> bool {
+        match node.kind {
+            TreeKind::Span => node.parent.is_none(),
+            TreeKind::Loc(LocKind::Crate) => node.parent.is_none(),
+            _ => false,
+        }
+    }
+
+    pub fn kind(&self, idx: NodeIdx) -> TreeKind {
+        self.node(idx).kind
+    }
+
+    pub fn name_tok(&self, idx: NodeIdx) -> u32 {
+        self.node(idx).name_tok
+    }
+
+    pub fn line_col(&self, idx: NodeIdx) -> Option<(u32, u16)> {
+        let node = self.node(idx);
+        if let TreeKind::Loc(LocKind::Line) = node.kind {
+            Some((node.line, node.col))
+        } else {
+            None
+        }
+    }
+
+    pub fn logs(&self, idx: NodeIdx) -> RwLockReadGuard<'_, Vec<Log>> {
+        self.node(idx).logs.read()
     }
 
     pub fn child_iter(&self, idx: NodeIdx) -> ChildIter<'_> {
@@ -171,57 +224,27 @@ impl Arena {
         }
     }
 
-    pub fn logs(
-        &self,
-        idx: NodeIdx,
-    ) -> RwLockReadGuard<'_, Vec<Log>> {
-        self.node(idx).logs.read()
-    }
-
-    pub fn kind(&self, idx: NodeIdx) -> Kind {
-        self.node(idx).kind
-    }
-    pub fn name_tok(&self, idx: NodeIdx) -> u32 {
-        self.node(idx).name_tok
-    }
-    pub fn line_col(&self, idx: NodeIdx) -> Option<(u32, u16)> {
-        let n = self.node(idx);
-        if n.kind == Kind::Line {
-            Some((n.line, n.col))
-        } else {
-            None
-        }
-    }
-
-    /// Reverse-lookup an interned token → its `Arc<str>` text.
     pub fn tok_str(&self, tok: u32) -> Arc<str> {
-        // Only used by UI code; linear scan is fine.
-        self.ints
-            .map
-            .iter()
-            .find(|kv| *kv.value() == tok)
-            .map(|kv| kv.key().clone())
-            .unwrap_or_else(|| Arc::<str>::from("<unknown>"))
+        self.ints.str_for(tok)
     }
 
     /* ---------- internals ---------- */
 
-    fn child(&self, parent: Option<NodeIdx>, kind: Kind, tok: u32) -> NodeIdx {
-        // │─ NEW: handle the root level ────────────────────────────────────────
+    fn node(&self, idx: NodeIdx) -> &Node {
+        unsafe { &*(&self.vec.lock()[idx as usize] as *const Node) }
+    }
+
+    fn child(&self, parent: Option<NodeIdx>, kind: TreeKind, tok: u32) -> NodeIdx {
         if parent.is_none() {
-            // lock the vec just long enough to scan existing roots
             let vec = self.vec.lock();
-            if let Some((i, _)) = vec
-                .iter()
-                .enumerate()
-                .find(|(_, n)| n.parent.is_none() && n.kind == kind && n.name_tok == tok)
-            {
-                return i as NodeIdx; // found; reuse
+            if let Some((i, _)) = vec.iter().enumerate().find(|(_, n)| {
+                n.parent.is_none() && n.kind == kind && n.name_tok == tok
+            }) {
+                return i as NodeIdx;
             }
-            // drop lock before we allocate a new node
             drop(vec);
         }
-        // │─ OLD path for non-root or not-found root ───────────────────────────
+
         if let Some(p) = parent {
             let mut cur = self.first_child(p);
             while let Some(i) = cur {
@@ -232,6 +255,7 @@ impl Arena {
                 cur = self.next_sib(i);
             }
         }
+
         self.new_node(parent, kind, tok)
     }
 
@@ -240,16 +264,19 @@ impl Arena {
             let mut cur = self.first_child(p);
             while let Some(i) = cur {
                 let n = self.node(i);
-                if n.kind == Kind::Line && n.line == line && n.col == col {
-                    return i;
+                if let TreeKind::Loc(LocKind::Line) = n.kind {
+                    if n.line == line && n.col == col {
+                        return i;
+                    }
                 }
                 cur = self.next_sib(i);
             }
         }
+
         self.new_line_node(parent, line, col)
     }
 
-    fn new_node(&self, parent: Option<NodeIdx>, kind: Kind, tok: u32) -> NodeIdx {
+    fn new_node(&self, parent: Option<NodeIdx>, kind: TreeKind, tok: u32) -> NodeIdx {
         let mut vec = self.vec.lock();
         let idx = vec.len() as NodeIdx;
         vec.push(Node::new(kind, tok, parent));
@@ -258,15 +285,11 @@ impl Arena {
         if let Some(p) = parent {
             self.splice_child(p, idx);
         }
+
         idx
     }
 
-    fn new_line_node(
-        &self,
-        parent: Option<NodeIdx>,
-        line: u32,
-        col: u16,
-    ) -> NodeIdx {
+    fn new_line_node(&self, parent: Option<NodeIdx>, line: u32, col: u16) -> NodeIdx {
         let mut vec = self.vec.lock();
         let idx = vec.len() as NodeIdx;
         vec.push(Node::new_line(parent, line, col));
@@ -275,6 +298,7 @@ impl Arena {
         if let Some(p) = parent {
             self.splice_child(p, idx);
         }
+
         idx
     }
 
@@ -292,11 +316,6 @@ impl Arena {
         }
     }
 
-    /* ---------- utils ---------- */
-
-    fn node(&self, idx: NodeIdx) -> &Node {
-        unsafe { &*(&self.vec.lock()[idx as usize] as *const Node) }
-    }
     fn first_child(&self, idx: NodeIdx) -> Option<NodeIdx> {
         let v = self.node(idx).first_child.load(Ordering::Acquire);
         if v == NONE {
@@ -305,6 +324,7 @@ impl Arena {
             Some(v - 1)
         }
     }
+
     fn next_sib(&self, idx: NodeIdx) -> Option<NodeIdx> {
         let v = self.node(idx).next_sib.load(Ordering::Acquire);
         if v == NONE {
@@ -321,8 +341,6 @@ impl Default for Arena {
     }
 }
 
-/* ---------- child iterator ---------- */
-
 pub struct ChildIter<'a> {
     arena: &'a Arena,
     cur: Option<NodeIdx>,
@@ -330,6 +348,7 @@ pub struct ChildIter<'a> {
 
 impl<'a> Iterator for ChildIter<'a> {
     type Item = NodeIdx;
+
     fn next(&mut self) -> Option<Self::Item> {
         let out = self.cur?;
         self.cur = self.arena.next_sib(out);

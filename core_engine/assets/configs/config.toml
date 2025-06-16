@@ -16,10 +16,10 @@ default_radius = 8
 reservation_buffer_size = 1024
 
 [log]
-show_target = true
-show_module = true
-show_file = true
-show_line = true
+show_target = false
+show_module = false
+show_file = false
+show_line = false
 show_other_fields = false
 
 [player]

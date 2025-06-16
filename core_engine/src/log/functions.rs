@@ -1,8 +1,32 @@
 use bevy_egui::egui::{self, Color32, RichText, ScrollArea, TextFormat, FontId};
 use egui::{text::LayoutJob, WidgetText};
 
-use crate::log::arena::{Arena, Kind, Level, NodeIdx, Log};
+use crate::log::arena::{Arena, TreeKind, LocKind, Level, NodeIdx, Log};
 use crate::log::resources::*;
+use tracing::Metadata;
+
+/// Attempt to resolve a log's location information:
+/// (crate_name, module_path_segments, file_path)
+/// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP
+pub fn resolve_log_location(meta: &Metadata<'_>) -> Option<(String, Vec<String>, String)> {
+    let file_path = meta.file()?;
+    let module_path = meta.module_path()?;
+
+    let crate_name = module_path.split("::").next().unwrap_or("unknown").to_owned();
+
+    let file_stripped = file_path
+        .rsplit_once(&crate_name)?
+        .1
+        .trim_start_matches(['/', '\\'])
+        .to_owned();
+
+    let module_segments = module_path
+        .split("::")
+        .map(|s| s.to_string())
+        .collect();
+
+    Some((crate_name, module_segments, file_stripped))
+}
 
 pub fn render_log_tree(ui: &mut egui::Ui, arena: &Arena) {
     ScrollArea::vertical().show(ui, |ui| {
@@ -13,39 +37,69 @@ pub fn render_log_tree(ui: &mut egui::Ui, arena: &Arena) {
 }
 
 fn render_node(ui: &mut egui::Ui, arena: &Arena, idx: NodeIdx, depth: usize) {
-    let indent = "  ".repeat(depth);
+    let indent = " ".repeat(depth);
     match arena.kind(idx) {
-        Kind::Span | Kind::Module | Kind::File => {
+        TreeKind::Span => {
             let name = arena.tok_str(arena.name_tok(idx));
-            ui.collapsing(format!("{indent}📂 {}", name), |ui| {
+            ui.collapsing(format!("{indent}↔ {}", name), |ui| {
                 for child in arena.child_iter(idx) {
                     render_node(ui, arena, child, depth + 1);
                 }
             });
         }
-        Kind::Line => {
-            let (l, c) = arena.line_col(idx).unwrap_or((0, 0));
-            ui.collapsing(format!("{indent}📄 {l}:{c}"), |ui| {
-                ScrollArea::vertical().max_height(120.0).show(ui, |ui| {
-                    for log in arena.logs(idx).iter() {
-                        ui.label(format_log_line(log));
+        TreeKind::Loc(loc_kind) => match loc_kind {
+            LocKind::Crate => {
+                let name = arena.tok_str(arena.name_tok(idx));
+                ui.collapsing(format!("{indent}© {}", name), |ui| {
+                    for child in arena.child_iter(idx) {
+                        render_node(ui, arena, child, depth + 1);
                     }
                 });
-            });
-        }
+            }
+            LocKind::Module => {
+                let name = arena.tok_str(arena.name_tok(idx));
+                ui.collapsing(format!("{indent}📦 {}", name), |ui| {
+                    for child in arena.child_iter(idx) {
+                        render_node(ui, arena, child, depth + 1);
+                    }
+                });
+            }
+            LocKind::File => {
+                let name = arena.tok_str(arena.name_tok(idx));
+                ui.collapsing(format!("{indent}📄 {}", name), |ui| {
+                    for child in arena.child_iter(idx) {
+                        render_node(ui, arena, child, depth + 1);
+                    }
+                });
+            }
+            LocKind::Line => {
+                let (l, c) = arena.line_col(idx).unwrap_or((0, 0));
+                ui.collapsing(format!("{indent}📑 {l}:{c}"), |ui| {
+                    ScrollArea::vertical().max_height(120.0).show(ui, |ui| {
+                        for log in arena.logs(idx).iter() {
+                            ui.label(format_log_line(log));
+                        }
+                    });
+                });
+            }
+        },
     }
 }
 
+/// Entrypoint to render the correct tree UI based on mode.
 pub fn render_selectable_tree(
     ui:    &mut egui::Ui,
     arena: &Arena,
     state: &mut LogViewerState,
 ) {
     for root in arena.roots() {
-        paint_branch(ui, arena, state, root);
+        if arena.kind(root) == state.tree_mode {
+            paint_branch(ui, arena, state, root);
+        }
     }
 }
 
+/// Render one node and recurse into its children.
 fn paint_branch(
     ui:    &mut egui::Ui,
     arena: &Arena,
@@ -54,21 +108,23 @@ fn paint_branch(
 ) {
     ui.indent(idx, |ui| {
         ui.horizontal(|ui| {
-            // checkbox
             let mut checked = state.selected.contains(&idx);
             if ui.checkbox(&mut checked, "").changed() {
                 if checked { state.selected.insert(idx); }
                 else       { state.selected.remove(&idx); }
             }
 
-            // collapsible header (arrow + icon + text)
             let (icon, label) = match arena.kind(idx) {
-                Kind::Span | Kind::Module => ("📂", arena.tok_str(arena.name_tok(idx))),
-                Kind::File               => ("📄", arena.tok_str(arena.name_tok(idx))),
-                Kind::Line => {
-                    let (l, c) = arena.line_col(idx).unwrap_or((0, 0));
-                    ("📑", format!("{l}:{c}").into())
-                }
+                TreeKind::Span => ("↔", arena.tok_str(arena.name_tok(idx))),
+                TreeKind::Loc(loc_kind) => match loc_kind {
+                    LocKind::Crate  => ("📦", arena.tok_str(arena.name_tok(idx))),
+                    LocKind::Module => ("📂", arena.tok_str(arena.name_tok(idx))),
+                    LocKind::File   => ("📄", arena.tok_str(arena.name_tok(idx))),
+                    LocKind::Line => {
+                        let (l, c) = arena.line_col(idx).unwrap_or((0, 0));
+                        ("📑", format!("{l}:{c}").into())
+                    }
+                },
             };
 
             ui.collapsing(format!("{icon} {label}"), |ui| {
@@ -80,6 +136,7 @@ fn paint_branch(
     });
 }
 
+/// Recursively collect all logs from selected nodes.
 pub fn gather_logs(arena: &Arena, state: &LogViewerState) -> Vec<Log> {
     let mut out = Vec::new();
     for &node in &state.selected {
@@ -91,7 +148,7 @@ pub fn gather_logs(arena: &Arena, state: &LogViewerState) -> Vec<Log> {
 }
 
 fn collect_logs(arena: &Arena, idx: NodeIdx, v: &mut Vec<Log>) {
-    if arena.kind(idx) == Kind::Line {
+    if arena.kind(idx) == TreeKind::Loc(LocKind::Line) {
         v.extend(arena.logs(idx).iter().cloned());
     }
     for child in arena.child_iter(idx) {
@@ -99,6 +156,7 @@ fn collect_logs(arena: &Arena, idx: NodeIdx, v: &mut Vec<Log>) {
     }
 }
 
+/// Format timestamp + level + message.
 pub fn format_log_line(log: &Log) -> WidgetText {
     use crate::log::arena::Level;
 
@@ -161,6 +219,7 @@ pub fn format_log_line(log: &Log) -> WidgetText {
     WidgetText::from(job)
 }
 
+/// Reusable log level slider UI
 pub fn right_panel_filter_ui(ui: &mut egui::Ui, threshold: &mut Level) {
     use Level::*;
 
@@ -189,17 +248,13 @@ pub fn right_panel_filter_ui(ui: &mut egui::Ui, threshold: &mut Level) {
             ui.horizontal(|ui| {
                 ui.label("Log Level:");
 
-                // Reserve space first
                 let slider = egui::Slider::new(&mut slider_value, 0.0..=4.0)
                     .step_by(1.0)
                     .show_value(false);
                 let response = ui.add(slider);
 
-                // Compute actual knob position manually
-                let track_rect = response.rect.shrink(6.0); // account for padding/margin
-                let knob_range = 4.0;
-                let norm = (slider_value / knob_range).clamp(0.0, 1.0);
-
+                let track_rect = response.rect.shrink(6.0);
+                let norm = (slider_value / 4.0).clamp(0.0, 1.0);
                 let x = track_rect.left() + norm * track_rect.width();
                 let y = track_rect.center().y;
                 let center = egui::pos2(x, y);
@@ -221,4 +276,3 @@ pub fn right_panel_filter_ui(ui: &mut egui::Ui, threshold: &mut Level) {
             });
         });
 }
-
