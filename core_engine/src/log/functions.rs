@@ -5,28 +5,47 @@ use crate::log::arena::{Arena, TreeKind, LocKind, Level, NodeIdx, Log};
 use crate::log::resources::*;
 use tracing::Metadata;
 
-/// Attempt to resolve a log's location information:
-/// (crate_name, module_path_segments, file_path)
-/// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP /// WIP
-pub fn resolve_log_location(meta: &Metadata<'_>) -> Option<(String, Vec<String>, String)> {
-    let file_path = meta.file()?;
-    let module_path = meta.module_path()?;
+use std::path::{Component, Path, PathBuf};
 
-    let crate_name = module_path.split("::").next().unwrap_or("unknown").to_owned();
+/// Canonical location path: ["crate", "mod1", ..., "file.rs", "173"]
+pub fn resolve_log_location(meta: &tracing::Metadata<'_>) -> Vec<String> {
+    let file_path = meta.file().expect("Log has no file()");
+    let module_path = meta.module_path().expect("Log has no module_path()");
+    let line = meta.line().expect("Log has no line()");
 
-    let file_stripped = file_path
-        .rsplit_once(&crate_name)?
-        .1
-        .trim_start_matches(['/', '\\'])
+    let crate_name = module_path
+        .split("::")
+        .next()
+        .expect("Invalid module_path")
         .to_owned();
 
-    let module_segments = module_path
-        .split("::")
-        .map(|s| s.to_string())
+    // Extract crate-relative file path
+    let path = Path::new(file_path);
+    let components: Vec<_> = path.components().collect();
+
+    let idx = components
+        .iter()
+        .rposition(|c| match c {
+            Component::Normal(name) => **name == *crate_name,
+            _ => false,
+        })
+        .expect("Crate name not found in file() path");
+
+    let rel_path: PathBuf = components[idx + 1..].iter().collect();
+    let mut segments: Vec<String> = rel_path
+        .iter()
+        .map(|c| c.to_string_lossy().to_string())
         .collect();
 
-    Some((crate_name, module_segments, file_stripped))
+    // Push line number as final segment
+    segments.push(line.to_string());
+
+    // Prepend crate name
+    segments.insert(0, crate_name);
+
+    segments
 }
+
 
 pub fn render_log_tree(ui: &mut egui::Ui, arena: &Arena) {
     ScrollArea::vertical().show(ui, |ui| {
@@ -41,7 +60,7 @@ fn render_node(ui: &mut egui::Ui, arena: &Arena, idx: NodeIdx, depth: usize) {
     match arena.kind(idx) {
         TreeKind::Span => {
             let name = arena.tok_str(arena.name_tok(idx));
-            ui.collapsing(format!("{indent}↔ {}", name), |ui| {
+            ui.collapsing(format!("{indent}↔{}", name), |ui| {
                 for child in arena.child_iter(idx) {
                     render_node(ui, arena, child, depth + 1);
                 }
@@ -50,7 +69,7 @@ fn render_node(ui: &mut egui::Ui, arena: &Arena, idx: NodeIdx, depth: usize) {
         TreeKind::Loc(loc_kind) => match loc_kind {
             LocKind::Crate => {
                 let name = arena.tok_str(arena.name_tok(idx));
-                ui.collapsing(format!("{indent}© {}", name), |ui| {
+                ui.collapsing(format!("{indent}📦{}", name), |ui| {
                     for child in arena.child_iter(idx) {
                         render_node(ui, arena, child, depth + 1);
                     }
@@ -58,7 +77,7 @@ fn render_node(ui: &mut egui::Ui, arena: &Arena, idx: NodeIdx, depth: usize) {
             }
             LocKind::Module => {
                 let name = arena.tok_str(arena.name_tok(idx));
-                ui.collapsing(format!("{indent}📦 {}", name), |ui| {
+                ui.collapsing(format!("{indent}📂{}", name), |ui| {
                     for child in arena.child_iter(idx) {
                         render_node(ui, arena, child, depth + 1);
                     }
@@ -66,7 +85,7 @@ fn render_node(ui: &mut egui::Ui, arena: &Arena, idx: NodeIdx, depth: usize) {
             }
             LocKind::File => {
                 let name = arena.tok_str(arena.name_tok(idx));
-                ui.collapsing(format!("{indent}📄 {}", name), |ui| {
+                ui.collapsing(format!("{indent}📄{}", name), |ui| {
                     for child in arena.child_iter(idx) {
                         render_node(ui, arena, child, depth + 1);
                     }
@@ -74,12 +93,20 @@ fn render_node(ui: &mut egui::Ui, arena: &Arena, idx: NodeIdx, depth: usize) {
             }
             LocKind::Line => {
                 let (l, c) = arena.line_col(idx).unwrap_or((0, 0));
-                ui.collapsing(format!("{indent}📑 {l}:{c}"), |ui| {
+                ui.collapsing(format!("{indent}📑{l}:{c}"), |ui| {
                     ScrollArea::vertical().max_height(120.0).show(ui, |ui| {
                         for log in arena.logs(idx).iter() {
                             ui.label(format_log_line(log));
                         }
                     });
+                });
+            }
+            LocKind::SubModule => {
+                let name = arena.tok_str(arena.name_tok(idx));
+                ui.collapsing(format!("{indent}📂{}", name), |ui| {
+                    for child in arena.child_iter(idx) {
+                        render_node(ui, arena, child, depth + 1);
+                    }
                 });
             }
         },
@@ -124,6 +151,7 @@ fn paint_branch(
                         let (l, c) = arena.line_col(idx).unwrap_or((0, 0));
                         ("📑", format!("{l}:{c}").into())
                     }
+                    LocKind::SubModule => ("📂", arena.tok_str(arena.name_tok(idx))),
                 },
             };
 

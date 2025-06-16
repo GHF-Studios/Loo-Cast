@@ -37,12 +37,19 @@ pub enum LocKind {
     Module,
     File,
     Line,
+    SubModule,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum TreeKind {
     Span,
     Loc(LocKind),
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum FileViewMode {
+    Lines,
+    SubModules,
 }
 
 struct Node {
