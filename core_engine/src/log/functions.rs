@@ -3,49 +3,36 @@ use egui::{text::LayoutJob, WidgetText};
 
 use crate::log::arena::{Arena, TreeKind, LocKind, Level, NodeIdx, Log};
 use crate::log::resources::*;
+use crate::log::types::LogPathSegment;
 use tracing::Metadata;
 
 use std::path::{Component, Path, PathBuf};
 
-/// Canonical location path: ["crate", "mod1", ..., "file.rs", "173"]
-pub fn resolve_log_location(meta: &tracing::Metadata<'_>) -> Vec<String> {
-    let file_path = meta.file().expect("Log has no file()");
-    let module_path = meta.module_path().expect("Log has no module_path()");
-    let line = meta.line().expect("Log has no line()");
+pub fn resolve_log_location_path(meta: &Metadata<'_>) -> Vec<LogPathSegment> {
+    let file_path = meta.file().expect("Missing file path in log metadata");
+    let module_path = meta.module_path().expect("Missing module path in log metadata");
+    let line = meta.line().expect("Missing line number in log metadata");
 
-    let crate_name = module_path
-        .split("::")
-        .next()
-        .expect("Invalid module_path")
-        .to_owned();
+    let module_segments: Vec<&str> = module_path.split("::").collect();
+    let crate_name = module_segments.first().expect("Empty module path");
 
-    // Extract crate-relative file path
-    let path = Path::new(file_path);
-    let components: Vec<_> = path.components().collect();
+    let mut path = Vec::new();
+    path.push(LogPathSegment::Crate(crate_name.to_string()));
+    for seg in &module_segments[1..] {
+        path.push(LogPathSegment::Module(seg.to_string()));
+    }
 
-    let idx = components
-        .iter()
-        .rposition(|c| match c {
-            Component::Normal(name) => **name == *crate_name,
-            _ => false,
-        })
-        .expect("Crate name not found in file() path");
+    let normalized = file_path.replace('\\', "/");
+    let file_name = normalized
+        .split('/')
+        .last()
+        .expect("Failed to extract file name from path");
+    path.push(LogPathSegment::File(file_name.to_string()));
 
-    let rel_path: PathBuf = components[idx + 1..].iter().collect();
-    let mut segments: Vec<String> = rel_path
-        .iter()
-        .map(|c| c.to_string_lossy().to_string())
-        .collect();
+    path.push(LogPathSegment::Line(line));
 
-    // Push line number as final segment
-    segments.push(line.to_string());
-
-    // Prepend crate name
-    segments.insert(0, crate_name);
-
-    segments
+    path
 }
-
 
 pub fn render_log_tree(ui: &mut egui::Ui, arena: &Arena) {
     ScrollArea::vertical().show(ui, |ui| {

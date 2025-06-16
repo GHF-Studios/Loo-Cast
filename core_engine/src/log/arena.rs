@@ -6,7 +6,7 @@ use std::{
 use dashmap::DashMap;
 use parking_lot::{Mutex, RwLock, RwLockReadGuard};
 
-use crate::functions::now_since_start_ns;
+use crate::{functions::now_since_start_ns, log::types::LogPathSegment};
 
 /* ---------- node + type system ---------- */
 
@@ -139,44 +139,45 @@ impl Arena {
         }
     }
 
-    /// Inserts a log message into both trees.
-    #[allow(clippy::too_many_arguments)]
-    pub fn insert_log(
+    pub fn insert_log_path(
         &self,
         span_path: &[&str],
-        crate_name: &str,
-        module_path: &[&str],
-        file_path: &str,
-        line: u32,
-        col: u16,
+        location_path: &[LogPathSegment],
         lvl: Level,
-        msg: impl Into<Arc<str>>,
+        msg: Arc<str>,
     ) {
-        let mut span_parent = None;
+        let mut parent = None;
+
+        // ─── Insert span chain ─────────────────────────────────────────────
         for seg in span_path {
-            span_parent = Some(self.child(span_parent, TreeKind::Span, self.ints.get(seg)));
+            parent = Some(self.child(parent, TreeKind::Span, self.ints.get(seg)));
         }
 
-        let mut loc_parent = Some(self.child(None, TreeKind::Loc(LocKind::Crate), self.ints.get(crate_name)));
-        for seg in module_path {
-            loc_parent = Some(self.child(loc_parent, TreeKind::Loc(LocKind::Module), self.ints.get(seg)));
+        // ─── Insert location path ──────────────────────────────────────────
+        for seg in location_path {
+            parent = Some(match seg {
+                LogPathSegment::Crate(name) => self.child(parent, TreeKind::Loc(LocKind::Crate), self.ints.get(name)),
+                LogPathSegment::Module(name) => self.child(parent, TreeKind::Loc(LocKind::Module), self.ints.get(name)),
+                LogPathSegment::File(name) => self.child(parent, TreeKind::Loc(LocKind::File), self.ints.get(name)),
+                LogPathSegment::Submodule(name) => self.child(parent, TreeKind::Loc(LocKind::SubModule), self.ints.get(name)),
+                LogPathSegment::Line(line) => {
+                    // File or Submodule must already be the parent
+                    self.child_line(parent, *line, 0)
+                }
+            });
         }
 
-        let file_tok = self.ints.get(file_path);
-        loc_parent = Some(self.child(loc_parent, TreeKind::Loc(LocKind::File), file_tok));
-        let line_node = self.child_line(loc_parent, line, col);
-
-        self.by_file.entry(file_tok).or_default().push(line_node);
+        let Some(leaf) = parent else {
+            panic!("insert_log_path: no final parent node resolved");
+        };
 
         let log = Log {
             ts: now_since_start_ns(),
             lvl,
-            msg: msg.into(),
+            msg,
         };
-
-        self.node(line_node).logs.write().push(log);
+        self.node(leaf).logs.write().push(log);
     }
-
     
     pub fn insert_span(&self, span_path: &[&str]) {
         let mut parent = None;

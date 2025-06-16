@@ -17,11 +17,18 @@ use std::fmt::Debug;
 use crate::{
     config::statics::CONFIG,
     log::{
-        arena::Level,
-        resources::LogTreeHandle,
-        functions::resolve_log_location, // assume exists
+        arena::Level, functions::resolve_log_location_path, resources::LogTreeHandle // assume exists
     },
 };
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum LogPathSegment {
+    Crate(String),
+    Module(String),
+    File(String),
+    Line(u32),
+    Submodule(String),
+}
 
 pub struct MsgAndMetaVisitor {
     pub message: Option<Arc<str>>,
@@ -81,11 +88,7 @@ where
         let meta = event.metadata();
 
         // === LOCATION ===
-        let Some((crate_name, module_path, file_path)) = resolve_log_location(meta) else {
-            return;
-        };
-        let module_path: Vec<&str> = module_path.iter().map(String::as_str).collect();
-        let line = meta.line().unwrap_or(0);
+        let location_path = resolve_log_location_path(meta);
 
         // === MESSAGE ===
         let mut visitor = MsgAndMetaVisitor::new();
@@ -136,13 +139,9 @@ where
             TracingLevel::ERROR => Level::Error,
         };
 
-        self.handle.0.insert_log(
+        self.handle.0.insert_log_path(
             &span_path,
-            &crate_name,
-            &module_path,
-            &file_path,
-            line,
-            0,
+            &location_path,
             lvl,
             msg,
         );
