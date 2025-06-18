@@ -6,7 +6,7 @@ use std::{
 use dashmap::DashMap;
 use parking_lot::{Mutex, RwLock, RwLockReadGuard};
 
-use crate::{functions::now_since_start_ns, log::types::LogPathSegment};
+use crate::{functions::now_since_start_ns, log::types::LocationPathSegment};
 
 /* ---------- node + type system ---------- */
 
@@ -31,7 +31,7 @@ pub struct Log {
 
 /* ---------- span hierarchy ---------- */
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocKind {
     Crate,
     Module,
@@ -40,10 +40,24 @@ pub enum LocKind {
     SubModule,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FilterTreeMode {
+    Span,
+    Loc,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TreeKind {
     Span,
     Loc(LocKind),
+}
+impl Into<FilterTreeMode> for TreeKind {
+    fn into(self) -> FilterTreeMode {
+        match self {
+            Self::Span => FilterTreeMode::Span,
+            Self::Loc(_) => FilterTreeMode::Loc,
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -142,7 +156,7 @@ impl Arena {
     pub fn insert_log_path(
         &self,
         span_path: &[&str],
-        location_path: &[LogPathSegment],
+        location_path: &[LocationPathSegment],
         lvl: Level,
         msg: Arc<str>,
     ) {
@@ -156,12 +170,12 @@ impl Arena {
         // ─── Insert location path ──────────────────────────────────────────
         for seg in location_path {
             parent = Some(match seg {
-                LogPathSegment::Crate(name) => self.child(parent, TreeKind::Loc(LocKind::Crate), self.ints.get(name)),
-                LogPathSegment::Module(name) => self.child(parent, TreeKind::Loc(LocKind::Module), self.ints.get(name)),
-                LogPathSegment::File(name) => self.child(parent, TreeKind::Loc(LocKind::File), self.ints.get(name)),
-                LogPathSegment::Submodule(name) => self.child(parent, TreeKind::Loc(LocKind::SubModule), self.ints.get(name)),
-                LogPathSegment::Line(line) => {
-                    // File or Submodule must already be the parent
+                LocationPathSegment::Crate(name) => self.child(parent, TreeKind::Loc(LocKind::Crate), self.ints.get(name)),
+                LocationPathSegment::Module(name) => self.child(parent, TreeKind::Loc(LocKind::Module), self.ints.get(name)),
+                LocationPathSegment::File(name) => self.child(parent, TreeKind::Loc(LocKind::File), self.ints.get(name)),
+                LocationPathSegment::SubModule(name) => self.child(parent, TreeKind::Loc(LocKind::SubModule), self.ints.get(name)),
+                LocationPathSegment::Line(line) => {
+                    // File or SubModule must already be the parent
                     self.child_line(parent, *line, 0)
                 }
             });

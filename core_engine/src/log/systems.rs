@@ -3,9 +3,7 @@ use bevy_egui::{egui, EguiContexts};
 use egui::Color32;
 
 use crate::log::{
-    functions::*,
-    resources::*,
-    arena::{TreeKind},
+    arena::{FilterTreeMode, TreeKind}, functions::*, resources::*
 };
 
 pub(super) fn show_toolbar_ui(mut egui_ctx: EguiContexts, mut win: ResMut<UiWindows>) {
@@ -26,8 +24,10 @@ pub(super) fn show_toolbar_ui(mut egui_ctx: EguiContexts, mut win: ResMut<UiWind
 pub(super) fn show_log_viewer_ui(
     mut egui_ctx: EguiContexts,
     win:          Res<UiWindows>,
-    log_tree:     Res<LogTreeHandle>,
-    mut state:    ResMut<LogViewerState>,
+    log_storage:     Res<LogStorageHandle>,
+    span_tree:     Res<SpanTreeHandle>,
+    location_tree:     Res<LocationTreeHandle>,
+    mut viewer_state:    ResMut<LogViewerState>,
 ) {
     if !win.show_log_viewer { return; }
 
@@ -39,14 +39,14 @@ pub(super) fn show_log_viewer_ui(
             ui.columns(2, |cols| {
                 // Left panel (Tree + Toolbar)
                 cols[0].vertical(|ui| {
-                    left_panel_toolbar_ui(ui, &mut state.tree_mode);
-                    render_selectable_tree(ui, &log_tree.0, &mut state);
+                    left_panel_toolbar_ui(ui, &mut viewer_state.tree_mode);
+                    render_selectable_tree(ui, &mut viewer_state, &log_storage.0, &span_tree.0, &location_tree.0);
                 });
 
                 // Right panel (Console)
                 cols[1].vertical(|ui| {
-                    right_panel_toolbar_ui(ui, &mut state);
-                    let logs = gather_logs(&log_tree.0, &state);
+                    right_panel_toolbar_ui(ui, &mut viewer_state);
+                    let logs = gather_logs(&viewer_state, &log_storage.0, &span_tree.0, &location_tree.0);
                     let row_h = ui.text_style_height(&egui::TextStyle::Monospace);
                     egui::ScrollArea::vertical()
                         .stick_to_bottom(true)
@@ -60,7 +60,7 @@ pub(super) fn show_log_viewer_ui(
         });
 }
 
-fn left_panel_toolbar_ui(ui: &mut egui::Ui, tree_mode: &mut TreeKind) {
+fn left_panel_toolbar_ui(ui: &mut egui::Ui, tree_mode: &mut FilterTreeMode) {
     egui::Frame::none()
         .fill(Color32::from_gray(25))
         .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
@@ -68,25 +68,25 @@ fn left_panel_toolbar_ui(ui: &mut egui::Ui, tree_mode: &mut TreeKind) {
         .show(ui, |ui| {
             ui.label("Filter Mode:");
             ui.horizontal(|ui| {
-                let selected = matches!(tree_mode, TreeKind::Span);
+                let selected = matches!(tree_mode, FilterTreeMode::Span);
                 if ui.selectable_label(selected, "↔ Spans").clicked() {
-                    *tree_mode = TreeKind::Span;
+                    *tree_mode = FilterTreeMode::Span;
                 }
 
-                let selected = matches!(tree_mode, TreeKind::Loc(_));
-                if ui.selectable_label(selected, "📦 Location").clicked() {
-                    *tree_mode = TreeKind::Loc(crate::log::arena::LocKind::Crate);
+                let selected = matches!(tree_mode, FilterTreeMode::Loc);
+                if ui.selectable_label(selected, "📦 Locations").clicked() {
+                    *tree_mode = FilterTreeMode::Loc;
                 }
             });
         });
 }
 
-fn right_panel_toolbar_ui(ui: &mut egui::Ui, state: &mut LogViewerState) {
+fn right_panel_toolbar_ui(ui: &mut egui::Ui, viewer_state: &mut LogViewerState) {
     egui::Frame::none()
         .fill(Color32::from_gray(25))
         .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
         .inner_margin(egui::Margin::symmetric(6.0, 4.0))
         .show(ui, |ui| {
-            right_panel_filter_ui(ui, &mut state.threshold);
+            right_panel_filter_ui(ui, &mut viewer_state.threshold);
         });
 }

@@ -17,17 +17,42 @@ use std::fmt::Debug;
 use crate::{
     config::statics::CONFIG,
     log::{
-        arena::Level, functions::resolve_log_location_path, resources::LogTreeHandle // assume exists
+        arena::Level, functions::resolve_log_location_path, resources::{LocationTreeHandle, LogStorageHandle, SpanTreeHandle} // assume exists
     },
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum LogPathSegment {
+pub enum LogPath {
+    Span(Vec<&'static str>),
+    Loc(Vec<LocationPathSegment>),
+}
+impl std::fmt::Display for LogPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LogPath::Span(path) => write!(f, "SpanPath({})", path.join(" > ")),
+            LogPath::Loc(path) => write!(f, "LocPath({})", path.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(" > ")),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum LocationPathSegment {
     Crate(String),
     Module(String),
     File(String),
     Line(u32),
-    Submodule(String),
+    SubModule(String),
+}
+impl std::fmt::Display for LocationPathSegment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LocationPathSegment::Crate(name) => write!(f, "Crate({})", name),
+            LocationPathSegment::Module(name) => write!(f, "Module({})", name),
+            LocationPathSegment::File(name) => write!(f, "File({})", name),
+            LocationPathSegment::Line(line) => write!(f, "Line({})", line),
+            LocationPathSegment::SubModule(name) => write!(f, "SubModule({})", name),
+        }
+    }
 }
 
 pub struct MsgAndMetaVisitor {
@@ -69,7 +94,9 @@ impl Visit for MsgAndMetaVisitor {
 }
 
 pub struct LogTreeTracingLayer {
-    pub handle: LogTreeHandle,
+    pub storage: LogStorageHandle,
+    pub location_tree: LocationTreeHandle,
+    pub span_tree: SpanTreeHandle,
 }
 
 impl<S> Layer<S> for LogTreeTracingLayer
@@ -78,7 +105,7 @@ where
 {
     fn on_new_span(&self, attrs: &Attributes<'_>, id: &Id, ctx: Context<'_, S>) {
         let span_path = span_chain(attrs, id, &ctx);
-        self.handle.0.insert_span(&span_path);
+        self.span_tree.0.insert_path(span_path);
     }
 
     fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
@@ -86,8 +113,6 @@ where
         let span_path = scope_path(scope);
 
         let meta = event.metadata();
-
-        // === LOCATION ===
         let location_path = resolve_log_location_path(meta);
 
         // === MESSAGE ===
@@ -134,17 +159,14 @@ where
         let lvl = match *meta.level() {
             TracingLevel::TRACE => Level::Trace,
             TracingLevel::DEBUG => Level::Debug,
-            TracingLevel::INFO => Level::Info,
-            TracingLevel::WARN => Level::Warn,
+            TracingLevel::INFO  => Level::Info,
+            TracingLevel::WARN  => Level::Warn,
             TracingLevel::ERROR => Level::Error,
         };
 
-        self.handle.0.insert_log_path(
-            &span_path,
-            &location_path,
-            lvl,
-            msg,
-        );
+        let log_id = self.storage.0.insert_log(lvl, msg);
+        self.span_tree.0.insert_log(span_path, log_id);
+        self.location_tree.0.insert_log(location_path, log_id);
     }
 }
 
@@ -152,7 +174,7 @@ fn span_chain<S>(
     attrs: &Attributes<'_>,
     id: &Id,
     ctx: &Context<'_, S>,
-) -> Vec<&'static str>
+) -> Vec<String>
 where
     S: tracing::Subscriber + for<'lookup> LookupSpan<'lookup>,
 {
@@ -161,25 +183,25 @@ where
     if let Some(span_ref) = ctx.span(id) {
         let mut cur = Some(span_ref);
         while let Some(s) = cur {
-            out.push(s.name());
+            out.push(s.name().to_string());
             cur = s.parent();
         }
     } else {
-        out.push(attrs.metadata().name());
+        out.push(attrs.metadata().name().to_string());
     }
 
     out.reverse();
     out
 }
 
-fn scope_path<'a, C>(scope: Option<SpanRef<'a, C>>) -> Vec<&'static str>
+fn scope_path<'a, C>(scope: Option<SpanRef<'a, C>>) -> Vec<String>
 where
     C: LookupSpan<'a>,
 {
     let mut out = Vec::new();
     let mut cur = scope;
     while let Some(s) = cur {
-        out.push(s.name());
+        out.push(s.name().to_string());
         cur = s.parent();
     }
     out.reverse();

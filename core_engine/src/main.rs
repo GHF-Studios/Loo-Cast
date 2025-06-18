@@ -7,7 +7,7 @@ use bevy::window::PresentMode;
 use bevy_egui::EguiPlugin;
 use bevy_rapier2d::prelude::*;
 use core_engine::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
-use core_engine::log::statics::LOG_TREE_HANDLE;
+use core_engine::log::statics::LOG_STORAGE_HANDLE;
 use core_engine::log::types::LogTreeTracingLayer;
 use core_engine::types::ShortTime;
 use core_engine::*;
@@ -20,7 +20,7 @@ use crate::statics::START_TIME;
 
 fn main() {
     let log_tree_tracing_layer = LogTreeTracingLayer {
-        handle: LOG_TREE_HANDLE.clone(),
+        storage: LOG_STORAGE_HANDLE.clone(),
     };
 
     let fmt_layer = tracing_subscriber::fmt::layer()

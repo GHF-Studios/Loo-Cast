@@ -1,4 +1,4 @@
-use crate::log::types::LogPathSegment;
+use crate::log::types::LocationPathSegment;
 
 pub trait LogPathExt {
     fn crate_name(&self) -> &str;
@@ -10,10 +10,10 @@ pub trait LogPathExt {
     fn to_path_string(&self) -> String;
 }
 
-impl LogPathExt for [LogPathSegment] {
+impl LogPathExt for [LocationPathSegment] {
     fn crate_name(&self) -> &str {
         for seg in self {
-            if let LogPathSegment::Crate(name) = seg {
+            if let LocationPathSegment::Crate(name) = seg {
                 return name;
             }
         }
@@ -22,7 +22,7 @@ impl LogPathExt for [LogPathSegment] {
 
     fn file_name(&self) -> Option<&str> {
         for seg in self {
-            if let LogPathSegment::File(name) = seg {
+            if let LocationPathSegment::File(name) = seg {
                 return Some(name);
             }
         }
@@ -32,7 +32,7 @@ impl LogPathExt for [LogPathSegment] {
     fn full_module_path(&self) -> Vec<&str> {
         self.iter()
             .filter_map(|seg| match seg {
-                LogPathSegment::Module(name) => Some(name.as_str()),
+                LocationPathSegment::Module(name) => Some(name.as_str()),
                 _ => None,
             })
             .collect()
@@ -44,11 +44,11 @@ impl LogPathExt for [LogPathSegment] {
 
         for seg in self {
             match seg {
-                LogPathSegment::Submodule(name) => {
+                LocationPathSegment::SubModule(name) => {
                     in_subs = true;
                     subs.push(name.as_str());
                 }
-                LogPathSegment::Line(_) if in_subs => break,
+                LocationPathSegment::Line(_) if in_subs => break,
                 _ if in_subs => break,
                 _ => {}
             }
@@ -63,7 +63,7 @@ impl LogPathExt for [LogPathSegment] {
 
     fn line_number(&self) -> Option<u32> {
         for seg in self {
-            if let LogPathSegment::Line(n) = seg {
+            if let LocationPathSegment::Line(n) = seg {
                 return Some(*n);
             }
         }
@@ -71,18 +71,18 @@ impl LogPathExt for [LogPathSegment] {
     }
 
     fn is_submodule_path(&self) -> bool {
-        self.iter().any(|seg| matches!(seg, LogPathSegment::Submodule(_)))
+        self.iter().any(|seg| matches!(seg, LocationPathSegment::SubModule(_)))
     }
 
     fn to_path_string(&self) -> String {
         let mut parts = Vec::new();
         for seg in self {
             match seg {
-                LogPathSegment::Crate(name) => parts.push(name.clone()),
-                LogPathSegment::Module(name) => parts.push(name.clone()),
-                LogPathSegment::File(name) => parts.push(name.clone()),
-                LogPathSegment::Submodule(name) => parts.push(format!("::{name}")),
-                LogPathSegment::Line(n) => parts.push(format!(":{}", n)),
+                LocationPathSegment::Crate(name) => parts.push(name.clone()),
+                LocationPathSegment::Module(name) => parts.push(name.clone()),
+                LocationPathSegment::File(name) => parts.push(name.clone()),
+                LocationPathSegment::SubModule(name) => parts.push(format!("::{name}")),
+                LocationPathSegment::Line(n) => parts.push(format!(":{}", n)),
             }
         }
 
