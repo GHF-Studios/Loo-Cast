@@ -21,40 +21,6 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum LogPath {
-    Span(Vec<&'static str>),
-    Loc(Vec<LocationPathSegment>),
-}
-impl std::fmt::Display for LogPath {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LogPath::Span(path) => write!(f, "SpanPath({})", path.join(" > ")),
-            LogPath::Loc(path) => write!(f, "LocPath({})", path.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(" > ")),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum LocationPathSegment {
-    Crate(String),
-    Module(String),
-    File(String),
-    Line(u32),
-    SubModule(String),
-}
-impl std::fmt::Display for LocationPathSegment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LocationPathSegment::Crate(name) => write!(f, "Crate({})", name),
-            LocationPathSegment::Module(name) => write!(f, "Module({})", name),
-            LocationPathSegment::File(name) => write!(f, "File({})", name),
-            LocationPathSegment::Line(line) => write!(f, "Line({})", line),
-            LocationPathSegment::SubModule(name) => write!(f, "SubModule({})", name),
-        }
-    }
-}
-
 pub struct MsgAndMetaVisitor {
     pub message: Option<Arc<str>>,
     pub meta_fields: Vec<(String, String)>,

@@ -54,10 +54,24 @@ impl SpanTree {
             current = new_current;
         }
     }
-}
 
-impl SpanTree {
     pub fn roots(&self) -> HashMap<String, Arc<RwLock<SpanNode>>> {
         self.roots.read().unwrap().clone()
     }
+
+    /// Consumes the roots of the tree and returns two iterators:
+    /// The first iterator yields (segment, node) pairs for the root nodes.
+    /// The second iterator yields (segment, subtree) pairs for the subtrees rooted at each segment.
+    pub fn iter(self) -> (impl Iterator<Item = (String, Arc<RwLock<SpanNode>>)>, impl Iterator<Item = (String, Self)>) {
+        let roots = self.roots.read().unwrap().clone();
+        let roots_iter = roots.clone().into_iter().map(|(segment, node)| (segment, node));
+        let subtree_iter = roots.into_iter().map(move |(segment, node)| {
+            let subtree = SpanTree {
+                roots: RwLock::new(HashMap::from([(segment.clone(), node)])),
+            };
+            (segment, subtree)
+        });
+
+        (roots_iter, subtree_iter)
+    } 
 }

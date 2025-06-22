@@ -41,6 +41,7 @@ pub mod entity;
 pub mod follower;
 pub mod gpu;
 pub mod log;
+pub mod log_NEW;
 //pub mod math;
 pub mod player;
 //pub mod sprite_bundle;

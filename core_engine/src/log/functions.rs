@@ -200,6 +200,7 @@ pub fn render_location_tree(
     });
 }
 
+// Recursive
 fn paint_span_branch(
     ui:    &mut egui::Ui,
     viewer_state: &mut LogViewerState,
@@ -207,9 +208,9 @@ fn paint_span_branch(
     span_tree: &SpanTree,
     span_path: Vec<String>,
 ) {
-    
 }
 
+// Recursive
 fn paint_location_branch(
     ui:    &mut egui::Ui,
     viewer_state: &mut LogViewerState,
@@ -220,7 +221,7 @@ fn paint_location_branch(
 }
 
 // Deprecated
-/// Render one node and recurse into its children.
+// Recursive
 fn paint_branch_OLD(
     ui:    &mut egui::Ui,
     viewer_state: &mut LogViewerState,
@@ -267,40 +268,48 @@ fn paint_branch_OLD(
 
             ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
                 for child in arena.child_iter(node_idx) {
-                    paint_branch(ui, arena, viewer_state, child);
+                    paint_branch_OLD(ui, arena, viewer_state, child);
                 }
             });
         });
     });
 }
 
-/// Recursively collect all logs from selected nodes.
 pub fn gather_logs(
     state: &LogViewerState,
     log_storage: &LogStorage,
     span_tree: &SpanTree,
     location_tree: &LocationTree,
 ) -> Vec<Log> {
-    if matches!(state.tree_mode, FilterTreeMode::Span) {
+    if state.tree_mode == FilterTreeMode::Span {
         let mut out = Vec::new();
-        for span_path in &state.selected_spans.selected {
-            collect_logs(log_storage, node, &mut out);
-        }
+
+        // Do stuff
+
         out.retain(|log| log.lvl >= state.threshold);
         out.sort_by_key(|l| l.ts);
         out
     } else {
         let mut out = Vec::new();
-        for span_path in &state.selected_spans.selected {
-            collect_logs(log_storage, node, &mut out);
-        }
+
+        // Do stuff
+
         out.retain(|log| log.lvl >= state.threshold);
         out.sort_by_key(|l| l.ts);
         out
     }
 }
 
-fn collect_logs(arena: &Arena, idx: NodeIdx, v: &mut Vec<Log>) {
+pub fn gather_span_paths(tree: &SpanTree, selection: &SpanTreeSelection) -> Vec<Vec<String>> {
+}
+
+pub fn gather_location_paths(tree: &SpanTree, selection: &SpanTreeSelection) -> Vec<Vec<String>> {
+}
+
+// Recursive
+fn collect_span_logs(log_storage: &LogStorage, span_paths: Vec<Vec<String>>, 
+
+fn collect_logs_OLD(arena: &Arena, idx: NodeIdx, v: &mut Vec<Log>) {
     if arena.kind(idx) == TreeKind::Loc(LocKind::Line) {
         v.extend(arena.logs(idx).iter().cloned());
     }
