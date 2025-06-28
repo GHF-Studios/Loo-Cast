@@ -31,6 +31,13 @@ impl std::fmt::Display for LogPath {
     }
 }
 
+pub struct LogRegistry {
+    pub logs: HashMap<LogId, LogEntry>,
+    pub span_index: SpanPathIndex,
+    pub module_index: ModulePathIndex,
+    pub physical_index: PhysicalPathIndex,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpanPath(pub Vec<SpanPathSegment>);
 impl std::fmt::Display for SpanPath {
@@ -41,28 +48,17 @@ impl std::fmt::Display for SpanPath {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpanPathSegment(pub String);
-impl PathSegment for SpanPathSegment {
-    type Inner<'a> = &'a str;
-
-    fn inner<'a>(&'a self) -> Self::Inner<'a> {
-        &self.0
-    }
-
-    fn type_name(&self) -> &'static str {
-        "Span"
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModulePath {
-    pub crate_name: String,                     // First third of the full path
+    pub _crate_: ModuleCratePathSegment,        // First third of the full path
     pub modules: Vec<ModulePathSegment>,        // Second third of the full path
     pub sub_modules: Vec<SubModulePathSegment>  // Third third of the full path
 }
 impl std::fmt::Display for ModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ModulePath({}/{}/{})",
-            self.crate_name,
+            self._crate_.name,
             self.modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
             self.sub_modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/")
         )
@@ -70,48 +66,31 @@ impl std::fmt::Display for ModulePath {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ModulePathSegment {
+pub struct ModuleCratePathSegment {
     pub name: String,
 }
-impl PathSegment for ModulePathSegment {
-    type Inner<'a> = &'a str;
 
-    fn inner<'a>(&'a self) -> Self::Inner<'a> {
-        &self.name
-    }
-
-    fn type_name(&self) -> &'static str {
-        "Module"
-    }
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ModulePathSegment {
+    pub name: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SubModulePathSegment {
     pub name: String,
 }
-impl PathSegment for SubModulePathSegment {
-    type Inner<'a> = &'a str;
-
-    fn inner<'a>(&'a self) -> Self::Inner<'a> {
-        &self.name
-    }
-
-    fn type_name(&self) -> &'static str {
-        "SubModule"
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PhysicalPath {
-    pub crate_name: String,                     // First fourth of the full path
-    pub folders: Vec<FolderPathSegment>,        // Second fourth of the full path
-    pub file: FilePathSegment,                  // Third fourth of the full path
-    pub leaf: LinePathSegment,                  // Fourth fourth of the full path
+    pub crate_name: PhysicalCratePathSegment,       // First fourth of the full path
+    pub folders: Vec<FolderPathSegment>,    // Second fourth of the full path
+    pub file: FilePathSegment,              // Third fourth of the full path
+    pub leaf: LinePathSegment,                      // Fourth fourth of the full path
 }
 impl std::fmt::Display for PhysicalPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "PhysicalPath({}/{}/{}:{})", 
-            self.crate_name,
+            self.crate_name.name,
             self.folders.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
             self.file.name,
             self.leaf.number
@@ -120,70 +99,71 @@ impl std::fmt::Display for PhysicalPath {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FolderPathSegment {
+pub struct PhysicalCratePathSegment {
     pub name: String,
 }
-impl PathSegment for FolderPathSegment {
-    type Inner<'a> = &'a str;
 
-    fn inner<'a>(&'a self) -> Self::Inner<'a> {
-        &self.name
-    }
-
-    fn type_name(&self) -> &'static str {
-        "Folder"
-    }
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FolderPathSegment {
+    pub name: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FilePathSegment {
     pub name: String,
 }
-impl PathSegment for FilePathSegment {
-    type Inner<'a> = &'a str;
-
-    fn inner<'a>(&'a self) -> Self::Inner<'a> {
-        &self.name
-    }
-
-    fn type_name(&self) -> &'static str {
-        "File"
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LinePathSegment {
     pub number: u32,
 }
-impl PathSegment for LinePathSegment {
-    type Inner<'a> = u32;
 
-    fn inner<'a>(&'a self) -> Self::Inner<'a> {
-        self.number
-    }
 
-    fn type_name(&self) -> &'static str {
-        "Line"
+
+
+
+
+pub struct LogStore {
+    pub logs: HashMap<LogId, LogEntry>,
+    pub span_index: SpanPathIndex,
+    pub module_index: ModulePathIndex,
+    pub physical_index: PhysicalPathIndex,
+}
+impl LogStore {
+    pub fn insert_log(
+        &mut self,
+        log_id: LogId,
+        log_entry: LogEntry,
+        span_path: SpanPath,
+        module_path: ModulePath,
+        physical_path: PhysicalPath,
+    ) {
+        self.logs.insert(log_id, log_entry);
+        self.span_index.insert(&span_path, log_id);
+        self.module_index.insert(&module_path, log_id);
+        self.physical_index.insert(&physical_path, log_id);
     }
 }
 
-
-
-
-
-
-
-
-
-
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct SpanPathIndex {
-    pub root: SpanPathNode,
+    pub span_roots: HashMap<SpanPathSegment, SpanPathNode>,
+}
+impl SpanPathIndex {
+    pub fn insert(&mut self, path: &SpanPath, log_id: LogId) {
+        let mut current = self.span_roots.entry(path.0[0].clone()).or_default();
+
+        for segment in &path.0[1..] {
+            current = current.span_children.entry(segment.clone()).or_default();
+        }
+
+        current.logs.push(log_id);
+    }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct SpanPathNode {
-    pub children: HashMap<SpanPathSegment, SpanPathNode>,
+    pub span_children: HashMap<SpanPathSegment, SpanPathNode>,
     pub logs: Vec<LogId>,
 }
 
@@ -191,7 +171,91 @@ pub struct SpanPathNode {
 
 
 
+#[derive(Default)]
+pub struct ModulePathIndex {
+    pub crates: HashMap<ModuleCratePathSegment, ModuleCratePathNode>,
+}
+impl ModulePathIndex {
+    pub fn insert(&mut self, path: &ModulePath, log_id: LogId) {
+        let _crate_ = self.crates.entry(path._crate_.clone()).or_default();
 
+        if path.modules.is_empty() {
+            _crate_.logs.push(log_id);
+            return;
+        }
+
+        let mut current_module = _crate_.modules.entry(path.modules[0].clone()).or_default();
+
+        for segment in &path.modules[1..] {
+            current_module = _crate_.modules.entry(segment.clone()).or_default();
+        }
+
+        if path.sub_modules.is_empty() {
+            current_module.logs.push(log_id);
+            return;
+        }
+
+        let mut current_sub_module = current_module.sub_modules.entry(path.sub_modules[0].clone()).or_default();
+
+        for segment in &path.sub_modules[1..] {
+            current_sub_module = current_sub_module.sub_modules.entry(segment.clone()).or_default();
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct ModuleCratePathNode {
+    pub modules: HashMap<ModulePathSegment, ModulePathNode>,
+    pub logs: Vec<LogId>,
+}
+
+#[derive(Default)]
+pub struct ModulePathNode {
+    pub modules: HashMap<ModulePathSegment, ModulePathNode>,
+    pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNode>,
+    pub logs: Vec<LogId>,
+}
+
+#[derive(Default)]
+pub struct SubModulePathNode {
+    pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNode>,
+    pub logs: Vec<LogId>,
+}
+
+
+
+
+
+#[derive(Default)]
+pub struct PhysicalPathIndex {
+    pub crates: HashMap<PhysicalCratePathSegment, PhysicalCratePathNode>,
+}
+impl PhysicalPathIndex {
+    pub fn insert(&mut self, path: &PhysicalPath, log_id: LogId) {
+    }
+}
+
+#[derive(Default)]
+pub struct PhysicalCratePathNode {
+    pub folders: HashMap<FolderPathSegment, FolderPathNode>,
+    pub files: HashMap<FilePathSegment, FilePathNode>,
+}
+
+#[derive(Default)]
+pub struct FolderPathNode {
+    pub folders: HashMap<FolderPathSegment, FolderPathNode>,
+    pub files: HashMap<FilePathSegment, FilePathNode>,
+}
+
+#[derive(Default)]
+pub struct FilePathNode {
+    pub lines: HashMap<LinePathSegment, LinePathNode>,
+}
+
+#[derive(Default)]
+pub struct LinePathNode {
+    pub logs: Vec<LogId>,
+}
 
 
 
