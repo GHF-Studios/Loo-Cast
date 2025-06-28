@@ -2,10 +2,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 use crate::log::arena::{Level};
-use crate::log::traits::*;
-use crate::log::types::LocationPathSegment;
-
-// BASICS
+use crate::log_NEW::traits::PathSegment;
 
 #[derive(Clone, Debug)]
 pub struct LogEntry {
@@ -18,41 +15,36 @@ pub struct LogEntry {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LogId(pub u64);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SpanPathSegment(String);
-impl std::fmt::Display for SpanPathSegment {
+pub enum LogPath {
+    Span(SpanPath),
+    Module(ModulePath),
+    Physical(PhysicalPath)
+}
+impl std::fmt::Display for LogPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Span({})", self.0)
+        match self {
+            LogPath::Span(path) => write!(f, "LogPath({})", path),
+            LogPath::Module(path) => write!(f, "LogPath({})", path),
+            LogPath::Physical(path) => write!(f, "LogPath({})", path),
+        }
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SpanPath(pub Vec<SpanPathSegment>);
+impl std::fmt::Display for SpanPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "SpanPath({})", self.0.iter().map(|s| s.0.as_str()).collect::<Vec<_>>().join("/"))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SpanPathSegment(pub String);
 impl PathSegment for SpanPathSegment {
-    fn inner(&self) -> &str {
+    type Inner<'a> = &'a str;
+
+    fn inner<'a>(&'a self) -> Self::Inner<'a> {
         &self.0
     }
 
@@ -62,77 +54,137 @@ impl PathSegment for SpanPathSegment {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CratePathSegment(String);
-impl std::fmt::Display for CratePathSegment {
+pub struct ModulePath {
+    pub crate_name: String,                     // First third of the full path
+    pub modules: Vec<ModulePathSegment>,        // Second third of the full path
+    pub sub_modules: Vec<SubModulePathSegment>  // Third third of the full path
+}
+impl std::fmt::Display for ModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Crate({})", self.0)
+        write!(f, "ModulePath({}/{}/{})",
+            self.crate_name,
+            self.modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
+            self.sub_modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/")
+        )
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ModulePathSegment(String);
-impl std::fmt::Display for ModulePathSegment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Module({})", self.0)
-    }
+pub struct ModulePathSegment {
+    pub name: String,
 }
+impl PathSegment for ModulePathSegment {
+    type Inner<'a> = &'a str;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FilePathSegment(String);
-impl std::fmt::Display for ModulePathSegment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "File({})", self.0)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct LinePathSegment(u32);
-impl std::fmt::Display for ModulePathSegment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Line({})", self.0)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SubModulePathSegment(String);
-impl std::fmt::Display for ModulePathSegment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "SubModule({})", self.0)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum LocationPathSegment {
-    Crate(String),
-    Module(String),
-    File(String),
-    Line(u32),
-    SubModule(String),
-}
-impl std::fmt::Display for LocationPathSegment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LocationPathSegment::Crate(name) => write!(f, "Crate({})", name),
-            LocationPathSegment::Module(name) => write!(f, "Module({})", name),
-            LocationPathSegment::File(name) => write!(f, "File({})", name),
-            LocationPathSegment::Line(line) => write!(f, "Line({})", line),
-            LocationPathSegment::SubModule(name) => write!(f, "SubModule({})", name),
-        }
-    }
-}
-impl PathSegment for LocationPathSegment {
-    fn inner(&self) -> &str {
+    fn inner<'a>(&'a self) -> Self::Inner<'a> {
+        &self.name
     }
 
     fn type_name(&self) -> &'static str {
-        match self {
-            LocationPathSegment::Crate(_) => "Crate",
-            LocationPathSegment::Module(_) => "Module",
-            LocationPathSegment::File(_) => "File",
-            LocationPathSegment::Line(_) => "Line",
-            LocationPathSegment::SubModule(_) => "SubModule",
-        }
+        "Module"
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SubModulePathSegment {
+    pub name: String,
+}
+impl PathSegment for SubModulePathSegment {
+    type Inner<'a> = &'a str;
+
+    fn inner<'a>(&'a self) -> Self::Inner<'a> {
+        &self.name
+    }
+
+    fn type_name(&self) -> &'static str {
+        "SubModule"
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PhysicalPath {
+    pub crate_name: String,                     // First fourth of the full path
+    pub folders: Vec<FolderPathSegment>,        // Second fourth of the full path
+    pub file: FilePathSegment,                  // Third fourth of the full path
+    pub leaf: LinePathSegment,                  // Fourth fourth of the full path
+}
+impl std::fmt::Display for PhysicalPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "PhysicalPath({}/{}/{}:{})", 
+            self.crate_name,
+            self.folders.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
+            self.file.name,
+            self.leaf.number
+        )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FolderPathSegment {
+    pub name: String,
+}
+impl PathSegment for FolderPathSegment {
+    type Inner<'a> = &'a str;
+
+    fn inner<'a>(&'a self) -> Self::Inner<'a> {
+        &self.name
+    }
+
+    fn type_name(&self) -> &'static str {
+        "Folder"
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FilePathSegment {
+    pub name: String,
+}
+impl PathSegment for FilePathSegment {
+    type Inner<'a> = &'a str;
+
+    fn inner<'a>(&'a self) -> Self::Inner<'a> {
+        &self.name
+    }
+
+    fn type_name(&self) -> &'static str {
+        "File"
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct LinePathSegment {
+    pub number: u32,
+}
+impl PathSegment for LinePathSegment {
+    type Inner<'a> = u32;
+
+    fn inner<'a>(&'a self) -> Self::Inner<'a> {
+        self.number
+    }
+
+    fn type_name(&self) -> &'static str {
+        "Line"
+    }
+}
+
+
+
+
+
+
+
+
+
+
+#[derive(Debug, Default)]
+pub struct SpanPathIndex {
+    pub root: SpanPathNode,
+}
+
+#[derive(Debug, Default)]
+pub struct SpanPathNode {
+    pub children: HashMap<SpanPathSegment, SpanPathNode>,
+    pub logs: Vec<LogId>,
 }
 
 
@@ -169,6 +221,17 @@ impl PathSegment for LocationPathSegment {
 
 
 
+
+
+
+
+
+
+
+
+
+
+/*
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CratePathMode {
     Module,
@@ -215,32 +278,7 @@ impl std::fmt::Display for FilePathMode {
 
 
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum LogPath {
-    Span(SpanPath),
-    Loc(LocationPath),
-}
-impl std::fmt::Display for LogPath {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LogPath::Span(path) => write!(f, "LogPath::SpanPath({})", path.join(" > ")),
-            LogPath::Loc(path) => write!(f, "LogPath::LocPath({})", path.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(" > ")),
-        }
-    }
-}
-impl LogPath {
-    pub fn new_span_path(segments: Vec<SpanPathSegment>) -> Self {
-        Self::Span(segments)
-    }
 
-    pub fn new_location_path(segments: Vec<LocationPathSegment>) -> Self {
-        Self::Loc(segments)
-    }
-
-    pub fn get_path(&self) -> &[SpanPathSegment] {
-        &self.0
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpanPath(Vec<SpanPathSegment>);
@@ -651,3 +689,4 @@ pub enum SubModuleViewMode {
 pub enum LineViewMode {
     Logs,
 }
+*/

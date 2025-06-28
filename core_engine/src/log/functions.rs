@@ -307,7 +307,7 @@ pub fn gather_location_paths(tree: &SpanTree, selection: &SpanTreeSelection) -> 
 }
 
 // Recursive
-fn collect_span_logs(log_storage: &LogStorage, span_paths: Vec<Vec<String>>, 
+fn collect_span_logs(log_storage: &LogStorage, span_paths: Vec<Vec<String>>) {}
 
 fn collect_logs_OLD(arena: &Arena, idx: NodeIdx, v: &mut Vec<Log>) {
     if arena.kind(idx) == TreeKind::Loc(LocKind::Line) {

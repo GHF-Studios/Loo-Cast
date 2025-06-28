@@ -1,7 +1,9 @@
 use std::sync::{Arc, RwLock};
 
 pub trait PathSegment: Clone + Eq + PartialEq + std::hash::Hash {
-    fn inner(&self) -> &str;
+    type Inner<'a> where Self: 'a;
+
+    fn inner<'a>(&'a self) -> Self::Inner<'a>;
     fn type_name(&self) -> &'static str;
 }
 
