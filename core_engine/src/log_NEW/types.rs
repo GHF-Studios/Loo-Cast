@@ -1,12 +1,45 @@
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+use tracing::{span::Id, Level as TracingLevel, Metadata, Subscriber};
+use tracing_subscriber::{layer::Context, registry::LookupSpan};
 
-use crate::log::arena::{Level};
+use crate::log_NEW::tracing::types::PathResolution;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warn,
+    Error,
+}
+impl From<TracingLevel> for LogLevel {
+    fn from(value: TracingLevel) -> Self {
+        match value {
+            TracingLevel::TRACE => LogLevel::Trace,
+            TracingLevel::DEBUG => LogLevel::Debug,
+            TracingLevel::INFO  => LogLevel::Info,
+            TracingLevel::WARN  => LogLevel::Warn,
+            TracingLevel::ERROR => LogLevel::Error,
+        }
+    }
+}
+impl Into<TracingLevel> for LogLevel {
+    fn into(self) -> TracingLevel {
+        match self {
+            LogLevel::Trace => TracingLevel::TRACE,
+            LogLevel::Debug => TracingLevel::DEBUG,
+            LogLevel::Info  => TracingLevel::INFO,
+            LogLevel::Warn  => TracingLevel::WARN,
+            LogLevel::Error => TracingLevel::ERROR,
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct LogEntry {
     pub ts: u64,
-    pub lvl: Level,
+    pub lvl: LogLevel,
     pub msg: Arc<str>,
 }
 
@@ -38,6 +71,13 @@ pub struct LogRegistry {
     pub physical_index: PhysicalPathIndex,
 }
 impl LogRegistry {
+    pub fn insert_without_log(
+        &mut self,
+        span_path: &SpanPath,
+    ) {
+        self.span_index.insert_without_log(span_path);
+    }
+
     pub fn insert_log(
         &mut self,
         log_id: LogId,
@@ -71,6 +111,27 @@ impl LogRegistry {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpanPath(pub Vec<SpanPathSegment>);
+impl SpanPath {
+    pub const UNCATEGORIZED: Self = SpanPath(Vec::new());
+
+    pub fn from_context<S>(id: &Id, ctx: &Context<'_, S>) -> SpanPath
+    where
+        S: Subscriber + for<'lookup> LookupSpan<'lookup>,
+    {
+        let mut segments = Vec::new();
+        if let Some(span_ref) = ctx.span(id) {
+            let mut current = Some(span_ref);
+            while let Some(span) = current {
+                segments.push(SpanPathSegment(span.name().to_string()));
+                current = span.parent();
+            }
+            segments.reverse();
+            SpanPath(segments)
+        } else {
+            SpanPath::UNCATEGORIZED
+        }
+    }
+}
 impl std::fmt::Display for SpanPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "SpanPath({})", self.0.iter().map(|s| s.0.as_str()).collect::<Vec<_>>().join("/"))
@@ -85,6 +146,32 @@ pub struct ModulePath {
     pub _crate_: ModuleCratePathSegment,
     pub modules: Vec<ModulePathSegment>,
     pub sub_modules: Vec<SubModulePathSegment>
+}
+impl ModulePath {
+    pub const UNCATEGORIZED: Self = ModulePath {
+        _crate_: ModuleCratePathSegment { name: String::new() },
+        modules: Vec::new(),
+        sub_modules: Vec::new(),
+    };
+
+    pub fn from_metadata(meta: &Metadata<'_>, crate_name: &str) -> ModulePath {
+        match meta.module_path() {
+            Some(path) => {
+                let segments: Vec<_> = path
+                    .strip_prefix("crate::").unwrap_or(path)
+                    .split("::")
+                    .map(|s| ModulePathSegment { name: s.to_string() })
+                    .collect();
+
+                ModulePath {
+                    _crate_: ModuleCratePathSegment { name: crate_name.to_string() },
+                    modules: segments,
+                    sub_modules: vec![],
+                }
+            }
+            None => ModulePath::UNCATEGORIZED,
+        }
+    }
 }
 impl std::fmt::Display for ModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -117,6 +204,37 @@ pub struct PhysicalPath {
     pub folders: Vec<FolderPathSegment>,
     pub file: FilePathSegment,
     pub line: LinePathSegment,
+}
+impl PhysicalPath {
+    pub const UNCATEGORIZED: Self = PhysicalPath {
+        _crate_: PhysicalCratePathSegment { name: String::new() },
+        folders: Vec::new(),
+        file: FilePathSegment { name: String::new() },
+        line: LinePathSegment { number: 0 }
+    };
+
+    pub fn from_metadata(meta: &Metadata<'_>, crate_name: &str) -> PhysicalPath {
+        match (meta.file(), meta.line()) {
+            (Some(file), Some(line)) => {
+                let mut parts: Vec<&str> = file.split('/').collect();
+                if let Some(file_name) = parts.pop() {
+                    let folders = parts.into_iter()
+                        .map(|s| FolderPathSegment { name: s.to_string() })
+                        .collect();
+                
+                    PhysicalPath {
+                        _crate_: PhysicalCratePathSegment { name: crate_name.to_string() },
+                        folders,
+                        file: FilePathSegment { name: file_name.to_string() },
+                        line: LinePathSegment { number: line },
+                    }
+                } else {
+                    PhysicalPath::UNCATEGORIZED
+                }
+            }
+            _ => PhysicalPath::UNCATEGORIZED,
+        }
+    }
 }
 impl std::fmt::Display for PhysicalPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -162,6 +280,14 @@ impl SpanPathIndex {
         }
 
         current.logs.push(log_id);
+    }
+
+    pub fn insert_without_log(&mut self, path: &SpanPath) {
+        let mut current = self.span_roots.entry(path.0[0].clone()).or_default();
+
+        for segment in &path.0[1..] {
+            current = current.span_children.entry(segment.clone()).or_default();
+        }
     }
 
     pub fn resolve(&self, path: &SpanPath) -> Option<&Vec<LogId>> {
@@ -210,6 +336,30 @@ impl ModulePathIndex {
         }
 
         current_sub_module.logs.push(log_id);
+    }
+
+    pub fn insert_without_log(&mut self, path: &ModulePath) {
+        let _crate_ = self.crates.entry(path._crate_.clone()).or_default();
+
+        if path.modules.is_empty() {
+            return;
+        }
+
+        let mut current_module = _crate_.modules.entry(path.modules[0].clone()).or_default();
+
+        for segment in &path.modules[1..] {
+            current_module = current_module.modules.entry(segment.clone()).or_default();
+        }
+
+        if path.sub_modules.is_empty() {
+            return;
+        }
+
+        let mut current_sub_module = current_module.sub_modules.entry(path.sub_modules[0].clone()).or_default();
+
+        for segment in &path.sub_modules[1..] {
+            current_sub_module = current_sub_module.sub_modules.entry(segment.clone()).or_default();
+        }
     }
 
     pub fn resolve(&self, path: &ModulePath) -> Option<&Vec<LogId>> {
@@ -283,6 +433,26 @@ impl PhysicalPathIndex {
         let line = file.lines.entry(path.line.clone()).or_default();
 
         line.logs.push(log_id);
+    }
+
+    pub fn insert_without_log(&mut self, path: &PhysicalPath) {
+        let file = {
+            let _crate_ = self.crates.entry(path._crate_.clone()).or_default();
+
+            if path.folders.is_empty() {
+                _crate_.files.entry(path.file.clone()).or_default()
+            } else {
+                let mut current_folder = _crate_.folders.entry(path.folders[0].clone()).or_default();
+
+                for segment in &path.folders[1..] {
+                    current_folder = _crate_.folders.entry(segment.clone()).or_default();
+                }
+
+                current_folder.files.entry(path.file.clone()).or_default()
+            }
+        };
+
+        let _line = file.lines.entry(path.line.clone()).or_default();
     }
 
     pub fn resolve(&self, path: &PhysicalPath) -> Option<&Vec<LogId>> {

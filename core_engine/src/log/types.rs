@@ -21,60 +21,60 @@ use crate::{
     },
 };
 
-pub struct MsgAndMetaVisitor {
-    pub message: Option<Arc<str>>,
-    pub meta_fields: Vec<(String, String)>,
-}
-
-impl MsgAndMetaVisitor {
-    pub fn new() -> Self {
-        Self {
-            message: None,
-            meta_fields: Vec::new(),
-        }
-    }
-}
-
-impl Visit for MsgAndMetaVisitor {
-    fn record_str(&mut self, field: &Field, value: &str) {
-        match field.name() {
-            "message" => {
-                self.message = Some(Arc::from(value));
-            }
-            name => {
-                self.meta_fields.push((name.to_string(), value.to_string()));
-            }
-        }
-    }
-
-    fn record_debug(&mut self, field: &Field, value: &dyn Debug) {
-        match field.name() {
-            "message" => {
-                self.message = Some(Arc::from(format!("{value:?}")));
-            }
-            name => {
-                self.meta_fields.push((name.to_string(), format!("{value:?}")));
-            }
-        }
-    }
-}
-
 pub struct LogTreeTracingLayer {
     pub storage: LogStorageHandle,
     pub location_tree: LocationTreeHandle,
     pub span_tree: SpanTreeHandle,
 }
-
 impl<S> Layer<S> for LogTreeTracingLayer
 where
     S: tracing::Subscriber + for<'lookup> LookupSpan<'lookup>,
 {
     fn on_new_span(&self, attrs: &Attributes<'_>, id: &Id, ctx: Context<'_, S>) {
+        fn span_chain<S>(
+            attrs: &Attributes<'_>,
+            id: &Id,
+            ctx: &Context<'_, S>,
+        ) -> Vec<String>
+        where
+            S: tracing::Subscriber + for<'lookup> LookupSpan<'lookup>,
+        {
+            let mut out = Vec::new();
+        
+            if let Some(span_ref) = ctx.span(id) {
+                let mut cur = Some(span_ref);
+                while let Some(s) = cur {
+                    out.push(s.name().to_string());
+                    cur = s.parent();
+                }
+            } else {
+                out.push(attrs.metadata().name().to_string());
+            }
+        
+            out.reverse();
+            out
+        }
+
         let span_path = span_chain(attrs, id, &ctx);
         self.span_tree.0.insert_path(span_path);
     }
 
     fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
+        fn scope_path<'a, C>(scope: Option<SpanRef<'a, C>>) -> Vec<String>
+        where
+            C: LookupSpan<'a>,
+        {
+            let mut out = Vec::new();
+            let mut cur = scope;
+            while let Some(s) = cur {
+                out.push(s.name().to_string());
+                cur = s.parent();
+            }
+            out.reverse();
+        
+            out
+        }
+
         let scope = ctx.lookup_current();
         let span_path = scope_path(scope);
 
@@ -136,41 +136,38 @@ where
     }
 }
 
-fn span_chain<S>(
-    attrs: &Attributes<'_>,
-    id: &Id,
-    ctx: &Context<'_, S>,
-) -> Vec<String>
-where
-    S: tracing::Subscriber + for<'lookup> LookupSpan<'lookup>,
-{
-    let mut out = Vec::new();
-
-    if let Some(span_ref) = ctx.span(id) {
-        let mut cur = Some(span_ref);
-        while let Some(s) = cur {
-            out.push(s.name().to_string());
-            cur = s.parent();
-        }
-    } else {
-        out.push(attrs.metadata().name().to_string());
-    }
-
-    out.reverse();
-    out
+struct MsgAndMetaVisitor {
+    pub message: Option<Arc<str>>,
+    pub meta_fields: Vec<(String, String)>,
 }
-
-fn scope_path<'a, C>(scope: Option<SpanRef<'a, C>>) -> Vec<String>
-where
-    C: LookupSpan<'a>,
-{
-    let mut out = Vec::new();
-    let mut cur = scope;
-    while let Some(s) = cur {
-        out.push(s.name().to_string());
-        cur = s.parent();
+impl MsgAndMetaVisitor {
+    pub fn new() -> Self {
+        Self {
+            message: None,
+            meta_fields: Vec::new(),
+        }
     }
-    out.reverse();
+}
+impl Visit for MsgAndMetaVisitor {
+    fn record_str(&mut self, field: &Field, value: &str) {
+        match field.name() {
+            "message" => {
+                self.message = Some(Arc::from(value));
+            }
+            name => {
+                self.meta_fields.push((name.to_string(), value.to_string()));
+            }
+        }
+    }
 
-    out
+    fn record_debug(&mut self, field: &Field, value: &dyn Debug) {
+        match field.name() {
+            "message" => {
+                self.message = Some(Arc::from(format!("{value:?}")));
+            }
+            name => {
+                self.meta_fields.push((name.to_string(), format!("{value:?}")));
+            }
+        }
+    }
 }

@@ -1,8 +1,8 @@
 use bevy::prelude::*;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::log_NEW::types::LogRegistry;
 
 #[repr(transparent)]
 #[derive(Resource, Clone)]
-pub struct LogRegistryHandle(pub Arc<LogRegistry>);
+pub struct LogRegistryHandle(pub Arc<Mutex<LogRegistry>>);

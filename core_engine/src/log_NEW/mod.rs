@@ -2,6 +2,9 @@ pub mod resources;
 pub mod statics;
 pub mod types;
 
+pub mod tracing;
+pub mod ui;
+
 use bevy::prelude::*;
 
 use crate::log_NEW::statics::LOG_REGISTRY_HANDLE;

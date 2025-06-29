@@ -5,6 +5,7 @@ mod define_workflow_mod;
 #[allow(non_snake_case)]
 mod define_workflow_mod_OLD;
 mod register_workflow_mods;
+mod tracing_macros;
 
 use composite_workflow::CompositeWorkflow as OuterCompositeWorkflow;
 use composite_workflow_return::CompositeWorkflowReturn;
