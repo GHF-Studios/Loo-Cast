@@ -200,26 +200,6 @@ pub fn render_location_tree(
     });
 }
 
-// Recursive
-fn paint_span_branch(
-    ui:    &mut egui::Ui,
-    viewer_state: &mut LogViewerState,
-    log_storage: &LogStorage,
-    span_tree: &SpanTree,
-    span_path: Vec<String>,
-) {
-}
-
-// Recursive
-fn paint_location_branch(
-    ui:    &mut egui::Ui,
-    viewer_state: &mut LogViewerState,
-    log_storage: &LogStorage,
-    location_tree: &LocationTree,
-    location_path: Vec<LocationPathSegment>,
-) {
-}
-
 // Deprecated
 // Recursive
 fn paint_branch_OLD(
@@ -297,24 +277,6 @@ pub fn gather_logs(
         out.retain(|log| log.lvl >= state.threshold);
         out.sort_by_key(|l| l.ts);
         out
-    }
-}
-
-pub fn gather_span_paths(tree: &SpanTree, selection: &SpanTreeSelection) -> Vec<Vec<String>> {
-}
-
-pub fn gather_location_paths(tree: &SpanTree, selection: &SpanTreeSelection) -> Vec<Vec<String>> {
-}
-
-// Recursive
-fn collect_span_logs(log_storage: &LogStorage, span_paths: Vec<Vec<String>>) {}
-
-fn collect_logs_OLD(arena: &Arena, idx: NodeIdx, v: &mut Vec<Log>) {
-    if arena.kind(idx) == TreeKind::Loc(LocKind::Line) {
-        v.extend(arena.logs(idx).iter().cloned());
-    }
-    for child in arena.child_iter(idx) {
-        collect_logs(arena, child, v);
     }
 }
 
