@@ -18,7 +18,7 @@ impl Default for LogViewerState {
             selected_spans: SpanTreeSelection::default(),
             selected_locations: LocationTreeSelection::default(),
             split_ratio: 0.35,
-            threshold: Level::Warn,
+            threshold: LogLevel::Warn,
             tree_mode: FilterTreeMode::Span,
         }
     }

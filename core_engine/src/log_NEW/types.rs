@@ -1,8 +1,11 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::collections::HashMap;
-use std::sync::{Arc, OnceLock};
-use tracing::{span::Id, Level as TracingLevel, Metadata, Subscriber};
-use tracing_subscriber::{layer::Context, registry::LookupSpan};
+use std::sync::Arc;
+use tracing::Level as TracingLevel;
+
+use crate::log_NEW::statics::LOG_ID_COUNTER;
+
+// Basics
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LogLevel {
@@ -41,8 +44,6 @@ pub struct LogEntry {
     pub lvl: LogLevel,
     pub msg: Arc<str>,
 }
-
-static LOG_ID_COUNTER: OnceLock<AtomicU64> = OnceLock::new();
 
 #[repr(transparent)]
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -117,28 +118,32 @@ impl LogRegistry {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SelectionState {
+    Selected,
+    Deselected,
+    Deferred,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum OverrideStrength {
+    None,
+    Temporary,
+    Forceful,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OverrideDirective {
+    pub strength: OverrideStrength,
+    pub state: SelectionIntent, // must be Selected or Deselected, never Unspecified
+}
+
+// SpanPath
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpanPath(pub Vec<SpanPathSegment>);
 impl SpanPath {
     pub const UNCATEGORIZED: Self = SpanPath(Vec::new());
-
-    pub fn from_context<S>(id: &Id, ctx: &Context<'_, S>) -> SpanPath
-    where
-        S: Subscriber + for<'lookup> LookupSpan<'lookup>,
-    {
-        let mut segments = Vec::new();
-        if let Some(span_ref) = ctx.span(id) {
-            let mut current = Some(span_ref);
-            while let Some(span) = current {
-                segments.push(SpanPathSegment(span.name().to_string()));
-                current = span.parent();
-            }
-            segments.reverse();
-            SpanPath(segments)
-        } else {
-            SpanPath::UNCATEGORIZED
-        }
-    }
 }
 impl std::fmt::Display for SpanPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -148,6 +153,8 @@ impl std::fmt::Display for SpanPath {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpanPathSegment(pub String);
+
+// ModulePath
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModulePath {
@@ -161,25 +168,6 @@ impl ModulePath {
         modules: Vec::new(),
         sub_modules: Vec::new(),
     };
-
-    pub fn from_metadata(meta: &Metadata<'_>, crate_name: &str) -> ModulePath {
-        match meta.module_path() {
-            Some(path) => {
-                let segments: Vec<_> = path
-                    .strip_prefix("crate::").unwrap_or(path)
-                    .split("::")
-                    .map(|s| ModulePathSegment { name: s.to_string() })
-                    .collect();
-
-                ModulePath {
-                    _crate_: ModuleCratePathSegment { name: crate_name.to_string() },
-                    modules: segments,
-                    sub_modules: vec![],
-                }
-            }
-            None => ModulePath::UNCATEGORIZED,
-        }
-    }
 }
 impl std::fmt::Display for ModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -206,6 +194,8 @@ pub struct SubModulePathSegment {
     pub name: String,
 }
 
+// PhysicalPath
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PhysicalPath {
     pub _crate_: PhysicalCratePathSegment,
@@ -220,29 +210,6 @@ impl PhysicalPath {
         file: FilePathSegment { name: String::new() },
         line: LinePathSegment { number: 0 }
     };
-
-    pub fn from_metadata(meta: &Metadata<'_>, crate_name: &str) -> PhysicalPath {
-        match (meta.file(), meta.line()) {
-            (Some(file), Some(line)) => {
-                let mut parts: Vec<&str> = file.split('/').collect();
-                if let Some(file_name) = parts.pop() {
-                    let folders = parts.into_iter()
-                        .map(|s| FolderPathSegment { name: s.to_string() })
-                        .collect();
-                
-                    PhysicalPath {
-                        _crate_: PhysicalCratePathSegment { name: crate_name.to_string() },
-                        folders,
-                        file: FilePathSegment { name: file_name.to_string() },
-                        line: LinePathSegment { number: line },
-                    }
-                } else {
-                    PhysicalPath::UNCATEGORIZED
-                }
-            }
-            _ => PhysicalPath::UNCATEGORIZED,
-        }
-    }
 }
 impl std::fmt::Display for PhysicalPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -274,6 +241,8 @@ pub struct FilePathSegment {
 pub struct LinePathSegment {
     pub number: u32,
 }
+
+// SpanPathIndex
 
 #[derive(Default)]
 pub struct SpanPathIndex {
@@ -312,6 +281,8 @@ pub struct SpanPathNode {
     pub span_children: HashMap<SpanPathSegment, SpanPathNode>,
     pub logs: Vec<LogId>,
 }
+
+// ModulePathIndex
 
 #[derive(Default)]
 pub struct ModulePathIndex {
@@ -416,6 +387,8 @@ pub struct SubModulePathNode {
     pub logs: Vec<LogId>,
 }
 
+// PhysicalPathIndex
+
 #[derive(Default)]
 pub struct PhysicalPathIndex {
     pub crates: HashMap<PhysicalCratePathSegment, PhysicalCratePathNode>,
@@ -505,3 +478,9 @@ pub struct FilePathNode {
 pub struct LinePathNode {
     pub logs: Vec<LogId>,
 }
+
+// SpanPathSelection
+
+// ModulePathSelection
+
+// PhysicalPathSelection
