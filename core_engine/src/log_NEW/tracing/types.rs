@@ -21,12 +21,6 @@ use crate::{
 
 use super::functions::extract_log_identity;
 
-#[derive(Debug, Clone)]
-pub enum PathResolution<T> {
-    Resolved(T),
-    Uncategorized,
-}
-
 pub struct LogTreeTracingLayer {
     pub registry: LogRegistryHandle,
 }
@@ -34,8 +28,8 @@ impl<S> Layer<S> for LogTreeTracingLayer
 where
     S: tracing::Subscriber + for<'lookup> LookupSpan<'lookup>,
 {
-    fn on_new_span(&self, attrs: &Attributes<'_>, id: &Id, ctx: Context<'_, S>) {
-        let span_path = extract_span_identity(id, &ctx);
+    fn on_new_span(&self, _attrs: &Attributes<'_>, _id: &Id, ctx: Context<'_, S>) {
+        let span_path = extract_span_identity(&ctx);
         self.registry.0.lock().unwrap().insert_without_log(&span_path);
     }
 

@@ -1,9 +1,8 @@
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use tracing::{span::Id, Level as TracingLevel, Metadata, Subscriber};
 use tracing_subscriber::{layer::Context, registry::LookupSpan};
-
-use crate::log_NEW::tracing::types::PathResolution;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LogLevel {
@@ -43,9 +42,18 @@ pub struct LogEntry {
     pub msg: Arc<str>,
 }
 
+static LOG_ID_COUNTER: OnceLock<AtomicU64> = OnceLock::new();
+
 #[repr(transparent)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LogId(pub u64);
+impl LogId {
+    pub fn new() -> Self {
+        let counter = LOG_ID_COUNTER.get_or_init(|| AtomicU64::new(1));
+        let id = counter.fetch_add(1, Ordering::Relaxed);
+        LogId(id)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum LogPath {

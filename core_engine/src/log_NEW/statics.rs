@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::log_NEW::{resources::LogRegistryHandle, types::LogRegistry};
 
