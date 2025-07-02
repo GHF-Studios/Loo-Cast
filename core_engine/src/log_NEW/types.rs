@@ -118,26 +118,6 @@ impl LogRegistry {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SelectionState {
-    Selected,
-    Deselected,
-    Deferred,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum OverrideStrength {
-    None,
-    Temporary,
-    Forceful,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct OverrideDirective {
-    pub strength: OverrideStrength,
-    pub state: SelectionIntent, // must be Selected or Deselected, never Unspecified
-}
-
 // SpanPath
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -477,6 +457,66 @@ pub struct FilePathNode {
 #[derive(Default)]
 pub struct LinePathNode {
     pub logs: Vec<LogId>,
+}
+
+// Selection Basics
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Selection {
+    pub state: SelectionState,
+    pub privilege: SelectionPrivilege,
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SelectionState {
+    #[default]
+    InheritedOrDefault,
+    Selected,
+    Deselected,
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SelectionPrivilege {
+    #[default]
+    None,
+    User,
+    Sudo,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SelectionCommand {
+    ResetToInheritedOrDefault,
+    SelectExplicit(SelectionPrivilege),
+    DeselectExplicit(SelectionPrivilege),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SelectionCommandError {
+    InsufficientPrivilege {
+        required: SelectionPrivilege,
+        actual: SelectionPrivilege,
+    },
+    LockedByAncestor {
+        ancestor_privilege: SelectionPrivilege,
+    },
+    AlreadyAtState,
+    Other(String),
+}
+
+pub trait SelectionNode {
+    type Key: Eq + std::hash::Hash;
+    type Parent: SelectionNode;
+    type Child: SelectionNode;
+
+    fn effective_selection(&self) -> Selection;
+    fn parent(&self) ->& Self::Parent;
+    fn parent_mut(&self) -> &mut Self::Parent;
+    fn children(&self) -> &HashMap<Self::Key, Self::Child>;
+    fn children_mut(&mut self) -> &mut HashMap<Self::Key, Self::Child>;
+    fn apply_selection_command(
+        &mut self,
+        command: SelectionCommand,
+    ) -> Result<(), SelectionCommandError>;
 }
 
 // SpanPathSelection
