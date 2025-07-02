@@ -508,12 +508,12 @@ pub trait SelectionNode {
     type Parent: SelectionNode;
     type Child: SelectionNode;
 
-    fn effective_selection(&self) -> Selection;
-    fn parent(&self) ->& Self::Parent;
+    fn selection(&self) -> Selection;
+    fn parent(&self) -> &Self::Parent;
     fn parent_mut(&self) -> &mut Self::Parent;
     fn children(&self) -> &HashMap<Self::Key, Self::Child>;
     fn children_mut(&mut self) -> &mut HashMap<Self::Key, Self::Child>;
-    fn apply_selection_command(
+    fn select(
         &mut self,
         command: SelectionCommand,
     ) -> Result<(), SelectionCommandError>;
@@ -521,6 +521,71 @@ pub trait SelectionNode {
 
 // SpanPathSelection
 
+#[derive(Default)]
+pub struct SpanPathSelection {
+    pub span_roots: HashMap<SpanPathSegment, SpanPathNodeSelection>,
+}
+
+#[derive(Default)]
+pub struct SpanPathNodeSelection {
+    pub selection: Selection,
+    pub span_children: HashMap<SpanPathSegment, SpanPathNodeSelection>,
+}
+
 // ModulePathSelection
 
+#[derive(Default)]
+pub struct ModulePathSelection {
+    pub crates: HashMap<ModuleCratePathSegment, ModuleCratePathNodeSelection>,
+}
+
+#[derive(Default)]
+pub struct ModuleCratePathNodeSelection {
+    pub selection: Selection,
+    pub modules: HashMap<ModulePathSegment, ModulePathNodeSelection>,
+}
+
+#[derive(Default)]
+pub struct ModulePathNodeSelection {
+    pub selection: Selection,
+    pub modules: HashMap<ModulePathSegment, ModulePathNodeSelection>,
+    pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNodeSelection>,
+}
+
+#[derive(Default)]
+pub struct SubModulePathNodeSelection {
+    pub selection: Selection,
+    pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNodeSelection>,
+}
+    
 // PhysicalPathSelection
+
+#[derive(Default)]
+pub struct PhysicalPathSelection {
+    pub crates: HashMap<PhysicalCratePathSegment, PhysicalCratePathNodeSelection>,
+}
+
+#[derive(Default)]
+pub struct PhysicalCratePathNodeSelection {
+    pub selection: Selection,
+    pub folders: HashMap<FolderPathSegment, FolderPathNodeSelection>,
+    pub files: HashMap<FilePathSegment, FilePathNodeSelection>,
+}
+
+#[derive(Default)]
+pub struct FolderPathNodeSelection {
+    pub selection: Selection,
+    pub folders: HashMap<FolderPathSegment, FolderPathNodeSelection>,
+    pub files: HashMap<FilePathSegment, FilePathNodeSelection>,
+}
+
+#[derive(Default)]
+pub struct FilePathNodeSelection {
+    pub selection: Selection,
+    pub lines: HashMap<LinePathSegment, LinePathNodeSelection>,
+}
+
+#[derive(Default)]
+pub struct LinePathNodeSelection {
+    pub selection: Selection,
+}
