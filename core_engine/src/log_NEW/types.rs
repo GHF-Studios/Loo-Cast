@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -485,7 +486,7 @@ pub enum SelectionPrivilege {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectionCommand {
-    ResetToInheritedOrDefault,
+    ResetToInheritedOrDefault(SelectionPrivilege),
     SelectExplicit(SelectionPrivilege),
     DeselectExplicit(SelectionPrivilege),
 }
@@ -503,20 +504,49 @@ pub enum SelectionCommandError {
     Other(String),
 }
 
-pub trait SelectionNode {
+pub trait NodeSelection {
     type Key: Eq + std::hash::Hash;
-    type Parent: SelectionNode;
-    type Child: SelectionNode;
+    type Parent: NodeSelection;
+    type Child: NodeSelection;
 
-    fn selection(&self) -> Selection;
-    fn parent(&self) -> &Self::Parent;
-    fn parent_mut(&self) -> &mut Self::Parent;
-    fn children(&self) -> &HashMap<Self::Key, Self::Child>;
-    fn children_mut(&mut self) -> &mut HashMap<Self::Key, Self::Child>;
-    fn select(
-        &mut self,
-        command: SelectionCommand,
-    ) -> Result<(), SelectionCommandError>;
+    fn parent_path_segment(&self) -> Option<<Self::Parent as NodeSelection>::Key>;
+
+    fn children(&self) -> Option<&HashMap<<Self::Child as NodeSelection>::Key, Self::Child>>;
+    fn children_mut(&mut self) -> Option<&mut HashMap<<Self::Child as NodeSelection>::Key, Self::Child>>;
+
+    fn selection(&self) -> &Selection;
+    fn selection_mut(&mut self) -> &mut Selection;
+    fn select(&mut self, command: SelectionCommand) -> Result<(), SelectionCommandError> {
+        todo!()
+    }
+}
+
+impl NodeSelection for () {
+    type Key = ();
+    type Parent = ();
+    type Child = ();
+
+    fn parent_path_segment(&self) -> Option<<Self::Parent as NodeSelection>::Key> {
+        unimplemented!()
+    }
+
+    fn children(&self) -> Option<&HashMap<<Self::Child as NodeSelection>::Key, Self::Child>> {
+        unimplemented!()
+    }
+    fn children_mut(&mut self) -> Option<&mut HashMap<<Self::Child as NodeSelection>::Key, Self::Child>> {
+        unimplemented!()
+    }
+
+    fn selection(&self) -> &Selection {
+        unimplemented!()
+    }
+    fn selection_mut(&mut self) -> &mut Selection {
+        unimplemented!()
+    }
+
+    fn select(&mut self, _command: SelectionCommand) -> Result<(), SelectionCommandError> {
+        unimplemented!()
+    }
 }
 
 // SpanPathSelection
@@ -526,10 +556,33 @@ pub struct SpanPathSelection {
     pub span_roots: HashMap<SpanPathSegment, SpanPathNodeSelection>,
 }
 
-#[derive(Default)]
 pub struct SpanPathNodeSelection {
     pub selection: Selection,
+    pub span_parent_path_segment: Option<SpanPathSegment>,
     pub span_children: HashMap<SpanPathSegment, SpanPathNodeSelection>,
+}
+impl NodeSelection for SpanPathNodeSelection {
+    type Key = SpanPathSegment;
+    type Parent = SpanPathNodeSelection;
+    type Child = SpanPathNodeSelection;
+
+    fn parent_path_segment(&self) -> Option<<Self::Parent as NodeSelection>::Key> {
+        self.span_parent_path_segment.clone()
+    }
+
+    fn children(&self) -> Option<&HashMap<Self::Key, Self::Child>> {
+        Some(&self.span_children)
+    }
+    fn children_mut(&mut self) -> Option<&mut HashMap<Self::Key, Self::Child>> {
+        Some(&mut self.span_children)
+    }
+
+    fn selection(&self) -> &Selection {
+        &self.selection
+    }
+    fn selection_mut(&mut self) -> &mut Selection {
+        &mut self.selection
+    }
 }
 
 // ModulePathSelection
@@ -539,23 +592,32 @@ pub struct ModulePathSelection {
     pub crates: HashMap<ModuleCratePathSegment, ModuleCratePathNodeSelection>,
 }
 
-#[derive(Default)]
 pub struct ModuleCratePathNodeSelection {
     pub selection: Selection,
     pub modules: HashMap<ModulePathSegment, ModulePathNodeSelection>,
 }
 
-#[derive(Default)]
 pub struct ModulePathNodeSelection {
     pub selection: Selection,
+    pub parent_path_segment: ModulePathNodeSelectionParent,
     pub modules: HashMap<ModulePathSegment, ModulePathNodeSelection>,
     pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNodeSelection>,
 }
 
-#[derive(Default)]
+pub enum ModulePathNodeSelectionParent {
+    Crate(ModuleCratePathSegment),
+    Module(ModulePathSegment),
+}
+
 pub struct SubModulePathNodeSelection {
     pub selection: Selection,
+    pub parent_path_segment: SubModulePathNodeSelectionParent,
     pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNodeSelection>,
+}
+
+pub enum SubModulePathNodeSelectionParent {
+    Module(ModulePathSegment),
+    SubModule(SubModulePathSegment),
 }
     
 // PhysicalPathSelection
@@ -565,27 +627,35 @@ pub struct PhysicalPathSelection {
     pub crates: HashMap<PhysicalCratePathSegment, PhysicalCratePathNodeSelection>,
 }
 
-#[derive(Default)]
 pub struct PhysicalCratePathNodeSelection {
     pub selection: Selection,
     pub folders: HashMap<FolderPathSegment, FolderPathNodeSelection>,
     pub files: HashMap<FilePathSegment, FilePathNodeSelection>,
 }
 
-#[derive(Default)]
 pub struct FolderPathNodeSelection {
     pub selection: Selection,
+    pub parent_path_segment: FolderPathNodeSelectionParent,
     pub folders: HashMap<FolderPathSegment, FolderPathNodeSelection>,
     pub files: HashMap<FilePathSegment, FilePathNodeSelection>,
 }
 
-#[derive(Default)]
+pub enum FolderPathNodeSelectionParent {
+    Crate(PhysicalCratePathSegment),
+    Folder(FolderPathSegment),
+}
+
 pub struct FilePathNodeSelection {
     pub selection: Selection,
+    pub parent_path_segment: FilePathNodeSelectionParent,
     pub lines: HashMap<LinePathSegment, LinePathNodeSelection>,
 }
 
-#[derive(Default)]
+pub enum FilePathNodeSelectionParent {
+    Crate(PhysicalCratePathSegment),
+    Folder(FolderPathSegment),
+}
+
 pub struct LinePathNodeSelection {
     pub selection: Selection,
 }
