@@ -497,11 +497,10 @@ pub enum SelectionCommandError {
         required: SelectionPrivilege,
         actual: SelectionPrivilege,
     },
-    LockedByAncestor {
-        ancestor_privilege: SelectionPrivilege,
-    },
-    AlreadyAtState,
-    Other(String),
+    AlreadyAtState(SelectionState),
+    SpanPathNotFound(SpanPath),
+    ModulePathNotFound(ModulePath),
+    PhysicalPathNotFound(PhysicalPath),
 }
 
 // SpanPathSelection
@@ -512,7 +511,32 @@ pub struct SpanPathSelection {
 }
 impl SpanPathSelection {
     pub fn select(&mut self, path: &SpanPath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
-        todo!()
+        let span = self.get_span_mut(path).ok_or(SelectionCommandError::SpanPathNotFound(path.clone()))?;
+
+        match command {
+            SelectionCommand::ResetToInheritedOrDefault(required) => {
+                let current = span.selection.privilege;
+                
+                if required > current {
+                    return Err(SelectionCommandError::InsufficientPrivilege {
+                        required,
+                        actual: current,
+                    });
+                }
+
+                if span.selection.state == SelectionState::InheritedOrDefault {
+                    return Err(SelectionCommandError::AlreadyAtState(SelectionState::InheritedOrDefault));
+                }
+
+                span.selection.state = SelectionState::InheritedOrDefault;
+            }
+            SelectionCommand::SelectExplicit(required) => {
+            }
+            SelectionCommand::DeselectExplicit(required) => {
+            }
+        }
+
+        Ok(())
     }
 
     pub fn get_span(&self, path: &SpanPath) -> Option<&SpanPathNodeSelection> {
