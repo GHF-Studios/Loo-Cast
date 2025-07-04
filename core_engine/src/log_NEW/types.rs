@@ -139,13 +139,13 @@ pub struct SpanPathSegment(pub String);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModulePath {
-    pub _crate_: ModuleCratePathSegment,
+    pub _crate_: CrateModulePathSegment,
     pub modules: Vec<ModulePathSegment>,
     pub sub_modules: Vec<SubModulePathSegment>
 }
 impl ModulePath {
     pub const UNCATEGORIZED: Self = ModulePath {
-        _crate_: ModuleCratePathSegment { name: String::new() },
+        _crate_: CrateModulePathSegment { name: String::new() },
         modules: Vec::new(),
         sub_modules: Vec::new(),
     };
@@ -161,7 +161,7 @@ impl std::fmt::Display for ModulePath {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ModuleCratePathSegment {
+pub struct CrateModulePathSegment {
     pub name: String,
 }
 
@@ -179,14 +179,14 @@ pub struct SubModulePathSegment {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PhysicalPath {
-    pub _crate_: PhysicalCratePathSegment,
+    pub _crate_: CrateFolderPathSegment,
     pub folders: Vec<FolderPathSegment>,
     pub file: FilePathSegment,
     pub line: LinePathSegment,
 }
 impl PhysicalPath {
     pub const UNCATEGORIZED: Self = PhysicalPath {
-        _crate_: PhysicalCratePathSegment { name: String::new() },
+        _crate_: CrateFolderPathSegment { name: String::new() },
         folders: Vec::new(),
         file: FilePathSegment { name: String::new() },
         line: LinePathSegment { number: 0 }
@@ -204,7 +204,7 @@ impl std::fmt::Display for PhysicalPath {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PhysicalCratePathSegment {
+pub struct CrateFolderPathSegment {
     pub name: String,
 }
 
@@ -267,7 +267,7 @@ pub struct SpanPathNode {
 
 #[derive(Default)]
 pub struct ModulePathIndex {
-    pub crates: HashMap<ModuleCratePathSegment, ModuleCratePathNode>,
+    pub crates: HashMap<CrateModulePathSegment, ModuleCratePathNode>,
 }
 impl ModulePathIndex {
     pub fn insert(&mut self, path: &ModulePath, log_id: LogId) {
@@ -372,7 +372,7 @@ pub struct SubModulePathNode {
 
 #[derive(Default)]
 pub struct PhysicalPathIndex {
-    pub crates: HashMap<PhysicalCratePathSegment, PhysicalCratePathNode>,
+    pub crates: HashMap<CrateFolderPathSegment, PhysicalCratePathNode>,
 }
 impl PhysicalPathIndex {
     pub fn insert(&mut self, path: &PhysicalPath, log_id: LogId) {
@@ -511,6 +511,10 @@ pub struct SpanPathSelection {
     pub span_roots: HashMap<SpanPathSegment, SpanPathNodeSelection>,
 }
 impl SpanPathSelection {
+    pub fn select(&mut self, command: SelectionCommand) -> Result<(), SelectionCommandError> {
+        todo!()
+    }
+
     pub fn get_span(&self, path: &SpanPath) -> Option<&SpanPathNodeSelection> {
         let mut current = self.span_roots.get(&path.0[0])?;
         
@@ -535,23 +539,18 @@ pub struct SpanPathNodeSelection {
     pub selection: Selection,
     pub span_children: HashMap<SpanPathSegment, SpanPathNodeSelection>,
 }
-impl SpanPathNodeSelection {
-    fn select(&mut self, command: SelectionCommand) -> Result<(), SelectionCommandError> {
-        todo!()
-    }
-}
 
 // ModulePathSelection
 
 #[derive(Default)]
 pub struct ModulePathSelection {
-    pub crates: HashMap<ModuleCratePathSegment, ModuleCratePathNodeSelection>,
+    pub crates: HashMap<CrateModulePathSegment, CrateModulePathNodeSelection>,
 }
 impl ModulePathSelection {
-    pub fn get_crate(&self, path: &ModulePath) -> Option<&ModuleCratePathNodeSelection> {
+    pub fn get_crate(&self, path: &ModulePath) -> Option<&CrateModulePathNodeSelection> {
         self.crates.get(&path._crate_)
     }
-    pub fn get_crate_mut(&mut self, path: &ModulePath) -> Option<&mut ModuleCratePathNodeSelection> {
+    pub fn get_crate_mut(&mut self, path: &ModulePath) -> Option<&mut CrateModulePathNodeSelection> {
         self.crates.get_mut(&path._crate_)
     }
 
@@ -610,7 +609,7 @@ impl ModulePathSelection {
     }
 }
 
-pub struct ModuleCratePathNodeSelection {
+pub struct CrateModulePathNodeSelection {
     pub selection: Selection,
     pub modules: HashMap<ModulePathSegment, ModulePathNodeSelection>,
 }
@@ -630,13 +629,13 @@ pub struct SubModulePathNodeSelection {
 
 #[derive(Default)]
 pub struct PhysicalPathSelection {
-    pub crates: HashMap<PhysicalCratePathSegment, PhysicalCratePathNodeSelection>,
+    pub crates: HashMap<CrateFolderPathSegment, CrateFolderPathNodeSelection>,
 }
 impl PhysicalPathSelection {
-    pub fn get_crate(&self, path: &PhysicalPath) -> Option<&PhysicalCratePathNodeSelection> {
+    pub fn get_crate(&self, path: &PhysicalPath) -> Option<&CrateFolderPathNodeSelection> {
         self.crates.get(&path._crate_)
     }
-    pub fn get_crate_mut(&mut self, path: &PhysicalPath) -> Option<&mut PhysicalCratePathNodeSelection> {
+    pub fn get_crate_mut(&mut self, path: &PhysicalPath) -> Option<&mut CrateFolderPathNodeSelection> {
         self.crates.get_mut(&path._crate_)
     }
     
@@ -716,7 +715,7 @@ impl PhysicalPathSelection {
     }
 }
 
-pub struct PhysicalCratePathNodeSelection {
+pub struct CrateFolderPathNodeSelection {
     pub selection: Selection,
     pub folders: HashMap<FolderPathSegment, FolderPathNodeSelection>,
     pub files: HashMap<FilePathSegment, FilePathNodeSelection>,
