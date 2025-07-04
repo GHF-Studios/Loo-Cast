@@ -504,84 +504,40 @@ pub enum SelectionCommandError {
     Other(String),
 }
 
-pub trait NodeSelection {
-    type Key: Eq + std::hash::Hash;
-    type Parent: NodeSelection;
-    type Child: NodeSelection;
-
-    fn parent_path_segment(&self) -> Option<<Self::Parent as NodeSelection>::Key>;
-
-    fn children(&self) -> Option<&HashMap<<Self::Child as NodeSelection>::Key, Self::Child>>;
-    fn children_mut(&mut self) -> Option<&mut HashMap<<Self::Child as NodeSelection>::Key, Self::Child>>;
-
-    fn selection(&self) -> &Selection;
-    fn selection_mut(&mut self) -> &mut Selection;
-    fn select(&mut self, command: SelectionCommand) -> Result<(), SelectionCommandError> {
-        todo!()
-    }
-}
-
-impl NodeSelection for () {
-    type Key = ();
-    type Parent = ();
-    type Child = ();
-
-    fn parent_path_segment(&self) -> Option<<Self::Parent as NodeSelection>::Key> {
-        unimplemented!()
-    }
-
-    fn children(&self) -> Option<&HashMap<<Self::Child as NodeSelection>::Key, Self::Child>> {
-        unimplemented!()
-    }
-    fn children_mut(&mut self) -> Option<&mut HashMap<<Self::Child as NodeSelection>::Key, Self::Child>> {
-        unimplemented!()
-    }
-
-    fn selection(&self) -> &Selection {
-        unimplemented!()
-    }
-    fn selection_mut(&mut self) -> &mut Selection {
-        unimplemented!()
-    }
-
-    fn select(&mut self, _command: SelectionCommand) -> Result<(), SelectionCommandError> {
-        unimplemented!()
-    }
-}
-
 // SpanPathSelection
 
 #[derive(Default)]
 pub struct SpanPathSelection {
     pub span_roots: HashMap<SpanPathSegment, SpanPathNodeSelection>,
 }
+impl SpanPathSelection {
+    pub fn get_span(&self, path: &SpanPath) -> Option<&SpanPathNodeSelection> {
+        let mut current = self.span_roots.get(&path.0[0])?;
+        
+        for segment in &path.0[1..] {
+            current = current.span_children.get(segment)?;
+        }
+        
+        Some(current)
+    }
+    pub fn get_span_mut(&mut self, path: &SpanPath) -> Option<&mut SpanPathNodeSelection> {
+        let mut current = self.span_roots.get_mut(&path.0[0])?;
+        
+        for segment in &path.0[1..] {
+            current = current.span_children.get_mut(segment)?;
+        }
+        
+        Some(current)
+    }
+}
 
 pub struct SpanPathNodeSelection {
     pub selection: Selection,
-    pub span_parent_path_segment: Option<SpanPathSegment>,
     pub span_children: HashMap<SpanPathSegment, SpanPathNodeSelection>,
 }
-impl NodeSelection for SpanPathNodeSelection {
-    type Key = SpanPathSegment;
-    type Parent = SpanPathNodeSelection;
-    type Child = SpanPathNodeSelection;
-
-    fn parent_path_segment(&self) -> Option<<Self::Parent as NodeSelection>::Key> {
-        self.span_parent_path_segment.clone()
-    }
-
-    fn children(&self) -> Option<&HashMap<Self::Key, Self::Child>> {
-        Some(&self.span_children)
-    }
-    fn children_mut(&mut self) -> Option<&mut HashMap<Self::Key, Self::Child>> {
-        Some(&mut self.span_children)
-    }
-
-    fn selection(&self) -> &Selection {
-        &self.selection
-    }
-    fn selection_mut(&mut self) -> &mut Selection {
-        &mut self.selection
+impl SpanPathNodeSelection {
+    fn select(&mut self, command: SelectionCommand) -> Result<(), SelectionCommandError> {
+        todo!()
     }
 }
 
@@ -591,6 +547,68 @@ impl NodeSelection for SpanPathNodeSelection {
 pub struct ModulePathSelection {
     pub crates: HashMap<ModuleCratePathSegment, ModuleCratePathNodeSelection>,
 }
+impl ModulePathSelection {
+    pub fn get_crate(&self, path: &ModulePath) -> Option<&ModuleCratePathNodeSelection> {
+        self.crates.get(&path._crate_)
+    }
+    pub fn get_crate_mut(&mut self, path: &ModulePath) -> Option<&mut ModuleCratePathNodeSelection> {
+        self.crates.get_mut(&path._crate_)
+    }
+
+    pub fn get_module(&self, path: &ModulePath) -> Option<&ModulePathNodeSelection> {
+        let _crate_ = self.crates.get(&path._crate_)?;
+        let mut module = _crate_.modules.get(&path.modules[0])?;
+
+        for segment in &path.modules[1..] {
+            module = module.modules.get(segment)?;
+        }
+
+        Some(module)
+    }
+    pub fn get_module_mut(&mut self, path: &ModulePath) -> Option<&mut ModulePathNodeSelection> {
+        let _crate_ = self.crates.get_mut(&path._crate_)?;
+        let mut module = _crate_.modules.get_mut(&path.modules[0])?;
+
+        for segment in &path.modules[1..] {
+            module = module.modules.get_mut(segment)?;
+        }
+
+        Some(module)
+    }
+
+    pub fn get_sub_module(&self, path: &ModulePath) -> Option<&SubModulePathNodeSelection> {
+        let _crate_ = self.crates.get(&path._crate_)?;
+        let mut module = _crate_.modules.get(&path.modules[0])?;
+
+        for segment in &path.modules[1..] {
+            module = module.modules.get(segment)?;
+        }
+
+        let mut sub_module = module.sub_modules.get(&path.sub_modules[0])?;
+
+        for segment in &path.sub_modules[1..] {
+            sub_module = sub_module.sub_modules.get(segment)?;
+        }
+
+        Some(sub_module)
+    }
+    pub fn get_sub_module_mut(&mut self, path: &ModulePath) -> Option<&mut SubModulePathNodeSelection> {
+        let _crate_ = self.crates.get_mut(&path._crate_)?;
+        let mut module = _crate_.modules.get_mut(&path.modules[0])?;
+
+        for segment in &path.modules[1..] {
+            module = module.modules.get_mut(segment)?;
+        }
+
+        let mut sub_module = module.sub_modules.get_mut(&path.sub_modules[0])?;
+
+        for segment in &path.sub_modules[1..] {
+            sub_module = sub_module.sub_modules.get_mut(segment)?;
+        }
+
+        Some(sub_module)
+    }
+}
 
 pub struct ModuleCratePathNodeSelection {
     pub selection: Selection,
@@ -599,32 +617,103 @@ pub struct ModuleCratePathNodeSelection {
 
 pub struct ModulePathNodeSelection {
     pub selection: Selection,
-    pub parent_path_segment: ModulePathNodeSelectionParent,
     pub modules: HashMap<ModulePathSegment, ModulePathNodeSelection>,
     pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNodeSelection>,
 }
 
-pub enum ModulePathNodeSelectionParent {
-    Crate(ModuleCratePathSegment),
-    Module(ModulePathSegment),
-}
-
 pub struct SubModulePathNodeSelection {
     pub selection: Selection,
-    pub parent_path_segment: SubModulePathNodeSelectionParent,
     pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNodeSelection>,
 }
 
-pub enum SubModulePathNodeSelectionParent {
-    Module(ModulePathSegment),
-    SubModule(SubModulePathSegment),
-}
-    
 // PhysicalPathSelection
 
 #[derive(Default)]
 pub struct PhysicalPathSelection {
     pub crates: HashMap<PhysicalCratePathSegment, PhysicalCratePathNodeSelection>,
+}
+impl PhysicalPathSelection {
+    pub fn get_crate(&self, path: &PhysicalPath) -> Option<&PhysicalCratePathNodeSelection> {
+        self.crates.get(&path._crate_)
+    }
+    pub fn get_crate_mut(&mut self, path: &PhysicalPath) -> Option<&mut PhysicalCratePathNodeSelection> {
+        self.crates.get_mut(&path._crate_)
+    }
+    
+    pub fn get_folder(&self, path: &PhysicalPath) -> Option<&FolderPathNodeSelection> {
+        let _crate_ = self.crates.get(&path._crate_)?;
+        let mut folder = _crate_.folders.get(&path.folders[0])?;
+
+        for segment in &path.folders[1..] {
+            folder = folder.folders.get(segment)?;
+        }
+
+        Some(folder)
+    }
+    pub fn get_folder_mut(&mut self, path: &PhysicalPath) -> Option<&mut FolderPathNodeSelection> {
+        let _crate_ = self.crates.get_mut(&path._crate_)?;
+        let mut folder = _crate_.folders.get_mut(&path.folders[0])?;
+
+        for segment in &path.folders[1..] {
+            folder = folder.folders.get_mut(segment)?;
+        }
+
+        Some(folder)
+    }
+    
+    pub fn get_file(&self, path: &PhysicalPath) -> Option<&FilePathNodeSelection> {
+        let _crate_ = self.crates.get(&path._crate_)?;
+        let mut folder = _crate_.folders.get(&path.folders[0])?;
+
+        for segment in &path.folders[1..] {
+            folder = folder.folders.get(segment)?;
+        }
+
+        let file = folder.files.get(&path.file)?;
+
+        Some(file)
+    }
+    pub fn get_file_mut(&mut self, path: &PhysicalPath) -> Option<&mut FilePathNodeSelection> {
+        let _crate_ = self.crates.get_mut(&path._crate_)?;
+        let mut folder = _crate_.folders.get_mut(&path.folders[0])?;
+
+        for segment in &path.folders[1..] {
+            folder = folder.folders.get_mut(segment)?;
+        }
+
+        let file = folder.files.get_mut(&path.file)?;
+
+        Some(file)
+    }
+    
+    pub fn get_line(&self, path: &PhysicalPath) -> Option<&LinePathNodeSelection> {
+        let _crate_ = self.crates.get(&path._crate_)?;
+        let mut folder = _crate_.folders.get(&path.folders[0])?;
+
+        for segment in &path.folders[1..] {
+            folder = folder.folders.get(segment)?;
+        }
+
+        let file = folder.files.get(&path.file)?;
+
+        let line = file.lines.get(&path.line)?;
+
+        Some(line)
+    }
+    pub fn get_line_mut(&mut self, path: &PhysicalPath) -> Option<&mut LinePathNodeSelection> {
+        let _crate_ = self.crates.get_mut(&path._crate_)?;
+        let mut folder = _crate_.folders.get_mut(&path.folders[0])?;
+
+        for segment in &path.folders[1..] {
+            folder = folder.folders.get_mut(segment)?;
+        }
+
+        let file = folder.files.get_mut(&path.file)?;
+
+        let line = file.lines.get_mut(&path.line)?;
+
+        Some(line)
+    }
 }
 
 pub struct PhysicalCratePathNodeSelection {
@@ -635,25 +724,13 @@ pub struct PhysicalCratePathNodeSelection {
 
 pub struct FolderPathNodeSelection {
     pub selection: Selection,
-    pub parent_path_segment: FolderPathNodeSelectionParent,
     pub folders: HashMap<FolderPathSegment, FolderPathNodeSelection>,
     pub files: HashMap<FilePathSegment, FilePathNodeSelection>,
 }
 
-pub enum FolderPathNodeSelectionParent {
-    Crate(PhysicalCratePathSegment),
-    Folder(FolderPathSegment),
-}
-
 pub struct FilePathNodeSelection {
     pub selection: Selection,
-    pub parent_path_segment: FilePathNodeSelectionParent,
     pub lines: HashMap<LinePathSegment, LinePathNodeSelection>,
-}
-
-pub enum FilePathNodeSelectionParent {
-    Crate(PhysicalCratePathSegment),
-    Folder(FolderPathSegment),
 }
 
 pub struct LinePathNodeSelection {

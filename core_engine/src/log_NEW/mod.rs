@@ -2,6 +2,7 @@ pub mod resources;
 pub mod statics;
 pub mod types;
 
+pub mod selection;
 pub mod tracing;
 pub mod ui;
 
