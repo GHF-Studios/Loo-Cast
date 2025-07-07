@@ -493,6 +493,30 @@ pub enum SelectionCommand {
     RecursiveSelect(SelectionPrivilege),
     RecursiveDeselect(SelectionPrivilege),
 }
+impl SelectionCommand {
+    pub fn unpack(self) -> (SelectionState, SelectionPrivilege, bool) {
+        match self {
+            SelectionCommand::ResetToInheritedOrDefault(required) => {
+                (SelectionState::InheritedOrDefault, required, false)
+            }
+            SelectionCommand::Select(required) => {
+                (SelectionState::Selected, required, false)
+            }
+            SelectionCommand::Deselect(required) => {
+                (SelectionState::Deselected, required, false)
+            }
+            SelectionCommand::RecursiveResetToInheritedOrDefault(required) => {
+                (SelectionState::InheritedOrDefault, required, true)
+            }
+            SelectionCommand::RecursiveSelect(required) => {
+                (SelectionState::Selected, required, true)
+            }
+            SelectionCommand::RecursiveDeselect(required) => {
+                (SelectionState::Deselected, required, true)
+            }
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SelectionCommandError {
@@ -514,30 +538,10 @@ pub struct SpanPathSelection {
 }
 impl SpanPathSelection {
     pub fn select(&mut self, path: &SpanPath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
-        let target_span = self.get_span_mut(path).ok_or(SelectionCommandError::SpanPathNotFound(path.clone()))?;
+        let span = self.get_span_mut(path).ok_or(SelectionCommandError::SpanPathNotFound(path.clone()))?;
 
-        let (requested_selection_state, required_privilege, recursive) = match command {
-            SelectionCommand::ResetToInheritedOrDefault(required) => {
-                (SelectionState::InheritedOrDefault, required, false)
-            }
-            SelectionCommand::Select(required) => {
-                (SelectionState::Selected, required, false)
-            }
-            SelectionCommand::Deselect(required) => {
-                (SelectionState::Deselected, required, false)
-            }
-            SelectionCommand::RecursiveResetToInheritedOrDefault(required) => {
-                (SelectionState::InheritedOrDefault, required, true)
-            }
-            SelectionCommand::RecursiveSelect(required) => {
-                (SelectionState::Selected, required, true)
-            }
-            SelectionCommand::RecursiveDeselect(required) => {
-                (SelectionState::Deselected, required, true)
-            }
-        };
-
-        target_span.select(required_privilege, requested_selection_state, recursive)
+        let (requested_selection_state, required_privilege, recursive) = command.unpack();
+        span.select(required_privilege, requested_selection_state, recursive)
     }
 
     pub fn get_span(&self, path: &SpanPath) -> Option<&SpanPathNodeSelection> {
@@ -598,7 +602,32 @@ pub struct ModulePathSelection {
 }
 impl ModulePathSelection {
     pub fn select(&mut self, path: &ModulePath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
-        todo!()
+        let _crate_ = self.crates.get_mut(&path._crate_).ok_or(SelectionCommandError::ModulePathNotFound(path.clone()))?;
+
+        if path.modules.is_empty() {
+            let (requested_selection_state, required_privilege, recursive) = command.unpack();
+            return _crate_.select(required_privilege, requested_selection_state, recursive);
+        }
+
+        let mut module = _crate_.modules.get_mut(&path.modules[0]).ok_or(SelectionCommandError::ModulePathNotFound(path.clone()))?;
+
+        for segment in &path.modules[1..] {
+            module = module.modules.get_mut(segment).ok_or(SelectionCommandError::ModulePathNotFound(path.clone()))?;
+        }
+
+        if path.sub_modules.is_empty() {
+            let (requested_selection_state, required_privilege, recursive) = command.unpack();
+            return module.select(required_privilege, requested_selection_state, recursive);
+        }
+
+        let mut sub_module = module.sub_modules.get_mut(&path.sub_modules[0]).ok_or(SelectionCommandError::ModulePathNotFound(path.clone()))?;
+
+        for segment in &path.sub_modules[1..] {
+            sub_module = sub_module.sub_modules.get_mut(segment).ok_or(SelectionCommandError::ModulePathNotFound(path.clone()))?;
+        }
+
+        let (requested_selection_state, required_privilege, recursive) = command.unpack();
+        sub_module.select(required_privilege, requested_selection_state, recursive)
     }
 
     pub fn get_crate(&self, path: &ModulePath) -> Option<&CrateModulePathNodeSelection> {
@@ -702,7 +731,27 @@ pub struct PhysicalPathSelection {
 }
 impl PhysicalPathSelection {
     pub fn select(&mut self, path: &PhysicalPath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
-        todo!()
+        let _crate_ = self.crates.get_mut(&path._crate_).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+
+        if path.folders.is_empty() {
+            let file = _crate_.files.get_mut(&path.file).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+            let line = file.lines.get_mut(&path.line).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+
+            let (requested_selection_state, required_privilege, recursive) = command.unpack();
+            return line.select(required_privilege, requested_selection_state, recursive);
+        }
+
+        let mut folder = _crate_.folders.get_mut(&path.folders[0]).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+
+        for segment in &path.folders[1..] {
+            folder = folder.folders.get_mut(segment).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+        }
+
+        let file = folder.files.get_mut(&path.file).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+        let line = file.lines.get_mut(&path.line).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+
+        let (requested_selection_state, required_privilege, recursive) = command.unpack();
+        return line.select(required_privilege, requested_selection_state, recursive);
     }
 
     pub fn get_crate(&self, path: &PhysicalPath) -> Option<&CrateFolderPathNodeSelection> {
