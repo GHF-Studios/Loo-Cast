@@ -3,7 +3,7 @@ use bevy_egui::{egui, EguiContexts};
 use egui::Color32;
 
 use crate::log::{
-    arena::{FilterTreeMode, TreeKind}, functions::*, resources::*
+    arena::FilterTreeMode, functions::*, resources::*
 };
 
 pub(super) fn show_toolbar_ui(mut egui_ctx: EguiContexts, mut win: ResMut<UiWindows>) {

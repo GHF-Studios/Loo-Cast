@@ -1,30 +1,31 @@
 use bevy::prelude::*;
 
-use crate::log_NEW::types::LogLevel;
+use crate::log_NEW::types::{LogLevel, SpanPathSelection, ModulePathSelection, PhysicalPathSelection};
 use crate::log_NEW::ui::types::FilterTreeMode;
+
+#[derive(Resource, Default)]
+pub struct ToolbarState {
+    pub show_log_viewer: bool,
+}
 
 #[derive(Resource)]
 pub struct LogViewerState {
     pub split_ratio: f32,
     pub threshold: LogLevel,
     pub tree_mode: FilterTreeMode,
-    pub selected_spans: SpanTreeSelection,
-    pub selected_locations: LocationTreeSelection,
+    pub span_selections: Vec<SpanPathSelection>,
+    pub module_selections: Vec<ModulePathSelection>,
+    pub physical_selections: Vec<PhysicalPathSelection>
 }
-
 impl Default for LogViewerState {
     fn default() -> Self {
         Self {
-            selected_spans: SpanTreeSelection::default(),
-            selected_locations: LocationTreeSelection::default(),
             split_ratio: 0.35,
             threshold: LogLevel::Warn,
             tree_mode: FilterTreeMode::Span,
+            span_selections: Vec::new(),
+            module_selections: Vec::new(),
+            physical_selections: Vec::new(),
         }
     }
-}
-
-#[derive(Resource, Default)]
-pub struct UiWindows {
-    pub show_log_viewer: bool,
 }
