@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use tracing::{span::{Attributes, Id}, Event, Metadata, Subscriber};
-use tracing_subscriber::{layer::Context, registry::{LookupSpan, SpanRef}};
+use tracing::{Event, Subscriber};
+use tracing_subscriber::{layer::Context, registry::LookupSpan};
 
 use crate::{functions::now_since_start_ns, log_NEW::types::*};
 

@@ -3,21 +3,15 @@ use tracing::{
     span::Attributes,
     span::Id,
     Event,
-    Metadata,
-    Level as TracingLevel,
 };
 use tracing_subscriber::{
     layer::{Context, Layer},
-    registry::{LookupSpan, SpanRef},
+    registry::LookupSpan,
 };
 use std::sync::Arc;
 use std::fmt::Debug;
 
-use crate::{
-    config::statics::CONFIG, functions::now_since_start_ns, log_NEW::{
-        resources::LogRegistryHandle, tracing::functions::extract_span_identity, types::LogLevel 
-    }
-};
+use crate::log_NEW::{resources::LogRegistryHandle, tracing::functions::extract_span_identity };
 
 use super::functions::extract_log_identity;
 
