@@ -43,6 +43,7 @@ pub mod gpu;
 pub mod log_NEW;
 //pub mod math;
 pub mod player;
+pub mod ui;
 //pub mod sprite_bundle;
 pub mod utils;
 pub mod workflow;
@@ -64,6 +65,7 @@ use gpu::GpuPlugin;
 use log_NEW::LogPlugin;
 //use math::MathPlugin;
 use player::PlayerPlugin;
+use ui::UiPlugin;
 //use sprite_bundle::SpriteBundlePlugin;
 
 pub struct SpacetimeEngineCorePlugins;
@@ -85,6 +87,7 @@ impl PluginGroup for SpacetimeEngineCorePlugins {
             .add(EntityPlugin)
             //.add(MathPlugin)
             .add(PlayerPlugin)
+            .add(UiPlugin)
         //.add(SpriteBundlePlugin)
     }
 }

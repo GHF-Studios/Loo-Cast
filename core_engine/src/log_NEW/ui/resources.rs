@@ -3,11 +3,6 @@ use bevy::prelude::*;
 use crate::log_NEW::types::{LogLevel, SpanPathSelection, ModulePathSelection, PhysicalPathSelection};
 use crate::log_NEW::ui::types::FilterTreeMode;
 
-#[derive(Resource, Default)]
-pub struct ToolbarState {
-    pub show_log_viewer: bool,
-}
-
 #[derive(Resource)]
 pub struct LogViewerState {
     pub split_ratio: f32,

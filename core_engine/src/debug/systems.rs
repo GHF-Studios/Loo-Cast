@@ -2,6 +2,7 @@ use crate::{
     camera::components::MainCamera,
     chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager},
     chunk_loader::components::ChunkLoader,
+    ui::toolbar::resources::ToolbarState,
 };
 
 use bevy::{prelude::*, window::PrimaryWindow};
@@ -9,10 +10,11 @@ use bevy_egui::{
     egui::{self, ScrollArea},
     EguiContexts,
 };
+use iyes_perf_ui::prelude::PerfUiRoot;
 
 use super::components::{DebugObjectComponent, DebugObjectMovement};
 
-pub(super) fn debug_ui_startup(mut has_spawned: Local<bool>, mut commands: Commands) {
+pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Commands) {
     use iyes_perf_ui::{
         entries::{PerfUiFramerateEntries, PerfUiSystemEntries},
         prelude::{PerfUiEntryEntityCount, PerfUiRoot},
@@ -26,6 +28,30 @@ pub(super) fn debug_ui_startup(mut has_spawned: Local<bool>, mut commands: Comma
             PerfUiSystemEntries::default(),
             PerfUiEntryEntityCount::default(),
         ));
+    }
+}
+
+pub(super) fn toggle_perf_ui_system(
+    mut query: Query<&mut Visibility, With<PerfUiRoot>>,
+    toolbar_state: Res<ToolbarState>,
+) {
+    for mut vis in query.iter_mut() {
+        match (*vis, toolbar_state.show_perf_ui) {
+            (Visibility::Inherited, false) => {
+                *vis = Visibility::Hidden;
+            }
+            (Visibility::Inherited, true) => {
+                *vis = Visibility::Visible;
+            }
+            (Visibility::Hidden, false) => {}
+            (Visibility::Hidden, true) => {
+                *vis = Visibility::Visible;
+            }
+            (Visibility::Visible, false) => {
+                *vis = Visibility::Hidden;
+            }
+            (Visibility::Visible, true) => {}
+        }
     }
 }
 
@@ -81,7 +107,7 @@ pub(super) fn chunk_loader_inspection_system(chunk_loader_query: Query<Entity, W
     }
 }
 
-pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctxs: EguiContexts) {
+pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctxs: EguiContexts, toolbar_state: Res<ToolbarState>) {
     const GROUP_SIZE: usize = 50;
 
     fn display_chunk_group<T: std::fmt::Debug>(ui: &mut egui::Ui, label: &str, items: impl Iterator<Item = T>) {
@@ -100,6 +126,8 @@ pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctxs: E
             });
         }
     }
+
+    if !toolbar_state.show_chunk_manager_debug_ui { return; }
 
     egui::Window::new("Chunk Manager")
         .vscroll(true) // Optional: ensures vertical scrollbar appears
