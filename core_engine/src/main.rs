@@ -7,20 +7,18 @@ use bevy::window::PresentMode;
 use bevy_egui::EguiPlugin;
 use bevy_rapier2d::prelude::*;
 use core_engine::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
-use core_engine::log::statics::LOG_STORAGE_HANDLE;
-use core_engine::log::types::LogTreeTracingLayer;
+use core_engine::log_NEW::statics::LOG_REGISTRY_HANDLE;
+use core_engine::log_NEW::tracing::types::LogTreeTracingLayer;
 use core_engine::types::ShortTime;
 use core_engine::*;
 use iyes_perf_ui::prelude::*;
 use tracing_subscriber::{EnvFilter, Layer};
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
-use tracing_subscriber::fmt::{self, format::{FmtSpan, Writer}, time::FormatTime};
-
-use crate::statics::START_TIME;
+use tracing_subscriber::fmt::format::FmtSpan;
 
 fn main() {
     let log_tree_tracing_layer = LogTreeTracingLayer {
-        storage: LOG_STORAGE_HANDLE.clone(),
+        registry: LOG_REGISTRY_HANDLE.clone(),
     };
 
     let fmt_layer = tracing_subscriber::fmt::layer()

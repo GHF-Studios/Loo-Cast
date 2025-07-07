@@ -26,9 +26,9 @@ impl From<TracingLevel> for LogLevel {
         }
     }
 }
-impl Into<TracingLevel> for LogLevel {
-    fn into(self) -> TracingLevel {
-        match self {
+impl From<LogLevel> for TracingLevel {
+    fn from(value: LogLevel) -> TracingLevel {
+        match value {
             LogLevel::Trace => TracingLevel::TRACE,
             LogLevel::Debug => TracingLevel::DEBUG,
             LogLevel::Info  => TracingLevel::INFO,
@@ -212,13 +212,15 @@ pub enum LogSelectionCommandError {
 // Path Types
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SpanPath(pub Vec<SpanPathSegment>);
+pub struct SpanPath {
+    pub spans: Vec<SpanPathSegment>
+}
 impl SpanPath {
-    pub const UNCATEGORIZED: Self = SpanPath(Vec::new());
+    pub const UNCATEGORIZED: Self = SpanPath { spans: Vec::new() };
 }
 impl std::fmt::Display for SpanPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "SpanPath({})", self.0.iter().map(|s| s.0.as_str()).collect::<Vec<_>>().join("/"))
+        write!(f, "SpanPath({})", self.spans.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"))
     }
 }
 
@@ -336,7 +338,9 @@ impl std::fmt::Display for PhysicalSelectionPath {
 
 // Span
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SpanPathSegment(pub String);
+pub struct SpanPathSegment {
+    pub name: String
+}
 
 // Module
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -383,9 +387,14 @@ pub struct SpanPathIndex {
 }
 impl SpanPathIndex {
     pub fn insert(&mut self, path: &SpanPath, log_id: LogId) {
-        let mut current = self.span_roots.entry(path.0[0].clone()).or_default();
+        let root_span_path_segment = if path.spans.is_empty() {
+            SpanPathSegment { name: "[UNCATEGORIZED]".to_string() }
+        } else {
+            path.spans[0].clone()
+        };
+        let mut current = self.span_roots.entry(root_span_path_segment).or_default();
 
-        for segment in &path.0[1..] {
+        for segment in path.spans.get(1..).unwrap_or_default() {
             current = current.span_children.entry(segment.clone()).or_default();
         }
 
@@ -393,16 +402,21 @@ impl SpanPathIndex {
     }
 
     pub fn insert_without_log(&mut self, path: &SpanPath) {
-        let mut current = self.span_roots.entry(path.0[0].clone()).or_default();
+        let root_span_path_segment = if path.spans.is_empty() {
+            SpanPathSegment { name: "[UNCATEGORIZED]".to_string() }
+        } else {
+            path.spans[0].clone()
+        };
+        let mut current = self.span_roots.entry(root_span_path_segment).or_default();
 
-        for segment in &path.0[1..] {
+        for segment in path.spans.get(1..).unwrap_or_default() {
             current = current.span_children.entry(segment.clone()).or_default();
         }
     }
 
     pub fn resolve(&self, path: &SpanPath) -> Option<&Vec<LogId>> {
-        let mut current = self.span_roots.get(&path.0[0])?;
-        for segment in &path.0[1..] {
+        let mut current = self.span_roots.get(&path.spans[0])?;
+        for segment in path.spans.get(1..).unwrap_or_default() {
             current = current.span_children.get(segment)?;
         }
         Some(&current.logs)
@@ -423,7 +437,12 @@ pub struct ModulePathIndex {
 }
 impl ModulePathIndex {
     pub fn insert(&mut self, path: &ModulePath, log_id: LogId) {
-        let crate_module = self.crates.entry(path.crate_module.clone()).or_default();
+        let crate_module_path_segment = if path.crate_module.name.is_empty() {
+            CrateModulePathSegment { name: "[UNCATEGORIZED]".to_string() }
+        } else {
+            path.crate_module.clone()
+        };
+        let crate_module = self.crates.entry(crate_module_path_segment).or_default();
 
         if path.modules.is_empty() {
             crate_module.logs.push(log_id);
@@ -432,7 +451,7 @@ impl ModulePathIndex {
 
         let mut current_module = crate_module.modules.entry(path.modules[0].clone()).or_default();
 
-        for segment in &path.modules[1..] {
+        for segment in path.modules.get(1..).unwrap_or_default() {
             current_module = crate_module.modules.entry(segment.clone()).or_default();
         }
 
@@ -443,7 +462,7 @@ impl ModulePathIndex {
 
         let mut current_sub_module = current_module.sub_modules.entry(path.sub_modules[0].clone()).or_default();
 
-        for segment in &path.sub_modules[1..] {
+        for segment in path.sub_modules.get(1..).unwrap_or_default() {
             current_sub_module = current_sub_module.sub_modules.entry(segment.clone()).or_default();
         }
 
@@ -451,7 +470,12 @@ impl ModulePathIndex {
     }
 
     pub fn insert_without_log(&mut self, path: &ModulePath) {
-        let crate_module = self.crates.entry(path.crate_module.clone()).or_default();
+        let crate_module_path_segment = if path.crate_module.name.is_empty() {
+            CrateModulePathSegment { name: "[UNCATEGORIZED]".to_string() }
+        } else {
+            path.crate_module.clone()
+        };
+        let crate_module = self.crates.entry(crate_module_path_segment).or_default();
 
         if path.modules.is_empty() {
             return;
@@ -459,7 +483,7 @@ impl ModulePathIndex {
 
         let mut current_module = crate_module.modules.entry(path.modules[0].clone()).or_default();
 
-        for segment in &path.modules[1..] {
+        for segment in path.modules.get(1..).unwrap_or_default() {
             current_module = current_module.modules.entry(segment.clone()).or_default();
         }
 
@@ -469,7 +493,7 @@ impl ModulePathIndex {
 
         let mut current_sub_module = current_module.sub_modules.entry(path.sub_modules[0].clone()).or_default();
 
-        for segment in &path.sub_modules[1..] {
+        for segment in path.sub_modules.get(1..).unwrap_or_default() {
             current_sub_module = current_sub_module.sub_modules.entry(segment.clone()).or_default();
         }
     }
@@ -483,7 +507,7 @@ impl ModulePathIndex {
 
         let mut current_module = crate_module.modules.get(&path.modules[0])?;
         
-        for segment in &path.modules[1..] {
+        for segment in path.modules.get(1..).unwrap_or_default() {
             current_module = current_module.modules.get(segment)?;
         }
 
@@ -493,7 +517,7 @@ impl ModulePathIndex {
 
         let mut current_sub_module = current_module.sub_modules.get(&path.sub_modules[0])?;
 
-        for segment in &path.sub_modules[1..] {
+        for segment in path.sub_modules.get(1..).unwrap_or_default() {
             current_sub_module = current_sub_module.sub_modules.get(segment)?;
         }
 
@@ -529,14 +553,19 @@ pub struct PhysicalPathIndex {
 impl PhysicalPathIndex {
     pub fn insert(&mut self, path: &PhysicalStoragePath, log_id: LogId) {
         let file = {
-            let crate_folder = self.crates.entry(path.crate_folder.clone()).or_default();
+            let crate_folder_path_segment = if path.crate_folder.name.is_empty() {
+                CrateFolderPathSegment { name: "[UNCATEGORIZED]".to_string() }
+            } else {
+                path.crate_folder.clone()
+            };
+            let crate_folder = self.crates.entry(crate_folder_path_segment).or_default();
 
             if path.folders.is_empty() {
                 crate_folder.files.entry(path.file.clone()).or_default()
             } else {
                 let mut current_folder = crate_folder.folders.entry(path.folders[0].clone()).or_default();
 
-                for segment in &path.folders[1..] {
+                for segment in path.folders.get(1..).unwrap_or_default() {
                     current_folder = crate_folder.folders.entry(segment.clone()).or_default();
                 }
 
@@ -551,14 +580,19 @@ impl PhysicalPathIndex {
 
     pub fn insert_without_log(&mut self, path: &PhysicalStoragePath) {
         let file = {
-            let crate_folder = self.crates.entry(path.crate_folder.clone()).or_default();
+            let crate_folder_path_segment = if path.crate_folder.name.is_empty() {
+                CrateFolderPathSegment { name: "[UNCATEGORIZED]".to_string() }
+            } else {
+                path.crate_folder.clone()
+            };
+            let crate_folder = self.crates.entry(crate_folder_path_segment).or_default();
 
             if path.folders.is_empty() {
                 crate_folder.files.entry(path.file.clone()).or_default()
             } else {
                 let mut current_folder = crate_folder.folders.entry(path.folders[0].clone()).or_default();
 
-                for segment in &path.folders[1..] {
+                for segment in path.folders.get(1..).unwrap_or_default() {
                     current_folder = crate_folder.folders.entry(segment.clone()).or_default();
                 }
 
@@ -577,7 +611,7 @@ impl PhysicalPathIndex {
         } else {
             let mut current_folder = crate_folder.folders.get(&path.folders[0])?;
 
-            for segment in &path.folders[1..] {
+            for segment in path.folders.get(1..).unwrap_or_default() {
                 current_folder = current_folder.folders.get(segment)?;
             }
 
@@ -627,18 +661,18 @@ impl SpanPathSelection {
     }
 
     fn get_span(&self, path: &SpanPath) -> Option<&SpanPathNodeSelection> {
-        let mut current = self.span_roots.get(&path.0[0])?;
+        let mut current = self.span_roots.get(&path.spans[0])?;
         
-        for segment in &path.0[1..] {
+        for segment in path.spans.get(1..).unwrap_or_default() {
             current = current.span_children.get(segment)?;
         }
         
         Some(current)
     }
     fn get_span_mut(&mut self, path: &SpanPath) -> Option<&mut SpanPathNodeSelection> {
-        let mut current = self.span_roots.get_mut(&path.0[0])?;
+        let mut current = self.span_roots.get_mut(&path.spans[0])?;
         
-        for segment in &path.0[1..] {
+        for segment in path.spans.get(1..).unwrap_or_default() {
             current = current.span_children.get_mut(segment)?;
         }
         
@@ -713,7 +747,7 @@ impl ModulePathSelection {
         let crate_module = self.crates.get(&path.crate_module)?;
         let mut module = crate_module.modules.get(&path.modules[0])?;
 
-        for segment in &path.modules[1..] {
+        for segment in path.modules.get(1..).unwrap_or_default() {
             module = module.modules.get(segment)?;
         }
 
@@ -723,7 +757,7 @@ impl ModulePathSelection {
         let crate_module = self.crates.get_mut(&path.crate_module)?;
         let mut module = crate_module.modules.get_mut(&path.modules[0])?;
 
-        for segment in &path.modules[1..] {
+        for segment in path.modules.get(1..).unwrap_or_default() {
             module = module.modules.get_mut(segment)?;
         }
 
@@ -734,13 +768,13 @@ impl ModulePathSelection {
         let crate_module = self.crates.get(&path.crate_module)?;
         let mut module = crate_module.modules.get(&path.modules[0])?;
 
-        for segment in &path.modules[1..] {
+        for segment in path.modules.get(1..).unwrap_or_default() {
             module = module.modules.get(segment)?;
         }
 
         let mut sub_module = module.sub_modules.get(&path.sub_modules[0])?;
 
-        for segment in &path.sub_modules[1..] {
+        for segment in path.sub_modules.get(1..).unwrap_or_default() {
             sub_module = sub_module.sub_modules.get(segment)?;
         }
 
@@ -750,13 +784,13 @@ impl ModulePathSelection {
         let crate_module = self.crates.get_mut(&path.crate_module)?;
         let mut module = crate_module.modules.get_mut(&path.modules[0])?;
 
-        for segment in &path.modules[1..] {
+        for segment in path.modules.get(1..).unwrap_or_default() {
             module = module.modules.get_mut(segment)?;
         }
 
         let mut sub_module = module.sub_modules.get_mut(&path.sub_modules[0])?;
 
-        for segment in &path.sub_modules[1..] {
+        for segment in path.sub_modules.get(1..).unwrap_or_default() {
             sub_module = sub_module.sub_modules.get_mut(segment)?;
         }
 
@@ -922,7 +956,7 @@ impl PhysicalPathSelection {
         let crate_folder = self.crates.get(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get(&path.folders[0])?;
 
-        for segment in &path.folders[1..] {
+        for segment in path.folders.get(1..).unwrap_or_default() {
             folder = folder.folders.get(segment)?;
         }
 
@@ -932,7 +966,7 @@ impl PhysicalPathSelection {
         let crate_folder = self.crates.get_mut(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get_mut(&path.folders[0])?;
 
-        for segment in &path.folders[1..] {
+        for segment in path.folders.get(1..).unwrap_or_default() {
             folder = folder.folders.get_mut(segment)?;
         }
 
@@ -943,7 +977,7 @@ impl PhysicalPathSelection {
         let crate_folder = self.crates.get(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get(&path.folders[0])?;
 
-        for segment in &path.folders[1..] {
+        for segment in path.folders.get(1..).unwrap_or_default() {
             folder = folder.folders.get(segment)?;
         }
 
@@ -955,7 +989,7 @@ impl PhysicalPathSelection {
         let crate_folder = self.crates.get_mut(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get_mut(&path.folders[0])?;
 
-        for segment in &path.folders[1..] {
+        for segment in path.folders.get(1..).unwrap_or_default() {
             folder = folder.folders.get_mut(segment)?;
         }
 
@@ -968,7 +1002,7 @@ impl PhysicalPathSelection {
         let crate_folder = self.crates.get(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get(&path.folders[0])?;
 
-        for segment in &path.folders[1..] {
+        for segment in path.folders.get(1..).unwrap_or_default() {
             folder = folder.folders.get(segment)?;
         }
 
@@ -982,7 +1016,7 @@ impl PhysicalPathSelection {
         let crate_folder = self.crates.get_mut(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get_mut(&path.folders[0])?;
 
-        for segment in &path.folders[1..] {
+        for segment in path.folders.get(1..).unwrap_or_default() {
             folder = folder.folders.get_mut(segment)?;
         }
 

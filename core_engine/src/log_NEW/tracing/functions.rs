@@ -49,7 +49,7 @@ where
     let mut cur = ctx.lookup_current();
 
     while let Some(span) = cur {
-        segments.push(SpanPathSegment(span.name().to_string()));
+        segments.push(SpanPathSegment { name: span.name().to_string() });
         cur = span.parent();
     }
 
@@ -58,7 +58,7 @@ where
     if segments.is_empty() {
         SpanPath::UNCATEGORIZED
     } else {
-        SpanPath(segments)
+        SpanPath { spans: segments }
     }
 }
 

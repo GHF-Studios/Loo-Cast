@@ -1,11 +1,6 @@
-use tracing::{Event, Subscriber};
-use tracing_subscriber::{
-    fmt::{FormatEvent, FormatFields, FmtContext, format::Writer, time::FormatTime},
-    registry::LookupSpan,
-};
+use tracing_subscriber::fmt::{format::Writer, time::FormatTime};
 use std::fmt;
 
-use crate::config::statics::CONFIG;
 use crate::statics::START_TIME;
 
 pub struct ShortTime;
