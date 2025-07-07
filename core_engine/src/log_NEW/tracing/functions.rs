@@ -74,7 +74,7 @@ fn module_path_from_event(event: &Event<'_>) -> ModulePath {
             .collect();
 
         return ModulePath {
-            _crate_: CrateModulePathSegment { name: crate_name },
+            crate_module: CrateModulePathSegment { name: crate_name },
             modules: segments,
             sub_modules: vec![],
         };
@@ -96,7 +96,7 @@ fn physical_path_from_event(event: &Event<'_>) -> PhysicalStoragePath {
                 .collect();
 
             return PhysicalStoragePath {
-                _crate_: CrateFolderPathSegment { name: crate_name },
+                crate_folder: CrateFolderPathSegment { name: crate_name },
                 folders,
                 file: FilePathSegment { name: file_name.to_string() },
                 line: LinePathSegment { number: line },

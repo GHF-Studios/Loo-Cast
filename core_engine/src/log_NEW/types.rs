@@ -177,13 +177,13 @@ impl std::fmt::Display for SpanPath {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModulePath {
-    pub _crate_: CrateModulePathSegment,
+    pub crate_module: CrateModulePathSegment,
     pub modules: Vec<ModulePathSegment>,
     pub sub_modules: Vec<SubModulePathSegment>
 }
 impl ModulePath {
     pub const UNCATEGORIZED: Self = ModulePath {
-        _crate_: CrateModulePathSegment { name: String::new() },
+        crate_module: CrateModulePathSegment { name: String::new() },
         modules: Vec::new(),
         sub_modules: Vec::new(),
     };
@@ -191,7 +191,7 @@ impl ModulePath {
 impl std::fmt::Display for ModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ModulePath({}/{}/{})",
-            self._crate_.name,
+            self.crate_module.name,
             self.modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
             self.sub_modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/")
         )
@@ -200,14 +200,14 @@ impl std::fmt::Display for ModulePath {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PhysicalStoragePath {
-    pub _crate_: CrateFolderPathSegment,
+    pub crate_folder: CrateFolderPathSegment,
     pub folders: Vec<FolderPathSegment>,
     pub file: FilePathSegment,
     pub line: LinePathSegment,
 }
 impl PhysicalStoragePath {
     pub const UNCATEGORIZED: Self = PhysicalStoragePath {
-        _crate_: CrateFolderPathSegment { name: String::new() },
+        crate_folder: CrateFolderPathSegment { name: String::new() },
         folders: Vec::new(),
         file: FilePathSegment { name: String::new() },
         line: LinePathSegment { number: 0 }
@@ -216,7 +216,7 @@ impl PhysicalStoragePath {
 impl std::fmt::Display for PhysicalStoragePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "PhysicalStoragePath({}/{}/{}:{})", 
-            self._crate_.name,
+            self.crate_folder.name,
             self.folders.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
             self.file.name,
             self.line.number
@@ -226,14 +226,14 @@ impl std::fmt::Display for PhysicalStoragePath {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PhysicalSelectionPath {
-    pub _crate_: CrateFolderPathSegment,
+    pub crate_folder: CrateFolderPathSegment,
     pub folders: Vec<FolderPathSegment>,
     pub file: Option<FilePathSegment>,
     pub line: Option<LinePathSegment>,
 }
 impl PhysicalSelectionPath {
     pub const UNCATEGORIZED: Self = PhysicalSelectionPath {
-        _crate_: CrateFolderPathSegment { name: String::new() },
+        crate_folder: CrateFolderPathSegment { name: String::new() },
         folders: Vec::new(),
         file: Some(FilePathSegment { name: String::new() }),
         line: Some(LinePathSegment { number: 0 })
@@ -241,17 +241,17 @@ impl PhysicalSelectionPath {
 }
 impl std::fmt::Display for PhysicalSelectionPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let crate_name = self._crate_.name.clone();
+        let crate_name = self.crate_folder.name.clone();
 
         if self.folders.is_empty() {
             return write!(f, "PhysicalSelectionPath({})", 
-                self._crate_.name
+                self.crate_folder.name
             );
         }
 
         let mut folder_names = Vec::with_capacity(self.folders.len());
 
-        for ref folder in self.folders {
+        for folder in &self.folders {
             folder_names.push(folder.name.clone());
         }
 
@@ -329,21 +329,21 @@ pub struct SpanPathNode {
 
 #[derive(Default)]
 pub struct ModulePathIndex {
-    pub crates: HashMap<CrateModulePathSegment, ModuleCratePathNode>,
+    pub crates: HashMap<CrateModulePathSegment, CrateModulePathNode>,
 }
 impl ModulePathIndex {
     pub fn insert(&mut self, path: &ModulePath, log_id: LogId) {
-        let _crate_ = self.crates.entry(path._crate_.clone()).or_default();
+        let crate_module = self.crates.entry(path.crate_module.clone()).or_default();
 
         if path.modules.is_empty() {
-            _crate_.logs.push(log_id);
+            crate_module.logs.push(log_id);
             return;
         }
 
-        let mut current_module = _crate_.modules.entry(path.modules[0].clone()).or_default();
+        let mut current_module = crate_module.modules.entry(path.modules[0].clone()).or_default();
 
         for segment in &path.modules[1..] {
-            current_module = _crate_.modules.entry(segment.clone()).or_default();
+            current_module = crate_module.modules.entry(segment.clone()).or_default();
         }
 
         if path.sub_modules.is_empty() {
@@ -361,13 +361,13 @@ impl ModulePathIndex {
     }
 
     pub fn insert_without_log(&mut self, path: &ModulePath) {
-        let _crate_ = self.crates.entry(path._crate_.clone()).or_default();
+        let crate_module = self.crates.entry(path.crate_module.clone()).or_default();
 
         if path.modules.is_empty() {
             return;
         }
 
-        let mut current_module = _crate_.modules.entry(path.modules[0].clone()).or_default();
+        let mut current_module = crate_module.modules.entry(path.modules[0].clone()).or_default();
 
         for segment in &path.modules[1..] {
             current_module = current_module.modules.entry(segment.clone()).or_default();
@@ -385,13 +385,13 @@ impl ModulePathIndex {
     }
 
     pub fn resolve(&self, path: &ModulePath) -> Option<&Vec<LogId>> {
-        let _crate_ = self.crates.get(&path._crate_)?;
+        let crate_module = self.crates.get(&path.crate_module)?;
 
         if path.modules.is_empty() {
-            return Some(&_crate_.logs);
+            return Some(&crate_module.logs);
         }
 
-        let mut current_module = _crate_.modules.get(&path.modules[0])?;
+        let mut current_module = crate_module.modules.get(&path.modules[0])?;
         
         for segment in &path.modules[1..] {
             current_module = current_module.modules.get(segment)?;
@@ -412,7 +412,7 @@ impl ModulePathIndex {
 }
 
 #[derive(Default)]
-pub struct ModuleCratePathNode {
+pub struct CrateModulePathNode {
     pub modules: HashMap<ModulePathSegment, ModulePathNode>,
     pub logs: Vec<LogId>,
 }
@@ -439,15 +439,15 @@ pub struct PhysicalPathIndex {
 impl PhysicalPathIndex {
     pub fn insert(&mut self, path: &PhysicalStoragePath, log_id: LogId) {
         let file = {
-            let _crate_ = self.crates.entry(path._crate_.clone()).or_default();
+            let crate_folder = self.crates.entry(path.crate_folder.clone()).or_default();
 
             if path.folders.is_empty() {
-                _crate_.files.entry(path.file.clone()).or_default()
+                crate_folder.files.entry(path.file.clone()).or_default()
             } else {
-                let mut current_folder = _crate_.folders.entry(path.folders[0].clone()).or_default();
+                let mut current_folder = crate_folder.folders.entry(path.folders[0].clone()).or_default();
 
                 for segment in &path.folders[1..] {
-                    current_folder = _crate_.folders.entry(segment.clone()).or_default();
+                    current_folder = crate_folder.folders.entry(segment.clone()).or_default();
                 }
 
                 current_folder.files.entry(path.file.clone()).or_default()
@@ -461,15 +461,15 @@ impl PhysicalPathIndex {
 
     pub fn insert_without_log(&mut self, path: &PhysicalStoragePath) {
         let file = {
-            let _crate_ = self.crates.entry(path._crate_.clone()).or_default();
+            let crate_folder = self.crates.entry(path.crate_folder.clone()).or_default();
 
             if path.folders.is_empty() {
-                _crate_.files.entry(path.file.clone()).or_default()
+                crate_folder.files.entry(path.file.clone()).or_default()
             } else {
-                let mut current_folder = _crate_.folders.entry(path.folders[0].clone()).or_default();
+                let mut current_folder = crate_folder.folders.entry(path.folders[0].clone()).or_default();
 
                 for segment in &path.folders[1..] {
-                    current_folder = _crate_.folders.entry(segment.clone()).or_default();
+                    current_folder = crate_folder.folders.entry(segment.clone()).or_default();
                 }
 
                 current_folder.files.entry(path.file.clone()).or_default()
@@ -480,12 +480,12 @@ impl PhysicalPathIndex {
     }
 
     pub fn resolve(&self, path: &PhysicalStoragePath) -> Option<&Vec<LogId>> {
-        let _crate_ = self.crates.get(&path._crate_)?;
+        let crate_folder = self.crates.get(&path.crate_folder)?;
 
         let file = if path.folders.is_empty() {
-            _crate_.files.get(&path.file)?
+            crate_folder.files.get(&path.file)?
         } else {
-            let mut current_folder = _crate_.folders.get(&path.folders[0])?;
+            let mut current_folder = crate_folder.folders.get(&path.folders[0])?;
 
             for segment in &path.folders[1..] {
                 current_folder = current_folder.folders.get(segment)?;
@@ -612,7 +612,7 @@ pub enum SelectionCommandError {
     AlreadyAtState(SelectionState),
     SpanPathNotFound(SpanPath),
     ModulePathNotFound(ModulePath),
-    PhysicalPathNotFound(PhysicalStoragePath),
+    PhysicalPathNotFound(PhysicalSelectionPath),
 }
 
 // SpanPathSelection
@@ -629,7 +629,7 @@ impl SpanPathSelection {
         span.select(required_privilege, requested_selection_state, recursive)
     }
 
-    pub fn get_span(&self, path: &SpanPath) -> Option<&SpanPathNodeSelection> {
+    fn get_span(&self, path: &SpanPath) -> Option<&SpanPathNodeSelection> {
         let mut current = self.span_roots.get(&path.0[0])?;
         
         for segment in &path.0[1..] {
@@ -638,7 +638,7 @@ impl SpanPathSelection {
         
         Some(current)
     }
-    pub fn get_span_mut(&mut self, path: &SpanPath) -> Option<&mut SpanPathNodeSelection> {
+    fn get_span_mut(&mut self, path: &SpanPath) -> Option<&mut SpanPathNodeSelection> {
         let mut current = self.span_roots.get_mut(&path.0[0])?;
         
         for segment in &path.0[1..] {
@@ -680,44 +680,41 @@ pub struct ModulePathSelection {
 }
 impl ModulePathSelection {
     pub fn select(&mut self, path: &ModulePath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
-        let _crate_ = self.crates.get_mut(&path._crate_).ok_or(SelectionCommandError::ModulePathNotFound(path.clone()))?;
-
-        if path.modules.is_empty() {
-            let (requested_selection_state, required_privilege, recursive) = command.unpack();
-            return _crate_.select(required_privilege, requested_selection_state, recursive);
+        match (path.modules.is_empty(), path.sub_modules.is_empty()) {
+            (false, false) => {
+                let sub_module = self.get_sub_module_mut(path).ok_or(SelectionCommandError::ModulePathNotFound(path.clone()))?;
+                let (requested_selection_state, required_privilege, recursive) = command.unpack();
+                
+                sub_module.select(required_privilege, requested_selection_state, recursive)?;
+            }
+            (false, true) => {
+                let module = self.get_module_mut(path).ok_or(SelectionCommandError::ModulePathNotFound(path.clone()))?;
+                let (requested_selection_state, required_privilege, recursive) = command.unpack();
+                
+                module.select(required_privilege, requested_selection_state, recursive)?;
+            }
+            (true, false) => unreachable!("Invalid path: No module has been selected, yet a sub_module has been selected"),
+            (true, true) => {
+                let crate_module = self.get_crate_module_mut(path).ok_or(SelectionCommandError::ModulePathNotFound(path.clone()))?;
+                let (requested_selection_state, required_privilege, recursive) = command.unpack();
+                
+                crate_module.select(required_privilege, requested_selection_state, recursive)?;
+            }
         }
 
-        let mut module = _crate_.modules.get_mut(&path.modules[0]).ok_or(SelectionCommandError::ModulePathNotFound(path.clone()))?;
-
-        for segment in &path.modules[1..] {
-            module = module.modules.get_mut(segment).ok_or(SelectionCommandError::ModulePathNotFound(path.clone()))?;
-        }
-
-        if path.sub_modules.is_empty() {
-            let (requested_selection_state, required_privilege, recursive) = command.unpack();
-            return module.select(required_privilege, requested_selection_state, recursive);
-        }
-
-        let mut sub_module = module.sub_modules.get_mut(&path.sub_modules[0]).ok_or(SelectionCommandError::ModulePathNotFound(path.clone()))?;
-
-        for segment in &path.sub_modules[1..] {
-            sub_module = sub_module.sub_modules.get_mut(segment).ok_or(SelectionCommandError::ModulePathNotFound(path.clone()))?;
-        }
-
-        let (requested_selection_state, required_privilege, recursive) = command.unpack();
-        sub_module.select(required_privilege, requested_selection_state, recursive)
+        Ok(())
     }
 
-    pub fn get_crate(&self, path: &ModulePath) -> Option<&CrateModulePathNodeSelection> {
-        self.crates.get(&path._crate_)
+    fn get_crate_module(&self, path: &ModulePath) -> Option<&CrateModulePathNodeSelection> {
+        self.crates.get(&path.crate_module)
     }
-    pub fn get_crate_mut(&mut self, path: &ModulePath) -> Option<&mut CrateModulePathNodeSelection> {
-        self.crates.get_mut(&path._crate_)
+    fn get_crate_module_mut(&mut self, path: &ModulePath) -> Option<&mut CrateModulePathNodeSelection> {
+        self.crates.get_mut(&path.crate_module)
     }
 
-    pub fn get_module(&self, path: &ModulePath) -> Option<&ModulePathNodeSelection> {
-        let _crate_ = self.crates.get(&path._crate_)?;
-        let mut module = _crate_.modules.get(&path.modules[0])?;
+    fn get_module(&self, path: &ModulePath) -> Option<&ModulePathNodeSelection> {
+        let crate_module = self.crates.get(&path.crate_module)?;
+        let mut module = crate_module.modules.get(&path.modules[0])?;
 
         for segment in &path.modules[1..] {
             module = module.modules.get(segment)?;
@@ -725,9 +722,9 @@ impl ModulePathSelection {
 
         Some(module)
     }
-    pub fn get_module_mut(&mut self, path: &ModulePath) -> Option<&mut ModulePathNodeSelection> {
-        let _crate_ = self.crates.get_mut(&path._crate_)?;
-        let mut module = _crate_.modules.get_mut(&path.modules[0])?;
+    fn get_module_mut(&mut self, path: &ModulePath) -> Option<&mut ModulePathNodeSelection> {
+        let crate_module = self.crates.get_mut(&path.crate_module)?;
+        let mut module = crate_module.modules.get_mut(&path.modules[0])?;
 
         for segment in &path.modules[1..] {
             module = module.modules.get_mut(segment)?;
@@ -736,9 +733,9 @@ impl ModulePathSelection {
         Some(module)
     }
 
-    pub fn get_sub_module(&self, path: &ModulePath) -> Option<&SubModulePathNodeSelection> {
-        let _crate_ = self.crates.get(&path._crate_)?;
-        let mut module = _crate_.modules.get(&path.modules[0])?;
+    fn get_sub_module(&self, path: &ModulePath) -> Option<&SubModulePathNodeSelection> {
+        let crate_module = self.crates.get(&path.crate_module)?;
+        let mut module = crate_module.modules.get(&path.modules[0])?;
 
         for segment in &path.modules[1..] {
             module = module.modules.get(segment)?;
@@ -752,9 +749,9 @@ impl ModulePathSelection {
 
         Some(sub_module)
     }
-    pub fn get_sub_module_mut(&mut self, path: &ModulePath) -> Option<&mut SubModulePathNodeSelection> {
-        let _crate_ = self.crates.get_mut(&path._crate_)?;
-        let mut module = _crate_.modules.get_mut(&path.modules[0])?;
+    fn get_sub_module_mut(&mut self, path: &ModulePath) -> Option<&mut SubModulePathNodeSelection> {
+        let crate_module = self.crates.get_mut(&path.crate_module)?;
+        let mut module = crate_module.modules.get_mut(&path.modules[0])?;
 
         for segment in &path.modules[1..] {
             module = module.modules.get_mut(segment)?;
@@ -825,6 +822,7 @@ impl ModulePathNodeSelection {
             for module in self.modules.values_mut() {
                 module.select(required_privilege, requested_selection_state, true)?;
             }
+
             for sub_module in self.sub_modules.values_mut() {
                 sub_module.select(required_privilege, requested_selection_state, true)?;
             }
@@ -871,40 +869,61 @@ pub struct PhysicalPathSelection {
     pub crates: HashMap<CrateFolderPathSegment, CrateFolderPathNodeSelection>,
 }
 impl PhysicalPathSelection {
-    pub fn select(&mut self, path: &PhysicalStoragePath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
-        let _crate_ = self.crates.get_mut(&path._crate_).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+    pub fn select(&mut self, path: &PhysicalSelectionPath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
+        match (path.folders.is_empty(), path.file.is_none(), path.line.is_none()) {
+            (false, false, false) => {
+                let line = self.get_line_mut(path).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+                let (requested_selection_state, required_privilege, _recursive) = command.unpack();
+                
+                line.select(required_privilege, requested_selection_state)?;
+            }
+            (false, false, true) => {
+                let file = self.get_file_mut(path).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+                let (requested_selection_state, required_privilege, recursive) = command.unpack();
+                
+                file.select(required_privilege, requested_selection_state, recursive)?;
+            }
+            (false, true, false) => unreachable!("Invalid path: No file has been, yet a line has been selected"),
+            (false, true, true) => {
+                let folder = self.get_folder_mut(path).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+                let (requested_selection_state, required_privilege, recursive) = command.unpack();
+                
+                folder.select(required_privilege, requested_selection_state, recursive)?;
+            }
+            (true, false, false) => {
+                let line = self.get_line_mut(path).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+                let (requested_selection_state, required_privilege, _recursive) = command.unpack();
 
-        if path.folders.is_empty() {
-            let file = _crate_.files.get_mut(&path.file).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
-            let line = file.lines.get_mut(&path.line).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+                line.select(required_privilege, requested_selection_state)?;
+            }
+            (true, false, true) => {
+                let file = self.get_file_mut(path).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+                let (requested_selection_state, required_privilege, recursive) = command.unpack();
 
-            let (requested_selection_state, required_privilege, recursive) = command.unpack();
-            return line.select(required_privilege, requested_selection_state);
+                file.select(required_privilege, requested_selection_state, recursive)?;
+            }
+            (true, true, false) => unreachable!("Invalid path: No file has been selected, yet a line has been selected"),
+            (true, true, true) => {
+                let crate_folder = self.get_crate_folder_mut(path).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
+                let (requested_selection_state, required_privilege, recursive) = command.unpack();
+
+                crate_folder.select(required_privilege, requested_selection_state, recursive)?;
+            }
         }
 
-        let mut folder = _crate_.folders.get_mut(&path.folders[0]).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
-
-        for segment in &path.folders[1..] {
-            folder = folder.folders.get_mut(segment).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
-        }
-
-        let file = folder.files.get_mut(&path.file).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
-        let line = file.lines.get_mut(&path.line).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
-
-        let (requested_selection_state, required_privilege, recursive) = command.unpack();
-        return line.select(required_privilege, requested_selection_state);
+        Ok(())
     }
 
-    pub fn get_crate(&self, path: &PhysicalStoragePath) -> Option<&CrateFolderPathNodeSelection> {
-        self.crates.get(&path._crate_)
+    fn get_crate_folder(&self, path: &PhysicalSelectionPath) -> Option<&CrateFolderPathNodeSelection> {
+        self.crates.get(&path.crate_folder)
     }
-    pub fn get_crate_mut(&mut self, path: &PhysicalStoragePath) -> Option<&mut CrateFolderPathNodeSelection> {
-        self.crates.get_mut(&path._crate_)
+    fn get_crate_folder_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut CrateFolderPathNodeSelection> {
+        self.crates.get_mut(&path.crate_folder)
     }
     
-    pub fn get_folder(&self, path: &PhysicalStoragePath) -> Option<&FolderPathNodeSelection> {
-        let _crate_ = self.crates.get(&path._crate_)?;
-        let mut folder = _crate_.folders.get(&path.folders[0])?;
+    fn get_folder(&self, path: &PhysicalSelectionPath) -> Option<&FolderPathNodeSelection> {
+        let crate_folder = self.crates.get(&path.crate_folder)?;
+        let mut folder = crate_folder.folders.get(&path.folders[0])?;
 
         for segment in &path.folders[1..] {
             folder = folder.folders.get(segment)?;
@@ -912,9 +931,9 @@ impl PhysicalPathSelection {
 
         Some(folder)
     }
-    pub fn get_folder_mut(&mut self, path: &PhysicalStoragePath) -> Option<&mut FolderPathNodeSelection> {
-        let _crate_ = self.crates.get_mut(&path._crate_)?;
-        let mut folder = _crate_.folders.get_mut(&path.folders[0])?;
+    fn get_folder_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut FolderPathNodeSelection> {
+        let crate_folder = self.crates.get_mut(&path.crate_folder)?;
+        let mut folder = crate_folder.folders.get_mut(&path.folders[0])?;
 
         for segment in &path.folders[1..] {
             folder = folder.folders.get_mut(segment)?;
@@ -923,56 +942,56 @@ impl PhysicalPathSelection {
         Some(folder)
     }
     
-    pub fn get_file(&self, path: &PhysicalStoragePath) -> Option<&FilePathNodeSelection> {
-        let _crate_ = self.crates.get(&path._crate_)?;
-        let mut folder = _crate_.folders.get(&path.folders[0])?;
+    fn get_file(&self, path: &PhysicalSelectionPath) -> Option<&FilePathNodeSelection> {
+        let crate_folder = self.crates.get(&path.crate_folder)?;
+        let mut folder = crate_folder.folders.get(&path.folders[0])?;
 
         for segment in &path.folders[1..] {
             folder = folder.folders.get(segment)?;
         }
 
-        let file = folder.files.get(&path.file)?;
+        let file = folder.files.get(&path.file.clone()?)?;
 
         Some(file)
     }
-    pub fn get_file_mut(&mut self, path: &PhysicalStoragePath) -> Option<&mut FilePathNodeSelection> {
-        let _crate_ = self.crates.get_mut(&path._crate_)?;
-        let mut folder = _crate_.folders.get_mut(&path.folders[0])?;
+    fn get_file_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut FilePathNodeSelection> {
+        let crate_folder = self.crates.get_mut(&path.crate_folder)?;
+        let mut folder = crate_folder.folders.get_mut(&path.folders[0])?;
 
         for segment in &path.folders[1..] {
             folder = folder.folders.get_mut(segment)?;
         }
 
-        let file = folder.files.get_mut(&path.file)?;
+        let file = folder.files.get_mut(&path.file.clone()?)?;
 
         Some(file)
     }
     
-    pub fn get_line(&self, path: &PhysicalStoragePath) -> Option<&LinePathNodeSelection> {
-        let _crate_ = self.crates.get(&path._crate_)?;
-        let mut folder = _crate_.folders.get(&path.folders[0])?;
+    fn get_line(&self, path: &PhysicalSelectionPath) -> Option<&LinePathNodeSelection> {
+        let crate_folder = self.crates.get(&path.crate_folder)?;
+        let mut folder = crate_folder.folders.get(&path.folders[0])?;
 
         for segment in &path.folders[1..] {
             folder = folder.folders.get(segment)?;
         }
 
-        let file = folder.files.get(&path.file)?;
+        let file = folder.files.get(&path.file.clone()?)?;
 
-        let line = file.lines.get(&path.line)?;
+        let line = file.lines.get(&path.line.clone()?)?;
 
         Some(line)
     }
-    pub fn get_line_mut(&mut self, path: &PhysicalStoragePath) -> Option<&mut LinePathNodeSelection> {
-        let _crate_ = self.crates.get_mut(&path._crate_)?;
-        let mut folder = _crate_.folders.get_mut(&path.folders[0])?;
+    fn get_line_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut LinePathNodeSelection> {
+        let crate_folder = self.crates.get_mut(&path.crate_folder)?;
+        let mut folder = crate_folder.folders.get_mut(&path.folders[0])?;
 
         for segment in &path.folders[1..] {
             folder = folder.folders.get_mut(segment)?;
         }
 
-        let file = folder.files.get_mut(&path.file)?;
+        let file = folder.files.get_mut(&path.file.clone()?)?;
 
-        let line = file.lines.get_mut(&path.line)?;
+        let line = file.lines.get_mut(&path.line.clone()?)?;
 
         Some(line)
     }
@@ -1003,6 +1022,7 @@ impl CrateFolderPathNodeSelection {
             for folder in self.folders.values_mut() {
                 folder.select(required_privilege, requested_selection_state, true)?;
             }
+
             for file in self.files.values_mut() {
                 file.select(required_privilege, requested_selection_state, true)?;
             }
@@ -1037,6 +1057,7 @@ impl FolderPathNodeSelection {
             for folder in self.folders.values_mut() {
                 folder.select(required_privilege, requested_selection_state, true)?;
             }
+
             for file in self.files.values_mut() {
                 file.select(required_privilege, requested_selection_state, true)?;
             }
