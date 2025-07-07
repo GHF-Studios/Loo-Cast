@@ -5,7 +5,7 @@ pub mod types;
 
 use bevy::prelude::*;
 
-use crate::log_NEW::ui::resources::LogViewerState;
+use crate::log::ui::resources::LogViewerState;
 
 pub(crate) struct UiPlugin;
 impl Plugin for UiPlugin {

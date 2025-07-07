@@ -11,7 +11,7 @@ use tracing_subscriber::{
 use std::sync::Arc;
 use std::fmt::Debug;
 
-use crate::log_NEW::{resources::LogRegistryHandle, tracing::functions::extract_span_identity };
+use crate::log::{resources::LogRegistryHandle, tracing::functions::extract_span_identity };
 
 use super::functions::extract_log_identity;
 

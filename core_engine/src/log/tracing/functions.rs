@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tracing::{Event, Subscriber};
 use tracing_subscriber::{layer::Context, registry::LookupSpan};
 
-use crate::{functions::now_since_start_ns, log_NEW::types::*};
+use crate::{functions::now_since_start_ns, log::types::*};
 
 pub(in super) fn extract_log_identity<S>(
     event: &Event<'_>,

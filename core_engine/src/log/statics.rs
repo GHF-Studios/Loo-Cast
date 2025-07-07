@@ -1,13 +1,11 @@
 use lazy_static::lazy_static;
-use std::sync::Arc;
+use std::sync::{atomic::AtomicU64, Arc, Mutex, OnceLock};
 
-use crate::log::{location_tree::LocationTree, resources::{LocationTreeHandle, LogStorageHandle, SpanTreeHandle}, span_tree::SpanTree, storage::LogStorage};
+use crate::log::{resources::LogRegistryHandle, types::LogRegistry};
+
+pub(in super) static LOG_ID_COUNTER: OnceLock<AtomicU64> = OnceLock::new();
 
 lazy_static! {
-    pub static ref LOG_STORAGE_HANDLE: LogStorageHandle =
-        LogStorageHandle(Arc::new(LogStorage::new()));
-    pub static ref SPAN_TREE_HANDLE: SpanTreeHandle =
-        SpanTreeHandle(Arc::new(SpanTree::default()));
-    pub static ref LOCATION_TREE_HANDLE: LocationTreeHandle =
-        LocationTreeHandle(Arc::new(LocationTree::default()));
+    pub static ref LOG_REGISTRY_HANDLE: LogRegistryHandle =
+        LogRegistryHandle(Arc::new(Mutex::new(LogRegistry::default())));
 }

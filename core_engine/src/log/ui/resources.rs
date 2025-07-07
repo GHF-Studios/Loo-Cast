@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
-use crate::log_NEW::types::{LogLevel, SpanPathSelection, ModulePathSelection, PhysicalPathSelection};
-use crate::log_NEW::ui::types::FilterTreeMode;
+use crate::log::types::{LogLevel, SpanPathSelection, ModulePathSelection, PhysicalPathSelection};
+use crate::log::ui::types::FilterTreeMode;
 
 #[derive(Resource)]
 pub struct LogViewerState {
