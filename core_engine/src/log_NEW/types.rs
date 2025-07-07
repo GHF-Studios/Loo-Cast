@@ -597,7 +597,7 @@ pub struct ModulePathSelection {
     pub crates: HashMap<CrateModulePathSegment, CrateModulePathNodeSelection>,
 }
 impl ModulePathSelection {
-    pub fn select(&mut self, path: &SpanPath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
+    pub fn select(&mut self, path: &ModulePath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
         todo!()
     }
 
@@ -701,7 +701,7 @@ pub struct PhysicalPathSelection {
     pub crates: HashMap<CrateFolderPathSegment, CrateFolderPathNodeSelection>,
 }
 impl PhysicalPathSelection {
-    pub fn select(&mut self, path: &SpanPath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
+    pub fn select(&mut self, path: &PhysicalPath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
         todo!()
     }
 
