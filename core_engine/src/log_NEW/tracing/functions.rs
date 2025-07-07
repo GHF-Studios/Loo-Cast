@@ -13,7 +13,7 @@ pub(in super) fn extract_log_identity<S>(
     LogEntry,
     SpanPath,
     ModulePath,
-    PhysicalPath
+    PhysicalStoragePath
 )
 where
     S: Subscriber + for<'lookup> LookupSpan<'lookup>
@@ -83,7 +83,7 @@ fn module_path_from_event(event: &Event<'_>) -> ModulePath {
     ModulePath::UNCATEGORIZED
 }
 
-fn physical_path_from_event(event: &Event<'_>) -> PhysicalPath {
+fn physical_path_from_event(event: &Event<'_>) -> PhysicalStoragePath {
     let meta = event.metadata();
     let crate_name = extract_crate_name(event).unwrap_or_else(|| "unknown_crate".to_string());
 
@@ -95,7 +95,7 @@ fn physical_path_from_event(event: &Event<'_>) -> PhysicalPath {
                 .map(|s| FolderPathSegment { name: s.to_string() })
                 .collect();
 
-            return PhysicalPath {
+            return PhysicalStoragePath {
                 _crate_: CrateFolderPathSegment { name: crate_name },
                 folders,
                 file: FilePathSegment { name: file_name.to_string() },
@@ -104,7 +104,7 @@ fn physical_path_from_event(event: &Event<'_>) -> PhysicalPath {
         }
     }
 
-    PhysicalPath::UNCATEGORIZED
+    PhysicalStoragePath::UNCATEGORIZED
 }
 
 fn extract_message(event: &Event<'_>) -> Arc<str> {

@@ -61,7 +61,7 @@ impl LogId {
 pub enum LogPath {
     Span(SpanPath),
     Module(ModulePath),
-    Physical(PhysicalPath)
+    Physical(PhysicalStoragePath)
 }
 impl std::fmt::Display for LogPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -94,7 +94,7 @@ impl LogRegistry {
         log_entry: LogEntry,
         span_path: SpanPath,
         module_path: ModulePath,
-        physical_path: PhysicalPath,
+        physical_path: PhysicalStoragePath,
     ) {
         self.logs.insert(log_id, log_entry);
         self.span_index.insert(&span_path, log_id);
@@ -114,12 +114,55 @@ impl LogRegistry {
         self.module_index.resolve(path)
     }
 
-    pub fn resolve_physical_path(&self, path: &PhysicalPath) -> Option<&Vec<LogId>> {
+    pub fn resolve_physical_path(&self, path: &PhysicalStoragePath) -> Option<&Vec<LogId>> {
         self.physical_index.resolve(path)
     }
 }
 
-// SpanPath
+// PathSegment Types
+
+// Span
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SpanPathSegment(pub String);
+
+// Module
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CrateModulePathSegment {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ModulePathSegment {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SubModulePathSegment {
+    pub name: String,
+}
+
+// Physical
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CrateFolderPathSegment {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FolderPathSegment {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FilePathSegment {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct LinePathSegment {
+    pub number: u32,
+}
+
+// Path Types
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpanPath(pub Vec<SpanPathSegment>);
@@ -131,11 +174,6 @@ impl std::fmt::Display for SpanPath {
         write!(f, "SpanPath({})", self.0.iter().map(|s| s.0.as_str()).collect::<Vec<_>>().join("/"))
     }
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SpanPathSegment(pub String);
-
-// ModulePath
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModulePath {
@@ -161,40 +199,23 @@ impl std::fmt::Display for ModulePath {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CrateModulePathSegment {
-    pub name: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ModulePathSegment {
-    pub name: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SubModulePathSegment {
-    pub name: String,
-}
-
-// PhysicalPath
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PhysicalPath {
+pub struct PhysicalStoragePath {
     pub _crate_: CrateFolderPathSegment,
     pub folders: Vec<FolderPathSegment>,
     pub file: FilePathSegment,
     pub line: LinePathSegment,
 }
-impl PhysicalPath {
-    pub const UNCATEGORIZED: Self = PhysicalPath {
+impl PhysicalStoragePath {
+    pub const UNCATEGORIZED: Self = PhysicalStoragePath {
         _crate_: CrateFolderPathSegment { name: String::new() },
         folders: Vec::new(),
         file: FilePathSegment { name: String::new() },
         line: LinePathSegment { number: 0 }
     };
 }
-impl std::fmt::Display for PhysicalPath {
+impl std::fmt::Display for PhysicalStoragePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "PhysicalPath({}/{}/{}:{})", 
+        write!(f, "PhysicalStoragePath({}/{}/{}:{})", 
             self._crate_.name,
             self.folders.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
             self.file.name,
@@ -204,23 +225,64 @@ impl std::fmt::Display for PhysicalPath {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CrateFolderPathSegment {
-    pub name: String,
+pub struct PhysicalSelectionPath {
+    pub _crate_: CrateFolderPathSegment,
+    pub folders: Vec<FolderPathSegment>,
+    pub file: Option<FilePathSegment>,
+    pub line: Option<LinePathSegment>,
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FolderPathSegment {
-    pub name: String,
+impl PhysicalSelectionPath {
+    pub const UNCATEGORIZED: Self = PhysicalSelectionPath {
+        _crate_: CrateFolderPathSegment { name: String::new() },
+        folders: Vec::new(),
+        file: Some(FilePathSegment { name: String::new() }),
+        line: Some(LinePathSegment { number: 0 })
+    };
 }
+impl std::fmt::Display for PhysicalSelectionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let crate_name = self._crate_.name.clone();
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FilePathSegment {
-    pub name: String,
-}
+        if self.folders.is_empty() {
+            return write!(f, "PhysicalSelectionPath({})", 
+                self._crate_.name
+            );
+        }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct LinePathSegment {
-    pub number: u32,
+        let mut folder_names = Vec::with_capacity(self.folders.len());
+
+        for ref folder in self.folders {
+            folder_names.push(folder.name.clone());
+        }
+
+        let file_name = match self.file {
+            Some(ref segment) => segment.name.clone(),
+            None => {
+                return write!(f, "PhysicalSelectionPath({}/{})", 
+                    crate_name,
+                    folder_names.join("/"),
+                );
+            }
+        };
+
+        let line_number = match self.line {
+            Some(ref segment) => segment.number,
+            None => {
+                return write!(f, "PhysicalSelectionPath({}/{}/{})", 
+                    crate_name,
+                    folder_names.join("/"),
+                    file_name,
+                );
+            }
+        };
+
+        write!(f, "PhysicalSelectionPath({}/{}/{}:{})",
+            crate_name,
+            folder_names.join("/"),
+            file_name,
+            line_number,
+        )
+    }
 }
 
 // SpanPathIndex
@@ -375,7 +437,7 @@ pub struct PhysicalPathIndex {
     pub crates: HashMap<CrateFolderPathSegment, PhysicalCratePathNode>,
 }
 impl PhysicalPathIndex {
-    pub fn insert(&mut self, path: &PhysicalPath, log_id: LogId) {
+    pub fn insert(&mut self, path: &PhysicalStoragePath, log_id: LogId) {
         let file = {
             let _crate_ = self.crates.entry(path._crate_.clone()).or_default();
 
@@ -397,7 +459,7 @@ impl PhysicalPathIndex {
         line.logs.push(log_id);
     }
 
-    pub fn insert_without_log(&mut self, path: &PhysicalPath) {
+    pub fn insert_without_log(&mut self, path: &PhysicalStoragePath) {
         let file = {
             let _crate_ = self.crates.entry(path._crate_.clone()).or_default();
 
@@ -417,7 +479,7 @@ impl PhysicalPathIndex {
         let _line = file.lines.entry(path.line.clone()).or_default();
     }
 
-    pub fn resolve(&self, path: &PhysicalPath) -> Option<&Vec<LogId>> {
+    pub fn resolve(&self, path: &PhysicalStoragePath) -> Option<&Vec<LogId>> {
         let _crate_ = self.crates.get(&path._crate_)?;
 
         let file = if path.folders.is_empty() {
@@ -516,6 +578,29 @@ impl SelectionCommand {
             }
         }
     }
+
+    pub fn run(
+        current_privilege: &mut SelectionPrivilege, 
+        current_selection_state: &mut SelectionState, 
+        required_privilege: SelectionPrivilege, 
+        requested_selection_state: SelectionState
+    ) -> Result<(), SelectionCommandError> {
+        if required_privilege > *current_privilege {
+            Err(SelectionCommandError::InsufficientPrivilege {
+                required: required_privilege,
+                actual: *current_privilege,
+            })?
+        }
+    
+        if *current_selection_state == requested_selection_state {
+            Err(SelectionCommandError::AlreadyAtState(requested_selection_state))?
+        }
+
+        *current_privilege = required_privilege;
+        *current_selection_state = requested_selection_state;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -527,7 +612,7 @@ pub enum SelectionCommandError {
     AlreadyAtState(SelectionState),
     SpanPathNotFound(SpanPath),
     ModulePathNotFound(ModulePath),
-    PhysicalPathNotFound(PhysicalPath),
+    PhysicalPathNotFound(PhysicalStoragePath),
 }
 
 // SpanPathSelection
@@ -570,19 +655,12 @@ pub struct SpanPathNodeSelection {
 }
 impl SpanPathNodeSelection {
     pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
-        if required_privilege > self.selection.privilege {
-            Err(SelectionCommandError::InsufficientPrivilege {
-                required: required_privilege,
-                actual: self.selection.privilege,
-            })?
-        }
-    
-        if self.selection.state == requested_selection_state {
-            Err(SelectionCommandError::AlreadyAtState(requested_selection_state))?
-        }
-
-        self.selection.privilege = required_privilege;
-        self.selection.state = requested_selection_state;
+        SelectionCommand::run(
+            &mut self.selection.privilege, 
+            &mut self.selection.state, 
+            required_privilege, 
+            requested_selection_state
+        )?;
 
         if recursive {
             for child in self.span_children.values_mut() {
@@ -698,7 +776,27 @@ pub struct CrateModulePathNodeSelection {
 }
 impl CrateModulePathNodeSelection {
     pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
-        todo!()
+        if required_privilege > self.selection.privilege {
+            Err(SelectionCommandError::InsufficientPrivilege {
+                required: required_privilege,
+                actual: self.selection.privilege,
+            })?
+        }
+
+        if self.selection.state == requested_selection_state {
+            Err(SelectionCommandError::AlreadyAtState(requested_selection_state))?
+        }
+
+        self.selection.privilege = required_privilege;
+        self.selection.state = requested_selection_state;
+
+        if recursive {
+            for module in self.modules.values_mut() {
+                module.select(required_privilege, requested_selection_state, true)?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -709,7 +807,30 @@ pub struct ModulePathNodeSelection {
 }
 impl ModulePathNodeSelection {
     pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
-        todo!()
+        if required_privilege > self.selection.privilege {
+            Err(SelectionCommandError::InsufficientPrivilege {
+                required: required_privilege,
+                actual: self.selection.privilege,
+            })?
+        }
+
+        if self.selection.state == requested_selection_state {
+            Err(SelectionCommandError::AlreadyAtState(requested_selection_state))?
+        }
+
+        self.selection.privilege = required_privilege;
+        self.selection.state = requested_selection_state;
+
+        if recursive {
+            for module in self.modules.values_mut() {
+                module.select(required_privilege, requested_selection_state, true)?;
+            }
+            for sub_module in self.sub_modules.values_mut() {
+                sub_module.select(required_privilege, requested_selection_state, true)?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -719,7 +840,27 @@ pub struct SubModulePathNodeSelection {
 }
 impl SubModulePathNodeSelection {
     pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
-        todo!()
+        if required_privilege > self.selection.privilege {
+            Err(SelectionCommandError::InsufficientPrivilege {
+                required: required_privilege,
+                actual: self.selection.privilege,
+            })?
+        }
+
+        if self.selection.state == requested_selection_state {
+            Err(SelectionCommandError::AlreadyAtState(requested_selection_state))?
+        }
+
+        self.selection.privilege = required_privilege;
+        self.selection.state = requested_selection_state;
+
+        if recursive {
+            for sub_module in self.sub_modules.values_mut() {
+                sub_module.select(required_privilege, requested_selection_state, true)?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -730,7 +871,7 @@ pub struct PhysicalPathSelection {
     pub crates: HashMap<CrateFolderPathSegment, CrateFolderPathNodeSelection>,
 }
 impl PhysicalPathSelection {
-    pub fn select(&mut self, path: &PhysicalPath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
+    pub fn select(&mut self, path: &PhysicalStoragePath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
         let _crate_ = self.crates.get_mut(&path._crate_).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
 
         if path.folders.is_empty() {
@@ -738,7 +879,7 @@ impl PhysicalPathSelection {
             let line = file.lines.get_mut(&path.line).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
 
             let (requested_selection_state, required_privilege, recursive) = command.unpack();
-            return line.select(required_privilege, requested_selection_state, recursive);
+            return line.select(required_privilege, requested_selection_state);
         }
 
         let mut folder = _crate_.folders.get_mut(&path.folders[0]).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
@@ -751,17 +892,17 @@ impl PhysicalPathSelection {
         let line = file.lines.get_mut(&path.line).ok_or(SelectionCommandError::PhysicalPathNotFound(path.clone()))?;
 
         let (requested_selection_state, required_privilege, recursive) = command.unpack();
-        return line.select(required_privilege, requested_selection_state, recursive);
+        return line.select(required_privilege, requested_selection_state);
     }
 
-    pub fn get_crate(&self, path: &PhysicalPath) -> Option<&CrateFolderPathNodeSelection> {
+    pub fn get_crate(&self, path: &PhysicalStoragePath) -> Option<&CrateFolderPathNodeSelection> {
         self.crates.get(&path._crate_)
     }
-    pub fn get_crate_mut(&mut self, path: &PhysicalPath) -> Option<&mut CrateFolderPathNodeSelection> {
+    pub fn get_crate_mut(&mut self, path: &PhysicalStoragePath) -> Option<&mut CrateFolderPathNodeSelection> {
         self.crates.get_mut(&path._crate_)
     }
     
-    pub fn get_folder(&self, path: &PhysicalPath) -> Option<&FolderPathNodeSelection> {
+    pub fn get_folder(&self, path: &PhysicalStoragePath) -> Option<&FolderPathNodeSelection> {
         let _crate_ = self.crates.get(&path._crate_)?;
         let mut folder = _crate_.folders.get(&path.folders[0])?;
 
@@ -771,7 +912,7 @@ impl PhysicalPathSelection {
 
         Some(folder)
     }
-    pub fn get_folder_mut(&mut self, path: &PhysicalPath) -> Option<&mut FolderPathNodeSelection> {
+    pub fn get_folder_mut(&mut self, path: &PhysicalStoragePath) -> Option<&mut FolderPathNodeSelection> {
         let _crate_ = self.crates.get_mut(&path._crate_)?;
         let mut folder = _crate_.folders.get_mut(&path.folders[0])?;
 
@@ -782,7 +923,7 @@ impl PhysicalPathSelection {
         Some(folder)
     }
     
-    pub fn get_file(&self, path: &PhysicalPath) -> Option<&FilePathNodeSelection> {
+    pub fn get_file(&self, path: &PhysicalStoragePath) -> Option<&FilePathNodeSelection> {
         let _crate_ = self.crates.get(&path._crate_)?;
         let mut folder = _crate_.folders.get(&path.folders[0])?;
 
@@ -794,7 +935,7 @@ impl PhysicalPathSelection {
 
         Some(file)
     }
-    pub fn get_file_mut(&mut self, path: &PhysicalPath) -> Option<&mut FilePathNodeSelection> {
+    pub fn get_file_mut(&mut self, path: &PhysicalStoragePath) -> Option<&mut FilePathNodeSelection> {
         let _crate_ = self.crates.get_mut(&path._crate_)?;
         let mut folder = _crate_.folders.get_mut(&path.folders[0])?;
 
@@ -807,7 +948,7 @@ impl PhysicalPathSelection {
         Some(file)
     }
     
-    pub fn get_line(&self, path: &PhysicalPath) -> Option<&LinePathNodeSelection> {
+    pub fn get_line(&self, path: &PhysicalStoragePath) -> Option<&LinePathNodeSelection> {
         let _crate_ = self.crates.get(&path._crate_)?;
         let mut folder = _crate_.folders.get(&path.folders[0])?;
 
@@ -821,7 +962,7 @@ impl PhysicalPathSelection {
 
         Some(line)
     }
-    pub fn get_line_mut(&mut self, path: &PhysicalPath) -> Option<&mut LinePathNodeSelection> {
+    pub fn get_line_mut(&mut self, path: &PhysicalStoragePath) -> Option<&mut LinePathNodeSelection> {
         let _crate_ = self.crates.get_mut(&path._crate_)?;
         let mut folder = _crate_.folders.get_mut(&path.folders[0])?;
 
@@ -844,7 +985,30 @@ pub struct CrateFolderPathNodeSelection {
 }
 impl CrateFolderPathNodeSelection {
     pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
-        todo!()
+        if required_privilege > self.selection.privilege {
+            Err(SelectionCommandError::InsufficientPrivilege {
+                required: required_privilege,
+                actual: self.selection.privilege,
+            })?
+        }
+
+        if self.selection.state == requested_selection_state {
+            Err(SelectionCommandError::AlreadyAtState(requested_selection_state))?
+        }
+
+        self.selection.privilege = required_privilege;
+        self.selection.state = requested_selection_state;
+
+        if recursive {
+            for folder in self.folders.values_mut() {
+                folder.select(required_privilege, requested_selection_state, true)?;
+            }
+            for file in self.files.values_mut() {
+                file.select(required_privilege, requested_selection_state, true)?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -855,7 +1019,30 @@ pub struct FolderPathNodeSelection {
 }
 impl FolderPathNodeSelection {
     pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
-        todo!()
+        if required_privilege > self.selection.privilege {
+            Err(SelectionCommandError::InsufficientPrivilege {
+                required: required_privilege,
+                actual: self.selection.privilege,
+            })?
+        }
+
+        if self.selection.state == requested_selection_state {
+            Err(SelectionCommandError::AlreadyAtState(requested_selection_state))?
+        }
+
+        self.selection.privilege = required_privilege;
+        self.selection.state = requested_selection_state;
+
+        if recursive {
+            for folder in self.folders.values_mut() {
+                folder.select(required_privilege, requested_selection_state, true)?;
+            }
+            for file in self.files.values_mut() {
+                file.select(required_privilege, requested_selection_state, true)?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -865,7 +1052,27 @@ pub struct FilePathNodeSelection {
 }
 impl FilePathNodeSelection {
     pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
-        todo!()
+        if required_privilege > self.selection.privilege {
+            Err(SelectionCommandError::InsufficientPrivilege {
+                required: required_privilege,
+                actual: self.selection.privilege,
+            })?
+        }
+
+        if self.selection.state == requested_selection_state {
+            Err(SelectionCommandError::AlreadyAtState(requested_selection_state))?
+        }
+
+        self.selection.privilege = required_privilege;
+        self.selection.state = requested_selection_state;
+
+        if recursive {
+            for line in self.lines.values_mut() {
+                line.select(required_privilege, requested_selection_state)?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -873,7 +1080,21 @@ pub struct LinePathNodeSelection {
     pub selection: Selection,
 }
 impl LinePathNodeSelection {
-    pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
-        todo!()
+    pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState) -> Result<(), SelectionCommandError> {
+        if required_privilege > self.selection.privilege {
+            Err(SelectionCommandError::InsufficientPrivilege {
+                required: required_privilege,
+                actual: self.selection.privilege,
+            })?
+        }
+
+        if self.selection.state == requested_selection_state {
+            Err(SelectionCommandError::AlreadyAtState(requested_selection_state))?
+        }
+
+        self.selection.privilege = required_privilege;
+        self.selection.state = requested_selection_state;
+
+        Ok(())
     }
 }
