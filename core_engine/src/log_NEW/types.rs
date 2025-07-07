@@ -487,8 +487,11 @@ pub enum SelectionPrivilege {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectionCommand {
     ResetToInheritedOrDefault(SelectionPrivilege),
-    SelectExplicit(SelectionPrivilege),
-    DeselectExplicit(SelectionPrivilege),
+    Select(SelectionPrivilege),
+    Deselect(SelectionPrivilege),
+    RecursiveResetToInheritedOrDefault(SelectionPrivilege),
+    RecursiveSelect(SelectionPrivilege),
+    RecursiveDeselect(SelectionPrivilege),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -511,32 +514,30 @@ pub struct SpanPathSelection {
 }
 impl SpanPathSelection {
     pub fn select(&mut self, path: &SpanPath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
-        let span = self.get_span_mut(path).ok_or(SelectionCommandError::SpanPathNotFound(path.clone()))?;
+        let target_span = self.get_span_mut(path).ok_or(SelectionCommandError::SpanPathNotFound(path.clone()))?;
 
-        match command {
+        let (requested_selection_state, required_privilege, recursive) = match command {
             SelectionCommand::ResetToInheritedOrDefault(required) => {
-                let current = span.selection.privilege;
-                
-                if required > current {
-                    return Err(SelectionCommandError::InsufficientPrivilege {
-                        required,
-                        actual: current,
-                    });
-                }
-
-                if span.selection.state == SelectionState::InheritedOrDefault {
-                    return Err(SelectionCommandError::AlreadyAtState(SelectionState::InheritedOrDefault));
-                }
-
-                span.selection.state = SelectionState::InheritedOrDefault;
+                (SelectionState::InheritedOrDefault, required, false)
             }
-            SelectionCommand::SelectExplicit(required) => {
+            SelectionCommand::Select(required) => {
+                (SelectionState::Selected, required, false)
             }
-            SelectionCommand::DeselectExplicit(required) => {
+            SelectionCommand::Deselect(required) => {
+                (SelectionState::Deselected, required, false)
             }
-        }
+            SelectionCommand::RecursiveResetToInheritedOrDefault(required) => {
+                (SelectionState::InheritedOrDefault, required, true)
+            }
+            SelectionCommand::RecursiveSelect(required) => {
+                (SelectionState::Selected, required, true)
+            }
+            SelectionCommand::RecursiveDeselect(required) => {
+                (SelectionState::Deselected, required, true)
+            }
+        };
 
-        Ok(())
+        target_span.select(required_privilege, requested_selection_state, recursive)
     }
 
     pub fn get_span(&self, path: &SpanPath) -> Option<&SpanPathNodeSelection> {
@@ -563,6 +564,31 @@ pub struct SpanPathNodeSelection {
     pub selection: Selection,
     pub span_children: HashMap<SpanPathSegment, SpanPathNodeSelection>,
 }
+impl SpanPathNodeSelection {
+    pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
+        if required_privilege > self.selection.privilege {
+            Err(SelectionCommandError::InsufficientPrivilege {
+                required: required_privilege,
+                actual: self.selection.privilege,
+            })?
+        }
+    
+        if self.selection.state == requested_selection_state {
+            Err(SelectionCommandError::AlreadyAtState(requested_selection_state))?
+        }
+
+        self.selection.privilege = required_privilege;
+        self.selection.state = requested_selection_state;
+
+        if recursive {
+            for child in self.span_children.values_mut() {
+                child.select(required_privilege, requested_selection_state, true)?;
+            }
+        }
+
+        Ok(())
+    }
+}
 
 // ModulePathSelection
 
@@ -571,7 +597,7 @@ pub struct ModulePathSelection {
     pub crates: HashMap<CrateModulePathSegment, CrateModulePathNodeSelection>,
 }
 impl ModulePathSelection {
-    pub fn select(&mut self, path: &ModulePath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
+    pub fn select(&mut self, path: &SpanPath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
         todo!()
     }
 
@@ -641,16 +667,31 @@ pub struct CrateModulePathNodeSelection {
     pub selection: Selection,
     pub modules: HashMap<ModulePathSegment, ModulePathNodeSelection>,
 }
+impl CrateModulePathNodeSelection {
+    pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
+        todo!()
+    }
+}
 
 pub struct ModulePathNodeSelection {
     pub selection: Selection,
     pub modules: HashMap<ModulePathSegment, ModulePathNodeSelection>,
     pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNodeSelection>,
 }
+impl ModulePathNodeSelection {
+    pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
+        todo!()
+    }
+}
 
 pub struct SubModulePathNodeSelection {
     pub selection: Selection,
     pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNodeSelection>,
+}
+impl SubModulePathNodeSelection {
+    pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
+        todo!()
+    }
 }
 
 // PhysicalPathSelection
@@ -660,7 +701,7 @@ pub struct PhysicalPathSelection {
     pub crates: HashMap<CrateFolderPathSegment, CrateFolderPathNodeSelection>,
 }
 impl PhysicalPathSelection {
-    pub fn select(&mut self, path: &PhysicalPath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
+    pub fn select(&mut self, path: &SpanPath, command: SelectionCommand) -> Result<(), SelectionCommandError> {
         todo!()
     }
 
@@ -752,18 +793,38 @@ pub struct CrateFolderPathNodeSelection {
     pub folders: HashMap<FolderPathSegment, FolderPathNodeSelection>,
     pub files: HashMap<FilePathSegment, FilePathNodeSelection>,
 }
+impl CrateFolderPathNodeSelection {
+    pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
+        todo!()
+    }
+}
 
 pub struct FolderPathNodeSelection {
     pub selection: Selection,
     pub folders: HashMap<FolderPathSegment, FolderPathNodeSelection>,
     pub files: HashMap<FilePathSegment, FilePathNodeSelection>,
 }
+impl FolderPathNodeSelection {
+    pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
+        todo!()
+    }
+}
 
 pub struct FilePathNodeSelection {
     pub selection: Selection,
     pub lines: HashMap<LinePathSegment, LinePathNodeSelection>,
 }
+impl FilePathNodeSelection {
+    pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
+        todo!()
+    }
+}
 
 pub struct LinePathNodeSelection {
     pub selection: Selection,
+}
+impl LinePathNodeSelection {
+    pub fn select(&mut self, required_privilege: SelectionPrivilege, requested_selection_state: SelectionState, recursive: bool) -> Result<(), SelectionCommandError> {
+        todo!()
+    }
 }
