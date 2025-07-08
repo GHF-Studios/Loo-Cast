@@ -4,7 +4,7 @@ use egui::{text::LayoutJob, WidgetText};
 use crate::log::{types::{LogEntry, LogLevel::{self, *}, LogRegistry}, ui::{resources::LogViewerState, types::FilterTreeMode}};
 use tracing::Metadata;
 
-pub fn left_panel_toolbar_ui(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState) {
+pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState) {
     let tree_mode = &mut log_viewer_state.tree_mode;
 
     egui::Frame::none()
@@ -32,7 +32,7 @@ pub fn left_panel_toolbar_ui(ui: &mut egui::Ui, log_viewer_state: &mut LogViewer
         });
 }
 
-pub fn right_panel_toolbar_ui(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState) {
+pub fn render_console_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState) {
     egui::Frame::none()
         .fill(Color32::from_gray(25))
         .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
@@ -104,102 +104,6 @@ pub fn resolve_log_module_path() {}
 
 pub fn resolve_log_physical_path() {}
 
-#[deprecated]
-pub fn resolve_log_location_path_OLD(meta: &Metadata<'_>) -> Vec<LocationPathSegment> {
-    let file_path = meta.file().expect("Missing file path in log metadata");
-    let module_path = meta.module_path().expect("Missing module path in log metadata");
-    let line = meta.line().expect("Missing line number in log metadata");
-
-    let module_segments: Vec<&str> = module_path.split("::").collect();
-    let crate_name = module_segments.first().expect("Empty module path");
-
-    let mut path = Vec::new();
-    path.push(LocationPathSegment::Crate(crate_name.to_string()));
-    for seg in &module_segments[1..] {
-        path.push(LocationPathSegment::Module(seg.to_string()));
-    }
-
-    let normalized = file_path.replace('\\', "/");
-    let file_name = normalized
-        .split('/')
-        .last()
-        .expect("Failed to extract file name from path");
-    path.push(LocationPathSegment::File(file_name.to_string()));
-
-    path.push(LocationPathSegment::Line(line));
-
-    path
-}
-
-#[maybe_deprecated]
-pub fn render_log_tree(ui: &mut egui::Ui, arena: &Arena) {
-    ScrollArea::vertical().show(ui, |ui| {
-        for root in arena.roots() {
-            render_node(ui, arena, root, 0);
-        }
-    });
-}
-
-#[maybe_deprecated]
-fn render_node(ui: &mut egui::Ui, arena: &Arena, idx: NodeIdx, depth: usize) {
-    let indent = " ".repeat(depth);
-
-    match arena.kind(idx) {
-        TreeKind::Span => {
-            let name = arena.tok_str(arena.name_tok(idx));
-            ui.collapsing(format!("{indent}↔{}", name), |ui| {
-                for child in arena.child_iter(idx) {
-                    render_node(ui, arena, child, depth + 1);
-                }
-            });
-        }
-        TreeKind::Loc(loc_kind) => match loc_kind {
-            LocKind::Crate => {
-                let name = arena.tok_str(arena.name_tok(idx));
-                ui.collapsing(format!("{indent}📦{}", name), |ui| {
-                    for child in arena.child_iter(idx) {
-                        render_node(ui, arena, child, depth + 1);
-                    }
-                });
-            }
-            LocKind::Module => {
-                let name = arena.tok_str(arena.name_tok(idx));
-                ui.collapsing(format!("{indent}📂{}", name), |ui| {
-                    for child in arena.child_iter(idx) {
-                        render_node(ui, arena, child, depth + 1);
-                    }
-                });
-            }
-            LocKind::File => {
-                let name = arena.tok_str(arena.name_tok(idx));
-                ui.collapsing(format!("{indent}📄{}", name), |ui| {
-                    for child in arena.child_iter(idx) {
-                        render_node(ui, arena, child, depth + 1);
-                    }
-                });
-            }
-            LocKind::Line => {
-                let (l, c) = arena.line_col(idx).unwrap_or((0, 0));
-                ui.collapsing(format!("{indent}📑{l}:{c}"), |ui| {
-                    ScrollArea::vertical().max_height(120.0).show(ui, |ui| {
-                        for log in arena.logs(idx).iter() {
-                            ui.label(format_log(log));
-                        }
-                    });
-                });
-            }
-            LocKind::SubModule => {
-                let name = arena.tok_str(arena.name_tok(idx));
-                ui.collapsing(format!("{indent}📂{}", name), |ui| {
-                    for child in arena.child_iter(idx) {
-                        render_node(ui, arena, child, depth + 1);
-                    }
-                });
-            }
-        },
-    }
-}
-
 pub fn render_selection_tree(
     ui: &mut egui::Ui,
     log_viewer_state: &mut LogViewerState,
@@ -220,34 +124,50 @@ pub fn render_selection_tree(
     }
 }
 
+pub fn render_console(
+    ui: &mut egui::Ui,
+    log_viewer_state: &mut LogViewerState,
+    log_registry: &LogRegistry
+) {
+    let logs = gather_logs(&log_viewer_state, &log_registry);
+    let row_h = ui.text_style_height(&egui::TextStyle::Monospace);
+    egui::ScrollArea::vertical()
+        .stick_to_bottom(true)
+        .show_rows(ui, row_h, logs.len(), |ui, range| {
+            for i in range {
+                ui.label(format_log(&logs[i]));
+            }
+        });
+}
+
 fn render_span_tree(
     ui: &mut egui::Ui,
     log_viewer_state: &mut LogViewerState,
     log_registry: &LogRegistry
 ) {
     ScrollArea::vertical().show(ui, |ui| {
-        for (root_path_segment, root_node) in span_tree.roots() {
+        for (root_path_segment, root_node) in log_registry.span_index.span_roots {
             let root_path = vec![root_path_segment.clone()];
-            let root_node = root_node.read().unwrap();
 
             ui.indent(root_path.clone(), |ui| {
                 ui.horizontal(|ui| {
                     let node_icon = "↔";
                     let node_label = root_path_segment.clone();
-                    if viewer_state.tree_mode != FilterTreeMode::Span {
+
+                    if log_viewer_state.tree_mode != FilterTreeMode::Span {
                         unreachable!("Mismatched tree mode: Expected `Span`");
                     }
 
-                    let mut checked = viewer_state.selected_spans.is_selected(&root_path);
+                    let mut checked = log_viewer_state.span_selections.iter().any(|ss| ss.is_selected(&root_path));
                     if ui.checkbox(&mut checked, "").changed() {
-                        if checked { viewer_state.selected_spans.select(&root_path); }
-                        else       { viewer_state.selected_spans.deselect(&root_path); }
+                        if checked { log_viewer_state.selected_spans.select(&root_path); }
+                        else       { log_viewer_state.selected_spans.deselect(&root_path); }
                     }
 
                     ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
                         let children = root_node.children.read().unwrap();
                         for child_path in children.keys().cloned() {
-                            paint_span_branch(ui, viewer_state, log_storage, span_tree, vec![child_path]);
+                            render_span_branch(ui, log_viewer_state, log_storage, span_tree, vec![child_path]);
                         }
                     });
                 });
@@ -260,109 +180,22 @@ fn render_module_tree(
     ui: &mut egui::Ui,
     log_viewer_state: &mut LogViewerState,
     log_registry: &LogRegistry
-) {} 
+) {
+    todo!()
+} 
 
 fn render_physical_tree(
     ui: &mut egui::Ui,
     log_viewer_state: &mut LogViewerState,
     log_registry: &LogRegistry
-) {} 
-
-fn paint_span_branch() {}
-
-fn paint_module_branch() {}
-
-fn paint_physical_branch() {}
-
-#[deprecated]
-pub fn render_span_tree_OLD(
-    ui: &mut egui::Ui,
-    viewer_state: &mut LogViewerState,
-    log_storage: &LogStorage,
-    span_tree: &SpanTree,
 ) {
-    ScrollArea::vertical().show(ui, |ui| {
-        for (root_path_segment, root_node) in span_tree.roots() {
-            let root_path = vec![root_path_segment.clone()];
-            let root_node = root_node.read().unwrap();
+    todo!()
+} 
 
-            ui.indent(root_path.clone(), |ui| {
-                ui.horizontal(|ui| {
-                    let node_icon = "↔";
-                    let node_label = root_path_segment.clone();
-                    if viewer_state.tree_mode != FilterTreeMode::Span {
-                        unreachable!("Mismatched tree mode: Expected `Span`");
-                    }
-
-                    let mut checked = viewer_state.selected_spans.is_selected(&root_path);
-                    if ui.checkbox(&mut checked, "").changed() {
-                        if checked { viewer_state.selected_spans.select(&root_path); }
-                        else       { viewer_state.selected_spans.deselect(&root_path); }
-                    }
-
-                    ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
-                        let children = root_node.children.read().unwrap();
-                        for child_path in children.keys().cloned() {
-                            paint_span_branch(ui, viewer_state, log_storage, span_tree, vec![child_path]);
-                        }
-                    });
-                });
-            });
-        }
-    });
-}
-
-#[deprecated]
-pub fn render_location_tree_OLD(
+fn render_span_branch(
     ui: &mut egui::Ui,
-    viewer_state: &mut LogViewerState,
-    log_storage: &LogStorage,
-    location_tree: &LocationTree,
-) {
-    ScrollArea::vertical().show(ui, |ui| {
-        for (root_path_segment, root_node) in location_tree.roots() {
-            let root_path = vec![root_path_segment.clone()];
-            let root_node = root_node.read().unwrap();
-
-            ui.indent(root_path.clone(), |ui| {
-                ui.horizontal(|ui| {
-                    let (node_icon, node_label) = match root_path_segment {
-                        LocationPathSegment::Crate(crate_name) => ("📦", crate_name),
-                        LocationPathSegment::Module(module_name) => ("📂", module_name),
-                        LocationPathSegment::File(file_name) => ("📄", file_name),
-                        LocationPathSegment::Line(line_num) => ("#", line_num.to_string()),
-                        LocationPathSegment::SubModule(sub_module) => ("📂", sub_module),
-                    };
-
-                    if viewer_state.tree_mode != FilterTreeMode::Loc {
-                        unreachable!("Mismatched tree mode: Expected `Loc`");
-                    }
-
-                    let mut checked = viewer_state.selected_locations.is_selected(&root_path);
-                    if ui.checkbox(&mut checked, "").changed() {
-                        if checked { viewer_state.selected_locations.select(&root_path); }
-                        else       { viewer_state.selected_locations.deselect(&root_path); }
-                    }
-
-                    ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
-                        let children = root_node.children.read().unwrap();
-                        for child_path in children.keys().cloned() {
-                            paint_location_branch(ui, viewer_state, log_storage, location_tree, vec![child_path]);
-                        }
-                    });
-                });
-            });
-        }
-    });
-}
-
-#[deprecated]
-fn paint_branch_OLD(
-    ui:    &mut egui::Ui,
-    viewer_state: &mut LogViewerState,
-    log_storage: &LogStorage,
-    span_tree: &SpanTree,
-    location_tree: &LocationTree,
+    log_viewer_state: &mut LogViewerState,
+    log_registry: &LogRegistry
 ) {
     ui.indent(node_idx, |ui| {
         ui.horizontal(|ui| {
@@ -380,34 +213,42 @@ fn paint_branch_OLD(
                 },
             };
 
-            if viewer_state.tree_mode != node_mode {
-                unreachable!("Mismatched tree mode: Tree expected {:?}, Node has {:?}", viewer_state.tree_mode, node_mode);
+            if log_viewer_state.tree_mode != node_mode {
+                unreachable!("Mismatched tree mode: Tree expected {:?}, Node has {:?}", log_viewer_state.tree_mode, node_mode);
             }
 
             match node_mode {
                 FilterTreeMode::Span => {
-                    let mut checked = viewer_state.selected_spans.is_selected(&node_idx);
+                    let mut checked = log_viewer_state.selected_spans.is_selected(&node_idx);
                     if ui.checkbox(&mut checked, "").changed() {
-                        if checked { viewer_state.selected_spans.select(node_idx); }
-                        else       { viewer_state.selected_spans.deselect(&node_idx); }
+                        if checked { log_viewer_state.selected_spans.select(node_idx); }
+                        else       { log_viewer_state.selected_spans.deselect(&node_idx); }
                     }
                 },
                 FilterTreeMode::Loc => {
-                    let mut checked = viewer_state.selected_locations.is_selected(&node_idx);
+                    let mut checked = log_viewer_state.selected_locations.is_selected(&node_idx);
                     if ui.checkbox(&mut checked, "").changed() {
-                        if checked { viewer_state.selected_locations.select(node_idx); }
-                        else       { viewer_state.selected_locations.deselect(&node_idx); }
+                        if checked { log_viewer_state.selected_locations.select(node_idx); }
+                        else       { log_viewer_state.selected_locations.deselect(&node_idx); }
                     }
                 },
             }
 
             ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
                 for child in arena.child_iter(node_idx) {
-                    paint_branch_OLD(ui, arena, viewer_state, child);
+                    render_span_branch(ui, log_viewer_state, child);
                 }
             });
         });
     });
+}
+
+fn render_module_branch() {
+    todo!()
+}
+
+fn render_physical_branch() {
+    todo!()
 }
 
 pub(super) fn gather_logs(
@@ -508,4 +349,236 @@ pub(super) fn format_log(log: &LogEntry) -> WidgetText {
     );
 
     WidgetText::from(job)
+}
+
+#[deprecated]
+pub fn resolve_log_location_path_OLD(meta: &Metadata<'_>) -> Vec<LocationPathSegment> {
+    let file_path = meta.file().expect("Missing file path in log metadata");
+    let module_path = meta.module_path().expect("Missing module path in log metadata");
+    let line = meta.line().expect("Missing line number in log metadata");
+
+    let module_segments: Vec<&str> = module_path.split("::").collect();
+    let crate_name = module_segments.first().expect("Empty module path");
+
+    let mut path = Vec::new();
+    path.push(LocationPathSegment::Crate(crate_name.to_string()));
+    for seg in &module_segments[1..] {
+        path.push(LocationPathSegment::Module(seg.to_string()));
+    }
+
+    let normalized = file_path.replace('\\', "/");
+    let file_name = normalized
+        .split('/')
+        .last()
+        .expect("Failed to extract file name from path");
+    path.push(LocationPathSegment::File(file_name.to_string()));
+
+    path.push(LocationPathSegment::Line(line));
+
+    path
+}
+
+#[maybe_deprecated]
+pub fn render_log_tree(ui: &mut egui::Ui, arena: &Arena) {
+    ScrollArea::vertical().show(ui, |ui| {
+        for root in arena.roots() {
+            render_node(ui, arena, root, 0);
+        }
+    });
+}
+
+#[maybe_deprecated]
+fn render_node(ui: &mut egui::Ui, arena: &Arena, idx: NodeIdx, depth: usize) {
+    let indent = " ".repeat(depth);
+
+    match arena.kind(idx) {
+        TreeKind::Span => {
+            let name = arena.tok_str(arena.name_tok(idx));
+            ui.collapsing(format!("{indent}↔{}", name), |ui| {
+                for child in arena.child_iter(idx) {
+                    render_node(ui, arena, child, depth + 1);
+                }
+            });
+        }
+        TreeKind::Loc(loc_kind) => match loc_kind {
+            LocKind::Crate => {
+                let name = arena.tok_str(arena.name_tok(idx));
+                ui.collapsing(format!("{indent}📦{}", name), |ui| {
+                    for child in arena.child_iter(idx) {
+                        render_node(ui, arena, child, depth + 1);
+                    }
+                });
+            }
+            LocKind::Module => {
+                let name = arena.tok_str(arena.name_tok(idx));
+                ui.collapsing(format!("{indent}📂{}", name), |ui| {
+                    for child in arena.child_iter(idx) {
+                        render_node(ui, arena, child, depth + 1);
+                    }
+                });
+            }
+            LocKind::File => {
+                let name = arena.tok_str(arena.name_tok(idx));
+                ui.collapsing(format!("{indent}📄{}", name), |ui| {
+                    for child in arena.child_iter(idx) {
+                        render_node(ui, arena, child, depth + 1);
+                    }
+                });
+            }
+            LocKind::Line => {
+                let (l, c) = arena.line_col(idx).unwrap_or((0, 0));
+                ui.collapsing(format!("{indent}📑{l}:{c}"), |ui| {
+                    ScrollArea::vertical().max_height(120.0).show(ui, |ui| {
+                        for log in arena.logs(idx).iter() {
+                            ui.label(format_log(log));
+                        }
+                    });
+                });
+            }
+            LocKind::SubModule => {
+                let name = arena.tok_str(arena.name_tok(idx));
+                ui.collapsing(format!("{indent}📂{}", name), |ui| {
+                    for child in arena.child_iter(idx) {
+                        render_node(ui, arena, child, depth + 1);
+                    }
+                });
+            }
+        },
+    }
+}
+
+#[deprecated]
+pub fn render_span_tree_OLD(
+    ui: &mut egui::Ui,
+    log_viewer_state: &mut LogViewerState,
+    log_storage: &LogStorage,
+    span_tree: &SpanTree,
+) {
+    ScrollArea::vertical().show(ui, |ui| {
+        for (root_path_segment, root_node) in span_tree.roots() {
+            let root_path = vec![root_path_segment.clone()];
+            let root_node = root_node.read().unwrap();
+
+            ui.indent(root_path.clone(), |ui| {
+                ui.horizontal(|ui| {
+                    let node_icon = "↔";
+                    let node_label = root_path_segment.clone();
+                    if log_viewer_state.tree_mode != FilterTreeMode::Span {
+                        unreachable!("Mismatched tree mode: Expected `Span`");
+                    }
+
+                    let mut checked = log_viewer_state.selected_spans.is_selected(&root_path);
+                    if ui.checkbox(&mut checked, "").changed() {
+                        if checked { log_viewer_state.selected_spans.select(&root_path); }
+                        else       { log_viewer_state.selected_spans.deselect(&root_path); }
+                    }
+
+                    ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
+                        let children = root_node.children.read().unwrap();
+                        for child_path in children.keys().cloned() {
+                            render_span_branch(ui, log_viewer_state, log_storage, span_tree, vec![child_path]);
+                        }
+                    });
+                });
+            });
+        }
+    });
+}
+
+#[deprecated]
+pub fn render_location_tree_OLD(
+    ui: &mut egui::Ui,
+    log_viewer_state: &mut LogViewerState,
+    log_storage: &LogStorage,
+    location_tree: &LocationTree,
+) {
+    ScrollArea::vertical().show(ui, |ui| {
+        for (root_path_segment, root_node) in location_tree.roots() {
+            let root_path = vec![root_path_segment.clone()];
+            let root_node = root_node.read().unwrap();
+
+            ui.indent(root_path.clone(), |ui| {
+                ui.horizontal(|ui| {
+                    let (node_icon, node_label) = match root_path_segment {
+                        LocationPathSegment::Crate(crate_name) => ("📦", crate_name),
+                        LocationPathSegment::Module(module_name) => ("📂", module_name),
+                        LocationPathSegment::File(file_name) => ("📄", file_name),
+                        LocationPathSegment::Line(line_num) => ("#", line_num.to_string()),
+                        LocationPathSegment::SubModule(sub_module) => ("📂", sub_module),
+                    };
+
+                    if log_viewer_state.tree_mode != FilterTreeMode::Loc {
+                        unreachable!("Mismatched tree mode: Expected `Loc`");
+                    }
+
+                    let mut checked = log_viewer_state.selected_locations.is_selected(&root_path);
+                    if ui.checkbox(&mut checked, "").changed() {
+                        if checked { log_viewer_state.selected_locations.select(&root_path); }
+                        else       { log_viewer_state.selected_locations.deselect(&root_path); }
+                    }
+
+                    ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
+                        let children = root_node.children.read().unwrap();
+                        for child_path in children.keys().cloned() {
+                            paint_location_branch(ui, log_viewer_state, log_storage, location_tree, vec![child_path]);
+                        }
+                    });
+                });
+            });
+        }
+    });
+}
+
+#[deprecated]
+fn render_branch_OLD(
+    ui:    &mut egui::Ui,
+    log_viewer_state: &mut LogViewerState,
+    log_storage: &LogStorage,
+    span_tree: &SpanTree,
+    location_tree: &LocationTree,
+) {
+    ui.indent(node_idx, |ui| {
+        ui.horizontal(|ui| {
+            let (node_icon, node_label, node_mode) = match arena.kind(node_idx) {
+                TreeKind::Span => ("↔", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Span),
+                TreeKind::Loc(loc_kind) => match loc_kind {
+                    LocKind::Crate  => ("📦", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Loc),
+                    LocKind::Module => ("📂", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Loc),
+                    LocKind::File   => ("📄", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Loc),
+                    LocKind::Line => {
+                        let (l, c) = arena.line_col(node_idx).unwrap_or((0, 0));
+                        ("📑", format!("{l}:{c}").into(), FilterTreeMode::Loc)
+                    }
+                    LocKind::SubModule => ("📂", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Loc),
+                },
+            };
+
+            if log_viewer_state.tree_mode != node_mode {
+                unreachable!("Mismatched tree mode: Tree expected {:?}, Node has {:?}", log_viewer_state.tree_mode, node_mode);
+            }
+
+            match node_mode {
+                FilterTreeMode::Span => {
+                    let mut checked = log_viewer_state.selected_spans.is_selected(&node_idx);
+                    if ui.checkbox(&mut checked, "").changed() {
+                        if checked { log_viewer_state.selected_spans.select(node_idx); }
+                        else       { log_viewer_state.selected_spans.deselect(&node_idx); }
+                    }
+                },
+                FilterTreeMode::Loc => {
+                    let mut checked = log_viewer_state.selected_locations.is_selected(&node_idx);
+                    if ui.checkbox(&mut checked, "").changed() {
+                        if checked { log_viewer_state.selected_locations.select(node_idx); }
+                        else       { log_viewer_state.selected_locations.deselect(&node_idx); }
+                    }
+                },
+            }
+
+            ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
+                for child in arena.child_iter(node_idx) {
+                    render_branch_OLD(ui, arena, log_viewer_state, child);
+                }
+            });
+        });
+    });
 }
