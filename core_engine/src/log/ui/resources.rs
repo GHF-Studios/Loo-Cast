@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::log::types::{LogLevel, SpanPathSelection, ModulePathSelection, PhysicalPathSelection};
+use crate::log::types::{LogLevel, SpanPathSelections, ModulePathSelections, PhysicalPathSelections};
 use crate::log::ui::types::FilterTreeMode;
 
 #[derive(Resource)]
@@ -8,9 +8,9 @@ pub struct LogViewerState {
     pub split_ratio: f32,
     pub threshold: LogLevel,
     pub tree_mode: FilterTreeMode,
-    pub span_selections: Vec<SpanPathSelection>,
-    pub module_selections: Vec<ModulePathSelection>,
-    pub physical_selections: Vec<PhysicalPathSelection>
+    pub span_selections: SpanPathSelections,
+    pub module_selections: ModulePathSelections,
+    pub physical_selections: PhysicalPathSelections
 }
 impl Default for LogViewerState {
     fn default() -> Self {

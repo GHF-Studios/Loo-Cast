@@ -1,7 +1,7 @@
 use bevy_egui::egui::{self, Color32, RichText, ScrollArea, TextFormat, FontId};
 use egui::{text::LayoutJob, WidgetText};
 
-use crate::log::{types::{LogEntry, LogLevel::{self, *}, LogRegistry}, ui::{resources::LogViewerState, types::FilterTreeMode}};
+use crate::log::{types::{LogEntry, LogLevel::{self, *}, LogRegistry, SpanPath}, ui::{resources::LogViewerState, types::FilterTreeMode}};
 use tracing::Metadata;
 
 pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState) {
@@ -147,27 +147,26 @@ fn render_span_tree(
 ) {
     ScrollArea::vertical().show(ui, |ui| {
         for (root_path_segment, root_node) in log_registry.span_index.span_roots {
-            let root_path = vec![root_path_segment.clone()];
+            let root_path = SpanPath { spans: vec![root_path_segment.clone()] };
 
             ui.indent(root_path.clone(), |ui| {
                 ui.horizontal(|ui| {
                     let node_icon = "↔";
-                    let node_label = root_path_segment.clone();
+                    let node_label = root_path_segment.name.clone();
 
                     if log_viewer_state.tree_mode != FilterTreeMode::Span {
                         unreachable!("Mismatched tree mode: Expected `Span`");
                     }
 
-                    let mut checked = log_viewer_state.span_selections.iter().any(|ss| ss.is_selected(&root_path));
-                    if ui.checkbox(&mut checked, "").changed() {
-                        if checked { log_viewer_state.selected_spans.select(&root_path); }
-                        else       { log_viewer_state.selected_spans.deselect(&root_path); }
-                    }
+                    let mut checked = log_viewer_state.span_selections.is_selected(&root_path);
+                    //if ui.checkbox(&mut checked, "").changed() {
+                    //    if checked { log_viewer_state.span_selections.select(&root_path); }
+                    //    else       { log_viewer_state.span_selections.deselect(&root_path); }
+                    //}
 
                     ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
-                        let children = root_node.children.read().unwrap();
-                        for child_path in children.keys().cloned() {
-                            render_span_branch(ui, log_viewer_state, log_storage, span_tree, vec![child_path]);
+                        for segment in root_node.span_children.keys().cloned() {
+                            render_span_branch(ui, log_viewer_state, log_storage, span_tree, vec![segment]);
                         }
                     });
                 });

@@ -647,6 +647,30 @@ pub struct LinePathNode {
 }
 
 // SpanPathSelection
+#[derive(Default)]
+pub struct SpanPathSelections {
+    pub selections: Vec<SpanPathSelection>,
+}
+impl SpanPathSelections {
+    pub fn command(&mut self, path: &SpanPath, command: LogSelectionCommand) -> Result<(), LogSelectionCommandError> {
+        for selection in self.selections.iter_mut() {
+            if let Some(span) = selection.get_span_mut(path) {
+                let (required_privilege, requested_selection_state, recursive) = command.unpack();
+                return span.select(requested_selection_state, required_privilege, recursive);
+            }
+        }
+        Err(LogSelectionCommandError::SpanPathNotFound(path.clone()))
+    }
+
+    pub fn is_selected(&self, path: &SpanPath) -> bool {
+        for selection in self.selections.iter() {
+            if selection.get_span(path).is_some() {
+                return true;
+            }
+        }
+        return false;
+    }
+}
 
 #[derive(Default)]
 pub struct SpanPathSelection {
@@ -660,7 +684,7 @@ impl SpanPathSelection {
         span.select(required_privilege, requested_selection_state, recursive)
     }
 
-    fn get_span(&self, path: &SpanPath) -> Option<&SpanPathNodeSelection> {
+    pub fn get_span(&self, path: &SpanPath) -> Option<&SpanPathNodeSelection> {
         let mut current = self.span_roots.get(&path.spans[0])?;
         
         for segment in path.spans.get(1..).unwrap_or_default() {
@@ -736,14 +760,14 @@ impl ModulePathSelection {
         Ok(())
     }
 
-    fn get_crate_module(&self, path: &ModulePath) -> Option<&CrateModulePathNodeSelection> {
+    pub fn get_crate_module(&self, path: &ModulePath) -> Option<&CrateModulePathNodeSelection> {
         self.crates.get(&path.crate_module)
     }
     fn get_crate_module_mut(&mut self, path: &ModulePath) -> Option<&mut CrateModulePathNodeSelection> {
         self.crates.get_mut(&path.crate_module)
     }
 
-    fn get_module(&self, path: &ModulePath) -> Option<&ModulePathNodeSelection> {
+    pub fn get_module(&self, path: &ModulePath) -> Option<&ModulePathNodeSelection> {
         let crate_module = self.crates.get(&path.crate_module)?;
         let mut module = crate_module.modules.get(&path.modules[0])?;
 
@@ -764,7 +788,7 @@ impl ModulePathSelection {
         Some(module)
     }
 
-    fn get_sub_module(&self, path: &ModulePath) -> Option<&SubModulePathNodeSelection> {
+    pub fn get_sub_module(&self, path: &ModulePath) -> Option<&SubModulePathNodeSelection> {
         let crate_module = self.crates.get(&path.crate_module)?;
         let mut module = crate_module.modules.get(&path.modules[0])?;
 
@@ -945,14 +969,14 @@ impl PhysicalPathSelection {
         Ok(())
     }
 
-    fn get_crate_folder(&self, path: &PhysicalSelectionPath) -> Option<&CrateFolderPathNodeSelection> {
+    pub fn get_crate_folder(&self, path: &PhysicalSelectionPath) -> Option<&CrateFolderPathNodeSelection> {
         self.crates.get(&path.crate_folder)
     }
     fn get_crate_folder_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut CrateFolderPathNodeSelection> {
         self.crates.get_mut(&path.crate_folder)
     }
     
-    fn get_folder(&self, path: &PhysicalSelectionPath) -> Option<&FolderPathNodeSelection> {
+    pub fn get_folder(&self, path: &PhysicalSelectionPath) -> Option<&FolderPathNodeSelection> {
         let crate_folder = self.crates.get(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get(&path.folders[0])?;
 
@@ -973,7 +997,7 @@ impl PhysicalPathSelection {
         Some(folder)
     }
     
-    fn get_file(&self, path: &PhysicalSelectionPath) -> Option<&FilePathNodeSelection> {
+    pub fn get_file(&self, path: &PhysicalSelectionPath) -> Option<&FilePathNodeSelection> {
         let crate_folder = self.crates.get(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get(&path.folders[0])?;
 
@@ -998,7 +1022,7 @@ impl PhysicalPathSelection {
         Some(file)
     }
     
-    fn get_line(&self, path: &PhysicalSelectionPath) -> Option<&LinePathNodeSelection> {
+    pub fn get_line(&self, path: &PhysicalSelectionPath) -> Option<&LinePathNodeSelection> {
         let crate_folder = self.crates.get(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get(&path.folders[0])?;
 
