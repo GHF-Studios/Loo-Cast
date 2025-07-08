@@ -4,7 +4,9 @@ use egui::{text::LayoutJob, WidgetText};
 use crate::log::{types::{LogEntry, LogLevel::{self, *}, LogRegistry}, ui::{resources::LogViewerState, types::FilterTreeMode}};
 use tracing::Metadata;
 
-pub fn left_panel_toolbar_ui(ui: &mut egui::Ui, tree_mode: &mut FilterTreeMode) {
+pub fn left_panel_toolbar_ui(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState) {
+    let tree_mode = &mut log_viewer_state.tree_mode;
+
     egui::Frame::none()
         .fill(Color32::from_gray(25))
         .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
@@ -36,7 +38,63 @@ pub fn right_panel_toolbar_ui(ui: &mut egui::Ui, log_viewer_state: &mut LogViewe
         .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
         .inner_margin(egui::Margin::symmetric(6.0, 4.0))
         .show(ui, |ui| {
-            right_panel_filter_ui(ui, &mut log_viewer_state.threshold);
+            right_panel_filter_ui(ui, log_viewer_state);
+        });
+}
+
+pub fn right_panel_filter_ui(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState) {
+    let all_levels = [Error, Warn, Info, Debug, Trace];
+    let level_symbols = ["E", "W", "I", "D", "T"];
+    let level_colors = [
+        Color32::RED,
+        Color32::YELLOW,
+        Color32::GREEN,
+        Color32::LIGHT_BLUE,
+        Color32::KHAKI,
+    ];
+    
+    let threshold = &mut log_viewer_state.threshold;
+    let level_index = all_levels
+        .iter()
+        .position(|l| l == threshold)
+        .unwrap_or(2);
+    let mut slider_value = level_index as f32;
+
+    egui::Frame::none()
+        .fill(Color32::from_gray(30))
+        .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
+        .rounding(egui::Rounding::same(4.0))
+        .inner_margin(egui::Margin::symmetric(6.0, 4.0))
+        .show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.label("Log Level:");
+
+                let slider = egui::Slider::new(&mut slider_value, 0.0..=4.0)
+                    .step_by(1.0)
+                    .show_value(false);
+                let response = ui.add(slider);
+
+                let track_rect = response.rect.shrink(6.0);
+                let norm = (slider_value / 4.0).clamp(0.0, 1.0);
+                let x = track_rect.left() + norm * track_rect.width();
+                let y = track_rect.center().y;
+                let center = egui::pos2(x, y);
+
+                let idx = slider_value.round().clamp(0.0, 4.0) as usize;
+                let symbol = level_symbols[idx];
+                let color = level_colors[idx];
+
+                ui.painter().circle_filled(center, 11.0, color);
+                ui.painter().text(
+                    center,
+                    egui::Align2::CENTER_CENTER,
+                    symbol,
+                    egui::TextStyle::Button.resolve(ui.style()),
+                    Color32::BLACK,
+                );
+
+                *threshold = all_levels[idx];
+            });
         });
 }
 
@@ -73,6 +131,7 @@ pub fn resolve_log_location_path_OLD(meta: &Metadata<'_>) -> Vec<LocationPathSeg
     path
 }
 
+#[maybe_deprecated]
 pub fn render_log_tree(ui: &mut egui::Ui, arena: &Arena) {
     ScrollArea::vertical().show(ui, |ui| {
         for root in arena.roots() {
@@ -81,8 +140,10 @@ pub fn render_log_tree(ui: &mut egui::Ui, arena: &Arena) {
     });
 }
 
+#[maybe_deprecated]
 fn render_node(ui: &mut egui::Ui, arena: &Arena, idx: NodeIdx, depth: usize) {
     let indent = " ".repeat(depth);
+
     match arena.kind(idx) {
         TreeKind::Span => {
             let name = arena.tok_str(arena.name_tok(idx));
@@ -139,26 +200,82 @@ fn render_node(ui: &mut egui::Ui, arena: &Arena, idx: NodeIdx, depth: usize) {
     }
 }
 
-/// Entrypoint to render the correct tree UI based on mode.
 pub fn render_selection_tree(
-    ui:    &mut egui::Ui,
-    viewer_state: &mut LogViewerState,
-    log_storage: &LogStorage,
-    span_tree: &SpanTree,
-    location_tree: &LocationTree,
+    ui: &mut egui::Ui,
+    log_viewer_state: &mut LogViewerState,
+    log_registry: &LogRegistry
 ) {
-    let tree_mode = viewer_state.tree_mode;
+    let tree_mode = log_viewer_state.tree_mode;
+
     match tree_mode {
         FilterTreeMode::Span => {
-            render_span_tree(ui, viewer_state, log_storage, span_tree);
+            render_span_tree(ui, log_viewer_state, log_registry);
         }
-        FilterTreeMode::Loc => {
-            render_location_tree(ui, viewer_state, log_storage, location_tree);
+        FilterTreeMode::Module => {
+            render_module_tree(ui, log_viewer_state, log_registry);
+        }
+        FilterTreeMode::Physical => {
+            render_physical_tree(ui, log_viewer_state, log_registry);
         }
     }
 }
 
-pub fn render_span_tree(
+fn render_span_tree(
+    ui: &mut egui::Ui,
+    log_viewer_state: &mut LogViewerState,
+    log_registry: &LogRegistry
+) {
+    ScrollArea::vertical().show(ui, |ui| {
+        for (root_path_segment, root_node) in span_tree.roots() {
+            let root_path = vec![root_path_segment.clone()];
+            let root_node = root_node.read().unwrap();
+
+            ui.indent(root_path.clone(), |ui| {
+                ui.horizontal(|ui| {
+                    let node_icon = "↔";
+                    let node_label = root_path_segment.clone();
+                    if viewer_state.tree_mode != FilterTreeMode::Span {
+                        unreachable!("Mismatched tree mode: Expected `Span`");
+                    }
+
+                    let mut checked = viewer_state.selected_spans.is_selected(&root_path);
+                    if ui.checkbox(&mut checked, "").changed() {
+                        if checked { viewer_state.selected_spans.select(&root_path); }
+                        else       { viewer_state.selected_spans.deselect(&root_path); }
+                    }
+
+                    ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
+                        let children = root_node.children.read().unwrap();
+                        for child_path in children.keys().cloned() {
+                            paint_span_branch(ui, viewer_state, log_storage, span_tree, vec![child_path]);
+                        }
+                    });
+                });
+            });
+        }
+    });
+} 
+
+fn render_module_tree(
+    ui: &mut egui::Ui,
+    log_viewer_state: &mut LogViewerState,
+    log_registry: &LogRegistry
+) {} 
+
+fn render_physical_tree(
+    ui: &mut egui::Ui,
+    log_viewer_state: &mut LogViewerState,
+    log_registry: &LogRegistry
+) {} 
+
+fn paint_span_branch() {}
+
+fn paint_module_branch() {}
+
+fn paint_physical_branch() {}
+
+#[deprecated]
+pub fn render_span_tree_OLD(
     ui: &mut egui::Ui,
     viewer_state: &mut LogViewerState,
     log_storage: &LogStorage,
@@ -195,7 +312,8 @@ pub fn render_span_tree(
     });
 }
 
-pub fn render_location_tree(
+#[deprecated]
+pub fn render_location_tree_OLD(
     ui: &mut egui::Ui,
     viewer_state: &mut LogViewerState,
     log_storage: &LogStorage,
@@ -238,7 +356,6 @@ pub fn render_location_tree(
     });
 }
 
-// Recursive
 #[deprecated]
 fn paint_branch_OLD(
     ui:    &mut egui::Ui,
@@ -293,7 +410,7 @@ fn paint_branch_OLD(
     });
 }
 
-pub fn gather_logs(
+pub(super) fn gather_logs(
     state: &LogViewerState,
     log_registry: &LogRegistry,
 ) -> Vec<LogEntry> {
@@ -331,7 +448,7 @@ pub fn gather_logs(
     }
 }
 
-pub fn format_log(log: &LogEntry) -> WidgetText {
+pub(super) fn format_log(log: &LogEntry) -> WidgetText {
     use crate::log::types::LogLevel;
 
     let ns = log.ts;
@@ -391,59 +508,4 @@ pub fn format_log(log: &LogEntry) -> WidgetText {
     );
 
     WidgetText::from(job)
-}
-
-pub fn right_panel_filter_ui(ui: &mut egui::Ui, threshold: &mut LogLevel) {
-    let all_levels = [Error, Warn, Info, Debug, Trace];
-    let level_symbols = ["E", "W", "I", "D", "T"];
-    let level_colors = [
-        Color32::RED,
-        Color32::YELLOW,
-        Color32::GREEN,
-        Color32::LIGHT_BLUE,
-        Color32::KHAKI,
-    ];
-    
-    let level_index = all_levels
-        .iter()
-        .position(|l| l == threshold)
-        .unwrap_or(2);
-    let mut slider_value = level_index as f32;
-
-    egui::Frame::none()
-        .fill(Color32::from_gray(30))
-        .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
-        .rounding(egui::Rounding::same(4.0))
-        .inner_margin(egui::Margin::symmetric(6.0, 4.0))
-        .show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.label("Log Level:");
-
-                let slider = egui::Slider::new(&mut slider_value, 0.0..=4.0)
-                    .step_by(1.0)
-                    .show_value(false);
-                let response = ui.add(slider);
-
-                let track_rect = response.rect.shrink(6.0);
-                let norm = (slider_value / 4.0).clamp(0.0, 1.0);
-                let x = track_rect.left() + norm * track_rect.width();
-                let y = track_rect.center().y;
-                let center = egui::pos2(x, y);
-
-                let idx = slider_value.round().clamp(0.0, 4.0) as usize;
-                let symbol = level_symbols[idx];
-                let color = level_colors[idx];
-
-                ui.painter().circle_filled(center, 11.0, color);
-                ui.painter().text(
-                    center,
-                    egui::Align2::CENTER_CENTER,
-                    symbol,
-                    egui::TextStyle::Button.resolve(ui.style()),
-                    Color32::BLACK,
-                );
-
-                *threshold = all_levels[idx];
-            });
-        });
 }

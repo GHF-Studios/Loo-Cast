@@ -8,7 +8,7 @@ pub(super) fn show_log_viewer_ui(
     mut egui_ctx: EguiContexts,
     toolbar_state: Res<ToolbarState>,
     mut log_viewer_state: ResMut<LogViewerState>,
-    log_registry: Res<LogRegistryHandle>,
+    log_registry_handle: Res<LogRegistryHandle>,
 ) {
     if !toolbar_state.show_log_viewer_ui { return; }
 
@@ -20,14 +20,14 @@ pub(super) fn show_log_viewer_ui(
             ui.columns(2, |cols| {
                 // Left panel (Tree + Toolbar)
                 cols[0].vertical(|ui| {
-                    left_panel_toolbar_ui(ui, &mut log_viewer_state.tree_mode);
-                    render_selection_tree(ui, &mut log_viewer_state, &log_registry.0, &span_tree.0, &location_tree.0);
+                    left_panel_toolbar_ui(ui, &mut log_viewer_state);
+                    render_selection_tree(ui, &mut log_viewer_state, &log_registry_handle.0.lock().unwrap());
                 });
 
                 // Right panel (Console + Toolbar)
                 cols[1].vertical(|ui| {
                     right_panel_toolbar_ui(ui, &mut log_viewer_state);
-                    let logs = gather_logs(&log_viewer_state, &log_registry.0, &span_tree.0, &location_tree.0);
+                    let logs = gather_logs(&log_viewer_state, &log_registry_handle.0.lock().unwrap());
                     let row_h = ui.text_style_height(&egui::TextStyle::Monospace);
                     egui::ScrollArea::vertical()
                         .stick_to_bottom(true)
