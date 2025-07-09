@@ -5,7 +5,7 @@ use tracing::Level as TracingLevel;
 
 use crate::log::statics::LOG_ID_COUNTER;
 
-// Basics
+// --- Basics ---
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LogLevel {
@@ -75,16 +75,16 @@ impl std::fmt::Display for LogPath {
 #[derive(Default)]
 pub struct LogRegistry {
     pub logs: HashMap<LogId, LogEntry>,
-    pub span_index: SpanPathIndex,
-    pub module_index: ModulePathIndex,
-    pub physical_index: PhysicalPathIndex,
+    pub span_registry: SpanPathRegistry,
+    pub module_registry: ModulePathRegistry,
+    pub physical_registry: PhysicalPathRegistry,
 }
 impl LogRegistry {
     pub fn insert_without_log(
         &mut self,
         span_path: &SpanPath,
     ) {
-        self.span_index.insert_without_log(span_path);
+        self.span_registry.insert_without_log(span_path);
     }
 
     pub fn insert_log(
@@ -96,9 +96,9 @@ impl LogRegistry {
         physical_path: PhysicalStoragePath,
     ) {
         self.logs.insert(log_id, log_entry);
-        self.span_index.insert(&span_path, log_id);
-        self.module_index.insert(&module_path, log_id);
-        self.physical_index.insert(&physical_path, log_id);
+        self.span_registry.insert(&span_path, log_id);
+        self.module_registry.insert(&module_path, log_id);
+        self.physical_registry.insert(&physical_path, log_id);
     }
 
     pub fn get_log(&self, id: &LogId) -> Option<&LogEntry> {
@@ -106,15 +106,15 @@ impl LogRegistry {
     }
 
     pub fn resolve_span_path(&self, path: &SpanPath) -> Option<&Vec<LogId>> {
-        self.span_index.resolve(path)
+        self.span_registry.resolve(path)
     }
 
     pub fn resolve_module_path(&self, path: &ModulePath) -> Option<&Vec<LogId>> {
-        self.module_index.resolve(path)
+        self.module_registry.resolve(path)
     }
 
     pub fn resolve_physical_path(&self, path: &PhysicalStoragePath) -> Option<&Vec<LogId>> {
-        self.physical_index.resolve(path)
+        self.physical_registry.resolve(path)
     }
 }
 
@@ -209,7 +209,12 @@ pub enum LogSelectionCommandError {
     PhysicalPathNotFound(PhysicalSelectionPath),
 }
 
-// Path Types
+#[derive(Default)]
+pub struct NodeMetadata {
+    pub ui_collapsed: bool,
+}
+
+// --- Path Types ---
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpanPath {
@@ -334,15 +339,15 @@ impl std::fmt::Display for PhysicalSelectionPath {
     }
 }
 
-// PathSegment Types
+// --- PathSegment Types ---
 
-// Span
+// === Span ===
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpanPathSegment {
     pub name: String
 }
 
-// Module
+// === Module ===
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CrateModulePathSegment {
     pub name: String,
@@ -358,7 +363,7 @@ pub struct SubModulePathSegment {
     pub name: String,
 }
 
-// Physical
+// === Physical ===
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CrateFolderPathSegment {
     pub name: String,
@@ -379,13 +384,13 @@ pub struct LinePathSegment {
     pub number: u32,
 }
 
-// SpanPathIndex
+// --- SpanPathRegistry ---
 
 #[derive(Default)]
-pub struct SpanPathIndex {
-    pub span_roots: HashMap<SpanPathSegment, SpanPathNode>,
+pub struct SpanPathRegistry {
+    pub span_roots: HashMap<SpanPathSegment, SpanNode>,
 }
-impl SpanPathIndex {
+impl SpanPathRegistry {
     pub fn insert(&mut self, path: &SpanPath, log_id: LogId) {
         let root_span_path_segment = if path.spans.is_empty() {
             SpanPathSegment { name: "[UNCATEGORIZED]".to_string() }
@@ -424,18 +429,18 @@ impl SpanPathIndex {
 }
 
 #[derive(Default)]
-pub struct SpanPathNode {
-    pub span_children: HashMap<SpanPathSegment, SpanPathNode>,
+pub struct SpanNode {
+    pub span_children: HashMap<SpanPathSegment, SpanNode>,
     pub logs: Vec<LogId>,
 }
 
-// ModulePathIndex
+// --- ModulePathRegistry ---
 
 #[derive(Default)]
-pub struct ModulePathIndex {
-    pub crates: HashMap<CrateModulePathSegment, CrateModulePathNode>,
+pub struct ModulePathRegistry {
+    pub crates: HashMap<CrateModulePathSegment, CrateModuleNode>,
 }
-impl ModulePathIndex {
+impl ModulePathRegistry {
     pub fn insert(&mut self, path: &ModulePath, log_id: LogId) {
         let crate_module_path_segment = if path.crate_module.name.is_empty() {
             CrateModulePathSegment { name: "[UNCATEGORIZED]".to_string() }
@@ -526,31 +531,31 @@ impl ModulePathIndex {
 }
 
 #[derive(Default)]
-pub struct CrateModulePathNode {
-    pub modules: HashMap<ModulePathSegment, ModulePathNode>,
+pub struct CrateModuleNode {
+    pub modules: HashMap<ModulePathSegment, ModuleNode>,
     pub logs: Vec<LogId>,
 }
 
 #[derive(Default)]
-pub struct ModulePathNode {
-    pub modules: HashMap<ModulePathSegment, ModulePathNode>,
-    pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNode>,
+pub struct ModuleNode {
+    pub modules: HashMap<ModulePathSegment, ModuleNode>,
+    pub sub_modules: HashMap<SubModulePathSegment, SubModuleNode>,
     pub logs: Vec<LogId>,
 }
 
 #[derive(Default)]
-pub struct SubModulePathNode {
-    pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNode>,
+pub struct SubModuleNode {
+    pub sub_modules: HashMap<SubModulePathSegment, SubModuleNode>,
     pub logs: Vec<LogId>,
 }
 
-// PhysicalPathIndex
+// --- PhysicalPathRegistry ---
 
 #[derive(Default)]
-pub struct PhysicalPathIndex {
-    pub crates: HashMap<CrateFolderPathSegment, PhysicalCratePathNode>,
+pub struct PhysicalPathRegistry {
+    pub crates: HashMap<CrateFolderPathSegment, PhysicalCrateNode>,
 }
-impl PhysicalPathIndex {
+impl PhysicalPathRegistry {
     pub fn insert(&mut self, path: &PhysicalStoragePath, log_id: LogId) {
         let file = {
             let crate_folder_path_segment = if path.crate_folder.name.is_empty() {
@@ -625,31 +630,32 @@ impl PhysicalPathIndex {
 }
 
 #[derive(Default)]
-pub struct PhysicalCratePathNode {
-    pub folders: HashMap<FolderPathSegment, FolderPathNode>,
-    pub files: HashMap<FilePathSegment, FilePathNode>,
+pub struct PhysicalCrateNode {
+    pub folders: HashMap<FolderPathSegment, FolderNode>,
+    pub files: HashMap<FilePathSegment, FileNode>,
 }
 
 #[derive(Default)]
-pub struct FolderPathNode {
-    pub folders: HashMap<FolderPathSegment, FolderPathNode>,
-    pub files: HashMap<FilePathSegment, FilePathNode>,
+pub struct FolderNode {
+    pub folders: HashMap<FolderPathSegment, FolderNode>,
+    pub files: HashMap<FilePathSegment, FileNode>,
 }
 
 #[derive(Default)]
-pub struct FilePathNode {
-    pub lines: HashMap<LinePathSegment, LinePathNode>,
+pub struct FileNode {
+    pub lines: HashMap<LinePathSegment, LineNode>,
 }
 
 #[derive(Default)]
-pub struct LinePathNode {
+pub struct LineNode {
     pub logs: Vec<LogId>,
 }
 
-// SpanPathSelection
+// --- SpanPathSelections ---
+
 #[derive(Default)]
 pub struct SpanPathSelections {
-    pub span_roots: HashMap<SpanPathSegment, SpanPathNodeSelection>,
+    pub span_roots: HashMap<SpanPathSegment, SpanNodeSelection>,
 }
 impl SpanPathSelections {
     pub fn select(&mut self, path: &SpanPath, command: LogSelectionCommand) -> Result<(), LogSelectionCommandError> {
@@ -664,20 +670,20 @@ impl SpanPathSelections {
 
         for (root_segment, root_node_selection) in &self.span_roots {
             let root_node = registry
-                .span_index
+                .span_registry
                 .span_roots
                 .get(root_segment)
-                .unwrap_or_else(|| unreachable!("Selection path root {:?} not found in index", root_segment));
+                .unwrap_or_else(|| unreachable!("Selection path root {:?} not found in registry", root_segment));
 
-            let effective_state = match root_node_selection.selection.state {
+            let effective_selection_state = match root_node_selection.selection.state {
                 LogSelectionState::InheritedOrDefault => LogSelectionState::Deselected,
                 explicit => explicit,
             };
 
-            Self::collect_recursive(
+            Self::collect_logs_from_span(
                 root_node_selection,
                 root_node,
-                effective_state,
+                effective_selection_state,
                 &mut out,
             );
         }
@@ -685,18 +691,18 @@ impl SpanPathSelections {
         out
     }
 
-    fn collect_recursive(
-        selection: &SpanPathNodeSelection,
-        parent_node: &SpanPathNode,
+    fn collect_logs_from_span(
+        selection: &SpanNodeSelection,
+        parent_node: &SpanNode,
         inherited_state: LogSelectionState,
         out: &mut Vec<LogId>,
     ) {
-        let effective_state = match selection.selection.state {
+        let effective_selection_state = match selection.selection.state {
             LogSelectionState::InheritedOrDefault => inherited_state,
             explicit => explicit,
         };
 
-        if effective_state == LogSelectionState::Selected {
+        if effective_selection_state == LogSelectionState::Selected {
             out.extend(&parent_node.logs);
         }
 
@@ -704,9 +710,9 @@ impl SpanPathSelections {
             let child_node = parent_node
                 .span_children
                 .get(child_segment)
-                .unwrap_or_else(|| unreachable!("Child segment {:?} not found in index", child_segment));
+                .unwrap_or_else(|| unreachable!("Child segment {:?} not found in registry", child_segment));
 
-            Self::collect_recursive(child_selection, child_node, effective_state, out);
+            Self::collect_logs_from_span(child_selection, child_node, effective_selection_state, out);
         }
     }
 
@@ -714,7 +720,7 @@ impl SpanPathSelections {
         self.get_span(path).is_some()
     }
 
-    pub fn get_span(&self, path: &SpanPath) -> Option<&SpanPathNodeSelection> {
+    pub fn get_span(&self, path: &SpanPath) -> Option<&SpanNodeSelection> {
         let mut current = self.span_roots.get(&path.spans[0])?;
         
         for segment in path.spans.get(1..).unwrap_or_default() {
@@ -723,7 +729,7 @@ impl SpanPathSelections {
         
         Some(current)
     }
-    fn get_span_mut(&mut self, path: &SpanPath) -> Option<&mut SpanPathNodeSelection> {
+    fn get_span_mut(&mut self, path: &SpanPath) -> Option<&mut SpanNodeSelection> {
         let mut current = self.span_roots.get_mut(&path.spans[0])?;
         
         for segment in path.spans.get(1..).unwrap_or_default() {
@@ -734,11 +740,12 @@ impl SpanPathSelections {
     }
 }
 
-pub struct SpanPathNodeSelection {
+pub struct SpanNodeSelection {
     pub selection: LogSelection,
-    pub span_children: HashMap<SpanPathSegment, SpanPathNodeSelection>,
+    pub metadata: NodeMetadata,
+    pub span_children: HashMap<SpanPathSegment, SpanNodeSelection>,
 }
-impl SpanPathNodeSelection {
+impl SpanNodeSelection {
     pub fn select(&mut self, required_privilege: LogSelectionPrivilege, requested_selection_state: LogSelectionState, recursive: bool) -> Result<(), LogSelectionCommandError> {
         LogSelectionCommand::run(
             &mut self.selection.privilege, 
@@ -757,11 +764,11 @@ impl SpanPathNodeSelection {
     }
 }
 
-// ModulePathSelection
+// --- ModulePathSelections ---
 
 #[derive(Default)]
 pub struct ModulePathSelections {
-    pub crates: HashMap<CrateModulePathSegment, CrateModulePathNodeSelection>,
+    pub crates: HashMap<CrateModulePathSegment, CrateModuleNodeSelection>,
 }
 impl ModulePathSelections {
     pub fn select(&mut self, path: &ModulePath, command: LogSelectionCommand) -> Result<(), LogSelectionCommandError> {
@@ -793,17 +800,17 @@ impl ModulePathSelections {
 
         for (crate_segment, crate_node_selection) in &self.crates {
             let crate_node = registry
-                .module_index
+                .module_registry
                 .crates
                 .get(crate_segment)
-                .unwrap_or_else(|| unreachable!("Crate {:?} not found in module index", crate_segment));
+                .unwrap_or_else(|| unreachable!("Crate {:?} not found in module registry", crate_segment));
 
-            let effective_state = match crate_node_selection.selection.state {
+            let effective_selection_state = match crate_node_selection.selection.state {
                 LogSelectionState::InheritedOrDefault => LogSelectionState::Deselected,
                 explicit => explicit,
             };
 
-            if effective_state == LogSelectionState::Selected {
+            if effective_selection_state == LogSelectionState::Selected {
                 out.extend(&crate_node.logs);
             }
 
@@ -811,26 +818,26 @@ impl ModulePathSelections {
                 let module_node = crate_node
                     .modules
                     .get(module_segment)
-                    .unwrap_or_else(|| unreachable!("Module {:?} not found in index", module_segment));
-                Self::collect_module_recursive(module_selection, module_node, effective_state, &mut out);
+                    .unwrap_or_else(|| unreachable!("Module {:?} not found in registry", module_segment));
+                Self::collect_logs_from_module(module_selection, module_node, effective_selection_state, &mut out);
             }
         }
 
         out
     }
 
-    fn collect_module_recursive(
-        selection: &ModulePathNodeSelection,
-        module_node: &ModulePathNode,
+    fn collect_logs_from_module(
+        selection: &ModuleNodeSelection,
+        module_node: &ModuleNode,
         inherited_state: LogSelectionState,
         out: &mut Vec<LogId>,
     ) {
-        let effective_state = match selection.selection.state {
+        let effective_selection_state = match selection.selection.state {
             LogSelectionState::InheritedOrDefault => inherited_state,
             explicit => explicit,
         };
 
-        if effective_state == LogSelectionState::Selected {
+        if effective_selection_state == LogSelectionState::Selected {
             out.extend(&module_node.logs);
         }
 
@@ -839,30 +846,30 @@ impl ModulePathSelections {
                 .modules
                 .get(module_segment)
                 .unwrap_or_else(|| unreachable!("Nested module {:?} not found", module_segment));
-            Self::collect_module_recursive(module_selection, module_node, effective_state, out);
+            Self::collect_logs_from_module(module_selection, module_node, effective_selection_state, out);
         }
 
         for (sub_module_segment, sub_module_selection) in &selection.sub_modules {
             let sub_module_node = module_node
                 .sub_modules
                 .get(sub_module_segment)
-                .unwrap_or_else(|| unreachable!("Submodule {:?} not found", sub_module_segment));
-            Self::collect_submodule_recursive(sub_module_selection, sub_module_node, effective_state, out);
+                .unwrap_or_else(|| unreachable!("SubModule {:?} not found", sub_module_segment));
+            Self::collect_logs_from_submodule(sub_module_selection, sub_module_node, effective_selection_state, out);
         }
     }
 
-    fn collect_submodule_recursive(
-        selection: &SubModulePathNodeSelection,
-        sub_module_node: &SubModulePathNode,
+    fn collect_logs_from_submodule(
+        selection: &SubModuleNodeSelection,
+        sub_module_node: &SubModuleNode,
         inherited: LogSelectionState,
         out: &mut Vec<LogId>,
     ) {
-        let effective_state = match selection.selection.state {
+        let effective_selection_state = match selection.selection.state {
             LogSelectionState::InheritedOrDefault => inherited,
             explicit => explicit,
         };
 
-        if effective_state == LogSelectionState::Selected {
+        if effective_selection_state == LogSelectionState::Selected {
             out.extend(&sub_module_node.logs);
         }
 
@@ -871,18 +878,18 @@ impl ModulePathSelections {
                 .sub_modules
                 .get(sub_module_segment)
                 .unwrap_or_else(|| unreachable!("Nested submodule {:?} not found", sub_module_segment));
-            Self::collect_submodule_recursive(sub_module_selection, sub_module_node, effective_state, out);
+            Self::collect_logs_from_submodule(sub_module_selection, sub_module_node, effective_selection_state, out);
         }
     }
 
-    pub fn get_crate_module(&self, path: &ModulePath) -> Option<&CrateModulePathNodeSelection> {
+    pub fn get_crate_module(&self, path: &ModulePath) -> Option<&CrateModuleNodeSelection> {
         self.crates.get(&path.crate_module)
     }
-    fn get_crate_module_mut(&mut self, path: &ModulePath) -> Option<&mut CrateModulePathNodeSelection> {
+    fn get_crate_module_mut(&mut self, path: &ModulePath) -> Option<&mut CrateModuleNodeSelection> {
         self.crates.get_mut(&path.crate_module)
     }
 
-    pub fn get_module(&self, path: &ModulePath) -> Option<&ModulePathNodeSelection> {
+    pub fn get_module(&self, path: &ModulePath) -> Option<&ModuleNodeSelection> {
         let crate_module = self.crates.get(&path.crate_module)?;
         let mut module = crate_module.modules.get(&path.modules[0])?;
 
@@ -892,7 +899,7 @@ impl ModulePathSelections {
 
         Some(module)
     }
-    fn get_module_mut(&mut self, path: &ModulePath) -> Option<&mut ModulePathNodeSelection> {
+    fn get_module_mut(&mut self, path: &ModulePath) -> Option<&mut ModuleNodeSelection> {
         let crate_module = self.crates.get_mut(&path.crate_module)?;
         let mut module = crate_module.modules.get_mut(&path.modules[0])?;
 
@@ -903,7 +910,7 @@ impl ModulePathSelections {
         Some(module)
     }
 
-    pub fn get_sub_module(&self, path: &ModulePath) -> Option<&SubModulePathNodeSelection> {
+    pub fn get_sub_module(&self, path: &ModulePath) -> Option<&SubModuleNodeSelection> {
         let crate_module = self.crates.get(&path.crate_module)?;
         let mut module = crate_module.modules.get(&path.modules[0])?;
 
@@ -919,7 +926,7 @@ impl ModulePathSelections {
 
         Some(sub_module)
     }
-    fn get_sub_module_mut(&mut self, path: &ModulePath) -> Option<&mut SubModulePathNodeSelection> {
+    fn get_sub_module_mut(&mut self, path: &ModulePath) -> Option<&mut SubModuleNodeSelection> {
         let crate_module = self.crates.get_mut(&path.crate_module)?;
         let mut module = crate_module.modules.get_mut(&path.modules[0])?;
 
@@ -937,11 +944,12 @@ impl ModulePathSelections {
     }
 }
 
-pub struct CrateModulePathNodeSelection {
+pub struct CrateModuleNodeSelection {
     pub selection: LogSelection,
-    pub modules: HashMap<ModulePathSegment, ModulePathNodeSelection>,
+    pub metadata: NodeMetadata,
+    pub modules: HashMap<ModulePathSegment, ModuleNodeSelection>,
 }
-impl CrateModulePathNodeSelection {
+impl CrateModuleNodeSelection {
     pub fn select(&mut self, required_privilege: LogSelectionPrivilege, requested_selection_state: LogSelectionState, recursive: bool) -> Result<(), LogSelectionCommandError> {
         if required_privilege > self.selection.privilege {
             Err(LogSelectionCommandError::InsufficientPrivilege {
@@ -967,12 +975,13 @@ impl CrateModulePathNodeSelection {
     }
 }
 
-pub struct ModulePathNodeSelection {
+pub struct ModuleNodeSelection {
     pub selection: LogSelection,
-    pub modules: HashMap<ModulePathSegment, ModulePathNodeSelection>,
-    pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNodeSelection>,
+    pub metadata: NodeMetadata,
+    pub modules: HashMap<ModulePathSegment, ModuleNodeSelection>,
+    pub sub_modules: HashMap<SubModulePathSegment, SubModuleNodeSelection>,
 }
-impl ModulePathNodeSelection {
+impl ModuleNodeSelection {
     pub fn select(&mut self, required_privilege: LogSelectionPrivilege, requested_selection_state: LogSelectionState, recursive: bool) -> Result<(), LogSelectionCommandError> {
         if required_privilege > self.selection.privilege {
             Err(LogSelectionCommandError::InsufficientPrivilege {
@@ -1002,11 +1011,12 @@ impl ModulePathNodeSelection {
     }
 }
 
-pub struct SubModulePathNodeSelection {
+pub struct SubModuleNodeSelection {
     pub selection: LogSelection,
-    pub sub_modules: HashMap<SubModulePathSegment, SubModulePathNodeSelection>,
+    pub metadata: NodeMetadata,
+    pub sub_modules: HashMap<SubModulePathSegment, SubModuleNodeSelection>,
 }
-impl SubModulePathNodeSelection {
+impl SubModuleNodeSelection {
     pub fn select(&mut self, required_privilege: LogSelectionPrivilege, requested_selection_state: LogSelectionState, recursive: bool) -> Result<(), LogSelectionCommandError> {
         if required_privilege > self.selection.privilege {
             Err(LogSelectionCommandError::InsufficientPrivilege {
@@ -1032,11 +1042,11 @@ impl SubModulePathNodeSelection {
     }
 }
 
-// PhysicalPathSelection
+// --- PhysicalPathSelections ---
 
 #[derive(Default)]
 pub struct PhysicalPathSelections {
-    pub crates: HashMap<CrateFolderPathSegment, CrateFolderPathNodeSelection>,
+    pub crates: HashMap<CrateFolderPathSegment, CrateFolderNodeSelection>,
 }
 impl PhysicalPathSelections {
     pub fn select(&mut self, path: &PhysicalSelectionPath, command: LogSelectionCommand) -> Result<(), LogSelectionCommandError> {
@@ -1087,42 +1097,42 @@ impl PhysicalPathSelections {
 
         for (crate_segment, crate_node_selection) in &self.crates {
             let crate_node = registry
-                .physical_index
+                .physical_registry
                 .crates
                 .get(crate_segment)
-                .unwrap_or_else(|| unreachable!("Crate {:?} not found in physical index", crate_segment));
+                .unwrap_or_else(|| unreachable!("Crate {:?} not found in physical registry", crate_segment));
 
-            let effective_state = match crate_node_selection.selection.state {
+            let effective_selection_state = match crate_node_selection.selection.state {
                 LogSelectionState::InheritedOrDefault => LogSelectionState::Deselected,
                 explicit => explicit,
             };
 
-            if effective_state == LogSelectionState::Selected {
+            if effective_selection_state == LogSelectionState::Selected {
                 out.extend(crate_node.files.values().flat_map(|file| file.lines.values().flat_map(|line| &line.logs)));
             }
 
             for (folder_segment, folder_selection) in &crate_node_selection.folders {
                 let folder_node = crate_node.folders.get(folder_segment)
-                    .unwrap_or_else(|| unreachable!("Folder {:?} not found in index", folder_segment));
-                Self::collect_folder_recursive(folder_selection, folder_node, effective_state, &mut out);
+                    .unwrap_or_else(|| unreachable!("Folder {:?} not found in registry", folder_segment));
+                Self::collect_logs_from_folder(folder_selection, folder_node, effective_selection_state, &mut out);
             }
         }
 
         out
     }
 
-    fn collect_folder_recursive(
-        selection: &FolderPathNodeSelection,
-        folder_node: &FolderPathNode,
+    fn collect_logs_from_folder(
+        selection: &FolderNodeSelection,
+        folder_node: &FolderNode,
         inherited_state: LogSelectionState,
         out: &mut Vec<LogId>,
     ) {
-        let effective_state = match selection.selection.state {
+        let effective_selection_state = match selection.selection.state {
             LogSelectionState::InheritedOrDefault => inherited_state,
             explicit => explicit,
         };
 
-        if effective_state == LogSelectionState::Selected {
+        if effective_selection_state == LogSelectionState::Selected {
             out.extend(folder_node.files.values().flat_map(|file| file.lines.values().flat_map(|line| &line.logs)));
         }
 
@@ -1131,7 +1141,7 @@ impl PhysicalPathSelections {
                 .folders
                 .get(folder_segment)
                 .unwrap_or_else(|| unreachable!("Nested folder {:?} not found", folder_segment));
-            Self::collect_folder_recursive(folder_selection, folder_node, effective_state, out);
+            Self::collect_logs_from_folder(folder_selection, folder_node, effective_selection_state, out);
         }
 
         for (file_segment, file_selection) in &selection.files {
@@ -1139,22 +1149,22 @@ impl PhysicalPathSelections {
                 .files
                 .get(file_segment)
                 .unwrap_or_else(|| unreachable!("File {:?} not found", file_segment));
-            Self::collect_file_recursive(file_selection, file_node, effective_state, out);
+            Self::collect_logs_from_file(file_selection, file_node, effective_selection_state, out);
         }
     }
 
-    fn collect_file_recursive(
-        selection: &FilePathNodeSelection,
-        file_node: &FilePathNode,
+    fn collect_logs_from_file(
+        selection: &FileNodeSelection,
+        file_node: &FileNode,
         inherited_state: LogSelectionState,
         out: &mut Vec<LogId>,
     ) {
-        let effective_state = match selection.selection.state {
+        let effective_selection_state = match selection.selection.state {
             LogSelectionState::InheritedOrDefault => inherited_state,
             explicit => explicit,
         };
 
-        if effective_state == LogSelectionState::Selected {
+        if effective_selection_state == LogSelectionState::Selected {
             out.extend(file_node.lines
                 .values()
                 .into_iter()
@@ -1167,34 +1177,34 @@ impl PhysicalPathSelections {
                 .lines
                 .get(line_segment)
                 .unwrap_or_else(|| unreachable!("Line {:?} not found", line_segment));
-            Self::collect_line_recursive(line_selection, line_node, effective_state, out);
+            Self::collect_logs_from_line(line_selection, line_node, effective_selection_state, out);
         }
     }
 
-    fn collect_line_recursive(
-        selection: &LinePathNodeSelection,
-        line_node: &LinePathNode,
+    fn collect_logs_from_line(
+        selection: &LineNodeSelection,
+        line_node: &LineNode,
         inherited_state: LogSelectionState,
         out: &mut Vec<LogId>,
     ) {
-        let effective_state = match selection.selection.state {
+        let effective_selection_state = match selection.selection.state {
             LogSelectionState::InheritedOrDefault => inherited_state,
             explicit => explicit,
         };
 
-        if effective_state == LogSelectionState::Selected {
+        if effective_selection_state == LogSelectionState::Selected {
             out.extend(&line_node.logs);
         }
     }
 
-    pub fn get_crate_folder(&self, path: &PhysicalSelectionPath) -> Option<&CrateFolderPathNodeSelection> {
+    pub fn get_crate_folder(&self, path: &PhysicalSelectionPath) -> Option<&CrateFolderNodeSelection> {
         self.crates.get(&path.crate_folder)
     }
-    fn get_crate_folder_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut CrateFolderPathNodeSelection> {
+    fn get_crate_folder_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut CrateFolderNodeSelection> {
         self.crates.get_mut(&path.crate_folder)
     }
     
-    pub fn get_folder(&self, path: &PhysicalSelectionPath) -> Option<&FolderPathNodeSelection> {
+    pub fn get_folder(&self, path: &PhysicalSelectionPath) -> Option<&FolderNodeSelection> {
         let crate_folder = self.crates.get(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get(&path.folders[0])?;
 
@@ -1204,7 +1214,7 @@ impl PhysicalPathSelections {
 
         Some(folder)
     }
-    fn get_folder_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut FolderPathNodeSelection> {
+    fn get_folder_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut FolderNodeSelection> {
         let crate_folder = self.crates.get_mut(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get_mut(&path.folders[0])?;
 
@@ -1215,7 +1225,7 @@ impl PhysicalPathSelections {
         Some(folder)
     }
     
-    pub fn get_file(&self, path: &PhysicalSelectionPath) -> Option<&FilePathNodeSelection> {
+    pub fn get_file(&self, path: &PhysicalSelectionPath) -> Option<&FileNodeSelection> {
         let crate_folder = self.crates.get(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get(&path.folders[0])?;
 
@@ -1227,7 +1237,7 @@ impl PhysicalPathSelections {
 
         Some(file)
     }
-    fn get_file_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut FilePathNodeSelection> {
+    fn get_file_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut FileNodeSelection> {
         let crate_folder = self.crates.get_mut(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get_mut(&path.folders[0])?;
 
@@ -1240,7 +1250,7 @@ impl PhysicalPathSelections {
         Some(file)
     }
     
-    pub fn get_line(&self, path: &PhysicalSelectionPath) -> Option<&LinePathNodeSelection> {
+    pub fn get_line(&self, path: &PhysicalSelectionPath) -> Option<&LineNodeSelection> {
         let crate_folder = self.crates.get(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get(&path.folders[0])?;
 
@@ -1254,7 +1264,7 @@ impl PhysicalPathSelections {
 
         Some(line)
     }
-    fn get_line_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut LinePathNodeSelection> {
+    fn get_line_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut LineNodeSelection> {
         let crate_folder = self.crates.get_mut(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get_mut(&path.folders[0])?;
 
@@ -1270,12 +1280,13 @@ impl PhysicalPathSelections {
     }
 }
 
-pub struct CrateFolderPathNodeSelection {
+pub struct CrateFolderNodeSelection {
     pub selection: LogSelection,
-    pub folders: HashMap<FolderPathSegment, FolderPathNodeSelection>,
-    pub files: HashMap<FilePathSegment, FilePathNodeSelection>,
+    pub metadata: NodeMetadata,
+    pub folders: HashMap<FolderPathSegment, FolderNodeSelection>,
+    pub files: HashMap<FilePathSegment, FileNodeSelection>,
 }
-impl CrateFolderPathNodeSelection {
+impl CrateFolderNodeSelection {
     pub fn select(&mut self, required_privilege: LogSelectionPrivilege, requested_selection_state: LogSelectionState, recursive: bool) -> Result<(), LogSelectionCommandError> {
         if required_privilege > self.selection.privilege {
             Err(LogSelectionCommandError::InsufficientPrivilege {
@@ -1305,12 +1316,13 @@ impl CrateFolderPathNodeSelection {
     }
 }
 
-pub struct FolderPathNodeSelection {
+pub struct FolderNodeSelection {
     pub selection: LogSelection,
-    pub folders: HashMap<FolderPathSegment, FolderPathNodeSelection>,
-    pub files: HashMap<FilePathSegment, FilePathNodeSelection>,
+    pub metadata: NodeMetadata,
+    pub folders: HashMap<FolderPathSegment, FolderNodeSelection>,
+    pub files: HashMap<FilePathSegment, FileNodeSelection>,
 }
-impl FolderPathNodeSelection {
+impl FolderNodeSelection {
     pub fn select(&mut self, required_privilege: LogSelectionPrivilege, requested_selection_state: LogSelectionState, recursive: bool) -> Result<(), LogSelectionCommandError> {
         if required_privilege > self.selection.privilege {
             Err(LogSelectionCommandError::InsufficientPrivilege {
@@ -1340,11 +1352,12 @@ impl FolderPathNodeSelection {
     }
 }
 
-pub struct FilePathNodeSelection {
+pub struct FileNodeSelection {
     pub selection: LogSelection,
-    pub lines: HashMap<LinePathSegment, LinePathNodeSelection>,
+    pub metadata: NodeMetadata,
+    pub lines: HashMap<LinePathSegment, LineNodeSelection>,
 }
-impl FilePathNodeSelection {
+impl FileNodeSelection {
     pub fn select(&mut self, required_privilege: LogSelectionPrivilege, requested_selection_state: LogSelectionState, recursive: bool) -> Result<(), LogSelectionCommandError> {
         if required_privilege > self.selection.privilege {
             Err(LogSelectionCommandError::InsufficientPrivilege {
@@ -1370,10 +1383,11 @@ impl FilePathNodeSelection {
     }
 }
 
-pub struct LinePathNodeSelection {
+pub struct LineNodeSelection {
     pub selection: LogSelection,
+    pub metadata: NodeMetadata,
 }
-impl LinePathNodeSelection {
+impl LineNodeSelection {
     pub fn select(&mut self, required_privilege: LogSelectionPrivilege, requested_selection_state: LogSelectionState) -> Result<(), LogSelectionCommandError> {
         if required_privilege > self.selection.privilege {
             Err(LogSelectionCommandError::InsufficientPrivilege {

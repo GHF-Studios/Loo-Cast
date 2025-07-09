@@ -146,7 +146,7 @@ fn render_span_tree(
     log_registry: &LogRegistry
 ) {
     ScrollArea::vertical().show(ui, |ui| {
-        for (root_path_segment, root_node) in log_registry.span_index.span_roots {
+        for (root_path_segment, root_node) in log_registry.span_registry.span_roots {
             let root_path = SpanPath { spans: vec![root_path_segment.clone()] };
 
             ui.indent(root_path.clone(), |ui| {
