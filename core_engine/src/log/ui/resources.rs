@@ -18,9 +18,9 @@ impl Default for LogViewerState {
             split_ratio: 0.35,
             threshold: LogLevel::Warn,
             tree_mode: FilterTreeMode::Span,
-            span_selections: Vec::new(),
-            module_selections: Vec::new(),
-            physical_selections: Vec::new(),
+            span_selections: SpanPathSelections::default(),
+            module_selections: ModulePathSelections::default(),
+            physical_selections: PhysicalPathSelections::default(),
         }
     }
 }
