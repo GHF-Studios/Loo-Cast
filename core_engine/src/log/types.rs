@@ -55,6 +55,11 @@ impl LogId {
         LogId(id)
     }
 }
+impl std::fmt::Display for LogId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum LogPath {
@@ -392,6 +397,8 @@ pub struct SpanRegistry {
 }
 impl SpanRegistry {
     pub fn insert(&mut self, path: &SpanPath, log_id: LogId) {
+        println!("SpanRegistry: Trying to insert path `{path}` with log `{log_id}`");
+
         let root_span_segment = if path.spans.is_empty() {
             SpanSegment { name: "[UNCATEGORIZED]".to_string() }
         } else {
@@ -407,6 +414,8 @@ impl SpanRegistry {
     }
 
     pub fn insert_without_log(&mut self, path: &SpanPath) {
+        println!("SpanRegistry: Trying to insert path `{path}` without log");
+
         let root_span_segment = if path.spans.is_empty() {
             SpanSegment { name: "[UNCATEGORIZED]".to_string() }
         } else {
@@ -434,6 +443,8 @@ pub struct ModuleRegistry {
 }
 impl ModuleRegistry {
     pub fn insert(&mut self, path: &ModulePath, log_id: LogId) {
+        // println!("ModuleRegistry: Trying to insert path `{path}` with log `{log_id}`");
+
         let crate_module_segment = if path.crate_module.name.is_empty() {
             CrateModuleSegment { name: "[UNCATEGORIZED]".to_string() }
         } else {
@@ -467,6 +478,8 @@ impl ModuleRegistry {
     }
 
     pub fn insert_without_log(&mut self, path: &ModulePath) {
+        // println!("ModuleRegistry: Trying to insert path `{path}` without log");
+
         let crate_module_segment = if path.crate_module.name.is_empty() {
             CrateModuleSegment { name: "[UNCATEGORIZED]".to_string() }
         } else {
@@ -528,6 +541,8 @@ pub struct PhysicalRegistry {
 }
 impl PhysicalRegistry {
     pub fn insert(&mut self, path: &PhysicalStoragePath, log_id: LogId) {
+        // println!("PhysicalRegistry: Trying to insert path `{path}` with log `{log_id}`");
+
         let file = {
             let crate_folder_segment = if path.crate_folder.name.is_empty() {
                 CrateFolderSegment { name: "[UNCATEGORIZED]".to_string() }
@@ -555,6 +570,8 @@ impl PhysicalRegistry {
     }
 
     pub fn insert_without_log(&mut self, path: &PhysicalStoragePath) {
+        // println!("PhysicalRegistry: Trying to insert path `{path}` without log");
+
         let file = {
             let crate_folder_segment = if path.crate_folder.name.is_empty() {
                 CrateFolderSegment { name: "[UNCATEGORIZED]".to_string() }

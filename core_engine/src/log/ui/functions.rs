@@ -1,4 +1,3 @@
-use bevy::prelude::warn;
 use bevy_egui::egui::{self, Color32, ScrollArea, TextFormat, FontId};
 use egui::{text::LayoutJob, WidgetText};
 
@@ -14,8 +13,9 @@ pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut L
         .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
         .inner_margin(egui::Margin::symmetric(6.0, 4.0))
         .show(ui, |ui| {
-            ui.label("Filter Mode:");
             ui.horizontal(|ui| {
+                ui.label("Filter Mode:");
+
                 let selected = matches!(tree_mode, FilterTreeMode::Span);
                 if ui.selectable_label(selected, "↔ Span").clicked() {
                     *tree_mode = FilterTreeMode::Span;
@@ -77,51 +77,43 @@ pub fn render_console_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut LogViewe
                 .unwrap_or(2);
             let mut slider_value = level_index as f32;
 
-            egui::Frame::none()
-                .fill(Color32::from_gray(30))
-                .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
-                .rounding(egui::Rounding::same(4.0))
-                .inner_margin(egui::Margin::symmetric(6.0, 4.0))
-                .show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.label("Log Level:");
-                    
-                        let slider = egui::Slider::new(&mut slider_value, 0.0..=4.0)
-                            .step_by(1.0)
-                            .show_value(false);
-                        let response = ui.add(slider);
-                    
-                        let track_rect = response.rect.shrink(6.0);
-                        let norm = (slider_value / 4.0).clamp(0.0, 1.0);
-                        let x = track_rect.left() + norm * track_rect.width();
-                        let y = track_rect.center().y;
-                        let center = egui::pos2(x, y);
-                    
-                        let idx = slider_value.round().clamp(0.0, 4.0) as usize;
-                        let symbol = level_symbols[idx];
-                        let color = level_colors[idx];
-                    
-                        ui.painter().circle_filled(center, 11.0, color);
-                        ui.painter().text(
-                            center,
-                            egui::Align2::CENTER_CENTER,
-                            symbol,
-                            egui::TextStyle::Button.resolve(ui.style()),
-                            Color32::BLACK,
-                        );
-                    
-                        *threshold = all_levels[idx];
-                    });
-                });
+            ui.horizontal(|ui| {
+                ui.label("Log Level:");
+            
+                let slider = egui::Slider::new(&mut slider_value, 0.0..=4.0)
+                    .step_by(1.0)
+                    .show_value(false);
+                let response = ui.add(slider);
+            
+                let track_rect = response.rect.shrink(6.0);
+                let norm = (slider_value / 4.0).clamp(0.0, 1.0);
+                let x = track_rect.left() + norm * track_rect.width();
+                let y = track_rect.center().y;
+                let center = egui::pos2(x, y);
+            
+                let idx = slider_value.round().clamp(0.0, 4.0) as usize;
+                let symbol = level_symbols[idx];
+                let color = level_colors[idx];
+            
+                ui.painter().text(
+                    center,
+                    egui::Align2::CENTER_CENTER,
+                    symbol,
+                    egui::TextStyle::Button.resolve(ui.style()),
+                    color,
+                );
+            
+                *threshold = all_levels[idx];
+            });
         });
 }
 
 pub fn render_console(
     ui: &mut egui::Ui,
-    log_viewer_state: &mut LogViewerState,
+    log_viewer_state: &LogViewerState,
     log_registry: &LogRegistry
 ) {
-    let logs = gather_logs(&log_viewer_state, &log_registry);
+    let logs = gather_logs(log_viewer_state, log_registry);
     let row_h = ui.text_style_height(&egui::TextStyle::Monospace);
     egui::ScrollArea::vertical()
         .stick_to_bottom(true)
@@ -134,42 +126,49 @@ pub fn render_console(
 
 // === Utilities ===
 
-pub(super) fn gather_logs(
+pub fn gather_logs(
     state: &LogViewerState,
-    log_registry: &LogRegistry,
+    registry: &LogRegistry,
 ) -> Vec<LogEntry> {
+    let mut out = Vec::new();
+
     match state.tree_mode {
         FilterTreeMode::Span => {
-            let mut out = Vec::new();
+            let log_ids = state.physical_selections.collect_logs(registry);
+            println!("Collected {} logs from `Span`", log_ids.len());
 
-            // Do stuff
-            todo!();
-
-            out.retain(|log: &LogEntry| log.lvl >= state.threshold);
-            out.sort_by_key(|l| l.ts);
-            out
+            for log_id in log_ids {
+                if let Some(entry) = registry.get_log(&log_id) {
+                    out.push(entry.clone());
+                }
+            }
         }
         FilterTreeMode::Module => {
-            let mut out = Vec::new();
-
-            // Do stuff
-            todo!();
-
-            out.retain(|log: &LogEntry| log.lvl >= state.threshold);
-            out.sort_by_key(|l| l.ts);
-            out
+            let log_ids = state.physical_selections.collect_logs(registry);
+            println!("Collected {} logs from `Module`", log_ids.len());
+            
+            for log_id in log_ids {
+                if let Some(entry) = registry.get_log(&log_id) {
+                    out.push(entry.clone());
+                }
+            }
         }
         FilterTreeMode::Physical => {
-            let mut out = Vec::new();
-            
-            // Do stuff
-            todo!();
-            
-            out.retain(|log: &LogEntry| log.lvl >= state.threshold);
-            out.sort_by_key(|l| l.ts);
-            out
+            let log_ids = state.physical_selections.collect_logs(registry);
+            println!("Collected {} logs from `Physical`", log_ids.len());
+
+            for log_id in log_ids {
+                if let Some(entry) = registry.get_log(&log_id) {
+                    out.push(entry.clone());
+                }
+            }
         }
     }
+
+    out.retain(|log| log.lvl >= state.threshold);
+    out.sort_by_key(|log| log.ts);
+    println!("Gathered {} logs in total", out.len());
+    out
 }
 
 pub(super) fn format_log(log: &LogEntry) -> WidgetText {
@@ -304,7 +303,6 @@ fn render_span_branch(
     node: &mut SpanNode,
     inherited: LogSelectionState,
 ) {
-    warn!(">>> ENTERED SPAN BRANCH <<<");
     let eff = match sel.selection.state {
         LogSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
@@ -341,7 +339,6 @@ fn render_crate_module_branch(
     node: &mut CrateModuleNode,
     inherited: LogSelectionState,
 ) {
-    warn!(">>> ENTERED CRATE MODULE BRANCH <<<");
     let eff = match sel.selection.state {
         LogSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
@@ -376,7 +373,6 @@ fn render_module_branch(
     node: &mut ModuleNode,
     inherited: LogSelectionState,
 ) {
-    warn!(">>> ENTERED MODULE BRANCH <<<");
     let eff = match sel.selection.state {
         LogSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
@@ -417,7 +413,6 @@ fn render_submodule_branch(
     node: &mut SubModuleNode,
     inherited: LogSelectionState,
 ) {
-    warn!(">>> ENTERED SUB MODULE BRANCH <<<");
     let eff = match sel.selection.state {
         LogSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
@@ -454,7 +449,6 @@ fn render_crate_folder_branch(
     node: &mut CrateFolderNode,
     inherited: LogSelectionState,
 ) {
-    warn!(">>> ENTERED CRATE FOLDER BRANCH <<<");
     let eff = match sel.selection.state {
         LogSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
@@ -495,7 +489,6 @@ fn render_folder_branch(
     node: &mut FolderNode,
     inherited: LogSelectionState,
 ) {
-    warn!(">>> ENTERED FOLDER BRANCH <<<");
     let eff = match sel.selection.state {
         LogSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
@@ -536,7 +529,6 @@ fn render_file_branch(
     node: &mut FileNode,
     inherited: LogSelectionState,
 ) {
-    warn!(">>> ENTERED FILE BRANCH <<<");
     let eff = match sel.selection.state {
         LogSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
@@ -571,7 +563,6 @@ fn render_line_leaf(
     _node: &mut LineNode,
     inherited: LogSelectionState,
 ) {
-    warn!(">>> ENTERED LINE LEAF <<<");
     let eff = match sel.selection.state {
         LogSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
