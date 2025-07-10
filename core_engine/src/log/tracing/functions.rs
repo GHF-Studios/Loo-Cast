@@ -49,7 +49,7 @@ where
     let mut cur = ctx.lookup_current();
 
     while let Some(span) = cur {
-        segments.push(SpanPathSegment { name: span.name().to_string() });
+        segments.push(SpanSegment { name: span.name().to_string() });
         cur = span.parent();
     }
 
@@ -70,11 +70,11 @@ fn module_path_from_event(event: &Event<'_>) -> ModulePath {
         let segments: Vec<_> = path
             .strip_prefix("crate::").unwrap_or(path)
             .split("::")
-            .map(|s| ModulePathSegment { name: s.to_string() })
+            .map(|s| ModuleSegment { name: s.to_string() })
             .collect();
 
         return ModulePath {
-            crate_module: CrateModulePathSegment { name: crate_name },
+            crate_module: CrateModuleSegment { name: crate_name },
             modules: segments,
             sub_modules: vec![],
         };
@@ -92,14 +92,14 @@ fn physical_path_from_event(event: &Event<'_>) -> PhysicalStoragePath {
         if let Some(file_name) = parts.pop() {
             let folders = parts
                 .into_iter()
-                .map(|s| FolderPathSegment { name: s.to_string() })
+                .map(|s| FolderSegment { name: s.to_string() })
                 .collect();
 
             return PhysicalStoragePath {
-                crate_folder: CrateFolderPathSegment { name: crate_name },
+                crate_folder: CrateFolderSegment { name: crate_name },
                 folders,
-                file: FilePathSegment { name: file_name.to_string() },
-                line: LinePathSegment { number: line },
+                file: FileSegment { name: file_name.to_string() },
+                line: LineSegment { number: line },
             };
         }
     }

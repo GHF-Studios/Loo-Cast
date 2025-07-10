@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
-use egui::Color32;
 
 use crate::{log::{resources::LogRegistryHandle, ui::{functions::{format_log, gather_logs, render_console, render_console_toolbar, render_selection_tree, render_selection_tree_toolbar}, resources::LogViewerState}}, ui::toolbar::resources::ToolbarState};
 
@@ -20,14 +19,20 @@ pub(super) fn show_log_viewer_ui(
             ui.columns(2, |cols| {
                 // Left panel (SelectionTree + Toolbar)
                 cols[0].vertical(|ui| {
+                    warn!("Skibidi 1");
                     render_selection_tree_toolbar(ui, &mut log_viewer_state);
-                    render_selection_tree(ui, &mut log_viewer_state, &log_registry_handle.0.lock().unwrap());
+                    warn!("Skibidi 2");
+                    render_selection_tree(ui, &mut log_viewer_state, &mut log_registry_handle.0.lock().unwrap());
+                    warn!("Skibidi 3");
                 });
 
                 // Right panel (Console + Toolbar)
                 cols[1].vertical(|ui| {
+                    warn!("Skibidi 4");
                     render_console_toolbar(ui, &mut log_viewer_state);
-                    render_console(ui, &mut log_viewer_state, &log_registry_handle.0.lock().unwrap())
+                    warn!("Skibidi 5");
+                    render_console(ui, &mut log_viewer_state, &log_registry_handle.0.lock().unwrap());
+                    warn!("Skibidi 6");
                 });
             });
         });

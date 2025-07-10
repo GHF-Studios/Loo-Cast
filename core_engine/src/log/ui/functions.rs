@@ -1,8 +1,10 @@
-use bevy_egui::egui::{self, Color32, RichText, ScrollArea, TextFormat, FontId};
+use bevy::prelude::warn;
+use bevy_egui::egui::{self, Color32, ScrollArea, TextFormat, FontId};
 use egui::{text::LayoutJob, WidgetText};
 
-use crate::log::{types::{LogEntry, LogLevel::{self, *}, LogRegistry, SpanPath}, ui::{resources::LogViewerState, types::FilterTreeMode}};
-use tracing::Metadata;
+use crate::log::{types::{*, LogLevel::*}, ui::{resources::LogViewerState, types::FilterTreeMode}};
+
+// === Basics ===
 
 pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState) {
     let tree_mode = &mut log_viewer_state.tree_mode;
@@ -35,19 +37,19 @@ pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut L
 pub fn render_selection_tree(
     ui: &mut egui::Ui,
     log_viewer_state: &mut LogViewerState,
-    log_registry: &LogRegistry
+    log_registry: &mut LogRegistry
 ) {
     let tree_mode = log_viewer_state.tree_mode;
 
     match tree_mode {
         FilterTreeMode::Span => {
-            render_span_tree(ui, log_viewer_state, log_registry);
+            render_span_tree(ui, log_viewer_state, &mut log_registry.span_registry);
         }
         FilterTreeMode::Module => {
-            render_module_tree(ui, log_viewer_state, log_registry);
+            render_module_tree(ui, log_viewer_state, &mut log_registry.module_registry);
         }
         FilterTreeMode::Physical => {
-            render_physical_tree(ui, log_viewer_state, log_registry);
+            render_physical_tree(ui, log_viewer_state, &mut log_registry.physical_registry);
         }
     }
 }
@@ -129,6 +131,8 @@ pub fn render_console(
             }
         });
 }
+
+// === Utilities ===
 
 pub(super) fn gather_logs(
     state: &LogViewerState,
@@ -230,361 +234,360 @@ pub(super) fn format_log(log: &LogEntry) -> WidgetText {
     WidgetText::from(job)
 }
 
+// === Tree Rendering ===
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-fn render_span_tree(
+pub fn render_span_tree(
     ui: &mut egui::Ui,
     log_viewer_state: &mut LogViewerState,
-    log_registry: &LogRegistry
+    span_registry: &mut crate::log::types::SpanRegistry,
 ) {
     ScrollArea::vertical().show(ui, |ui| {
-        for (root_path_segment, root_node) in log_registry.span_registry.span_roots {
-            let root_path = SpanPath { spans: vec![root_path_segment.clone()] };
+        for (root_seg, root_sel) in &mut log_viewer_state.span_selections.span_roots {
+            if let Some(root_node) = span_registry.span_roots.get_mut(root_seg) {
+                let sel_state = match root_sel.selection.state {
+                    LogSelectionState::InheritedOrDefault => LogSelectionState::Deselected,
+                    LogSelectionState::Selected | LogSelectionState::Deselected => root_sel.selection.state.clone()
+                };
 
-            ui.indent(root_path.clone(), |ui| {
-                ui.horizontal(|ui| {
-                    let node_icon = "↔";
-                    let node_label = root_path_segment.name.clone();
-
-                    if log_viewer_state.tree_mode != FilterTreeMode::Span {
-                        unreachable!("Mismatched tree mode: Expected `Span`");
-                    }
-
-                    let mut checked = log_viewer_state.span_selections.is_selected(&root_path);
-                    //if ui.checkbox(&mut checked, "").changed() {
-                    //    if checked { log_viewer_state.span_selections.select(&root_path); }
-                    //    else       { log_viewer_state.span_selections.deselect(&root_path); }
-                    //}
-
-                    ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
-                        for segment in root_node.span_children.keys().cloned() {
-                            render_span_branch(ui, log_viewer_state, log_storage, span_tree, vec![segment]);
-                        }
-                    });
-                });
-            });
+                render_span_branch(ui, root_seg, root_sel, root_node, sel_state);
+            }
         }
     });
-} 
+}
 
-fn render_module_tree(
+pub fn render_module_tree(
     ui: &mut egui::Ui,
     log_viewer_state: &mut LogViewerState,
-    log_registry: &LogRegistry
+    module_registry: &mut crate::log::types::ModuleRegistry,
 ) {
-    todo!()
-} 
+    ScrollArea::vertical().show(ui, |ui| {
+        for (crate_seg, crate_sel) in &mut log_viewer_state.module_selections.crates {
+            if let Some(crate_node) = module_registry.crates.get_mut(crate_seg) {
+                let sel_state = match crate_sel.selection.state {
+                    LogSelectionState::InheritedOrDefault => LogSelectionState::Deselected,
+                    LogSelectionState::Selected | LogSelectionState::Deselected => crate_sel.selection.state.clone()
+                };
 
-fn render_physical_tree(
+                render_crate_module_branch(ui, crate_seg, crate_sel, crate_node, sel_state);
+            }
+        }
+    });
+}
+
+pub fn render_physical_tree(
     ui: &mut egui::Ui,
     log_viewer_state: &mut LogViewerState,
-    log_registry: &LogRegistry
+    physical_registry: &mut crate::log::types::PhysicalRegistry,
 ) {
-    todo!()
-} 
+    ScrollArea::vertical().show(ui, |ui| {
+        for (crate_seg, crate_sel) in &mut log_viewer_state.physical_selections.crates {
+            if let Some(crate_node) = physical_registry.crates.get_mut(crate_seg) {
+                let sel_state = match crate_sel.selection.state {
+                    LogSelectionState::InheritedOrDefault => LogSelectionState::Deselected,
+                    LogSelectionState::Selected | LogSelectionState::Deselected => crate_sel.selection.state.clone()
+                };
+
+                render_crate_folder_branch(ui, crate_seg, crate_sel, crate_node, sel_state);
+            }
+        }
+    });
+}
+
+// === Node Rendering ===
+
+// --- Span ---
 
 fn render_span_branch(
     ui: &mut egui::Ui,
-    log_viewer_state: &mut LogViewerState,
-    log_registry: &LogRegistry
+    seg: &SpanSegment,
+    sel: &mut SpanNodeSelection,
+    node: &mut SpanNode,
+    inherited: LogSelectionState,
 ) {
-    ui.indent(node_idx, |ui| {
+    warn!(">>> ENTERED SPAN BRANCH <<<");
+    let eff = match sel.selection.state {
+        LogSelectionState::InheritedOrDefault => inherited,
+        explicit => explicit,
+    };
+
+    let label = format!("↔ {}", seg.name);
+    let mut checked = eff == LogSelectionState::Selected;
+
+    ui.collapsing(label, |ui| {
         ui.horizontal(|ui| {
-            let (node_icon, node_label, node_mode) = match arena.kind(node_idx) {
-                TreeKind::Span => ("↔", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Span),
-                TreeKind::Loc(loc_kind) => match loc_kind {
-                    LocKind::Crate  => ("📦", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Loc),
-                    LocKind::Module => ("📂", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Loc),
-                    LocKind::File   => ("📄", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Loc),
-                    LocKind::Line => {
-                        let (l, c) = arena.line_col(node_idx).unwrap_or((0, 0));
-                        ("📑", format!("{l}:{c}").into(), FilterTreeMode::Loc)
-                    }
-                    LocKind::SubModule => ("📂", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Loc),
-                },
-            };
-
-            if log_viewer_state.tree_mode != node_mode {
-                unreachable!("Mismatched tree mode: Tree expected {:?}, Node has {:?}", log_viewer_state.tree_mode, node_mode);
+            if ui.checkbox(&mut checked, "").changed() {
+                sel.selection.state = if checked {
+                    LogSelectionState::Selected
+                } else {
+                    LogSelectionState::Deselected
+                };
             }
-
-            match node_mode {
-                FilterTreeMode::Span => {
-                    let mut checked = log_viewer_state.selected_spans.is_selected(&node_idx);
-                    if ui.checkbox(&mut checked, "").changed() {
-                        if checked { log_viewer_state.selected_spans.select(node_idx); }
-                        else       { log_viewer_state.selected_spans.deselect(&node_idx); }
-                    }
-                },
-                FilterTreeMode::Loc => {
-                    let mut checked = log_viewer_state.selected_locations.is_selected(&node_idx);
-                    if ui.checkbox(&mut checked, "").changed() {
-                        if checked { log_viewer_state.selected_locations.select(node_idx); }
-                        else       { log_viewer_state.selected_locations.deselect(&node_idx); }
-                    }
-                },
-            }
-
-            ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
-                for child in arena.child_iter(node_idx) {
-                    render_span_branch(ui, log_viewer_state, child);
-                }
-            });
         });
-    });
-}
 
-fn render_module_branch() {
-    todo!()
-}
-
-fn render_physical_branch() {
-    todo!()
-}
-
-#[deprecated]
-pub fn resolve_log_location_path_OLD(meta: &Metadata<'_>) -> Vec<LocationPathSegment> {
-    let file_path = meta.file().expect("Missing file path in log metadata");
-    let module_path = meta.module_path().expect("Missing module path in log metadata");
-    let line = meta.line().expect("Missing line number in log metadata");
-
-    let module_segments: Vec<&str> = module_path.split("::").collect();
-    let crate_name = module_segments.first().expect("Empty module path");
-
-    let mut path = Vec::new();
-    path.push(LocationPathSegment::Crate(crate_name.to_string()));
-    for seg in &module_segments[1..] {
-        path.push(LocationPathSegment::Module(seg.to_string()));
-    }
-
-    let normalized = file_path.replace('\\', "/");
-    let file_name = normalized
-        .split('/')
-        .last()
-        .expect("Failed to extract file name from path");
-    path.push(LocationPathSegment::File(file_name.to_string()));
-
-    path.push(LocationPathSegment::Line(line));
-
-    path
-}
-
-#[maybe_deprecated]
-pub fn render_log_tree(ui: &mut egui::Ui, arena: &Arena) {
-    ScrollArea::vertical().show(ui, |ui| {
-        for root in arena.roots() {
-            render_node(ui, arena, root, 0);
+        for (child_seg, child_sel) in &mut sel.span_children {
+            if let Some(child_node) = node.span_children.get_mut(child_seg) {
+                render_span_branch(ui, child_seg, child_sel, child_node, eff);
+            }
         }
     });
 }
 
-#[maybe_deprecated]
-fn render_node(ui: &mut egui::Ui, arena: &Arena, idx: NodeIdx, depth: usize) {
-    let indent = " ".repeat(depth);
+// --- Module ---
 
-    match arena.kind(idx) {
-        TreeKind::Span => {
-            let name = arena.tok_str(arena.name_tok(idx));
-            ui.collapsing(format!("{indent}↔{}", name), |ui| {
-                for child in arena.child_iter(idx) {
-                    render_node(ui, arena, child, depth + 1);
-                }
-            });
-        }
-        TreeKind::Loc(loc_kind) => match loc_kind {
-            LocKind::Crate => {
-                let name = arena.tok_str(arena.name_tok(idx));
-                ui.collapsing(format!("{indent}📦{}", name), |ui| {
-                    for child in arena.child_iter(idx) {
-                        render_node(ui, arena, child, depth + 1);
-                    }
-                });
-            }
-            LocKind::Module => {
-                let name = arena.tok_str(arena.name_tok(idx));
-                ui.collapsing(format!("{indent}📂{}", name), |ui| {
-                    for child in arena.child_iter(idx) {
-                        render_node(ui, arena, child, depth + 1);
-                    }
-                });
-            }
-            LocKind::File => {
-                let name = arena.tok_str(arena.name_tok(idx));
-                ui.collapsing(format!("{indent}📄{}", name), |ui| {
-                    for child in arena.child_iter(idx) {
-                        render_node(ui, arena, child, depth + 1);
-                    }
-                });
-            }
-            LocKind::Line => {
-                let (l, c) = arena.line_col(idx).unwrap_or((0, 0));
-                ui.collapsing(format!("{indent}📑{l}:{c}"), |ui| {
-                    ScrollArea::vertical().max_height(120.0).show(ui, |ui| {
-                        for log in arena.logs(idx).iter() {
-                            ui.label(format_log(log));
-                        }
-                    });
-                });
-            }
-            LocKind::SubModule => {
-                let name = arena.tok_str(arena.name_tok(idx));
-                ui.collapsing(format!("{indent}📂{}", name), |ui| {
-                    for child in arena.child_iter(idx) {
-                        render_node(ui, arena, child, depth + 1);
-                    }
-                });
-            }
-        },
-    }
-}
-
-#[deprecated]
-pub fn render_span_tree_OLD(
+fn render_crate_module_branch(
     ui: &mut egui::Ui,
-    log_viewer_state: &mut LogViewerState,
-    log_storage: &LogStorage,
-    span_tree: &SpanTree,
+    seg: &CrateModuleSegment,
+    sel: &mut CrateModuleNodeSelection,
+    node: &mut CrateModuleNode,
+    inherited: LogSelectionState,
 ) {
-    ScrollArea::vertical().show(ui, |ui| {
-        for (root_path_segment, root_node) in span_tree.roots() {
-            let root_path = vec![root_path_segment.clone()];
-            let root_node = root_node.read().unwrap();
+    warn!(">>> ENTERED CRATE MODULE BRANCH <<<");
+    let eff = match sel.selection.state {
+        LogSelectionState::InheritedOrDefault => inherited,
+        explicit => explicit,
+    };
 
-            ui.indent(root_path.clone(), |ui| {
-                ui.horizontal(|ui| {
-                    let node_icon = "↔";
-                    let node_label = root_path_segment.clone();
-                    if log_viewer_state.tree_mode != FilterTreeMode::Span {
-                        unreachable!("Mismatched tree mode: Expected `Span`");
-                    }
+    let label = format!("📦 {}", seg.name);
+    let mut checked = eff == LogSelectionState::Selected;
 
-                    let mut checked = log_viewer_state.selected_spans.is_selected(&root_path);
-                    if ui.checkbox(&mut checked, "").changed() {
-                        if checked { log_viewer_state.selected_spans.select(&root_path); }
-                        else       { log_viewer_state.selected_spans.deselect(&root_path); }
-                    }
-
-                    ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
-                        let children = root_node.children.read().unwrap();
-                        for child_path in children.keys().cloned() {
-                            render_span_branch(ui, log_viewer_state, log_storage, span_tree, vec![child_path]);
-                        }
-                    });
-                });
-            });
-        }
-    });
-}
-
-#[deprecated]
-pub fn render_location_tree_OLD(
-    ui: &mut egui::Ui,
-    log_viewer_state: &mut LogViewerState,
-    log_storage: &LogStorage,
-    location_tree: &LocationTree,
-) {
-    ScrollArea::vertical().show(ui, |ui| {
-        for (root_path_segment, root_node) in location_tree.roots() {
-            let root_path = vec![root_path_segment.clone()];
-            let root_node = root_node.read().unwrap();
-
-            ui.indent(root_path.clone(), |ui| {
-                ui.horizontal(|ui| {
-                    let (node_icon, node_label) = match root_path_segment {
-                        LocationPathSegment::Crate(crate_name) => ("📦", crate_name),
-                        LocationPathSegment::Module(module_name) => ("📂", module_name),
-                        LocationPathSegment::File(file_name) => ("📄", file_name),
-                        LocationPathSegment::Line(line_num) => ("#", line_num.to_string()),
-                        LocationPathSegment::SubModule(sub_module) => ("📂", sub_module),
-                    };
-
-                    if log_viewer_state.tree_mode != FilterTreeMode::Loc {
-                        unreachable!("Mismatched tree mode: Expected `Loc`");
-                    }
-
-                    let mut checked = log_viewer_state.selected_locations.is_selected(&root_path);
-                    if ui.checkbox(&mut checked, "").changed() {
-                        if checked { log_viewer_state.selected_locations.select(&root_path); }
-                        else       { log_viewer_state.selected_locations.deselect(&root_path); }
-                    }
-
-                    ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
-                        let children = root_node.children.read().unwrap();
-                        for child_path in children.keys().cloned() {
-                            paint_location_branch(ui, log_viewer_state, log_storage, location_tree, vec![child_path]);
-                        }
-                    });
-                });
-            });
-        }
-    });
-}
-
-#[deprecated]
-fn render_branch_OLD(
-    ui:    &mut egui::Ui,
-    log_viewer_state: &mut LogViewerState,
-    log_storage: &LogStorage,
-    span_tree: &SpanTree,
-    location_tree: &LocationTree,
-) {
-    ui.indent(node_idx, |ui| {
+    ui.collapsing(label, |ui| {
         ui.horizontal(|ui| {
-            let (node_icon, node_label, node_mode) = match arena.kind(node_idx) {
-                TreeKind::Span => ("↔", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Span),
-                TreeKind::Loc(loc_kind) => match loc_kind {
-                    LocKind::Crate  => ("📦", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Loc),
-                    LocKind::Module => ("📂", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Loc),
-                    LocKind::File   => ("📄", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Loc),
-                    LocKind::Line => {
-                        let (l, c) = arena.line_col(node_idx).unwrap_or((0, 0));
-                        ("📑", format!("{l}:{c}").into(), FilterTreeMode::Loc)
-                    }
-                    LocKind::SubModule => ("📂", arena.tok_str(arena.name_tok(node_idx)), FilterTreeMode::Loc),
-                },
-            };
-
-            if log_viewer_state.tree_mode != node_mode {
-                unreachable!("Mismatched tree mode: Tree expected {:?}, Node has {:?}", log_viewer_state.tree_mode, node_mode);
+            if ui.checkbox(&mut checked, "").changed() {
+                sel.selection.state = if checked {
+                    LogSelectionState::Selected
+                } else {
+                    LogSelectionState::Deselected
+                };
             }
-
-            match node_mode {
-                FilterTreeMode::Span => {
-                    let mut checked = log_viewer_state.selected_spans.is_selected(&node_idx);
-                    if ui.checkbox(&mut checked, "").changed() {
-                        if checked { log_viewer_state.selected_spans.select(node_idx); }
-                        else       { log_viewer_state.selected_spans.deselect(&node_idx); }
-                    }
-                },
-                FilterTreeMode::Loc => {
-                    let mut checked = log_viewer_state.selected_locations.is_selected(&node_idx);
-                    if ui.checkbox(&mut checked, "").changed() {
-                        if checked { log_viewer_state.selected_locations.select(node_idx); }
-                        else       { log_viewer_state.selected_locations.deselect(&node_idx); }
-                    }
-                },
-            }
-
-            ui.collapsing(format!("{node_icon} {node_label}"), |ui| {
-                for child in arena.child_iter(node_idx) {
-                    render_branch_OLD(ui, arena, log_viewer_state, child);
-                }
-            });
         });
+
+        for (mod_seg, mod_sel) in &mut sel.modules {
+            if let Some(mod_node) = node.modules.get_mut(mod_seg) {
+                render_module_branch(ui, mod_seg, mod_sel, mod_node, eff);
+            }
+        }
+    });
+}
+
+fn render_module_branch(
+    ui: &mut egui::Ui,
+    seg: &ModuleSegment,
+    sel: &mut ModuleNodeSelection,
+    node: &mut ModuleNode,
+    inherited: LogSelectionState,
+) {
+    warn!(">>> ENTERED MODULE BRANCH <<<");
+    let eff = match sel.selection.state {
+        LogSelectionState::InheritedOrDefault => inherited,
+        explicit => explicit,
+    };
+
+    let label = format!("📂 {}", seg.name);
+    let mut checked = eff == LogSelectionState::Selected;
+
+    ui.collapsing(label, |ui| {
+        ui.horizontal(|ui| {
+            if ui.checkbox(&mut checked, "").changed() {
+                sel.selection.state = if checked {
+                    LogSelectionState::Selected
+                } else {
+                    LogSelectionState::Deselected
+                };
+            }
+        });
+
+        for (mod_seg, mod_sel) in &mut sel.modules {
+            if let Some(mod_node) = node.modules.get_mut(mod_seg) {
+                render_module_branch(ui, mod_seg, mod_sel, mod_node, eff);
+            }
+        }
+
+        for (sub_seg, sub_sel) in &mut sel.sub_modules {
+            if let Some(sub_node) = node.sub_modules.get_mut(sub_seg) {
+                render_submodule_branch(ui, sub_seg, sub_sel, sub_node, eff);
+            }
+        }
+    });
+}
+
+fn render_submodule_branch(
+    ui: &mut egui::Ui,
+    seg: &SubModuleSegment,
+    sel: &mut SubModuleNodeSelection,
+    node: &mut SubModuleNode,
+    inherited: LogSelectionState,
+) {
+    warn!(">>> ENTERED SUB MODULE BRANCH <<<");
+    let eff = match sel.selection.state {
+        LogSelectionState::InheritedOrDefault => inherited,
+        explicit => explicit,
+    };
+
+    let label = format!("📂 {}", seg.name);
+    let mut checked = eff == LogSelectionState::Selected;
+
+    ui.collapsing(label, |ui| {
+        ui.horizontal(|ui| {
+            if ui.checkbox(&mut checked, "").changed() {
+                sel.selection.state = if checked {
+                    LogSelectionState::Selected
+                } else {
+                    LogSelectionState::Deselected
+                };
+            }
+        });
+
+        for (sub_seg, sub_sel) in &mut sel.sub_modules {
+            if let Some(sub_node) = node.sub_modules.get_mut(sub_seg) {
+                render_submodule_branch(ui, sub_seg, sub_sel, sub_node, eff);
+            }
+        }
+    });
+}
+
+// --- Physical ---
+
+fn render_crate_folder_branch(
+    ui: &mut egui::Ui,
+    seg: &CrateFolderSegment,
+    sel: &mut CrateFolderNodeSelection,
+    node: &mut CrateFolderNode,
+    inherited: LogSelectionState,
+) {
+    warn!(">>> ENTERED CRATE FOLDER BRANCH <<<");
+    let eff = match sel.selection.state {
+        LogSelectionState::InheritedOrDefault => inherited,
+        explicit => explicit,
+    };
+
+    let label = format!("📦 {}", seg.name);
+    let mut checked = eff == LogSelectionState::Selected;
+
+    ui.collapsing(label, |ui| {
+        ui.horizontal(|ui| {
+            if ui.checkbox(&mut checked, "").changed() {
+                sel.selection.state = if checked {
+                    LogSelectionState::Selected
+                } else {
+                    LogSelectionState::Deselected
+                };
+            }
+        });
+
+        for (folder_seg, folder_sel) in &mut sel.folders {
+            if let Some(folder_node) = node.folders.get_mut(folder_seg) {
+                render_folder_branch(ui, folder_seg, folder_sel, folder_node, eff);
+            }
+        }
+
+        for (file_seg, file_sel) in &mut sel.files {
+            if let Some(file_node) = node.files.get_mut(file_seg) {
+                render_file_branch(ui, file_seg, file_sel, file_node, eff);
+            }
+        }
+    });
+}
+
+fn render_folder_branch(
+    ui: &mut egui::Ui,
+    seg: &FolderSegment,
+    sel: &mut FolderNodeSelection,
+    node: &mut FolderNode,
+    inherited: LogSelectionState,
+) {
+    warn!(">>> ENTERED FOLDER BRANCH <<<");
+    let eff = match sel.selection.state {
+        LogSelectionState::InheritedOrDefault => inherited,
+        explicit => explicit,
+    };
+
+    let label = format!("📂 {}", seg.name);
+    let mut checked = eff == LogSelectionState::Selected;
+
+    ui.collapsing(label, |ui| {
+        ui.horizontal(|ui| {
+            if ui.checkbox(&mut checked, "").changed() {
+                sel.selection.state = if checked {
+                    LogSelectionState::Selected
+                } else {
+                    LogSelectionState::Deselected
+                };
+            }
+        });
+
+        for (folder_seg, folder_sel) in &mut sel.folders {
+            if let Some(folder_node) = node.folders.get_mut(folder_seg) {
+                render_folder_branch(ui, folder_seg, folder_sel, folder_node, eff);
+            }
+        }
+
+        for (file_seg, file_sel) in &mut sel.files {
+            if let Some(file_node) = node.files.get_mut(file_seg) {
+                render_file_branch(ui, file_seg, file_sel, file_node, eff);
+            }
+        }
+    });
+}
+
+fn render_file_branch(
+    ui: &mut egui::Ui,
+    seg: &FileSegment,
+    sel: &mut FileNodeSelection,
+    node: &mut FileNode,
+    inherited: LogSelectionState,
+) {
+    warn!(">>> ENTERED FILE BRANCH <<<");
+    let eff = match sel.selection.state {
+        LogSelectionState::InheritedOrDefault => inherited,
+        explicit => explicit,
+    };
+
+    let label = format!("📄 {}", seg.name);
+    let mut checked = eff == LogSelectionState::Selected;
+
+    ui.collapsing(label, |ui| {
+        ui.horizontal(|ui| {
+            if ui.checkbox(&mut checked, "").changed() {
+                sel.selection.state = if checked {
+                    LogSelectionState::Selected
+                } else {
+                    LogSelectionState::Deselected
+                };
+            }
+        });
+
+        for (line_seg, line_sel) in &mut sel.lines {
+            if let Some(line_node) = node.lines.get_mut(line_seg) {
+                render_line_leaf(ui, line_seg, line_sel, line_node, eff);
+            }
+        }
+    });
+}
+
+fn render_line_leaf(
+    ui: &mut egui::Ui,
+    seg: &LineSegment,
+    sel: &mut LineNodeSelection,
+    _node: &mut LineNode,
+    inherited: LogSelectionState,
+) {
+    warn!(">>> ENTERED LINE LEAF <<<");
+    let eff = match sel.selection.state {
+        LogSelectionState::InheritedOrDefault => inherited,
+        explicit => explicit,
+    };
+
+    let label = format!("📑 Line {}", seg.number);
+    let mut checked = eff == LogSelectionState::Selected;
+
+    ui.horizontal(|ui| {
+        if ui.checkbox(&mut checked, "").changed() {
+            sel.selection.state = if checked {
+                LogSelectionState::Selected
+            } else {
+                LogSelectionState::Deselected
+            };
+        }
+        ui.label(label);
     });
 }
