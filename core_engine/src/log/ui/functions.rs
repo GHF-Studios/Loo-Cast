@@ -266,8 +266,8 @@ pub fn render_span_tree(
         for (root_seg, root_sel) in &mut log_viewer_state.span_selections.span_roots {
             if let Some(root_node) = span_registry.span_roots.get_mut(root_seg) {
                 let sel_state = match root_sel.selection.state {
-                    LogSelectionState::InheritedOrDefault => LogSelectionState::Deselected,
-                    LogSelectionState::Selected | LogSelectionState::Deselected => root_sel.selection.state.clone()
+                    ExplicitSelectionState::InheritedOrDefault => ExplicitSelectionState::Deselected,
+                    ExplicitSelectionState::Selected | ExplicitSelectionState::Deselected => root_sel.selection.state.clone()
                 };
 
                 render_span_branch(ui, root_seg, root_sel, root_node, sel_state);
@@ -285,8 +285,8 @@ pub fn render_module_tree(
         for (crate_seg, crate_sel) in &mut log_viewer_state.module_selections.crates {
             if let Some(crate_node) = module_registry.crates.get_mut(crate_seg) {
                 let sel_state = match crate_sel.selection.state {
-                    LogSelectionState::InheritedOrDefault => LogSelectionState::Deselected,
-                    LogSelectionState::Selected | LogSelectionState::Deselected => crate_sel.selection.state.clone()
+                    ExplicitSelectionState::InheritedOrDefault => ExplicitSelectionState::Deselected,
+                    ExplicitSelectionState::Selected | ExplicitSelectionState::Deselected => crate_sel.selection.state.clone()
                 };
 
                 render_crate_module_branch(ui, crate_seg, crate_sel, crate_node, sel_state);
@@ -304,8 +304,8 @@ pub fn render_physical_tree(
         for (crate_seg, crate_sel) in &mut log_viewer_state.physical_selections.crates {
             if let Some(crate_node) = physical_registry.crates.get_mut(crate_seg) {
                 let sel_state = match crate_sel.selection.state {
-                    LogSelectionState::InheritedOrDefault => LogSelectionState::Deselected,
-                    LogSelectionState::Selected | LogSelectionState::Deselected => crate_sel.selection.state.clone()
+                    ExplicitSelectionState::InheritedOrDefault => ExplicitSelectionState::Deselected,
+                    ExplicitSelectionState::Selected | ExplicitSelectionState::Deselected => crate_sel.selection.state.clone()
                 };
 
                 render_crate_folder_branch(ui, crate_seg, crate_sel, crate_node, sel_state);
@@ -323,23 +323,23 @@ fn render_span_branch(
     seg: &SpanSegment,
     sel: &mut SpanNodeSelection,
     node: &mut SpanNode,
-    inherited: LogSelectionState,
+    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
-        LogSelectionState::InheritedOrDefault => inherited,
+        ExplicitSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
     };
 
     let label = format!("↔ {}", seg.name);
-    let mut checked = eff == LogSelectionState::Selected;
+    let mut checked = eff == ExplicitSelectionState::Selected;
 
     ui.collapsing(label, |ui| {
         ui.horizontal(|ui| {
             if ui.checkbox(&mut checked, "").changed() {
                 sel.selection.state = if checked {
-                    LogSelectionState::Selected
+                    ExplicitSelectionState::Selected
                 } else {
-                    LogSelectionState::Deselected
+                    ExplicitSelectionState::Deselected
                 };
             }
         });
@@ -359,23 +359,23 @@ fn render_crate_module_branch(
     seg: &CrateModuleSegment,
     sel: &mut CrateModuleNodeSelection,
     node: &mut CrateModuleNode,
-    inherited: LogSelectionState,
+    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
-        LogSelectionState::InheritedOrDefault => inherited,
+        ExplicitSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
     };
 
     let label = format!("📦 {}", seg.name);
-    let mut checked = eff == LogSelectionState::Selected;
+    let mut checked = eff == ExplicitSelectionState::Selected;
 
     ui.collapsing(label, |ui| {
         ui.horizontal(|ui| {
             if ui.checkbox(&mut checked, "").changed() {
                 sel.selection.state = if checked {
-                    LogSelectionState::Selected
+                    ExplicitSelectionState::Selected
                 } else {
-                    LogSelectionState::Deselected
+                    ExplicitSelectionState::Deselected
                 };
             }
         });
@@ -393,23 +393,23 @@ fn render_module_branch(
     seg: &ModuleSegment,
     sel: &mut ModuleNodeSelection,
     node: &mut ModuleNode,
-    inherited: LogSelectionState,
+    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
-        LogSelectionState::InheritedOrDefault => inherited,
+        ExplicitSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
     };
 
     let label = format!("📂 {}", seg.name);
-    let mut checked = eff == LogSelectionState::Selected;
+    let mut checked = eff == ExplicitSelectionState::Selected;
 
     ui.collapsing(label, |ui| {
         ui.horizontal(|ui| {
             if ui.checkbox(&mut checked, "").changed() {
                 sel.selection.state = if checked {
-                    LogSelectionState::Selected
+                    ExplicitSelectionState::Selected
                 } else {
-                    LogSelectionState::Deselected
+                    ExplicitSelectionState::Deselected
                 };
             }
         });
@@ -433,23 +433,23 @@ fn render_submodule_branch(
     seg: &SubModuleSegment,
     sel: &mut SubModuleNodeSelection,
     node: &mut SubModuleNode,
-    inherited: LogSelectionState,
+    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
-        LogSelectionState::InheritedOrDefault => inherited,
+        ExplicitSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
     };
 
     let label = format!("📂 {}", seg.name);
-    let mut checked = eff == LogSelectionState::Selected;
+    let mut checked = eff == ExplicitSelectionState::Selected;
 
     ui.collapsing(label, |ui| {
         ui.horizontal(|ui| {
             if ui.checkbox(&mut checked, "").changed() {
                 sel.selection.state = if checked {
-                    LogSelectionState::Selected
+                    ExplicitSelectionState::Selected
                 } else {
-                    LogSelectionState::Deselected
+                    ExplicitSelectionState::Deselected
                 };
             }
         });
@@ -469,23 +469,23 @@ fn render_crate_folder_branch(
     seg: &CrateFolderSegment,
     sel: &mut CrateFolderNodeSelection,
     node: &mut CrateFolderNode,
-    inherited: LogSelectionState,
+    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
-        LogSelectionState::InheritedOrDefault => inherited,
+        ExplicitSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
     };
 
     let label = format!("📦 {}", seg.name);
-    let mut checked = eff == LogSelectionState::Selected;
+    let mut checked = eff == ExplicitSelectionState::Selected;
 
     ui.collapsing(label, |ui| {
         ui.horizontal(|ui| {
             if ui.checkbox(&mut checked, "").changed() {
                 sel.selection.state = if checked {
-                    LogSelectionState::Selected
+                    ExplicitSelectionState::Selected
                 } else {
-                    LogSelectionState::Deselected
+                    ExplicitSelectionState::Deselected
                 };
             }
         });
@@ -509,23 +509,23 @@ fn render_folder_branch(
     seg: &FolderSegment,
     sel: &mut FolderNodeSelection,
     node: &mut FolderNode,
-    inherited: LogSelectionState,
+    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
-        LogSelectionState::InheritedOrDefault => inherited,
+        ExplicitSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
     };
 
     let label = format!("📂 {}", seg.name);
-    let mut checked = eff == LogSelectionState::Selected;
+    let mut checked = eff == ExplicitSelectionState::Selected;
 
     ui.collapsing(label, |ui| {
         ui.horizontal(|ui| {
             if ui.checkbox(&mut checked, "").changed() {
                 sel.selection.state = if checked {
-                    LogSelectionState::Selected
+                    ExplicitSelectionState::Selected
                 } else {
-                    LogSelectionState::Deselected
+                    ExplicitSelectionState::Deselected
                 };
             }
         });
@@ -549,23 +549,23 @@ fn render_file_branch(
     seg: &FileSegment,
     sel: &mut FileNodeSelection,
     node: &mut FileNode,
-    inherited: LogSelectionState,
+    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
-        LogSelectionState::InheritedOrDefault => inherited,
+        ExplicitSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
     };
 
     let label = format!("📄 {}", seg.name);
-    let mut checked = eff == LogSelectionState::Selected;
+    let mut checked = eff == ExplicitSelectionState::Selected;
 
     ui.collapsing(label, |ui| {
         ui.horizontal(|ui| {
             if ui.checkbox(&mut checked, "").changed() {
                 sel.selection.state = if checked {
-                    LogSelectionState::Selected
+                    ExplicitSelectionState::Selected
                 } else {
-                    LogSelectionState::Deselected
+                    ExplicitSelectionState::Deselected
                 };
             }
         });
@@ -583,22 +583,22 @@ fn render_line_leaf(
     seg: &LineSegment,
     sel: &mut LineNodeSelection,
     _node: &mut LineNode,
-    inherited: LogSelectionState,
+    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
-        LogSelectionState::InheritedOrDefault => inherited,
+        ExplicitSelectionState::InheritedOrDefault => inherited,
         explicit => explicit,
     };
 
     let label = format!("📑 Line {}", seg.number);
-    let mut checked = eff == LogSelectionState::Selected;
+    let mut checked = eff == ExplicitSelectionState::Selected;
 
     ui.horizontal(|ui| {
         if ui.checkbox(&mut checked, "").changed() {
             sel.selection.state = if checked {
-                LogSelectionState::Selected
+                ExplicitSelectionState::Selected
             } else {
-                LogSelectionState::Deselected
+                ExplicitSelectionState::Deselected
             };
         }
         ui.label(label);

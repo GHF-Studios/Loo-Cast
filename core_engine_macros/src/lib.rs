@@ -1,3 +1,5 @@
+extern crate proc_macro;
+
 mod composite_workflow;
 mod composite_workflow_return;
 mod define_composite_workflow;
@@ -6,6 +8,7 @@ mod define_workflow_mod;
 mod define_workflow_mod_OLD;
 mod register_workflow_mods;
 mod tracing_macros;
+mod typed_dag_macros;
 
 use composite_workflow::CompositeWorkflow as OuterCompositeWorkflow;
 use composite_workflow_return::CompositeWorkflowReturn;
@@ -61,4 +64,9 @@ pub fn define_workflow(_input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn define_worfklow_stages(_input: TokenStream) -> TokenStream {
     quote! {}.into()
+}
+
+#[proc_macro_derive(DagNode, attributes(dag))]
+pub fn derive_dag_node(input: TokenStream) -> TokenStream {
+    typed_dag_macros::impl_dag_node(input)
 }

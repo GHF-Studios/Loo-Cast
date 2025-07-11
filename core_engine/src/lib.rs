@@ -1,6 +1,8 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
+pub use core_engine_macros::DagNode;
+
 // Data types
 //pub mod components;
 //pub mod enums;
@@ -43,6 +45,7 @@ pub mod gpu;
 pub mod log;
 //pub mod math;
 pub mod player;
+pub mod typed_dag;
 pub mod ui;
 //pub mod sprite_bundle;
 pub mod utils;
