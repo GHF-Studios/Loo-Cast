@@ -124,114 +124,16 @@ impl LogRegistry {
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-pub struct LogSelection {
-    pub state: LogSelectionState,
-    pub privilege: LogSelectionPrivilege,
-}
-
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LogSelectionState {
     #[default]
-    InheritedOrDefault,
     Selected,
     Deselected,
-}
-
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum LogSelectionPrivilege {
-    #[default]
-    None,
-    User,
-    Sudo,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum LogSelectionCommand {
-    // Select all spans under the given parent. If parent is None, all span roots are selected.
-    SelectSpans {
-        parent: Option<SpanPath>
-    },
-    DeselectSpans {
-        parent: Option<SpanPath>
-    },
-    SelectSpansRecursive {
-        parent: Option<SpanPath>
-    },
-    DeselectSpansRecursive {
-        parent: Option<SpanPath>
-    },
-    ResetSpans {
-
-    }
-    ResetToInheritedOrDefault(LogSelectionPrivilege),
-    Select(LogSelectionPrivilege),
-    Deselect(LogSelectionPrivilege),
-    RecursiveResetToInheritedOrDefault(LogSelectionPrivilege),
-    RecursiveSelect(LogSelectionPrivilege),
-    RecursiveDeselect(LogSelectionPrivilege),
-}
-impl LogSelectionCommand {
-    pub fn unpack(self) -> (LogSelectionState, LogSelectionPrivilege, bool) {
-        match self {
-            LogSelectionCommand::ResetToInheritedOrDefault(required) => {
-                (LogSelectionState::InheritedOrDefault, required, false)
-            }
-            LogSelectionCommand::Select(required) => {
-                (LogSelectionState::Selected, required, false)
-            }
-            LogSelectionCommand::Deselect(required) => {
-                (LogSelectionState::Deselected, required, false)
-            }
-            LogSelectionCommand::RecursiveResetToInheritedOrDefault(required) => {
-                (LogSelectionState::InheritedOrDefault, required, true)
-            }
-            LogSelectionCommand::RecursiveSelect(required) => {
-                (LogSelectionState::Selected, required, true)
-            }
-            LogSelectionCommand::RecursiveDeselect(required) => {
-                (LogSelectionState::Deselected, required, true)
-            }
-        }
-    }
-
-    pub fn run(
-        current_privilege: &mut LogSelectionPrivilege, 
-        current_selection_state: &mut LogSelectionState, 
-        required_privilege: LogSelectionPrivilege, 
-        requested_selection_state: LogSelectionState
-    ) -> Result<(), LogSelectionCommandError> {
-        if required_privilege > *current_privilege {
-            Err(LogSelectionCommandError::InsufficientPrivilege {
-                required: required_privilege,
-                actual: *current_privilege,
-            })?
-        }
-    
-        if *current_selection_state == requested_selection_state {
-            Err(LogSelectionCommandError::AlreadyAtState(requested_selection_state))?
-        }
-
-        *current_privilege = required_privilege;
-        *current_selection_state = requested_selection_state;
-
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum LogSelectionCommandError {
-    InsufficientPrivilege {
-        required: LogSelectionPrivilege,
-        actual: LogSelectionPrivilege,
-    },
-    AlreadyAtState(LogSelectionState),
-    SpanPathNotFound(SpanPath),
-    ModulePathNotFound(ModulePath),
-    PhysicalPathNotFound(PhysicalSelectionPath),
+    PartiallySelected
 }
 
 #[derive(Default)]
 pub struct NodeMetadata {
+    pub selection_state: LogSelectionState,
     pub ui_collapsed: bool,
 }
 
@@ -413,44 +315,29 @@ pub struct SpanRegistry {
 }
 impl SpanRegistry {
     pub fn insert(&mut self, path: &SpanPath, log_id: LogId) {
-        println!("SpanRegistry: Trying to insert path `{path}` with log `{log_id}`");
-
         let root_span_segment = if path.spans.is_empty() {
-            println!("Reached 1A with log");
             SpanSegment { name: "[UNCATEGORIZED]".to_string() }
         } else {
-            println!("Reached 1B with log");
             path.spans[0].clone()
         };
-        println!("Reached 2 with log");
         let mut current = self.span_roots.entry(root_span_segment).or_default();
 
-        println!("Reached 3 with log");
         for segment in path.spans.get(1..).unwrap_or_default() {
-            println!("Reached 4 with log");
             current = current.span_children.entry(segment.clone()).or_default();
         }
 
-        println!("Reached 5 with log");
         current.logs.push(log_id);
     }
 
     pub fn insert_without_log(&mut self, path: &SpanPath) {
-        println!("SpanRegistry: Trying to insert path `{path}` without log");
-
         let root_span_segment = if path.spans.is_empty() {
-            println!("Reached 1A without log");
             SpanSegment { name: "[UNCATEGORIZED]".to_string() }
         } else {
-            println!("Reached 1B without log");
             path.spans[0].clone()
         };
-        println!("Reached 2 without log");
         let mut current = self.span_roots.entry(root_span_segment).or_default();
 
-        println!("Reached 3 without log");
         for segment in path.spans.get(1..).unwrap_or_default() {
-            println!("Reached 4 without log");
             current = current.span_children.entry(segment.clone()).or_default();
         }
     }
@@ -470,8 +357,6 @@ pub struct ModuleRegistry {
 }
 impl ModuleRegistry {
     pub fn insert(&mut self, path: &ModulePath, log_id: LogId) {
-        // println!("ModuleRegistry: Trying to insert path `{path}` with log `{log_id}`");
-
         let crate_module_segment = if path.crate_module.name.is_empty() {
             CrateModuleSegment { name: "[UNCATEGORIZED]".to_string() }
         } else {
@@ -505,8 +390,6 @@ impl ModuleRegistry {
     }
 
     pub fn insert_without_log(&mut self, path: &ModulePath) {
-        // println!("ModuleRegistry: Trying to insert path `{path}` without log");
-
         let crate_module_segment = if path.crate_module.name.is_empty() {
             CrateModuleSegment { name: "[UNCATEGORIZED]".to_string() }
         } else {
@@ -568,8 +451,6 @@ pub struct PhysicalRegistry {
 }
 impl PhysicalRegistry {
     pub fn insert(&mut self, path: &PhysicalStoragePath, log_id: LogId) {
-        // println!("PhysicalRegistry: Trying to insert path `{path}` with log `{log_id}`");
-
         let file = {
             let crate_folder_segment = if path.crate_folder.name.is_empty() {
                 CrateFolderSegment { name: "[UNCATEGORIZED]".to_string() }
@@ -597,8 +478,6 @@ impl PhysicalRegistry {
     }
 
     pub fn insert_without_log(&mut self, path: &PhysicalStoragePath) {
-        // println!("PhysicalRegistry: Trying to insert path `{path}` without log");
-
         let file = {
             let crate_folder_segment = if path.crate_folder.name.is_empty() {
                 CrateFolderSegment { name: "[UNCATEGORIZED]".to_string() }
@@ -712,8 +591,6 @@ impl SpanPathSelections {
 
         span.select(requested_selection_state, required_privilege, recursive)
     }
-
-    pub fn reset_select_all(&mut self) -> Result<(), LogSelectionCommandError>
 
     pub fn collect_logs(&self, registry: &LogRegistry) -> Vec<LogId> {
         let mut out = Vec::new();
@@ -1207,7 +1084,6 @@ impl PhysicalPathSelections {
 // --- Span ---
 
 pub struct SpanNodeSelection {
-    pub selection: LogSelection,
     pub metadata: NodeMetadata,
     pub span_children: HashMap<SpanSegment, SpanNodeSelection>,
 }
@@ -1233,7 +1109,6 @@ impl SpanNodeSelection {
 // --- Module ---
 
 pub struct CrateModuleNodeSelection {
-    pub selection: LogSelection,
     pub metadata: NodeMetadata,
     pub modules: HashMap<ModuleSegment, ModuleNodeSelection>,
 }
@@ -1264,7 +1139,6 @@ impl CrateModuleNodeSelection {
 }
 
 pub struct ModuleNodeSelection {
-    pub selection: LogSelection,
     pub metadata: NodeMetadata,
     pub modules: HashMap<ModuleSegment, ModuleNodeSelection>,
     pub sub_modules: HashMap<SubModuleSegment, SubModuleNodeSelection>,
@@ -1300,7 +1174,6 @@ impl ModuleNodeSelection {
 }
 
 pub struct SubModuleNodeSelection {
-    pub selection: LogSelection,
     pub metadata: NodeMetadata,
     pub sub_modules: HashMap<SubModuleSegment, SubModuleNodeSelection>,
 }
@@ -1333,7 +1206,6 @@ impl SubModuleNodeSelection {
 // --- Physical ---
 
 pub struct CrateFolderNodeSelection {
-    pub selection: LogSelection,
     pub metadata: NodeMetadata,
     pub folders: HashMap<FolderSegment, FolderNodeSelection>,
     pub files: HashMap<FileSegment, FileNodeSelection>,
@@ -1369,7 +1241,6 @@ impl CrateFolderNodeSelection {
 }
 
 pub struct FolderNodeSelection {
-    pub selection: LogSelection,
     pub metadata: NodeMetadata,
     pub folders: HashMap<FolderSegment, FolderNodeSelection>,
     pub files: HashMap<FileSegment, FileNodeSelection>,
@@ -1405,7 +1276,6 @@ impl FolderNodeSelection {
 }
 
 pub struct FileNodeSelection {
-    pub selection: LogSelection,
     pub metadata: NodeMetadata,
     pub lines: HashMap<LineSegment, LineNodeSelection>,
 }
@@ -1436,7 +1306,6 @@ impl FileNodeSelection {
 }
 
 pub struct LineNodeSelection {
-    pub selection: LogSelection,
     pub metadata: NodeMetadata,
 }
 impl LineNodeSelection {
