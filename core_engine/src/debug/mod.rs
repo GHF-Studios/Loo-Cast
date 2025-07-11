@@ -17,7 +17,8 @@ impl Plugin for DebugPlugin {
                 debug_object_movement_system, 
                 chunk_inspection_system, 
                 chunk_loader_inspection_system, 
-                chunk_manager_debug_ui
+                chunk_manager_debug_ui,
+                log_registry_debug_ui,
             ));
     }
 }

@@ -22,6 +22,9 @@ pub(super) fn show_toolbar_ui(mut egui_ctx: EguiContexts, mut toolbar_state: Res
                 if ui.button("CMDUI").clicked() {
                     toolbar_state.show_chunk_manager_debug_ui = !toolbar_state.show_chunk_manager_debug_ui;
                 }
+                if ui.button("LRDUI").clicked() {
+                    toolbar_state.show_log_registry_debug_ui = !toolbar_state.show_log_registry_debug_ui;
+                }
             })
         });
 }

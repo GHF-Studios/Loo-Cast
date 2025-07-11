@@ -1,8 +1,5 @@
 use crate::{
-    camera::components::MainCamera,
-    chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager},
-    chunk_loader::components::ChunkLoader,
-    ui::toolbar::resources::ToolbarState,
+    camera::components::MainCamera, chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager}, chunk_loader::components::ChunkLoader, log::resources::LogRegistryHandle, ui::toolbar::resources::ToolbarState
 };
 
 use bevy::{prelude::*, window::PrimaryWindow};
@@ -149,6 +146,24 @@ pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctxs: E
                                 .map(|(coord, owner_id)| format!("{:?} → {:?}", coord, owner_id)),
                         );
                     });
+                });
+        });
+}
+
+pub fn log_registry_debug_ui(log_registry: Res<LogRegistryHandle>, mut egui_ctxs: EguiContexts, toolbar_state: Res<ToolbarState>) {
+    if !toolbar_state.show_log_registry_debug_ui { return; }
+
+    egui::Window::new("Log Registry")
+        .vscroll(true) // Optional: ensures vertical scrollbar appears
+        .show(egui_ctxs.ctx_mut(), |ui| {
+            ScrollArea::vertical()
+                .auto_shrink([false; 2]) // Prevents weird size compression
+                .show(ui, |ui| {
+                    let log_registry = log_registry.0.lock().unwrap();
+                    ui.label(format!("Total Logs: {}", log_registry.logs.len()));
+                    for (key, value) in &log_registry.logs {
+                        ui.label(format!("{}: {:?}", key, value));
+                    }
                 });
         });
 }
