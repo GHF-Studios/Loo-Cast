@@ -6,14 +6,14 @@ use crate::log::{types::{*, LogLevel::*}, ui::{resources::LogViewerState, types:
 // === Basics ===
 
 pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState) {
-    let tree_mode = &mut log_viewer_state.tree_mode;
-
     egui::Frame::none()
         .fill(Color32::from_gray(25))
         .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
         .inner_margin(egui::Margin::symmetric(6.0, 4.0))
         .show(ui, |ui| {
             ui.horizontal(|ui| {
+                let tree_mode = &mut log_viewer_state.tree_mode;
+
                 ui.label("Filter Mode:");
 
                 let selected = matches!(tree_mode, FilterTreeMode::Span);
@@ -29,6 +29,27 @@ pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut L
                 let selected = matches!(tree_mode, FilterTreeMode::Physical);
                 if ui.selectable_label(selected, "📂 Physical").clicked() {
                     *tree_mode = FilterTreeMode::Physical;
+                }
+            });
+
+            ui.horizontal(|ui| {
+                let tree_mode = log_viewer_state.tree_mode;
+                let select_all = match tree_mode {
+                    FilterTreeMode::Span => {
+                        log_viewer_state.span_selections.selection_command(path, command)
+                    },
+                    FilterTreeMode::Module => {},
+                    FilterTreeMode::Physical => {},
+                };
+
+                ui.label("Tools:");
+
+                if ui.button("+All").clicked() {
+                    select_all()
+                }
+
+                if ui.button("-All").clicked() {
+                    deselect_all()
                 }
             });
         });
@@ -131,11 +152,12 @@ pub fn gather_logs(
     registry: &LogRegistry,
 ) -> Vec<LogEntry> {
     let mut out = Vec::new();
+    //println!("Collecting from {} available logs", registry.logs.len());
 
     match state.tree_mode {
         FilterTreeMode::Span => {
-            let log_ids = state.physical_selections.collect_logs(registry);
-            println!("Collected {} logs from `Span`", log_ids.len());
+            let log_ids = state.span_selections.collect_logs(registry);
+            //println!("Collected {} logs from `Span`", log_ids.len());
 
             for log_id in log_ids {
                 if let Some(entry) = registry.get_log(&log_id) {
@@ -144,8 +166,8 @@ pub fn gather_logs(
             }
         }
         FilterTreeMode::Module => {
-            let log_ids = state.physical_selections.collect_logs(registry);
-            println!("Collected {} logs from `Module`", log_ids.len());
+            let log_ids = state.module_selections.collect_logs(registry);
+            //println!("Collected {} logs from `Module`", log_ids.len());
             
             for log_id in log_ids {
                 if let Some(entry) = registry.get_log(&log_id) {
@@ -155,7 +177,7 @@ pub fn gather_logs(
         }
         FilterTreeMode::Physical => {
             let log_ids = state.physical_selections.collect_logs(registry);
-            println!("Collected {} logs from `Physical`", log_ids.len());
+            //println!("Collected {} logs from `Physical`", log_ids.len());
 
             for log_id in log_ids {
                 if let Some(entry) = registry.get_log(&log_id) {
@@ -167,7 +189,7 @@ pub fn gather_logs(
 
     out.retain(|log| log.lvl >= state.threshold);
     out.sort_by_key(|log| log.ts);
-    println!("Gathered {} logs in total", out.len());
+    //println!("Gathered {} logs in total", out.len());
     out
 }
 

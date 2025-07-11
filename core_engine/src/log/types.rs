@@ -145,8 +145,24 @@ pub enum LogSelectionPrivilege {
     Sudo,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LogSelectionCommand {
+    // Select all spans under the given parent. If parent is None, all span roots are selected.
+    SelectSpans {
+        parent: Option<SpanPath>
+    },
+    DeselectSpans {
+        parent: Option<SpanPath>
+    },
+    SelectSpansRecursive {
+        parent: Option<SpanPath>
+    },
+    DeselectSpansRecursive {
+        parent: Option<SpanPath>
+    },
+    ResetSpans {
+
+    }
     ResetToInheritedOrDefault(LogSelectionPrivilege),
     Select(LogSelectionPrivilege),
     Deselect(LogSelectionPrivilege),
@@ -400,16 +416,22 @@ impl SpanRegistry {
         println!("SpanRegistry: Trying to insert path `{path}` with log `{log_id}`");
 
         let root_span_segment = if path.spans.is_empty() {
+            println!("Reached 1A with log");
             SpanSegment { name: "[UNCATEGORIZED]".to_string() }
         } else {
+            println!("Reached 1B with log");
             path.spans[0].clone()
         };
+        println!("Reached 2 with log");
         let mut current = self.span_roots.entry(root_span_segment).or_default();
 
+        println!("Reached 3 with log");
         for segment in path.spans.get(1..).unwrap_or_default() {
+            println!("Reached 4 with log");
             current = current.span_children.entry(segment.clone()).or_default();
         }
 
+        println!("Reached 5 with log");
         current.logs.push(log_id);
     }
 
@@ -417,13 +439,18 @@ impl SpanRegistry {
         println!("SpanRegistry: Trying to insert path `{path}` without log");
 
         let root_span_segment = if path.spans.is_empty() {
+            println!("Reached 1A without log");
             SpanSegment { name: "[UNCATEGORIZED]".to_string() }
         } else {
+            println!("Reached 1B without log");
             path.spans[0].clone()
         };
+        println!("Reached 2 without log");
         let mut current = self.span_roots.entry(root_span_segment).or_default();
 
+        println!("Reached 3 without log");
         for segment in path.spans.get(1..).unwrap_or_default() {
+            println!("Reached 4 without log");
             current = current.span_children.entry(segment.clone()).or_default();
         }
     }
@@ -679,16 +706,19 @@ pub struct SpanPathSelections {
     pub span_roots: HashMap<SpanSegment, SpanNodeSelection>,
 }
 impl SpanPathSelections {
-    pub fn select(&mut self, path: &SpanPath, command: LogSelectionCommand) -> Result<(), LogSelectionCommandError> {
+    pub fn selection_command(&mut self, path: &SpanPath, command: LogSelectionCommand) -> Result<(), LogSelectionCommandError> {
         let span = self.get_span_mut(path).ok_or(LogSelectionCommandError::SpanPathNotFound(path.clone()))?;
         let (required_privilege, requested_selection_state, recursive) = command.unpack();
 
         span.select(requested_selection_state, required_privilege, recursive)
     }
 
+    pub fn reset_select_all(&mut self) -> Result<(), LogSelectionCommandError>
+
     pub fn collect_logs(&self, registry: &LogRegistry) -> Vec<LogId> {
         let mut out = Vec::new();
 
+        println!("Collecting logs from {} span roots", self.span_roots.len());
         for (root_segment, root_node_selection) in &self.span_roots {
             let root_node = registry
                 .span_registry
@@ -727,6 +757,7 @@ impl SpanPathSelections {
             out.extend(&parent_node.logs);
         }
 
+        println!("Collecting logs from {} span children", selection.span_children.len());
         for (child_segment, child_selection) in &selection.span_children {
             let child_node = parent_node
                 .span_children
@@ -735,10 +766,6 @@ impl SpanPathSelections {
 
             Self::collect_logs_from_span(child_selection, child_node, effective_selection_state, out);
         }
-    }
-
-    pub fn is_selected(&self, path: &SpanPath) -> bool {
-        self.get_span(path).is_some()
     }
 
     pub fn get_span(&self, path: &SpanPath) -> Option<&SpanNodeSelection> {
@@ -766,7 +793,7 @@ pub struct ModulePathSelections {
     pub crates: HashMap<CrateModuleSegment, CrateModuleNodeSelection>,
 }
 impl ModulePathSelections {
-    pub fn select(&mut self, path: &ModulePath, command: LogSelectionCommand) -> Result<(), LogSelectionCommandError> {
+    pub fn selection_command(&mut self, path: &ModulePath, command: LogSelectionCommand) -> Result<(), LogSelectionCommandError> {
         match (path.modules.is_empty(), path.sub_modules.is_empty()) {
             (false, false) => {
                 let sub_module = self.get_sub_module_mut(path).ok_or(LogSelectionCommandError::ModulePathNotFound(path.clone()))?;
@@ -944,7 +971,7 @@ pub struct PhysicalPathSelections {
     pub crates: HashMap<CrateFolderSegment, CrateFolderNodeSelection>,
 }
 impl PhysicalPathSelections {
-    pub fn select(&mut self, path: &PhysicalSelectionPath, command: LogSelectionCommand) -> Result<(), LogSelectionCommandError> {
+    pub fn selection_command(&mut self, path: &PhysicalSelectionPath, command: LogSelectionCommand) -> Result<(), LogSelectionCommandError> {
         match (path.folders.is_empty(), path.file.is_none(), path.line.is_none()) {
             (false, false, false) => {
                 let line = self.get_line_mut(path).ok_or(LogSelectionCommandError::PhysicalPathNotFound(path.clone()))?;
