@@ -15,10 +15,12 @@ use composite_workflow_return::CompositeWorkflowReturn;
 use define_composite_workflow::CompositeWorkflow as InnerCompositeWorkflow;
 use define_workflow_mod_OLD::WorkflowModule;
 use register_workflow_mods::WorkflowMods;
+use typed_dag_macros::TypedDagDef;
 
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse_macro_input;
+
 
 #[proc_macro]
 pub fn composite_workflow(input: TokenStream) -> TokenStream {
@@ -66,7 +68,8 @@ pub fn define_worfklow_stages(_input: TokenStream) -> TokenStream {
     quote! {}.into()
 }
 
-#[proc_macro_derive(DagNode, attributes(dag))]
-pub fn derive_dag_node(input: TokenStream) -> TokenStream {
-    typed_dag_macros::impl_dag_node(input)
+#[proc_macro]
+pub fn define_typed_dag(input: TokenStream) -> TokenStream {
+    let dag = parse_macro_input!(input as TypedDagDef);
+    dag.generate().into()
 }

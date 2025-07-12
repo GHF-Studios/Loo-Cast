@@ -1,72 +1,114 @@
 pub mod example;
 
-pub trait DagNode {
-    type Parent: DagNode;
+// === Core DAG Traits ===
+
+pub trait DagNode: Sized {
     type Children: DagChildren;
     type Payload;
 
     fn payload(&self) -> &Self::Payload;
+    fn payload_mut(&mut self) -> &mut Self::Payload;
     fn children(&self) -> &Self::Children;
+    fn children_mut(&mut self) -> &mut Self::Children;
 }
+
+pub trait ReversibleDagNode: DagNode {
+    fn destructure(self) -> (Self::Payload, Self::Children);
+    fn reconstruct(payload: Self::Payload, children: Self::Children) -> Self;
+}
+
+// === Blanket Unit Support for Root/Empty Nodes ===
+
+impl DagNode for () {
+    type Children = ();
+    type Payload = ();
+
+    fn payload(&self) -> &Self::Payload { &() }
+    fn payload_mut(&mut self) -> &mut Self::Payload { self }
+    fn children(&self) -> &Self::Children { &() }
+    fn children_mut(&mut self) -> &mut Self::Children { self }
+}
+
+impl ReversibleDagNode for () {
+    fn destructure(self) -> (Self::Payload, Self::Children) { ((), ()) }
+    fn reconstruct(_payload: Self::Payload, _children: Self::Children) -> Self {}
+}
+
+// === Children Tuple Composition ===
 
 pub trait DagChildren {}
-
 impl DagChildren for () {}
-impl<T1: DagNode> DagChildren for (T1,) {}
-impl<T1: DagNode, T2: DagNode> DagChildren for (T1, T2) {}
-// Add more as needed
+impl<T: DagNode> DagChildren for (Vec<T>,) {}
+impl<T1: DagNode, T2: DagNode> DagChildren for (Vec<T1>, Vec<T2>) {}
 
-pub trait VisitChildren<V> {
-    fn visit_children(&self, visitor: &mut V);
+// === XOR Utility Enum for Parent Relationships ===
+
+#[derive(Clone)]
+pub enum Xor2<A, B> {
+    A(A),
+    B(B),
 }
 
-impl<V> VisitChildren<V> for () {
-    fn visit_children(&self, _visitor: &mut V) {}
-}
+impl<A, B> Xor2<A, B> {
+    pub fn map<T, FA, FB>(self, fa: FA, fb: FB) -> T
+    where
+        FA: FnOnce(A) -> T,
+        FB: FnOnce(B) -> T,
+    {
+        match self {
+            Xor2::A(a) => fa(a),
+            Xor2::B(b) => fb(b),
+        }
+    }
 
-impl<C1, V> VisitChildren<V> for (C1,)
-where
-    C1: DagNode,
-    V: DagVisitor<C1>,
-    C1::Children: VisitChildren<V>,
-{
-    fn visit_children(&self, visitor: &mut V) {
-        visit_dag(&self.0, visitor);
+    pub fn as_ref(&self) -> Xor2<&A, &B> {
+        match self {
+            Xor2::A(a) => Xor2::A(a),
+            Xor2::B(b) => Xor2::B(b),
+        }
     }
 }
 
-impl<C1, C2, V> VisitChildren<V> for (C1, C2)
+// === DFS VISITOR ===
+
+pub fn dfs_preorder<N: ReversibleDagNode, F: FnMut(&N::Payload)>(node: &N, visit: &mut F)
 where
-    C1: DagNode,
-    C2: DagNode,
-    V: DagVisitor<C1> + DagVisitor<C2>,
-    C1::Children: VisitChildren<V>,
-    C2::Children: VisitChildren<V>,
+    N::Children: DfsVisit<F>,
 {
-    fn visit_children(&self, visitor: &mut V) {
-        visit_dag(&self.0, visitor);
-        visit_dag(&self.1, visitor);
+    visit(node.payload());
+    node.children().dfs_visit(visit);
+}
+
+pub trait DfsVisit<F> {
+    fn dfs_visit(&self, f: &mut F);
+}
+
+impl<F, N: ReversibleDagNode> DfsVisit<F> for Vec<N>
+where
+    N::Children: DfsVisit<F>,
+    F: FnMut(&N::Payload),
+{
+    fn dfs_visit(&self, f: &mut F) {
+        for child in self {
+            dfs_preorder(child, f);
+        }
     }
 }
 
-pub trait DagVisitor<Node: DagNode> {
-    fn visit(&mut self, node: &Node);
-}
-
-pub fn visit_dag<Node, V>(node: &Node, visitor: &mut V)
+impl<F, T1, T2> DfsVisit<F> for (Vec<T1>, Vec<T2>)
 where
-    Node: DagNode,
-    V: DagVisitor<Node>,
-    Node::Children: VisitChildren<V>,
+    T1: ReversibleDagNode,
+    T2: ReversibleDagNode,
+    T1::Children: DfsVisit<F>,
+    T2::Children: DfsVisit<F>,
+    F: FnMut(&T1::Payload) + FnMut(&T2::Payload),
 {
-    visitor.visit(node);
-    node.children().visit_children(visitor);
+    fn dfs_visit(&self, f: &mut F) {
+        self.0.dfs_visit(f);
+        self.1.dfs_visit(f);
+    }
 }
 
-pub trait ConstructNode: DagNode + Sized {
-    fn new(payload: Self::Payload, children: Self::Children) -> Self;
-}
-
-pub trait WithChildren: DagNode {
-    fn with_children(&self, children: Self::Children) -> Self;
+impl<F> DfsVisit<F> for () {
+    fn dfs_visit(&self, _f: &mut F) {}
 }

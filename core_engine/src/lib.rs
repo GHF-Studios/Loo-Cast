@@ -1,8 +1,6 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
-pub use core_engine_macros::DagNode;
-
 // Data types
 //pub mod components;
 //pub mod enums;
