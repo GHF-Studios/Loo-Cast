@@ -33,23 +33,22 @@ pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut L
             });
 
             ui.horizontal(|ui| {
-                let tree_mode = log_viewer_state.tree_mode;
-                let select_all = match tree_mode {
-                    FilterTreeMode::Span => {
-                        log_viewer_state.span_selections.selection_command(path, command)
-                    },
-                    FilterTreeMode::Module => {},
-                    FilterTreeMode::Physical => {},
-                };
-
                 ui.label("Tools:");
 
                 if ui.button("+All").clicked() {
-                    select_all()
+                    match log_viewer_state.tree_mode {
+                        FilterTreeMode::Span => log_viewer_state.span_selections.span_roots.values_mut().for_each(|sel| sel.select()),
+                        FilterTreeMode::Module => log_viewer_state.module_selections.crates.values_mut().for_each(|sel| sel.select()),
+                        FilterTreeMode::Physical => log_viewer_state.physical_selections.crates.values_mut().for_each(|sel| sel.select()),
+                    };
                 }
 
                 if ui.button("-All").clicked() {
-                    deselect_all()
+                    match log_viewer_state.tree_mode {
+                        FilterTreeMode::Span => log_viewer_state.span_selections.span_roots.values_mut().for_each(|sel| sel.select()),
+                        FilterTreeMode::Module => log_viewer_state.module_selections.crates.values_mut().for_each(|sel| sel.select()),
+                        FilterTreeMode::Physical => log_viewer_state.physical_selections.crates.values_mut().for_each(|sel| sel.select()),
+                    };
                 }
             });
         });

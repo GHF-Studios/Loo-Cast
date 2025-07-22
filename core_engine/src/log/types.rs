@@ -162,7 +162,7 @@ pub enum EffectiveSelectionState {
 
 #[derive(Default)]
 pub struct NodeMetadata {
-    pub selection_state: ExplicitSelectionState,
+    pub explicit_selection_state: ExplicitSelectionState,
     pub ui_collapsed: bool,
 }
 
@@ -625,15 +625,9 @@ impl SpanPathSelections {
                 .get(root_segment)
                 .unwrap_or_else(|| unreachable!("Selection path root {:?} not found in registry", root_segment));
 
-            let effective_selection_state = match root_node_selection.selection.state {
-                ExplicitSelectionState::InheritedOrDefault => ExplicitSelectionState::Deselected,
-                explicit => explicit,
-            };
-
             Self::collect_logs_from_span(
                 root_node_selection,
                 root_node,
-                effective_selection_state,
                 &mut out,
             );
         }
@@ -644,15 +638,9 @@ impl SpanPathSelections {
     fn collect_logs_from_span(
         selection: &SpanNodeSelection,
         parent_node: &SpanNode,
-        inherited_state: ExplicitSelectionState,
         out: &mut Vec<LogId>,
     ) {
-        let effective_selection_state = match selection.selection.state {
-            ExplicitSelectionState::InheritedOrDefault => inherited_state,
-            explicit => explicit,
-        };
-
-        if effective_selection_state == ExplicitSelectionState::Selected {
+        if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
             out.extend(&parent_node.logs);
         }
 
@@ -663,7 +651,7 @@ impl SpanPathSelections {
                 .get(child_segment)
                 .unwrap_or_else(|| unreachable!("Child segment {:?} not found in registry", child_segment));
 
-            Self::collect_logs_from_span(child_selection, child_node, effective_selection_state, out);
+            Self::collect_logs_from_span(child_selection, child_node, out);
         }
     }
 
@@ -702,12 +690,7 @@ impl ModulePathSelections {
                 .get(crate_segment)
                 .unwrap_or_else(|| unreachable!("Crate {:?} not found in module registry", crate_segment));
 
-            let effective_selection_state = match crate_node_selection.selection.state {
-                ExplicitSelectionState::InheritedOrDefault => ExplicitSelectionState::Deselected,
-                explicit => explicit,
-            };
-
-            if effective_selection_state == ExplicitSelectionState::Selected {
+            if crate_node_selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
                 out.extend(&crate_node.logs);
             }
 
@@ -716,7 +699,7 @@ impl ModulePathSelections {
                     .modules
                     .get(module_segment)
                     .unwrap_or_else(|| unreachable!("Module {:?} not found in registry", module_segment));
-                Self::collect_logs_from_module(module_selection, module_node, effective_selection_state, &mut out);
+                Self::collect_logs_from_module(module_selection, module_node, &mut out);
             }
         }
 
@@ -726,15 +709,9 @@ impl ModulePathSelections {
     fn collect_logs_from_module(
         selection: &ModuleNodeSelection,
         module_node: &ModuleNode,
-        inherited_state: ExplicitSelectionState,
         out: &mut Vec<LogId>,
     ) {
-        let effective_selection_state = match selection.selection.state {
-            ExplicitSelectionState::InheritedOrDefault => inherited_state,
-            explicit => explicit,
-        };
-
-        if effective_selection_state == ExplicitSelectionState::Selected {
+        if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
             out.extend(&module_node.logs);
         }
 
@@ -743,7 +720,7 @@ impl ModulePathSelections {
                 .modules
                 .get(module_segment)
                 .unwrap_or_else(|| unreachable!("Nested module {:?} not found", module_segment));
-            Self::collect_logs_from_module(module_selection, module_node, effective_selection_state, out);
+            Self::collect_logs_from_module(module_selection, module_node, out);
         }
 
         for (sub_module_segment, sub_module_selection) in &selection.sub_modules {
@@ -751,22 +728,16 @@ impl ModulePathSelections {
                 .sub_modules
                 .get(sub_module_segment)
                 .unwrap_or_else(|| unreachable!("SubModule {:?} not found", sub_module_segment));
-            Self::collect_logs_from_submodule(sub_module_selection, sub_module_node, effective_selection_state, out);
+            Self::collect_logs_from_submodule(sub_module_selection, sub_module_node, out);
         }
     }
 
     fn collect_logs_from_submodule(
         selection: &SubModuleNodeSelection,
         sub_module_node: &SubModuleNode,
-        inherited: ExplicitSelectionState,
         out: &mut Vec<LogId>,
     ) {
-        let effective_selection_state = match selection.selection.state {
-            ExplicitSelectionState::InheritedOrDefault => inherited,
-            explicit => explicit,
-        };
-
-        if effective_selection_state == ExplicitSelectionState::Selected {
+        if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
             out.extend(&sub_module_node.logs);
         }
 
@@ -775,7 +746,7 @@ impl ModulePathSelections {
                 .sub_modules
                 .get(sub_module_segment)
                 .unwrap_or_else(|| unreachable!("Nested submodule {:?} not found", sub_module_segment));
-            Self::collect_logs_from_submodule(sub_module_selection, sub_module_node, effective_selection_state, out);
+            Self::collect_logs_from_submodule(sub_module_selection, sub_module_node, out);
         }
     }
 
@@ -856,19 +827,14 @@ impl PhysicalPathSelections {
                 .get(crate_segment)
                 .unwrap_or_else(|| unreachable!("Crate {:?} not found in physical registry", crate_segment));
 
-            let effective_selection_state = match crate_node_selection.selection.state {
-                ExplicitSelectionState::InheritedOrDefault => ExplicitSelectionState::Deselected,
-                explicit => explicit,
-            };
-
-            if effective_selection_state == ExplicitSelectionState::Selected {
+            if crate_node_selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
                 out.extend(crate_node.files.values().flat_map(|file| file.lines.values().flat_map(|line| &line.logs)));
             }
 
             for (folder_segment, folder_selection) in &crate_node_selection.folders {
                 let folder_node = crate_node.folders.get(folder_segment)
                     .unwrap_or_else(|| unreachable!("Folder {:?} not found in registry", folder_segment));
-                Self::collect_logs_from_folder(folder_selection, folder_node, effective_selection_state, &mut out);
+                Self::collect_logs_from_folder(folder_selection, folder_node, &mut out);
             }
         }
 
@@ -878,15 +844,9 @@ impl PhysicalPathSelections {
     fn collect_logs_from_folder(
         selection: &FolderNodeSelection,
         folder_node: &FolderNode,
-        inherited_state: ExplicitSelectionState,
         out: &mut Vec<LogId>,
     ) {
-        let effective_selection_state = match selection.selection.state {
-            ExplicitSelectionState::InheritedOrDefault => inherited_state,
-            explicit => explicit,
-        };
-
-        if effective_selection_state == ExplicitSelectionState::Selected {
+        if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
             out.extend(folder_node.files.values().flat_map(|file| file.lines.values().flat_map(|line| &line.logs)));
         }
 
@@ -895,7 +855,7 @@ impl PhysicalPathSelections {
                 .folders
                 .get(folder_segment)
                 .unwrap_or_else(|| unreachable!("Nested folder {:?} not found", folder_segment));
-            Self::collect_logs_from_folder(folder_selection, folder_node, effective_selection_state, out);
+            Self::collect_logs_from_folder(folder_selection, folder_node, out);
         }
 
         for (file_segment, file_selection) in &selection.files {
@@ -903,22 +863,16 @@ impl PhysicalPathSelections {
                 .files
                 .get(file_segment)
                 .unwrap_or_else(|| unreachable!("File {:?} not found", file_segment));
-            Self::collect_logs_from_file(file_selection, file_node, effective_selection_state, out);
+            Self::collect_logs_from_file(file_selection, file_node, out);
         }
     }
 
     fn collect_logs_from_file(
         selection: &FileNodeSelection,
         file_node: &FileNode,
-        inherited_state: ExplicitSelectionState,
         out: &mut Vec<LogId>,
     ) {
-        let effective_selection_state = match selection.selection.state {
-            ExplicitSelectionState::InheritedOrDefault => inherited_state,
-            explicit => explicit,
-        };
-
-        if effective_selection_state == ExplicitSelectionState::Selected {
+        if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
             out.extend(file_node.lines
                 .values()
                 .into_iter()
@@ -931,20 +885,16 @@ impl PhysicalPathSelections {
                 .lines
                 .get(line_segment)
                 .unwrap_or_else(|| unreachable!("Line {:?} not found", line_segment));
-            Self::collect_logs_from_line(line_selection, line_node, effective_selection_state, out);
+            Self::collect_logs_from_line(line_selection, line_node, out);
         }
     }
 
     fn collect_logs_from_line(
         selection: &LineNodeSelection,
         line_node: &LineNode,
-        inherited_state: ExplicitSelectionState,
         out: &mut Vec<LogId>,
     ) {
-        let effective_selection_state = match selection.selection.state {
-            ExplicitSelectionState::InheritedOrDefault => inherited_state,
-            explicit => explicit,
-        };
+        let effective_selection_state = selection.metadata.explicit_selection_state;
 
         if effective_selection_state == ExplicitSelectionState::Selected {
             out.extend(&line_node.logs);
@@ -1043,6 +993,32 @@ pub struct SpanNodeSelection {
     pub span_children: HashMap<SpanSegment, SpanNodeSelection>,
 }
 impl SpanNodeSelection {
+    pub fn toggle_selection(&mut self) {
+        match self.metadata.explicit_selection_state {
+            ExplicitSelectionState::Selected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+
+                for (_, child_span_sel) in &mut self.span_children {
+                    child_span_sel.deselect()
+                }
+            },
+            ExplicitSelectionState::Deselected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+
+                for (_, child_span_sel) in &mut self.span_children {
+                    child_span_sel.select()
+                }
+            },
+        };
+    }
+
+    pub fn select(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+    }
+
+    pub fn deselect(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+    }
 }
 
 // --- Module ---
@@ -1052,6 +1028,32 @@ pub struct CrateModuleNodeSelection {
     pub modules: HashMap<ModuleSegment, ModuleNodeSelection>,
 }
 impl CrateModuleNodeSelection {
+    pub fn toggle_selection(&mut self) {
+        match self.metadata.explicit_selection_state {
+            ExplicitSelectionState::Selected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+
+                for (_, module_sel) in &mut self.modules {
+                    module_sel.deselect();
+                }
+            },
+            ExplicitSelectionState::Deselected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+
+                for (_, module_sel) in &mut self.modules {
+                    module_sel.select();
+                }
+            },
+        };
+    }
+
+    pub fn select(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+    }
+
+    pub fn deselect(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+    }
 }
 
 pub struct ModuleNodeSelection {
@@ -1060,6 +1062,38 @@ pub struct ModuleNodeSelection {
     pub sub_modules: HashMap<SubModuleSegment, SubModuleNodeSelection>,
 }
 impl ModuleNodeSelection {
+    pub fn toggle_selection(&mut self) {
+        match self.metadata.explicit_selection_state {
+            ExplicitSelectionState::Selected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+
+                for (_, module_sel) in &mut self.modules {
+                    module_sel.deselect();
+                }
+                for (_, sub_module_sel) in &mut self.sub_modules {
+                    sub_module_sel.deselect();
+                }
+            },
+            ExplicitSelectionState::Deselected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+
+                for (_, module_sel) in &mut self.modules {
+                    module_sel.select();
+                }
+                for (_, sub_module_sel) in &mut self.sub_modules {
+                    sub_module_sel.select();
+                }
+            },
+        };
+    }
+
+    pub fn select(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+    }
+
+    pub fn deselect(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+    }
 }
 
 pub struct SubModuleNodeSelection {
@@ -1067,6 +1101,32 @@ pub struct SubModuleNodeSelection {
     pub sub_modules: HashMap<SubModuleSegment, SubModuleNodeSelection>,
 }
 impl SubModuleNodeSelection {
+    pub fn toggle_selection(&mut self) {
+        match self.metadata.explicit_selection_state {
+            ExplicitSelectionState::Selected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+
+                for (_, sub_module_sel) in &mut self.sub_modules {
+                    sub_module_sel.deselect();
+                }
+            },
+            ExplicitSelectionState::Deselected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+
+                for (_, sub_module_sel) in &mut self.sub_modules {
+                    sub_module_sel.select();
+                }
+            },
+        };
+    }
+
+    pub fn select(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+    }
+
+    pub fn deselect(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+    }
 }
 
 // --- Physical ---
@@ -1077,6 +1137,38 @@ pub struct CrateFolderNodeSelection {
     pub files: HashMap<FileSegment, FileNodeSelection>,
 }
 impl CrateFolderNodeSelection {
+    pub fn toggle_selection(&mut self) {
+        match self.metadata.explicit_selection_state {
+            ExplicitSelectionState::Selected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+
+                for (_, folder_sel) in &mut self.folders {
+                    folder_sel.deselect();
+                }
+                for (_, file_sel) in &mut self.files {
+                    file_sel.deselect();
+                }
+            },
+            ExplicitSelectionState::Deselected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+
+                for (_, folder_sel) in &mut self.folders {
+                    folder_sel.select();
+                }
+                for (_, file_sel) in &mut self.files {
+                    file_sel.select();
+                }
+            },
+        };
+    }
+
+    pub fn select(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+    }
+
+    pub fn deselect(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+    }
 }
 
 pub struct FolderNodeSelection {
@@ -1085,6 +1177,38 @@ pub struct FolderNodeSelection {
     pub files: HashMap<FileSegment, FileNodeSelection>,
 }
 impl FolderNodeSelection {
+    pub fn toggle_selection(&mut self) {
+        match self.metadata.explicit_selection_state {
+            ExplicitSelectionState::Selected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+
+                for (_, folder_sel) in &mut self.folders {
+                    folder_sel.deselect();
+                }
+                for (_, file_sel) in &mut self.files {
+                    file_sel.deselect();
+                }
+            },
+            ExplicitSelectionState::Deselected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+
+                for (_, folder_sel) in &mut self.folders {
+                    folder_sel.select();
+                }
+                for (_, file_sel) in &mut self.files {
+                    file_sel.select();
+                }
+            },
+        };
+    }
+
+    pub fn select(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+    }
+
+    pub fn deselect(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+    }
 }
 
 pub struct FileNodeSelection {
@@ -1092,10 +1216,54 @@ pub struct FileNodeSelection {
     pub lines: HashMap<LineSegment, LineNodeSelection>,
 }
 impl FileNodeSelection {
+    pub fn toggle_selection(&mut self) {
+        match self.metadata.explicit_selection_state {
+            ExplicitSelectionState::Selected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+
+                for (_, line_sel) in &mut self.lines {
+                    line_sel.deselect();
+                }
+            },
+            ExplicitSelectionState::Deselected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+
+                for (_, line_sel) in &mut self.lines {
+                    line_sel.select();
+                }
+            },
+        };
+    }
+
+    pub fn select(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+    }
+
+    pub fn deselect(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+    }
 }
 
 pub struct LineNodeSelection {
     pub metadata: NodeMetadata,
 }
 impl LineNodeSelection {
+    pub fn toggle_selection(&mut self) {
+        match self.metadata.explicit_selection_state {
+            ExplicitSelectionState::Selected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+            },
+            ExplicitSelectionState::Deselected => {
+                self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+            },
+        };
+    }
+
+    pub fn select(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
+    }
+
+    pub fn deselect(&mut self) {
+        self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+    }
 }
