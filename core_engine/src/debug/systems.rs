@@ -161,9 +161,12 @@ pub fn log_registry_debug_ui(log_registry: Res<LogRegistryHandle>, mut egui_ctxs
                 .show(ui, |ui| {
                     let log_registry = log_registry.0.lock().unwrap();
                     ui.label(format!("Total Logs: {}", log_registry.logs.len()));
-                    for (key, value) in &log_registry.logs {
-                        ui.label(format!("{}: {:?}", key, value));
-                    }
+                    ui.label(format!("Total Span Selection Roots: {}", log_registry.span_registry.span_roots.len()));
+                    ui.label(format!("Total Module Selection Roots: {}", log_registry.module_registry.crates.len()));
+                    ui.label(format!("Total Physical Selection Roots: {}", log_registry.physical_registry.crates.len()));
+                    //for (key, value) in &log_registry.logs {
+                    //    ui.label(format!("{}: {:?}", key, value));
+                    //}
                 });
         });
 }

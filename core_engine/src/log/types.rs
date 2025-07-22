@@ -156,7 +156,7 @@ pub enum ExplicitSelectionState {
 impl ExplicitSelectionState {
     pub fn consolidate(self, is_partial: bool) -> EffectiveSelectionState {
         if is_partial {
-            return EffectiveSelectionState::PartiallySelected;
+            EffectiveSelectionState::PartiallySelected
         } else {
             match self {
                 ExplicitSelectionState::Selected => EffectiveSelectionState::Selected,
