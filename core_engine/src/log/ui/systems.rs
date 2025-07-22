@@ -10,6 +10,8 @@ pub(super) fn show_log_viewer_ui(
     log_registry_handle: Res<LogRegistryHandle>,
 ) {
     if !toolbar_state.show_log_viewer_ui { return; }
+    let mut log_registry = log_registry_handle.0.lock().unwrap();
+    println!("ViewerUiPtr: {:p}", &*log_registry);
 
     egui::Window::new("Log Viewer")
         .default_size([700.0, 450.0])
@@ -20,13 +22,13 @@ pub(super) fn show_log_viewer_ui(
                 // Left panel (SelectionTree + Toolbar)
                 cols[0].vertical(|ui| {
                     render_selection_tree_toolbar(ui, &mut log_viewer_state);
-                    render_selection_tree(ui, &mut log_viewer_state, &mut log_registry_handle.0.lock().unwrap());
+                    render_selection_tree(ui, &mut log_viewer_state, &mut log_registry);
                 });
 
                 // Right panel (Console + Toolbar)
                 cols[1].vertical(|ui| {
                     render_console_toolbar(ui, &mut log_viewer_state);
-                    render_console(ui, &log_viewer_state, &log_registry_handle.0.lock().unwrap());
+                    render_console(ui, &log_viewer_state, &log_registry);
                 });
             });
         });

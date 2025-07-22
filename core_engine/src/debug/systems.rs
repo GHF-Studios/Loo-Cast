@@ -150,7 +150,7 @@ pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctxs: E
         });
 }
 
-pub fn log_registry_debug_ui(log_registry: Res<LogRegistryHandle>, mut egui_ctxs: EguiContexts, toolbar_state: Res<ToolbarState>) {
+pub fn log_registry_debug_ui(log_registry_handle: Res<LogRegistryHandle>, mut egui_ctxs: EguiContexts, toolbar_state: Res<ToolbarState>) {
     if !toolbar_state.show_log_registry_debug_ui { return; }
 
     egui::Window::new("Log Registry")
@@ -159,7 +159,8 @@ pub fn log_registry_debug_ui(log_registry: Res<LogRegistryHandle>, mut egui_ctxs
             ScrollArea::vertical()
                 .auto_shrink([false; 2]) // Prevents weird size compression
                 .show(ui, |ui| {
-                    let log_registry = log_registry.0.lock().unwrap();
+                    let log_registry = log_registry_handle.0.lock().unwrap();
+                    println!("DebugUiPtr: {:p}", &*log_registry);
                     ui.label(format!("Total Logs: {}", log_registry.logs.len()));
                     ui.label(format!("Total Span Selection Roots: {}", log_registry.span_registry.span_roots.len()));
                     ui.label(format!("Total Module Selection Roots: {}", log_registry.module_registry.crates.len()));
