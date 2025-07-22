@@ -1,3 +1,4 @@
+pub mod custom_egui_widgets;
 pub mod toolbar;
 
 use bevy::prelude::*;

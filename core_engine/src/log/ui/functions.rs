@@ -2,6 +2,7 @@ use bevy_egui::egui::{self, Color32, ScrollArea, TextFormat, FontId};
 use egui::{text::LayoutJob, WidgetText};
 
 use crate::log::{types::{*, LogLevel::*}, ui::{resources::LogViewerState, types::FilterTreeMode}};
+use crate::ui::custom_egui_widgets::tri_checkbox::TriCheckboxExt;
 
 // === Basics ===
 
@@ -322,33 +323,25 @@ fn render_span_branch(
     seg: &SpanSegment,
     sel: &mut SpanNodeSelection,
     node: &mut SpanNode,
-    inherited: ExplicitSelectionState,
 ) {
-    let eff = match sel.selection.state {
-        ExplicitSelectionState::InheritedOrDefault => inherited,
-        explicit => explicit,
-    };
-
     let label = format!("↔ {}", seg.name);
-    let mut checked = eff == ExplicitSelectionState::Selected;
+    let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
-    ui.collapsing(label, |ui| {
-        ui.horizontal(|ui| {
-            if ui.checkbox(&mut checked, "").changed() {
-                sel.selection.state = if checked {
-                    ExplicitSelectionState::Selected
-                } else {
-                    ExplicitSelectionState::Deselected
-                };
-            }
+    if !sel.metadata.ui_collapsed {
+        ui.collapsing(label, |ui| {
+            ui.horizontal(|ui| {
+                if ui.tri_checkbox(&mut checked).changed() {
+                    sel.toggle_selection();
+                }
+
+                for (child_seg, child_sel) in &mut sel.span_children {
+                    if let Some(child_node) = node.span_children.get_mut(child_seg) {
+                        render_span_branch(ui, child_seg, child_sel, child_node);
+                    }
+                }
+            });
         });
-
-        for (child_seg, child_sel) in &mut sel.span_children {
-            if let Some(child_node) = node.span_children.get_mut(child_seg) {
-                render_span_branch(ui, child_seg, child_sel, child_node, eff);
-            }
-        }
-    });
+    }
 }
 
 // --- Module ---
@@ -358,7 +351,6 @@ fn render_crate_module_branch(
     seg: &CrateModuleSegment,
     sel: &mut CrateModuleNodeSelection,
     node: &mut CrateModuleNode,
-    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
         ExplicitSelectionState::InheritedOrDefault => inherited,
@@ -392,7 +384,6 @@ fn render_module_branch(
     seg: &ModuleSegment,
     sel: &mut ModuleNodeSelection,
     node: &mut ModuleNode,
-    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
         ExplicitSelectionState::InheritedOrDefault => inherited,
@@ -432,7 +423,6 @@ fn render_submodule_branch(
     seg: &SubModuleSegment,
     sel: &mut SubModuleNodeSelection,
     node: &mut SubModuleNode,
-    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
         ExplicitSelectionState::InheritedOrDefault => inherited,
@@ -468,7 +458,6 @@ fn render_crate_folder_branch(
     seg: &CrateFolderSegment,
     sel: &mut CrateFolderNodeSelection,
     node: &mut CrateFolderNode,
-    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
         ExplicitSelectionState::InheritedOrDefault => inherited,
@@ -508,7 +497,6 @@ fn render_folder_branch(
     seg: &FolderSegment,
     sel: &mut FolderNodeSelection,
     node: &mut FolderNode,
-    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
         ExplicitSelectionState::InheritedOrDefault => inherited,
@@ -548,7 +536,6 @@ fn render_file_branch(
     seg: &FileSegment,
     sel: &mut FileNodeSelection,
     node: &mut FileNode,
-    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
         ExplicitSelectionState::InheritedOrDefault => inherited,
@@ -582,7 +569,6 @@ fn render_line_leaf(
     seg: &LineSegment,
     sel: &mut LineNodeSelection,
     _node: &mut LineNode,
-    inherited: ExplicitSelectionState,
 ) {
     let eff = match sel.selection.state {
         ExplicitSelectionState::InheritedOrDefault => inherited,

@@ -4,6 +4,7 @@ use std::sync::Arc;
 use tracing::Level as TracingLevel;
 
 use crate::log::statics::LOG_ID_COUNTER;
+use crate::ui::custom_egui_widgets::tri_checkbox::TriState;
 
 
 
@@ -151,6 +152,26 @@ pub enum ExplicitSelectionState {
     Selected,
     Deselected,
 }
+impl ExplicitSelectionState {
+    pub fn consolidate(self, is_partial: bool) -> EffectiveSelectionState {
+        if is_partial {
+            return EffectiveSelectionState::PartiallySelected;
+        } else {
+            match self {
+                ExplicitSelectionState::Selected => EffectiveSelectionState::Selected,
+                ExplicitSelectionState::Deselected => EffectiveSelectionState::Deselected
+            }
+        }
+    }
+
+    pub fn is_selected(&self) -> bool {
+        matches!(self, ExplicitSelectionState::Selected)
+    }
+
+    pub fn is_deselected(&self) -> bool {
+        matches!(self, ExplicitSelectionState::Deselected)
+    }
+}
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EffectiveSelectionState {
@@ -158,6 +179,15 @@ pub enum EffectiveSelectionState {
     Selected,
     Deselected,
     PartiallySelected
+}
+impl Into<TriState> for EffectiveSelectionState {
+    fn into(self) -> TriState {
+        match self {
+            EffectiveSelectionState::Selected => TriState::Checked,
+            EffectiveSelectionState::PartiallySelected => TriState::Indeterminate,
+            EffectiveSelectionState::Deselected => TriState::Unchecked,
+        }
+    }
 }
 
 #[derive(Default)]
@@ -1019,6 +1049,29 @@ impl SpanNodeSelection {
     pub fn deselect(&mut self) {
         self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
     }
+
+    pub fn is_partial(&self) -> bool {
+        let mut has_selected_children = false;
+        let mut has_deselected_children = false;
+
+        for (_, child_span_sel) in &self.span_children {
+            if child_span_sel.is_partial() {
+                return true;
+            }
+
+            if child_span_sel.metadata.explicit_selection_state.is_selected() {
+                has_selected_children = true;
+            } else {
+                has_deselected_children = true;
+            }
+
+            if has_selected_children && has_deselected_children {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 // --- Module ---
@@ -1053,6 +1106,29 @@ impl CrateModuleNodeSelection {
 
     pub fn deselect(&mut self) {
         self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+    }
+
+    pub fn is_partial(&self) -> bool {
+        let mut has_selected_children = false;
+        let mut has_deselected_children = false;
+
+        for (_, module_sel) in &self.modules {
+            if module_sel.is_partial() {
+                return true;
+            }
+
+            if module_sel.metadata.explicit_selection_state.is_selected() {
+                has_selected_children = true;
+            } else {
+                has_deselected_children = true;
+            }
+
+            if has_selected_children && has_deselected_children {
+                return true;
+            }
+        }
+
+        false
     }
 }
 
@@ -1094,6 +1170,45 @@ impl ModuleNodeSelection {
     pub fn deselect(&mut self) {
         self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
     }
+
+    pub fn is_partial(&self) -> bool {
+        let mut has_selected_children = false;
+        let mut has_deselected_children = false;
+
+        for (_, module_sel) in &self.modules {
+            if module_sel.is_partial() {
+                return true;
+            }
+
+            if module_sel.metadata.explicit_selection_state.is_selected() {
+                has_selected_children = true;
+            } else {
+                has_deselected_children = true;
+            }
+
+            if has_selected_children && has_deselected_children {
+                return true;
+            }
+        }
+
+        for (_, sub_module_sel) in &self.sub_modules {
+            if sub_module_sel.is_partial() {
+                return true;
+            }
+
+            if sub_module_sel.metadata.explicit_selection_state.is_selected() {
+                has_selected_children = true;
+            } else {
+                has_deselected_children = true;
+            }
+
+            if has_selected_children && has_deselected_children {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 pub struct SubModuleNodeSelection {
@@ -1126,6 +1241,29 @@ impl SubModuleNodeSelection {
 
     pub fn deselect(&mut self) {
         self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+    }
+
+    pub fn is_partial(&self) -> bool {
+        let mut has_selected_children = false;
+        let mut has_deselected_children = false;
+
+        for (_, sub_module_sel) in &self.sub_modules {
+            if sub_module_sel.is_partial() {
+                return true;
+            }
+
+            if sub_module_sel.metadata.explicit_selection_state.is_selected() {
+                has_selected_children = true;
+            } else {
+                has_deselected_children = true;
+            }
+
+            if has_selected_children && has_deselected_children {
+                return true;
+            }
+        }
+
+        false
     }
 }
 
@@ -1169,6 +1307,45 @@ impl CrateFolderNodeSelection {
     pub fn deselect(&mut self) {
         self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
     }
+
+    pub fn is_partial(&self) -> bool {
+        let mut has_selected_children = false;
+        let mut has_deselected_children = false;
+
+        for (_, folder_sel) in &self.folders {
+            if folder_sel.is_partial() {
+                return true;
+            }
+
+            if folder_sel.metadata.explicit_selection_state.is_selected() {
+                has_selected_children = true;
+            } else {
+                has_deselected_children = true;
+            }
+
+            if has_selected_children && has_deselected_children {
+                return true;
+            }
+        }
+
+        for (_, file_sel) in &self.files {
+            if file_sel.is_partial() {
+                return true;
+            }
+
+            if file_sel.metadata.explicit_selection_state.is_selected() {
+                has_selected_children = true;
+            } else {
+                has_deselected_children = true;
+            }
+
+            if has_selected_children && has_deselected_children {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 pub struct FolderNodeSelection {
@@ -1209,6 +1386,45 @@ impl FolderNodeSelection {
     pub fn deselect(&mut self) {
         self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
     }
+
+    pub fn is_partial(&self) -> bool {
+        let mut has_selected_children = false;
+        let mut has_deselected_children = false;
+
+        for (_, folder_sel) in &self.folders {
+            if folder_sel.is_partial() {
+                return true;
+            }
+
+            if folder_sel.metadata.explicit_selection_state.is_selected() {
+                has_selected_children = true;
+            } else {
+                has_deselected_children = true;
+            }
+
+            if has_selected_children && has_deselected_children {
+                return true;
+            }
+        }
+
+        for (_, file_sel) in &self.files {
+            if file_sel.is_partial() {
+                return true;
+            }
+
+            if file_sel.metadata.explicit_selection_state.is_selected() {
+                has_selected_children = true;
+            } else {
+                has_deselected_children = true;
+            }
+
+            if has_selected_children && has_deselected_children {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 pub struct FileNodeSelection {
@@ -1241,6 +1457,25 @@ impl FileNodeSelection {
 
     pub fn deselect(&mut self) {
         self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+    }
+
+    pub fn is_partial(&self) -> bool {
+        let mut has_selected_children = false;
+        let mut has_deselected_children = false;
+
+        for (_, line_sel) in &self.lines {
+            if line_sel.metadata.explicit_selection_state.is_selected() {
+                has_selected_children = true;
+            } else {
+                has_deselected_children = true;
+            }
+
+            if has_selected_children && has_deselected_children {
+                return true;
+            }
+        }
+
+        false
     }
 }
 
