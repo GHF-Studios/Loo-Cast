@@ -123,6 +123,7 @@ impl LogRegistry {
         module_path: ModulePath,
         physical_path: PhysicalStoragePath,
     ) {
+        println!("Inserting log {}", log_id);
         self.logs.insert(log_id, log_entry);
         self.span_registry.insert(&span_path, log_id);
         self.module_registry.insert(&module_path, log_id);
@@ -193,7 +194,6 @@ impl Into<TriState> for EffectiveSelectionState {
 #[derive(Default)]
 pub struct NodeMetadata {
     pub explicit_selection_state: ExplicitSelectionState,
-    pub ui_collapsed: bool,
 }
 
 // === Path Types ===
@@ -647,7 +647,7 @@ impl SpanPathSelections {
     pub fn collect_logs(&self, registry: &LogRegistry) -> Vec<LogId> {
         let mut out = Vec::new();
 
-        println!("Collecting logs from {} span roots", self.span_roots.len());
+        //println!("Collecting logs from {} span roots", self.span_roots.len());
         for (root_segment, root_node_selection) in &self.span_roots {
             let root_node = registry
                 .span_registry
@@ -674,7 +674,7 @@ impl SpanPathSelections {
             out.extend(&parent_node.logs);
         }
 
-        println!("Collecting logs from {} span children", selection.span_children.len());
+        //println!("Collecting logs from {} span children", selection.span_children.len());
         for (child_segment, child_selection) in &selection.span_children {
             let child_node = parent_node
                 .span_children
@@ -1028,14 +1028,16 @@ impl SpanNodeSelection {
             ExplicitSelectionState::Selected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
 
-                for (_, child_span_sel) in &mut self.span_children {
+                println!("Deselecting {} span children", self.span_children.len());
+                for child_span_sel in self.span_children.values_mut() {
                     child_span_sel.deselect()
                 }
             },
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
-                for (_, child_span_sel) in &mut self.span_children {
+                println!("Selecting {} span children", self.span_children.len());
+                for child_span_sel in self.span_children.values_mut() {
                     child_span_sel.select()
                 }
             },
@@ -1054,7 +1056,7 @@ impl SpanNodeSelection {
         let mut has_selected_children = false;
         let mut has_deselected_children = false;
 
-        for (_, child_span_sel) in &self.span_children {
+        for child_span_sel in self.span_children.values() {
             if child_span_sel.is_partial() {
                 return true;
             }
@@ -1086,14 +1088,14 @@ impl CrateModuleNodeSelection {
             ExplicitSelectionState::Selected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
 
-                for (_, module_sel) in &mut self.modules {
+                for module_sel in self.modules.values_mut() {
                     module_sel.deselect();
                 }
             },
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
-                for (_, module_sel) in &mut self.modules {
+                for module_sel in self.modules.values_mut() {
                     module_sel.select();
                 }
             },
@@ -1112,7 +1114,7 @@ impl CrateModuleNodeSelection {
         let mut has_selected_children = false;
         let mut has_deselected_children = false;
 
-        for (_, module_sel) in &self.modules {
+        for module_sel in self.modules.values() {
             if module_sel.is_partial() {
                 return true;
             }
@@ -1143,20 +1145,20 @@ impl ModuleNodeSelection {
             ExplicitSelectionState::Selected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
 
-                for (_, module_sel) in &mut self.modules {
+                for module_sel in self.modules.values_mut() {
                     module_sel.deselect();
                 }
-                for (_, sub_module_sel) in &mut self.sub_modules {
+                for sub_module_sel in self.sub_modules.values_mut() {
                     sub_module_sel.deselect();
                 }
             },
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
-                for (_, module_sel) in &mut self.modules {
+                for module_sel in self.modules.values_mut() {
                     module_sel.select();
                 }
-                for (_, sub_module_sel) in &mut self.sub_modules {
+                for sub_module_sel in self.sub_modules.values_mut() {
                     sub_module_sel.select();
                 }
             },
@@ -1175,7 +1177,7 @@ impl ModuleNodeSelection {
         let mut has_selected_children = false;
         let mut has_deselected_children = false;
 
-        for (_, module_sel) in &self.modules {
+        for module_sel in self.modules.values() {
             if module_sel.is_partial() {
                 return true;
             }
@@ -1191,7 +1193,7 @@ impl ModuleNodeSelection {
             }
         }
 
-        for (_, sub_module_sel) in &self.sub_modules {
+        for sub_module_sel in self.sub_modules.values() {
             if sub_module_sel.is_partial() {
                 return true;
             }
@@ -1221,14 +1223,14 @@ impl SubModuleNodeSelection {
             ExplicitSelectionState::Selected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
 
-                for (_, sub_module_sel) in &mut self.sub_modules {
+                for sub_module_sel in self.sub_modules.values_mut() {
                     sub_module_sel.deselect();
                 }
             },
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
-                for (_, sub_module_sel) in &mut self.sub_modules {
+                for sub_module_sel in self.sub_modules.values_mut() {
                     sub_module_sel.select();
                 }
             },
@@ -1247,7 +1249,7 @@ impl SubModuleNodeSelection {
         let mut has_selected_children = false;
         let mut has_deselected_children = false;
 
-        for (_, sub_module_sel) in &self.sub_modules {
+        for sub_module_sel in self.sub_modules.values() {
             if sub_module_sel.is_partial() {
                 return true;
             }
@@ -1280,20 +1282,20 @@ impl CrateFolderNodeSelection {
             ExplicitSelectionState::Selected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
 
-                for (_, folder_sel) in &mut self.folders {
+                for folder_sel in self.folders.values_mut() {
                     folder_sel.deselect();
                 }
-                for (_, file_sel) in &mut self.files {
+                for file_sel in self.files.values_mut() {
                     file_sel.deselect();
                 }
             },
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
-                for (_, folder_sel) in &mut self.folders {
+                for folder_sel in self.folders.values_mut() {
                     folder_sel.select();
                 }
-                for (_, file_sel) in &mut self.files {
+                for file_sel in self.files.values_mut() {
                     file_sel.select();
                 }
             },
@@ -1312,7 +1314,7 @@ impl CrateFolderNodeSelection {
         let mut has_selected_children = false;
         let mut has_deselected_children = false;
 
-        for (_, folder_sel) in &self.folders {
+        for folder_sel in self.folders.values() {
             if folder_sel.is_partial() {
                 return true;
             }
@@ -1328,7 +1330,7 @@ impl CrateFolderNodeSelection {
             }
         }
 
-        for (_, file_sel) in &self.files {
+        for file_sel in self.files.values() {
             if file_sel.is_partial() {
                 return true;
             }
@@ -1359,20 +1361,20 @@ impl FolderNodeSelection {
             ExplicitSelectionState::Selected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
 
-                for (_, folder_sel) in &mut self.folders {
+                for folder_sel in self.folders.values_mut() {
                     folder_sel.deselect();
                 }
-                for (_, file_sel) in &mut self.files {
+                for file_sel in self.files.values_mut() {
                     file_sel.deselect();
                 }
             },
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
-                for (_, folder_sel) in &mut self.folders {
+                for folder_sel in self.folders.values_mut() {
                     folder_sel.select();
                 }
-                for (_, file_sel) in &mut self.files {
+                for file_sel in self.files.values_mut() {
                     file_sel.select();
                 }
             },
@@ -1391,7 +1393,7 @@ impl FolderNodeSelection {
         let mut has_selected_children = false;
         let mut has_deselected_children = false;
 
-        for (_, folder_sel) in &self.folders {
+        for folder_sel in self.folders.values() {
             if folder_sel.is_partial() {
                 return true;
             }
@@ -1407,7 +1409,7 @@ impl FolderNodeSelection {
             }
         }
 
-        for (_, file_sel) in &self.files {
+        for file_sel in self.files.values() {
             if file_sel.is_partial() {
                 return true;
             }
@@ -1437,14 +1439,14 @@ impl FileNodeSelection {
             ExplicitSelectionState::Selected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
 
-                for (_, line_sel) in &mut self.lines {
+                for line_sel in self.lines.values_mut() {
                     line_sel.deselect();
                 }
             },
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
-                for (_, line_sel) in &mut self.lines {
+                for line_sel in self.lines.values_mut() {
                     line_sel.select();
                 }
             },
@@ -1463,7 +1465,7 @@ impl FileNodeSelection {
         let mut has_selected_children = false;
         let mut has_deselected_children = false;
 
-        for (_, line_sel) in &self.lines {
+        for line_sel in self.lines.values() {
             if line_sel.metadata.explicit_selection_state.is_selected() {
                 has_selected_children = true;
             } else {
@@ -1500,5 +1502,9 @@ impl LineNodeSelection {
 
     pub fn deselect(&mut self) {
         self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
+    }
+
+    pub const fn is_partial(&self) -> bool {
+        false
     }
 }
