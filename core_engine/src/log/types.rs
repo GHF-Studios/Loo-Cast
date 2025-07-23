@@ -4,6 +4,7 @@ use std::sync::Arc;
 use tracing::Level as TracingLevel;
 
 use crate::log::statics::LOG_ID_COUNTER;
+use crate::log::ui::types::SelectionMode;
 use crate::ui::custom_egui_widgets::tri_checkbox::TriState;
 
 
@@ -106,6 +107,10 @@ pub struct LogRegistry {
     pub span_registry: SpanRegistry,
     pub module_registry: ModuleRegistry,
     pub physical_registry: PhysicalRegistry,
+    pub span_selections: SpanPathSelections,
+    pub module_selections: ModulePathSelections,
+    pub physical_selections: PhysicalPathSelections,
+    pub selection_mode: SelectionMode,
 }
 impl LogRegistry {
     pub fn insert_without_log(
@@ -113,6 +118,7 @@ impl LogRegistry {
         span_path: &SpanPath,
     ) {
         self.span_registry.insert_without_log(span_path);
+        self.span_selections.insert(span_path);
     }
 
     pub fn insert_log(
@@ -128,6 +134,9 @@ impl LogRegistry {
         self.span_registry.insert(&span_path, log_id);
         self.module_registry.insert(&module_path, log_id);
         self.physical_registry.insert(&physical_path, log_id);
+        self.span_selections.insert(&span_path);
+        self.module_selections.insert(&module_path);
+        self.physical_selections.insert(&physical_path);
     }
 
     pub fn get_log(&self, id: &LogId) -> Option<&LogEntry> {
@@ -181,9 +190,9 @@ pub enum EffectiveSelectionState {
     Deselected,
     PartiallySelected
 }
-impl Into<TriState> for EffectiveSelectionState {
-    fn into(self) -> TriState {
-        match self {
+impl From<EffectiveSelectionState> for TriState {
+    fn from(value: EffectiveSelectionState) -> Self {
+        match value {
             EffectiveSelectionState::Selected => TriState::Checked,
             EffectiveSelectionState::PartiallySelected => TriState::Indeterminate,
             EffectiveSelectionState::Deselected => TriState::Unchecked,
@@ -644,6 +653,19 @@ pub struct SpanPathSelections {
     pub span_roots: HashMap<SpanSegment, SpanNodeSelection>,
 }
 impl SpanPathSelections {
+    pub fn insert(&mut self, path: &SpanPath) {
+        let root_span_segment = if path.spans.is_empty() {
+            SpanSegment { name: "[UNCATEGORIZED]".to_string() }
+        } else {
+            path.spans[0].clone()
+        };
+        let mut current = self.span_roots.entry(root_span_segment).or_default();
+
+        for segment in path.spans.get(1..).unwrap_or_default() {
+            current = current.span_children.entry(segment.clone()).or_default();
+        }
+    }
+
     pub fn collect_logs(&self, registry: &LogRegistry) -> Vec<LogId> {
         let mut out = Vec::new();
 
@@ -710,6 +732,35 @@ pub struct ModulePathSelections {
     pub crates: HashMap<CrateModuleSegment, CrateModuleNodeSelection>,
 }
 impl ModulePathSelections {
+    pub fn insert(&mut self, path: &ModulePath) {
+        let crate_module_segment = if path.crate_module.name.is_empty() {
+            CrateModuleSegment { name: "[UNCATEGORIZED]".to_string() }
+        } else {
+            path.crate_module.clone()
+        };
+        let crate_module = self.crates.entry(crate_module_segment).or_default();
+
+        if path.modules.is_empty() {
+            return;
+        }
+
+        let mut current_module = crate_module.modules.entry(path.modules[0].clone()).or_default();
+
+        for segment in path.modules.get(1..).unwrap_or_default() {
+            current_module = current_module.modules.entry(segment.clone()).or_default();
+        }
+
+        if path.sub_modules.is_empty() {
+            return;
+        }
+
+        let mut current_sub_module = current_module.sub_modules.entry(path.sub_modules[0].clone()).or_default();
+
+        for segment in path.sub_modules.get(1..).unwrap_or_default() {
+            current_sub_module = current_sub_module.sub_modules.entry(segment.clone()).or_default();
+        }
+    }
+
     pub fn collect_logs(&self, registry: &LogRegistry) -> Vec<LogId> {
         let mut out = Vec::new();
 
@@ -847,6 +898,30 @@ pub struct PhysicalPathSelections {
     pub crates: HashMap<CrateFolderSegment, CrateFolderNodeSelection>,
 }
 impl PhysicalPathSelections {
+    pub fn insert(&mut self, path: &PhysicalStoragePath) {
+        let crate_folder_segment = if path.crate_folder.name.is_empty() {
+            CrateFolderSegment { name: "[UNCATEGORIZED]".to_string() }
+        } else {
+            path.crate_folder.clone()
+        };
+        let crate_folder = self.crates.entry(crate_folder_segment).or_default();
+
+        if path.folders.is_empty() {
+            let file = crate_folder.files.entry(path.file.clone()).or_default();
+            file.lines.entry(path.line.clone()).or_default();
+            return;
+        }
+
+        let mut current_folder = crate_folder.folders.entry(path.folders[0].clone()).or_default();
+
+        for segment in path.folders.get(1..).unwrap_or_default() {
+            current_folder = current_folder.folders.entry(segment.clone()).or_default();
+        }
+
+        let file = current_folder.files.entry(path.file.clone()).or_default();
+        file.lines.entry(path.line.clone()).or_default();
+    }
+
     pub fn collect_logs(&self, registry: &LogRegistry) -> Vec<LogId> {
         let mut out = Vec::new();
 
@@ -1018,6 +1093,7 @@ impl PhysicalPathSelections {
 
 // --- Span ---
 
+#[derive(Default)]
 pub struct SpanNodeSelection {
     pub metadata: NodeMetadata,
     pub span_children: HashMap<SpanSegment, SpanNodeSelection>,
@@ -1078,6 +1154,7 @@ impl SpanNodeSelection {
 
 // --- Module ---
 
+#[derive(Default)]
 pub struct CrateModuleNodeSelection {
     pub metadata: NodeMetadata,
     pub modules: HashMap<ModuleSegment, ModuleNodeSelection>,
@@ -1134,6 +1211,7 @@ impl CrateModuleNodeSelection {
     }
 }
 
+#[derive(Default)]
 pub struct ModuleNodeSelection {
     pub metadata: NodeMetadata,
     pub modules: HashMap<ModuleSegment, ModuleNodeSelection>,
@@ -1213,6 +1291,7 @@ impl ModuleNodeSelection {
     }
 }
 
+#[derive(Default)]
 pub struct SubModuleNodeSelection {
     pub metadata: NodeMetadata,
     pub sub_modules: HashMap<SubModuleSegment, SubModuleNodeSelection>,
@@ -1271,6 +1350,7 @@ impl SubModuleNodeSelection {
 
 // --- Physical ---
 
+#[derive(Default)]
 pub struct CrateFolderNodeSelection {
     pub metadata: NodeMetadata,
     pub folders: HashMap<FolderSegment, FolderNodeSelection>,
@@ -1350,6 +1430,7 @@ impl CrateFolderNodeSelection {
     }
 }
 
+#[derive(Default)]
 pub struct FolderNodeSelection {
     pub metadata: NodeMetadata,
     pub folders: HashMap<FolderSegment, FolderNodeSelection>,
@@ -1429,6 +1510,7 @@ impl FolderNodeSelection {
     }
 }
 
+#[derive(Default)]
 pub struct FileNodeSelection {
     pub metadata: NodeMetadata,
     pub lines: HashMap<LineSegment, LineNodeSelection>,
@@ -1481,6 +1563,7 @@ impl FileNodeSelection {
     }
 }
 
+#[derive(Default)]
 pub struct LineNodeSelection {
     pub metadata: NodeMetadata,
 }

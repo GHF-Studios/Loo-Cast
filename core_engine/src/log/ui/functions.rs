@@ -1,51 +1,46 @@
 use bevy_egui::egui::{self, Color32, ScrollArea, TextFormat, FontId};
 use egui::{text::LayoutJob, WidgetText};
 
-use crate::log::{types::{*, LogLevel::*}, ui::{resources::LogViewerState, types::FilterTreeMode}};
+use crate::log::{types::{*, LogLevel::*}, ui::{resources::LogViewerState, types::SelectionMode}};
 use crate::ui::custom_egui_widgets::tri_checkbox::TriCheckboxExt;
 
 // === Basics ===
 
-pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState) {
+pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState, log_registry: &mut LogRegistry) {
     egui::Frame::none()
         .fill(Color32::from_gray(25))
         .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
         .inner_margin(egui::Margin::symmetric(6.0, 4.0))
         .show(ui, |ui| {
             ui.horizontal(|ui| {
-                let tree_mode = &mut log_viewer_state.tree_mode;
+                let selection_mode = &mut log_registry.selection_mode;
 
-                ui.label("Filter Mode:");
+                ui.label("Mode:");
 
-                let selected = matches!(tree_mode, FilterTreeMode::Span);
+                let selected = matches!(selection_mode, SelectionMode::Span);
                 if ui.selectable_label(selected, "↔ Span").clicked() {
-                    *tree_mode = FilterTreeMode::Span;
+                    *selection_mode = SelectionMode::Span;
                 }
 
-                let selected = matches!(tree_mode, FilterTreeMode::Module);
+                let selected = matches!(selection_mode, SelectionMode::Module);
                 if ui.selectable_label(selected, "📦 Module").clicked() {
-                    *tree_mode = FilterTreeMode::Module;
+                    *selection_mode = SelectionMode::Module;
                 }
 
-                let selected = matches!(tree_mode, FilterTreeMode::Physical);
+                let selected = matches!(selection_mode, SelectionMode::Physical);
                 if ui.selectable_label(selected, "📂 Physical").clicked() {
-                    *tree_mode = FilterTreeMode::Physical;
+                    *selection_mode = SelectionMode::Physical;
                 }
             });
 
             ui.horizontal(|ui| {
                 ui.label("Tools:");
 
-                if ui.button("All").clicked() {
-                    println!("Sex junge dikka amena zick zack work doch jez du wichser: {} {} {}", 
-                        log_viewer_state.span_selections.span_roots.len(),
-                        log_viewer_state.module_selections.crates.len(),
-                        log_viewer_state.physical_selections.crates.len(),
-                    );
-                    match log_viewer_state.tree_mode {
-                        FilterTreeMode::Span => log_viewer_state.span_selections.span_roots.values_mut().for_each(|sel| sel.toggle_selection()),
-                        FilterTreeMode::Module => log_viewer_state.module_selections.crates.values_mut().for_each(|sel| sel.toggle_selection()),
-                        FilterTreeMode::Physical => log_viewer_state.physical_selections.crates.values_mut().for_each(|sel| sel.toggle_selection()),
+                if ui.button("ToggleAll").clicked() {
+                    match log_registry.selection_mode {
+                        SelectionMode::Span => log_registry.span_selections.span_roots.values_mut().for_each(|sel| sel.toggle_selection()),
+                        SelectionMode::Module => log_registry.module_selections.crates.values_mut().for_each(|sel| sel.toggle_selection()),
+                        SelectionMode::Physical => log_registry.physical_selections.crates.values_mut().for_each(|sel| sel.toggle_selection()),
                     };
                 }
             });
@@ -57,17 +52,17 @@ pub fn render_selection_tree(
     log_viewer_state: &mut LogViewerState,
     log_registry: &mut LogRegistry
 ) {
-    let tree_mode = log_viewer_state.tree_mode;
+    let selection_mode = log_registry.selection_mode;
 
-    match tree_mode {
-        FilterTreeMode::Span => {
-            render_span_tree(ui, log_viewer_state, &mut log_registry.span_registry);
+    match selection_mode {
+        SelectionMode::Span => {
+            render_span_tree(ui, &mut log_registry.span_registry, &mut log_registry.span_selections);
         }
-        FilterTreeMode::Module => {
-            render_module_tree(ui, log_viewer_state, &mut log_registry.module_registry);
+        SelectionMode::Module => {
+            render_module_tree(ui, &mut log_registry.module_registry, &mut log_registry.module_selections);
         }
-        FilterTreeMode::Physical => {
-            render_physical_tree(ui, log_viewer_state, &mut log_registry.physical_registry);
+        SelectionMode::Physical => {
+            render_physical_tree(ui, &mut log_registry.physical_registry, &mut log_registry.physical_selections);
         }
     }
 }
@@ -151,9 +146,9 @@ pub fn gather_logs(
     let mut out = Vec::new();
     //println!("Collecting from {} available logs", registry.logs.len());
 
-    match state.tree_mode {
-        FilterTreeMode::Span => {
-            let log_ids = state.span_selections.collect_logs(registry);
+    match registry.selection_mode {
+        SelectionMode::Span => {
+            let log_ids = registry.span_selections.collect_logs(registry);
             //println!("Collected {} logs from `Span`", log_ids.len());
 
             for log_id in log_ids {
@@ -162,8 +157,8 @@ pub fn gather_logs(
                 }
             }
         }
-        FilterTreeMode::Module => {
-            let log_ids = state.module_selections.collect_logs(registry);
+        SelectionMode::Module => {
+            let log_ids = registry.module_selections.collect_logs(registry);
             //println!("Collected {} logs from `Module`", log_ids.len());
             
             for log_id in log_ids {
@@ -172,8 +167,8 @@ pub fn gather_logs(
                 }
             }
         }
-        FilterTreeMode::Physical => {
-            let log_ids = state.physical_selections.collect_logs(registry);
+        SelectionMode::Physical => {
+            let log_ids = registry.physical_selections.collect_logs(registry);
             //println!("Collected {} logs from `Physical`", log_ids.len());
 
             for log_id in log_ids {
@@ -256,11 +251,11 @@ pub(super) fn format_log(log: &LogEntry) -> WidgetText {
 
 pub fn render_span_tree(
     ui: &mut egui::Ui,
-    log_viewer_state: &mut LogViewerState,
     span_registry: &mut crate::log::types::SpanRegistry,
+    span_selections: &mut crate::log::types::SpanPathSelections
 ) {
     ScrollArea::vertical().show(ui, |ui| {
-        for (root_seg, root_sel) in &mut log_viewer_state.span_selections.span_roots {
+        for (root_seg, root_sel) in &mut span_selections.span_roots {
             if let Some(root_node) = span_registry.span_roots.get_mut(root_seg) {
                 render_span_branch(ui, root_seg, root_sel, root_node);
             }
@@ -270,11 +265,11 @@ pub fn render_span_tree(
 
 pub fn render_module_tree(
     ui: &mut egui::Ui,
-    log_viewer_state: &mut LogViewerState,
     module_registry: &mut crate::log::types::ModuleRegistry,
+    module_selections: &mut crate::log::types::ModulePathSelections
 ) {
     ScrollArea::vertical().show(ui, |ui| {
-        for (crate_seg, crate_sel) in &mut log_viewer_state.module_selections.crates {
+        for (crate_seg, crate_sel) in &mut module_selections.crates {
             if let Some(crate_node) = module_registry.crates.get_mut(crate_seg) {
                 render_crate_module_branch(ui, crate_seg, crate_sel, crate_node);
             }
@@ -284,11 +279,11 @@ pub fn render_module_tree(
 
 pub fn render_physical_tree(
     ui: &mut egui::Ui,
-    log_viewer_state: &mut LogViewerState,
     physical_registry: &mut crate::log::types::PhysicalRegistry,
+    physical_selections: &mut crate::log::types::PhysicalPathSelections
 ) {
     ScrollArea::vertical().show(ui, |ui| {
-        for (crate_seg, crate_sel) in &mut log_viewer_state.physical_selections.crates {
+        for (crate_seg, crate_sel) in &mut physical_selections.crates {
             if let Some(crate_node) = physical_registry.crates.get_mut(crate_seg) {
                 render_crate_folder_branch(ui, crate_seg, crate_sel, crate_node);
             }
