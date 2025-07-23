@@ -144,12 +144,10 @@ pub fn gather_logs(
     registry: &LogRegistry,
 ) -> Vec<LogEntry> {
     let mut out = Vec::new();
-    //println!("Collecting from {} available logs", registry.logs.len());
 
     match registry.selection_mode {
         SelectionMode::Span => {
             let log_ids = registry.span_selections.collect_logs(registry);
-            //println!("Collected {} logs from `Span`", log_ids.len());
 
             for log_id in log_ids {
                 if let Some(entry) = registry.get_log(&log_id) {
@@ -159,7 +157,6 @@ pub fn gather_logs(
         }
         SelectionMode::Module => {
             let log_ids = registry.module_selections.collect_logs(registry);
-            //println!("Collected {} logs from `Module`", log_ids.len());
             
             for log_id in log_ids {
                 if let Some(entry) = registry.get_log(&log_id) {
@@ -169,7 +166,6 @@ pub fn gather_logs(
         }
         SelectionMode::Physical => {
             let log_ids = registry.physical_selections.collect_logs(registry);
-            //println!("Collected {} logs from `Physical`", log_ids.len());
 
             for log_id in log_ids {
                 if let Some(entry) = registry.get_log(&log_id) {
@@ -181,7 +177,6 @@ pub fn gather_logs(
 
     out.retain(|log| log.lvl >= state.threshold);
     out.sort_by_key(|log| log.ts);
-    //println!("Gathered {} logs in total", out.len());
     out
 }
 

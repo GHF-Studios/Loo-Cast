@@ -129,7 +129,6 @@ impl LogRegistry {
         module_path: ModulePath,
         physical_path: PhysicalStoragePath,
     ) {
-        println!("Inserting log {}", log_id);
         self.logs.insert(log_id, log_entry);
         self.span_registry.insert(&span_path, log_id);
         self.module_registry.insert(&module_path, log_id);
@@ -669,7 +668,6 @@ impl SpanPathSelections {
     pub fn collect_logs(&self, registry: &LogRegistry) -> Vec<LogId> {
         let mut out = Vec::new();
 
-        //println!("Collecting logs from {} span roots", self.span_roots.len());
         for (root_segment, root_node_selection) in &self.span_roots {
             let root_node = registry
                 .span_registry
@@ -696,7 +694,6 @@ impl SpanPathSelections {
             out.extend(&parent_node.logs);
         }
 
-        //println!("Collecting logs from {} span children", selection.span_children.len());
         for (child_segment, child_selection) in &selection.span_children {
             let child_node = parent_node
                 .span_children
@@ -1104,7 +1101,6 @@ impl SpanNodeSelection {
             ExplicitSelectionState::Selected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
 
-                println!("Deselecting {} span children", self.span_children.len());
                 for child_span_sel in self.span_children.values_mut() {
                     child_span_sel.deselect()
                 }
@@ -1112,7 +1108,6 @@ impl SpanNodeSelection {
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
-                println!("Selecting {} span children", self.span_children.len());
                 for child_span_sel in self.span_children.values_mut() {
                     child_span_sel.select()
                 }
