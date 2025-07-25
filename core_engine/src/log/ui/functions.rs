@@ -298,16 +298,19 @@ fn render_span_branch(
     let label = format!("↔ {}", seg.name);
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
-    if ui.tri_checkbox(&mut checked).changed() {
-        sel.toggle_selection();
-    }
-    ui.collapsing(label, |ui| {
-        ui.horizontal(|ui| {
-            for (child_seg, child_sel) in &mut sel.span_children {
-                if let Some(child_node) = node.span_children.get_mut(child_seg) {
-                    render_span_branch(ui, child_seg, child_sel, child_node);
+    ui.horizontal(|ui| {
+        if ui.tri_checkbox(&mut checked).changed() {
+            println!("SexNigger");
+            sel.toggle_selection();
+        }
+        ui.collapsing(label, |ui| {
+            ui.horizontal(|ui| {
+                for (child_seg, child_sel) in &mut sel.span_children {
+                    if let Some(child_node) = node.span_children.get_mut(child_seg) {
+                        render_span_branch(ui, child_seg, child_sel, child_node);
+                    }
                 }
-            }
+            });
         });
     });
 }

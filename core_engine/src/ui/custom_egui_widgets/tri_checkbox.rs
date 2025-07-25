@@ -24,8 +24,8 @@ impl Widget for TriCheckbox<'_> {
 
         if response.clicked() {
             *self.state = match *self.state {
-                TriState::Unchecked => TriState::Indeterminate,
-                TriState::Indeterminate => TriState::Checked,
+                TriState::Unchecked => TriState::Checked,
+                TriState::Indeterminate => TriState::Unchecked,
                 TriState::Checked => TriState::Unchecked,
             };
         }
