@@ -4,7 +4,13 @@ use bevy_egui::{egui, EguiContexts};
 use crate::ui::toolbar::resources::ToolbarState;
 
 pub(super) fn show_toolbar_ui(mut egui_ctx: EguiContexts, mut toolbar_state: ResMut<ToolbarState>) {
-    let ctx = egui_ctx.ctx_mut();
+    let ctx = match egui_ctx.try_ctx_mut() {
+        Some(ctx) => ctx,
+        None => {
+            warn!("Egui context is not available! The primary window likely has just been closed.");
+            return;
+        },
+    };
 
     egui::Window::new("Toolbar")
         .anchor(egui::Align2::LEFT_TOP, [8.0, 8.0])

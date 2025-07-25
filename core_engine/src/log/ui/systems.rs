@@ -11,12 +11,19 @@ pub(super) fn show_log_viewer_ui(
 ) {
     if !toolbar_state.show_log_viewer_ui { return; }
     let mut log_registry = log_registry_handle.0.lock().unwrap();
+    let ctx = match egui_ctx.try_ctx_mut() {
+        Some(ctx) => ctx,
+        None => {
+            warn!("Egui context is not available! The primary window likely has just been closed.");
+            return;
+        },
+    };
 
     egui::Window::new("Log Viewer")
         .default_size([700.0, 450.0])
         .min_width(350.0)
         .min_height(250.0)
-        .show(egui_ctx.ctx_mut(), |ui| {
+        .show(ctx, |ui| {
             ui.columns(2, |cols| {
                 // Left panel (SelectionTree + Toolbar)
                 cols[0].vertical(|ui| {

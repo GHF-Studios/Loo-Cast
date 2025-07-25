@@ -104,7 +104,8 @@ pub(super) fn chunk_loader_inspection_system(chunk_loader_query: Query<Entity, W
     }
 }
 
-pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctxs: EguiContexts, toolbar_state: Res<ToolbarState>) {
+// TODO: Move into debug/ui/systems.rs or remove if not needed anymore
+pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctx: EguiContexts, toolbar_state: Res<ToolbarState>) {
     const GROUP_SIZE: usize = 50;
 
     fn display_chunk_group<T: std::fmt::Debug>(ui: &mut egui::Ui, label: &str, items: impl Iterator<Item = T>) {
@@ -125,10 +126,17 @@ pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctxs: E
     }
 
     if !toolbar_state.show_chunk_manager_debug_ui { return; }
+    let ctx = match egui_ctx.try_ctx_mut() {
+        Some(ctx) => ctx,
+        None => {
+            warn!("Egui context is not available! The primary window likely has just been closed.");
+            return;
+        },
+    };
 
     egui::Window::new("Chunk Manager")
         .vscroll(true) // Optional: ensures vertical scrollbar appears
-        .show(egui_ctxs.ctx_mut(), |ui| {
+        .show(ctx, |ui| {
             ScrollArea::vertical()
                 .auto_shrink([false; 2]) // Prevents weird size compression
                 .show(ui, |ui| {
@@ -150,13 +158,24 @@ pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctxs: E
         });
 }
 
-pub fn log_registry_debug_ui(log_registry_handle: Res<LogRegistryHandle>, mut egui_ctxs: EguiContexts, toolbar_state: Res<ToolbarState>) {
+// TODO: Move into debug/ui/systems.rs or remove if not needed anymore
+pub fn log_registry_debug_ui(log_registry_handle: Res<LogRegistryHandle>, mut egui_ctx: EguiContexts, toolbar_state: Res<ToolbarState>) {
     if !toolbar_state.show_log_registry_debug_ui { return; }
-    let mut log_registry = log_registry_handle.0.lock().unwrap();
+    println!("The fucking 1");
+    let log_registry = log_registry_handle.0.lock().unwrap();
+    println!("The fucking 2");
+    let ctx = match egui_ctx.try_ctx_mut() {
+        Some(ctx) => ctx,
+        None => {
+            warn!("Egui context is not available! The primary window likely has just been closed.");
+            return;
+        },
+    };
+    println!("The fucking 3");
 
     egui::Window::new("Log Registry")
         .vscroll(true)
-        .show(egui_ctxs.ctx_mut(), |ui| {
+        .show(ctx, |ui| {
             ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
