@@ -53,17 +53,21 @@ pub fn render_selection_tree(
 ) {
     let selection_mode = log_registry.selection_mode;
 
-    match selection_mode {
-        SelectionMode::Span => {
-            render_span_tree(ui, &mut log_registry.span_registry, &mut log_registry.span_selections);
+    ScrollArea::vertical()
+        .show(ui, |ui| {
+            match selection_mode {
+                SelectionMode::Span => {
+                    render_span_tree(ui, &mut log_registry.span_registry, &mut log_registry.span_selections);
+                }
+                SelectionMode::Module => {
+                    render_module_tree(ui, &mut log_registry.module_registry, &mut log_registry.module_selections);
+                }
+                SelectionMode::Physical => {
+                    render_physical_tree(ui, &mut log_registry.physical_registry, &mut log_registry.physical_selections);
+                }
+            }
         }
-        SelectionMode::Module => {
-            render_module_tree(ui, &mut log_registry.module_registry, &mut log_registry.module_selections);
-        }
-        SelectionMode::Physical => {
-            render_physical_tree(ui, &mut log_registry.physical_registry, &mut log_registry.physical_selections);
-        }
-    }
+    );
 }
 
 pub fn render_console_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState) {
@@ -127,7 +131,7 @@ pub fn render_console(
 ) {
     let logs = gather_logs(log_viewer_state, log_registry);
     let row_h = ui.text_style_height(&egui::TextStyle::Monospace);
-    egui::ScrollArea::vertical()
+    ScrollArea::vertical()
         .stick_to_bottom(true)
         .show_rows(ui, row_h, logs.len(), |ui, range| {
             for i in range {
@@ -248,13 +252,11 @@ pub fn render_span_tree(
     span_registry: &mut crate::log::types::SpanRegistry,
     span_selections: &mut crate::log::types::SpanPathSelections
 ) {
-    ScrollArea::vertical().show(ui, |ui| {
-        for (root_seg, root_sel) in &mut span_selections.span_roots {
-            if let Some(root_node) = span_registry.span_roots.get_mut(root_seg) {
-                render_span_branch(ui, root_seg, root_sel, root_node);
-            }
+    for (root_seg, root_sel) in &mut span_selections.span_roots {
+        if let Some(root_node) = span_registry.span_roots.get_mut(root_seg) {
+            render_span_branch(ui, root_seg, root_sel, root_node);
         }
-    });
+    }
 }
 
 pub fn render_module_tree(
@@ -295,16 +297,17 @@ fn render_span_branch(
     sel: &mut SpanNodeSelection,
     node: &mut SpanNode,
 ) {
-    let label = format!("↔ {}", seg.name);
+    let label = seg.name.as_str();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
+    ui.spacing_mut().item_spacing.x = 0.0;
     ui.horizontal(|ui| {
         if ui.tri_checkbox(&mut checked).changed() {
             println!("SexNigger");
             sel.toggle_selection();
         }
         ui.collapsing(label, |ui| {
-            ui.horizontal(|ui| {
+            ui.vertical(|ui| {
                 for (child_seg, child_sel) in &mut sel.span_children {
                     if let Some(child_node) = node.span_children.get_mut(child_seg) {
                         render_span_branch(ui, child_seg, child_sel, child_node);
@@ -323,7 +326,7 @@ fn render_crate_module_branch(
     sel: &mut CrateModuleNodeSelection,
     node: &mut CrateModuleNode,
 ) {
-    let label = format!("📦 {}", seg.name);
+    let label = seg.name.as_str();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
     ui.collapsing(label, |ui| {
@@ -347,7 +350,7 @@ fn render_module_branch(
     sel: &mut ModuleNodeSelection,
     node: &mut ModuleNode,
 ) {
-    let label = format!("📂 {}", seg.name);
+    let label = seg.name.as_str();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
     ui.collapsing(label, |ui| {
@@ -377,7 +380,7 @@ fn render_submodule_branch(
     sel: &mut SubModuleNodeSelection,
     node: &mut SubModuleNode,
 ) {
-    let label = format!("📂 {}", seg.name);
+    let label = seg.name.as_str();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
     ui.collapsing(label, |ui| {
@@ -403,7 +406,7 @@ fn render_crate_folder_branch(
     sel: &mut CrateFolderNodeSelection,
     node: &mut CrateFolderNode,
 ) {
-    let label = format!("📦 {}", seg.name);
+    let label = seg.name.as_str();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
     ui.collapsing(label, |ui| {
@@ -433,7 +436,7 @@ fn render_folder_branch(
     sel: &mut FolderNodeSelection,
     node: &mut FolderNode,
 ) {
-    let label = format!("📂 {}", seg.name);
+    let label = seg.name.as_str();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
     ui.collapsing(label, |ui| {
@@ -463,7 +466,7 @@ fn render_file_branch(
     sel: &mut FileNodeSelection,
     node: &mut FileNode,
 ) {
-    let label = format!("📄 {}", seg.name);
+    let label = seg.name.as_str();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
     ui.collapsing(label, |ui| {
@@ -487,7 +490,7 @@ fn render_line_leaf(
     sel: &mut LineNodeSelection,
     _node: &mut LineNode,
 ) {
-    let label = format!("📑 Line {}", seg.number);
+    let label = seg.number.to_string();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
     ui.horizontal(|ui| {

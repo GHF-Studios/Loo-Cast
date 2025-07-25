@@ -19,7 +19,7 @@ impl<'a> TriCheckbox<'a> {
 }
 impl Widget for TriCheckbox<'_> {
     fn ui(self, ui: &mut bevy_egui::egui::Ui) -> Response {
-        let desired_size = ui.spacing().interact_size;
+        let desired_size = bevy_egui::egui::Vec2::new(16.0, 16.0);
         let (rect, response) = ui.allocate_exact_size(desired_size, Sense::click());
 
         if response.clicked() {
@@ -35,7 +35,7 @@ impl Widget for TriCheckbox<'_> {
             let painter = ui.painter_at(rect);
 
             // Draw box background and border
-            painter.rect(rect, 0.0, visuals.bg_fill, visuals.bg_stroke);
+            painter.rect(rect, 1.0, visuals.bg_fill, visuals.bg_stroke);
 
             // Draw symbol for current state
             let center = rect.center();

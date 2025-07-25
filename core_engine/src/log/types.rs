@@ -744,7 +744,7 @@ impl ModulePathSelections {
             let module_node = module_node
                 .modules
                 .get(module_segment)
-                .unwrap_or_else(|| unreachable!("Nested module {} not found", module_segment.name));
+                .unwrap_or_else(|| unreachable!("Nested module '{}' not found", module_segment.name));
             Self::collect_logs_from_module(module_selection, module_node, out);
         }
 
@@ -752,7 +752,7 @@ impl ModulePathSelections {
             let sub_module_node = module_node
                 .sub_modules
                 .get(sub_module_segment)
-                .unwrap_or_else(|| unreachable!("SubModule {} not found", sub_module_segment.name));
+                .unwrap_or_else(|| unreachable!("SubModule '{}' not found", sub_module_segment.name));
             Self::collect_logs_from_submodule(sub_module_selection, sub_module_node, out);
         }
     }
@@ -770,7 +770,7 @@ impl ModulePathSelections {
             let sub_module_node = sub_module_node
                 .sub_modules
                 .get(sub_module_segment)
-                .unwrap_or_else(|| unreachable!("Nested submodule {} not found", sub_module_segment.name));
+                .unwrap_or_else(|| unreachable!("Nested submodule '{}' not found", sub_module_segment.name));
             Self::collect_logs_from_submodule(sub_module_selection, sub_module_node, out);
         }
     }
@@ -903,7 +903,7 @@ impl PhysicalPathSelections {
             let folder_node = folder_node
                 .folders
                 .get(folder_segment)
-                .unwrap_or_else(|| unreachable!("Nested folder {} not found", folder_segment.name));
+                .unwrap_or_else(|| unreachable!("Nested folder '{}' not found", folder_segment.name));
             Self::collect_logs_from_folder(folder_selection, folder_node, out);
         }
 
@@ -911,7 +911,7 @@ impl PhysicalPathSelections {
             let file_node = folder_node
                 .files
                 .get(file_segment)
-                .unwrap_or_else(|| unreachable!("File {} not found", file_segment.name));
+                .unwrap_or_else(|| unreachable!("File '{}' not found", file_segment.name));
             Self::collect_logs_from_file(file_selection, file_node, out);
         }
     }
@@ -933,7 +933,7 @@ impl PhysicalPathSelections {
             let line_node = file_node
                 .lines
                 .get(line_segment)
-                .unwrap_or_else(|| unreachable!("Line {} not found", line_segment.number));
+                .unwrap_or_else(|| unreachable!("Line '{}' not found", line_segment.number));
             Self::collect_logs_from_line(line_selection, line_node, out);
         }
     }
