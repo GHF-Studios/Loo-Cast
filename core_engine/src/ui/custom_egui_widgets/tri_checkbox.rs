@@ -35,14 +35,14 @@ impl Widget for TriCheckbox<'_> {
             let painter = ui.painter_at(rect);
 
             // Draw box background and border
-            painter.rect(rect, 2.0, visuals.bg_fill, visuals.bg_stroke);
+            painter.rect(rect, 0.0, visuals.bg_fill, visuals.bg_stroke);
 
             // Draw symbol for current state
             let center = rect.center();
             let symbol = match *self.state {
-                TriState::Unchecked => None,
-                TriState::Indeterminate => Some("-"),
-                TriState::Checked => Some("✓"),
+                TriState::Unchecked => Some("-"),
+                TriState::Indeterminate => Some("?"),
+                TriState::Checked => Some("+"),
             };
 
             if let Some(sym) = symbol {

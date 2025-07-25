@@ -6,7 +6,7 @@ use crate::ui::custom_egui_widgets::tri_checkbox::TriCheckboxExt;
 
 // === Basics ===
 
-pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState, log_registry: &mut LogRegistry) {
+pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_registry: &mut LogRegistry) {
     egui::Frame::none()
         .fill(Color32::from_gray(25))
         .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
@@ -49,7 +49,6 @@ pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut L
 
 pub fn render_selection_tree(
     ui: &mut egui::Ui,
-    log_viewer_state: &mut LogViewerState,
     log_registry: &mut LogRegistry
 ) {
     let selection_mode = log_registry.selection_mode;

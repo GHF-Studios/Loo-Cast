@@ -25,8 +25,8 @@ pub(super) fn show_log_viewer_ui(
             ui.columns(2, |cols| {
                 // Left panel (SelectionTree + Toolbar)
                 cols[0].vertical(|ui| {
-                    render_selection_tree_toolbar(ui, &mut log_viewer_state, &mut log_registry);
-                    render_selection_tree(ui, &mut log_viewer_state, &mut log_registry);
+                    render_selection_tree_toolbar(ui, &mut log_registry);
+                    render_selection_tree(ui, &mut log_registry);
                 });
 
                 // Right panel (Console + Toolbar)
