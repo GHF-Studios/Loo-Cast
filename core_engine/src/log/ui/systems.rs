@@ -1,20 +1,18 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 
-use crate::{log::{resources::LogRegistryHandle, ui::{functions::{format_log, gather_logs, render_console, render_console_toolbar, render_selection_tree, render_selection_tree_toolbar}, resources::LogViewerState}}, ui::toolbar::resources::ToolbarState};
+use crate::{log::{resources::LogRegistry, ui::{functions::{format_log, gather_logs, render_console, render_console_toolbar, render_selection_tree, render_selection_tree_toolbar}, resources::LogViewerState}}, ui::toolbar::resources::ToolbarState};
 
 pub(super) fn show_log_viewer_ui(
     mut egui_ctx: EguiContexts,
     toolbar_state: Res<ToolbarState>,
     mut log_viewer_state: ResMut<LogViewerState>,
-    log_registry_handle: Res<LogRegistryHandle>,
+    mut log_registry: ResMut<LogRegistry>,
 ) {
     if !toolbar_state.show_log_viewer_ui { return; }
-    let mut log_registry = log_registry_handle.0.lock().unwrap();
     let ctx = match egui_ctx.try_ctx_mut() {
         Some(ctx) => ctx,
         None => {
-            warn!("Egui context is not available! The primary window likely has just been closed.");
             return;
         },
     };

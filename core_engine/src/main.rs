@@ -7,7 +7,6 @@ use bevy::window::PresentMode;
 use bevy_egui::EguiPlugin;
 use bevy_rapier2d::prelude::*;
 use core_engine::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
-use core_engine::log::statics::LOG_REGISTRY_HANDLE;
 use core_engine::log::tracing::types::LogTreeTracingLayer;
 use core_engine::types::ShortTime;
 use core_engine::*;
@@ -17,10 +16,6 @@ use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::fmt::format::FmtSpan;
 
 fn main() {
-    let log_tree_tracing_layer = LogTreeTracingLayer {
-        registry: LOG_REGISTRY_HANDLE.clone(),
-    };
-
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_timer(ShortTime)
         .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
@@ -28,7 +23,7 @@ fn main() {
         .with_filter(EnvFilter::new(CLI_LOG_FILTER));
 
     let subscriber = tracing_subscriber::registry()
-        .with(log_tree_tracing_layer)
+        .with(LogTreeTracingLayer)
         .with(fmt_layer);
 
     tracing::subscriber::set_global_default(subscriber)

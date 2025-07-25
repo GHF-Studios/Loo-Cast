@@ -27,6 +27,6 @@ pub(crate) fn observe_on_add_follower(
             info!("Assigned follower '{}' to target '{}'.", follower.follow_id, follow_id);
         }
     } else {
-        warn!("No matching target found for new follower '{}'.", follow_id);
+        debug!("No matching target found for new follower '{}'.", follow_id);
     }
 }

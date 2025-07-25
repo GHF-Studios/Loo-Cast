@@ -1,7 +1,7 @@
 use bevy_egui::egui::{self, Color32, ScrollArea, TextFormat, FontId};
 use egui::{text::LayoutJob, WidgetText};
 
-use crate::log::{types::{*, LogLevel::*}, ui::{resources::LogViewerState, types::SelectionMode}};
+use crate::log::{resources::LogRegistry, types::{LogLevel::*, *}, ui::{resources::LogViewerState, types::SelectionMode}};
 use crate::ui::custom_egui_widgets::tri_checkbox::TriCheckboxExt;
 
 // === Basics ===

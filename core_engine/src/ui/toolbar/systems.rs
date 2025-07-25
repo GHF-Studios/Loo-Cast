@@ -7,7 +7,6 @@ pub(super) fn show_toolbar_ui(mut egui_ctx: EguiContexts, mut toolbar_state: Res
     let ctx = match egui_ctx.try_ctx_mut() {
         Some(ctx) => ctx,
         None => {
-            warn!("Egui context is not available! The primary window likely has just been closed.");
             return;
         },
     };

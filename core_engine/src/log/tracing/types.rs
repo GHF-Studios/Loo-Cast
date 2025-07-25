@@ -11,20 +11,18 @@ use tracing_subscriber::{
 use std::sync::Arc;
 use std::fmt::Debug;
 
-use crate::log::{resources::LogRegistryHandle, tracing::functions::extract_span_identity };
+use crate::log::{statics::{LOG_EVENT_BUFFER, SPAN_EVENT_BUFFER}, tracing::functions::extract_span_identity};
 
 use super::functions::extract_log_identity;
 
-pub struct LogTreeTracingLayer {
-    pub registry: LogRegistryHandle,
-}
+pub struct LogTreeTracingLayer;
 impl<S> Layer<S> for LogTreeTracingLayer
 where
     S: tracing::Subscriber + for<'lookup> LookupSpan<'lookup>,
 {
     fn on_new_span(&self, _attrs: &Attributes<'_>, _id: &Id, ctx: Context<'_, S>) {
         let span_path = extract_span_identity(&ctx);
-        self.registry.0.lock().unwrap().insert_without_log(&span_path);
+        SPAN_EVENT_BUFFER.push(span_path);
     }
 
     fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
@@ -35,8 +33,7 @@ where
             module_path, 
             physical_path
         ) = extract_log_identity(event, &ctx);
-
-        self.registry.0.lock().unwrap().insert_log(log_id, log_entry, span_path, module_path, physical_path);
+        LOG_EVENT_BUFFER.push((log_id, log_entry, span_path, module_path, physical_path));
     }
 }
 

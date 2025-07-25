@@ -1,5 +1,5 @@
 use crate::{
-    camera::components::MainCamera, chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager}, chunk_loader::components::ChunkLoader, log::resources::LogRegistryHandle, ui::toolbar::resources::ToolbarState
+    camera::components::MainCamera, chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager}, chunk_loader::components::ChunkLoader, log::resources::LogRegistry, ui::toolbar::resources::ToolbarState
 };
 
 use bevy::{prelude::*, window::PrimaryWindow};
@@ -129,7 +129,6 @@ pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctx: Eg
     let ctx = match egui_ctx.try_ctx_mut() {
         Some(ctx) => ctx,
         None => {
-            warn!("Egui context is not available! The primary window likely has just been closed.");
             return;
         },
     };
@@ -159,19 +158,14 @@ pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctx: Eg
 }
 
 // TODO: Move into debug/ui/systems.rs or remove if not needed anymore
-pub fn log_registry_debug_ui(log_registry_handle: Res<LogRegistryHandle>, mut egui_ctx: EguiContexts, toolbar_state: Res<ToolbarState>) {
+pub fn log_registry_debug_ui(log_registry: Res<LogRegistry>, mut egui_ctx: EguiContexts, toolbar_state: Res<ToolbarState>) {
     if !toolbar_state.show_log_registry_debug_ui { return; }
-    println!("The fucking 1");
-    let log_registry = log_registry_handle.0.lock().unwrap();
-    println!("The fucking 2");
     let ctx = match egui_ctx.try_ctx_mut() {
         Some(ctx) => ctx,
         None => {
-            warn!("Egui context is not available! The primary window likely has just been closed.");
             return;
         },
     };
-    println!("The fucking 3");
 
     egui::Window::new("Log Registry")
         .vscroll(true)
