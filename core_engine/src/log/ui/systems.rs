@@ -26,13 +26,35 @@ pub(super) fn show_log_viewer_ui(
                 // Left panel (SelectionTree + Toolbar)
                 cols[0].vertical(|ui| {
                     render_selection_tree_toolbar(ui, &mut log_registry);
-                    render_selection_tree(ui, &mut log_registry);
+
+                    let height = ui.available_height();
+                    let width = ui.available_width();
+
+                    egui::Frame::none()
+                        .fill(egui::Color32::from_rgb(20, 30, 50))
+                        .show(ui, |ui| {
+                            ui.set_min_height(height);
+                            ui.set_min_width(width);
+                        
+                            render_selection_tree(ui, &mut log_registry);
+                        });
                 });
 
                 // Right panel (Console + Toolbar)
                 cols[1].vertical(|ui| {
                     render_console_toolbar(ui, &mut log_viewer_state);
-                    render_console(ui, &log_viewer_state, &log_registry);
+                    
+                    let height = ui.available_height();
+                    let width = ui.available_width();
+
+                    egui::Frame::none()
+                        .fill(egui::Color32::from_rgb(50, 20, 20))
+                        .show(ui, |ui| {
+                            ui.set_min_height(height);
+                            ui.set_min_width(width);
+                        
+                            render_console(ui, &log_viewer_state, &log_registry);
+                        });
                 });
             });
         });

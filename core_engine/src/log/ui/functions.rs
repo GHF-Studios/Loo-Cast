@@ -52,9 +52,15 @@ pub fn render_selection_tree(
     log_registry: &mut LogRegistry
 ) {
     let selection_mode = log_registry.selection_mode;
+    let height = ui.available_height();
+    let width = ui.available_width();
 
     ScrollArea::vertical()
+        .max_height(height)
+        .max_width(width)
         .show(ui, |ui| {
+            ui.label("TOP OF SELECTION TREE");
+
             match selection_mode {
                 SelectionMode::Span => {
                     render_span_tree(ui, &mut log_registry.span_registry, &mut log_registry.span_selections);
@@ -66,6 +72,8 @@ pub fn render_selection_tree(
                     render_physical_tree(ui, &mut log_registry.physical_registry, &mut log_registry.physical_selections);
                 }
             }
+
+            ui.label("BOTTOM OF SELECTION TREE");
         }
     );
 }
@@ -131,7 +139,12 @@ pub fn render_console(
 ) {
     let logs = gather_logs(log_viewer_state, log_registry);
     let row_h = ui.text_style_height(&egui::TextStyle::Monospace);
+    let height = ui.available_height();
+    let width = ui.available_width();
+
     ScrollArea::vertical()
+        .max_height(height)
+        .max_width(width)
         .stick_to_bottom(true)
         .show_rows(ui, row_h, logs.len(), |ui, range| {
             for i in range {
