@@ -153,12 +153,9 @@ pub struct NodeMetadata {
 
 // === Path Types ===
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpanPath {
     pub spans: Vec<SpanSegment>
-}
-impl SpanPath {
-    pub const UNCATEGORIZED: Self = SpanPath { spans: Vec::new() };
 }
 impl std::fmt::Display for SpanPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -166,18 +163,11 @@ impl std::fmt::Display for SpanPath {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModulePath {
     pub crate_module: CrateModuleSegment,
     pub modules: Vec<ModuleSegment>,
     pub sub_modules: Vec<SubModuleSegment>
-}
-impl ModulePath {
-    pub const UNCATEGORIZED: Self = ModulePath {
-        crate_module: CrateModuleSegment { name: String::new() },
-        modules: Vec::new(),
-        sub_modules: Vec::new(),
-    };
 }
 impl std::fmt::Display for ModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -189,20 +179,12 @@ impl std::fmt::Display for ModulePath {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PhysicalStoragePath {
     pub crate_folder: CrateFolderSegment,
     pub folders: Vec<FolderSegment>,
     pub file: FileSegment,
     pub line: LineSegment,
-}
-impl PhysicalStoragePath {
-    pub const UNCATEGORIZED: Self = PhysicalStoragePath {
-        crate_folder: CrateFolderSegment { name: String::new() },
-        folders: Vec::new(),
-        file: FileSegment { name: String::new() },
-        line: LineSegment { number: 0 }
-    };
 }
 impl std::fmt::Display for PhysicalStoragePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -215,20 +197,12 @@ impl std::fmt::Display for PhysicalStoragePath {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PhysicalSelectionPath {
     pub crate_folder: CrateFolderSegment,
     pub folders: Vec<FolderSegment>,
     pub file: Option<FileSegment>,
     pub line: Option<LineSegment>,
-}
-impl PhysicalSelectionPath {
-    pub const UNCATEGORIZED: Self = PhysicalSelectionPath {
-        crate_folder: CrateFolderSegment { name: String::new() },
-        folders: Vec::new(),
-        file: Some(FileSegment { name: String::new() }),
-        line: Some(LineSegment { number: 0 })
-    };
 }
 impl std::fmt::Display for PhysicalSelectionPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -279,44 +253,82 @@ impl std::fmt::Display for PhysicalSelectionPath {
 // === Segment Types ===
 
 // --- Span ---
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpanSegment {
     pub name: String
 }
+impl Default for SpanSegment {
+    fn default() -> Self {
+        Self { name: "[UNKNOWN]".to_string() }
+    }
+}
 
 // --- Module ---
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CrateModuleSegment {
     pub name: String,
+}
+impl Default for CrateModuleSegment {
+    fn default() -> Self {
+        Self { name: "[UNKNOWN]".to_string() }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModuleSegment {
     pub name: String,
 }
+impl Default for ModuleSegment {
+    fn default() -> Self {
+        Self { name: "[UNKNOWN]".to_string() }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SubModuleSegment {
     pub name: String,
 }
+impl Default for SubModuleSegment {
+    fn default() -> Self {
+        Self { name: "[UNKNOWN]".to_string() }
+    }
+}
 
 // --- Physical ---
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CrateFolderSegment {
     pub name: String,
+}
+impl Default for CrateFolderSegment {
+    fn default() -> Self {
+        Self { name: "[UNKNOWN]".to_string() }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FolderSegment {
     pub name: String,
 }
+impl Default for FolderSegment {
+    fn default() -> Self {
+        Self { name: "[UNKNOWN]".to_string() }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FileSegment {
     pub name: String,
 }
+impl Default for FileSegment {
+    fn default() -> Self {
+        Self { name: "[UNKNOWN]".to_string() }
+    }
+}
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LineSegment {
     pub number: u32,
 }
@@ -330,7 +342,7 @@ pub struct SpanRegistry {
 impl SpanRegistry {
     pub fn insert(&mut self, path: &SpanPath, log_id: LogId) {
         let root_span_segment = if path.spans.is_empty() {
-            SpanSegment { name: "[UNCATEGORIZED]".to_string() }
+            SpanSegment::default()
         } else {
             path.spans[0].clone()
         };
@@ -345,7 +357,7 @@ impl SpanRegistry {
 
     pub fn insert_without_log(&mut self, path: &SpanPath) {
         let root_span_segment = if path.spans.is_empty() {
-            SpanSegment { name: "[UNCATEGORIZED]".to_string() }
+            SpanSegment::default()
         } else {
             path.spans[0].clone()
         };
@@ -372,7 +384,7 @@ pub struct ModuleRegistry {
 impl ModuleRegistry {
     pub fn insert(&mut self, path: &ModulePath, log_id: LogId) {
         let crate_module_segment = if path.crate_module.name.is_empty() {
-            CrateModuleSegment { name: "[UNCATEGORIZED]".to_string() }
+            CrateModuleSegment::default()
         } else {
             path.crate_module.clone()
         };
@@ -405,7 +417,7 @@ impl ModuleRegistry {
 
     pub fn insert_without_log(&mut self, path: &ModulePath) {
         let crate_module_segment = if path.crate_module.name.is_empty() {
-            CrateModuleSegment { name: "[UNCATEGORIZED]".to_string() }
+            CrateModuleSegment::default()
         } else {
             path.crate_module.clone()
         };
@@ -467,7 +479,7 @@ impl PhysicalRegistry {
     pub fn insert(&mut self, path: &PhysicalStoragePath, log_id: LogId) {
         let file = {
             let crate_folder_segment = if path.crate_folder.name.is_empty() {
-                CrateFolderSegment { name: "[UNCATEGORIZED]".to_string() }
+                CrateFolderSegment::default()
             } else {
                 path.crate_folder.clone()
             };
@@ -494,7 +506,7 @@ impl PhysicalRegistry {
     pub fn insert_without_log(&mut self, path: &PhysicalStoragePath) {
         let file = {
             let crate_folder_segment = if path.crate_folder.name.is_empty() {
-                CrateFolderSegment { name: "[UNCATEGORIZED]".to_string() }
+                CrateFolderSegment::default()
             } else {
                 path.crate_folder.clone()
             };
@@ -601,7 +613,7 @@ pub struct SpanPathSelections {
 impl SpanPathSelections {
     pub fn insert(&mut self, path: &SpanPath) {
         let root_span_segment = if path.spans.is_empty() {
-            SpanSegment { name: "[UNCATEGORIZED]".to_string() }
+            SpanSegment::default()
         } else {
             path.spans[0].clone()
         };
@@ -678,7 +690,7 @@ pub struct ModulePathSelections {
 impl ModulePathSelections {
     pub fn insert(&mut self, path: &ModulePath) {
         let crate_module_segment = if path.crate_module.name.is_empty() {
-            CrateModuleSegment { name: "[UNCATEGORIZED]".to_string() }
+            CrateModuleSegment::default()
         } else {
             path.crate_module.clone()
         };
@@ -744,7 +756,7 @@ impl ModulePathSelections {
             let module_node = module_node
                 .modules
                 .get(module_segment)
-                .unwrap_or_else(|| unreachable!("Nested module '{}' not found", module_segment.name));
+                .unwrap_or_else(|| unreachable!("Nested module '{}' not found. Full printout: {:?}", module_segment.name, module_node.modules.keys()));
             Self::collect_logs_from_module(module_selection, module_node, out);
         }
 
@@ -752,7 +764,7 @@ impl ModulePathSelections {
             let sub_module_node = module_node
                 .sub_modules
                 .get(sub_module_segment)
-                .unwrap_or_else(|| unreachable!("SubModule '{}' not found", sub_module_segment.name));
+                .unwrap_or_else(|| unreachable!("SubModule '{}' not found. Full printout: {:?}", sub_module_segment.name, module_node.sub_modules.keys()));
             Self::collect_logs_from_submodule(sub_module_selection, sub_module_node, out);
         }
     }
@@ -844,7 +856,7 @@ pub struct PhysicalPathSelections {
 impl PhysicalPathSelections {
     pub fn insert(&mut self, path: &PhysicalStoragePath) {
         let crate_folder_segment = if path.crate_folder.name.is_empty() {
-            CrateFolderSegment { name: "[UNCATEGORIZED]".to_string() }
+            CrateFolderSegment::default()
         } else {
             path.crate_folder.clone()
         };

@@ -56,7 +56,7 @@ where
     segments.reverse();
 
     if segments.is_empty() {
-        SpanPath::UNCATEGORIZED
+        SpanPath::default()
     } else {
         SpanPath { spans: segments }
     }
@@ -80,7 +80,7 @@ fn module_path_from_event(event: &Event<'_>) -> ModulePath {
         };
     }
 
-    ModulePath::UNCATEGORIZED
+    ModulePath::default()
 }
 
 fn physical_path_from_event(event: &Event<'_>) -> PhysicalStoragePath {
@@ -104,7 +104,7 @@ fn physical_path_from_event(event: &Event<'_>) -> PhysicalStoragePath {
         }
     }
 
-    PhysicalStoragePath::UNCATEGORIZED
+    PhysicalStoragePath::default()
 }
 
 fn extract_message(event: &Event<'_>) -> Arc<str> {

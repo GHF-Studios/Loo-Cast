@@ -39,6 +39,14 @@ impl LogRegistry {
         self.span_selections.insert(&span_path);
         self.module_selections.insert(&module_path);
         self.physical_selections.insert(&physical_path);
+
+        println!(
+            "Log inserted: {:?} at Span '{}' at Module '{}' at Physical '{}'",
+            log_id,
+            span_path,
+            module_path,
+            physical_path
+        );
     }
 
     pub fn get_log(&self, id: &LogId) -> Option<&LogEntry> {
