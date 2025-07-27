@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tracing::Level as TracingLevel;
+use tracing::{Level as TracingLevel, Metadata};
 
 use crate::log::resources::LogRegistry;
 use crate::log::statics::LOG_ID_COUNTER;
@@ -68,6 +68,7 @@ pub struct LogEntry {
     pub ts: u64,
     pub lvl: LogLevel,
     pub msg: Arc<str>,
+    pub metadata: &'static Metadata<'static>
 }
 
 #[repr(transparent)]

@@ -20,10 +20,11 @@ where
 {
     let log_id = LogId::new();
     let ts = now_since_start_ns();
-    let lvl: LogLevel = (*event.metadata().level()).into();
+    let metadata = event.metadata();
+    let lvl: LogLevel = (*metadata.level()).into();
     let msg = Arc::from(event.metadata().name());
 
-    let entry = LogEntry { ts, lvl, msg };
+    let entry = LogEntry { ts, lvl, msg, metadata };
 
     let span_path = span_path_from_ctx(ctx);
     let module_path = module_path_from_event(event);
