@@ -32,6 +32,9 @@ impl LogRegistry {
         module_path: ModulePath,
         physical_path: PhysicalStoragePath,
     ) {
+        // DEBUG SHIT
+        if log_id.0 > 10 { return; }
+
         println!(
             "Log inserted: {:?} @ module_path '{}' @ file '{}' @ line '{}' = @ Span '{}' @ Module '{}' @ Physical '{}'",
             log_id,
