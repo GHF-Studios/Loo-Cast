@@ -93,73 +93,141 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
         if cfg!(not(windows)) {
             panic!("Only Windows is supported for now");
         }
-
+    
         let raw_path = path.replace('\\', "/");
         let parts = raw_path.split('/').collect::<Vec<_>>();
-
+    
         parse_registry_path(&parts)
             .or_else(|| parse_local_path(&parts))
     }
-
+    
     fn parse_registry_path(parts: &[&str]) -> Option<PathPatternMatch> {
         if parts.len() < 10 {
+            eprintln!("[REGISTRY] Not enough path segments: {:?}", parts);
             return None;
         }
-
+    
         let drive = parts[0];
         if !drive.ends_with(':') || drive.len() != 2 {
+            eprintln!("[REGISTRY] Invalid drive: {:?}", drive);
             return None;
         }
-
+    
         if parts[1] != "Users" {
+            eprintln!("[REGISTRY] Expected 'Users', found: {:?}", parts[1]);
             return None;
         }
-
-        let _ = parts[2]; // Discard the username
-
+    
+        let _ = parts[2]; // username — ignore
+    
         if parts[3] != ".cargo" || parts[4] != "registry" || parts[5] != "src" {
+            eprintln!("[REGISTRY] Unexpected cargo path: {:?}", &parts[3..6]);
             return None;
         }
-
-        let (boilerplate_stuff, hash_id_thing) = parts[6].rsplit_once('-')?;
+    
+        let (boilerplate_stuff, hash_id_thing) = match parts[6].rsplit_once('-') {
+            Some(p) => p,
+            None => {
+                eprintln!("[REGISTRY] Could not split index hash: {:?}", parts[6]);
+                return None;
+            }
+        };
         if boilerplate_stuff != "index.crates.io" || hash_id_thing.len() != 16 {
+            eprintln!("[REGISTRY] Invalid index entry: {:?}", parts[6]);
             return None;
         }
-
+    
         let crate_id = parts[7];
-        let (crate_name, version) = crate_id.rsplit_once('-')?;
-        let (major_version, version_rest) = version.split_once('.')?;
-        let (minor_version, patch_version) = version_rest.split_once('.')?;
-        let major_version = major_version.parse::<u32>().ok()?;
-        let minor_version = minor_version.parse::<u32>().ok()?;
-        let patch_version = patch_version.parse::<u32>().ok()?;
+        let (crate_name, version) = match crate_id.rsplit_once('-') {
+            Some(p) => p,
+            None => {
+                eprintln!("[REGISTRY] Could not split crate name and version: {:?}", crate_id);
+                return None;
+            }
+        };
+        let (major_version, version_rest) = match version.split_once('.') {
+            Some(p) => p,
+            None => {
+                eprintln!("[REGISTRY] Missing '.' in version: {:?}", version);
+                return None;
+            }
+        };
+        let (minor_version, patch_version) = match version_rest.split_once('.') {
+            Some(p) => p,
+            None => {
+                eprintln!("[REGISTRY] Missing second '.' in version: {:?}", version_rest);
+                return None;
+            }
+        };
+        let major_version = match major_version.parse::<u32>() {
+            Ok(n) => n,
+            Err(_) => {
+                eprintln!("[REGISTRY] Invalid major version: {:?}", major_version);
+                return None;
+            }
+        };
+        let minor_version = match minor_version.parse::<u32>() {
+            Ok(n) => n,
+            Err(_) => {
+                eprintln!("[REGISTRY] Invalid minor version: {:?}", minor_version);
+                return None;
+            }
+        };
+        let patch_version = match patch_version.parse::<u32>() {
+            Ok(n) => n,
+            Err(_) => {
+                eprintln!("[REGISTRY] Invalid patch version: {:?}", patch_version);
+                return None;
+            }
+        };
         let version = format!("{}.{}.{}", major_version, minor_version, patch_version);
-
+    
         if parts[8] != "src" {
+            eprintln!("[REGISTRY] Expected 'src' at index 8, got: {:?}", parts[8]);
             return None;
         }
-
+    
         let relative_parts = &parts[9..];
         if relative_parts.is_empty() {
+            eprintln!("[REGISTRY] No relative path after crate src/: {:?}", parts);
             return None;
         }
-
+    
+        let file_part = relative_parts.last()?.to_string();
+        let (file_id_part, line_part) = match file_part.rsplit_once(':') {
+            Some(p) => p,
+            None => {
+                eprintln!("[REGISTRY] Could not split file and line from: {:?}", file_part);
+                return None;
+            }
+        };
+        let (file_name, file_format) = match file_id_part.rsplit_once('.') {
+            Some(p) => p,
+            None => {
+                eprintln!("[REGISTRY] Could not split file name and extension: {:?}", file_id_part);
+                return None;
+            }
+        };
+        if file_format != "rs" {
+            eprintln!("[REGISTRY] Unsupported file extension: .{}", file_format);
+            return None;
+        }
+        let line = match line_part.parse::<u32>() {
+            Ok(n) => n,
+            Err(_) => {
+                eprintln!("[REGISTRY] Failed to parse line number: {:?}", line_part);
+                return None;
+            }
+        };
+    
         let folders = relative_parts[..relative_parts.len() - 1]
             .iter()
             .map(|s| s.to_string())
             .collect();
-
-        let file_part = relative_parts.last()?.to_string();
-        let (file_id_part, line_part) = file_part.rsplit_once(':')?;
-        let (file_name, file_format) = file_id_part.rsplit_once('.')?;
-        let line = line_part.parse::<u32>().ok()?;
-        if file_format != "rs" {
-            return None;
-        }
-
+    
         Some(PathPatternMatch {
             origin: CrateOrigin::Registry {
-                crate_name: crate_name.to_string(),
+                crate_name: format!("{}-{}", crate_name, version),
                 version,
             },
             folders,
@@ -167,36 +235,58 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
             line
         })
     }
-
+    
     fn parse_local_path(parts: &[&str]) -> Option<PathPatternMatch> {
         if parts.len() < 3 {
+            eprintln!("[LOCAL] Not enough parts: {:?}", parts);
             return None;
         }
-
+    
         let crate_name = parts[0];
-
+    
         if parts[1] != "src" {
+            eprintln!("[LOCAL] Expected 'src' at index 1, got: {:?}", parts[1]);
             return None;
         }
-
+    
         let relative_parts = &parts[2..];
         if relative_parts.is_empty() {
+            eprintln!("[LOCAL] No relative path inside src/: {:?}", parts);
             return None;
         }
-
+    
+        let file_part = relative_parts.last()?.to_string();
+        let (file_id_part, line_part) = match file_part.rsplit_once(':') {
+            Some(p) => p,
+            None => {
+                eprintln!("[LOCAL] Could not split file and line: {:?}", file_part);
+                return None;
+            }
+        };
+        let (file_name, file_format) = match file_id_part.rsplit_once('.') {
+            Some(p) => p,
+            None => {
+                eprintln!("[LOCAL] Could not split file name and extension: {:?}", file_id_part);
+                return None;
+            }
+        };
+        if file_format != "rs" {
+            eprintln!("[LOCAL] Unsupported file extension: .{}", file_format);
+            return None;
+        }
+        let line = match line_part.parse::<u32>() {
+            Ok(n) => n,
+            Err(_) => {
+                eprintln!("[LOCAL] Invalid line number: {:?}", line_part);
+                return None;
+            }
+        };
+    
         let folders = relative_parts[..relative_parts.len() - 1]
             .iter()
             .map(|s| s.to_string())
             .collect();
-
-        let file_part = relative_parts.last()?.to_string();
-        let (file_id_part, line_part) = file_part.rsplit_once(':')?;
-        let (file_name, file_format) = file_id_part.rsplit_once('.')?;
-        let line = line_part.parse::<u32>().ok()?;
-        if file_format != "rs" {
-            return None;
-        }
-
+    
         Some(PathPatternMatch {
             origin: CrateOrigin::Local {
                 crate_name: crate_name.to_string(),
