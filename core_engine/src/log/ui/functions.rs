@@ -318,15 +318,19 @@ fn render_span_branch(
         if ui.tri_checkbox(&mut checked).changed() {
             sel.toggle_selection();
         }
-        ui.collapsing(label, |ui| {
-            ui.vertical(|ui| {
-                for (child_seg, child_sel) in &mut sel.span_children {
-                    if let Some(child_node) = node.span_children.get_mut(child_seg) {
-                        render_span_branch(ui, child_seg, child_sel, child_node);
+        if sel.span_children.is_empty() {
+            ui.label(label);
+        } else {
+            ui.collapsing(label, |ui| {
+                ui.vertical(|ui| {
+                    for (child_seg, child_sel) in &mut sel.span_children {
+                        if let Some(child_node) = node.span_children.get_mut(child_seg) {
+                            render_span_branch(ui, child_seg, child_sel, child_node);
+                        }
                     }
-                }
+                });
             });
-        });
+        }
     });
 }
 
@@ -341,17 +345,23 @@ fn render_crate_module_branch(
     let label = seg.name.as_str();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
-    ui.collapsing(label, |ui| {
-        ui.horizontal(|ui| {
-            if ui.tri_checkbox(&mut checked).changed() {
-                sel.toggle_selection();
-            }
-        });
-
-        for (mod_seg, mod_sel) in &mut sel.modules {
-            if let Some(mod_node) = node.modules.get_mut(mod_seg) {
-                render_module_branch(ui, mod_seg, mod_sel, mod_node);
-            }
+    ui.spacing_mut().item_spacing.x = 0.0;
+    ui.horizontal(|ui| {
+        if ui.tri_checkbox(&mut checked).changed() {
+            sel.toggle_selection();
+        }
+        if sel.modules.is_empty() {
+            ui.label(label);
+        } else {
+            ui.collapsing(label, |ui| {
+                ui.vertical(|ui| {
+                    for (mod_seg, mod_sel) in &mut sel.modules {
+                        if let Some(mod_node) = node.modules.get_mut(mod_seg) {
+                            render_module_branch(ui, mod_seg, mod_sel, mod_node);
+                        }
+                    }
+                });
+            });
         }
     });
 }
@@ -365,23 +375,29 @@ fn render_module_branch(
     let label = seg.name.as_str();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
-    ui.collapsing(label, |ui| {
-        ui.horizontal(|ui| {
-            if ui.tri_checkbox(&mut checked).changed() {
-                sel.toggle_selection();
-            }
-        });
-
-        for (mod_seg, mod_sel) in &mut sel.modules {
-            if let Some(mod_node) = node.modules.get_mut(mod_seg) {
-                render_module_branch(ui, mod_seg, mod_sel, mod_node);
-            }
+    ui.spacing_mut().item_spacing.x = 0.0;
+    ui.horizontal(|ui| {
+        if ui.tri_checkbox(&mut checked).changed() {
+            sel.toggle_selection();
         }
-
-        for (sub_seg, sub_sel) in &mut sel.sub_modules {
-            if let Some(sub_node) = node.sub_modules.get_mut(sub_seg) {
-                render_submodule_branch(ui, sub_seg, sub_sel, sub_node);
-            }
+        if sel.modules.is_empty() && sel.sub_modules.is_empty() {
+            ui.label(label);
+        } else {
+            ui.collapsing(label, |ui| {
+                ui.vertical(|ui| {
+                    for (mod_seg, mod_sel) in &mut sel.modules {
+                        if let Some(mod_node) = node.modules.get_mut(mod_seg) {
+                            render_module_branch(ui, mod_seg, mod_sel, mod_node);
+                        }
+                    }
+                
+                    for (sub_seg, sub_sel) in &mut sel.sub_modules {
+                        if let Some(sub_node) = node.sub_modules.get_mut(sub_seg) {
+                            render_submodule_branch(ui, sub_seg, sub_sel, sub_node);
+                        }
+                    }
+                });
+            });
         }
     });
 }
@@ -395,17 +411,23 @@ fn render_submodule_branch(
     let label = seg.name.as_str();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
-    ui.collapsing(label, |ui| {
-        ui.horizontal(|ui| {
-            if ui.tri_checkbox(&mut checked).changed() {
-                sel.toggle_selection();
-            }
-        });
-
-        for (sub_seg, sub_sel) in &mut sel.sub_modules {
-            if let Some(sub_node) = node.sub_modules.get_mut(sub_seg) {
-                render_submodule_branch(ui, sub_seg, sub_sel, sub_node);
-            }
+    ui.spacing_mut().item_spacing.x = 0.0;
+    ui.horizontal(|ui| {
+        if ui.tri_checkbox(&mut checked).changed() {
+            sel.toggle_selection();
+        }
+        if sel.sub_modules.is_empty() {
+            ui.label(label);
+        } else {
+            ui.collapsing(label, |ui| {
+                ui.vertical(|ui| {
+                    for (sub_seg, sub_sel) in &mut sel.sub_modules {
+                        if let Some(sub_node) = node.sub_modules.get_mut(sub_seg) {
+                            render_submodule_branch(ui, sub_seg, sub_sel, sub_node);
+                        }
+                    }
+                });
+            });
         }
     });
 }
@@ -421,23 +443,29 @@ fn render_crate_folder_branch(
     let label = seg.name.as_str();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
-    ui.collapsing(label, |ui| {
-        ui.horizontal(|ui| {
-            if ui.tri_checkbox(&mut checked).changed() {
-                sel.toggle_selection();
-            }
-        });
-
-        for (folder_seg, folder_sel) in &mut sel.folders {
-            if let Some(folder_node) = node.folders.get_mut(folder_seg) {
-                render_folder_branch(ui, folder_seg, folder_sel, folder_node);
-            }
+    ui.spacing_mut().item_spacing.x = 0.0;
+    ui.horizontal(|ui| {
+        if ui.tri_checkbox(&mut checked).changed() {
+            sel.toggle_selection();
         }
-
-        for (file_seg, file_sel) in &mut sel.files {
-            if let Some(file_node) = node.files.get_mut(file_seg) {
-                render_file_branch(ui, file_seg, file_sel, file_node);
-            }
+        if sel.folders.is_empty() && sel.files.is_empty() {
+            ui.label(label);
+        } else {
+            ui.collapsing(label, |ui| {
+                ui.vertical(|ui| {
+                    for (folder_seg, folder_sel) in &mut sel.folders {
+                        if let Some(folder_node) = node.folders.get_mut(folder_seg) {
+                            render_folder_branch(ui, folder_seg, folder_sel, folder_node);
+                        }
+                    }
+                
+                    for (file_seg, file_sel) in &mut sel.files {
+                        if let Some(file_node) = node.files.get_mut(file_seg) {
+                            render_file_branch(ui, file_seg, file_sel, file_node);
+                        }
+                    }
+                });
+            });
         }
     });
 }
@@ -451,23 +479,29 @@ fn render_folder_branch(
     let label = seg.name.as_str();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
-    ui.collapsing(label, |ui| {
-        ui.horizontal(|ui| {
-            if ui.tri_checkbox(&mut checked).changed() {
-                sel.toggle_selection();
-            }
-        });
-
-        for (folder_seg, folder_sel) in &mut sel.folders {
-            if let Some(folder_node) = node.folders.get_mut(folder_seg) {
-                render_folder_branch(ui, folder_seg, folder_sel, folder_node);
-            }
+    ui.spacing_mut().item_spacing.x = 0.0;
+    ui.horizontal(|ui| {
+        if ui.tri_checkbox(&mut checked).changed() {
+            sel.toggle_selection();
         }
-
-        for (file_seg, file_sel) in &mut sel.files {
-            if let Some(file_node) = node.files.get_mut(file_seg) {
-                render_file_branch(ui, file_seg, file_sel, file_node);
-            }
+        if sel.folders.is_empty() && sel.files.is_empty() {
+            ui.label(label);
+        } else {
+            ui.collapsing(label, |ui| {
+                ui.vertical(|ui| {
+                    for (folder_seg, folder_sel) in &mut sel.folders {
+                        if let Some(folder_node) = node.folders.get_mut(folder_seg) {
+                            render_folder_branch(ui, folder_seg, folder_sel, folder_node);
+                        }
+                    }
+                
+                    for (file_seg, file_sel) in &mut sel.files {
+                        if let Some(file_node) = node.files.get_mut(file_seg) {
+                            render_file_branch(ui, file_seg, file_sel, file_node);
+                        }
+                    }
+                });
+            });
         }
     });
 }
@@ -481,17 +515,23 @@ fn render_file_branch(
     let label = seg.name.as_str();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
-    ui.collapsing(label, |ui| {
-        ui.horizontal(|ui| {
-            if ui.tri_checkbox(&mut checked).changed() {
-                sel.toggle_selection();
-            }
-        });
-
-        for (line_seg, line_sel) in &mut sel.lines {
-            if let Some(line_node) = node.lines.get_mut(line_seg) {
-                render_line_leaf(ui, line_seg, line_sel, line_node);
-            }
+    ui.spacing_mut().item_spacing.x = 0.0;
+    ui.horizontal(|ui| {
+        if ui.tri_checkbox(&mut checked).changed() {
+            sel.toggle_selection();
+        }
+        if sel.lines.is_empty() {
+            ui.label(label);
+        } else {
+            ui.collapsing(label, |ui| {
+                ui.vertical(|ui| {
+                    for (line_seg, line_sel) in &mut sel.lines {
+                        if let Some(line_node) = node.lines.get_mut(line_seg) {
+                            render_line_leaf(ui, line_seg, line_sel, line_node);
+                        }
+                    }
+                });
+            });
         }
     });
 }
@@ -505,6 +545,7 @@ fn render_line_leaf(
     let label = seg.number.to_string();
     let mut checked = sel.metadata.explicit_selection_state.consolidate(sel.is_partial()).into();
 
+    ui.spacing_mut().item_spacing.x = 0.0;
     ui.horizontal(|ui| {
         if ui.tri_checkbox(&mut checked).changed() {
             sel.toggle_selection();
