@@ -68,9 +68,9 @@ where
     let entry = LogEntry { ts, lvl, msg, metadata };
 
     // DEBUG SHIT
-    if log_id.0 > 10 {
-        return (log_id, entry, SpanPath::default(), ModulePath::default(), PhysicalStoragePath::default())
-    }
+    // if log_id.0 > 10 {
+    //     return (log_id, entry, SpanPath::default(), ModulePath::default(), PhysicalStoragePath::default())
+    // }
 
     let span_path = span_path_from_ctx(ctx);
     let (module_path, physical_path) = parse_paths(

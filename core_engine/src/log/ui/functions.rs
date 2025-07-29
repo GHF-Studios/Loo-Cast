@@ -135,7 +135,7 @@ pub fn render_console_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut LogViewe
 pub fn render_console(
     ui: &mut egui::Ui,
     log_viewer_state: &LogViewerState,
-    log_registry: &LogRegistry
+    log_registry: &mut LogRegistry
 ) {
     let logs = gather_logs(log_viewer_state, log_registry);
     let row_h = ui.text_style_height(&egui::TextStyle::Monospace);
@@ -157,7 +157,7 @@ pub fn render_console(
 
 pub fn gather_logs(
     state: &LogViewerState,
-    registry: &LogRegistry,
+    registry: &mut LogRegistry,
 ) -> Vec<LogEntry> {
     let mut out = Vec::new();
 

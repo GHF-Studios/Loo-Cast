@@ -651,15 +651,15 @@ impl SpanPathSelections {
         }
     }
 
-    pub fn collect_logs(&self, registry: &LogRegistry) -> Vec<LogId> {
+    pub fn collect_logs(&self, registry: &mut LogRegistry) -> Vec<LogId> {
         let mut out = Vec::new();
 
         for (root_segment, root_node_selection) in &self.span_roots {
             let root_node = registry
                 .span_registry
                 .span_roots
-                .get(root_segment)
-                .unwrap_or_else(|| unreachable!("Selection path root {:?} not found in registry", root_segment));
+                .entry(root_segment.clone())
+                .or_default();
 
             Self::collect_logs_from_span(
                 root_node_selection,
@@ -673,7 +673,7 @@ impl SpanPathSelections {
 
     fn collect_logs_from_span(
         selection: &SpanNodeSelection,
-        parent_node: &SpanNode,
+        parent_node: &mut SpanNode,
         out: &mut Vec<LogId>,
     ) {
         if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
@@ -683,8 +683,8 @@ impl SpanPathSelections {
         for (child_segment, child_selection) in &selection.span_children {
             let child_node = parent_node
                 .span_children
-                .get(child_segment)
-                .unwrap_or_else(|| unreachable!("Child segment {:?} not found in registry", child_segment));
+                .entry(child_segment.clone())
+                .or_default();
 
             Self::collect_logs_from_span(child_selection, child_node, out);
         }
@@ -744,15 +744,15 @@ impl ModulePathSelections {
         }
     }
 
-    pub fn collect_logs(&self, registry: &LogRegistry) -> Vec<LogId> {
+    pub fn collect_logs(&self, registry: &mut LogRegistry) -> Vec<LogId> {
         let mut out = Vec::new();
 
         for (crate_segment, crate_node_selection) in &self.crates {
             let crate_node = registry
                 .module_registry
                 .crates
-                .get(crate_segment)
-                .unwrap_or_else(|| unreachable!("Crate {:?} not found in module registry", crate_segment));
+                .entry(crate_segment.clone())
+                .or_default();
 
             if crate_node_selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
                 out.extend(&crate_node.logs);
@@ -761,8 +761,8 @@ impl ModulePathSelections {
             for (module_segment, module_selection) in &crate_node_selection.modules {
                 let module_node = crate_node
                     .modules
-                    .get(module_segment)
-                    .unwrap_or_else(|| unreachable!("Module {:?} not found in registry", module_segment));
+                    .entry(module_segment.clone())
+                    .or_default();
                 Self::collect_logs_from_module(module_selection, module_node, &mut out);
             }
         }
@@ -772,7 +772,7 @@ impl ModulePathSelections {
 
     fn collect_logs_from_module(
         selection: &ModuleNodeSelection,
-        module_node: &ModuleNode,
+        module_node: &mut ModuleNode,
         out: &mut Vec<LogId>,
     ) {
         if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
@@ -782,23 +782,23 @@ impl ModulePathSelections {
         for (module_segment, module_selection) in &selection.modules {
             let module_node = module_node
                 .modules
-                .get(module_segment)
-                .unwrap_or_else(|| unreachable!("Nested module '{}' not found. Full printout: {:?}", module_segment.name, module_node.modules.keys()));
+                .entry(module_segment.clone())
+                .or_default();
             Self::collect_logs_from_module(module_selection, module_node, out);
         }
 
         for (sub_module_segment, sub_module_selection) in &selection.sub_modules {
             let sub_module_node = module_node
                 .sub_modules
-                .get(sub_module_segment)
-                .unwrap_or_else(|| unreachable!("SubModule '{}' not found. Full printout: {:?}", sub_module_segment.name, module_node.sub_modules.keys()));
+                .entry(sub_module_segment.clone())
+                .or_default();
             Self::collect_logs_from_submodule(sub_module_selection, sub_module_node, out);
         }
     }
 
     fn collect_logs_from_submodule(
         selection: &SubModuleNodeSelection,
-        sub_module_node: &SubModuleNode,
+        sub_module_node: &mut SubModuleNode,
         out: &mut Vec<LogId>,
     ) {
         if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
@@ -808,8 +808,8 @@ impl ModulePathSelections {
         for (sub_module_segment, sub_module_selection) in &selection.sub_modules {
             let sub_module_node = sub_module_node
                 .sub_modules
-                .get(sub_module_segment)
-                .unwrap_or_else(|| unreachable!("Nested submodule '{}' not found", sub_module_segment.name));
+                .entry(sub_module_segment.clone())
+                .or_default();
             Self::collect_logs_from_submodule(sub_module_selection, sub_module_node, out);
         }
     }
@@ -905,23 +905,25 @@ impl PhysicalPathSelections {
         file.lines.entry(path.line.clone()).or_default();
     }
 
-    pub fn collect_logs(&self, registry: &LogRegistry) -> Vec<LogId> {
+    pub fn collect_logs(&self, registry: &mut LogRegistry) -> Vec<LogId> {
         let mut out = Vec::new();
 
         for (crate_segment, crate_node_selection) in &self.crates {
             let crate_node = registry
                 .physical_registry
                 .crates
-                .get(crate_segment)
-                .unwrap_or_else(|| unreachable!("Crate {:?} not found in physical registry", crate_segment));
+                .entry(crate_segment.clone())
+                .or_default();
 
             if crate_node_selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
                 out.extend(crate_node.files.values().flat_map(|file| file.lines.values().flat_map(|line| &line.logs)));
             }
 
             for (folder_segment, folder_selection) in &crate_node_selection.folders {
-                let folder_node = crate_node.folders.get(folder_segment)
-                    .unwrap_or_else(|| unreachable!("Folder {:?} not found in registry", folder_segment));
+                let folder_node = crate_node
+                    .folders
+                    .entry(folder_segment.clone())
+                    .or_default();
                 Self::collect_logs_from_folder(folder_selection, folder_node, &mut out);
             }
         }
@@ -931,7 +933,7 @@ impl PhysicalPathSelections {
 
     fn collect_logs_from_folder(
         selection: &FolderNodeSelection,
-        folder_node: &FolderNode,
+        folder_node: &mut FolderNode,
         out: &mut Vec<LogId>,
     ) {
         if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
@@ -941,23 +943,23 @@ impl PhysicalPathSelections {
         for (folder_segment, folder_selection) in &selection.folders {
             let folder_node = folder_node
                 .folders
-                .get(folder_segment)
-                .unwrap_or_else(|| unreachable!("Nested folder '{}' not found", folder_segment.name));
+                .entry(folder_segment.clone())
+                .or_default();
             Self::collect_logs_from_folder(folder_selection, folder_node, out);
         }
 
         for (file_segment, file_selection) in &selection.files {
             let file_node = folder_node
                 .files
-                .get(file_segment)
-                .unwrap_or_else(|| unreachable!("File '{}' not found", file_segment.name));
+                .entry(file_segment.clone())
+                .or_default();
             Self::collect_logs_from_file(file_selection, file_node, out);
         }
     }
 
     fn collect_logs_from_file(
         selection: &FileNodeSelection,
-        file_node: &FileNode,
+        file_node: &mut FileNode,
         out: &mut Vec<LogId>,
     ) {
         if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
@@ -971,8 +973,8 @@ impl PhysicalPathSelections {
         for (line_segment, line_selection) in &selection.lines {
             let line_node = file_node
                 .lines
-                .get(line_segment)
-                .unwrap_or_else(|| unreachable!("Line '{}' not found", line_segment.number));
+                .entry(line_segment.clone())
+                .or_default();
             Self::collect_logs_from_line(line_selection, line_node, out);
         }
     }

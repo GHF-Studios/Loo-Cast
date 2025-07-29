@@ -53,7 +53,7 @@ pub(super) fn show_log_viewer_ui(
                             ui.set_min_height(height);
                             ui.set_min_width(width);
                         
-                            render_console(ui, &log_viewer_state, &log_registry);
+                            render_console(ui, &log_viewer_state, &mut log_registry);
                         });
                 });
             });
