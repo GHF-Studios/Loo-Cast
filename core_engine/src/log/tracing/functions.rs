@@ -66,6 +66,12 @@ where
     let lvl: LogLevel = (*metadata.level()).into();
     let msg = Arc::from(event.metadata().name());
     let entry = LogEntry { ts, lvl, msg, metadata };
+
+    // DEBUG SHIT
+    if log_id.0 > 10 {
+        return (log_id, entry, SpanPath::default(), ModulePath::default(), PhysicalStoragePath::default())
+    }
+
     let span_path = span_path_from_ctx(ctx);
     let (module_path, physical_path) = parse_paths(
         metadata.module_path().unwrap(), 
@@ -89,7 +95,7 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
         line: u32,
     }
 
-    fn match_file_path(path: &str) -> Option<PathPatternMatch> {
+    fn match_file_path(path: &str, line: u32) -> Option<PathPatternMatch> {
         if cfg!(not(windows)) {
             panic!("Only Windows is supported for now");
         }
@@ -97,11 +103,11 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
         let raw_path = path.replace('\\', "/");
         let parts = raw_path.split('/').collect::<Vec<_>>();
     
-        parse_registry_path(&parts)
-            .or_else(|| parse_local_path(&parts))
+        parse_registry_path(&parts, line)
+            .or_else(|| parse_local_path(&parts, line))
     }
     
-    fn parse_registry_path(parts: &[&str]) -> Option<PathPatternMatch> {
+    fn parse_registry_path(parts: &[&str], line: u32) -> Option<PathPatternMatch> {
         if parts.len() < 10 {
             eprintln!("[REGISTRY] Not enough path segments: {:?}", parts);
             return None;
@@ -194,17 +200,10 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
         }
     
         let file_part = relative_parts.last()?.to_string();
-        let (file_id_part, line_part) = match file_part.rsplit_once(':') {
+        let (file_name, file_format) = match file_part.rsplit_once('.') {
             Some(p) => p,
             None => {
-                eprintln!("[REGISTRY] Could not split file and line from: {:?}", file_part);
-                return None;
-            }
-        };
-        let (file_name, file_format) = match file_id_part.rsplit_once('.') {
-            Some(p) => p,
-            None => {
-                eprintln!("[REGISTRY] Could not split file name and extension: {:?}", file_id_part);
+                eprintln!("[REGISTRY] Could not split file name and extension: {:?}", file_part);
                 return None;
             }
         };
@@ -212,13 +211,6 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
             eprintln!("[REGISTRY] Unsupported file extension: .{}", file_format);
             return None;
         }
-        let line = match line_part.parse::<u32>() {
-            Ok(n) => n,
-            Err(_) => {
-                eprintln!("[REGISTRY] Failed to parse line number: {:?}", line_part);
-                return None;
-            }
-        };
     
         let folders = relative_parts[..relative_parts.len() - 1]
             .iter()
@@ -236,7 +228,7 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
         })
     }
     
-    fn parse_local_path(parts: &[&str]) -> Option<PathPatternMatch> {
+    fn parse_local_path(parts: &[&str], line: u32) -> Option<PathPatternMatch> {
         if parts.len() < 3 {
             eprintln!("[LOCAL] Not enough parts: {:?}", parts);
             return None;
@@ -256,17 +248,10 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
         }
     
         let file_part = relative_parts.last()?.to_string();
-        let (file_id_part, line_part) = match file_part.rsplit_once(':') {
+        let (file_name, file_format) = match file_part.rsplit_once('.') {
             Some(p) => p,
             None => {
-                eprintln!("[LOCAL] Could not split file and line: {:?}", file_part);
-                return None;
-            }
-        };
-        let (file_name, file_format) = match file_id_part.rsplit_once('.') {
-            Some(p) => p,
-            None => {
-                eprintln!("[LOCAL] Could not split file name and extension: {:?}", file_id_part);
+                eprintln!("[LOCAL] Could not split file name and extension: {:?}", file_part);
                 return None;
             }
         };
@@ -274,13 +259,6 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
             eprintln!("[LOCAL] Unsupported file extension: .{}", file_format);
             return None;
         }
-        let line = match line_part.parse::<u32>() {
-            Ok(n) => n,
-            Err(_) => {
-                eprintln!("[LOCAL] Invalid line number: {:?}", line_part);
-                return None;
-            }
-        };
     
         let folders = relative_parts[..relative_parts.len() - 1]
             .iter()
@@ -297,7 +275,7 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
         })
     }
 
-    let Some(path_match) = match_file_path(file_path) else {
+    let Some(path_match) = match_file_path(file_path, line) else {
         return (ModulePath::default(), PhysicalStoragePath::default());
     };
     
@@ -348,15 +326,19 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
 
     let split_idx = declared_path.iter().position(|&s| s == final_module).unwrap_or(0);
 
-    let modules = declared_path[..=split_idx]
+    let modules = declared_path
+        .get(..=split_idx)
+        .unwrap_or(&[])
         .iter()
         .map(|s| ModuleSegment { name: s.to_string() })
-        .collect::<Vec<_>>();
+        .collect();
 
-    let sub_modules = declared_path[split_idx + 1..]
+    let sub_modules = declared_path
+        .get(split_idx + 1..)
+        .unwrap_or(&[])
         .iter()
         .map(|s| SubModuleSegment { name: s.to_string() })
-        .collect::<Vec<_>>();
+        .collect();
 
     let crate_module = CrateModuleSegment {
         name: crate_name.to_string(),

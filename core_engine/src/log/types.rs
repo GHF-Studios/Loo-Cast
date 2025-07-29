@@ -172,11 +172,29 @@ pub struct ModulePath {
 }
 impl std::fmt::Display for ModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ModulePath({}/{}/{})",
-            self.crate_module.name,
-            self.modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
-            self.sub_modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/")
-        )
+        match (self.modules.is_empty(), self.sub_modules.is_empty()) {
+            (false, false) => {
+                write!(f, "ModulePath({}/{}/{})",
+                    self.crate_module.name,
+                    self.modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
+                    self.sub_modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
+                )
+            },
+            (false, true) => {
+                write!(f, "ModulePath({}/{})",
+                    self.crate_module.name,
+                    self.modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
+                )
+            },
+            (true, false) => {
+                unreachable!()
+            },
+            (true, true) => {
+                write!(f, "ModulePath({})",
+                    self.crate_module.name,
+                )
+            },
+        }
     }
 }
 
@@ -189,12 +207,20 @@ pub struct PhysicalStoragePath {
 }
 impl std::fmt::Display for PhysicalStoragePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "PhysicalStoragePath({}/{}/{}:{})", 
-            self.crate_folder.name,
-            self.folders.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
-            self.file.name,
-            self.line.number
-        )
+        if self.folders.is_empty() {
+            write!(f, "PhysicalStoragePath({}/{}:{})", 
+                self.crate_folder.name,
+                self.file.name,
+                self.line.number
+            )
+        } else {
+            write!(f, "PhysicalStoragePath({}/{}/{}:{})", 
+                self.crate_folder.name,
+                self.folders.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
+                self.file.name,
+                self.line.number
+            )
+        }
     }
 }
 
