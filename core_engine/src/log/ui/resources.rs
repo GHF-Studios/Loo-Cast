@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 
 use crate::log::types::LogLevel;
-use crate::log::ui::types::SelectionMode;
 
 #[derive(Resource)]
 pub struct LogViewerState {

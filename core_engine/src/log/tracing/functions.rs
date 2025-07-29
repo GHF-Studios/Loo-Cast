@@ -64,7 +64,7 @@ where
     let ts = now_since_start_ns();
     let metadata = event.metadata();
     let lvl: LogLevel = (*metadata.level()).into();
-    let msg = Arc::from(event.metadata().name());
+    let msg = extract_message(event);
     let entry = LogEntry { ts, lvl, msg, metadata };
 
     // DEBUG SHIT
