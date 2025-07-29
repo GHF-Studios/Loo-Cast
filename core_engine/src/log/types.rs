@@ -5,7 +5,6 @@ use tracing::{Level as TracingLevel, Metadata};
 
 use crate::log::resources::LogRegistry;
 use crate::log::statics::LOG_ID_COUNTER;
-use crate::log::ui::types::SelectionMode;
 use crate::ui::custom_egui_widgets::tri_checkbox::TriState;
 
 
@@ -651,10 +650,10 @@ impl SpanPathSelections {
         }
     }
 
-    pub fn collect_logs(&self, registry: &mut LogRegistry) -> Vec<LogId> {
+    pub fn collect_logs(registry: &mut LogRegistry) -> Vec<LogId> {
         let mut out = Vec::new();
 
-        for (root_segment, root_node_selection) in &self.span_roots {
+        for (root_segment, root_node_selection) in &mut registry.span_selections.span_roots {
             let root_node = registry
                 .span_registry
                 .span_roots
@@ -744,10 +743,10 @@ impl ModulePathSelections {
         }
     }
 
-    pub fn collect_logs(&self, registry: &mut LogRegistry) -> Vec<LogId> {
+    pub fn collect_logs(registry: &mut LogRegistry) -> Vec<LogId> {
         let mut out = Vec::new();
 
-        for (crate_segment, crate_node_selection) in &self.crates {
+        for (crate_segment, crate_node_selection) in &mut registry.module_selections.crates {
             let crate_node = registry
                 .module_registry
                 .crates
@@ -905,10 +904,10 @@ impl PhysicalPathSelections {
         file.lines.entry(path.line.clone()).or_default();
     }
 
-    pub fn collect_logs(&self, registry: &mut LogRegistry) -> Vec<LogId> {
+    pub fn collect_logs(registry: &mut LogRegistry) -> Vec<LogId> {
         let mut out = Vec::new();
 
-        for (crate_segment, crate_node_selection) in &self.crates {
+        for (crate_segment, crate_node_selection) in &mut registry.physical_selections.crates {
             let crate_node = registry
                 .physical_registry
                 .crates

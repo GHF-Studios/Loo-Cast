@@ -55,6 +55,18 @@ impl LogRegistry {
         self.physical_selections.insert(&physical_path);
     }
 
+    pub fn collect_logs_from_span_selections(&mut self) -> Vec<LogId> {
+        SpanPathSelections::collect_logs(self)
+    }
+
+    pub fn collect_logs_from_module_selections(&mut self) -> Vec<LogId> {
+        ModulePathSelections::collect_logs(self)
+    }
+
+    pub fn collect_logs_from_physical_selections(&mut self) -> Vec<LogId> {
+        PhysicalPathSelections::collect_logs(self)
+    }
+
     pub fn get_log(&self, id: &LogId) -> Option<&LogEntry> {
         self.logs.get(id)
     }

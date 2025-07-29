@@ -163,7 +163,7 @@ pub fn gather_logs(
 
     match registry.selection_mode {
         SelectionMode::Span => {
-            let log_ids = registry.span_selections.collect_logs(registry);
+            let log_ids = registry.collect_logs_from_span_selections();
 
             for log_id in log_ids {
                 if let Some(entry) = registry.get_log(&log_id) {
@@ -172,7 +172,7 @@ pub fn gather_logs(
             }
         }
         SelectionMode::Module => {
-            let log_ids = registry.module_selections.collect_logs(registry);
+            let log_ids = registry.collect_logs_from_module_selections();
             
             for log_id in log_ids {
                 if let Some(entry) = registry.get_log(&log_id) {
@@ -181,7 +181,7 @@ pub fn gather_logs(
             }
         }
         SelectionMode::Physical => {
-            let log_ids = registry.physical_selections.collect_logs(registry);
+            let log_ids = registry.collect_logs_from_physical_selections();
 
             for log_id in log_ids {
                 if let Some(entry) = registry.get_log(&log_id) {
@@ -316,7 +316,6 @@ fn render_span_branch(
     ui.spacing_mut().item_spacing.x = 0.0;
     ui.horizontal(|ui| {
         if ui.tri_checkbox(&mut checked).changed() {
-            println!("SexNigger");
             sel.toggle_selection();
         }
         ui.collapsing(label, |ui| {
