@@ -208,11 +208,11 @@ pub(super) fn format_log(log: &LogEntry) -> WidgetText {
     let sub_ms = ms % 1000;
 
     let time = if days > 0 {
-        format!("T+ {}d:{:02}h:{:02}m:{:02}s.{:03}ms", days, hrs, mins, secs, sub_ms)
+        format!("T+{}d:{:02}h:{:02}m:{:02}s.{:03}ms", days, hrs, mins, secs, sub_ms)
     } else if hrs > 0 {
-        format!("T+ {:02}h:{:02}m:{:02}s.{:03}ms", hrs, mins, secs, sub_ms)
+        format!("T+{:02}h:{:02}m:{:02}s.{:03}ms", hrs, mins, secs, sub_ms)
     } else {
-        format!("T+ {:02}m:{:02}s.{:03}ms", mins, secs, sub_ms)
+        format!("T+{:02}m:{:02}s.{:03}ms", mins, secs, sub_ms)
     };
 
     let (level_str, level_color) = match log.lvl {
@@ -229,7 +229,7 @@ pub(super) fn format_log(log: &LogEntry) -> WidgetText {
         &format!("[{time}]"),
         0.0,
         TextFormat {
-            font_id: FontId::monospace(12.0),
+            font_id: FontId::monospace(11.0),
             color: Color32::GRAY,
             ..Default::default()
         },
@@ -239,17 +239,17 @@ pub(super) fn format_log(log: &LogEntry) -> WidgetText {
         level_str,
         0.0,
         TextFormat {
-            font_id: FontId::monospace(12.0),
+            font_id: FontId::monospace(11.0),
             color: level_color,
             ..Default::default()
         },
     );
 
     job.append(
-        &format!(" — {}", log.msg),
+        &format!(" {}", log.msg),
         0.0,
         TextFormat {
-            font_id: FontId::monospace(12.0),
+            font_id: FontId::monospace(11.0),
             color: Color32::WHITE,
             ..Default::default()
         },
