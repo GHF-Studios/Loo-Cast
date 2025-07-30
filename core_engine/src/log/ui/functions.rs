@@ -52,12 +52,9 @@ pub fn render_selection_tree(
     log_registry: &mut LogRegistry
 ) {
     let selection_mode = log_registry.selection_mode;
-    let height = ui.available_height();
-    let width = ui.available_width();
 
     ScrollArea::vertical()
-        .max_height(height)
-        .max_width(width)
+        .id_source("tree-scroll")
         .show(ui, |ui| {
             ui.label("TOP OF SELECTION TREE");
 
@@ -139,12 +136,9 @@ pub fn render_console(
 ) {
     let logs = gather_logs(log_viewer_state, log_registry);
     let row_h = ui.text_style_height(&egui::TextStyle::Monospace);
-    let height = ui.available_height();
-    let width = ui.available_width();
 
     ScrollArea::vertical()
-        .max_height(height)
-        .max_width(width)
+        .id_source("console-scroll")
         .stick_to_bottom(true)
         .show_rows(ui, row_h, logs.len(), |ui, range| {
             for i in range {

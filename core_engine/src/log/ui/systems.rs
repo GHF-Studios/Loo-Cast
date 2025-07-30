@@ -19,8 +19,6 @@ pub(super) fn show_log_viewer_ui(
 
     egui::Window::new("Log Viewer")
         .default_size([700.0, 450.0])
-        .min_width(350.0)
-        .min_height(250.0)
         .show(ctx, |ui| {
             ui.columns(2, |cols| {
                 // Left panel (SelectionTree + Toolbar)
@@ -35,7 +33,7 @@ pub(super) fn show_log_viewer_ui(
                         .show(ui, |ui| {
                             ui.set_min_height(height);
                             ui.set_min_width(width);
-                        
+
                             render_selection_tree(ui, &mut log_registry);
                         });
                 });
@@ -43,16 +41,16 @@ pub(super) fn show_log_viewer_ui(
                 // Right panel (Console + Toolbar)
                 cols[1].vertical(|ui| {
                     render_console_toolbar(ui, &mut log_viewer_state);
-                    
+
                     let height = ui.available_height();
                     let width = ui.available_width();
-
+                    
                     egui::Frame::none()
                         .fill(egui::Color32::from_rgb(50, 20, 20))
                         .show(ui, |ui| {
                             ui.set_min_height(height);
                             ui.set_min_width(width);
-                        
+                            
                             render_console(ui, &log_viewer_state, &mut log_registry);
                         });
                 });

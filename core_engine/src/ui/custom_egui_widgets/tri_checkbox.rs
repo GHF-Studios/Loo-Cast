@@ -20,7 +20,7 @@ impl<'a> TriCheckbox<'a> {
 impl Widget for TriCheckbox<'_> {
     fn ui(self, ui: &mut bevy_egui::egui::Ui) -> Response {
         let desired_size = bevy_egui::egui::Vec2::new(16.0, 16.0);
-        let (rect, response) = ui.allocate_exact_size(desired_size, Sense::click());
+        let (rect, mut response) = ui.allocate_exact_size(desired_size, Sense::click());
 
         if response.clicked() {
             *self.state = match *self.state {
@@ -28,6 +28,8 @@ impl Widget for TriCheckbox<'_> {
                 TriState::Indeterminate => TriState::Unchecked,
                 TriState::Checked => TriState::Unchecked,
             };
+    
+            response.mark_changed();
         }
 
         if ui.is_rect_visible(rect) {
