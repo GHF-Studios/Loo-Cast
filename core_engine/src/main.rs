@@ -18,10 +18,7 @@ use tracing_subscriber::fmt::format::FmtSpan;
 
 fn main() {
     setup_tracing();
-
-    let span = info_span!("main", on = true);
-    let _guard = span.enter();
-
+    let _span = info_span!("main", on = true).entered();
     configure_low_level_stuff();
     let bevy_plugins = configure_bevy_default_plugins();
     let app = configure_app(bevy_plugins);

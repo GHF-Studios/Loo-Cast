@@ -136,5 +136,7 @@ pub(super) fn update_player_system(
                 warn!("Player entity not found in update_player_system. The player entity should not be manually despawned! Resetting player state..",);
             }
         }
-    }
+    };
+
+    drop(_fsm_span);
 }
