@@ -35,18 +35,6 @@ where
     }
 }
 
-fn extract_message(event: &Event<'_>) -> Arc<str> {
-    let mut msg = None;
-
-    event.record(&mut |field: &tracing::field::Field, value: &dyn std::fmt::Debug| {
-        if field.name() == "message" {
-            msg = Some(Arc::from(format!("{:?}", value)));
-        }
-    });
-
-    msg.unwrap_or_else(|| Arc::from("<NO MESSAGE>"))
-}
-
 pub(in super) fn extract_log_identity<S>(
     event: &Event<'_>,
     ctx: &Context<'_, S>,
@@ -67,11 +55,6 @@ where
     let msg = extract_message(event);
     let entry = LogEntry { ts, lvl, msg, metadata };
 
-    // DEBUG SHIT
-    // if log_id.0 > 10 {
-    //     return (log_id, entry, SpanPath::default(), ModulePath::default(), PhysicalStoragePath::default())
-    // }
-
     let span_path = span_path_from_ctx(ctx);
     let (module_path, physical_path) = parse_paths(
         metadata.module_path().unwrap(), 
@@ -82,10 +65,22 @@ where
     (log_id, entry, span_path, module_path, physical_path)
 }
 
+fn extract_message(event: &Event<'_>) -> Arc<str> {
+    let mut msg = None;
+
+    event.record(&mut |field: &tracing::field::Field, value: &dyn std::fmt::Debug| {
+        if field.name() == "message" {
+            msg = Some(Arc::from(format!("{:?}", value)));
+        }
+    });
+
+    msg.unwrap_or_else(|| Arc::from("<NO MESSAGE>"))
+}
+
 fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, PhysicalStoragePath) {
     enum CrateOrigin {
         Local { crate_name: String },
-        Registry { crate_name: String, version: String },
+        Registry { crate_name: String },
     }
 
     struct PathPatternMatch {
@@ -109,37 +104,31 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
     
     fn parse_registry_path(parts: &[&str], line: u32) -> Option<PathPatternMatch> {
         if parts.len() < 10 {
-            eprintln!("[REGISTRY] Not enough path segments: {:?}", parts);
             return None;
         }
     
         let drive = parts[0];
         if !drive.ends_with(':') || drive.len() != 2 {
-            eprintln!("[REGISTRY] Invalid drive: {:?}", drive);
             return None;
         }
     
         if parts[1] != "Users" {
-            eprintln!("[REGISTRY] Expected 'Users', found: {:?}", parts[1]);
             return None;
         }
     
         let _ = parts[2]; // username — ignore
     
         if parts[3] != ".cargo" || parts[4] != "registry" || parts[5] != "src" {
-            eprintln!("[REGISTRY] Unexpected cargo path: {:?}", &parts[3..6]);
             return None;
         }
     
         let (boilerplate_stuff, hash_id_thing) = match parts[6].rsplit_once('-') {
             Some(p) => p,
             None => {
-                eprintln!("[REGISTRY] Could not split index hash: {:?}", parts[6]);
                 return None;
             }
         };
         if boilerplate_stuff != "index.crates.io" || hash_id_thing.len() != 16 {
-            eprintln!("[REGISTRY] Invalid index entry: {:?}", parts[6]);
             return None;
         }
     
@@ -147,55 +136,47 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
         let (crate_name, version) = match crate_id.rsplit_once('-') {
             Some(p) => p,
             None => {
-                eprintln!("[REGISTRY] Could not split crate name and version: {:?}", crate_id);
                 return None;
             }
         };
         let (major_version, version_rest) = match version.split_once('.') {
             Some(p) => p,
             None => {
-                eprintln!("[REGISTRY] Missing '.' in version: {:?}", version);
                 return None;
             }
         };
         let (minor_version, patch_version) = match version_rest.split_once('.') {
             Some(p) => p,
             None => {
-                eprintln!("[REGISTRY] Missing second '.' in version: {:?}", version_rest);
                 return None;
             }
         };
         let major_version = match major_version.parse::<u32>() {
             Ok(n) => n,
             Err(_) => {
-                eprintln!("[REGISTRY] Invalid major version: {:?}", major_version);
                 return None;
             }
         };
         let minor_version = match minor_version.parse::<u32>() {
             Ok(n) => n,
             Err(_) => {
-                eprintln!("[REGISTRY] Invalid minor version: {:?}", minor_version);
                 return None;
             }
         };
         let patch_version = match patch_version.parse::<u32>() {
             Ok(n) => n,
             Err(_) => {
-                eprintln!("[REGISTRY] Invalid patch version: {:?}", patch_version);
                 return None;
             }
         };
         let version = format!("{}.{}.{}", major_version, minor_version, patch_version);
     
         if parts[8] != "src" {
-            eprintln!("[REGISTRY] Expected 'src' at index 8, got: {:?}", parts[8]);
             return None;
         }
     
         let relative_parts = &parts[9..];
         if relative_parts.is_empty() {
-            eprintln!("[REGISTRY] No relative path after crate src/: {:?}", parts);
             return None;
         }
     
@@ -203,12 +184,10 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
         let (file_name, file_format) = match file_part.rsplit_once('.') {
             Some(p) => p,
             None => {
-                eprintln!("[REGISTRY] Could not split file name and extension: {:?}", file_part);
                 return None;
             }
         };
         if file_format != "rs" {
-            eprintln!("[REGISTRY] Unsupported file extension: .{}", file_format);
             return None;
         }
     
@@ -220,7 +199,6 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
         Some(PathPatternMatch {
             origin: CrateOrigin::Registry {
                 crate_name: format!("{}-{}", crate_name, version),
-                version,
             },
             folders,
             file_name: file_name.to_string(),
@@ -230,20 +208,17 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
     
     fn parse_local_path(parts: &[&str], line: u32) -> Option<PathPatternMatch> {
         if parts.len() < 3 {
-            eprintln!("[LOCAL] Not enough parts: {:?}", parts);
             return None;
         }
     
         let crate_name = parts[0];
     
         if parts[1] != "src" {
-            eprintln!("[LOCAL] Expected 'src' at index 1, got: {:?}", parts[1]);
             return None;
         }
     
         let relative_parts = &parts[2..];
         if relative_parts.is_empty() {
-            eprintln!("[LOCAL] No relative path inside src/: {:?}", parts);
             return None;
         }
     
@@ -251,12 +226,10 @@ fn parse_paths(module_path: &str, file_path: &str, line: u32) -> (ModulePath, Ph
         let (file_name, file_format) = match file_part.rsplit_once('.') {
             Some(p) => p,
             None => {
-                eprintln!("[LOCAL] Could not split file name and extension: {:?}", file_part);
                 return None;
             }
         };
         if file_format != "rs" {
-            eprintln!("[LOCAL] Unsupported file extension: .{}", file_format);
             return None;
         }
     

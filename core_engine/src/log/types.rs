@@ -722,21 +722,37 @@ impl ModulePathSelections {
         };
         let crate_module = self.crates.entry(crate_module_segment).or_default();
 
-        if path.modules.is_empty() {
-            return;
-        }
+        let current_module_seg = if path.modules.is_empty() {
+            let current_sub_module_seg = if path.sub_modules.is_empty() {
+                return;
+            } else {
+                path.sub_modules[0].clone()
+            };
 
-        let mut current_module = crate_module.modules.entry(path.modules[0].clone()).or_default();
+            let mut current_sub_module = crate_module.sub_modules.entry(current_sub_module_seg).or_default();
+
+            for segment in path.sub_modules.get(1..).unwrap_or_default() {
+                current_sub_module = current_sub_module.sub_modules.entry(segment.clone()).or_default();
+            }
+
+            return;
+        } else {
+            path.modules[0].clone()
+        };
+
+        let mut current_module = crate_module.modules.entry(current_module_seg).or_default();
 
         for segment in path.modules.get(1..).unwrap_or_default() {
             current_module = current_module.modules.entry(segment.clone()).or_default();
         }
 
-        if path.sub_modules.is_empty() {
+        let current_sub_module_seg = if path.sub_modules.is_empty() {
             return;
-        }
+        } else {
+            path.sub_modules[0].clone()
+        };
 
-        let mut current_sub_module = current_module.sub_modules.entry(path.sub_modules[0].clone()).or_default();
+        let mut current_sub_module = current_module.sub_modules.entry(current_sub_module_seg).or_default();
 
         for segment in path.sub_modules.get(1..).unwrap_or_default() {
             current_sub_module = current_sub_module.sub_modules.entry(segment.clone()).or_default();
@@ -888,13 +904,16 @@ impl PhysicalPathSelections {
         };
         let crate_folder = self.crates.entry(crate_folder_segment).or_default();
 
-        if path.folders.is_empty() {
+        let current_folder_seg = if path.folders.is_empty() {
             let file = crate_folder.files.entry(path.file.clone()).or_default();
             file.lines.entry(path.line.clone()).or_default();
-            return;
-        }
 
-        let mut current_folder = crate_folder.folders.entry(path.folders[0].clone()).or_default();
+            return;
+        } else {
+            path.folders[0].clone()
+        };
+
+        let mut current_folder = crate_folder.folders.entry(current_folder_seg).or_default();
 
         for segment in path.folders.get(1..).unwrap_or_default() {
             current_folder = current_folder.folders.entry(segment.clone()).or_default();
@@ -962,9 +981,9 @@ impl PhysicalPathSelections {
         out: &mut Vec<LogId>,
     ) {
         if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
-            out.extend(file_node.lines
+            out.extend(file_node
+                .lines
                 .values()
-                .into_iter()
                 .flat_map(|line| &line.logs)
             );
         }
@@ -1140,6 +1159,7 @@ impl SpanNodeSelection {
 pub struct CrateModuleNodeSelection {
     pub metadata: NodeMetadata,
     pub modules: HashMap<ModuleSegment, ModuleNodeSelection>,
+    pub sub_modules: HashMap<SubModuleSegment, SubModuleNodeSelection>,
 }
 impl CrateModuleNodeSelection {
     pub fn toggle_selection(&mut self) {

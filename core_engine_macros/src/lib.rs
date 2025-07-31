@@ -7,20 +7,16 @@ mod define_workflow_mod;
 #[allow(non_snake_case)]
 mod define_workflow_mod_OLD;
 mod register_workflow_mods;
-mod tracing_macros;
-mod typed_dag_macros;
 
 use composite_workflow::CompositeWorkflow as OuterCompositeWorkflow;
 use composite_workflow_return::CompositeWorkflowReturn;
 use define_composite_workflow::CompositeWorkflow as InnerCompositeWorkflow;
 use define_workflow_mod_OLD::WorkflowModule;
 use register_workflow_mods::WorkflowMods;
-use typed_dag_macros::TypedDagDef;
 
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse_macro_input;
-
 
 #[proc_macro]
 pub fn composite_workflow(input: TokenStream) -> TokenStream {
@@ -66,10 +62,4 @@ pub fn define_workflow(_input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn define_worfklow_stages(_input: TokenStream) -> TokenStream {
     quote! {}.into()
-}
-
-#[proc_macro]
-pub fn define_typed_dag(input: TokenStream) -> TokenStream {
-    let dag = parse_macro_input!(input as TypedDagDef);
-    dag.generate().into()
 }

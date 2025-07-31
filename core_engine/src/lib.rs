@@ -43,7 +43,6 @@ pub mod gpu;
 pub mod log;
 //pub mod math;
 pub mod player;
-pub mod typed_dag;
 pub mod ui;
 //pub mod sprite_bundle;
 pub mod utils;

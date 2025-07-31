@@ -1,5 +1,4 @@
 use tracing::{
-    field::{Visit, Field},
     span::Attributes,
     span::Id,
     Event,
@@ -8,8 +7,6 @@ use tracing_subscriber::{
     layer::{Context, Layer},
     registry::LookupSpan,
 };
-use std::sync::Arc;
-use std::fmt::Debug;
 
 use crate::log::{statics::{LOG_EVENT_BUFFER, SPAN_EVENT_BUFFER}, tracing::functions::extract_span_identity};
 
@@ -20,7 +17,11 @@ impl<S> Layer<S> for LogTreeTracingLayer
 where
     S: tracing::Subscriber + for<'lookup> LookupSpan<'lookup>,
 {
-    fn on_new_span(&self, _attrs: &Attributes<'_>, _id: &Id, ctx: Context<'_, S>) {
+    fn on_new_span(&self, _attrs: &Attributes<'_>, id: &Id, ctx: Context<'_, S>) {
+        //if let Some(span_ref) = ctx.span(id) {
+        //    let metadata = span_ref.metadata();
+        //    let module_path = metadata.module_path();
+        //}
         let span_path = extract_span_identity(&ctx);
         SPAN_EVENT_BUFFER.push(span_path);
     }
@@ -34,41 +35,5 @@ where
             physical_path
         ) = extract_log_identity(event, &ctx);
         LOG_EVENT_BUFFER.push((log_id, log_entry, span_path, module_path, physical_path));
-    }
-}
-
-struct MsgAndMetaVisitor {
-    pub message: Option<Arc<str>>,
-    pub meta_fields: Vec<(String, String)>,
-}
-impl MsgAndMetaVisitor {
-    pub fn new() -> Self {
-        Self {
-            message: None,
-            meta_fields: Vec::new(),
-        }
-    }
-}
-impl Visit for MsgAndMetaVisitor {
-    fn record_str(&mut self, field: &Field, value: &str) {
-        match field.name() {
-            "message" => {
-                self.message = Some(Arc::from(value));
-            }
-            name => {
-                self.meta_fields.push((name.to_string(), value.to_string()));
-            }
-        }
-    }
-
-    fn record_debug(&mut self, field: &Field, value: &dyn Debug) {
-        match field.name() {
-            "message" => {
-                self.message = Some(Arc::from(format!("{value:?}")));
-            }
-            name => {
-                self.meta_fields.push((name.to_string(), format!("{value:?}")));
-            }
-        }
     }
 }

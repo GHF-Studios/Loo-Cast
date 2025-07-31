@@ -32,20 +32,6 @@ impl LogRegistry {
         module_path: ModulePath,
         physical_path: PhysicalStoragePath,
     ) {
-        // DEBUG SHIT
-        // if log_id.0 > 10 { return; }
-
-        println!(
-            "Log inserted: {:?} @ module_path '{}' @ file '{}' @ line '{}' = @ Span '{}' @ Module '{}' @ Physical '{}'",
-            log_id,
-            log_entry.metadata.module_path().unwrap(),
-            log_entry.metadata.file().unwrap(),
-            log_entry.metadata.line().unwrap(),
-            span_path,
-            module_path,
-            physical_path
-        );
-
         self.logs.insert(log_id, log_entry);
         self.span_registry.insert(&span_path, log_id);
         self.module_registry.insert(&module_path, log_id);
