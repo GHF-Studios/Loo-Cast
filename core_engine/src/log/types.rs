@@ -1,33 +1,11 @@
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tracing::{Level as TracingLevel, Metadata};
 
 use crate::log::resources::LogRegistry;
 use crate::log::statics::LOG_ID_COUNTER;
 use crate::ui::custom_egui_widgets::tri_checkbox::TriState;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // === Basics ===
 
@@ -44,8 +22,8 @@ impl From<TracingLevel> for LogLevel {
         match value {
             TracingLevel::TRACE => LogLevel::Trace,
             TracingLevel::DEBUG => LogLevel::Debug,
-            TracingLevel::INFO  => LogLevel::Info,
-            TracingLevel::WARN  => LogLevel::Warn,
+            TracingLevel::INFO => LogLevel::Info,
+            TracingLevel::WARN => LogLevel::Warn,
             TracingLevel::ERROR => LogLevel::Error,
         }
     }
@@ -55,8 +33,8 @@ impl From<LogLevel> for TracingLevel {
         match value {
             LogLevel::Trace => TracingLevel::TRACE,
             LogLevel::Debug => TracingLevel::DEBUG,
-            LogLevel::Info  => TracingLevel::INFO,
-            LogLevel::Warn  => TracingLevel::WARN,
+            LogLevel::Info => TracingLevel::INFO,
+            LogLevel::Warn => TracingLevel::WARN,
             LogLevel::Error => TracingLevel::ERROR,
         }
     }
@@ -67,7 +45,7 @@ pub struct LogEntry {
     pub ts: u64,
     pub lvl: LogLevel,
     pub msg: Arc<str>,
-    pub metadata: &'static Metadata<'static>
+    pub metadata: &'static Metadata<'static>,
 }
 
 #[repr(transparent)]
@@ -90,7 +68,7 @@ impl std::fmt::Display for LogId {
 pub enum LogPath {
     Span(SpanPath),
     Module(ModulePath),
-    Physical(PhysicalStoragePath)
+    Physical(PhysicalStoragePath),
 }
 impl std::fmt::Display for LogPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -115,7 +93,7 @@ impl ExplicitSelectionState {
         } else {
             match self {
                 ExplicitSelectionState::Selected => EffectiveSelectionState::Selected,
-                ExplicitSelectionState::Deselected => EffectiveSelectionState::Deselected
+                ExplicitSelectionState::Deselected => EffectiveSelectionState::Deselected,
             }
         }
     }
@@ -134,7 +112,7 @@ pub enum EffectiveSelectionState {
     #[default]
     Selected,
     Deselected,
-    PartiallySelected
+    PartiallySelected,
 }
 impl From<EffectiveSelectionState> for TriState {
     fn from(value: EffectiveSelectionState) -> Self {
@@ -155,7 +133,7 @@ pub struct NodeMetadata {
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpanPath {
-    pub spans: Vec<SpanSegment>
+    pub spans: Vec<SpanSegment>,
 }
 impl std::fmt::Display for SpanPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -167,32 +145,34 @@ impl std::fmt::Display for SpanPath {
 pub struct ModulePath {
     pub crate_module: CrateModuleSegment,
     pub modules: Vec<ModuleSegment>,
-    pub sub_modules: Vec<SubModuleSegment>
+    pub sub_modules: Vec<SubModuleSegment>,
 }
 impl std::fmt::Display for ModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match (self.modules.is_empty(), self.sub_modules.is_empty()) {
             (false, false) => {
-                write!(f, "ModulePath({}/{}/{})",
+                write!(
+                    f,
+                    "ModulePath({}/{}/{})",
                     self.crate_module.name,
                     self.modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
                     self.sub_modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
                 )
-            },
+            }
             (false, true) => {
-                write!(f, "ModulePath({}/{})",
+                write!(
+                    f,
+                    "ModulePath({}/{})",
                     self.crate_module.name,
                     self.modules.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
                 )
-            },
+            }
             (true, false) => {
                 unreachable!()
-            },
+            }
             (true, true) => {
-                write!(f, "ModulePath({})",
-                    self.crate_module.name,
-                )
-            },
+                write!(f, "ModulePath({})", self.crate_module.name,)
+            }
         }
     }
 }
@@ -207,13 +187,11 @@ pub struct PhysicalStoragePath {
 impl std::fmt::Display for PhysicalStoragePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.folders.is_empty() {
-            write!(f, "PhysicalStoragePath({}/{}:{})", 
-                self.crate_folder.name,
-                self.file.name,
-                self.line.number
-            )
+            write!(f, "PhysicalStoragePath({}/{}:{})", self.crate_folder.name, self.file.name, self.line.number)
         } else {
-            write!(f, "PhysicalStoragePath({}/{}/{}:{})", 
+            write!(
+                f,
+                "PhysicalStoragePath({}/{}/{}:{})",
                 self.crate_folder.name,
                 self.folders.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("/"),
                 self.file.name,
@@ -235,9 +213,7 @@ impl std::fmt::Display for PhysicalSelectionPath {
         let crate_name = self.crate_folder.name.clone();
 
         if self.folders.is_empty() {
-            return write!(f, "PhysicalSelectionPath({})", 
-                self.crate_folder.name
-            );
+            return write!(f, "PhysicalSelectionPath({})", self.crate_folder.name);
         }
 
         let mut folder_names = Vec::with_capacity(self.folders.len());
@@ -249,25 +225,20 @@ impl std::fmt::Display for PhysicalSelectionPath {
         let file_name = match self.file {
             Some(ref segment) => segment.name.clone(),
             None => {
-                return write!(f, "PhysicalSelectionPath({}/{})", 
-                    crate_name,
-                    folder_names.join("/"),
-                );
+                return write!(f, "PhysicalSelectionPath({}/{})", crate_name, folder_names.join("/"),);
             }
         };
 
         let line_number = match self.line {
             Some(ref segment) => segment.number,
             None => {
-                return write!(f, "PhysicalSelectionPath({}/{}/{})", 
-                    crate_name,
-                    folder_names.join("/"),
-                    file_name,
-                );
+                return write!(f, "PhysicalSelectionPath({}/{}/{})", crate_name, folder_names.join("/"), file_name,);
             }
         };
 
-        write!(f, "PhysicalSelectionPath({}/{}/{}:{})",
+        write!(
+            f,
+            "PhysicalSelectionPath({}/{}/{}:{})",
             crate_name,
             folder_names.join("/"),
             file_name,
@@ -282,7 +253,7 @@ impl std::fmt::Display for PhysicalSelectionPath {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpanSegment {
-    pub name: String
+    pub name: String,
 }
 impl Default for SpanSegment {
     fn default() -> Self {
@@ -478,7 +449,7 @@ impl ModuleRegistry {
         }
 
         let mut current_module = crate_module.modules.get(&path.modules[0])?;
-        
+
         for segment in path.modules.get(1..).unwrap_or_default() {
             current_module = current_module.modules.get(segment)?;
         }
@@ -654,36 +625,21 @@ impl SpanPathSelections {
         let mut out = Vec::new();
 
         for (root_segment, root_node_selection) in &mut registry.span_selections.span_roots {
-            let root_node = registry
-                .span_registry
-                .span_roots
-                .entry(root_segment.clone())
-                .or_default();
+            let root_node = registry.span_registry.span_roots.entry(root_segment.clone()).or_default();
 
-            Self::collect_logs_from_span(
-                root_node_selection,
-                root_node,
-                &mut out,
-            );
+            Self::collect_logs_from_span(root_node_selection, root_node, &mut out);
         }
 
         out
     }
 
-    fn collect_logs_from_span(
-        selection: &SpanNodeSelection,
-        parent_node: &mut SpanNode,
-        out: &mut Vec<LogId>,
-    ) {
+    fn collect_logs_from_span(selection: &SpanNodeSelection, parent_node: &mut SpanNode, out: &mut Vec<LogId>) {
         if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
             out.extend(&parent_node.logs);
         }
 
         for (child_segment, child_selection) in &selection.span_children {
-            let child_node = parent_node
-                .span_children
-                .entry(child_segment.clone())
-                .or_default();
+            let child_node = parent_node.span_children.entry(child_segment.clone()).or_default();
 
             Self::collect_logs_from_span(child_selection, child_node, out);
         }
@@ -691,20 +647,20 @@ impl SpanPathSelections {
 
     pub fn get_span(&self, path: &SpanPath) -> Option<&SpanNodeSelection> {
         let mut current = self.span_roots.get(&path.spans[0])?;
-        
+
         for segment in path.spans.get(1..).unwrap_or_default() {
             current = current.span_children.get(segment)?;
         }
-        
+
         Some(current)
     }
     fn get_span_mut(&mut self, path: &SpanPath) -> Option<&mut SpanNodeSelection> {
         let mut current = self.span_roots.get_mut(&path.spans[0])?;
-        
+
         for segment in path.spans.get(1..).unwrap_or_default() {
             current = current.span_children.get_mut(segment)?;
         }
-        
+
         Some(current)
     }
 }
@@ -763,21 +719,14 @@ impl ModulePathSelections {
         let mut out = Vec::new();
 
         for (crate_segment, crate_node_selection) in &mut registry.module_selections.crates {
-            let crate_node = registry
-                .module_registry
-                .crates
-                .entry(crate_segment.clone())
-                .or_default();
+            let crate_node = registry.module_registry.crates.entry(crate_segment.clone()).or_default();
 
             if crate_node_selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
                 out.extend(&crate_node.logs);
             }
 
             for (module_segment, module_selection) in &crate_node_selection.modules {
-                let module_node = crate_node
-                    .modules
-                    .entry(module_segment.clone())
-                    .or_default();
+                let module_node = crate_node.modules.entry(module_segment.clone()).or_default();
                 Self::collect_logs_from_module(module_selection, module_node, &mut out);
             }
         }
@@ -785,46 +734,29 @@ impl ModulePathSelections {
         out
     }
 
-    fn collect_logs_from_module(
-        selection: &ModuleNodeSelection,
-        module_node: &mut ModuleNode,
-        out: &mut Vec<LogId>,
-    ) {
+    fn collect_logs_from_module(selection: &ModuleNodeSelection, module_node: &mut ModuleNode, out: &mut Vec<LogId>) {
         if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
             out.extend(&module_node.logs);
         }
 
         for (module_segment, module_selection) in &selection.modules {
-            let module_node = module_node
-                .modules
-                .entry(module_segment.clone())
-                .or_default();
+            let module_node = module_node.modules.entry(module_segment.clone()).or_default();
             Self::collect_logs_from_module(module_selection, module_node, out);
         }
 
         for (sub_module_segment, sub_module_selection) in &selection.sub_modules {
-            let sub_module_node = module_node
-                .sub_modules
-                .entry(sub_module_segment.clone())
-                .or_default();
+            let sub_module_node = module_node.sub_modules.entry(sub_module_segment.clone()).or_default();
             Self::collect_logs_from_submodule(sub_module_selection, sub_module_node, out);
         }
     }
 
-    fn collect_logs_from_submodule(
-        selection: &SubModuleNodeSelection,
-        sub_module_node: &mut SubModuleNode,
-        out: &mut Vec<LogId>,
-    ) {
+    fn collect_logs_from_submodule(selection: &SubModuleNodeSelection, sub_module_node: &mut SubModuleNode, out: &mut Vec<LogId>) {
         if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
             out.extend(&sub_module_node.logs);
         }
 
         for (sub_module_segment, sub_module_selection) in &selection.sub_modules {
-            let sub_module_node = sub_module_node
-                .sub_modules
-                .entry(sub_module_segment.clone())
-                .or_default();
+            let sub_module_node = sub_module_node.sub_modules.entry(sub_module_segment.clone()).or_default();
             Self::collect_logs_from_submodule(sub_module_selection, sub_module_node, out);
         }
     }
@@ -927,21 +859,14 @@ impl PhysicalPathSelections {
         let mut out = Vec::new();
 
         for (crate_segment, crate_node_selection) in &mut registry.physical_selections.crates {
-            let crate_node = registry
-                .physical_registry
-                .crates
-                .entry(crate_segment.clone())
-                .or_default();
+            let crate_node = registry.physical_registry.crates.entry(crate_segment.clone()).or_default();
 
             if crate_node_selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
                 out.extend(crate_node.files.values().flat_map(|file| file.lines.values().flat_map(|line| &line.logs)));
             }
 
             for (folder_segment, folder_selection) in &crate_node_selection.folders {
-                let folder_node = crate_node
-                    .folders
-                    .entry(folder_segment.clone())
-                    .or_default();
+                let folder_node = crate_node.folders.entry(folder_segment.clone()).or_default();
                 Self::collect_logs_from_folder(folder_selection, folder_node, &mut out);
             }
         }
@@ -949,59 +874,34 @@ impl PhysicalPathSelections {
         out
     }
 
-    fn collect_logs_from_folder(
-        selection: &FolderNodeSelection,
-        folder_node: &mut FolderNode,
-        out: &mut Vec<LogId>,
-    ) {
+    fn collect_logs_from_folder(selection: &FolderNodeSelection, folder_node: &mut FolderNode, out: &mut Vec<LogId>) {
         if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
             out.extend(folder_node.files.values().flat_map(|file| file.lines.values().flat_map(|line| &line.logs)));
         }
 
         for (folder_segment, folder_selection) in &selection.folders {
-            let folder_node = folder_node
-                .folders
-                .entry(folder_segment.clone())
-                .or_default();
+            let folder_node = folder_node.folders.entry(folder_segment.clone()).or_default();
             Self::collect_logs_from_folder(folder_selection, folder_node, out);
         }
 
         for (file_segment, file_selection) in &selection.files {
-            let file_node = folder_node
-                .files
-                .entry(file_segment.clone())
-                .or_default();
+            let file_node = folder_node.files.entry(file_segment.clone()).or_default();
             Self::collect_logs_from_file(file_selection, file_node, out);
         }
     }
 
-    fn collect_logs_from_file(
-        selection: &FileNodeSelection,
-        file_node: &mut FileNode,
-        out: &mut Vec<LogId>,
-    ) {
+    fn collect_logs_from_file(selection: &FileNodeSelection, file_node: &mut FileNode, out: &mut Vec<LogId>) {
         if selection.metadata.explicit_selection_state == ExplicitSelectionState::Selected {
-            out.extend(file_node
-                .lines
-                .values()
-                .flat_map(|line| &line.logs)
-            );
+            out.extend(file_node.lines.values().flat_map(|line| &line.logs));
         }
 
         for (line_segment, line_selection) in &selection.lines {
-            let line_node = file_node
-                .lines
-                .entry(line_segment.clone())
-                .or_default();
+            let line_node = file_node.lines.entry(line_segment.clone()).or_default();
             Self::collect_logs_from_line(line_selection, line_node, out);
         }
     }
 
-    fn collect_logs_from_line(
-        selection: &LineNodeSelection,
-        line_node: &LineNode,
-        out: &mut Vec<LogId>,
-    ) {
+    fn collect_logs_from_line(selection: &LineNodeSelection, line_node: &LineNode, out: &mut Vec<LogId>) {
         let effective_selection_state = selection.metadata.explicit_selection_state;
 
         if effective_selection_state == ExplicitSelectionState::Selected {
@@ -1015,7 +915,7 @@ impl PhysicalPathSelections {
     fn get_crate_folder_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut CrateFolderNodeSelection> {
         self.crates.get_mut(&path.crate_folder)
     }
-    
+
     pub fn get_folder(&self, path: &PhysicalSelectionPath) -> Option<&FolderNodeSelection> {
         let crate_folder = self.crates.get(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get(&path.folders[0])?;
@@ -1036,7 +936,7 @@ impl PhysicalPathSelections {
 
         Some(folder)
     }
-    
+
     pub fn get_file(&self, path: &PhysicalSelectionPath) -> Option<&FileNodeSelection> {
         let crate_folder = self.crates.get(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get(&path.folders[0])?;
@@ -1061,7 +961,7 @@ impl PhysicalPathSelections {
 
         Some(file)
     }
-    
+
     pub fn get_line(&self, path: &PhysicalSelectionPath) -> Option<&LineNodeSelection> {
         let crate_folder = self.crates.get(&path.crate_folder)?;
         let mut folder = crate_folder.folders.get(&path.folders[0])?;
@@ -1110,14 +1010,14 @@ impl SpanNodeSelection {
                 for child_span_sel in self.span_children.values_mut() {
                     child_span_sel.deselect()
                 }
-            },
+            }
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
                 for child_span_sel in self.span_children.values_mut() {
                     child_span_sel.select()
                 }
-            },
+            }
         };
     }
 
@@ -1170,14 +1070,14 @@ impl CrateModuleNodeSelection {
                 for module_sel in self.modules.values_mut() {
                     module_sel.deselect();
                 }
-            },
+            }
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
                 for module_sel in self.modules.values_mut() {
                     module_sel.select();
                 }
-            },
+            }
         };
     }
 
@@ -1231,7 +1131,7 @@ impl ModuleNodeSelection {
                 for sub_module_sel in self.sub_modules.values_mut() {
                     sub_module_sel.deselect();
                 }
-            },
+            }
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
@@ -1241,7 +1141,7 @@ impl ModuleNodeSelection {
                 for sub_module_sel in self.sub_modules.values_mut() {
                     sub_module_sel.select();
                 }
-            },
+            }
         };
     }
 
@@ -1307,14 +1207,14 @@ impl SubModuleNodeSelection {
                 for sub_module_sel in self.sub_modules.values_mut() {
                     sub_module_sel.deselect();
                 }
-            },
+            }
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
                 for sub_module_sel in self.sub_modules.values_mut() {
                     sub_module_sel.select();
                 }
-            },
+            }
         };
     }
 
@@ -1370,7 +1270,7 @@ impl CrateFolderNodeSelection {
                 for file_sel in self.files.values_mut() {
                     file_sel.deselect();
                 }
-            },
+            }
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
@@ -1380,7 +1280,7 @@ impl CrateFolderNodeSelection {
                 for file_sel in self.files.values_mut() {
                     file_sel.select();
                 }
-            },
+            }
         };
     }
 
@@ -1450,7 +1350,7 @@ impl FolderNodeSelection {
                 for file_sel in self.files.values_mut() {
                     file_sel.deselect();
                 }
-            },
+            }
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
@@ -1460,7 +1360,7 @@ impl FolderNodeSelection {
                 for file_sel in self.files.values_mut() {
                     file_sel.select();
                 }
-            },
+            }
         };
     }
 
@@ -1526,14 +1426,14 @@ impl FileNodeSelection {
                 for line_sel in self.lines.values_mut() {
                     line_sel.deselect();
                 }
-            },
+            }
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
 
                 for line_sel in self.lines.values_mut() {
                     line_sel.select();
                 }
-            },
+            }
         };
     }
 
@@ -1574,10 +1474,10 @@ impl LineNodeSelection {
         match self.metadata.explicit_selection_state {
             ExplicitSelectionState::Selected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Deselected;
-            },
+            }
             ExplicitSelectionState::Deselected => {
                 self.metadata.explicit_selection_state = ExplicitSelectionState::Selected;
-            },
+            }
         };
     }
 

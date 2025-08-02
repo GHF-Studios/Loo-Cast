@@ -6,7 +6,6 @@ use bevy::prelude::*;
 pub(crate) struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugins(toolbar::ToolbarPlugin);
+        app.add_plugins(toolbar::ToolbarPlugin);
     }
 }

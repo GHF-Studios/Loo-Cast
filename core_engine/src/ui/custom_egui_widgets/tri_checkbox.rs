@@ -12,9 +12,7 @@ pub struct TriCheckbox<'a> {
 }
 impl<'a> TriCheckbox<'a> {
     pub fn new(state: &'a mut TriState) -> Self {
-        Self {
-            state,
-        }
+        Self { state }
     }
 }
 impl Widget for TriCheckbox<'_> {
@@ -28,7 +26,7 @@ impl Widget for TriCheckbox<'_> {
                 TriState::Indeterminate => TriState::Unchecked,
                 TriState::Checked => TriState::Unchecked,
             };
-    
+
             response.mark_changed();
         }
 
@@ -48,13 +46,7 @@ impl Widget for TriCheckbox<'_> {
             };
 
             if let Some(sym) = symbol {
-                painter.text(
-                    center,
-                    Align2::CENTER_CENTER,
-                    sym,
-                    TextStyle::Button.resolve(ui.style()),
-                    visuals.text_color(),
-                );
+                painter.text(center, Align2::CENTER_CENTER, sym, TextStyle::Button.resolve(ui.style()), visuals.text_color());
             }
         }
 

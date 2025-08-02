@@ -1,5 +1,9 @@
 use crate::{
-    camera::components::MainCamera, chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager}, chunk_loader::components::ChunkLoader, log::resources::LogRegistry, ui::toolbar::resources::ToolbarState
+    camera::components::MainCamera,
+    chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager},
+    chunk_loader::components::ChunkLoader,
+    log::resources::LogRegistry,
+    ui::toolbar::resources::ToolbarState,
 };
 
 use bevy::{prelude::*, window::PrimaryWindow};
@@ -28,10 +32,7 @@ pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Comman
     }
 }
 
-pub(super) fn toggle_perf_ui_system(
-    mut query: Query<&mut Visibility, With<PerfUiRoot>>,
-    toolbar_state: Res<ToolbarState>,
-) {
+pub(super) fn toggle_perf_ui_system(mut query: Query<&mut Visibility, With<PerfUiRoot>>, toolbar_state: Res<ToolbarState>) {
     for mut vis in query.iter_mut() {
         match (*vis, toolbar_state.show_perf_ui) {
             (Visibility::Inherited, false) => {
@@ -125,12 +126,14 @@ pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctx: Eg
         }
     }
 
-    if !toolbar_state.show_chunk_manager_debug_ui { return; }
+    if !toolbar_state.show_chunk_manager_debug_ui {
+        return;
+    }
     let ctx = match egui_ctx.try_ctx_mut() {
         Some(ctx) => ctx,
         None => {
             return;
-        },
+        }
     };
 
     egui::Window::new("Chunk Manager")
@@ -159,27 +162,25 @@ pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctx: Eg
 
 // TODO: Move into debug/ui/systems.rs or remove if not needed anymore
 pub fn log_registry_debug_ui(log_registry: Res<LogRegistry>, mut egui_ctx: EguiContexts, toolbar_state: Res<ToolbarState>) {
-    if !toolbar_state.show_log_registry_debug_ui { return; }
+    if !toolbar_state.show_log_registry_debug_ui {
+        return;
+    }
     let ctx = match egui_ctx.try_ctx_mut() {
         Some(ctx) => ctx,
         None => {
             return;
-        },
+        }
     };
 
-    egui::Window::new("Log Registry")
-        .vscroll(true)
-        .show(ctx, |ui| {
-            ScrollArea::vertical()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    ui.label(format!("Total Logs: {}", log_registry.logs.len()));
-                    ui.label(format!("Total Span Selection Roots: {}", log_registry.span_registry.span_roots.len()));
-                    ui.label(format!("Total Module Selection Roots: {}", log_registry.module_registry.crates.len()));
-                    ui.label(format!("Total Physical Selection Roots: {}", log_registry.physical_registry.crates.len()));
-                    //for (key, value) in &log_registry.logs {
-                    //    ui.label(format!("{}: {:?}", key, value));
-                    //}
-                });
+    egui::Window::new("Log Registry").vscroll(true).show(ctx, |ui| {
+        ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
+            ui.label(format!("Total Logs: {}", log_registry.logs.len()));
+            ui.label(format!("Total Span Selection Roots: {}", log_registry.span_registry.span_roots.len()));
+            ui.label(format!("Total Module Selection Roots: {}", log_registry.module_registry.crates.len()));
+            ui.label(format!("Total Physical Selection Roots: {}", log_registry.physical_registry.crates.len()));
+            //for (key, value) in &log_registry.logs {
+            //    ui.label(format!("{}: {:?}", key, value));
+            //}
         });
+    });
 }

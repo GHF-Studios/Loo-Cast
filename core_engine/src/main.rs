@@ -2,7 +2,7 @@ extern crate core_engine;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
-use bevy::log::{LogPlugin, info, error, info_span};
+use bevy::log::{error, info, info_span, LogPlugin};
 use bevy::prelude::*;
 use bevy::window::PresentMode;
 use bevy_egui::EguiPlugin;
@@ -12,13 +12,13 @@ use core_engine::log::tracing::types::LogTreeTracingLayer;
 use core_engine::types::ShortTime;
 use core_engine::*;
 use iyes_perf_ui::prelude::*;
-use tracing_subscriber::{EnvFilter, Layer};
-use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::fmt::format::FmtSpan;
+use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+use tracing_subscriber::{EnvFilter, Layer};
 
 fn main() {
     setup_tracing();
-    let _span = info_span!("main", on = true).entered();
+    let _span = info_span!("main").entered();
     configure_low_level_stuff();
     let bevy_plugins = configure_bevy_default_plugins();
     let app = configure_app(bevy_plugins);
@@ -32,12 +32,9 @@ fn setup_tracing() {
         .with_ansi(true)
         .with_filter(EnvFilter::new(CLI_LOG_FILTER));
 
-    let subscriber = tracing_subscriber::registry()
-        .with(LogTreeTracingLayer)
-        .with(fmt_layer);
+    let subscriber = tracing_subscriber::registry().with(LogTreeTracingLayer).with(fmt_layer);
 
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("Failed to set global subscriber");
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to set global subscriber");
 }
 
 fn configure_low_level_stuff() {
@@ -52,7 +49,8 @@ fn configure_low_level_stuff() {
 fn configure_bevy_default_plugins() -> PluginGroupBuilder {
     info!("Configuring bevy's DefaultPlugins");
 
-    DefaultPlugins.build()
+    DefaultPlugins
+        .build()
         .disable::<LogPlugin>()
         .set(WindowPlugin {
             primary_window: Some(Window {
@@ -72,8 +70,7 @@ fn configure_app(bevy_plugins: PluginGroupBuilder) -> App {
     info!("Building App...");
 
     let mut app = App::new();
-    app
-        .add_plugins(bevy_plugins)
+    app.add_plugins(bevy_plugins)
         .add_plugins(PerfUiPlugin)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(SpacetimeEngineCorePlugins)

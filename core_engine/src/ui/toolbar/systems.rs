@@ -8,7 +8,7 @@ pub(super) fn show_toolbar_ui(mut egui_ctx: EguiContexts, mut toolbar_state: Res
         Some(ctx) => ctx,
         None => {
             return;
-        },
+        }
     };
 
     egui::Window::new("Toolbar")

@@ -16,22 +16,12 @@ pub struct LogRegistry {
     pub selection_mode: SelectionMode,
 }
 impl LogRegistry {
-    pub fn insert_without_log(
-        &mut self,
-        span_path: &SpanPath,
-    ) {
+    pub fn insert_without_log(&mut self, span_path: &SpanPath) {
         self.span_registry.insert_without_log(span_path);
         self.span_selections.insert(span_path);
     }
 
-    pub fn insert_log(
-        &mut self,
-        log_id: LogId,
-        log_entry: LogEntry,
-        span_path: SpanPath,
-        module_path: ModulePath,
-        physical_path: PhysicalStoragePath,
-    ) {
+    pub fn insert_log(&mut self, log_id: LogId, log_entry: LogEntry, span_path: SpanPath, module_path: ModulePath, physical_path: PhysicalStoragePath) {
         self.logs.insert(log_id, log_entry);
         self.span_registry.insert(&span_path, log_id);
         self.module_registry.insert(&module_path, log_id);

@@ -53,7 +53,7 @@ impl UseStatements {
             // Automatic imports
             pub use super::user_items::*;
             pub use crate::workflow::types::{Outcome, Outcome::Wait, Outcome::Done};
-            pub use bevy::prelude::World;
+            pub use bevy::prelude::{World, info_span};
 
             // User imports
             #(#imports)*

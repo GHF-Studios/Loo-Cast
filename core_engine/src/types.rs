@@ -1,5 +1,5 @@
-use tracing_subscriber::fmt::{format::Writer, time::FormatTime};
 use std::fmt;
+use tracing_subscriber::fmt::{format::Writer, time::FormatTime};
 
 use crate::statics::START_TIME;
 

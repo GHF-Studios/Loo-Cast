@@ -17,7 +17,7 @@ pub(super) fn update_player_system(
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    let _system_span = info_span!("update_system").entered();
+    let _system_span = info_span!("update_player_system").entered();
 
     let is_player_input_allowed = {
         let condition_1 = if let Some((_, init_hook)) = chunk_loader_init_hook_query.iter().find(|(l, _)| l.chunk_owner_id().id() == "player") {
@@ -35,7 +35,7 @@ pub(super) fn update_player_system(
     let player_state = std::mem::take(&mut *player_state_resource);
     match player_state {
         PlayerLifecycle::None => {
-            let _fsm_case_span = info_span!("current_state: None").entered();
+            let _fsm_case_span = info_span!("case: None").entered();
 
             if is_player_input_allowed && keys.just_pressed(KeyCode::Space) {
                 let handle = composite_workflow!(move out entity: Entity, {
@@ -48,7 +48,7 @@ pub(super) fn update_player_system(
             }
         }
         PlayerLifecycle::Spawning(handle) => {
-            let _fsm_case_span = info_span!("current_state: Spawning").entered();
+            let _fsm_case_span = info_span!("case: Spawning").entered();
 
             if let Some(handle) = handle {
                 if !handle.is_finished() {
@@ -64,7 +64,7 @@ pub(super) fn update_player_system(
             }
         }
         PlayerLifecycle::Despawning(handle) => {
-            let _fsm_case_span = info_span!("current_state: Despawning").entered();
+            let _fsm_case_span = info_span!("case: Despawning").entered();
 
             if let Some(handle) = handle {
                 if !handle.is_finished() {
@@ -74,12 +74,12 @@ pub(super) fn update_player_system(
                 handle_composite_workflow_return_now(handle, |_ctx| {
                     composite_workflow_return!();
                     *player_state_resource = PlayerLifecycle::None;
-                info!("Player entity has been despawned.");
+                    info!("Player entity has been despawned.");
                 });
             }
         }
         PlayerLifecycle::PendingActivation(entity) => {
-            let _fsm_case_span = info_span!("current_state: PendingActivation").entered();
+            let _fsm_case_span = info_span!("case: PendingActivation").entered();
 
             if transform_query.contains(entity) {
                 *player_state_resource = PlayerLifecycle::Active(entity);
@@ -87,7 +87,7 @@ pub(super) fn update_player_system(
             }
         }
         PlayerLifecycle::Active(entity) => {
-            let _fsm_case_span = info_span!("current_state: Active").entered();
+            let _fsm_case_span = info_span!("case: Active").entered();
 
             if !is_player_input_allowed {
                 warn!("Player input is not allowed at this time. The player entity will not be updated.");
@@ -102,7 +102,7 @@ pub(super) fn update_player_system(
                 info!("Player entity is being despawned.");
                 return;
             }
-            let _fsm_case_span = info_span!("movement").entered();
+            let _movement_span = info_span!("movement").entered();
 
             if let Ok(mut transform) = transform_query.get_mut(entity) {
                 let mut direction = Vec3::ZERO;

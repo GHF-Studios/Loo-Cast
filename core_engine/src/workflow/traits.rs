@@ -419,8 +419,20 @@ pub trait WorkflowStageEcsWhile {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileE {
@@ -434,8 +446,20 @@ pub trait WorkflowStageEcsWhileE {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileO {
@@ -449,8 +473,20 @@ pub trait WorkflowStageEcsWhileO {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileOE {
@@ -465,8 +501,20 @@ pub trait WorkflowStageEcsWhileOE {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileS {
@@ -480,8 +528,20 @@ pub trait WorkflowStageEcsWhileS {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileSE {
@@ -496,8 +556,20 @@ pub trait WorkflowStageEcsWhileSE {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileSO {
@@ -512,8 +584,20 @@ pub trait WorkflowStageEcsWhileSO {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileSOE {
@@ -529,8 +613,20 @@ pub trait WorkflowStageEcsWhileSOE {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileI {
@@ -544,8 +640,20 @@ pub trait WorkflowStageEcsWhileI {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileIE {
@@ -560,8 +668,20 @@ pub trait WorkflowStageEcsWhileIE {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileIO {
@@ -576,8 +696,20 @@ pub trait WorkflowStageEcsWhileIO {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileIOE {
@@ -593,8 +725,20 @@ pub trait WorkflowStageEcsWhileIOE {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileIS {
@@ -609,8 +753,20 @@ pub trait WorkflowStageEcsWhileIS {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileISE {
@@ -626,8 +782,20 @@ pub trait WorkflowStageEcsWhileISE {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileISO {
@@ -643,8 +811,20 @@ pub trait WorkflowStageEcsWhileISO {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsWhileISOE {
@@ -661,8 +841,20 @@ pub trait WorkflowStageEcsWhileISOE {
     fn handle_ecs_while_run_response(
         &mut self,
         stage_response: Option<crate::debug::types::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcsWhile, Option<crate::debug::types::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::debug::types::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 

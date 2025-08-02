@@ -14,8 +14,6 @@ use crate::log::resources::LogRegistry;
 pub(crate) struct LogPlugin;
 impl Plugin for LogPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugins((tracing::TracingPlugin, ui::UiPlugin))
-            .insert_resource(LogRegistry::default());
+        app.add_plugins((tracing::TracingPlugin, ui::UiPlugin)).insert_resource(LogRegistry::default());
     }
 }
