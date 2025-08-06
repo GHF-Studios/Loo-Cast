@@ -9,6 +9,7 @@ use crate::{
     workflow::functions::handle_composite_workflow_return_now,
 };
 
+#[tracing::instrument(skip_all)]
 pub(super) fn update_player_system(
     chunk_loader_init_hook_query: Query<(&ChunkLoader, &InitHook<ChunkLoader>)>,
     chunk_loader_drop_hook_query: Query<(&ChunkLoader, &DropHook<ChunkLoader>)>,
@@ -17,8 +18,6 @@ pub(super) fn update_player_system(
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    let _system_span = info_span!("update_player_system").entered();
-
     let is_player_input_allowed = {
         let condition_1 = if let Some((_, init_hook)) = chunk_loader_init_hook_query.iter().find(|(l, _)| l.chunk_owner_id().id() == "player") {
             init_hook.has_fired()
@@ -38,7 +37,7 @@ pub(super) fn update_player_system(
             let _fsm_case_span = info_span!("case: None").entered();
 
             if is_player_input_allowed && keys.just_pressed(KeyCode::Space) {
-                let handle = composite_workflow!(move out entity: Entity, {
+                let handle = composite_workflow!(SpawnPlayer, move out entity: Entity, {
                     let spawn_player_output = workflow!(OE, Player::SpawnPlayer);
                     let entity = spawn_player_output.player_entity;
                 });
@@ -95,7 +94,7 @@ pub(super) fn update_player_system(
             }
 
             if keys.just_pressed(KeyCode::Space) {
-                let handle = composite_workflow!({
+                let handle = composite_workflow!(DespawnPlayer, {
                     workflow!(E, Player::DespawnPlayer);
                 });
                 *player_state_resource = PlayerLifecycle::Despawning(Some(handle));

@@ -17,6 +17,7 @@ use super::resources::ChunkRenderHandles;
 use super::types::ChunkActionWorkflowHandles;
 use super::ActionIntentCommitBuffer;
 
+#[tracing::instrument(skip_all)]
 pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
     let quad = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
     let light_material = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
@@ -29,6 +30,7 @@ pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<As
     });
 }
 
+#[tracing::instrument(skip_all)]
 pub(crate) fn chunk_update_system(chunk_query: Query<(Entity, &Transform, &Chunk)>) {
     for (_, transform, chunk) in chunk_query.iter() {
         let world_pos = transform.translation.truncate();
@@ -39,6 +41,7 @@ pub(crate) fn chunk_update_system(chunk_query: Query<(Entity, &Transform, &Chunk
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub(crate) fn process_chunk_actions_system(
     mut chunk_loader_init_hook_query: Query<&mut InitHook<ChunkLoader>>,
     mut action_intent_commit_buffer: ResMut<ActionIntentCommitBuffer>,
@@ -158,6 +161,7 @@ pub(crate) fn process_chunk_actions_system(
         let new_chunk_loaders = new_chunk_loaders.clone();
 
         Some(composite_workflow!(
+            SpawnChunks,
             move in texture_size: usize,
             move in spawn_inputs: Vec<SpawnChunkInput>,
             move in param_data: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
@@ -187,7 +191,10 @@ pub(crate) fn process_chunk_actions_system(
     };
 
     let despawn_handle = if !despawn_inputs.is_empty() {
-        Some(composite_workflow!(move in despawn_inputs: Vec<DespawnChunkInput>, {
+        Some(composite_workflow!(
+            DespawnChunks,
+            move in despawn_inputs: Vec<DespawnChunkInput>, 
+        {
             let _ = workflow!(IOE, Chunk::DespawnChunks, Input {
                 inputs: despawn_inputs
             });
@@ -198,6 +205,7 @@ pub(crate) fn process_chunk_actions_system(
 
     let transfer_handle = if !transfer_inputs.is_empty() {
         Some(composite_workflow!(
+            TransferChunkOwnerships,
             move in transfer_inputs: Vec<TransferChunkOwnershipInput>,
             new_chunk_loaders: Vec<Entity>,
         {

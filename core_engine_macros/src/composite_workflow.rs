@@ -3,6 +3,7 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::visit::Visit;
 use syn::{Block, ExprMacro, Ident, Token, Type};
+use heck::{ToSnakeCase, ToUpperCamelCase};
 
 struct WorkflowMacroDetector {
     found: bool,
@@ -55,12 +56,20 @@ pub struct VarCapture {
 }
 
 pub struct CompositeWorkflow {
+    pub name: Ident,
     pub captures: Vec<VarCapture>,
     pub block: Block,
 }
 
 impl Parse for CompositeWorkflow {
     fn parse(input: ParseStream) -> Result<Self> {
+        let name: Ident = input.parse()?;
+        let name_str = name.to_string().to_upper_camel_case();
+        let name_span = name.span();
+        let name = Ident::new(name_str.as_str(), name_span);
+
+        let _ = input.parse::<Token![,]>()?;
+
         let mut captures = Vec::new();
 
         while !input.is_empty() {
@@ -110,12 +119,20 @@ impl Parse for CompositeWorkflow {
 
         let block: Block = input.parse()?;
 
-        Ok(CompositeWorkflow { captures, block })
+        Ok(CompositeWorkflow { name, captures, block })
     }
 }
 
 impl CompositeWorkflow {
     pub fn generate(&self) -> TokenStream2 {
+        let name_upper = self.name.to_string();
+        let name_lower = self.name.to_string().to_snake_case();
+        let name_span = self.name.span();
+
+        let span_name = format!("composite_workflow({})", name_upper);
+        let spawn_span_name = format!("composite_workflow_spawn({})", name_upper);
+        let run_span_name = format!("composite_workflow_run({})", name_upper);
+
         let pass_in_contexts = self.captures.iter().filter_map(|var| {
             if var.move_mode == MoveMode::Both || var.move_mode == MoveMode::In {
                 let ident = &var.ident;
@@ -175,7 +192,8 @@ impl CompositeWorkflow {
             }
         });
 
-        let composite_workflow_ident = Ident::new("composite_workflow", proc_macro2::Span::call_site());
+        let composite_workflow_ident_upper = Ident::new(&name_upper, name_span);
+        let composite_workflow_ident_lower = Ident::new(&name_lower, name_span);
         let block = &self.block;
         let is_fallible = is_fallible(block);
 
@@ -184,13 +202,18 @@ impl CompositeWorkflow {
                 use crate::workflow::composite_workflow_context::{set_context, get_context, ScopedCompositeWorkflowContext};
                 use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
                 use core_engine_macros::define_composite_workflow;
+                use tracing::Instrument;
 
-                define_composite_workflow!(CompositeWorkflow {
+                define_composite_workflow!(#composite_workflow_ident_upper {
                     #(#get_contexts)*
                     #block
                     #(#set_contexts)*
                     Ok(())
                 });
+
+                let root_span = info_span!(#span_name).entered();
+                let spawn_span = info_span!(#spawn_span_name);
+                let run_span = info_span!(#run_span_name);
 
                 let handle = COMPOSITE_WORKFLOW_RUNTIME
                     .lock()
@@ -199,12 +222,13 @@ impl CompositeWorkflow {
                         let scoped_ctx = ScopedCompositeWorkflowContext::default();
                         let (scoped_ctx, result) = scoped_ctx.run_fallible(|ctx: ScopedCompositeWorkflowContext| async {
                             #(#pass_in_contexts)*
-                            let result = #composite_workflow_ident().await;
+                            let result = #composite_workflow_ident_lower().await;
                             #(#return_contexts)*
                             (ctx, result)
-                        }).await;
+                        }.instrument(run_span)
+                        ).await;
                         (scoped_ctx, result)
-                    }));
+                    }.instrument(spawn_span)));
 
                 handle
             }}
@@ -213,12 +237,17 @@ impl CompositeWorkflow {
                 use crate::workflow::composite_workflow_context::{set_context, get_context, ScopedCompositeWorkflowContext};
                 use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
                 use core_engine_macros::define_composite_workflow;
+                use tracing::Instrument;
 
-                define_composite_workflow!(CompositeWorkflow {
+                define_composite_workflow!(#composite_workflow_ident_upper {
                     #(#get_contexts)*
                     #block
                     #(#set_contexts)*
                 });
+
+                let _span = info_span!(#span_name).entered();
+                let spawn_span = info_span!(#spawn_span_name);
+                let run_span = info_span!(#run_span_name);
 
                 let handle = COMPOSITE_WORKFLOW_RUNTIME
                     .lock()
@@ -227,12 +256,13 @@ impl CompositeWorkflow {
                         let scoped_ctx = ScopedCompositeWorkflowContext::default();
                         let scoped_ctx = scoped_ctx.run(|ctx: ScopedCompositeWorkflowContext| async {
                             #(#pass_in_contexts)*
-                            #composite_workflow_ident().await;
+                            #composite_workflow_ident_lower().await;
                             #(#return_contexts)*
                             ctx
-                        }).await;
+                        }.instrument(run_span)
+                        ).await;
                         scoped_ctx
-                    }));
+                    }.instrument(spawn_span)));
 
                 handle
             }}

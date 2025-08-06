@@ -8,6 +8,8 @@ use crate::{
     workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return_now},
 };
 
+// TODO: MAJOR: This silently drops observed chunk loader removals if one is already in-progress composite-woprkflow-wise.
+#[tracing::instrument(skip_all)]
 pub(crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoader>,
     mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>,
@@ -43,6 +45,7 @@ pub(crate) fn observe_on_remove_chunk_loader(
 
     let owner_id = loader.chunk_owner_id().clone();
     let handle = composite_workflow!(
+        RemoveChunkLoader,
         move in owner_id: ChunkOwnerId,
         move in loader_position: Vec2,
         move in loader_radius: u32,

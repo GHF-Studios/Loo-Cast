@@ -19,10 +19,6 @@
 //pub mod singletons;
 //pub mod traits;
 
-
-
-
-
 pub mod constants;
 pub mod functions;
 pub mod statics;
@@ -158,8 +154,9 @@ impl Plugin for SpacetimeEngineCorePlugin {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn startup_system() {
-    let handle = composite_workflow!({
+    let handle = composite_workflow!(Startup, {
         workflow!(Camera::SpawnMainCamera);
 
         let chunk_shader_name = "texture_generators/example_compute_uv";
