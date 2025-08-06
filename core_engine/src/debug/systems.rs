@@ -15,6 +15,7 @@ use iyes_perf_ui::prelude::PerfUiRoot;
 
 use super::components::{DebugObjectComponent, DebugObjectMovement};
 
+#[tracing::instrument(skip_all)]
 pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Commands) {
     use iyes_perf_ui::{
         entries::{PerfUiFramerateEntries, PerfUiSystemEntries},
@@ -32,6 +33,7 @@ pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Comman
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub(super) fn toggle_perf_ui_system(mut query: Query<&mut Visibility, With<PerfUiRoot>>, toolbar_state: Res<ToolbarState>) {
     for mut vis in query.iter_mut() {
         match (*vis, toolbar_state.show_perf_ui) {
@@ -53,6 +55,7 @@ pub(super) fn toggle_perf_ui_system(mut query: Query<&mut Visibility, With<PerfU
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub(super) fn debug_object_movement_system(time: Res<Time>, mut query: Query<(&mut Transform, &DebugObjectComponent)>) {
     for (mut transform, debug_object) in query.iter_mut() {
         match &debug_object.movement {
@@ -71,6 +74,7 @@ pub(super) fn debug_object_movement_system(time: Res<Time>, mut query: Query<(&m
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub(super) fn chunk_inspection_system(
     window_query: Query<&Window, With<PrimaryWindow>>,
     camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
@@ -94,6 +98,7 @@ pub(super) fn chunk_inspection_system(
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub(super) fn chunk_loader_inspection_system(chunk_loader_query: Query<Entity, With<ChunkLoader>>, keys: Res<ButtonInput<KeyCode>>) {
     if keys.just_pressed(KeyCode::KeyL) {
         let mut chunk_loader_entities = vec![];
@@ -106,6 +111,7 @@ pub(super) fn chunk_loader_inspection_system(chunk_loader_query: Query<Entity, W
 }
 
 // TODO: Move into debug/ui/systems.rs or remove if not needed anymore
+#[tracing::instrument(skip_all)]
 pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctx: EguiContexts, toolbar_state: Res<ToolbarState>) {
     const GROUP_SIZE: usize = 50;
 
@@ -161,6 +167,7 @@ pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctx: Eg
 }
 
 // TODO: Move into debug/ui/systems.rs or remove if not needed anymore
+#[tracing::instrument(skip_all)]
 pub fn log_registry_debug_ui(log_registry: Res<LogRegistry>, mut egui_ctx: EguiContexts, toolbar_state: Res<ToolbarState>) {
     if !toolbar_state.show_log_registry_debug_ui {
         return;

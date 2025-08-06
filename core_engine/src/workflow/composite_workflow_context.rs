@@ -68,6 +68,11 @@ pub struct ScopedCompositeWorkflowContext {
     pub id: Uuid,
     pub returns: Arc<Mutex<HashMap<String, AnySendPremiumBox>>>,
 }
+impl std::fmt::Debug for ScopedCompositeWorkflowContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id)
+    }
+}
 
 impl ScopedCompositeWorkflowContext {
     fn new() -> Self {

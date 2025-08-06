@@ -10,6 +10,7 @@ impl Default for ZoomFactor {
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub(crate) fn main_camera_zoom_system(
     mut projection_query: Query<&mut OrthographicProjection, With<Camera>>,
     mut scroll_event_reader: EventReader<MouseWheel>,
