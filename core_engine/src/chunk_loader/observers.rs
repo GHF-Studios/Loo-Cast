@@ -8,7 +8,7 @@ use crate::{
     workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return_now},
 };
 
-// TODO: MAJOR: This silently drops observed chunk loader removals if one is already in-progress composite-woprkflow-wise.
+// TODO: MAJOR: This silently drops observed chunk loader removals if one is already in-progress composite-workflow-wise.
 #[tracing::instrument(skip_all)]
 pub(crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoader>,

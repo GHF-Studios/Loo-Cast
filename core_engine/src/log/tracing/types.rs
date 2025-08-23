@@ -16,7 +16,7 @@ impl<S> Layer<S> for LogTreeTracingLayer
 where
     S: tracing::Subscriber + for<'lookup> LookupSpan<'lookup>,
 {
-    fn on_new_span(&self, _attrs: &Attributes<'_>, id: &Id, ctx: Context<'_, S>) {
+    fn on_new_span(&self, _attrs: &Attributes<'_>, _id: &Id, ctx: Context<'_, S>) {
         //if let Some(span_ref) = ctx.span(id) {
         //    let metadata = span_ref.metadata();
         //    let module_path = metadata.module_path();

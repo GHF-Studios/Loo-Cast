@@ -654,15 +654,6 @@ impl SpanPathSelections {
 
         Some(current)
     }
-    fn get_span_mut(&mut self, path: &SpanPath) -> Option<&mut SpanNodeSelection> {
-        let mut current = self.span_roots.get_mut(&path.spans[0])?;
-
-        for segment in path.spans.get(1..).unwrap_or_default() {
-            current = current.span_children.get_mut(segment)?;
-        }
-
-        Some(current)
-    }
 }
 
 #[derive(Default)]
@@ -764,9 +755,6 @@ impl ModulePathSelections {
     pub fn get_crate_module(&self, path: &ModulePath) -> Option<&CrateModuleNodeSelection> {
         self.crates.get(&path.crate_module)
     }
-    fn get_crate_module_mut(&mut self, path: &ModulePath) -> Option<&mut CrateModuleNodeSelection> {
-        self.crates.get_mut(&path.crate_module)
-    }
 
     pub fn get_module(&self, path: &ModulePath) -> Option<&ModuleNodeSelection> {
         let crate_module = self.crates.get(&path.crate_module)?;
@@ -774,16 +762,6 @@ impl ModulePathSelections {
 
         for segment in path.modules.get(1..).unwrap_or_default() {
             module = module.modules.get(segment)?;
-        }
-
-        Some(module)
-    }
-    fn get_module_mut(&mut self, path: &ModulePath) -> Option<&mut ModuleNodeSelection> {
-        let crate_module = self.crates.get_mut(&path.crate_module)?;
-        let mut module = crate_module.modules.get_mut(&path.modules[0])?;
-
-        for segment in path.modules.get(1..).unwrap_or_default() {
-            module = module.modules.get_mut(segment)?;
         }
 
         Some(module)
@@ -801,22 +779,6 @@ impl ModulePathSelections {
 
         for segment in path.sub_modules.get(1..).unwrap_or_default() {
             sub_module = sub_module.sub_modules.get(segment)?;
-        }
-
-        Some(sub_module)
-    }
-    fn get_sub_module_mut(&mut self, path: &ModulePath) -> Option<&mut SubModuleNodeSelection> {
-        let crate_module = self.crates.get_mut(&path.crate_module)?;
-        let mut module = crate_module.modules.get_mut(&path.modules[0])?;
-
-        for segment in path.modules.get(1..).unwrap_or_default() {
-            module = module.modules.get_mut(segment)?;
-        }
-
-        let mut sub_module = module.sub_modules.get_mut(&path.sub_modules[0])?;
-
-        for segment in path.sub_modules.get(1..).unwrap_or_default() {
-            sub_module = sub_module.sub_modules.get_mut(segment)?;
         }
 
         Some(sub_module)
@@ -912,9 +874,6 @@ impl PhysicalPathSelections {
     pub fn get_crate_folder(&self, path: &PhysicalSelectionPath) -> Option<&CrateFolderNodeSelection> {
         self.crates.get(&path.crate_folder)
     }
-    fn get_crate_folder_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut CrateFolderNodeSelection> {
-        self.crates.get_mut(&path.crate_folder)
-    }
 
     pub fn get_folder(&self, path: &PhysicalSelectionPath) -> Option<&FolderNodeSelection> {
         let crate_folder = self.crates.get(&path.crate_folder)?;
@@ -922,16 +881,6 @@ impl PhysicalPathSelections {
 
         for segment in path.folders.get(1..).unwrap_or_default() {
             folder = folder.folders.get(segment)?;
-        }
-
-        Some(folder)
-    }
-    fn get_folder_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut FolderNodeSelection> {
-        let crate_folder = self.crates.get_mut(&path.crate_folder)?;
-        let mut folder = crate_folder.folders.get_mut(&path.folders[0])?;
-
-        for segment in path.folders.get(1..).unwrap_or_default() {
-            folder = folder.folders.get_mut(segment)?;
         }
 
         Some(folder)
@@ -949,18 +898,6 @@ impl PhysicalPathSelections {
 
         Some(file)
     }
-    fn get_file_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut FileNodeSelection> {
-        let crate_folder = self.crates.get_mut(&path.crate_folder)?;
-        let mut folder = crate_folder.folders.get_mut(&path.folders[0])?;
-
-        for segment in path.folders.get(1..).unwrap_or_default() {
-            folder = folder.folders.get_mut(segment)?;
-        }
-
-        let file = folder.files.get_mut(&path.file.clone()?)?;
-
-        Some(file)
-    }
 
     pub fn get_line(&self, path: &PhysicalSelectionPath) -> Option<&LineNodeSelection> {
         let crate_folder = self.crates.get(&path.crate_folder)?;
@@ -973,20 +910,6 @@ impl PhysicalPathSelections {
         let file = folder.files.get(&path.file.clone()?)?;
 
         let line = file.lines.get(&path.line.clone()?)?;
-
-        Some(line)
-    }
-    fn get_line_mut(&mut self, path: &PhysicalSelectionPath) -> Option<&mut LineNodeSelection> {
-        let crate_folder = self.crates.get_mut(&path.crate_folder)?;
-        let mut folder = crate_folder.folders.get_mut(&path.folders[0])?;
-
-        for segment in path.folders.get(1..).unwrap_or_default() {
-            folder = folder.folders.get_mut(segment)?;
-        }
-
-        let file = folder.files.get_mut(&path.file.clone()?)?;
-
-        let line = file.lines.get_mut(&path.line.clone()?)?;
 
         Some(line)
     }

@@ -181,7 +181,7 @@ define_workflow_mod_OLD! {
 
         LoadChunks {
             user_imports: {
-                use bevy::prelude::{Entity, Res, ResMut, Query, debug, warn};
+                use bevy::prelude::{Entity, Res, ResMut, Query, debug, info};
                 use std::collections::HashSet;
 
                 use crate::chunk::{
@@ -282,7 +282,7 @@ define_workflow_mod_OLD! {
                                         ),
                                     }
                                 } else if !is_owned {
-                                    // TODO: Suspicous as fuck that we propose an OwnershipTransfer when !is_owned clearly constitutes an violated invariant
+                                    // TODO: Suspicous as fuck that we propose an OwnershipTransfer when !is_owned clearly constitutes a violated invariant
                                     ActionIntent::TransferOwnership {
                                         new_owner_id: owner_id,
                                         coord,
@@ -331,7 +331,7 @@ define_workflow_mod_OLD! {
                                         action_intent_buffer.cancel_intent(&coord);
                                     }
                                     ResolvedActionIntent::DiscardIncoming(reason) => {
-                                        warn!("LoadChunks intent was discarded: {:?}", reason);
+                                        info!("LoadChunks intent was discarded: {:?}", reason);
                                         continue;
                                     }
                                     ResolvedActionIntent::Error(error) => {

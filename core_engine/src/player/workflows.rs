@@ -99,7 +99,6 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn SetupEcsWhile |main_access| -> Result<State, Error> {
-                            let mut commands = main_access.commands;
                             let chunk_loader_with_drop_hook_query = main_access.chunk_loader_with_drop_hook_query;
                             let chunk_loader_without_drop_hook_query = main_access.chunk_loader_without_drop_hook_query;
 
