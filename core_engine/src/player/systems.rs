@@ -18,7 +18,7 @@ pub(super) fn update_player_system(
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    let is_player_input_allowed = {
+    let is_player_update_allowed = {
         let condition_1 = if let Some((_, init_hook)) = chunk_loader_init_hook_query.iter().find(|(l, _)| l.chunk_owner_id().id() == "player") {
             init_hook.has_fired()
         } else {
@@ -37,14 +37,14 @@ pub(super) fn update_player_system(
             let _fsm_case_span = info_span!("case: None").entered();
             warn!("case: None");
 
-            if is_player_input_allowed && keys.just_pressed(KeyCode::Space) {
+            if is_player_update_allowed && keys.just_pressed(KeyCode::Space) {
                 let handle = composite_workflow!(SpawnPlayer, move out entity: Entity, {
                     let spawn_player_output = workflow!(OE, Player::SpawnPlayer);
                     let entity = spawn_player_output.player_entity;
                 });
 
                 *player_state_resource = PlayerLifecycle::Spawning(Some(handle));
-                info!("Player entity is being spawned.");
+                warn!("Player entity is being spawned.");
             }
         }
         PlayerLifecycle::Spawning(handle) => {
@@ -54,14 +54,14 @@ pub(super) fn update_player_system(
             if let Some(handle) = handle {
                 if !handle.is_finished() {
                     *player_state_resource = PlayerLifecycle::Spawning(Some(handle));
-                    info!("Player entity is still spawning, waiting for completion.");
+                    warn!("Player entity is still spawning, waiting for completion.");
                     return;
                 }
 
                 handle_composite_workflow_return_now(handle, |ctx| {
                     composite_workflow_return!(entity: Entity);
                     *player_state_resource = PlayerLifecycle::PendingActivation(entity);
-                    info!("Player entity has been spawned: {:?}", entity);
+                    warn!("Player entity has been spawned: {:?}", entity);
                 });
             }
         }
@@ -72,14 +72,14 @@ pub(super) fn update_player_system(
             if let Some(handle) = handle {
                 if !handle.is_finished() {
                     *player_state_resource = PlayerLifecycle::Despawning(Some(handle));
-                    info!("Player entity is still despawning, waiting for completion.");
+                    warn!("Player entity is still despawning, waiting for completion.");
                     return;
                 }
 
                 handle_composite_workflow_return_now(handle, |_ctx| {
                     composite_workflow_return!();
                     *player_state_resource = PlayerLifecycle::None;
-                    info!("Player entity has been despawned.");
+                    warn!("Player entity has been despawned.");
                 });
             }
         }
@@ -89,18 +89,19 @@ pub(super) fn update_player_system(
 
             if transform_query.contains(entity) {
                 *player_state_resource = PlayerLifecycle::Active(entity);
-                info!("Player entity is now active: {:?}", entity);
+                warn!("Player entity is now active: {:?}", entity);
             } else {
                 *player_state_resource = PlayerLifecycle::PendingActivation(entity);
-                info!("Player entity is pending activation, waiting for completion.");
+                warn!("Player entity is pending activation, waiting for completion.");
             }
         }
         PlayerLifecycle::Active(entity) => {
             let _fsm_case_span = info_span!("case: Active").entered();
             warn!("case: Active");
 
-            if !is_player_input_allowed {
-                warn!("Player input is not allowed at this time. The player entity will not be updated.");
+            if !is_player_update_allowed {
+                *player_state_resource = PlayerLifecycle::Active(entity);
+                warn!("Player update is not allowed at this time.");
                 return;
             }
 
@@ -109,11 +110,11 @@ pub(super) fn update_player_system(
                     workflow!(E, Player::DespawnPlayer);
                 });
                 *player_state_resource = PlayerLifecycle::Despawning(Some(handle));
-                info!("Player entity is being despawned.");
+                warn!("Player entity is being despawned.");
                 return;
             }
             let _movement_span = info_span!("movement").entered();
-            warn!("case: movement");
+            warn!("case: Active: movement");
 
             if let Ok(mut transform) = transform_query.get_mut(entity) {
                 let mut direction = Vec3::ZERO;

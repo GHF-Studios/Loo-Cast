@@ -93,7 +93,7 @@ define_workflow_mod_OLD! {
                         }
                         struct State {}
                         enum Error {
-                            PlayerAlreadyMarkedForDespawn,
+                            PlayerChunkLoaderNotMarkedForDespawn,
                             PlayerAlreadyDespawned,
                         }
                     ],
@@ -104,19 +104,15 @@ define_workflow_mod_OLD! {
                             let chunk_loader_without_drop_hook_query = main_access.chunk_loader_without_drop_hook_query;
 
                             match (chunk_loader_with_drop_hook_query.get_single().is_err(), chunk_loader_without_drop_hook_query.get_single().is_err()) {
-                                (true, true) => { unreachable!() },
-                                (true, false) => {},
-                                (false, true) => {
-                                    return Err(Error::PlayerAlreadyMarkedForDespawn);
-                                },
-                                (false, false) => {
+                                (true, true) => {
                                     return Err(Error::PlayerAlreadyDespawned);
-                                }
+                                },
+                                (true, false) => {
+                                    return Err(Error::PlayerChunkLoaderNotMarkedForDespawn);
+                                },
+                                (false, true) => {},
+                                (false, false) => { unreachable!() },
                             }
-
-                            let player_entity = chunk_loader_without_drop_hook_query.single();
-                            commands.entity(player_entity).insert(DropHook::<ChunkLoader>::default());
-                            debug!("Marked player entity for despawning");
 
                             Ok(State {})
                         }
@@ -127,15 +123,17 @@ define_workflow_mod_OLD! {
                             let chunk_loader_without_drop_hook_query = main_access.chunk_loader_without_drop_hook_query;
 
                             match (chunk_loader_with_drop_hook_query.get_single().is_err(), chunk_loader_without_drop_hook_query.get_single().is_err()) {
-                                (true, true) => { unreachable!() },
-                                (true, false) => {},
-                                (false, true) => return Ok(Wait(State {})),
-                                (false, false) => {
+                                (true, true) => {
                                     return Err(Error::PlayerAlreadyDespawned);
-                                }
+                                },
+                                (true, false) => {
+                                    return Err(Error::PlayerChunkLoaderNotMarkedForDespawn);
+                                },
+                                (false, true) => {},
+                                (false, false) => { unreachable!() },
                             }
 
-                            let player_entity = chunk_loader_without_drop_hook_query.single();
+                            let player_entity = chunk_loader_with_drop_hook_query.single();
                             commands.entity(player_entity).despawn_recursive();
                             debug!("Despawned player entity: {:?}", player_entity);
 
