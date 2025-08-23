@@ -20,7 +20,7 @@ pub(crate) fn observe_on_remove_chunk_loader(
         Ok(value) => value,
         Err(_) => {
             unreachable!(
-                "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at trigger-time",
+                "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
                 loader_entity
             );
         }

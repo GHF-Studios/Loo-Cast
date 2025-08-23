@@ -16,7 +16,7 @@ fn permute3(x: vec3<f32>) -> vec3<f32> {
     return mod289_3(((x * 34.) + 1.) * x);
 }
 
-//  MIT License. © Ian McEwan, Stefan Gustavson, Munrocket
+// MIT License. © Ian McEwan, Stefan Gustavson, Munrocket
 fn simplexNoise2(v: vec2<f32>) -> f32 {
     let C = vec4(
         0.211324865405187, // (3.0-sqrt(3.0))/6.0

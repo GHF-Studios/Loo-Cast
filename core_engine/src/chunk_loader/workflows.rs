@@ -330,8 +330,7 @@ define_workflow_mod_OLD! {
                                     ResolvedActionIntent::CancelIntent => {
                                         action_intent_buffer.cancel_intent(&coord);
                                     }
-                                    ResolvedActionIntent::DiscardIncoming(reason) => {
-                                        info!("LoadChunks intent was discarded: {:?}", reason);
+                                    ResolvedActionIntent::DiscardIncoming(_reason) => {
                                         continue;
                                     }
                                     ResolvedActionIntent::Error(error) => {
@@ -340,7 +339,7 @@ define_workflow_mod_OLD! {
                                 }
                             }
 
-                            for affected_owner in affected_owners {
+                            for _affected_owner in affected_owners {
                                 //debug!("Setup LoadChunks for {:?}", affected_owner.id());
                             }
 
@@ -570,7 +569,7 @@ define_workflow_mod_OLD! {
                                 }
                             }
 
-                            for affected_owner in affected_owners {
+                            for _affected_owner in affected_owners {
                                 //debug!("Setup UnloadChunks for {:?}", affected_owner.id());
                             }
 
