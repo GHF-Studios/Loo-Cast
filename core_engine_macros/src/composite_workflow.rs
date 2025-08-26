@@ -1,9 +1,9 @@
+use heck::{ToSnakeCase, ToUpperCamelCase};
 use proc_macro2::{TokenStream as TokenStream2, TokenTree};
 use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::visit::Visit;
 use syn::{Block, ExprMacro, Ident, Token, Type};
-use heck::{ToSnakeCase, ToUpperCamelCase};
 
 struct WorkflowMacroDetector {
     found: bool,

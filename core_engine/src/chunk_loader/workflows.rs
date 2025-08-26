@@ -42,18 +42,18 @@ define_workflow_mod_OLD! {
                             let mut unload_chunk_inputs = Vec::new();
 
                             for (transform, chunk_loader, drop_hook) in chunk_loader_query.iter() {
-                                if drop_hook.is_some() {
-                                    continue;
-                                }
-
                                 let position = transform.translation.truncate();
                                 let radius = chunk_loader.radius;
 
                                 let chunk_owner_id = chunk_loader.chunk_owner_id();
 
-                                let target_chunks = calculate_chunks_in_radius(position, radius)
-                                    .into_iter()
-                                    .collect::<HashSet<(i32, i32)>>();
+                                let target_chunks = if drop_hook.is_some() {
+                                    HashSet::new()
+                                } else {
+                                    calculate_chunks_in_radius(position, radius)
+                                        .into_iter()
+                                        .collect::<HashSet<(i32, i32)>>()
+                                };
 
                                 let current_chunks: HashSet<(i32, i32)> = chunk_manager
                                     .owned_chunks

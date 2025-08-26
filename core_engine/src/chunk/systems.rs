@@ -193,7 +193,7 @@ pub(crate) fn process_chunk_actions_system(
     let despawn_handle = if !despawn_inputs.is_empty() {
         Some(composite_workflow!(
             DespawnChunks,
-            move in despawn_inputs: Vec<DespawnChunkInput>, 
+            move in despawn_inputs: Vec<DespawnChunkInput>,
         {
             let _ = workflow!(IOE, Chunk::DespawnChunks, Input {
                 inputs: despawn_inputs

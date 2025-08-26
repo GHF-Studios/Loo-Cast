@@ -3,7 +3,23 @@ use bevy_egui::{egui, EguiContexts};
 
 use crate::ui::toolbar::resources::ToolbarState;
 
-pub(super) fn show_toolbar_ui(mut egui_ctx: EguiContexts, mut toolbar_state: ResMut<ToolbarState>) {
+pub(super) fn show_toolbar_ui(
+    mut egui_ctx: EguiContexts,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut toolbar_state: ResMut<ToolbarState>,
+) {
+    if keys.just_pressed(KeyCode::F3) {
+        if toolbar_state.enabled {
+            toolbar_state.disable_all();
+        } else {
+            toolbar_state.enable();
+        }
+    }
+
+    if !toolbar_state.enabled {
+        return;
+    }
+
     let ctx = match egui_ctx.try_ctx_mut() {
         Some(ctx) => ctx,
         None => {

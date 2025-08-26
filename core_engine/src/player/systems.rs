@@ -136,7 +136,7 @@ pub(super) fn update_player_system(
                     };
                     transform.translation += direction * movement_speed * sprint_multiplier * time.delta_seconds();
                 }
-                
+
                 *player_state_resource = PlayerLifecycle::Active(entity);
             } else {
                 // Entity not found? Maybe it was deleted outside this system.
