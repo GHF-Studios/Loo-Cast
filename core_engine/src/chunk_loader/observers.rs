@@ -4,19 +4,21 @@ use tokio::task::JoinHandle;
 
 use crate::{
     chunk::types::ChunkOwnerId,
-    chunk_loader::components::ChunkLoader,
+    chunk_loader::{components::ChunkLoader, resources::{RemovedChunkLoader, RemovedChunkLoaders}},
     workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return_now},
 };
 
-// TODO: MAJOR: This silently drops observed chunk loader removals if one is already in-progress composite-workflow-wise.
+// TODO: MAJOR: This silently drops observed chunk loader removals if one is already in-progress composite-workflow-wise, so for now: 
+// Concurrent chunk loader removals are unsound!
 #[tracing::instrument(skip_all)]
 pub(crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoader>,
     mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>,
-    chunk_loader_query: Query<(Entity, &Transform, &ChunkLoader)>,
+    mut removed_chunk_loaders: ResMut<RemovedChunkLoaders>,
+    chunk_loader_query: Query<(&Transform, &ChunkLoader)>,
 ) {
     let loader_entity = trigger.entity();
-    let (_, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
+    let (loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
         Ok(value) => value,
         Err(_) => {
             unreachable!(
@@ -50,7 +52,7 @@ pub(crate) fn observe_on_remove_chunk_loader(
         move in loader_position: Vec2,
         move in loader_radius: u32,
     {
-        debug!("Removing chunk loader: {:?}", owner_id.id());
+        info!("Removing chunk loader: {:?}", owner_id.id());
         let output = workflow!(IO, ChunkLoader::OnRemoveChunkLoader, Input {
             chunk_owner_id: owner_id,
             chunk_loader_position: loader_position,
@@ -61,4 +63,8 @@ pub(crate) fn observe_on_remove_chunk_loader(
         });
     });
     *composite_workflow_handle = Some(handle);
+
+    removed_chunk_loaders.0.push(RemovedChunkLoader {
+        id: loader.chunk_owner_id().clone(),
+    });
 }

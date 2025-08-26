@@ -1,5 +1,4 @@
 use super::types::ChunkOwnerId;
-use bevy::prelude::debug;
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub enum State {
@@ -130,7 +129,7 @@ pub fn resolve_intent(chunk_state: &State, committed: Option<&ActionIntent>, buf
     use ResolvedActionIntent::*;
     use State::*;
 
-    let result = match (chunk_state, committed, buffered, incoming.clone()) {
+    match (chunk_state, committed, buffered, incoming.clone()) {
         (_, None, Some(_), _) => Error(IntentBufferNotFlushed),
         (Absent, Some(TransferOwnership { .. }), _, _) => Error(InvalidIntentCommitted),
 
@@ -265,17 +264,5 @@ pub fn resolve_intent(chunk_state: &State, committed: Option<&ActionIntent>, buf
         ) if buffered_owner == current_owner && incoming_owner == *committed_owner => CancelIntent,
 
         (_, Some(_), Some(_), _) => DiscardIncoming(IntentBufferUnavailable),
-    };
-
-    debug!(
-        target: "intent::resolution",
-        "ResolveIntent =>\n  State: {:?}\n  Committed: {:?}\n  Buffered: {:?}\n  Incoming: {:?}\n  Result: {:?}",
-        chunk_state,
-        committed,
-        buffered,
-        incoming,
-        result
-    );
-
-    result
+    }
 }

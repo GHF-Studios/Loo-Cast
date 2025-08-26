@@ -6,6 +6,7 @@ use crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInpu
 use crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput;
 use crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput;
 use crate::chunk_loader::components::ChunkLoader;
+use crate::chunk_loader::resources::RemovedChunkLoaders;
 use crate::config::statics::CONFIG;
 use crate::utils::InitHook;
 use crate::workflow::functions::handle_composite_workflow_return_now;
@@ -18,7 +19,11 @@ use super::types::ChunkActionWorkflowHandles;
 use super::ActionIntentCommitBuffer;
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
+pub(crate) fn chunk_startup_system(
+    mut commands: Commands, 
+    mut meshes: ResMut<Assets<Mesh>>, 
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
     let quad = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
     let light_material = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
     let dark_material = materials.add(ColorMaterial::from_color(Color::srgb(0.25, 0.25, 0.25)));
@@ -31,13 +36,25 @@ pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<As
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn chunk_update_system(chunk_query: Query<(Entity, &Transform, &Chunk)>) {
-    for (_, transform, chunk) in chunk_query.iter() {
+pub(crate) fn chunk_update_system(
+    mut commands: Commands,
+    chunk_query: Query<(Entity, &Transform, &Chunk)>,
+    removed_chunk_loaders: ResMut<RemovedChunkLoaders>,
+) {
+    for (entity, transform, chunk) in chunk_query.iter() {
         let world_pos = transform.translation.truncate();
         let chunk_pos = world_pos_to_chunk(world_pos);
 
         assert_eq!(chunk.coord, chunk_pos, "Attempted to move chunk entity");
         assert_eq!(chunk_pos_to_world(chunk.coord), world_pos, "Attempted to move chunk entity");
+
+        if let Some(chunk_owner_id) = chunk.owner_id.clone() {
+            if removed_chunk_loaders.0.iter().any(|rcl| rcl.id == chunk_owner_id) {
+                commands.entity(entity).despawn_recursive();
+            }
+        } else {
+            commands.entity(entity).despawn_recursive();
+        }
     }
 }
 
