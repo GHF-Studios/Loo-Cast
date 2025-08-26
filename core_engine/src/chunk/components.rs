@@ -28,7 +28,7 @@ impl Component for Chunk {
                 None => return,
             };
 
-            if world.get_entity(chunk_owner_id.entity()).is_none() {
+            if world.get_entity(chunk_owner_id.entity()).is_err() {
                 error!("Spawned chunk {:?} with non-existent owner_id {:?}", chunk.coord, chunk_owner_id);
             }
         });

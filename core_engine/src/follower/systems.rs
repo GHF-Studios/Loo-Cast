@@ -74,7 +74,7 @@ fn update_follower_position(follower: &mut Follower, follower_transform: &mut Tr
     let interpolation_factor = if follower.smoothness == 0.0 {
         1.0
     } else {
-        1.0 - (-time.delta_seconds() / follower.smoothness).exp()
+        1.0 - (-time.delta_secs() / follower.smoothness).exp()
     };
 
     let target_position_2d = target_position + follower.offset;

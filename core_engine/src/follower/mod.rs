@@ -13,7 +13,7 @@ pub(crate) struct FollowerPlugin;
 impl Plugin for FollowerPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<FollowerTargetLifecycleEvent>()
-            .observe(observe_on_add_follower)
+            .add_observer(observe_on_add_follower)
             .add_systems(Update, update_follower_system);
     }
 }

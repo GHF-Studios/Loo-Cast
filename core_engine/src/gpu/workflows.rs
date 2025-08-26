@@ -147,6 +147,7 @@ define_workflow_mod_OLD! {
                                     stages: ShaderStages::COMPUTE,
                                     range: 0..4,
                                 }],
+                                zero_initialize_workgroup_memory: false
                             });
 
                             Ok(State { shader_name, shader_handle, bind_group_layout, pipeline_id })
@@ -230,7 +231,8 @@ define_workflow_mod_OLD! {
                 };
                 use bevy::ecs::system::SystemState;
                 use bevy::render::render_asset::RenderAssets;
-                use bevy::render::texture::{GpuImage, ImageSampler};
+                use bevy::image::ImageSampler;
+                use bevy::render::texture::GpuImage;
                 use bevy::render::renderer::{RenderDevice, RenderQueue};
                 use bevy::render::render_resource::PipelineCache;
                 use crossbeam_channel::Receiver;

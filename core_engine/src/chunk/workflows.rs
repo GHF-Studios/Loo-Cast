@@ -5,7 +5,7 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnChunks {
             user_imports: {
-                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, Handle, Image, Transform, SpriteBundle};
+                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, Handle, Image, Transform, Sprite};
 
                 use crate::chunk::{components::Chunk, resources::ChunkManager, functions::chunk_pos_to_world, types::ChunkOwnerId};
                 use crate::config::statics::CONFIG;
@@ -68,9 +68,9 @@ define_workflow_mod_OLD! {
                                 };
 
                                 let chunk_entity = commands.spawn((
-                                    SpriteBundle {
-                                        texture: metric_texture,
-                                        transform: chunk_transform,
+                                    chunk_transform,
+                                    Sprite {
+                                        image: metric_texture,
                                         ..Default::default()
                                     },
                                     Chunk {

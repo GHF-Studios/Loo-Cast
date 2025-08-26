@@ -5,7 +5,7 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnDebugObjects {
             user_imports: {
-                use bevy::prelude::{Commands, Entity, SpriteBundle, Sprite, Color, Rect, Transform, Quat, Vec2, Res, ResMut};
+                use bevy::prelude::{Commands, Entity, Sprite, Color, Rect, Transform, Quat, Vec2, Res, ResMut};
 
                 use crate::{
                     chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader,
@@ -27,18 +27,15 @@ define_workflow_mod_OLD! {
                         ChunkActor,
                         chunk_loader,
                         DebugObjectComponent { movement },
-                        SpriteBundle {
-                            sprite: Sprite {
-                                color: Color::srgb(0.0, 0.0, 1.0),
-                                rect: Some(Rect::new(-16.0, -16.0, 16.0, 16.0)),
-                                ..Default::default()
-                            },
-                            transform: Transform {
-                                translation: position.extend(0.0),
-                                rotation: Quat::from_rotation_z(rotation),
-                                scale: scale.extend(1.0),
-                            },
+                        Sprite {
+                            color: Color::srgb(0.0, 0.0, 1.0),
+                            rect: Some(Rect::new(-16.0, -16.0, 16.0, 16.0)),
                             ..Default::default()
+                        },
+                        Transform {
+                            translation: position.extend(0.0),
+                            rotation: Quat::from_rotation_z(rotation),
+                            scale: scale.extend(1.0),
                         },
                     )).id()
                 }

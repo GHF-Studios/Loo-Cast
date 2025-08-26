@@ -51,9 +51,9 @@ pub(crate) fn process_chunk_actions_system(
 
     // Step 1: If workflows are running, wait for all to complete
     if let Some(handles) = &mut *workflow_handles {
-        let spawn_done = handles.spawn.as_ref().map_or(true, |h| h.is_finished());
-        let despawn_done = handles.despawn.as_ref().map_or(true, |h| h.is_finished());
-        let transfer_done = handles.transfer.as_ref().map_or(true, |h| h.is_finished());
+        let spawn_done = handles.spawn.as_ref().is_none_or(|h| h.is_finished());
+        let despawn_done = handles.despawn.as_ref().is_none_or(|h| h.is_finished());
+        let transfer_done = handles.transfer.as_ref().is_none_or(|h| h.is_finished());
 
         if !spawn_done || !despawn_done || !transfer_done {
             return;

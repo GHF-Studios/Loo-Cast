@@ -54,7 +54,7 @@ pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_registry: &mut LogRe
 pub fn render_selection_tree(ui: &mut egui::Ui, log_registry: &mut LogRegistry) {
     let selection_mode = log_registry.selection_mode;
 
-    ScrollArea::vertical().id_source("tree-scroll").show(ui, |ui| {
+    ScrollArea::vertical().id_salt("tree-scroll").show(ui, |ui| {
         ui.label("TOP OF SELECTION TREE");
 
         match selection_mode {
@@ -116,7 +116,7 @@ pub fn render_console(ui: &mut egui::Ui, log_viewer_state: &LogViewerState, log_
     let row_h = ui.text_style_height(&egui::TextStyle::Monospace);
 
     ScrollArea::vertical()
-        .id_source("console-scroll")
+        .id_salt("console-scroll")
         .stick_to_bottom(true)
         .show_rows(ui, row_h, logs.len(), |ui, range| {
             for i in range {

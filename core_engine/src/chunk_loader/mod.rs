@@ -16,9 +16,9 @@ use crate::{
 pub(crate) struct ChunkLoaderPlugin;
 impl Plugin for ChunkLoaderPlugin {
     fn build(&self, app: &mut App) {
-        app.observe(observe_on_remove_chunk_loader)
-            .observe(observe_on_remove_init_hook::<ChunkLoader>)
-            .observe(observe_on_remove_drop_hook::<ChunkLoader>)
+        app.add_observer(observe_on_remove_chunk_loader)
+            .add_observer(observe_on_remove_init_hook::<ChunkLoader>)
+            .add_observer(observe_on_remove_drop_hook::<ChunkLoader>)
             .add_systems(PreUpdate, cleanup_drop_hooks_system::<ChunkLoader>)
             .add_systems(Update, update_chunk_loader_system)
             .add_systems(PostUpdate, cleanup_init_hooks_system::<ChunkLoader>);

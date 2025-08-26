@@ -23,13 +23,13 @@ pub(crate) fn main_camera_zoom_system(
 
     for event in scroll_event_reader.read() {
         let scroll_delta = match event.unit {
-            MouseScrollUnit::Line => event.y * -1.0,
+            MouseScrollUnit::Line => -event.y,
             MouseScrollUnit::Pixel => event.y * -0.01,
         };
 
         let zoom_speed = base_zoom_speed * zoom_factor.0;
 
-        zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_seconds()).clamp(min_zoom, max_zoom);
+        zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_secs()).clamp(min_zoom, max_zoom);
     }
 
     for mut projection in projection_query.iter_mut() {

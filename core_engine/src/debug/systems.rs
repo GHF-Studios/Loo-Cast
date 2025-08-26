@@ -61,12 +61,12 @@ pub(super) fn debug_object_movement_system(time: Res<Time>, mut query: Query<(&m
         match &debug_object.movement {
             DebugObjectMovement::Static => {}
             DebugObjectMovement::Circle { radius, speed } => {
-                let time_factor = time.elapsed_seconds() * speed;
+                let time_factor = time.elapsed_secs() * speed;
                 transform.translation.x = radius * time_factor.cos();
                 transform.translation.y = radius * time_factor.sin();
             }
             DebugObjectMovement::Line { distance, speed } => {
-                let time_factor = time.elapsed_seconds() * speed;
+                let time_factor = time.elapsed_secs() * speed;
                 let offset = time_factor.sin() * distance;
                 transform.translation.x = offset;
             }
@@ -87,8 +87,8 @@ pub(super) fn chunk_inspection_system(
 
         if let Some(world_position) = window
             .cursor_position()
-            .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor))
-            .map(|ray| ray.origin.truncate())
+            .map(|cursor| camera.viewport_to_world(camera_transform, cursor))
+            .map(|ray| ray.unwrap().origin.truncate())
         {
             let chunk_coord = world_pos_to_chunk(world_position);
             if let Some(chunk) = chunk_query.iter().find(|chunk| chunk.coord == chunk_coord) {

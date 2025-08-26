@@ -6,7 +6,7 @@ use syn::{parse2, ExprPath, ExprStruct, Ident, Result};
 #[derive(Debug, Clone)]
 pub enum WorkflowSegment {
     Plain(TokenStream),
-    Invocation(WorkflowInvocation),
+    Invocation(Box<WorkflowInvocation>),
 }
 
 pub fn extract_workflow_segments(input: TokenStream) -> Vec<WorkflowSegment> {
@@ -131,7 +131,7 @@ fn try_finalize_invocation(segments: &mut Vec<WorkflowSegment>, plain_buffer: &m
             *plain_buffer = TokenStream::new();
         }
 
-        segments.push(WorkflowSegment::Invocation(invocation));
+        segments.push(WorkflowSegment::Invocation(Box::new(invocation)));
         invocation_parts.clear();
     }
 }

@@ -134,7 +134,7 @@ pub(super) fn update_player_system(
                     } else {
                         1.0
                     };
-                    transform.translation += direction * movement_speed * sprint_multiplier * time.delta_seconds();
+                    transform.translation += direction * movement_speed * sprint_multiplier * time.delta_secs();
                 }
 
                 *player_state_resource = PlayerLifecycle::Active(entity);

@@ -5,7 +5,7 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnMainCamera {
             user_imports: {
-                use bevy::prelude::{Commands, Res, ResMut, Camera2dBundle, Vec2};
+                use bevy::prelude::{Commands, Res, ResMut, Camera2d, Vec2};
 
                 use crate::camera::components::MainCamera;
                 use crate::config::statics::CONFIG;
@@ -30,7 +30,7 @@ define_workflow_mod_OLD! {
                             let mut commands = main_access.commands;
 
                             let camera_entity = commands.spawn((
-                                Camera2dBundle::default(),
+                                Camera2d,
                                 MainCamera,
                                 Follower::new(
                                     "main_camera".to_string(),

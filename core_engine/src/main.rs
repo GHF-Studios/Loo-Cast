@@ -52,7 +52,6 @@ fn configure_bevy_default_plugins() -> PluginGroupBuilder {
     DefaultPlugins
         .build()
         .disable::<LogPlugin>()
-        .set(TerminalCtrlCHandlerPlugin)
         .set(WindowPlugin {
             primary_window: Some(Window {
                 present_mode: PresentMode::AutoNoVsync,
