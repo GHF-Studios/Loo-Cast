@@ -397,7 +397,7 @@ define_workflow_mod_OLD! {
 
                 use crate::chunk::{
                     components::Chunk,
-                    intent::{ActionIntent, ActionPriority, resolve_intent, ResolvedActionIntent, State as ChunkState},
+                    intent::{ActionIntent, ActionPriority, resolve_intent, ResolvedActionIntent, ResolutionWarning, State as ChunkState},
                     resources::{ChunkManager, ActionIntentBuffer, ActionIntentCommitBuffer},
                     functions::world_pos_to_chunk,
                     types::ChunkOwnerId,
@@ -490,39 +490,44 @@ define_workflow_mod_OLD! {
                                     unreachable!("Unreachable state: Chunk is absent")
                                 };
 
-                                let chunk = match chunk_query.iter().find(|chunk| chunk.coord == coord) {
-                                    Some(c) => c,
-                                    None => unreachable!("Unreachable state: Chunk is absent"),
+                                let (transfer_candidate, is_chunk_existing) = match chunk_query.iter().find(|chunk| chunk.coord == coord) {
+                                    Some(chunk) => {
+                                        let tc = chunk_loader_query
+                                            .iter()
+                                            .find_map(|(transform, loader)| {
+                                                if loader.chunk_owner_id() == chunk.owner_id() {
+                                                    None
+                                                } else if is_chunk_in_loader_range(&coord, transform.translation.truncate(), loader.radius) {
+                                                    Some(loader.chunk_owner_id())
+                                                } else {
+                                                    None
+                                                }
+                                            });
+
+                                        (tc, true)
+                                    },
+                                    None => (None, false),
                                 };
 
-                                let transfer_candidate = chunk_loader_query
-                                    .iter()
-                                    .find_map(|(transform, loader)| {
-                                        if loader.chunk_owner_id() == chunk.owner_id() {
-                                            return None;
-                                        }
-
-                                        if is_chunk_in_loader_range(&coord, transform.translation.truncate(), loader.radius) {
-                                            Some(loader.chunk_owner_id())
-                                        } else {
-                                            None
-                                        }
-                                    });
-
-                                let proposed_intent = match transfer_candidate {
-                                    Some(new_owner_id) => ActionIntent::TransferOwnership {
-                                        new_owner_id: new_owner_id.clone(),
-                                        coord,
-                                        priority: ActionPriority::Realtime,
-                                    },
-                                    None => ActionIntent::Despawn {
+                                let proposed_intent = match (transfer_candidate, is_chunk_existing) {
+                                    (None, false) => None,
+                                    (None, true) => Some(ActionIntent::Despawn {
                                         owner_id,
                                         coord,
                                         priority: calculate_despawn_priority(distance_squared, radius_squared),
-                                    },
+                                    }),
+                                    (Some(_), false) => None,
+                                    (Some(new_owner_id), true) => Some(ActionIntent::TransferOwnership {
+                                        new_owner_id: new_owner_id.clone(),
+                                        coord,
+                                        priority: ActionPriority::Realtime,
+                                    }),
                                 };
 
-                                let resolution = resolve_intent(&chunk_state, committed, buffered, proposed_intent.clone());
+                                let resolution = match proposed_intent {
+                                    Some(proposed_intent) => resolve_intent(&chunk_state, committed, buffered, proposed_intent.clone()),
+                                    None => ResolvedActionIntent::DiscardIncoming(ResolutionWarning::RedundantIntent),
+                                };
 
                                 match resolution {
                                     ResolvedActionIntent::PushCommit(action) => match action.clone() {
@@ -560,7 +565,7 @@ define_workflow_mod_OLD! {
                                         action_intent_buffer.cancel_intent(&coord);
                                     }
                                     ResolvedActionIntent::DiscardIncoming(reason) => {
-                                        warn!("UnloadChunks intent was discarded: {:?}", reason);
+                                        debug!("UnloadChunks intent was discarded: {:?}", reason);
                                         continue;
                                     }
                                     ResolvedActionIntent::Error(error) => {

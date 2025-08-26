@@ -1,6 +1,6 @@
 use bevy::{ecs::component::StorageType, prelude::*};
 
-use crate::chunk_loader::resources::{RemovedChunkLoader, RemovedChunkLoaders};
+use crate::chunk_loader::resources::RemovedChunkLoaders;
 
 use super::types::ChunkOwnerId;
 
