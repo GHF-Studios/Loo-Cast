@@ -1,3 +1,4 @@
+use bevy::prelude::Reflect;
 use futures::future::BoxFuture;
 use tokio::task::JoinHandle;
 
@@ -7,7 +8,8 @@ use super::{
     statics::TOKIO_RUNTIME,
 };
 
-pub struct CompositeWorkflowRuntime(tokio::runtime::Handle);
+#[derive(Reflect)]
+pub struct CompositeWorkflowRuntime(#[reflect(ignore, default = "tokio_runtime_handle")] tokio::runtime::Handle);
 impl CompositeWorkflowRuntime {
     pub fn new() -> Self {
         Self::default()
@@ -41,14 +43,17 @@ impl CompositeWorkflowRuntime {
         })
     }
 }
-
 impl Default for CompositeWorkflowRuntime {
     fn default() -> Self {
         Self(TOKIO_RUNTIME.lock().unwrap().handle().clone())
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+fn tokio_runtime_handle() -> tokio::runtime::Handle {
+    TOKIO_RUNTIME.lock().unwrap().handle().clone()
+}
+
+#[derive(Debug, Clone, Copy, Reflect)]
 pub enum WorkflowState {
     Requested,
     Processing {
@@ -88,21 +93,26 @@ impl WorkflowState {
     }
 }
 
+#[derive(Reflect)]
 pub struct WorkflowTypeModule {
     pub name: &'static str,
     pub workflow_types: Vec<WorkflowType>,
 }
 
+#[derive(Reflect)]
 pub struct WorkflowType {
     pub name: &'static str,
+    #[reflect(ignore)]
     pub stages: Vec<Stage>,
 }
 
+#[derive(Reflect)]
 pub enum Outcome<S, O> {
     Wait(S),
     Done(O),
 }
 
+#[derive(Reflect)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct WorkflowID {
     pub module: &'static str,

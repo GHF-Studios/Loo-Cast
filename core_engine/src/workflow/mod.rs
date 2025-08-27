@@ -1,6 +1,5 @@
 pub mod channels;
 pub mod composite_workflow_context;
-pub mod errors;
 pub mod events;
 pub mod functions;
 pub mod resources;
@@ -20,9 +19,15 @@ use bevy::{
 };
 use bevy_consumable_event::ConsumableEventApp;
 use channels::*;
+use composite_workflow_context::*;
 use events::*;
+use instance::*;
+use request::*;
 use resources::*;
+use response::*;
+use stage::*;
 use systems::*;
+use types::*;
 
 #[macro_export]
 macro_rules! workflow_stage_util {
@@ -51,12 +56,6 @@ macro_rules! workflow_stage_core_functions_util {
         use super::super::super::user_items::*;
         use super::core_types::*;
     };
-}
-
-// TODO: Implement
-#[macro_export]
-macro_rules! workflow_stage_core_function_util {
-    () => {};
 }
 
 #[macro_export]
@@ -171,7 +170,50 @@ impl Plugin for WorkflowPlugin {
                     workflow_completion_handling_system,
                     workflow_failure_handling_system,
                 ),
-            );
+            )
+            .register_type::<ContextKey>()
+            .register_type::<CompositeWorkflowContext>()
+            .register_type::<ScopedCompositeWorkflowContext>()
+            .register_type::<StageInitializationEvent>()
+            .register_type::<WorkflowCallback>()
+            .register_type::<WorkflowInstance>()
+            .register_type::<TypedWorkflowInstance>()
+            .register_type::<TypedWorkflowInstanceE>()
+            .register_type::<TypedWorkflowInstanceO>()
+            .register_type::<TypedWorkflowInstanceOE>()
+            .register_type::<TypedWorkflowInstanceI>()
+            .register_type::<TypedWorkflowInstanceIE>()
+            .register_type::<TypedWorkflowInstanceIO>()
+            .register_type::<TypedWorkflowInstanceIOE>()
+            .register_type::<TypedWorkflowRequest>()
+            .register_type::<TypedWorkflowRequestE>()
+            .register_type::<TypedWorkflowRequestO>()
+            .register_type::<TypedWorkflowRequestOE>()
+            .register_type::<TypedWorkflowRequestI>()
+            .register_type::<TypedWorkflowRequestIE>()
+            .register_type::<TypedWorkflowRequestIO>()
+            .register_type::<TypedWorkflowRequestIOE>()
+            .register_type::<WorkflowTypeModuleRegistry>()
+            .register_type::<WorkflowRequestBuffer>()
+            .register_type::<RenderWhileWorkflowStateExtract>()
+            .register_type::<EcsStageBuffer>()
+            .register_type::<EcsWhileStageBuffer>()
+            .register_type::<RenderStageBuffer>()
+            .register_type::<RenderWhileStageBuffer>()
+            .register_type::<AsyncStageBuffer>()
+            .register_type::<WorkflowMap>()
+            .register_type::<WorkflowResponse>()
+            .register_type::<TypedWorkflowResponse>()
+            .register_type::<TypedWorkflowResponseE>()
+            .register_type::<TypedWorkflowResponseO>()
+            .register_type::<TypedWorkflowResponseOE>()
+            .register_type::<StageSignature>()
+            .register_type::<StageType>()
+            .register_type::<CompositeWorkflowRuntime>()
+            .register_type::<WorkflowState>()
+            .register_type::<WorkflowTypeModule>()
+            .register_type::<WorkflowType>()
+            .register_type::<WorkflowID>();
 
         let render_app = app.sub_app_mut(RenderApp);
         render_app

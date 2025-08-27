@@ -2,12 +2,14 @@ use bevy::prelude::*;
 use crossbeam_channel::Receiver;
 use std::collections::HashMap;
 
-use crate::debug::types::AnySendSyncPremiumBox;
+use crate::utils::premium_box::AnySendSyncPremiumBox;
 
 use super::{events::*, instance::*, stage::*, types::*};
 
-#[derive(Resource, Default)]
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
 pub struct WorkflowTypeModuleRegistry {
+    #[reflect(ignore)]
     pub(super) registry: HashMap<&'static str, HashMap<&'static str, WorkflowType>>,
 }
 
@@ -53,14 +55,16 @@ impl WorkflowTypeModuleRegistry {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
 pub struct WorkflowRequestBuffer {
     pub requests: Vec<WorkflowInstance>,
 }
 
 // --- RenderWhile Workflow State Extraction Resources ---
 // TODO: Split across dedicated *extract_shard types
-#[derive(Resource, Default, Debug)]
+#[derive(Resource, Reflect, Default, Debug)]
+#[reflect(Resource)]
 pub struct RenderWhileWorkflowStateExtract(
     // TODO: MINOR: Remove current_stage_type
     pub Vec<(&'static str, &'static str, StageType, bool, bool)>,
@@ -118,17 +122,23 @@ impl RenderWhileWorkflowStateExtract {
     }
 }
 
+// TODO: Create dedicated *BufferEntry types instead of improv tuple shenanigans
 // --- Stage Buffers ---
-#[derive(Resource, Default)]
-pub(super) struct EcsStageBuffer(pub Vec<(&'static str, &'static str, usize, StageEcs, Option<AnySendSyncPremiumBox>)>);
-#[derive(Resource, Default)]
-pub(super) struct EcsWhileStageBuffer(pub Vec<(&'static str, &'static str, usize, StageEcsWhile, Option<AnySendSyncPremiumBox>)>);
-#[derive(Resource, Default)]
-pub(super) struct RenderStageBuffer(pub Vec<(&'static str, &'static str, usize, StageRender, Option<AnySendSyncPremiumBox>)>);
-#[derive(Resource, Default)]
-pub(super) struct RenderWhileStageBuffer(pub Vec<(&'static str, &'static str, usize, StageRenderWhile, Option<AnySendSyncPremiumBox>)>);
-#[derive(Resource, Default)]
-pub(super) struct AsyncStageBuffer(pub Vec<(&'static str, &'static str, usize, StageAsync, Option<AnySendSyncPremiumBox>)>);
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
+pub(super) struct EcsStageBuffer(#[reflect(ignore)] pub Vec<(&'static str, &'static str, usize, StageEcs, Option<AnySendSyncPremiumBox>)>);
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
+pub(super) struct EcsWhileStageBuffer(#[reflect(ignore)] pub Vec<(&'static str, &'static str, usize, StageEcsWhile, Option<AnySendSyncPremiumBox>)>);
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
+pub(super) struct RenderStageBuffer(#[reflect(ignore)] pub Vec<(&'static str, &'static str, usize, StageRender, Option<AnySendSyncPremiumBox>)>);
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
+pub(super) struct RenderWhileStageBuffer(#[reflect(ignore)] pub Vec<(&'static str, &'static str, usize, StageRenderWhile, Option<AnySendSyncPremiumBox>)>);
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
+pub(super) struct AsyncStageBuffer(#[reflect(ignore)] pub Vec<(&'static str, &'static str, usize, StageAsync, Option<AnySendSyncPremiumBox>)>);
 
 // --- Stage Event Receivers ---
 #[derive(Resource)]
@@ -140,7 +150,8 @@ pub(super) struct StageCompletionEventReceiver(pub Receiver<StageCompletionEvent
 #[derive(Resource)]
 pub(super) struct StageFailureEventReceiver(pub Receiver<StageFailureEvent>);
 
-#[derive(Resource, Default, Debug)]
+#[derive(Resource, Reflect, Default, Debug)]
+#[reflect(Resource)]
 pub struct WorkflowMap {
     pub map: HashMap<&'static str, HashMap<&'static str, WorkflowInstance>>,
 }

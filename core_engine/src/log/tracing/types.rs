@@ -1,3 +1,4 @@
+use bevy::prelude::Reflect;
 use tracing::{span::Attributes, span::Id, Event};
 use tracing_subscriber::{
     layer::{Context, Layer},
@@ -11,6 +12,7 @@ use crate::log::{
 
 use super::functions::extract_log_identity;
 
+#[derive(Reflect)]
 pub struct LogTreeTracingLayer;
 impl<S> Layer<S> for LogTreeTracingLayer
 where

@@ -13,7 +13,8 @@ use bevy_egui::{
 };
 use iyes_perf_ui::prelude::PerfUiRoot;
 
-use super::components::{DebugObjectComponent, DebugObjectMovement};
+use super::components::DebugObjectComponent;
+use super::types::DebugObjectMovement;
 
 #[tracing::instrument(skip_all)]
 pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Commands) {

@@ -1,8 +1,8 @@
 use super::components::Player;
-use crate::{chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader, utils::InitHook};
+use crate::{chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader, utils::components::InitHook};
 use bevy::prelude::*;
 
-#[derive(Bundle)]
+#[derive(Bundle, Reflect)]
 pub struct PlayerBundle {
     chunk_actor: ChunkActor,
     chunk_loader: ChunkLoader,
@@ -10,6 +10,7 @@ pub struct PlayerBundle {
     player: Player,
     sprite: Sprite,
     transform: Transform,
+    name: Name,
 }
 impl PlayerBundle {
     pub fn chunk_loader(&self) -> &ChunkLoader {
@@ -20,7 +21,7 @@ impl Default for PlayerBundle {
     fn default() -> Self {
         PlayerBundle {
             chunk_actor: Default::default(),
-            chunk_loader: ChunkLoader::new("player".to_string()),
+            chunk_loader: ChunkLoader::new("player_entity_chunk_loader".to_string()),
             chunk_loader_init_hook: InitHook::<ChunkLoader>::default(),
             player: Default::default(),
             sprite: Sprite {
@@ -32,6 +33,7 @@ impl Default for PlayerBundle {
                 translation: Vec3::new(0.0, 0.0, 0.0),
                 ..Default::default()
             },
+            name: Name::new("player_entity")
         }
     }
 }

@@ -1,6 +1,8 @@
+use bevy::prelude::Reflect;
+
 use super::types::ChunkOwnerId;
 
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Reflect)]
 pub enum State {
     #[default]
     Absent,
@@ -15,7 +17,7 @@ impl State {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Reflect)]
 pub enum ActionIntent {
     Spawn {
         owner_id: ChunkOwnerId,
@@ -69,7 +71,7 @@ impl ActionIntent {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub enum ActionPriority {
     Deferred(i64),
     Realtime,
@@ -95,14 +97,14 @@ impl Default for ActionPriority {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Reflect)]
 pub enum ResolutionError {
     IntentBufferNotFlushed,
     InvalidIntentCommitted,
     CurrentOwnerNotFoundInQuery,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Reflect)]
 pub enum ResolutionWarning {
     RedundantIntent,
     IntentWithoutOwnership,
@@ -113,7 +115,7 @@ pub enum ResolutionWarning {
     OwnershipTransferItentOfDespawningChunk,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Reflect)]
 pub enum ResolvedActionIntent {
     PushCommit(ActionIntent),
     PushBuffer(ActionIntent),

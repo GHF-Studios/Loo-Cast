@@ -1,3 +1,4 @@
+use bevy::prelude::Reflect;
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use std::any::TypeId;
@@ -5,17 +6,17 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
-use crate::debug::types::AnySendPremiumBox;
+use crate::utils::premium_box::AnySendSyncPremiumBox;
 
-#[derive(Hash, Eq, PartialEq)]
-struct ContextKey {
+#[derive(Hash, Eq, PartialEq, Reflect)]
+pub(super) struct ContextKey {
     type_id: TypeId,
     name: &'static str,
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct CompositeWorkflowContext {
-    map: HashMap<ContextKey, AnySendPremiumBox>,
+    map: HashMap<ContextKey, AnySendSyncPremiumBox>,
 }
 
 static CONTEXTS: Lazy<DashMap<Uuid, Arc<Mutex<CompositeWorkflowContext>>>> = Lazy::new(DashMap::new);
@@ -24,7 +25,7 @@ tokio::task_local! {
     pub static CURRENT_COMPOSITE_WORKFLOW_ID: Uuid;
 }
 
-pub fn set_context<T: 'static + Send>(name: &'static str, val: T) {
+pub fn set_context<T: 'static + Send + Sync>(name: &'static str, val: T) {
     let id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
     let ctx = CONTEXTS
         .get(&id)
@@ -37,11 +38,11 @@ pub fn set_context<T: 'static + Send>(name: &'static str, val: T) {
             type_id: TypeId::of::<T>(),
             name,
         },
-        AnySendPremiumBox::new(Some(val), std::any::type_name::<T>().to_string()),
+        AnySendSyncPremiumBox::new(Some(val), std::any::type_name::<T>().to_string()),
     );
 }
 
-pub fn get_context<T: 'static + Send>(name: &'static str) -> T {
+pub fn get_context<T: 'static + Send + Sync>(name: &'static str) -> T {
     let id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
     let ctx = CONTEXTS
         .get(&id)
@@ -64,9 +65,11 @@ pub fn clear_all_context(id: Uuid) {
     CONTEXTS.remove(&id);
 }
 
+#[derive(Reflect)]
 pub struct ScopedCompositeWorkflowContext {
     pub id: Uuid,
-    pub returns: Arc<Mutex<HashMap<String, AnySendPremiumBox>>>,
+    #[reflect(ignore)]
+    pub returns: Arc<Mutex<HashMap<String, AnySendSyncPremiumBox>>>,
 }
 impl std::fmt::Debug for ScopedCompositeWorkflowContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -100,12 +103,12 @@ impl ScopedCompositeWorkflowContext {
         CURRENT_COMPOSITE_WORKFLOW_ID.scope(id, async { f(self).await }).await
     }
 
-    pub fn store_return<T: 'static + Send>(&self, name: &'static str, value: T) {
+    pub fn store_return<T: 'static + Send + Sync>(&self, name: &'static str, value: T) {
         let mut guard = self.returns.lock().unwrap();
-        guard.insert(name.to_string(), AnySendPremiumBox::new(value, std::any::type_name::<T>().to_string()));
+        guard.insert(name.to_string(), AnySendSyncPremiumBox::new(value, std::any::type_name::<T>().to_string()));
     }
 
-    pub fn extract_return<T: 'static + Send>(&self, name: &str) -> Option<T> {
+    pub fn extract_return<T: 'static + Send + Sync>(&self, name: &str) -> Option<T> {
         let mut guard = self.returns.lock().unwrap();
         guard.remove(name).map(|b| b.into_inner::<T>())
     }

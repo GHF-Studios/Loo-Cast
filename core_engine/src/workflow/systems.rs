@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy::render::MainWorld;
 use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 
-use crate::{config::statics::CONFIG, debug::types::AnySendSyncPremiumBox, workflow::response::*};
+use crate::{config::statics::CONFIG, utils::premium_box::AnySendSyncPremiumBox, workflow::response::*};
 
 use super::{channels::*, events::*, instance::*, resources::*, stage::Stage, types::*};
 

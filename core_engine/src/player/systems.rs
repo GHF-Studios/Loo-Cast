@@ -4,8 +4,8 @@ use core_engine_macros::{composite_workflow, composite_workflow_return};
 use crate::{
     chunk_loader::components::ChunkLoader,
     config::statics::CONFIG,
-    player::types::PlayerLifecycle,
-    utils::{DropHook, InitHook},
+    player::resources::PlayerLifecycle,
+    utils::components::{DropHook, InitHook},
     workflow::functions::handle_composite_workflow_return_now,
 };
 

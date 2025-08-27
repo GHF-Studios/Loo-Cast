@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
-#[derive(Resource, Default)]
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
 pub struct ToolbarState {
     pub enabled: bool,
     pub show_perf_ui: bool,

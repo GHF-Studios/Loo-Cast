@@ -1,7 +1,8 @@
+use bevy::prelude::Reflect;
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
 pub enum ConfigValue {
     Integer(i64),
     Float(f64),

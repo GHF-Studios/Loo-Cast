@@ -1,4 +1,5 @@
 use bevy::prelude::*;
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 pub struct MainCamera;

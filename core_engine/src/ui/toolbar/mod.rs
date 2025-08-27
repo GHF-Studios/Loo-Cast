@@ -9,6 +9,9 @@ use systems::show_toolbar_ui;
 pub(crate) struct ToolbarPlugin;
 impl Plugin for ToolbarPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ToolbarState::default()).add_systems(Update, show_toolbar_ui);
+        app
+            .insert_resource(ToolbarState::default())
+            .add_systems(Update, show_toolbar_ui)
+            .register_type::<ToolbarState>();
     }
 }

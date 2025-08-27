@@ -1,19 +1,29 @@
+use bevy::prelude::Reflect;
+
 use crate::config::statics::CONFIG;
-use crate::debug::types::AnySendSyncPremiumBox;
+use crate::utils::premium_box::AnySendSyncPremiumBox;
 use crate::workflow::types::*;
 
-pub enum WorkflowCallback {
-    None(Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
-    E(Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
-    O(Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
-    OE(Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
-    I(Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
-    IE(Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
-    IO(Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
-    IOE(Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
+fn placeholder_data_buffer() -> AnySendSyncPremiumBox {
+    AnySendSyncPremiumBox::new((), "PLACEHOLDER".to_string())
+}
+fn placeholder_callback() -> Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync> {
+    Box::new(|_| {})
 }
 
-#[derive(Debug)]
+#[derive(Reflect)]
+pub enum WorkflowCallback {
+    None(#[reflect(ignore, default = "placeholder_callback")] Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
+    E(#[reflect(ignore, default = "placeholder_callback")] Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
+    O(#[reflect(ignore, default = "placeholder_callback")] Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
+    OE(#[reflect(ignore, default = "placeholder_callback")] Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
+    I(#[reflect(ignore, default = "placeholder_callback")] Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
+    IE(#[reflect(ignore, default = "placeholder_callback")] Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
+    IO(#[reflect(ignore, default = "placeholder_callback")] Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
+    IOE(#[reflect(ignore, default = "placeholder_callback")] Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>),
+}
+
+#[derive(Debug, Reflect)]
 pub enum WorkflowInstance {
     None(TypedWorkflowInstance),
     E(TypedWorkflowInstanceE),
@@ -342,72 +352,95 @@ impl WorkflowInstance {
     }
 }
 
+
+#[derive(Reflect)]
 pub struct TypedWorkflowInstance {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
+    #[reflect(ignore, default = "placeholder_callback")]
     pub callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
+#[derive(Reflect)]
 pub struct TypedWorkflowInstanceE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
+    #[reflect(ignore, default = "placeholder_callback")]
     pub callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
+#[derive(Reflect)]
 pub struct TypedWorkflowInstanceO {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
+    #[reflect(ignore, default = "placeholder_data_buffer")]
     pub data_buffer: AnySendSyncPremiumBox,
+    #[reflect(ignore, default = "placeholder_callback")]
     pub callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
+#[derive(Reflect)]
 pub struct TypedWorkflowInstanceOE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
+    #[reflect(ignore, default = "placeholder_data_buffer")]
     pub data_buffer: AnySendSyncPremiumBox,
+    #[reflect(ignore, default = "placeholder_callback")]
     pub callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
+#[derive(Reflect)]
 pub struct TypedWorkflowInstanceI {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
+    #[reflect(ignore, default = "placeholder_data_buffer")]
     pub data_buffer: AnySendSyncPremiumBox,
+    #[reflect(ignore, default = "placeholder_callback")]
     pub callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
+#[derive(Reflect)]
 pub struct TypedWorkflowInstanceIE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
+    #[reflect(ignore, default = "placeholder_data_buffer")]
     pub data_buffer: AnySendSyncPremiumBox,
+    #[reflect(ignore, default = "placeholder_callback")]
     pub callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
+#[derive(Reflect)]
 pub struct TypedWorkflowInstanceIO {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
+    #[reflect(ignore, default = "placeholder_data_buffer")]
     pub data_buffer: AnySendSyncPremiumBox,
+    #[reflect(ignore, default = "placeholder_callback")]
     pub callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,
 }
+#[derive(Reflect)]
 pub struct TypedWorkflowInstanceIOE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub state: WorkflowState,
+    #[reflect(ignore, default = "placeholder_data_buffer")]
     pub data_buffer: AnySendSyncPremiumBox,
+    #[reflect(ignore, default = "placeholder_callback")]
     pub callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     pub num_stages: usize,
     pub timeout_frames: usize,

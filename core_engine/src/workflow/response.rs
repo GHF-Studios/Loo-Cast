@@ -1,6 +1,9 @@
-use crate::debug::types::AnySendSyncPremiumBox;
+use bevy::prelude::*;
 use std::any::Any;
 
+use crate::utils::premium_box::AnySendSyncPremiumBox;
+
+#[derive(Debug, Reflect)]
 pub enum WorkflowResponse {
     None(TypedWorkflowResponse),
     E(TypedWorkflowResponseE),
@@ -8,20 +11,24 @@ pub enum WorkflowResponse {
     OE(TypedWorkflowResponseOE),
 }
 
+#[derive(Debug, Reflect)]
 pub struct TypedWorkflowResponse {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
 }
+#[derive(Debug, Reflect)]
 pub struct TypedWorkflowResponseE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub result: Result<(), AnySendSyncPremiumBox>,
 }
+#[derive(Debug, Reflect)]
 pub struct TypedWorkflowResponseO {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub output: AnySendSyncPremiumBox,
 }
+#[derive(Debug, Reflect)]
 pub struct TypedWorkflowResponseOE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,

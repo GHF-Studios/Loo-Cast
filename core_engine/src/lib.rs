@@ -26,21 +26,17 @@ pub mod types;
 
 // Modules
 pub mod camera;
-//pub mod camera_2d_bundle;
 pub mod chunk;
 pub mod chunk_actor;
 pub mod chunk_loader;
 pub mod config;
-//pub mod core;
 pub mod debug;
 pub mod entity;
 pub mod follower;
 pub mod gpu;
 pub mod log;
-//pub mod math;
 pub mod player;
 pub mod ui;
-//pub mod sprite_bundle;
 pub mod utils;
 pub mod workflow;
 
@@ -49,20 +45,18 @@ use bevy::{app::PluginGroupBuilder, prelude::*};
 use camera::CameraPlugin;
 use core_engine_macros::{composite_workflow, composite_workflow_return, register_workflow_mods};
 use workflow::WorkflowPlugin;
-//use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;
-//use chunk_actor::ChunkActorPlugin;
+use chunk_actor::ChunkActorPlugin;
 use chunk_loader::ChunkLoaderPlugin;
-//use core::CorePlugin;
+use config::ConfigPlugin;
 use debug::DebugPlugin;
 use entity::EntityPlugin;
 use follower::FollowerPlugin;
 use gpu::GpuPlugin;
 use log::LogPlugin;
-//use math::MathPlugin;
 use player::PlayerPlugin;
 use ui::UiPlugin;
-//use sprite_bundle::SpriteBundlePlugin;
+use utils::UtilsPlugin;
 
 pub struct SpacetimeEngineCorePlugins;
 impl PluginGroup for SpacetimeEngineCorePlugins {
@@ -71,20 +65,18 @@ impl PluginGroup for SpacetimeEngineCorePlugins {
             .add(SpacetimeEngineCorePlugin)
             .add(WorkflowPlugin)
             .add(CameraPlugin)
-            //.add(Camera2dBundlePlugin)
             .add(ChunkPlugin)
-            //.add(ChunkActorPlugin)
+            .add(ChunkActorPlugin)
             .add(ChunkLoaderPlugin)
-            //.add(CorePlugin)
+            .add(ConfigPlugin)
             .add(DebugPlugin)
             .add(FollowerPlugin)
             .add(GpuPlugin)
             .add(LogPlugin)
             .add(EntityPlugin)
-            //.add(MathPlugin)
             .add(PlayerPlugin)
             .add(UiPlugin)
-        //.add(SpriteBundlePlugin)
+            .add(UtilsPlugin)
     }
 }
 

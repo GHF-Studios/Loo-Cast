@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use bevy::prelude::Reflect;
+
+#[derive(Debug, Reflect)]
 pub enum SpawnError {
     AlreadySpawned { chunk_coord: (i32, i32) },
     NotSpawning { chunk_coord: (i32, i32) },
@@ -25,7 +27,7 @@ impl std::fmt::Display for SpawnError {
 }
 impl std::error::Error for SpawnError {}
 
-#[derive(Debug)]
+#[derive(Debug, Reflect)]
 pub enum DespawnError {
     AlreadyDespawned { chunk_coord: (i32, i32) },
     AlreadyBeingSpawned { chunk_coord: (i32, i32) },
@@ -52,7 +54,7 @@ impl std::fmt::Display for DespawnError {
 }
 impl std::error::Error for DespawnError {}
 
-#[derive(Debug)]
+#[derive(Debug, Reflect)]
 pub enum TransferOwnershipError {
     AlreadyDespawned { chunk_coord: (i32, i32) },
     AlreadyTransferedOwnership { chunk_coord: (i32, i32) },

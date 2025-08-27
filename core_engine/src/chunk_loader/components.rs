@@ -8,7 +8,8 @@ lazy_static! {
     static ref OWNER_ID_REGISTRY: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 pub struct ChunkLoader {
     pub radius: u32,
     chunk_owner_id: ChunkOwnerId,

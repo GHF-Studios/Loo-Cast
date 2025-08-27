@@ -4,7 +4,8 @@ use bevy::prelude::*;
 
 use crate::log::{types::*, ui::types::SelectionMode};
 
-#[derive(Resource, Default)]
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
 pub struct LogRegistry {
     pub logs: HashMap<LogId, LogEntry>,
     pub span_registry: SpanRegistry,

@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use crate::debug::types::AnySendSyncPremiumBox;
+use crate::utils::premium_box::AnySendSyncPremiumBox;
 use crate::workflow::composite_workflow_context::{ScopedCompositeWorkflowContext, CURRENT_COMPOSITE_WORKFLOW_ID};
 use crate::workflow::response::WorkflowResponse;
 use crate::workflow::types::WorkflowID;

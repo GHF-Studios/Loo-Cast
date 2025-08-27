@@ -1,3 +1,4 @@
+use bevy::prelude::Reflect;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::fs;
@@ -5,9 +6,10 @@ use std::sync::RwLock;
 
 use super::enums::ConfigValue;
 
-#[derive(Debug)]
+#[derive(Debug, Reflect)]
 pub struct Config {
     pub data: HashMap<String, ConfigValue>,
+    #[reflect(ignore)]
     cache: RwLock<HashMap<String, HashMap<TypeId, Box<dyn Any + Send + Sync>>>>,
 }
 

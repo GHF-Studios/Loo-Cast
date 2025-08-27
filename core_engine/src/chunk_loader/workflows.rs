@@ -17,7 +17,7 @@ define_workflow_mod_OLD! {
                 use crate::chunk::intent::ActionIntent;
                 use crate::chunk::functions::{world_pos_to_chunk, calculate_chunks_in_radius, calculate_chunk_distance_from_owner};
                 use crate::chunk::resources::ActionIntentCommitBuffer;
-                use crate::utils::DropHook;
+                use crate::utils::components::DropHook;
             },
             user_items: {},
             stages: [
@@ -170,7 +170,7 @@ define_workflow_mod_OLD! {
                                 });
                             }
 
-                            info!("Ran OnRemoveChunkLoader for {:?} with # of unload targets: {}", chunk_owner_id.id(), unload_chunk_inputs.len());
+                            warn!("Ran OnRemoveChunkLoader for {:?} with # of unload targets: {}", chunk_owner_id.id(), unload_chunk_inputs.len());
 
                             Output { unload_chunk_inputs }
                         }
@@ -181,7 +181,7 @@ define_workflow_mod_OLD! {
 
         LoadChunks {
             user_imports: {
-                use bevy::prelude::{Entity, Res, ResMut, Query, debug, info};
+                use bevy::prelude::{Entity, Res, ResMut, Query, debug, warn};
                 use std::collections::HashSet;
 
                 use crate::chunk::{
@@ -192,7 +192,7 @@ define_workflow_mod_OLD! {
                 };
                 use crate::chunk_loader::components::ChunkLoader;
                 use crate::config::statics::CONFIG;
-                use crate::utils::InitHook;
+                use crate::utils::components::InitHook;
             },
             user_items: {
                 pub struct LoadChunkInput {
@@ -340,7 +340,7 @@ define_workflow_mod_OLD! {
                             }
 
                             for affected_owner in affected_owners {
-                                info!("Setup LoadChunks for {:?}", affected_owner.id());
+                                warn!("Setup LoadChunks for {:?}", affected_owner.id());
                             }
 
                             State {
@@ -374,7 +374,7 @@ define_workflow_mod_OLD! {
                             if is_done {
                                 let loaded_chunks_count = spawn_chunk_states.len() + transfer_chunk_ownership_states.len();
                                 if loaded_chunks_count != 0 {
-                                    info!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
+                                    warn!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
                                 }
 
                                 Outcome::Done(())

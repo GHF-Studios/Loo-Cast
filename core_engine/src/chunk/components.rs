@@ -4,7 +4,8 @@ use crate::chunk_loader::resources::RemovedChunkLoaders;
 
 use super::types::ChunkOwnerId;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Reflect)]
+#[reflect(Component)]
 pub struct Chunk {
     pub coord: (i32, i32),
     pub(crate) owner_id: Option<ChunkOwnerId>,

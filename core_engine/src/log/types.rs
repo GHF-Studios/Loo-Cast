@@ -1,7 +1,10 @@
+use bevy::prelude::Reflect;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::LazyLock;
 use tracing::{Level as TracingLevel, Metadata};
+use tracing::metadata::Kind;
 
 use crate::log::resources::LogRegistry;
 use crate::log::statics::LOG_ID_COUNTER;
@@ -9,7 +12,7 @@ use crate::ui::custom_egui_widgets::tri_checkbox::TriState;
 
 // === Basics ===
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Reflect)]
 pub enum LogLevel {
     Trace,
     Debug,
@@ -40,16 +43,36 @@ impl From<LogLevel> for TracingLevel {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Reflect)]
 pub struct LogEntry {
     pub ts: u64,
     pub lvl: LogLevel,
     pub msg: Arc<str>,
+    #[reflect(ignore, default = "placeholder_metadata")]
     pub metadata: &'static Metadata<'static>,
 }
 
+static PLACEHOLDER_METADATA: LazyLock<tracing::Metadata> = LazyLock::new(|| {
+    tracing::metadata!(
+        name: "PLACEHOLDER",
+        target: "PLACEHOLDER",
+        level: tracing::Level::INFO,
+        fields: &[],
+        callsite: tracing::callsite!(
+            name: "PLACEHOLDER",
+            kind: Kind::SPAN,
+            fields: &[],
+        ),
+        kind: Kind::SPAN,
+    )
+});
+
+fn placeholder_metadata() -> &'static Metadata<'static> {
+    &PLACEHOLDER_METADATA
+}
+
 #[repr(transparent)]
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
 pub struct LogId(pub u64);
 impl LogId {
     pub fn new() -> Self {
@@ -64,7 +87,7 @@ impl std::fmt::Display for LogId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub enum LogPath {
     Span(SpanPath),
     Module(ModulePath),
@@ -80,7 +103,7 @@ impl std::fmt::Display for LogPath {
     }
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub enum ExplicitSelectionState {
     #[default]
     Selected,
@@ -107,7 +130,7 @@ impl ExplicitSelectionState {
     }
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub enum EffectiveSelectionState {
     #[default]
     Selected,
@@ -124,14 +147,14 @@ impl From<EffectiveSelectionState> for TriState {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct NodeMetadata {
     pub explicit_selection_state: ExplicitSelectionState,
 }
 
 // === Path Types ===
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct SpanPath {
     pub spans: Vec<SpanSegment>,
 }
@@ -141,7 +164,7 @@ impl std::fmt::Display for SpanPath {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct ModulePath {
     pub crate_module: CrateModuleSegment,
     pub modules: Vec<ModuleSegment>,
@@ -177,7 +200,7 @@ impl std::fmt::Display for ModulePath {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct PhysicalStoragePath {
     pub crate_folder: CrateFolderSegment,
     pub folders: Vec<FolderSegment>,
@@ -201,7 +224,7 @@ impl std::fmt::Display for PhysicalStoragePath {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct PhysicalSelectionPath {
     pub crate_folder: CrateFolderSegment,
     pub folders: Vec<FolderSegment>,
@@ -251,7 +274,7 @@ impl std::fmt::Display for PhysicalSelectionPath {
 
 // --- Span ---
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct SpanSegment {
     pub name: String,
 }
@@ -263,7 +286,7 @@ impl Default for SpanSegment {
 
 // --- Module ---
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct CrateModuleSegment {
     pub name: String,
 }
@@ -273,7 +296,7 @@ impl Default for CrateModuleSegment {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct ModuleSegment {
     pub name: String,
 }
@@ -283,7 +306,7 @@ impl Default for ModuleSegment {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct SubModuleSegment {
     pub name: String,
 }
@@ -295,7 +318,7 @@ impl Default for SubModuleSegment {
 
 // --- Physical ---
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct CrateFolderSegment {
     pub name: String,
 }
@@ -305,7 +328,7 @@ impl Default for CrateFolderSegment {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct FolderSegment {
     pub name: String,
 }
@@ -315,7 +338,7 @@ impl Default for FolderSegment {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct FileSegment {
     pub name: String,
 }
@@ -325,14 +348,14 @@ impl Default for FileSegment {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct LineSegment {
     pub number: u32,
 }
 
 // === Registry Types ===
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct SpanRegistry {
     pub span_roots: HashMap<SpanSegment, SpanNode>,
 }
@@ -374,7 +397,7 @@ impl SpanRegistry {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct ModuleRegistry {
     pub crates: HashMap<CrateModuleSegment, CrateModuleNode>,
 }
@@ -468,7 +491,7 @@ impl ModuleRegistry {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct PhysicalRegistry {
     pub crates: HashMap<CrateFolderSegment, CrateFolderNode>,
 }
@@ -550,60 +573,70 @@ impl PhysicalRegistry {
 
 // --- Span ---
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct SpanNode {
+    #[reflect(ignore)]
     pub span_children: HashMap<SpanSegment, SpanNode>,
     pub logs: Vec<LogId>,
 }
 
 // --- Module ---
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct CrateModuleNode {
+    #[reflect(ignore)]
     pub modules: HashMap<ModuleSegment, ModuleNode>,
     pub logs: Vec<LogId>,
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct ModuleNode {
+    #[reflect(ignore)]
     pub modules: HashMap<ModuleSegment, ModuleNode>,
+    #[reflect(ignore)]
     pub sub_modules: HashMap<SubModuleSegment, SubModuleNode>,
     pub logs: Vec<LogId>,
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct SubModuleNode {
+    #[reflect(ignore)]
     pub sub_modules: HashMap<SubModuleSegment, SubModuleNode>,
     pub logs: Vec<LogId>,
 }
 
 // --- Physical ---
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct CrateFolderNode {
+    #[reflect(ignore)]
     pub folders: HashMap<FolderSegment, FolderNode>,
+    #[reflect(ignore)]
     pub files: HashMap<FileSegment, FileNode>,
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct FolderNode {
+    #[reflect(ignore)]
     pub folders: HashMap<FolderSegment, FolderNode>,
+    #[reflect(ignore)]
     pub files: HashMap<FileSegment, FileNode>,
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct FileNode {
+    #[reflect(ignore)]
     pub lines: HashMap<LineSegment, LineNode>,
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct LineNode {
     pub logs: Vec<LogId>,
 }
 
 // === PathSelections Types ===
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct SpanPathSelections {
     pub span_roots: HashMap<SpanSegment, SpanNodeSelection>,
 }
@@ -656,7 +689,7 @@ impl SpanPathSelections {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct ModulePathSelections {
     pub crates: HashMap<CrateModuleSegment, CrateModuleNodeSelection>,
 }
@@ -785,7 +818,7 @@ impl ModulePathSelections {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct PhysicalPathSelections {
     pub crates: HashMap<CrateFolderSegment, CrateFolderNodeSelection>,
 }
@@ -919,9 +952,10 @@ impl PhysicalPathSelections {
 
 // --- Span ---
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct SpanNodeSelection {
     pub metadata: NodeMetadata,
+    #[reflect(ignore)]
     pub span_children: HashMap<SpanSegment, SpanNodeSelection>,
 }
 impl SpanNodeSelection {
@@ -978,10 +1012,12 @@ impl SpanNodeSelection {
 
 // --- Module ---
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct CrateModuleNodeSelection {
     pub metadata: NodeMetadata,
+    #[reflect(ignore)]
     pub modules: HashMap<ModuleSegment, ModuleNodeSelection>,
+    #[reflect(ignore)]
     pub sub_modules: HashMap<SubModuleSegment, SubModuleNodeSelection>,
 }
 impl CrateModuleNodeSelection {
@@ -1036,10 +1072,12 @@ impl CrateModuleNodeSelection {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct ModuleNodeSelection {
     pub metadata: NodeMetadata,
+    #[reflect(ignore)]
     pub modules: HashMap<ModuleSegment, ModuleNodeSelection>,
+    #[reflect(ignore)]
     pub sub_modules: HashMap<SubModuleSegment, SubModuleNodeSelection>,
 }
 impl ModuleNodeSelection {
@@ -1116,9 +1154,10 @@ impl ModuleNodeSelection {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct SubModuleNodeSelection {
     pub metadata: NodeMetadata,
+    #[reflect(ignore)]
     pub sub_modules: HashMap<SubModuleSegment, SubModuleNodeSelection>,
 }
 impl SubModuleNodeSelection {
@@ -1175,10 +1214,12 @@ impl SubModuleNodeSelection {
 
 // --- Physical ---
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct CrateFolderNodeSelection {
     pub metadata: NodeMetadata,
+    #[reflect(ignore)]
     pub folders: HashMap<FolderSegment, FolderNodeSelection>,
+    #[reflect(ignore)]
     pub files: HashMap<FileSegment, FileNodeSelection>,
 }
 impl CrateFolderNodeSelection {
@@ -1255,10 +1296,12 @@ impl CrateFolderNodeSelection {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct FolderNodeSelection {
     pub metadata: NodeMetadata,
+    #[reflect(ignore)]
     pub folders: HashMap<FolderSegment, FolderNodeSelection>,
+    #[reflect(ignore)]
     pub files: HashMap<FileSegment, FileNodeSelection>,
 }
 impl FolderNodeSelection {
@@ -1335,9 +1378,10 @@ impl FolderNodeSelection {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct FileNodeSelection {
     pub metadata: NodeMetadata,
+    #[reflect(ignore)]
     pub lines: HashMap<LineSegment, LineNodeSelection>,
 }
 impl FileNodeSelection {
@@ -1388,7 +1432,7 @@ impl FileNodeSelection {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct LineNodeSelection {
     pub metadata: NodeMetadata,
 }

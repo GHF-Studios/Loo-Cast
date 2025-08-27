@@ -5,22 +5,23 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnDebugObjects {
             user_imports: {
-                use bevy::prelude::{Commands, Entity, Sprite, Color, Rect, Transform, Quat, Vec2, Res, ResMut};
+                use bevy::prelude::{Commands, Entity, Sprite, Color, Rect, Transform, Quat, Vec2, Res, ResMut, Name};
 
                 use crate::{
                     chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader,
                 };
-                use crate::debug::components::{DebugObjectComponent, DebugObjectMovement};
+                use crate::debug::{components::DebugObjectComponent, types::DebugObjectMovement};
             },
             user_items: {
                 pub fn spawn_debug_object(
                     commands: &mut Commands,
-                    chunk_loader_id: String,
+                    name: String,
                     position: Vec2,
                     rotation: f32,
                     scale: Vec2,
                     movement: DebugObjectMovement,
                 ) -> Entity {
+                    let chunk_loader_id = format!("{}_chunk_loader", name);
                     let chunk_loader = ChunkLoader::new(chunk_loader_id);
 
                     commands.entity(chunk_loader.chunk_owner_id().entity()).insert((
@@ -37,6 +38,7 @@ define_workflow_mod_OLD! {
                             rotation: Quat::from_rotation_z(rotation),
                             scale: scale.extend(1.0),
                         },
+                        Name::new(name)
                     )).id()
                 }
             },
@@ -58,7 +60,7 @@ define_workflow_mod_OLD! {
 
                             let circle_entity = spawn_debug_object(
                                 &mut commands,
-                                "circle_entity_chunk_loader".to_string(),
+                                "circle_entity".to_string(),
                                 Vec2::new(350.0, 350.0),
                                 0.0,
                                 Vec2::ONE,
@@ -70,7 +72,7 @@ define_workflow_mod_OLD! {
 
                             let line_entity = spawn_debug_object(
                                 &mut commands,
-                                "line_entity_chunk_loader".to_string(),
+                                "line_entity".to_string(),
                                 Vec2::new(-300.0, -400.0),
                                 0.0,
                                 Vec2::ONE,
@@ -82,7 +84,7 @@ define_workflow_mod_OLD! {
 
                             let static_entity = spawn_debug_object(
                                 &mut commands,
-                                "static_entity_chunk_loader".to_string(),
+                                "static_entity".to_string(),
                                 Vec2::new(-350.0, 400.0),
                                 0.0,
                                 Vec2::ONE,

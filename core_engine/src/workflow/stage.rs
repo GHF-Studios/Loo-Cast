@@ -1,8 +1,9 @@
+use bevy::prelude::Reflect;
 use crossbeam_channel::Sender;
 
 use super::events::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
 pub enum StageSignature {
     None,
     E,
@@ -25,7 +26,7 @@ impl StageSignature {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
 pub enum StageType {
     Ecs,
     Render,
@@ -52,7 +53,6 @@ pub enum Stage {
     EcsWhile(StageEcsWhile),
     RenderWhile(StageRenderWhile),
 }
-
 impl Stage {
     pub fn get_type(&self) -> StageType {
         match self {
@@ -123,7 +123,7 @@ pub struct StageEcs {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<crate::debug::types::AnySendSyncPremiumBox>,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
                 Sender<StageCompletionEvent>,
                 Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageEcs) + Send + Sync>
@@ -142,7 +142,7 @@ pub struct StageRender {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<crate::debug::types::AnySendSyncPremiumBox>,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
                 Sender<StageCompletionEvent>,
                 Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageRender) + Send + Sync>
@@ -161,7 +161,7 @@ pub struct StageAsync {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<crate::debug::types::AnySendSyncPremiumBox>,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
                 Sender<StageCompletionEvent>,
                 Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageAsync) + Send + Sync>
@@ -180,7 +180,7 @@ pub struct StageEcsWhile {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<crate::debug::types::AnySendSyncPremiumBox>,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
                 Sender<StageSetupEvent>,
                 Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageEcsWhile) + Send + Sync>
@@ -191,7 +191,7 @@ pub struct StageEcsWhile {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<crate::debug::types::AnySendSyncPremiumBox>,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
                 Sender<StageWaitEvent>,
                 Sender<StageCompletionEvent>,
                 Option<Sender<StageFailureEvent>>,
@@ -213,7 +213,7 @@ pub struct StageRenderWhile {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<crate::debug::types::AnySendSyncPremiumBox>,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
                 Sender<StageSetupEvent>,
                 Option<Sender<StageFailureEvent>>,
             ) -> Box<dyn FnOnce(StageRenderWhile) + Send + Sync>
@@ -224,7 +224,7 @@ pub struct StageRenderWhile {
         dyn FnMut(
                 &'static str,
                 &'static str,
-                Option<crate::debug::types::AnySendSyncPremiumBox>,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
                 Sender<StageWaitEvent>,
                 Sender<StageCompletionEvent>,
                 Option<Sender<StageFailureEvent>>,

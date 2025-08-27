@@ -5,7 +5,7 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnMainCamera {
             user_imports: {
-                use bevy::prelude::{Commands, Res, ResMut, Camera2d, Vec2};
+                use bevy::prelude::{Commands, Res, ResMut, Camera2d, Vec2, Name};
 
                 use crate::camera::components::MainCamera;
                 use crate::config::statics::CONFIG;
@@ -29,6 +29,8 @@ define_workflow_mod_OLD! {
                         fn SetupEcsWhile |main_access| -> State {
                             let mut commands = main_access.commands;
 
+                            let camera_name = Name::new("main_camera_entity");
+
                             let camera_entity = commands.spawn((
                                 Camera2d,
                                 MainCamera,
@@ -37,6 +39,7 @@ define_workflow_mod_OLD! {
                                     Vec2::ZERO,
                                     CONFIG.get::<f32>("camera/follow_smoothness"),
                                 ),
+                                camera_name
                             )).id();
 
                             State {

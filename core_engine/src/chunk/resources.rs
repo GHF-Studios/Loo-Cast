@@ -5,7 +5,8 @@ use crate::chunk::types::ChunkOwnerId;
 
 use super::intent::{ActionIntent, ActionPriority};
 
-#[derive(Resource, Default)]
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
 pub struct ActionIntentCommitBuffer {
     pub action_intent: HashMap<(i32, i32), ActionIntent>,
     pub priority_buckets: BTreeMap<ActionPriority, HashSet<(i32, i32)>>,
@@ -56,7 +57,8 @@ impl ActionIntentCommitBuffer {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
 pub struct ActionIntentBuffer {
     pub action_intents: HashMap<(i32, i32), ActionIntent>,
     pub priority_buckets: BTreeMap<ActionPriority, HashSet<(i32, i32)>>,
@@ -88,7 +90,8 @@ impl ActionIntentBuffer {
     }
 }
 
-#[derive(Resource, Default, Debug)]
+#[derive(Resource, Reflect, Default, Debug)]
+#[reflect(Resource)]
 pub struct ChunkManager {
     pub loaded_chunks: HashSet<(i32, i32)>,
     pub owned_chunks: HashMap<(i32, i32), ChunkOwnerId>,
@@ -107,7 +110,8 @@ impl ChunkManager {
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
 pub struct ChunkRenderHandles {
     pub quad: Handle<Mesh>,
     pub light_material: Handle<ColorMaterial>,

@@ -2,7 +2,8 @@ use bevy::prelude::*;
 
 use crate::log::types::LogLevel;
 
-#[derive(Resource)]
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
 pub struct LogViewerState {
     pub split_ratio: f32,
     pub threshold: LogLevel,

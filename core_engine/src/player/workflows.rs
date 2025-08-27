@@ -79,7 +79,7 @@ define_workflow_mod_OLD! {
                     player::bundles::PlayerBundle,
                     player::components::Player,
                     follower::components::FollowerTarget,
-                    utils::DropHook,
+                    utils::components::DropHook,
                 };
             },
             user_items: {},

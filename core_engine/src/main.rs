@@ -6,6 +6,7 @@ use bevy::log::{error, info, info_span, LogPlugin};
 use bevy::prelude::*;
 use bevy::window::PresentMode;
 use bevy_egui::EguiPlugin;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
 use core_engine::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
 use core_engine::log::tracing::types::LogTreeTracingLayer;
@@ -64,6 +65,7 @@ fn configure_bevy_default_plugins() -> PluginGroupBuilder {
         .add(EntityCountDiagnosticsPlugin)
         .add(SystemInformationDiagnosticsPlugin)
         .add(EguiPlugin)
+        .add(WorldInspectorPlugin::new())
 }
 
 fn configure_app(bevy_plugins: PluginGroupBuilder) -> App {

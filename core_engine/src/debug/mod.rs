@@ -5,7 +5,9 @@ pub mod types;
 pub mod workflows;
 
 use bevy::prelude::*;
+use components::DebugObjectComponent;
 use systems::*;
+use types::DebugObjectMovement;
 
 pub(crate) struct DebugPlugin;
 impl Plugin for DebugPlugin {
@@ -20,6 +22,8 @@ impl Plugin for DebugPlugin {
                 chunk_manager_debug_ui,
                 log_registry_debug_ui,
             ),
-        );
+        )
+        .register_type::<DebugObjectComponent>()
+        .register_type::<DebugObjectMovement>();
     }
 }

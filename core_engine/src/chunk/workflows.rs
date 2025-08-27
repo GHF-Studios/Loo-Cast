@@ -5,7 +5,7 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnChunks {
             user_imports: {
-                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, Handle, Image, Transform, Sprite};
+                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, Handle, Image, Transform, Sprite, Name};
 
                 use crate::chunk::{components::Chunk, resources::ChunkManager, functions::chunk_pos_to_world, types::ChunkOwnerId};
                 use crate::config::statics::CONFIG;
@@ -67,6 +67,8 @@ define_workflow_mod_OLD! {
                                     ..Default::default()
                                 };
 
+                                let chunk_name = Name::new(format!("chunk_entity({}, {})", chunk_coord.0, chunk_coord.1));
+
                                 let chunk_entity = commands.spawn((
                                     chunk_transform,
                                     Sprite {
@@ -77,6 +79,7 @@ define_workflow_mod_OLD! {
                                         coord: chunk_coord,
                                         owner_id: Some(chunk_owner_id.clone()),
                                     },
+                                    chunk_name
                                 )).id();
 
                                 chunk_manager.loaded_chunks.insert(chunk_coord);

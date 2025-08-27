@@ -1,4 +1,5 @@
 pub mod functions;
+pub mod statics;
 pub mod systems;
 
 use bevy::prelude::*;

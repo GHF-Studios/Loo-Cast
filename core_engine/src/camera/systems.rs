@@ -3,12 +3,7 @@ use bevy::{input::mouse::MouseWheel, prelude::*};
 
 use crate::config::statics::CONFIG;
 
-pub(crate) struct ZoomFactor(pub f32);
-impl Default for ZoomFactor {
-    fn default() -> Self {
-        Self(CONFIG.get::<f32>("camera/default_zoom"))
-    }
-}
+use super::types::ZoomFactor;
 
 #[tracing::instrument(skip_all)]
 pub(crate) fn main_camera_zoom_system(

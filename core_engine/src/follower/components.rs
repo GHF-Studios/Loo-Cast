@@ -2,7 +2,8 @@ use bevy::{ecs::component::StorageType, prelude::*};
 
 use super::hooks::{hook_on_add_follower_target, hook_on_remove_follower_target};
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 pub struct Follower {
     pub follow_id: String,
     pub offset: Vec2,
@@ -28,6 +29,8 @@ impl Follower {
     }
 }
 
+#[derive(Reflect)]
+#[reflect(Component)]
 pub struct FollowerTarget {
     pub id: String,
 }

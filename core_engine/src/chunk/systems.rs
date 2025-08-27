@@ -8,7 +8,7 @@ use crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::Trans
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::resources::RemovedChunkLoaders;
 use crate::config::statics::CONFIG;
-use crate::utils::InitHook;
+use crate::utils::components::InitHook;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
 use super::components::Chunk;
@@ -25,7 +25,7 @@ pub(crate) fn chunk_startup_system(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let quad = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
-    let light_material = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
+    let light_material: Handle<ColorMaterial> = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
     let dark_material = materials.add(ColorMaterial::from_color(Color::srgb(0.25, 0.25, 0.25)));
 
     commands.insert_resource(ChunkRenderHandles {
