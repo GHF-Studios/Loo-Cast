@@ -6,6 +6,6 @@ use bevy::prelude::*;
 
 pub(crate) struct UtilsPlugin;
 impl Plugin for UtilsPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(&self, _app: &mut App) {
     }
 }

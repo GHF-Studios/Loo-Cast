@@ -10,6 +10,7 @@ pub struct StageInitializationEvent {
     pub stage_input: Option<AnySendSyncPremiumBox>,
 }
 
+#[allow(clippy::missing_transmute_annotations)]
 fn placeholder_stage() -> Stage {
     Stage::Ecs(StageEcs {
         index: 0,
