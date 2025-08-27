@@ -16,6 +16,8 @@ use resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, Chun
 use systems::{chunk_startup_system, chunk_update_system, process_chunk_actions_system};
 use types::{ChunkActionWorkflowHandles, ChunkOwnerId};
 
+use crate::game::run_conditions::run_if_game_running;
+
 pub(crate) struct ChunkPlugin;
 impl Plugin for ChunkPlugin {
     fn build(&self, app: &mut App) {
@@ -23,8 +25,8 @@ impl Plugin for ChunkPlugin {
             .insert_resource(ActionIntentCommitBuffer::default())
             .insert_resource(ChunkManager::default())
             .add_systems(Startup, chunk_startup_system)
-            .add_systems(Update, chunk_update_system)
-            .add_systems(PostUpdate, process_chunk_actions_system)
+            .add_systems(Update, chunk_update_system.run_if(run_if_game_running))
+            .add_systems(PostUpdate, process_chunk_actions_system.run_if(run_if_game_running))
             .register_type::<Chunk>()
             .register_type::<SpawnError>()
             .register_type::<DespawnError>()

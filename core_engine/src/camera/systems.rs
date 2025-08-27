@@ -2,6 +2,7 @@ use bevy::input::mouse::MouseScrollUnit;
 use bevy::{input::mouse::MouseWheel, prelude::*};
 
 use crate::config::statics::CONFIG;
+use crate::game::resources::GameTime;
 
 use super::types::ZoomFactor;
 
@@ -9,7 +10,7 @@ use super::types::ZoomFactor;
 pub(crate) fn main_camera_zoom_system(
     mut projection_query: Query<&mut OrthographicProjection, With<Camera>>,
     mut scroll_event_reader: EventReader<MouseWheel>,
-    time: Res<Time>,
+    time: Res<GameTime>,
     mut zoom_factor: Local<ZoomFactor>,
 ) {
     let min_zoom = CONFIG.get::<f32>("camera/min_zoom");

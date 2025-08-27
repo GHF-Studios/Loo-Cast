@@ -1,13 +1,15 @@
 use bevy::prelude::*;
 use std::collections::HashMap;
 
+use crate::game::resources::GameTime;
+
 use super::components::{Follower, FollowerTarget};
 use super::events::FollowerTargetLifecycleEvent;
 
 pub(crate) fn update_follower_system(
     mut follower_target_lifecycle_event_reader: EventReader<FollowerTargetLifecycleEvent>,
     mut param_set: ParamSet<(Query<(Entity, &mut Transform, &mut Follower)>, Query<(&FollowerTarget, &Transform)>)>,
-    time: Res<Time>,
+    time: Res<GameTime>,
 ) {
     process_lifecycle_events(&mut follower_target_lifecycle_event_reader, &mut param_set.p0());
     let targets = collect_target_positions(&mut param_set.p1());
@@ -57,7 +59,7 @@ fn collect_target_positions(targets_query: &mut Query<(&FollowerTarget, &Transfo
         .collect()
 }
 
-fn update_followers(followers_query: &mut Query<(Entity, &mut Transform, &mut Follower)>, targets: &HashMap<String, Vec3>, time: &Res<Time>) {
+fn update_followers(followers_query: &mut Query<(Entity, &mut Transform, &mut Follower)>, targets: &HashMap<String, Vec3>, time: &Res<GameTime>) {
     for (_, mut follower_transform, mut follower) in followers_query.iter_mut() {
         if let Some(target_position) = follower.get_followed_entity().and_then(|_| targets.get(&follower.follow_id)) {
             update_follower_position(&mut follower, &mut follower_transform, target_position.truncate(), time);
@@ -65,7 +67,7 @@ fn update_followers(followers_query: &mut Query<(Entity, &mut Transform, &mut Fo
     }
 }
 
-fn update_follower_position(follower: &mut Follower, follower_transform: &mut Transform, target_position: Vec2, time: &Res<Time>) {
+fn update_follower_position(follower: &mut Follower, follower_transform: &mut Transform, target_position: Vec2, time: &Res<GameTime>) {
     if follower.smoothness < 0.0 {
         warn!("Smoothness value for follower '{}' is less than 0. Clamping to 0.", follower.follow_id);
         follower.smoothness = 0.0;

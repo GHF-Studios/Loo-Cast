@@ -8,11 +8,13 @@ use components::MainCamera;
 use systems::main_camera_zoom_system;
 use types::ZoomFactor;
 
+use crate::game::run_conditions::run_if_game_running;
+
 pub(crate) struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClearColor(Color::srgb(0.0, 0.0, 0.0)))
-            .add_systems(Update, main_camera_zoom_system)
+            .add_systems(Update, main_camera_zoom_system.run_if(run_if_game_running))
             .register_type::<MainCamera>()
             .register_type::<ZoomFactor>();
     }

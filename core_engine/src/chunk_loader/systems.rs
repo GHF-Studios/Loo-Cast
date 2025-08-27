@@ -19,7 +19,7 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
             let load_chunk_inputs = categorize_chunks_output.load_chunk_inputs;
             let unload_chunk_inputs = categorize_chunks_output.unload_chunk_inputs;
 
-            warn!("Running UpdateChunkLoaders");
+            //warn!("Running UpdateChunkLoaders");
 
             workflow!(I, ChunkLoader::LoadChunks, Input { inputs: load_chunk_inputs });
             workflow!(I, ChunkLoader::UnloadChunks, Input { inputs: unload_chunk_inputs });
@@ -36,7 +36,7 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
         handle_composite_workflow_return_now(handle, |_ctx| {
             composite_workflow_return!();
 
-            warn!("Ran UpdateChunkLoaders");
+            //warn!("Ran UpdateChunkLoaders");
         });
     }
 }

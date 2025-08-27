@@ -1,5 +1,5 @@
 [camera]
-default_zoom = 1.0
+default_zoom = 3.5
 min_zoom = 0.03125
 max_zoom = 32.0
 base_zoom_speed = 5.0

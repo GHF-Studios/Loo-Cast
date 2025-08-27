@@ -340,7 +340,7 @@ define_workflow_mod_OLD! {
                             }
 
                             for affected_owner in affected_owners {
-                                warn!("Setup LoadChunks for {:?}", affected_owner.id());
+                                //warn!("Setup LoadChunks for {:?}", affected_owner.id());
                             }
 
                             State {
@@ -374,7 +374,7 @@ define_workflow_mod_OLD! {
                             if is_done {
                                 let loaded_chunks_count = spawn_chunk_states.len() + transfer_chunk_ownership_states.len();
                                 if loaded_chunks_count != 0 {
-                                    warn!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
+                                    //warn!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
                                 }
 
                                 Outcome::Done(())
@@ -609,7 +609,7 @@ define_workflow_mod_OLD! {
                             if is_done {
                                 let unloaded_chunks_count = despawn_chunk_states.len() + transfer_chunk_ownership_states.len();
                                 if unloaded_chunks_count != 0 {
-                                    debug!("Ran UnloadChunks for # of chunks: {}", unloaded_chunks_count);
+                                    //warn!("Ran UnloadChunks for # of chunks: {}", unloaded_chunks_count);
                                 }
 
                                 Outcome::Done(())

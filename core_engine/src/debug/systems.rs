@@ -1,9 +1,5 @@
 use crate::{
-    camera::components::MainCamera,
-    chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager},
-    chunk_loader::components::ChunkLoader,
-    log::resources::LogRegistry,
-    ui::toolbar::resources::ToolbarState,
+    camera::components::MainCamera, chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager}, chunk_loader::components::ChunkLoader, game::resources::GameTime, log::resources::LogRegistry, ui::toolbar::resources::ToolbarState
 };
 
 use bevy::{prelude::*, window::PrimaryWindow};
@@ -57,7 +53,7 @@ pub(super) fn toggle_perf_ui_system(mut query: Query<&mut Visibility, With<PerfU
 }
 
 #[tracing::instrument(skip_all)]
-pub(super) fn debug_object_movement_system(time: Res<Time>, mut query: Query<(&mut Transform, &DebugObjectComponent)>) {
+pub(super) fn debug_object_movement_system(time: Res<GameTime>, mut query: Query<(&mut Transform, &DebugObjectComponent)>) {
     for (mut transform, debug_object) in query.iter_mut() {
         match &debug_object.movement {
             DebugObjectMovement::Static => {}
