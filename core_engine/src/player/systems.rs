@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use core_engine_macros::{composite_workflow, composite_workflow_return};
 
 use crate::{
-    chunk_loader::components::ChunkLoader, config::statics::CONFIG, game::resources::GameTime, player::resources::PlayerLifecycle, utils::components::{DropHook, InitHook}, workflow::functions::handle_composite_workflow_return_now
+    chunk_loader::components::ChunkLoader, config::statics::CONFIG, player::resources::PlayerLifecycle, utils::components::{DropHook, InitHook}, workflow::functions::handle_composite_workflow_return_now
 };
 
 #[tracing::instrument(skip_all)]
@@ -12,7 +12,7 @@ pub(super) fn update_player_system(
     mut transform_query: Query<&mut Transform>,
     mut player_state_resource: ResMut<PlayerLifecycle>,
     keys: Res<ButtonInput<KeyCode>>,
-    time: Res<GameTime>,
+    time: Res<Time<Virtual>>,
 ) {
     let is_player_update_allowed = {
         let condition_1 = if let Some((_, init_hook)) = chunk_loader_init_hook_query.iter().find(|(l, _)| l.chunk_owner_id().id() == "player") {
