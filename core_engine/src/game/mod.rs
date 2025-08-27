@@ -1,25 +1,25 @@
 pub mod resources;
 pub mod run_conditions;
-pub mod states;
 pub mod systems;
+pub mod types;
 
 use bevy::prelude::*;
 use bevy::render::RenderApp;
-use resources::GameTimeControl;
-use systems::{extract_game_time_control, apply_game_time_control};
-
-use crate::game::run_conditions::run_if_game_running;
+use resources::GameTimeInfo;
+use systems::{extract_game_time_info, post_update_game_time_info};
+use types::PauseState;
 
 pub(crate) struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(GameTimeControl::default())
-            .add_systems(PostUpdate, apply_game_time_control)
-            .register_type::<GameTimeControl>();
+            .insert_resource(GameTimeInfo::default())
+            .add_systems(PostUpdate, post_update_game_time_info)
+            .register_type::<GameTimeInfo>()
+            .register_type::<PauseState>();
 
         let render_app = app.sub_app_mut(RenderApp);
         render_app
-            .add_systems(ExtractSchedule, extract_game_time_control);
+            .add_systems(ExtractSchedule, extract_game_time_info);
     }
 }

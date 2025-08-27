@@ -1,12 +1,14 @@
 use bevy::prelude::*;
 
-use super::resources::GameTimeControl;
+use super::resources::GameTimeInfo;
 
-pub fn run_if_game_running(game_time_control: Option<Res<GameTimeControl>>) -> bool {
-    //if let Some(gtc) = game_time_control {
-    //    !gtc.paused || gtc.step_once
+pub fn run_if_game_running(
+    game_time_info: Option<Res<GameTimeInfo>>, 
+) -> bool {
+    //if let Some(gtc) = game_time_info {
+    //    !gtc.pause_state.is_paused()
     //} else {
-    //    warn!("GameTimeControl resource not found when checking if game is running. Assuming game is running.");
+    //    warn!("GameTimeInfo resource not found when checking if game is running. Assuming game is running.");
     //    true
     //}
     true

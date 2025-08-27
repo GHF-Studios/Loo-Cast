@@ -1,19 +1,16 @@
 use bevy::prelude::*;
 
+use super::types::PauseState;
+
 #[derive(Resource, Clone, Debug, Reflect)]
 #[reflect(Resource)]
-pub struct GameTimeControl {
-    pub paused: bool,
-    pub step_once: bool,
-    pub speed: f32,
+pub struct GameTimeInfo {
+    pub pause_state: PauseState,
 }
-impl Default for GameTimeControl {
+impl Default for GameTimeInfo {
     fn default() -> Self {
         Self {
-            paused: false,
-            step_once: false,
-            speed: 1.0,
+            pause_state: PauseState::Running,
         }
     }
 }
-
