@@ -8,3 +8,7 @@ pub struct TimeInfo {
     pub pause_state: PauseState,
     pub step_config: StepConfig,
 }
+
+#[derive(Resource, Clone, Default, Deref, DerefMut, Reflect)]
+#[reflect(Resource)]
+pub struct VirtualPaused(pub bool);

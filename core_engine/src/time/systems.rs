@@ -4,6 +4,8 @@ use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
 use bevy::render::MainWorld;
 
+use crate::time::resources::VirtualPaused;
+
 use super::resources::TimeInfo;
 use super::types::{PauseState, StepConfig};
 
@@ -100,8 +102,24 @@ pub(super) fn extract_game_time_info(
     let main_world = SystemState::<Res<MainWorld>>::new(world).get(world);
     let extracted_time_info = match main_world.get_resource::<TimeInfo>() {
         Some(extracted_time_info) => extracted_time_info.clone(),
-        None => unreachable!("Game time control resource not found"),
+        None => unreachable!("TimeInfo resource not found"),
     };
 
     world.insert_resource(extracted_time_info);
+}
+
+pub(super) fn extract_virtual_paused(
+    world: &mut World,
+) {
+    let main_world = SystemState::<Res<MainWorld>>::new(world).get(world);
+    let extracted_virtual_paused = match main_world.get_resource::<VirtualPaused>() {
+        Some(extracted_virtual_paused) => extracted_virtual_paused.clone(),
+        None => unreachable!("VirtualPaused resource not found"),
+    };
+
+    world.insert_resource(extracted_virtual_paused);
+}
+
+pub(super) fn sync_virtual_paused(mut paused: ResMut<VirtualPaused>, time: Res<Time<Virtual>>) {
+    paused.0 = time.is_paused();
 }

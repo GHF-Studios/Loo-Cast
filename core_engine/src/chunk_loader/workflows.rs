@@ -339,8 +339,8 @@ define_workflow_mod_OLD! {
                                 }
                             }
 
-                            for _affected_owner in affected_owners {
-                                //warn!("Setup LoadChunks for {:?}", affected_owner.id());
+                            for affected_owner in affected_owners {
+                                warn!("Setup LoadChunks for {:?}", affected_owner.id());
                             }
 
                             State {
@@ -374,11 +374,39 @@ define_workflow_mod_OLD! {
                             if is_done {
                                 let loaded_chunks_count = spawn_chunk_states.len() + transfer_chunk_ownership_states.len();
                                 if loaded_chunks_count != 0 {
-                                    //warn!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
+                                    warn!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
                                 }
 
                                 Outcome::Done(())
                             } else {
+                                let not_spawned: Vec<_> = spawn_chunk_states
+                                    .iter()
+                                    .filter(|s| !s.is_spawned)
+                                    .map(|s| s.coord)
+                                    .collect();
+
+                                let not_transferred: Vec<_> = transfer_chunk_ownership_states
+                                    .iter()
+                                    .filter(|ot| !ot.is_ownership_transfered)
+                                    .map(|s| s.coord)
+                                    .collect();
+
+                                if !not_spawned.is_empty() {
+                                    warn!(
+                                        "Waiting: {} chunks still not spawned: {:?})",
+                                        not_spawned.len(),
+                                        not_spawned
+                                    );
+                                }
+
+                                if !not_transferred.is_empty() {
+                                    warn!(
+                                        "Waiting: {} chunks still not transferred: {:?})",
+                                        not_transferred.len(),
+                                        not_transferred
+                                    );
+                                }
+
                                 Outcome::Wait(State {
                                     spawn_chunk_states,
                                     transfer_chunk_ownership_states,
@@ -575,7 +603,7 @@ define_workflow_mod_OLD! {
                             }
 
                             for affected_owner in affected_owners {
-                                debug!("Setup UnloadChunks for {:?}", affected_owner.id());
+                                warn!("Setup UnloadChunks for {:?}", affected_owner.id());
                             }
 
                             State {
@@ -609,11 +637,13 @@ define_workflow_mod_OLD! {
                             if is_done {
                                 let unloaded_chunks_count = despawn_chunk_states.len() + transfer_chunk_ownership_states.len();
                                 if unloaded_chunks_count != 0 {
-                                    //warn!("Ran UnloadChunks for # of chunks: {}", unloaded_chunks_count);
+                                    warn!("Ran UnloadChunks for # of chunks: {}", unloaded_chunks_count);
                                 }
 
                                 Outcome::Done(())
                             } else {
+                                warn!("Waiting for UnloadChunks to finish...");
+
                                 Outcome::Wait(State {
                                     despawn_chunk_states,
                                     transfer_chunk_ownership_states,

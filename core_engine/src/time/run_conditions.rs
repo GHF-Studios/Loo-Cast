@@ -1,15 +1,12 @@
 use bevy::prelude::*;
 
-use super::resources::TimeInfo;
+use crate::time::resources::VirtualPaused;
 
-pub fn run_if_not_paused(
-    time_info: Option<Res<TimeInfo>>, 
-) -> bool {
-    //if let Some(time_info) = time_info {
-    //    !time_info.pause_state.is_paused()
-    //} else {
-    //    warn!("TimeInfo resource not found. Assuming Virtual Time is not paused.");
-    //    true
-    //}
-    true
+pub fn run_if_not_paused(paused: Option<Res<VirtualPaused>>) -> bool {
+    if let Some(paused) = paused {
+        !paused.0
+    } else {
+        warn!("VirtualPause resource not found. Assuming Virtual Time is not paused.");
+        true
+    }
 }
