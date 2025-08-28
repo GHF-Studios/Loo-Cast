@@ -339,7 +339,7 @@ define_workflow_mod_OLD! {
                                 }
                             }
 
-                            for affected_owner in affected_owners {
+                            for _affected_owner in affected_owners {
                                 //warn!("Setup LoadChunks for {:?}", affected_owner.id());
                             }
 

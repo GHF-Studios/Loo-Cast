@@ -33,10 +33,10 @@ pub mod config;
 pub mod debug;
 pub mod entity;
 pub mod follower;
-pub mod game;
 pub mod gpu;
 pub mod log;
 pub mod player;
+pub mod time;
 pub mod ui;
 pub mod utils;
 pub mod workflow;
@@ -53,10 +53,10 @@ use config::ConfigPlugin;
 use debug::DebugPlugin;
 use entity::EntityPlugin;
 use follower::FollowerPlugin;
-use game::GamePlugin;
 use gpu::GpuPlugin;
 use log::LogPlugin;
 use player::PlayerPlugin;
+use time::TimePlugin;
 use ui::UiPlugin;
 use utils::UtilsPlugin;
 
@@ -72,12 +72,12 @@ impl PluginGroup for SpacetimeEngineCorePlugins {
             .add(ChunkLoaderPlugin)
             .add(ConfigPlugin)
             .add(DebugPlugin)
+            .add(EntityPlugin)
             .add(FollowerPlugin)
-            .add(GamePlugin)
             .add(GpuPlugin)
             .add(LogPlugin)
-            .add(EntityPlugin)
             .add(PlayerPlugin)
+            .add(TimePlugin)
             .add(UiPlugin)
             .add(UtilsPlugin)
     }

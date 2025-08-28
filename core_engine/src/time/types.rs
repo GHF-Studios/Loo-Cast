@@ -12,3 +12,14 @@ impl PauseState {
         matches!(self, PauseState::Paused | PauseState::Step)
     }
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Reflect)]
+pub enum StepConfig {
+    Cycles(u32),
+    Seconds(f32),
+}
+impl Default for StepConfig {
+    fn default() -> Self {
+        StepConfig::Cycles(1)
+    }
+}

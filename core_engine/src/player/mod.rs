@@ -13,14 +13,14 @@ use resources::{PlayerLifecycle, PlayerWorkflowQueue};
 use systems::update_player_system;
 use types::PlayerWorkflow;
 
-use crate::game::run_conditions::run_if_game_running;
+use crate::time::run_conditions::run_if_not_paused;
 
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(PlayerLifecycle::default())
             .insert_resource(PlayerWorkflowQueue::default())
-            .add_systems(Update, update_player_system.run_if(run_if_game_running))
+            .add_systems(Update, update_player_system.run_if(run_if_not_paused))
             .register_type::<PlayerBundle>()
             .register_type::<Player>()
             .register_type::<PlayerLifecycle>()

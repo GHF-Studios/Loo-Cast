@@ -9,7 +9,7 @@ use components::DebugObjectComponent;
 use systems::*;
 use types::DebugObjectMovement;
 
-use crate::game::run_conditions::run_if_game_running;
+use crate::time::run_conditions::run_if_not_paused;
 
 pub(crate) struct DebugPlugin;
 impl Plugin for DebugPlugin {
@@ -18,7 +18,7 @@ impl Plugin for DebugPlugin {
             Update,
             (
                 toggle_perf_ui_system,
-                debug_object_movement_system.run_if(run_if_game_running),
+                debug_object_movement_system.run_if(run_if_not_paused),
                 chunk_inspection_system,
                 chunk_loader_inspection_system,
                 chunk_manager_debug_ui,
