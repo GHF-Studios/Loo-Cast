@@ -28,6 +28,7 @@ pub mod types;
 pub mod camera;
 pub mod chunk;
 pub mod chunk_actor;
+pub mod chunk_debug;
 pub mod chunk_loader;
 pub mod config;
 pub mod debug;
