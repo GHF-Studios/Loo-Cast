@@ -21,9 +21,9 @@ pub(super) fn show_log_viewer_ui(
     if !toolbar_state.show_log_viewer_ui {
         return;
     }
-    let ctx = match egui_ctx.try_ctx_mut() {
-        Some(ctx) => ctx,
-        None => {
+    let ctx = match egui_ctx.ctx_mut() {
+        Ok(ctx) => ctx,
+        Err(_) => {
             return;
         }
     };
@@ -37,7 +37,7 @@ pub(super) fn show_log_viewer_ui(
                 let height = ui.available_height();
                 let width = ui.available_width();
 
-                egui::Frame::none().fill(egui::Color32::from_rgb(20, 30, 50)).show(ui, |ui| {
+                egui::Frame::NONE.fill(egui::Color32::from_rgb(20, 30, 50)).show(ui, |ui| {
                     ui.set_min_height(height);
                     ui.set_min_width(width);
 
@@ -52,7 +52,7 @@ pub(super) fn show_log_viewer_ui(
                 let height = ui.available_height();
                 let width = ui.available_width();
 
-                egui::Frame::none().fill(egui::Color32::from_rgb(50, 20, 20)).show(ui, |ui| {
+                egui::Frame::NONE.fill(egui::Color32::from_rgb(50, 20, 20)).show(ui, |ui| {
                     ui.set_min_height(height);
                     ui.set_min_width(width);
 

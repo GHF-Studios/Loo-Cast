@@ -132,9 +132,9 @@ pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctx: Eg
     if !toolbar_state.show_chunk_manager_debug_ui {
         return;
     }
-    let ctx = match egui_ctx.try_ctx_mut() {
-        Some(ctx) => ctx,
-        None => {
+    let ctx = match egui_ctx.ctx_mut() {
+        Ok(ctx) => ctx,
+        Err(_) => {
             return;
         }
     };
@@ -169,9 +169,9 @@ pub fn log_registry_debug_ui(log_registry: Res<LogRegistry>, mut egui_ctx: EguiC
     if !toolbar_state.show_log_registry_debug_ui {
         return;
     }
-    let ctx = match egui_ctx.try_ctx_mut() {
-        Some(ctx) => ctx,
-        None => {
+    let ctx = match egui_ctx.ctx_mut() {
+        Ok(ctx) => ctx,
+        Err(_) => {
             return;
         }
     };

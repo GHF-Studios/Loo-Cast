@@ -6,6 +6,7 @@ define_workflow_mod_OLD! {
         SpawnMainCameras {
             user_imports: {
                 use bevy::prelude::{Commands, Res, ResMut, Camera2d, Vec2, Name, Camera};
+                use bevy::render::view::RenderLayers;
                 use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
 
                 use crate::camera::components::MainCamera;
@@ -62,8 +63,8 @@ define_workflow_mod_OLD! {
                         fn RunEcsWhile |state, main_access| -> Outcome<State, Output> {
                             let mut commands = main_access.commands;
 
-                            if commands.get_entity(state.main_camera_entity).is_some()
-                                && commands.get_entity(state.egui_camera_entity).is_some()
+                            if commands.get_entity(state.main_camera_entity).is_ok()
+                                && commands.get_entity(state.egui_camera_entity).is_ok()
                             {
                                 Outcome::Done(Output {
                                     spawned_main_camera_entity: state.main_camera_entity,

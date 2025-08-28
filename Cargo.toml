@@ -1,6 +1,6 @@
 [workspace]
 members = [
-  #"OLD_core_engine",
+  "bevy_consumable_event",
   "core_engine", 
   "core_engine_macros",
 ]

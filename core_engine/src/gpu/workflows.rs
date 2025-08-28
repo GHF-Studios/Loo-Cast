@@ -323,7 +323,7 @@ define_workflow_mod_OLD! {
                                         view_formats: &[],
                                     },
                                     sampler: ImageSampler::nearest(),
-                                    data: vec![0; input.texture_size * input.texture_size * 4],
+                                    data: vec![0; input.texture_size * input.texture_size * 4].into(),
                                     ..Default::default()
                                 };
                                 texture_handles.push(images.add(texture));

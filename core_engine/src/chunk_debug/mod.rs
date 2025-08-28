@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::egui;
-use bevy_inspector_egui::bevy_egui::{EguiContexts, EguiPlugin};
+use bevy_inspector_egui::bevy_egui::EguiContexts;
 use egui_dock::{DockArea, DockState, Style, TabViewer, NodeIndex};
 
 use crate::camera::components::MainCamera;

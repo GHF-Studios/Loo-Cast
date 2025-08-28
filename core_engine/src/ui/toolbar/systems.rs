@@ -16,9 +16,9 @@ pub(super) fn show_toolbar_ui(mut egui_ctx: EguiContexts, keys: Res<ButtonInput<
         return;
     }
 
-    let ctx = match egui_ctx.try_ctx_mut() {
-        Some(ctx) => ctx,
-        None => {
+    let ctx = match egui_ctx.ctx_mut() {
+        Ok(ctx) => ctx,
+        Err(_) => {
             return;
         }
     };

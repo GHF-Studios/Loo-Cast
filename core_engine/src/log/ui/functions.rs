@@ -11,10 +11,10 @@ use crate::ui::custom_egui_widgets::tri_checkbox::TriCheckboxExt;
 // === Basics ===
 
 pub fn render_selection_tree_toolbar(ui: &mut egui::Ui, log_registry: &mut LogRegistry) {
-    egui::Frame::none()
+    egui::Frame::NONE
         .fill(Color32::from_gray(25))
         .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
-        .inner_margin(egui::Margin::symmetric(6.0, 4.0))
+        .inner_margin(egui::Margin::symmetric(6, 4))
         .show(ui, |ui| {
             ui.horizontal(|ui| {
                 let selection_mode = &mut log_registry.selection_mode;
@@ -74,10 +74,10 @@ pub fn render_selection_tree(ui: &mut egui::Ui, log_registry: &mut LogRegistry) 
 }
 
 pub fn render_console_toolbar(ui: &mut egui::Ui, log_viewer_state: &mut LogViewerState) {
-    egui::Frame::none()
+    egui::Frame::NONE
         .fill(Color32::from_gray(25))
         .stroke(egui::Stroke::new(1.0, Color32::DARK_GRAY))
-        .inner_margin(egui::Margin::symmetric(6.0, 4.0))
+        .inner_margin(egui::Margin::symmetric(6, 4))
         .show(ui, |ui| {
             let all_levels = [Error, Warn, Info, Debug, Trace];
             let level_symbols = ["E", "W", "I", "D", "T"];

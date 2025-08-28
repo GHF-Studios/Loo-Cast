@@ -31,7 +31,7 @@ bevy = "0.16.1"
 bevy_egui = "0.36"
 bevy-inspector-egui = "0.33.1"
 bevy_rapier2d = { version = "0.31.0", features = [ "debug-render-2d", "serde-serialize" ] }
-bevy_consumable_event = "0.5.0"
+bevy_consumable_event = { path = "../bevy_consumable_event" }
 egui = "0.32.1"
 egui_dock = "0.17.0"
 iyes_perf_ui = "0.5"

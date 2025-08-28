@@ -100,7 +100,7 @@ define_workflow_mod_OLD! {
                             let mut commands = main_access.commands;
 
                             let spawn_chunk_states = state.spawn_chunk_states.into_iter().map(|mut spawn_chunk_state| {
-                                if commands.get_entity(spawn_chunk_state.chunk_entity).is_some() {
+                                if commands.get_entity(spawn_chunk_state.chunk_entity).is_ok() {
                                     spawn_chunk_state.is_spawned = true;
                                 }
 
@@ -127,7 +127,7 @@ define_workflow_mod_OLD! {
 
         DespawnChunks {
             user_imports: {
-                use bevy::prelude::{Res, ResMut, Commands, Query, Entity, DespawnRecursiveExt};
+                use bevy::prelude::{Res, ResMut, Commands, Query, Entity};
 
                 use crate::chunk::{components::Chunk, resources::ChunkManager};
             },
@@ -177,12 +177,12 @@ define_workflow_mod_OLD! {
                                     chunk_manager.loaded_chunks.remove(&chunk_coord);
                                     chunk_manager.owned_chunks.remove(&chunk_coord);
 
-                                    let chunk_entity_commands = commands.entity(entity);
+                                    let mut chunk_entity_commands = commands.entity(entity);
                                     despawn_chunk_states.push(DespawnChunkState {
                                         entity: chunk_entity_commands.id(),
                                         is_despawned: false,
                                     });
-                                    chunk_entity_commands.despawn_recursive();
+                                    chunk_entity_commands.despawn();
                                 } else {
                                     return Err(Error::ChunkNotLoaded { chunk_coord });
                                 }
@@ -197,7 +197,7 @@ define_workflow_mod_OLD! {
                             let mut commands = main_access.commands;
 
                             let despawn_chunk_states = state.despawn_chunk_states.into_iter().map(|mut despawn_chunk_state| {
-                                if commands.get_entity(despawn_chunk_state.entity).is_none() {
+                                if commands.get_entity(despawn_chunk_state.entity).is_ok() {
                                     despawn_chunk_state.is_despawned = true;
                                 }
 

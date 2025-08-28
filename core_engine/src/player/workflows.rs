@@ -57,7 +57,7 @@ define_workflow_mod_OLD! {
                         fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
                             let mut commands = main_access.commands;
 
-                            if commands.get_entity(state.player_entity).is_some() {
+                            if commands.get_entity(state.player_entity).is_ok() {
                                 bevy::prelude::debug!("Player entity is ready: {:?}", state.player_entity);
                                 Ok(Done(Output { player_entity: state.player_entity }))
                             } else {
@@ -72,7 +72,7 @@ define_workflow_mod_OLD! {
 
         DespawnPlayer {
             user_imports: {
-                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, debug, DespawnRecursiveExt};
+                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, debug};
 
                 use crate::{
                     chunk_loader::components::ChunkLoader,
@@ -102,7 +102,7 @@ define_workflow_mod_OLD! {
                             let chunk_loader_with_drop_hook_query = main_access.chunk_loader_with_drop_hook_query;
                             let chunk_loader_without_drop_hook_query = main_access.chunk_loader_without_drop_hook_query;
 
-                            match (chunk_loader_with_drop_hook_query.get_single().is_err(), chunk_loader_without_drop_hook_query.get_single().is_err()) {
+                            match (chunk_loader_with_drop_hook_query.single().is_err(), chunk_loader_without_drop_hook_query.single().is_err()) {
                                 (true, true) => {
                                     return Err(Error::PlayerAlreadyDespawned);
                                 },
@@ -121,7 +121,7 @@ define_workflow_mod_OLD! {
                             let chunk_loader_with_drop_hook_query = main_access.chunk_loader_with_drop_hook_query;
                             let chunk_loader_without_drop_hook_query = main_access.chunk_loader_without_drop_hook_query;
 
-                            match (chunk_loader_with_drop_hook_query.get_single().is_err(), chunk_loader_without_drop_hook_query.get_single().is_err()) {
+                            match (chunk_loader_with_drop_hook_query.single().is_err(), chunk_loader_without_drop_hook_query.single().is_err()) {
                                 (true, true) => {
                                     return Err(Error::PlayerAlreadyDespawned);
                                 },
@@ -132,8 +132,8 @@ define_workflow_mod_OLD! {
                                 (false, false) => { unreachable!() },
                             }
 
-                            let player_entity = chunk_loader_with_drop_hook_query.single();
-                            commands.entity(player_entity).despawn_recursive();
+                            let player_entity = chunk_loader_with_drop_hook_query.single().unwrap();
+                            commands.entity(player_entity).despawn();
                             debug!("Despawned player entity: {:?}", player_entity);
 
                             Ok(Done(()))

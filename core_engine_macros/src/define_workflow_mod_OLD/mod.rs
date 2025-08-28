@@ -367,7 +367,7 @@ impl Workflow {
                         pub(crate) struct #workflow_plugin_ident;
                         impl bevy::prelude::Plugin for #workflow_plugin_ident {
                             fn build(&self, app: &mut bevy::prelude::App) {
-                                use bevy::prelude::IntoSystemConfigs;
+                                use bevy::prelude::IntoScheduleConfigs;
 
                                 let render_app = app.sub_app_mut(bevy::render::RenderApp);
                                 render_app
@@ -381,7 +381,7 @@ impl Workflow {
                         pub(crate) struct #workflow_plugin_ident;
                         impl bevy::prelude::Plugin for #workflow_plugin_ident {
                             fn build(&self, app: &mut bevy::prelude::App) {
-                                use bevy::prelude::IntoSystemConfigs;
+                                use bevy::prelude::IntoScheduleConfigs;
 
                                 app
                                     #(#workflow_stage_ecs_plugin_usage_literals)*;
@@ -394,7 +394,7 @@ impl Workflow {
                         pub(crate) struct #workflow_plugin_ident;
                         impl bevy::prelude::Plugin for #workflow_plugin_ident {
                             fn build(&self, app: &mut bevy::prelude::App) {
-                                use bevy::prelude::IntoSystemConfigs;
+                                use bevy::prelude::IntoScheduleConfigs;
 
                                 app
                                     #(#workflow_stage_ecs_plugin_usage_literals)*;
