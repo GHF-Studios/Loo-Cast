@@ -88,7 +88,7 @@ impl PluginGroup for SpacetimeEngineCorePlugins {
 
 register_workflow_mods!(
     Camera {
-        SpawnMainCamera {
+        SpawnMainCameras {
             SpawnAndWait: EcsWhile,
         },
     },
@@ -155,7 +155,7 @@ impl Plugin for SpacetimeEngineCorePlugin {
 #[tracing::instrument(skip_all)]
 fn startup_system() {
     let handle = composite_workflow!(Startup, {
-        workflow!(Camera::SpawnMainCamera);
+        workflow!(Camera::SpawnMainCameras);
 
         let chunk_shader_name = "texture_generators/example_compute_uv";
         let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
