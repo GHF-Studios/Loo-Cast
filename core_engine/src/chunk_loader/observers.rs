@@ -17,7 +17,7 @@ pub(crate) fn observe_on_remove_chunk_loader(
     mut removed_chunk_loaders: ResMut<RemovedChunkLoaders>,
     chunk_loader_query: Query<(&Transform, &ChunkLoader)>,
 ) {
-    let loader_entity = trigger.entity();
+    let loader_entity = trigger.target();
     let (loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
         Ok(value) => value,
         Err(_) => {

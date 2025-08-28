@@ -7,7 +7,7 @@ use super::types::ZoomFactor;
 
 #[tracing::instrument(skip_all)]
 pub(crate) fn main_camera_zoom_system(
-    mut projection_query: Query<&mut OrthographicProjection, With<Camera>>,
+    mut projection_query: Query<&mut Projection, With<Camera>>,
     mut scroll_event_reader: EventReader<MouseWheel>,
     time: Res<Time<Virtual>>,
     mut zoom_factor: Local<ZoomFactor>,
@@ -28,6 +28,11 @@ pub(crate) fn main_camera_zoom_system(
     }
 
     for mut projection in projection_query.iter_mut() {
-        projection.scale = zoom_factor.0;
+        match projection.as_mut() {
+            Projection::Orthographic(ortho) => {
+                ortho.scale = zoom_factor.0;
+            }
+            _ => panic!("Main camera is not orthographic/2d!"),
+        }
     }
 }

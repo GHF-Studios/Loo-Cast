@@ -1,4 +1,4 @@
-use bevy::{ecs::component::StorageType, prelude::*};
+use bevy::{ecs::component::{ComponentHook, Mutable, StorageType}, prelude::*};
 
 use super::hooks::{hook_on_add_follower_target, hook_on_remove_follower_target};
 
@@ -35,10 +35,15 @@ pub struct FollowerTarget {
     pub id: String,
 }
 impl Component for FollowerTarget {
-    const STORAGE_TYPE: bevy::ecs::component::StorageType = StorageType::Table;
+    const STORAGE_TYPE: StorageType = StorageType::Table;
 
-    fn register_component_hooks(hooks: &mut bevy::ecs::component::ComponentHooks) {
-        hooks.on_add(hook_on_add_follower_target);
-        hooks.on_remove(hook_on_remove_follower_target);
+    type Mutability = Mutable;
+
+    fn on_add() -> Option<ComponentHook> {
+        Some(hook_on_add_follower_target)
+    }
+
+    fn on_remove() -> Option<ComponentHook> {
+        Some(hook_on_remove_follower_target)
     }
 }

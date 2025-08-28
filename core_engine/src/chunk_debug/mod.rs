@@ -105,7 +105,7 @@ struct DebugTabViewer<'a> {
 impl TabViewer for DebugTabViewer<'_> {
     type Tab = EguiWindow;
 
-    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
+    fn title(&mut self, tab: &mut Self::Tab) -> egui_dock::egui::WidgetText {
         format!("{:?}", tab).into()
     }
 
@@ -139,7 +139,7 @@ fn render_chunk_debug_ui(
     mut state: ResMut<ChunkDebugUIState>,
     mut dock: ResMut<ChunkDebugDock>,
 ) {
-    let ctx = egui_contexts.ctx_mut();
+    let ctx = egui_contexts.ctx_mut().unwrap();
 
     egui::TopBottomPanel::top("chunk_debug_toolbar").show(ctx, |ui| {
         ui.horizontal(|ui| {

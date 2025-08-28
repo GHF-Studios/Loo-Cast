@@ -79,8 +79,8 @@ pub(super) fn chunk_inspection_system(
     mouse: Res<ButtonInput<MouseButton>>,
 ) {
     if mouse.just_pressed(MouseButton::Right) {
-        let (camera, camera_transform) = camera_query.single();
-        let window = window_query.single();
+        let (camera, camera_transform) = camera_query.single().unwrap();
+        let window = window_query.single().unwrap();
 
         if let Some(world_position) = window
             .cursor_position()

@@ -1,6 +1,7 @@
 pub mod components;
 pub mod errors;
 pub mod functions;
+pub mod hooks;
 pub mod resources;
 pub mod systems;
 pub mod types;

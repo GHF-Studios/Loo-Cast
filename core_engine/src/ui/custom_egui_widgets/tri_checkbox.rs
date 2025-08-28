@@ -1,4 +1,5 @@
 use bevy_egui::egui::{Align2, Response, Sense, TextStyle, Widget};
+use egui::StrokeKind;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum TriState {
@@ -35,7 +36,7 @@ impl Widget for TriCheckbox<'_> {
             let painter = ui.painter_at(rect);
 
             // Draw box background and border
-            painter.rect(rect, 1.0, visuals.bg_fill, visuals.bg_stroke);
+            painter.rect(rect, 1.0, visuals.bg_fill, visuals.bg_stroke, StrokeKind::Middle);
 
             // Draw symbol for current state
             let center = rect.center();
