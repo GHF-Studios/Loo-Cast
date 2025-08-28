@@ -37,8 +37,8 @@ pub(super) fn post_update_game_time_info(
             PauseState::Running => {},
             PauseState::Paused => time_info.pause_state = PauseState::Running,
             PauseState::Step => {
-                match ((*step_config).unwrap(), time_info.step_config) {
-                    (StepConfig::Cycles(max_cycles), StepConfig::Cycles(_)) => {
+                match (*step_config, time_info.step_config) {
+                    (Some(StepConfig::Cycles(max_cycles)), StepConfig::Cycles(_)) => {
                         let counter = cycle_counter.as_mut().unwrap();
                         *counter += 1;
 
@@ -48,9 +48,10 @@ pub(super) fn post_update_game_time_info(
                             virtual_time.pause();
                             time_info.pause_state = PauseState::Paused;
                             *cycle_counter = None;
+                            *step_config = None;
                         }
                     },
-                    (StepConfig::Seconds(max_seconds), StepConfig::Seconds(_)) => {
+                    (Some(StepConfig::Seconds(max_seconds)), StepConfig::Seconds(_)) => {
                         let start_time = &mut step_timestamp.unwrap();
                         let elapsed = start_time.elapsed().as_secs_f32();
 
@@ -60,15 +61,28 @@ pub(super) fn post_update_game_time_info(
                             virtual_time.pause();
                             time_info.pause_state = PauseState::Paused;
                             *step_timestamp = None;
+                            *step_config = None;
                         }
                     },
-                    (StepConfig::Cycles(_), StepConfig::Seconds(max_seconds)) => {
+                    (None, StepConfig::Cycles(max_cycles)) => {
+                        warn!("Initializing missing step config to cycles...");
+                        *cycle_counter = Some(0);
+                        *step_timestamp = None;
+                        *step_config = Some(StepConfig::Cycles(max_cycles));
+                    },
+                    (None, StepConfig::Seconds(max_seconds)) => {
+                        warn!("Initializing missing step config to seconds...");
+                        *cycle_counter = None;
+                        *step_timestamp = Some(Instant::now());
+                        *step_config = Some(StepConfig::Seconds(max_seconds));
+                    },
+                    (Some(StepConfig::Cycles(_)), StepConfig::Seconds(max_seconds)) => {
                         warn!("Switching step config to seconds...");
                         *cycle_counter = None;
                         *step_timestamp = Some(Instant::now());
                         *step_config = Some(StepConfig::Seconds(max_seconds));
                     },
-                    (StepConfig::Seconds(_), StepConfig::Cycles(max_cycles)) => {
+                    (Some(StepConfig::Seconds(_)), StepConfig::Cycles(max_cycles)) => {
                         warn!("Switching step config to cycles...");
                         *cycle_counter = Some(0);
                         *step_timestamp = None;
