@@ -49,6 +49,7 @@ use core_engine_macros::{composite_workflow, composite_workflow_return, register
 use workflow::WorkflowPlugin;
 use chunk::ChunkPlugin;
 use chunk_actor::ChunkActorPlugin;
+use chunk_debug::ChunkDebugPlugin;
 use chunk_loader::ChunkLoaderPlugin;
 use config::ConfigPlugin;
 use debug::DebugPlugin;
@@ -70,6 +71,7 @@ impl PluginGroup for SpacetimeEngineCorePlugins {
             .add(CameraPlugin)
             .add(ChunkPlugin)
             .add(ChunkActorPlugin)
+            .add(ChunkDebugPlugin)
             .add(ChunkLoaderPlugin)
             .add(ConfigPlugin)
             .add(DebugPlugin)
