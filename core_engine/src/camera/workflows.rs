@@ -7,7 +7,7 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use bevy::prelude::{Commands, Res, ResMut, Camera2d, Vec2, Name, Camera};
                 use bevy::render::view::RenderLayers;
-                use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
+                use bevy_egui::EguiRenderOutput;
 
                 use crate::camera::components::MainCamera;
                 use crate::config::statics::CONFIG;
@@ -46,7 +46,7 @@ define_workflow_mod_OLD! {
                             let egui_camera_entity = commands.spawn((
                                 Camera2d,
                                 Name::new("egui_camera_entity"),
-                                PrimaryEguiContext,
+                                EguiRenderOutput::default(),
                                 RenderLayers::none(),
                                 Camera {
                                     order: 1,

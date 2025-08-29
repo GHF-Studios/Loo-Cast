@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_egui::EguiPrimaryContextPass;
 use bevy_inspector_egui::egui;
 use bevy_inspector_egui::bevy_egui::EguiContexts;
 use egui_dock::{DockArea, DockState, Style, TabViewer, NodeIndex};
@@ -78,7 +79,7 @@ impl Plugin for ChunkDebugPlugin {
             .register_type::<StepConfig>()
             .init_resource::<ChunkDebugUIState>()
             .init_resource::<ChunkDebugDock>()
-            .add_systems(Update, render_chunk_debug_ui)
+            .add_systems(EguiPrimaryContextPass, render_chunk_debug_ui)
             .add_systems(PostUpdate, set_camera_viewport);
     }
 }
@@ -207,18 +208,27 @@ fn set_camera_viewport(
             let viewport_pos = rect.left_top().to_vec2() * scale_factor;
             let viewport_size = rect.size() * scale_factor;
 
-            let physical_position = UVec2::new(viewport_pos.x as u32, viewport_pos.y as u32);
-            let physical_size = UVec2::new(viewport_size.x as u32, viewport_size.y as u32);
+            // Prevent invalid rects
+            if viewport_size.x > 0.0 && viewport_size.y > 0.0 {
+                let physical_position = UVec2::new(viewport_pos.x as u32, viewport_pos.y as u32);
+                let physical_size = UVec2::new(viewport_size.x as u32, viewport_size.y as u32);
 
-            let total = physical_position + physical_size;
-            let window_size = window.physical_size();
-            if total.x <= window_size.x && total.y <= window_size.y {
-                cam.viewport = Some(bevy::render::camera::Viewport {
-                    physical_position,
-                    physical_size,
-                    depth: 0.0..1.0,
-                });
+                // Guard against overflowing window bounds
+                let total = physical_position + physical_size;
+                let window_size = window.physical_size();
+                if total.x <= window_size.x && total.y <= window_size.y {
+                    cam.viewport = Some(bevy::render::camera::Viewport {
+                        physical_position,
+                        physical_size,
+                        depth: 0.0..1.0,
+                    });
+                } else {
+                    cam.viewport = None;
+                }
+            } else {
+                cam.viewport = None;
             }
         }
     }
 }
+
