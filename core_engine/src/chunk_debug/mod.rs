@@ -140,6 +140,12 @@ fn render_chunk_debug_ui(
     mut dock: ResMut<ChunkDebugDock>,
 ) {
     let ctx = egui_contexts.ctx_mut().unwrap();
+    //let ctx = match egui_contexts.ctx_mut() {
+    //    Ok(ctx) => ctx,
+    //    Err(_) => {
+    //        return;
+    //    }
+    //};
 
     egui::TopBottomPanel::top("chunk_debug_toolbar").show(ctx, |ui| {
         ui.horizontal(|ui| {
@@ -183,7 +189,7 @@ fn render_chunk_debug_ui(
         });
     });
 
-    egui::CentralPanel::default().show(ctx, |ui| {
+    egui::CentralPanel::default().show(ctx, |_ui| {
         DockArea::new(&mut dock.dock_state)
             .style(Style::from_egui(ctx.style().as_ref()))
             .show(ctx, &mut DebugTabViewer { state: &mut state });
@@ -195,7 +201,7 @@ fn set_camera_viewport(
     window: Option<Single<&Window, With<bevy::window::PrimaryWindow>>>,
     mut cam: Query<&mut Camera, With<MainCamera>>,
 ) {
-    if let (Some(window), Ok(mut cam)) = (window, cam.get_single_mut()) {
+    if let (Some(window), Ok(mut cam)) = (window, cam.single_mut()) {
         if let Some(rect) = state.viewport_rect {
             let scale_factor = window.scale_factor();
             let viewport_pos = rect.left_top().to_vec2() * scale_factor;

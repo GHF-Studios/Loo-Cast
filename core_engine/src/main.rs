@@ -61,10 +61,10 @@ fn configure_bevy_default_plugins() -> PluginGroupBuilder {
             }),
             ..default()
         })
-        .add(FrameTimeDiagnosticsPlugin)
+        .add(FrameTimeDiagnosticsPlugin::default())
         .add(EntityCountDiagnosticsPlugin)
         .add(SystemInformationDiagnosticsPlugin)
-        .add(EguiPlugin)
+        .add(EguiPlugin::default())
         .add(WorldInspectorPlugin::new())
 }
 
