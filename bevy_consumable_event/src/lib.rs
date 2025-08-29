@@ -101,7 +101,7 @@ impl<E: Event> ConsumableEvents<E> {
   }
 
   /// Reads the unconsumed events stored in self.
-  pub fn read(&mut self) -> ConsumableEventIterator<E> {
+  pub fn read(&mut self) -> ConsumableEventIterator<'_, E> {
     ConsumableEventIterator { iter: self.events.iter_mut() }
   }
 
@@ -230,7 +230,7 @@ pub struct ConsumableEventReader<'w, E: Event> {
 
 impl<'w, E: Event> ConsumableEventReader<'w, E> {
   /// Reads the unconsumed events.
-  pub fn read(&mut self) -> ConsumableEventIterator<E> {
+  pub fn read(&mut self) -> ConsumableEventIterator<'_, E> {
     self.events.read()
   }
 

@@ -139,13 +139,13 @@ fn render_chunk_debug_ui(
     mut state: ResMut<ChunkDebugUIState>,
     mut dock: ResMut<ChunkDebugDock>,
 ) {
-    let ctx = egui_contexts.ctx_mut().unwrap();
-    //let ctx = match egui_contexts.ctx_mut() {
-    //    Ok(ctx) => ctx,
-    //    Err(_) => {
-    //        return;
-    //    }
-    //};
+    let ctx = match egui_contexts.ctx_mut() {
+        Ok(ctx) => ctx,
+        Err(_) => {
+            warn!("EguiContext not found!");
+            return;
+        }
+    };
 
     egui::TopBottomPanel::top("chunk_debug_toolbar").show(ctx, |ui| {
         ui.horizontal(|ui| {

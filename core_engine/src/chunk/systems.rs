@@ -50,10 +50,10 @@ pub(crate) fn chunk_update_system(
 
         if let Some(chunk_owner_id) = chunk.owner_id.clone() {
             if removed_chunk_loaders.0.iter().any(|rcl| rcl.id == chunk_owner_id) {
-                commands.entity(entity).despawn_recursive();
+                commands.entity(entity).despawn();
             }
         } else {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         }
     }
 }

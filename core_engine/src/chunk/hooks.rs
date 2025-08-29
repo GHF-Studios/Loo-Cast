@@ -1,7 +1,4 @@
-use bevy::{
-    ecs::{component::HookContext, world::DeferredWorld},
-    prelude::*,
-};
+use bevy::ecs::{component::HookContext, world::DeferredWorld};
 
 use crate::{chunk::components::Chunk, chunk_loader::resources::RemovedChunkLoaders};
 
