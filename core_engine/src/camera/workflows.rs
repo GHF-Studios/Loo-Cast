@@ -8,6 +8,7 @@ define_workflow_mod_OLD! {
                 use bevy::prelude::{Commands, Res, ResMut, Camera2d, Vec2, Name, Camera};
                 use bevy::render::view::RenderLayers;
                 use bevy_egui::EguiRenderOutput;
+                use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
 
                 use crate::camera::components::MainCamera;
                 use crate::config::statics::CONFIG;
@@ -33,6 +34,17 @@ define_workflow_mod_OLD! {
                         fn SetupEcsWhile |main_access| -> State {
                             let mut commands = main_access.commands;
 
+                            let egui_camera_entity = commands.spawn((
+                                Camera2d,
+                                Name::new("egui_camera_entity"),
+                                PrimaryEguiContext,
+                                EguiRenderOutput::default(),
+                                RenderLayers::none(),
+                                Camera {
+                                    order: 1,
+                                    ..Default::default()
+                                },
+                            )).id();
                             let main_camera_entity = commands.spawn((
                                 Camera2d,
                                 Name::new("main_camera_entity"),
@@ -42,16 +54,6 @@ define_workflow_mod_OLD! {
                                     Vec2::ZERO,
                                     CONFIG.get::<f32>("camera/follow_smoothness"),
                                 ),
-                            )).id();
-                            let egui_camera_entity = commands.spawn((
-                                Camera2d,
-                                Name::new("egui_camera_entity"),
-                                EguiRenderOutput::default(),
-                                RenderLayers::none(),
-                                Camera {
-                                    order: 1,
-                                    ..Default::default()
-                                },
                             )).id();
 
                             State {

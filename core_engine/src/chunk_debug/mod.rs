@@ -1,7 +1,7 @@
 use bevy::prelude::*;
-use bevy_egui::EguiPrimaryContextPass;
+use bevy_egui::{EguiContextSettings, EguiPrimaryContextPass, EguiContexts};
+use bevy::render::camera::Viewport;
 use bevy_inspector_egui::egui;
-use bevy_inspector_egui::bevy_egui::EguiContexts;
 use egui_dock::{DockArea, DockState, Style, TabViewer, NodeIndex};
 
 use crate::camera::components::MainCamera;
@@ -80,7 +80,7 @@ impl Plugin for ChunkDebugPlugin {
             .init_resource::<ChunkDebugUIState>()
             .init_resource::<ChunkDebugDock>()
             .add_systems(EguiPrimaryContextPass, render_chunk_debug_ui)
-            .add_systems(PostUpdate, set_camera_viewport);
+            .add_systems(PostUpdate, set_camera_viewport.after(render_chunk_debug_ui));
     }
 }
 
@@ -106,16 +106,16 @@ struct DebugTabViewer<'a> {
 impl TabViewer for DebugTabViewer<'_> {
     type Tab = EguiWindow;
 
-    fn title(&mut self, tab: &mut Self::Tab) -> egui_dock::egui::WidgetText {
+    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
         format!("{:?}", tab).into()
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         match tab {
             EguiWindow::GameView => {
-                // Record viewport rect for the game camera
+                // record the rect for camera viewport
                 self.state.viewport_rect = Some(ui.clip_rect());
-                ui.label("Game View (viewport captured)")
+                ui.label("Game View (world will render here)")
             }
             EguiWindow::Hierarchy => ui.label("Hierarchy (todo)"),
             EguiWindow::Resources => ui.label("Resources (todo)"),
@@ -133,21 +133,22 @@ impl TabViewer for DebugTabViewer<'_> {
     }
 }
 
+
 // === Systems ===
 
 fn render_chunk_debug_ui(
-    mut egui_contexts: EguiContexts,
+    mut egui_contexts: bevy_egui::EguiContexts,
     mut state: ResMut<ChunkDebugUIState>,
     mut dock: ResMut<ChunkDebugDock>,
 ) {
     let ctx = match egui_contexts.ctx_mut() {
         Ok(ctx) => ctx,
         Err(_) => {
-            warn!("EguiContext not found!");
-            return;
+            return
         }
     };
 
+    // Toolbar
     egui::TopBottomPanel::top("chunk_debug_toolbar").show(ctx, |ui| {
         ui.horizontal(|ui| {
             ui.checkbox(&mut state.show_chunk_manager, "Chunk Manager");
@@ -162,7 +163,7 @@ fn render_chunk_debug_ui(
             }
 
             if ui.button("⏭ Step").clicked() {
-                // Step logic later
+                // step logic later
             }
 
             ui.label("Step Mode:");
@@ -190,7 +191,8 @@ fn render_chunk_debug_ui(
         });
     });
 
-    egui::CentralPanel::default().show(ctx, |_ui| {
+    // Dock area
+    egui::CentralPanel::default().show(ctx, |ui| {
         DockArea::new(&mut dock.dock_state)
             .style(Style::from_egui(ctx.style().as_ref()))
             .show(ctx, &mut DebugTabViewer { state: &mut state });
@@ -199,36 +201,37 @@ fn render_chunk_debug_ui(
 
 fn set_camera_viewport(
     state: Res<ChunkDebugUIState>,
-    window: Option<Single<&Window, With<bevy::window::PrimaryWindow>>>,
+    window: Query<&Window, With<bevy::window::PrimaryWindow>>,
     mut cam: Query<&mut Camera, With<MainCamera>>,
+    egui_settings: Single<&EguiContextSettings>,
 ) {
-    if let (Some(window), Ok(mut cam)) = (window, cam.single_mut()) {
-        if let Some(rect) = state.viewport_rect {
-            let scale_factor = window.scale_factor();
-            let viewport_pos = rect.left_top().to_vec2() * scale_factor;
-            let viewport_size = rect.size() * scale_factor;
+    let Ok(window) = window.single() else { return };
+    let Ok(mut cam) = cam.single_mut() else { return };
+    let Some(rect) = state.viewport_rect else { return };
 
-            // Prevent invalid rects
-            if viewport_size.x > 0.0 && viewport_size.y > 0.0 {
-                let physical_position = UVec2::new(viewport_pos.x as u32, viewport_pos.y as u32);
-                let physical_size = UVec2::new(viewport_size.x as u32, viewport_size.y as u32);
+    let scale_factor = window.scale_factor() * egui_settings.scale_factor;
 
-                // Guard against overflowing window bounds
-                let total = physical_position + physical_size;
-                let window_size = window.physical_size();
-                if total.x <= window_size.x && total.y <= window_size.y {
-                    cam.viewport = Some(bevy::render::camera::Viewport {
-                        physical_position,
-                        physical_size,
-                        depth: 0.0..1.0,
-                    });
-                } else {
-                    cam.viewport = None;
-                }
-            } else {
-                cam.viewport = None;
-            }
-        }
+    let pos = rect.left_top().to_vec2() * scale_factor;
+    let size = rect.size() * scale_factor;
+
+    let physical_position = UVec2::new(pos.x.max(0.0) as u32, pos.y.max(0.0) as u32);
+    let physical_size = UVec2::new(size.x.max(0.0) as u32, size.y.max(0.0) as u32);
+
+    // skip invalid rects
+    if physical_size.x == 0 || physical_size.y == 0 {
+        cam.viewport = None;
+        return;
+    }
+
+    let rect_end = physical_position + physical_size;
+    let window_size = window.physical_size();
+
+    if rect_end.x <= window_size.x && rect_end.y <= window_size.y {
+        cam.viewport = Some(Viewport {
+            physical_position,
+            physical_size,
+            depth: 0.0..1.0,
+        });
     }
 }
 
