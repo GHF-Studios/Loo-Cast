@@ -117,7 +117,9 @@ impl TabViewer for DebugTabViewer<'_> {
                 // record the rect for camera viewport
                 self.state.viewport_rect = Some(ui.clip_rect());
                 if let Some(texture_id) = self.texture_id {
-                    ui.image(texture_id);
+                    let size = ui.available_size();
+                    let image = egui::Image::new((texture_id, size));
+                    ui.add(image);
                 } else {
                     ui.label("Loading Game View...");
                 }
@@ -196,9 +198,6 @@ fn render_chunk_debug_ui(
             }
         });
     });
-    
-    let texture_id = ctx.try_load_texture("game_view_texture", &target.image_handle, egui::SizeHint::Scale(1.0))
-        .ok();
 
     // Dock area
     egui::CentralPanel::default().show(ctx, |ui| {
@@ -206,7 +205,7 @@ fn render_chunk_debug_ui(
             .style(Style::from_egui(ctx.style().as_ref()))
             .show(ctx, &mut DebugTabViewer {
                 state: &mut state,
-                texture_id,
+                texture_id: Some(target.texture_id),
             });
     });
 }

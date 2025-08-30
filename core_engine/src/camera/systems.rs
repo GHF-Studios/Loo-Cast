@@ -10,18 +10,25 @@ use crate::config::statics::CONFIG;
 use super::resources::GameViewRenderTarget;
 use super::types::ZoomFactor;
 
-pub(crate) fn setup_main_render_target(mut commands: Commands, mut images: ResMut<Assets<Image>>, windows: Query<&Window>) {
+pub(crate) fn setup_main_render_target(
+    mut commands: Commands, 
+    mut images: ResMut<Assets<Image>>, 
+    mut egui_textures: ResMut<bevy_egui::EguiUserTextures>,
+    windows: Query<&Window>
+) {
     let window = windows.single().unwrap();
     let size = window.physical_size();
 
-    let image = Image {
+    let size = Extent3d {
+        width: size.x,
+        height: size.y,
+        depth_or_array_layers: 1,
+    };
+
+    let mut image = Image {
         texture_descriptor: TextureDescriptor {
             label: Some("Game View Render Target"),
-            size: Extent3d {
-                width: size.x,
-                height: size.y,
-                depth_or_array_layers: 1,
-            },
+            size,
             dimension: TextureDimension::D2,
             format: TextureFormat::Bgra8UnormSrgb,
             usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
@@ -32,8 +39,12 @@ pub(crate) fn setup_main_render_target(mut commands: Commands, mut images: ResMu
         ..default()
     };
 
+    image.resize(size);
+
     let image_handle = images.add(image);
-    commands.insert_resource(GameViewRenderTarget { image_handle });
+    let texture_id = egui_textures.add_image(image_handle.clone());
+
+    commands.insert_resource(GameViewRenderTarget { image_handle, texture_id });
 }
 
 #[tracing::instrument(skip_all)]
