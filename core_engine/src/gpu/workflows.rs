@@ -307,7 +307,7 @@ define_workflow_mod_OLD! {
                                 // --- Create the texture ---
                                 let texture = Image {
                                     texture_descriptor: TextureDescriptor {
-                                        label: Some("Compute Texture"),
+                                        label: Some("CHunk Texture"),
                                         size: Extent3d {
                                             width: input.texture_size as u32,
                                             height: input.texture_size as u32,

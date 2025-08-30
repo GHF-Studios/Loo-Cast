@@ -9,8 +9,14 @@ define_workflow_mod_OLD! {
                 use bevy::render::view::RenderLayers;
                 use bevy_egui::EguiRenderOutput;
                 use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
+                use bevy::render::render_resource::{
+                    Buffer, TextureView, TextureDescriptor, Extent3d,
+                    TextureDimension, TextureFormat, TextureUsages,
+                };
+                use bevy::render::camera::RenderTarget;
 
                 use crate::camera::components::MainCamera;
+                use crate::camera::resources::GameViewRenderTarget;
                 use crate::config::statics::CONFIG;
                 use crate::follower::components::{Follower, FollowerTarget};
             },
@@ -19,7 +25,8 @@ define_workflow_mod_OLD! {
                 SpawnAndWait: EcsWhile {
                     core_types: [
                         struct MainAccess<'w, 's> {
-                            commands: Commands<'w, 's>
+                            commands: Commands<'w, 's>,
+                            target: Res<'w, GameViewRenderTarget>,
                         }
                         struct State {
                             main_camera_entity: Entity,
@@ -33,20 +40,25 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn SetupEcsWhile |main_access| -> State {
                             let mut commands = main_access.commands;
+                            let target = main_access.target;
 
                             let egui_camera_entity = commands.spawn((
                                 Camera2d,
-                                Name::new("egui_camera_entity"),
-                                PrimaryEguiContext,
-                                EguiRenderOutput::default(),
-                                RenderLayers::none(),
                                 Camera {
                                     order: 1,
                                     ..Default::default()
                                 },
+                                Name::new("egui_camera_entity"),
+                                PrimaryEguiContext,
+                                EguiRenderOutput::default(),
+                                RenderLayers::none(),
                             )).id();
                             let main_camera_entity = commands.spawn((
                                 Camera2d,
+                                Camera {
+                                    target: RenderTarget::Image(target.image_handle.clone().into()),
+                                    ..Default::default()
+                                },
                                 Name::new("main_camera_entity"),
                                 MainCamera,
                                 Follower::new(

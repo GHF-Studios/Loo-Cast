@@ -4,7 +4,7 @@ use bevy::render::camera::Viewport;
 use bevy_inspector_egui::egui;
 use egui_dock::{DockArea, DockState, Style, TabViewer, NodeIndex};
 
-use crate::camera::components::MainCamera;
+use crate::camera::{components::MainCamera, resources::GameViewRenderTarget};
 
 // === Resources ===
 
@@ -101,6 +101,7 @@ pub enum EguiWindow {
 
 struct DebugTabViewer<'a> {
     state: &'a mut ChunkDebugUIState,
+    texture_id: Option<egui::TextureId>,
 }
 
 impl TabViewer for DebugTabViewer<'_> {
@@ -115,16 +116,20 @@ impl TabViewer for DebugTabViewer<'_> {
             EguiWindow::GameView => {
                 // record the rect for camera viewport
                 self.state.viewport_rect = Some(ui.clip_rect());
-                ui.label("Game View (world will render here)")
+                if let Some(texture_id) = self.texture_id {
+                    ui.image(texture_id);
+                } else {
+                    ui.label("Loading Game View...");
+                }
             }
-            EguiWindow::Hierarchy => ui.label("Hierarchy (todo)"),
-            EguiWindow::Resources => ui.label("Resources (todo)"),
-            EguiWindow::Assets => ui.label("Assets (todo)"),
-            EguiWindow::Inspector => ui.label("Inspector (todo)"),
-            EguiWindow::ChunkManager => ui.label("Chunk Manager (todo)"),
-            EguiWindow::IntentBuffer => ui.label("Intent Buffer (todo)"),
-            EguiWindow::IntentCommit => ui.label("Intent Commit (todo)"),
-            EguiWindow::ChunkInspector => ui.label("Chunk Inspector (todo)"),
+            EguiWindow::Hierarchy => { ui.label("Hierarchy (todo)"); },
+            EguiWindow::Resources => { ui.label("Resources (todo)"); },
+            EguiWindow::Assets => { ui.label("Assets (todo)"); },
+            EguiWindow::Inspector => { ui.label("Inspector (todo)"); },
+            EguiWindow::ChunkManager => { ui.label("Chunk Manager (todo)"); },
+            EguiWindow::IntentBuffer => { ui.label("Intent Buffer (todo)"); },
+            EguiWindow::IntentCommit => { ui.label("Intent Commit (todo)"); },
+            EguiWindow::ChunkInspector => { ui.label("Chunk Inspector (todo)"); },
         };
     }
 
@@ -140,6 +145,7 @@ fn render_chunk_debug_ui(
     mut egui_contexts: bevy_egui::EguiContexts,
     mut state: ResMut<ChunkDebugUIState>,
     mut dock: ResMut<ChunkDebugDock>,
+    target: Res<GameViewRenderTarget>,
 ) {
     let ctx = match egui_contexts.ctx_mut() {
         Ok(ctx) => ctx,
@@ -190,12 +196,18 @@ fn render_chunk_debug_ui(
             }
         });
     });
+    
+    let texture_id = ctx.try_load_texture("game_view_texture", &target.image_handle, egui::SizeHint::Scale(1.0))
+        .ok();
 
     // Dock area
     egui::CentralPanel::default().show(ctx, |ui| {
         DockArea::new(&mut dock.dock_state)
             .style(Style::from_egui(ctx.style().as_ref()))
-            .show(ctx, &mut DebugTabViewer { state: &mut state });
+            .show(ctx, &mut DebugTabViewer {
+                state: &mut state,
+                texture_id,
+            });
     });
 }
 
