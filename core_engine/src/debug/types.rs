@@ -1,8 +1,18 @@
+use std::any::TypeId;
+
+use bevy::asset::UntypedAssetId;
+use bevy::ecs::reflect::AppTypeRegistry;
+use bevy::ecs::world::World;
 use bevy::prelude::Reflect;
+use bevy_inspector_egui::bevy_inspector::by_type_id::{ui_for_asset, ui_for_resource};
+use bevy_inspector_egui::bevy_inspector::hierarchy::hierarchy_ui;
+use bevy_inspector_egui::bevy_inspector::{ui_for_entities_shared_components, ui_for_entity_with_children};
 use egui_dock::TabViewer;
 
+use crate::debug::functions::{select_asset, select_resource};
+
 use super::functions::draw_game_view;
-use super::resources::DebugSuiteUIState;
+use super::resources::DebugSuiteUiState;
 
 #[derive(Default, Reflect)]
 pub enum DebugObjectMovement {
@@ -45,8 +55,17 @@ pub enum DebugSuiteTab {
     ChunkInspector,
 }
 
+#[derive(Default, Eq, PartialEq)]
+pub enum InspectorSelection {
+    #[default]
+    Entities,
+    Resource(TypeId, String),
+    Asset(TypeId, String, UntypedAssetId),
+}
+
 pub(super) struct DebugSuiteTabViewer<'a> {
-    pub state: &'a mut DebugSuiteUIState,
+    pub world: &'a mut World,
+    pub state: &'a mut DebugSuiteUiState,
     pub game_view_texture_id: Option<egui::TextureId>,
     pub game_view_texture_size: Option<egui::Vec2>
 }
@@ -59,6 +78,9 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
+        let type_registry = self.world.resource::<AppTypeRegistry>().0.clone();
+        let type_registry = type_registry.read();
+        
         match tab {
             DebugSuiteTab::GameView => {
                 self.state.viewport_rect = Some(ui.clip_rect());
@@ -69,10 +91,40 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
                     ui.label("Game View Render Texture not available yet.");
                 }
             }
-            DebugSuiteTab::Hierarchy => { ui.label("Hierarchy (todo)"); },
-            DebugSuiteTab::Resources => { ui.label("Resources (todo)"); },
-            DebugSuiteTab::Assets => { ui.label("Assets (todo)"); },
-            DebugSuiteTab::Inspector => { ui.label("Inspector (todo)"); },
+            DebugSuiteTab::Hierarchy => {
+                let selected = hierarchy_ui(self.world, ui, &mut self.state.selected_entities);
+                if selected {
+                    self.state.selection = InspectorSelection::Entities;
+                }
+            },
+            DebugSuiteTab::Resources => select_resource(ui, &type_registry, &mut self.state.selection),
+            DebugSuiteTab::Assets => select_asset(ui, &type_registry, self.world, &mut self.state.selection),
+            DebugSuiteTab::Inspector => match self.state.selection {
+                InspectorSelection::Entities => match self.state.selected_entities.as_slice() {
+                    &[entity] => ui_for_entity_with_children(self.world, entity, ui),
+                    entities => ui_for_entities_shared_components(self.world, entities, ui),
+                },
+                InspectorSelection::Resource(type_id, ref name) => {
+                    ui.label(name);
+                    ui_for_resource(
+                        self.world,
+                        type_id,
+                        ui,
+                        name,
+                        &type_registry,
+                    )
+                }
+                InspectorSelection::Asset(type_id, ref name, handle) => {
+                    ui.label(name);
+                    ui_for_asset(
+                        self.world,
+                        type_id,
+                        handle,
+                        ui,
+                        &type_registry,
+                    );
+                }
+            },
             DebugSuiteTab::ChunkManager => { ui.label("Chunk Manager (todo)"); },
             DebugSuiteTab::IntentBuffer => { ui.label("Intent Buffer (todo)"); },
             DebugSuiteTab::IntentCommit => { ui.label("Intent Commit (todo)"); },

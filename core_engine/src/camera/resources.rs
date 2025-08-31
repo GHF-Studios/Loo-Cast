@@ -3,7 +3,7 @@ use egui::TextureId;
 
 #[derive(Resource)]
 pub struct GameViewRenderTarget {
-    pub image_handle: Handle<Image>,
-    pub image_size: UVec2,
-    pub texture_id: TextureId,
+    pub handle: Handle<Image>,
+    pub size: UVec2,
+    pub id: TextureId,
 }

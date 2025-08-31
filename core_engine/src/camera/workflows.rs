@@ -14,9 +14,9 @@ define_workflow_mod_OLD! {
                     TextureDimension, TextureFormat, TextureUsages,
                 };
                 use bevy::render::camera::RenderTarget;
+                use bevy::window::WindowRef;
 
                 use crate::camera::components::MainCamera;
-                use crate::camera::resources::GameViewRenderTarget;
                 use crate::config::statics::CONFIG;
                 use crate::follower::components::{Follower, FollowerTarget};
             },
@@ -26,7 +26,6 @@ define_workflow_mod_OLD! {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>,
-                            target: Res<'w, GameViewRenderTarget>,
                         }
                         struct State {
                             main_camera_entity: Entity,
@@ -40,7 +39,6 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn SetupEcsWhile |main_access| -> State {
                             let mut commands = main_access.commands;
-                            let target = main_access.target;
 
                             let egui_camera_entity = commands.spawn((
                                 Camera2d,
@@ -56,7 +54,7 @@ define_workflow_mod_OLD! {
                             let main_camera_entity = commands.spawn((
                                 Camera2d,
                                 Camera {
-                                    target: RenderTarget::Image(target.image_handle.clone().into()),
+                                    target: RenderTarget::Window(WindowRef::Primary),
                                     ..Default::default()
                                 },
                                 Name::new("main_camera_entity"),

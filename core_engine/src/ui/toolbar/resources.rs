@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Resource, Reflect, Default)]
+#[derive(Resource, Reflect)]
 #[reflect(Resource)]
 pub struct ToolbarState {
     pub enabled: bool,
@@ -28,5 +28,16 @@ impl ToolbarState {
             show_chunk_manager_debug_ui: false,
             show_log_registry_debug_ui: false,
         };
+    }
+}
+impl Default for ToolbarState {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            show_perf_ui: false,
+            show_log_viewer_ui: false,
+            show_chunk_manager_debug_ui: false,
+            show_log_registry_debug_ui: false,
+        }
     }
 }

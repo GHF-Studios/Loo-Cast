@@ -39,12 +39,10 @@ pub(crate) fn setup_main_render_target(
     };
     image.resize(size_extent3d);
 
-    assert_eq!(image.data.as_deref().unwrap().len(), (size_uvec2.x * size_uvec2.y * 4) as usize);
-
     let image_handle = images.add(image);
     let texture_id = egui_textures.add_image(image_handle.clone());
 
-    commands.insert_resource(GameViewRenderTarget { image_handle, image_size: size_uvec2, texture_id });
+    commands.insert_resource(GameViewRenderTarget { handle: image_handle, size: size_uvec2, id: texture_id });
 }
 
 #[tracing::instrument(skip_all)]
