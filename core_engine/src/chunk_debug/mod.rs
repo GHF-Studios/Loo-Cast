@@ -1,7 +1,10 @@
+// THIS WHOLE FILE IS A WIP AND WILL BE SPLIT INTO MODULES
+
 use bevy::prelude::*;
-use bevy_egui::{EguiContextSettings, EguiPrimaryContextPass, EguiContexts};
+use bevy_egui::{EguiContextSettings, EguiPrimaryContextPass};
 use bevy::render::camera::Viewport;
 use bevy_inspector_egui::egui;
+use egui::Color32;
 use egui_dock::{DockArea, DockState, Style, TabViewer, NodeIndex};
 
 use crate::camera::{components::MainCamera, resources::GameViewRenderTarget};
@@ -9,7 +12,7 @@ use crate::camera::{components::MainCamera, resources::GameViewRenderTarget};
 // === Resources ===
 
 #[derive(Resource, Default, PartialEq)]
-pub struct ChunkDebugUIState {
+pub struct GameViewUIState {
     pub show_chunk_manager: bool,
     pub show_intent_buffer: bool,
     pub show_intent_commit: bool,
@@ -36,12 +39,13 @@ pub struct StepConfig {
     pub seconds: f32,
 }
 
+// TODO: Move this entire module to the 'debug' module, except for maybe the implementations for all the Tabs except the GameView
 #[derive(Resource)]
-pub struct ChunkDebugDock {
+pub struct DebugDock {
     pub dock_state: DockState<EguiWindow>,
 }
 
-impl Default for ChunkDebugDock {
+impl Default for DebugDock {
     fn default() -> Self {
         let mut dock_state = DockState::new(vec![EguiWindow::GameView]);
         let tree = dock_state.main_surface_mut();
@@ -77,10 +81,11 @@ impl Plugin for ChunkDebugPlugin {
         app
             .register_type::<StepMode>()
             .register_type::<StepConfig>()
-            .init_resource::<ChunkDebugUIState>()
-            .init_resource::<ChunkDebugDock>()
+            .init_resource::<GameViewUIState>()
+            .init_resource::<DebugDock>()
             .add_systems(EguiPrimaryContextPass, render_chunk_debug_ui)
-            .add_systems(PostUpdate, set_camera_viewport.after(render_chunk_debug_ui));
+            //.add_systems(PostUpdate, set_camera_viewport.after(render_chunk_debug_ui))
+            ;
     }
 }
 
@@ -100,8 +105,9 @@ pub enum EguiWindow {
 }
 
 struct DebugTabViewer<'a> {
-    state: &'a mut ChunkDebugUIState,
+    state: &'a mut GameViewUIState,
     texture_id: Option<egui::TextureId>,
+    texture_size: Option<egui::Vec2>
 }
 
 impl TabViewer for DebugTabViewer<'_> {
@@ -114,14 +120,12 @@ impl TabViewer for DebugTabViewer<'_> {
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         match tab {
             EguiWindow::GameView => {
-                // record the rect for camera viewport
                 self.state.viewport_rect = Some(ui.clip_rect());
-                if let Some(texture_id) = self.texture_id {
-                    let size = ui.available_size();
-                    let image = egui::Image::new((texture_id, size));
-                    ui.add(image);
+
+                if let (Some(texture_id), Some(image_size)) = (self.texture_id, self.texture_size) {
+                    draw_game_view(ui, texture_id, image_size);
                 } else {
-                    ui.label("Loading Game View...");
+                    ui.label("Game View Render Texture not available yet.");
                 }
             }
             EguiWindow::Hierarchy => { ui.label("Hierarchy (todo)"); },
@@ -140,13 +144,46 @@ impl TabViewer for DebugTabViewer<'_> {
     }
 }
 
+// === Functions ===
+
+fn draw_game_view(
+    ui: &mut egui::Ui,
+    texture_id: egui::TextureId,
+    image_size: egui::Vec2, // actual render texture size
+) {
+    let available_size = ui.available_size();
+    let available_aspect = available_size.x / available_size.y;
+    let image_aspect = image_size.x / image_size.y;
+
+    warn!("Drawing game view with: AvailableSize '{}'", available_size);
+
+    // Fit with letterboxing or pillarboxing
+    let (final_size, offset) = if image_aspect > available_aspect {
+        // Image is wider → fit width, add vertical padding
+        let width = available_size.x;
+        let height = width / image_aspect;
+        let y_offset = (available_size.y - height) * 0.5;
+        (egui::Vec2::new(width, height), egui::Vec2::new(0.0, y_offset))
+    } else {
+        // Image is taller → fit height, add horizontal padding
+        let height = available_size.y;
+        let width = height * image_aspect;
+        let x_offset = (available_size.x - width) * 0.5;
+        (egui::Vec2::new(width, height), egui::Vec2::new(x_offset, 0.0))
+    };
+
+    let (rect, _) = ui.allocate_exact_size(available_size, egui::Sense::hover());
+
+    let image_rect = egui::Rect::from_min_size(rect.min + offset, final_size);
+    ui.painter().image(texture_id, image_rect, egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), Color32::WHITE);
+}
 
 // === Systems ===
 
 fn render_chunk_debug_ui(
     mut egui_contexts: bevy_egui::EguiContexts,
-    mut state: ResMut<ChunkDebugUIState>,
-    mut dock: ResMut<ChunkDebugDock>,
+    mut state: ResMut<GameViewUIState>,
+    mut dock: ResMut<DebugDock>,
     target: Res<GameViewRenderTarget>,
 ) {
     let ctx = match egui_contexts.ctx_mut() {
@@ -200,18 +237,19 @@ fn render_chunk_debug_ui(
     });
 
     // Dock area
-    egui::CentralPanel::default().show(ctx, |ui| {
+    egui::CentralPanel::default().show(ctx, |_ui| {
         DockArea::new(&mut dock.dock_state)
             .style(Style::from_egui(ctx.style().as_ref()))
             .show(ctx, &mut DebugTabViewer {
                 state: &mut state,
                 texture_id: Some(target.texture_id),
+                texture_size: Some(egui::Vec2::new(target.image_size.x as f32, target.image_size.y as f32)),
             });
     });
 }
 
 fn set_camera_viewport(
-    state: Res<ChunkDebugUIState>,
+    state: Res<GameViewUIState>,
     window: Query<&Window, With<bevy::window::PrimaryWindow>>,
     mut cam: Query<&mut Camera, With<MainCamera>>,
     egui_settings: Single<&EguiContextSettings>,
@@ -236,6 +274,8 @@ fn set_camera_viewport(
 
     let rect_end = physical_position + physical_size;
     let window_size = window.physical_size();
+
+    warn!("Setting camera viewport to: Pos '{}' | Size '{}'", physical_position, physical_size);
 
     if rect_end.x <= window_size.x && rect_end.y <= window_size.y {
         cam.viewport = Some(Viewport {

@@ -1,3 +1,4 @@
+use bevy::asset::RenderAssetUsages;
 use bevy::input::mouse::MouseScrollUnit;
 use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy::render::render_resource::{
@@ -17,18 +18,17 @@ pub(crate) fn setup_main_render_target(
     windows: Query<&Window>
 ) {
     let window = windows.single().unwrap();
-    let size = window.physical_size();
-
-    let size = Extent3d {
-        width: size.x,
-        height: size.y,
+    let size_uvec2 = window.physical_size();
+    let size_extent3d = Extent3d {
+        width: size_uvec2.x,
+        height: size_uvec2.y,
         depth_or_array_layers: 1,
     };
 
     let mut image = Image {
         texture_descriptor: TextureDescriptor {
             label: Some("Game View Render Target"),
-            size,
+            size: size_extent3d,
             dimension: TextureDimension::D2,
             format: TextureFormat::Bgra8UnormSrgb,
             usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
@@ -38,13 +38,14 @@ pub(crate) fn setup_main_render_target(
         },
         ..default()
     };
+    image.resize(size_extent3d);
 
-    image.resize(size);
+    assert_eq!(image.data.as_deref().unwrap().len(), (size_uvec2.x * size_uvec2.y * 4) as usize);
 
     let image_handle = images.add(image);
     let texture_id = egui_textures.add_image(image_handle.clone());
 
-    commands.insert_resource(GameViewRenderTarget { image_handle, texture_id });
+    commands.insert_resource(GameViewRenderTarget { image_handle, image_size: size_uvec2, texture_id });
 }
 
 #[tracing::instrument(skip_all)]
