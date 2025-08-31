@@ -1,5 +1,5 @@
 use crate::{
-    camera::components::MainCamera, chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager}, chunk_loader::components::ChunkLoader, log::resources::LogRegistry, ui::toolbar::resources::ToolbarState
+    camera::{components::MainCamera, resources::GameViewRenderTarget}, chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager}, chunk_loader::components::ChunkLoader, debug::{resources::{DebugSuiteDock, DebugSuiteUIState}, types::{DebugSuiteTabViewer, StepMode}}, log::resources::LogRegistry, ui::toolbar::resources::ToolbarState
 };
 
 use bevy::{prelude::*, window::PrimaryWindow};
@@ -7,6 +7,7 @@ use bevy_egui::{
     egui::{self, ScrollArea},
     EguiContexts,
 };
+use egui_dock::{DockArea, Style};
 use iyes_perf_ui::prelude::PerfUiRoot;
 
 use super::components::DebugObjectComponent;
@@ -109,7 +110,7 @@ pub(super) fn chunk_loader_inspection_system(chunk_loader_query: Query<Entity, W
 
 // TODO: Move into debug/ui/systems.rs or remove if not needed anymore
 #[tracing::instrument(skip_all)]
-pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctx: EguiContexts, toolbar_state: Res<ToolbarState>) {
+pub(super) fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctx: EguiContexts, toolbar_state: Res<ToolbarState>) {
     const GROUP_SIZE: usize = 50;
 
     fn display_chunk_group<T: std::fmt::Debug>(ui: &mut egui::Ui, label: &str, items: impl Iterator<Item = T>) {
@@ -165,7 +166,7 @@ pub fn chunk_manager_debug_ui(chunk_manager: Res<ChunkManager>, mut egui_ctx: Eg
 
 // TODO: Move into debug/ui/systems.rs or remove if not needed anymore
 #[tracing::instrument(skip_all)]
-pub fn log_registry_debug_ui(log_registry: Res<LogRegistry>, mut egui_ctx: EguiContexts, toolbar_state: Res<ToolbarState>) {
+pub(super) fn log_registry_debug_ui(log_registry: Res<LogRegistry>, mut egui_ctx: EguiContexts, toolbar_state: Res<ToolbarState>) {
     if !toolbar_state.show_log_registry_debug_ui {
         return;
     }
@@ -186,5 +187,74 @@ pub fn log_registry_debug_ui(log_registry: Res<LogRegistry>, mut egui_ctx: EguiC
             //    ui.label(format!("{}: {:?}", key, value));
             //}
         });
+    });
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn render_debug_suite_ui(
+    mut egui_contexts: bevy_egui::EguiContexts,
+    mut state: ResMut<DebugSuiteUIState>,
+    mut dock: ResMut<DebugSuiteDock>,
+    target: Res<GameViewRenderTarget>,
+) {
+    let ctx = match egui_contexts.ctx_mut() {
+        Ok(ctx) => ctx,
+        Err(_) => {
+            return
+        }
+    };
+
+    // Toolbar
+    egui::TopBottomPanel::top("debug_suite_toolbar").show(ctx, |ui| {
+        ui.horizontal(|ui| {
+            ui.checkbox(&mut state.show_chunk_manager, "Chunk Manager");
+            ui.checkbox(&mut state.show_intent_buffer, "Intent Buffer");
+            ui.checkbox(&mut state.show_intent_commit, "Intent Commit");
+            ui.checkbox(&mut state.show_chunk_inspector, "Chunk Inspector");
+
+            ui.separator();
+
+            if ui.button(if state.is_paused { "▶ Resume" } else { "⏸ Pause" }).clicked() {
+                state.is_paused = !state.is_paused;
+            }
+
+            if ui.button("⏭ Step").clicked() {
+                // step logic later
+            }
+
+            ui.label("Step Mode:");
+            egui::ComboBox::from_label("")
+                .selected_text(match state.step_mode {
+                    StepMode::None => "None",
+                    StepMode::Cycles => "Cycles",
+                    StepMode::Seconds => "Seconds",
+                })
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut state.step_mode, StepMode::None, "None");
+                    ui.selectable_value(&mut state.step_mode, StepMode::Cycles, "Cycles");
+                    ui.selectable_value(&mut state.step_mode, StepMode::Seconds, "Seconds");
+                });
+
+            match state.step_mode {
+                StepMode::Cycles => {
+                    ui.add(egui::DragValue::new(&mut state.step_config.cycles).speed(1).range(1..=100));
+                }
+                StepMode::Seconds => {
+                    ui.add(egui::DragValue::new(&mut state.step_config.seconds).speed(0.1).range(0.1..=10.0));
+                }
+                _ => {}
+            }
+        });
+    });
+
+    // Dock area
+    egui::CentralPanel::default().show(ctx, |_ui| {
+        DockArea::new(&mut dock.dock_state)
+            .style(Style::from_egui(ctx.style().as_ref()))
+            .show(ctx, &mut DebugSuiteTabViewer {
+                state: &mut state,
+                game_view_texture_id: Some(target.texture_id),
+                game_view_texture_size: Some(egui::Vec2::new(target.image_size.x as f32, target.image_size.y as f32)),
+            });
     });
 }

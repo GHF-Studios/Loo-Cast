@@ -28,7 +28,6 @@ pub mod types;
 pub mod camera;
 pub mod chunk;
 pub mod chunk_actor;
-pub mod chunk_debug;
 pub mod chunk_loader;
 pub mod config;
 pub mod debug;
@@ -49,7 +48,6 @@ use core_engine_macros::{composite_workflow, composite_workflow_return, register
 use workflow::WorkflowPlugin;
 use chunk::ChunkPlugin;
 use chunk_actor::ChunkActorPlugin;
-use chunk_debug::ChunkDebugPlugin;
 use chunk_loader::ChunkLoaderPlugin;
 use config::ConfigPlugin;
 use debug::DebugPlugin;
@@ -71,7 +69,6 @@ impl PluginGroup for SpacetimeEngineCorePlugins {
             .add(CameraPlugin)
             .add(ChunkPlugin)
             .add(ChunkActorPlugin)
-            .add(ChunkDebugPlugin)
             .add(ChunkLoaderPlugin)
             .add(ConfigPlugin)
             .add(DebugPlugin)
