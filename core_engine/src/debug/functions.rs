@@ -1,8 +1,8 @@
-use bevy::{asset::ReflectAsset, prelude::*, reflect::TypeRegistry};
+use bevy::{asset::ReflectAsset, ecs::system::SystemState, prelude::*, reflect::TypeRegistry};
 use egui::Color32;
 use egui_dock::{DockArea, Style};
 
-use crate::{camera::resources::GameViewRenderTarget, debug::types::{DebugSuiteTabViewer, InspectorSelection, StepMode}};
+use crate::{camera::resources::GameViewRenderTarget, debug::types::{DebugSuiteTabViewer, InspectorSelection, StepMode}, time::{resources::TimeInfo, types::{PauseState, StepConfig}}};
 
 use super::resources::{DebugSuiteUiDockState, DebugSuiteUiState};
 
@@ -27,12 +27,34 @@ pub(super) fn draw_debug_suite(
 
             ui.separator();
 
-            if ui.button(if state.is_paused { "▶ Resume" } else { "⏸ Pause" }).clicked() {
-                state.is_paused = !state.is_paused;
+            let mut system_state: SystemState<_> = SystemState::<(ResMut<TimeInfo>, ResMut<Time<Virtual>>)>::new(world);
+            let (mut time_info, mut virtual_time) = system_state.get_mut(world);
+            let pause_state = &mut time_info.pause_state;
+
+            // if virtual_time.is_paused() != pause_state.is_paused() {
+            //     unreachable!("Time<Virtual> pause state and TimeInfo pause state are out of sync");
+            // }
+
+            if ui.button(if pause_state.is_paused() { "▶ Resume" } else { "⏸ Pause" }).clicked() {
+                match pause_state {
+                    PauseState::Running => {
+                        *pause_state = PauseState::Paused;
+                        virtual_time.pause();
+                    },
+                    PauseState::Paused => {
+                        *pause_state = PauseState::Running;
+                        virtual_time.unpause();
+                    },
+                    PauseState::Step => {},
+                }
             }
 
             if ui.button("⏭ Step").clicked() {
-                // step logic later
+                match time_info.pause_state {
+                    PauseState::Running => { return; },
+                    PauseState::Paused => { time_info.pause_state = PauseState::Step; },
+                    PauseState::Step => { return; }
+                }
             }
 
             ui.label("Step Mode:");
@@ -43,17 +65,16 @@ pub(super) fn draw_debug_suite(
                     StepMode::Seconds => "Seconds",
                 })
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut state.step_mode, StepMode::None, "None");
-                    ui.selectable_value(&mut state.step_mode, StepMode::Cycles, "Cycles");
-                    ui.selectable_value(&mut state.step_mode, StepMode::Seconds, "Seconds");
+                    ui.selectable_value(&mut time_info.step_config, StepConfig::Cycles(1), "Cycles");
+                    ui.selectable_value(&mut time_info.step_config, StepConfig::Seconds(1.0), "Seconds");
                 });
 
             match state.step_mode {
                 StepMode::Cycles => {
-                    ui.add(egui::DragValue::new(&mut state.step_config.cycles).speed(1).range(1..=100));
+                    ui.add(egui::DragValue::new(&mut state.step_config.cycles).speed(1));
                 }
                 StepMode::Seconds => {
-                    ui.add(egui::DragValue::new(&mut state.step_config.seconds).speed(0.1).range(0.1..=10.0));
+                    ui.add(egui::DragValue::new(&mut state.step_config.seconds).speed(1.0));
                 }
                 _ => {}
             }

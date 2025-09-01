@@ -1,5 +1,5 @@
 use crate::{
-    camera::{components::MainCamera, resources::GameViewRenderTarget}, chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager}, chunk_loader::components::ChunkLoader, debug::resources::{DebugSuiteUiDockState, DebugSuiteUiState}, log::resources::LogRegistry, ui::toolbar::resources::ToolbarState
+    camera::{components::MainCamera, resources::GameViewRenderTarget}, chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager}, chunk_loader::components::ChunkLoader, debug::resources::{DebugSuiteUiDockState, DebugSuiteUiState}, input::states::InputMode, log::resources::LogRegistry, ui::toolbar::resources::ToolbarState
 };
 
 use bevy::{prelude::*, render::camera::RenderTarget, window::{PrimaryWindow, WindowRef}};
@@ -95,7 +95,10 @@ pub(super) fn chunk_inspection_system(
 }
 
 #[tracing::instrument(skip_all)]
-pub(super) fn chunk_loader_inspection_system(chunk_loader_query: Query<Entity, With<ChunkLoader>>, keys: Res<ButtonInput<KeyCode>>) {
+pub(super) fn chunk_loader_inspection_system(
+    chunk_loader_query: Query<Entity, With<ChunkLoader>>, 
+    keys: Res<ButtonInput<KeyCode>>, 
+) {
     if keys.just_pressed(KeyCode::KeyL) {
         let mut chunk_loader_entities = vec![];
         for chunk_loader_entity in chunk_loader_query.iter() {
@@ -192,16 +195,28 @@ pub(super) fn log_registry_debug_ui(log_registry: Res<LogRegistry>, mut egui_ctx
 pub(super) fn toggle_debug_suite_ui_system(
     render_target: Res<GameViewRenderTarget>, 
     mut ui_state: ResMut<DebugSuiteUiState>, 
-    keys: Res<ButtonInput<KeyCode>>, 
+    keys: Res<ButtonInput<KeyCode>>,
+    input_mode: Res<State<InputMode>>,
+    mut next_input_mode: ResMut<NextState<InputMode>>,
     mut main_camera_query: Single<&mut Camera, With<MainCamera>>
 ) {
     if keys.just_pressed(KeyCode::F3) {
         ui_state.enabled = !ui_state.enabled;
         if ui_state.enabled {
             main_camera_query.target = RenderTarget::Image(render_target.handle.clone().into());
+            
+            if input_mode.is_game() {
+                next_input_mode.set(InputMode::DebugSuite);
+            }
+
             info!("Debug suite UI enabled.");
         } else {
             main_camera_query.target = RenderTarget::Window(WindowRef::Primary);
+
+            if input_mode.is_debug_suite() {
+                next_input_mode.set(InputMode::Game);
+            }
+
             info!("Debug suite UI disabled.");
         }
     }

@@ -37,7 +37,6 @@ pub struct DebugSuiteUiState {
     pub show_intent_buffer: bool,
     pub show_intent_commit: bool,
     pub show_chunk_inspector: bool,
-    pub is_paused: bool,
     pub step_mode: StepMode,
     pub step_config: StepConfig,
     pub viewport_rect: Option<egui::Rect>,

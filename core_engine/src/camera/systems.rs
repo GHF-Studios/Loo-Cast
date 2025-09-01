@@ -6,6 +6,7 @@ use bevy::render::render_resource::{
 };
 
 use crate::config::statics::CONFIG;
+use crate::input::states::InputMode;
 
 use super::resources::GameViewRenderTarget;
 use super::types::ZoomFactor;
@@ -49,6 +50,7 @@ pub(crate) fn setup_main_render_target(
 pub(crate) fn main_camera_zoom_system(
     mut projection_query: Query<&mut Projection, With<Camera>>,
     mut scroll_event_reader: EventReader<MouseWheel>,
+    input_mode: Res<State<InputMode>>,
     time: Res<Time<Virtual>>,
     mut zoom_factor: Local<ZoomFactor>,
 ) {
@@ -56,23 +58,24 @@ pub(crate) fn main_camera_zoom_system(
     let max_zoom = CONFIG.get::<f32>("camera/max_zoom");
     let base_zoom_speed = CONFIG.get::<f32>("camera/base_zoom_speed");
 
-    for event in scroll_event_reader.read() {
-        let scroll_delta = match event.unit {
-            MouseScrollUnit::Line => -event.y,
-            MouseScrollUnit::Pixel => event.y * -0.01,
-        };
+    if input_mode.is_game() {
+        for event in scroll_event_reader.read() {
+            let scroll_delta = match event.unit {
+                MouseScrollUnit::Line => -event.y,
+                MouseScrollUnit::Pixel => event.y * -0.01,
+            };
 
-        let zoom_speed = base_zoom_speed * zoom_factor.0;
+            let zoom_speed = base_zoom_speed * zoom_factor.0;
+            zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_secs()).clamp(min_zoom, max_zoom);
+        }
 
-        zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_secs()).clamp(min_zoom, max_zoom);
-    }
-
-    for mut projection in projection_query.iter_mut() {
-        match projection.as_mut() {
-            Projection::Orthographic(ortho) => {
-                ortho.scale = zoom_factor.0;
+        for mut projection in projection_query.iter_mut() {
+            match projection.as_mut() {
+                Projection::Orthographic(ortho) => {
+                    ortho.scale = zoom_factor.0;
+                }
+                _ => panic!("Main camera is not orthographic/2d!"),
             }
-            _ => panic!("Main camera is not orthographic/2d!"),
         }
     }
 }

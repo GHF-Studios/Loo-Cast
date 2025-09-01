@@ -4,12 +4,14 @@ use bevy::asset::UntypedAssetId;
 use bevy::ecs::reflect::AppTypeRegistry;
 use bevy::ecs::world::World;
 use bevy::prelude::Reflect;
+use bevy::state::state::State;
 use bevy_inspector_egui::bevy_inspector::by_type_id::{ui_for_asset, ui_for_resource};
 use bevy_inspector_egui::bevy_inspector::hierarchy::hierarchy_ui;
 use bevy_inspector_egui::bevy_inspector::{ui_for_entities_shared_components, ui_for_entity_with_children};
 use egui_dock::TabViewer;
 
 use crate::debug::functions::{select_asset, select_resource};
+use crate::input::states::InputMode;
 
 use super::functions::draw_game_view;
 use super::resources::DebugSuiteUiState;
@@ -84,6 +86,13 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
         match tab {
             DebugSuiteTab::GameView => {
                 self.state.viewport_rect = Some(ui.clip_rect());
+
+                let input_mode = self.world.resource::<State<InputMode>>();
+                if input_mode.is_game() {
+                    let rect = ui.clip_rect();
+                    let stroke = egui::Stroke::new(12.0, egui::Color32::RED);
+                    ui.painter().rect_stroke(rect, 0.0, stroke, egui::StrokeKind::Middle);
+                }
 
                 if let (Some(texture_id), Some(texture_size)) = (self.game_view_texture_id, self.game_view_texture_size) {
                     draw_game_view(ui, texture_id, texture_size);

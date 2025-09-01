@@ -9,6 +9,7 @@ use crate::time::resources::VirtualPaused;
 use super::resources::TimeInfo;
 use super::types::{PauseState, StepConfig};
 
+#[tracing::instrument(skip_all)]
 pub(super) fn post_update_game_time_info(
     mut time_info: ResMut<TimeInfo>,
     mut virtual_time: ResMut<Time<Virtual>>,
@@ -96,6 +97,7 @@ pub(super) fn post_update_game_time_info(
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub(super) fn extract_game_time_info(
     world: &mut World,
 ) {
@@ -108,6 +110,7 @@ pub(super) fn extract_game_time_info(
     world.insert_resource(extracted_time_info);
 }
 
+#[tracing::instrument(skip_all)]
 pub(super) fn extract_virtual_paused(
     world: &mut World,
 ) {
@@ -120,6 +123,7 @@ pub(super) fn extract_virtual_paused(
     world.insert_resource(extracted_virtual_paused);
 }
 
+#[tracing::instrument(skip_all)]
 pub(super) fn sync_virtual_paused(mut paused: ResMut<VirtualPaused>, time: Res<Time<Virtual>>) {
     paused.0 = time.is_paused();
 }

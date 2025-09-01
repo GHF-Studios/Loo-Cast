@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use core_engine_macros::{composite_workflow, composite_workflow_return};
 
 use crate::{
-    chunk_loader::components::ChunkLoader, config::statics::CONFIG, player::resources::PlayerLifecycle, utils::components::{DropHook, InitHook}, workflow::functions::handle_composite_workflow_return_now
+    chunk_loader::components::ChunkLoader, config::statics::CONFIG, input::states::InputMode, player::resources::PlayerLifecycle, utils::components::{DropHook, InitHook}, workflow::functions::handle_composite_workflow_return_now
 };
 
 #[tracing::instrument(skip_all)]
@@ -12,6 +12,7 @@ pub(super) fn update_player_system(
     mut transform_query: Query<&mut Transform>,
     mut player_state_resource: ResMut<PlayerLifecycle>,
     keys: Res<ButtonInput<KeyCode>>,
+    input_mode: Res<State<InputMode>>,
     time: Res<Time<Virtual>>,
 ) {
     let is_player_update_allowed = {
@@ -96,7 +97,7 @@ pub(super) fn update_player_system(
                 return;
             }
 
-            if keys.just_pressed(KeyCode::Space) {
+            if keys.just_pressed(KeyCode::Space) && input_mode.is_game() {
                 let handle = composite_workflow!(DespawnPlayer, {
                     workflow!(E, Player::DespawnPlayer);
                 });
@@ -109,16 +110,16 @@ pub(super) fn update_player_system(
             if let Ok(mut transform) = transform_query.get_mut(entity) {
                 let mut direction = Vec3::ZERO;
 
-                if keys.pressed(KeyCode::KeyW) {
+                if keys.pressed(KeyCode::KeyW) && input_mode.is_game() {
                     direction.y += 1.0;
                 }
-                if keys.pressed(KeyCode::KeyS) {
+                if keys.pressed(KeyCode::KeyS) && input_mode.is_game() {
                     direction.y -= 1.0;
                 }
-                if keys.pressed(KeyCode::KeyA) {
+                if keys.pressed(KeyCode::KeyA) && input_mode.is_game() {
                     direction.x -= 1.0;
                 }
-                if keys.pressed(KeyCode::KeyD) {
+                if keys.pressed(KeyCode::KeyD) && input_mode.is_game() {
                     direction.x += 1.0;
                 }
 

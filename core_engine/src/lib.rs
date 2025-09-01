@@ -34,11 +34,13 @@ pub mod debug;
 pub mod entity;
 pub mod follower;
 pub mod gpu;
+pub mod input;
 pub mod log;
 pub mod player;
 pub mod time;
 pub mod ui;
 pub mod utils;
+pub mod window;
 pub mod workflow;
 
 use crate::workflow::functions::handle_composite_workflow_return_later;
@@ -54,11 +56,13 @@ use debug::DebugPlugin;
 use entity::EntityPlugin;
 use follower::FollowerPlugin;
 use gpu::GpuPlugin;
+use input::InputPlugin;
 use log::LogPlugin;
 use player::PlayerPlugin;
 use time::TimePlugin;
 use ui::UiPlugin;
 use utils::UtilsPlugin;
+use window::WindowPlugin;
 
 pub struct SpacetimeEngineCorePlugins;
 impl PluginGroup for SpacetimeEngineCorePlugins {
@@ -75,11 +79,13 @@ impl PluginGroup for SpacetimeEngineCorePlugins {
             .add(EntityPlugin)
             .add(FollowerPlugin)
             .add(GpuPlugin)
+            .add(InputPlugin)
             .add(LogPlugin)
             .add(PlayerPlugin)
             .add(TimePlugin)
             .add(UiPlugin)
             .add(UtilsPlugin)
+            .add(WindowPlugin)
     }
 }
 
