@@ -9,6 +9,7 @@ define_workflow_mod_OLD! {
 
                 use crate::chunk::{components::Chunk, resources::ChunkManager, functions::chunk_pos_to_world, types::ChunkOwnerId};
                 use crate::config::statics::CONFIG;
+                use crate::debug::observers::on_click_select;
             },
             user_items: {
                 pub struct SpawnChunkInput {
@@ -80,7 +81,7 @@ define_workflow_mod_OLD! {
                                         owner_id: Some(chunk_owner_id.clone()),
                                     },
                                     chunk_name
-                                )).id();
+                                )).observe(on_click_select).id();
 
                                 chunk_manager.loaded_chunks.insert(chunk_coord);
                                 chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner_id.clone());

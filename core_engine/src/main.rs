@@ -20,7 +20,7 @@ fn main() {
     setup_tracing();
     let _span = info_span!("main").entered();
     configure_low_level_stuff();
-    let bevy_plugins = configure_bevy_default_plugins();
+    let bevy_plugins = configure_third_party_plugins();
     let app = configure_app(bevy_plugins);
     run_app(app);
 }
@@ -46,7 +46,7 @@ fn configure_low_level_stuff() {
     std::env::set_var("RUST_BACKTRACE", if ENABLE_BACKTRACE { "1" } else { "0" });
 }
 
-fn configure_bevy_default_plugins() -> PluginGroupBuilder {
+fn configure_third_party_plugins() -> PluginGroupBuilder {
     info!("Configuring bevy's DefaultPlugins");
 
     DefaultPlugins
@@ -64,6 +64,8 @@ fn configure_bevy_default_plugins() -> PluginGroupBuilder {
         .add(EntityCountDiagnosticsPlugin)
         .add(SystemInformationDiagnosticsPlugin)
         .add(EguiPlugin::default())
+        .add(MeshPickingPlugin)
+        .add_group(DefaultPickingPlugins)
 }
 
 fn configure_app(bevy_plugins: PluginGroupBuilder) -> App {

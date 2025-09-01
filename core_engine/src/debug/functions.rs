@@ -2,10 +2,11 @@ use bevy::{asset::ReflectAsset, ecs::system::SystemState, prelude::*, reflect::T
 use egui::Color32;
 use egui_dock::{DockArea, Style};
 
-use crate::{camera::resources::GameViewRenderTarget, debug::types::{DebugSuiteTabViewer, InspectorSelection, StepMode}, time::{resources::TimeInfo, types::{PauseState, StepConfig}}};
+use crate::{camera::resources::GameViewRenderTarget, debug::types::{DebugSuiteTabViewer, InspectorSelection}, time::{resources::TimeInfo, types::{PauseState, StepConfig}}};
 
 use super::resources::{DebugSuiteUiDockState, DebugSuiteUiState};
 
+#[tracing::instrument(skip_all)]
 pub(super) fn draw_debug_suite(
     state: &mut DebugSuiteUiState,
     dock_state: &mut DebugSuiteUiDockState,
@@ -59,24 +60,22 @@ pub(super) fn draw_debug_suite(
 
             ui.label("Step Mode:");
             egui::ComboBox::from_label("")
-                .selected_text(match state.step_mode {
-                    StepMode::None => "None",
-                    StepMode::Cycles => "Cycles",
-                    StepMode::Seconds => "Seconds",
+                .selected_text(match time_info.step_config {
+                    StepConfig::Cycles(_) => "Cycles",
+                    StepConfig::Seconds(_) => "Seconds",
                 })
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut time_info.step_config, StepConfig::Cycles(1), "Cycles");
                     ui.selectable_value(&mut time_info.step_config, StepConfig::Seconds(1.0), "Seconds");
                 });
 
-            match state.step_mode {
-                StepMode::Cycles => {
-                    ui.add(egui::DragValue::new(&mut state.step_config.cycles).speed(1));
+            match &mut time_info.step_config {
+                StepConfig::Cycles(cycles) => {
+                    ui.add(egui::DragValue::new(cycles).speed(1));
                 }
-                StepMode::Seconds => {
-                    ui.add(egui::DragValue::new(&mut state.step_config.seconds).speed(1.0));
+                StepConfig::Seconds(seconds) => {
+                    ui.add(egui::DragValue::new(seconds).speed(1));
                 }
-                _ => {}
             }
         });
     });
@@ -94,6 +93,7 @@ pub(super) fn draw_debug_suite(
     });
 }
 
+#[tracing::instrument(skip_all)]
 pub(super) fn draw_game_view(
     ui: &mut egui::Ui,
     texture_id: egui::TextureId,
@@ -124,6 +124,7 @@ pub(super) fn draw_game_view(
     ui.painter().image(texture_id, image_rect, egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), Color32::WHITE);
 }
 
+#[tracing::instrument(skip_all)]
 pub(super) fn select_resource(
     ui: &mut egui::Ui,
     type_registry: &TypeRegistry,
@@ -153,6 +154,7 @@ pub(super) fn select_resource(
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub(super) fn select_asset(
     ui: &mut egui::Ui,
     type_registry: &TypeRegistry,
@@ -178,7 +180,7 @@ pub(super) fn select_asset(
         ui.collapsing(format!("{asset_name} ({})", handles.len()), |ui| {
             for handle in handles {
                 let selected = match *selection {
-                    InspectorSelection::Asset(_, _, selected_id) => selected_id == handle,
+                    InspectorSelection::Asset(_, _, selected_id) => selected_id.unwrap() == handle,
                     _ => false,
                 };
 
@@ -187,7 +189,7 @@ pub(super) fn select_asset(
                     .clicked()
                 {
                     *selection =
-                        InspectorSelection::Asset(asset_type_id, asset_name.to_string(), handle);
+                        InspectorSelection::Asset(asset_type_id, asset_name.to_string(), Some(handle));
                 }
             }
         });

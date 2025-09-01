@@ -17,7 +17,7 @@ impl Plugin for CameraPlugin {
         app
             .insert_resource(ClearColor(Color::srgb(0.0, 0.0, 0.0)))
             .add_systems(PreStartup, setup_main_render_target)
-            .add_systems(Update, main_camera_zoom_system.run_if(run_if_not_paused))
+            .add_systems(Update, main_camera_zoom_system)
             .register_type::<MainCamera>()
             .register_type::<ZoomFactor>();
     }

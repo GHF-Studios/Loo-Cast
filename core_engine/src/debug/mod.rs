@@ -1,5 +1,6 @@
 pub mod components;
 pub mod functions;
+pub mod observers;
 pub mod resources;
 pub mod systems;
 pub mod types;

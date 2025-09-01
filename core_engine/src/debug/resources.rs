@@ -30,7 +30,8 @@ impl Default for DebugSuiteUiDockState {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Reflect)]
+#[reflect(Resource)]
 pub struct DebugSuiteUiState {
     pub enabled: bool,
     pub show_chunk_manager: bool,
@@ -39,7 +40,10 @@ pub struct DebugSuiteUiState {
     pub show_chunk_inspector: bool,
     pub step_mode: StepMode,
     pub step_config: StepConfig,
+    #[reflect(ignore)]
     pub viewport_rect: Option<egui::Rect>,
+    #[reflect(ignore)]
     pub selected_entities: SelectedEntities,
+    #[reflect(ignore)]
     pub selection: InspectorSelection,
 }

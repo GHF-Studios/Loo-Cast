@@ -44,7 +44,7 @@ pub struct StepConfig {
     pub seconds: f32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub enum DebugSuiteTab {
     GameView,
     Hierarchy,
@@ -57,12 +57,12 @@ pub enum DebugSuiteTab {
     ChunkInspector,
 }
 
-#[derive(Default, Eq, PartialEq)]
+#[derive(Clone, Default, Eq, PartialEq, Reflect)]
 pub enum InspectorSelection {
     #[default]
     Entities,
     Resource(TypeId, String),
-    Asset(TypeId, String, UntypedAssetId),
+    Asset(TypeId, String, #[reflect(ignore)]Option<UntypedAssetId>),
 }
 
 pub(super) struct DebugSuiteTabViewer<'a> {
@@ -124,6 +124,7 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
                     )
                 }
                 InspectorSelection::Asset(type_id, ref name, handle) => {
+                    let handle = handle.unwrap();
                     ui.label(name);
                     ui_for_asset(
                         self.world,

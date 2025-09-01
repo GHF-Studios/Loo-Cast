@@ -33,7 +33,7 @@ pub(super) fn update_player_system(
         PlayerLifecycle::None => {
             let _fsm_case_span = info_span!("case: None").entered();
 
-            if is_player_update_allowed && keys.just_pressed(KeyCode::Space) {
+            if is_player_update_allowed && keys.just_pressed(KeyCode::Space) && input_mode.is_game() {
                 let handle = composite_workflow!(SpawnPlayer, move out entity: Entity, {
                     let spawn_player_output = workflow!(OE, Player::SpawnPlayer);
                     let entity = spawn_player_output.player_entity;
