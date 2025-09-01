@@ -9,8 +9,6 @@ use components::MainCamera;
 use systems::{setup_main_render_target, main_camera_zoom_system};
 use types::ZoomFactor;
 
-use crate::time::run_conditions::run_if_not_paused;
-
 pub(crate) struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {

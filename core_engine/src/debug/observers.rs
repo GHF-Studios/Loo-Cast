@@ -10,6 +10,8 @@ pub fn on_click_select(
     mut egui_contexts: EguiContexts,
     input_mode: Res<State<InputMode>>,
 ) {
+    error!("Click select triggered");
+
     let ctx = match egui_contexts.ctx_mut() {
         Ok(ctx) => ctx,
         Err(_) => {

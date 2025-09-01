@@ -27,8 +27,8 @@ debug = false
 
 [dependencies]
 core_engine_macros = { path = "../core_engine_macros" }
-bevy = "0.16.1"
-bevy_egui = "0.36"
+bevy = { version = "0.16.1", features = ["bevy_picking"] }
+bevy_egui = { version = "0.36", features = ["picking"] }
 bevy-inspector-egui = "0.33.1"
 bevy_rapier2d = { version = "0.31.0", features = [ "debug-render-2d", "serde-serialize" ] }
 bevy_consumable_event = { path = "../bevy_consumable_event" }

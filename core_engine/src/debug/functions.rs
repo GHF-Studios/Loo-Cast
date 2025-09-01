@@ -32,10 +32,6 @@ pub(super) fn draw_debug_suite(
             let (mut time_info, mut virtual_time) = system_state.get_mut(world);
             let pause_state = &mut time_info.pause_state;
 
-            // if virtual_time.is_paused() != pause_state.is_paused() {
-            //     unreachable!("Time<Virtual> pause state and TimeInfo pause state are out of sync");
-            // }
-
             if ui.button(if pause_state.is_paused() { "▶ Resume" } else { "⏸ Pause" }).clicked() {
                 match pause_state {
                     PauseState::Running => {

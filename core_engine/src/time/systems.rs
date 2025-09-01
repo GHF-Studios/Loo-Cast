@@ -4,10 +4,30 @@ use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
 use bevy::render::MainWorld;
 
+use crate::config::statics::CONFIG;
 use crate::time::resources::VirtualPaused;
 
 use super::resources::TimeInfo;
 use super::types::{PauseState, StepConfig};
+
+#[tracing::instrument(skip_all)]
+pub(super) fn configure_virtual_time(mut time: ResMut<Time<Virtual>>, mut time_info: ResMut<TimeInfo>) {
+    let start_paused = CONFIG.get::<bool>("time/start_paused");
+
+    if start_paused {
+        let start_step_secs = CONFIG.get::<f32>("time/start_step_secs");
+        time_info.step_config = StepConfig::Seconds(start_step_secs);
+        time_info.pause_state = PauseState::Step;
+        time.pause();
+    } else {
+        time.unpause();
+    }
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn sync_virtual_paused(mut paused: ResMut<VirtualPaused>, time: Res<Time<Virtual>>) {
+    paused.0 = time.is_paused();
+}
 
 #[tracing::instrument(skip_all)]
 pub(super) fn post_update_game_time_info(
@@ -121,9 +141,4 @@ pub(super) fn extract_virtual_paused(
     };
 
     world.insert_resource(extracted_virtual_paused);
-}
-
-#[tracing::instrument(skip_all)]
-pub(super) fn sync_virtual_paused(mut paused: ResMut<VirtualPaused>, time: Res<Time<Virtual>>) {
-    paused.0 = time.is_paused();
 }
