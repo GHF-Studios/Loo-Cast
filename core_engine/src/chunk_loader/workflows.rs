@@ -379,33 +379,33 @@ define_workflow_mod_OLD! {
 
                                 Outcome::Done(())
                             } else {
-                                //let not_spawned: Vec<_> = spawn_chunk_states
-                                //    .iter()
-                                //    .filter(|s| !s.is_spawned)
-                                //    .map(|s| s.coord)
-                                //    .collect();
-                                //
-                                //let not_transferred: Vec<_> = transfer_chunk_ownership_states
-                                //    .iter()
-                                //    .filter(|ot| !ot.is_ownership_transfered)
-                                //    .map(|s| s.coord)
-                                //    .collect();
-                                //
-                                //if !not_spawned.is_empty() {
-                                //    warn!(
-                                //        "Waiting: {} chunks still not spawned: {:?})",
-                                //        not_spawned.len(),
-                                //        not_spawned
-                                //    );
-                                //}
-                                //
-                                //if !not_transferred.is_empty() {
-                                //    warn!(
-                                //        "Waiting: {} chunks still not transferred: {:?})",
-                                //        not_transferred.len(),
-                                //        not_transferred
-                                //    );
-                                //}
+                                let not_spawned: Vec<_> = spawn_chunk_states
+                                    .iter()
+                                    .filter(|s| !s.is_spawned)
+                                    .map(|s| s.coord)
+                                    .collect();
+                                
+                                let not_transferred: Vec<_> = transfer_chunk_ownership_states
+                                    .iter()
+                                    .filter(|ot| !ot.is_ownership_transfered)
+                                    .map(|s| s.coord)
+                                    .collect();
+                                
+                                if !not_spawned.is_empty() {
+                                    warn!(
+                                        "Waiting: {} chunks still not spawned: {:?})",
+                                        not_spawned.len(),
+                                        not_spawned
+                                    );
+                                }
+                                
+                                if !not_transferred.is_empty() {
+                                    warn!(
+                                        "Waiting: {} chunks still not transferred: {:?})",
+                                        not_transferred.len(),
+                                        not_transferred
+                                    );
+                                }
 
                                 Outcome::Wait(State {
                                     spawn_chunk_states,
