@@ -44,10 +44,7 @@ impl WorkflowResponse {
             Self::OE(r) => (r.module_name, r.workflow_name),
         };
 
-        WorkflowID {
-            module,
-            workflow
-        }
+        WorkflowID { module, workflow }
     }
 }
 
