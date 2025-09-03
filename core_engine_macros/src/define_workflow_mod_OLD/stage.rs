@@ -3,7 +3,11 @@ use super::core_type::CoreTypes;
 use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{braced, bracketed, parse::Parse, parse::ParseStream, Ident, LitInt, Result, Token};
+use syn::{
+    braced, bracketed,
+    parse::{Parse, ParseStream},
+    Ident, LitInt, Result, Token,
+};
 
 pub struct Ecs;
 pub struct Render;
@@ -63,6 +67,7 @@ pub enum Stage {
 pub struct TypedStage<T> {
     pub name: Ident,
     pub index: usize,
+    pub run_when_paused: bool,
     pub core_types: CoreTypes<T>,
     pub core_functions: CoreFunctions<T>,
 }
@@ -74,6 +79,8 @@ impl Stage {
         let _stage_name: Ident = lookahead.parse()?;
         let _: Token![:] = lookahead.parse()?;
         let stage_type: Ident = lookahead.parse()?;
+        let _: Token![,] = lookahead.parse()?;
+        let _run_type: Ident = lookahead.parse()?;
 
         match stage_type.to_string().as_str() {
             "Ecs" => TypedStage::<Ecs>::parse(input, index).map(Stage::Ecs),
@@ -81,7 +88,7 @@ impl Stage {
             "Async" => TypedStage::<Async>::parse(input, index).map(Stage::Async),
             "EcsWhile" => TypedStage::<EcsWhile>::parse(input, index).map(Stage::EcsWhile),
             "RenderWhile" => TypedStage::<RenderWhile>::parse(input, index).map(Stage::RenderWhile),
-            _ => Err(input.error("Invalid stage type")),
+            _ => Err(input.error("Invalid stage type. Options: Ecs, Render, Async, EcsWhile, RenderWhile")),
         }
     }
 
@@ -264,6 +271,14 @@ impl TypedStage<Ecs> {
         let stage_name: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
         let _stage_type: Ident = input.parse()?;
+        let _: Token![,] = input.parse()?;
+        let run_type: Ident = input.parse()?;
+
+        let run_when_paused = match run_type.to_string().as_str() {
+            "WhenUnpaused" => false,
+            "Always" => true,
+            _ => return Err(input.error("Invalid run type. Options: WhenUnpaused, Always")),
+        };
 
         let stage_content;
         braced!(stage_content in input);
@@ -285,6 +300,7 @@ impl TypedStage<Ecs> {
         Ok(TypedStage {
             name: stage_name,
             index,
+            run_when_paused,
             core_types,
             core_functions,
         })
@@ -296,6 +312,14 @@ impl TypedStage<Render> {
         let stage_name: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
         let _stage_type: Ident = input.parse()?;
+        let _: Token![,] = input.parse()?;
+        let run_type: Ident = input.parse()?;
+
+        let run_when_paused = match run_type.to_string().as_str() {
+            "WhenUnpaused" => false,
+            "Always" => true,
+            _ => return Err(input.error("Invalid run type. Options: WhenUnpaused, Always")),
+        };
 
         let stage_content;
         braced!(stage_content in input);
@@ -317,6 +341,7 @@ impl TypedStage<Render> {
         Ok(TypedStage {
             name: stage_name,
             index,
+            run_when_paused,
             core_types,
             core_functions,
         })
@@ -328,6 +353,14 @@ impl TypedStage<Async> {
         let stage_name: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
         let _stage_type: Ident = input.parse()?;
+        let _: Token![,] = input.parse()?;
+        let run_type: Ident = input.parse()?;
+
+        let run_when_paused = match run_type.to_string().as_str() {
+            "WhenUnpaused" => false,
+            "Always" => true,
+            _ => return Err(input.error("Invalid run type. Options: WhenUnpaused, Always")),
+        };
 
         let stage_content;
         braced!(stage_content in input);
@@ -349,6 +382,7 @@ impl TypedStage<Async> {
         Ok(TypedStage {
             name: stage_name,
             index,
+            run_when_paused,
             core_types,
             core_functions,
         })
@@ -360,6 +394,14 @@ impl TypedStage<EcsWhile> {
         let stage_name: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
         let _stage_type: Ident = input.parse()?;
+        let _: Token![,] = input.parse()?;
+        let run_type: Ident = input.parse()?;
+
+        let run_when_paused = match run_type.to_string().as_str() {
+            "WhenUnpaused" => false,
+            "Always" => true,
+            _ => return Err(input.error("Invalid run type. Options: WhenUnpaused, Always")),
+        };
 
         let stage_content;
         braced!(stage_content in input);
@@ -381,6 +423,7 @@ impl TypedStage<EcsWhile> {
         Ok(TypedStage {
             name: stage_name,
             index,
+            run_when_paused,
             core_types,
             core_functions,
         })
@@ -392,6 +435,14 @@ impl TypedStage<RenderWhile> {
         let stage_name: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
         let _stage_type: Ident = input.parse()?;
+        let _: Token![,] = input.parse()?;
+        let run_type: Ident = input.parse()?;
+
+        let run_when_paused = match run_type.to_string().as_str() {
+            "WhenUnpaused" => false,
+            "Always" => true,
+            _ => return Err(input.error("Invalid run type. Options: WhenUnpaused, Always")),
+        };
 
         let stage_content;
         braced!(stage_content in input);
@@ -413,6 +464,7 @@ impl TypedStage<RenderWhile> {
         Ok(TypedStage {
             name: stage_name,
             index,
+            run_when_paused,
             core_types,
             core_functions,
         })

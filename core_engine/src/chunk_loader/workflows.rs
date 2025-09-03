@@ -21,7 +21,7 @@ define_workflow_mod_OLD! {
             },
             user_items: {},
             stages: [
-                Categorize: Ecs {
+                Categorize: Ecs, WhenUnpaused {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader, Option<&'static DropHook::<ChunkLoader>>)>,
@@ -120,7 +120,7 @@ define_workflow_mod_OLD! {
             },
             user_items: {},
             stages: [
-                ExtractUnloadChunkInputs: Ecs {
+                ExtractUnloadChunkInputs: Ecs, WhenUnpaused {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             chunk_manager: Res<'w, ChunkManager>,
@@ -225,7 +225,7 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                ValidateAndLoadAndWait: EcsWhile {
+                ValidateAndLoadAndWait: EcsWhile, WhenUnpaused {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             chunk_query: Query<'w, 's, &'static Chunk>,
@@ -385,13 +385,13 @@ define_workflow_mod_OLD! {
                                     .filter(|s| !s.is_spawned)
                                     .map(|s| s.coord)
                                     .collect();
-                                
+
                                 let not_transferred: Vec<_> = transfer_chunk_ownership_states
                                     .iter()
                                     .filter(|ot| !ot.is_ownership_transfered)
                                     .map(|s| s.coord)
                                     .collect();
-                                
+
                                 if !not_spawned.is_empty() {
                                     warn!(
                                         "Waiting: {} chunks still not spawned: {:?})",
@@ -399,7 +399,7 @@ define_workflow_mod_OLD! {
                                         not_spawned
                                     );
                                 }
-                                
+
                                 if !not_transferred.is_empty() {
                                     warn!(
                                         "Waiting: {} chunks still not transferred: {:?})",
@@ -468,7 +468,7 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                UnloadAndWait: EcsWhile {
+                UnloadAndWait: EcsWhile, WhenUnpaused {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             chunk_manager: Res<'w, ChunkManager>,
@@ -657,7 +657,7 @@ define_workflow_mod_OLD! {
                                     .filter(|ot| !ot.is_ownership_transfered)
                                     .map(|s| s.coord)
                                     .collect();
-                                
+
                                 if !not_despawned.is_empty() {
                                     warn!(
                                         "Waiting: {} chunks still not despawned: {:?})",
@@ -665,7 +665,7 @@ define_workflow_mod_OLD! {
                                         not_despawned
                                     );
                                 }
-                                
+
                                 if !not_transferred.is_empty() {
                                     warn!(
                                         "Waiting: {} chunks still not transferred: {:?})",

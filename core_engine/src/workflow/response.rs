@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use std::any::Any;
 
-use crate::utils::premium_box::AnySendSyncPremiumBox;
+use crate::{utils::premium_box::AnySendSyncPremiumBox, workflow::types::WorkflowID};
 
 #[derive(Debug, Reflect)]
 pub enum WorkflowResponse {
@@ -33,6 +33,22 @@ pub struct TypedWorkflowResponseOE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub result: Result<AnySendSyncPremiumBox, AnySendSyncPremiumBox>,
+}
+
+impl WorkflowResponse {
+    pub fn get_worfklow_id(&self) -> WorkflowID {
+        let (module, workflow) = match self {
+            Self::None(r) => (r.module_name, r.workflow_name),
+            Self::E(r) => (r.module_name, r.workflow_name),
+            Self::O(r) => (r.module_name, r.workflow_name),
+            Self::OE(r) => (r.module_name, r.workflow_name),
+        };
+
+        WorkflowID {
+            module,
+            workflow
+        }
+    }
 }
 
 impl TypedWorkflowResponseE {

@@ -15,7 +15,7 @@ define_workflow_mod_OLD! {
             },
             user_items: {},
             stages: [
-                ValidateAndSpawnAndWait: EcsWhile {
+                ValidateAndSpawnAndWait: EcsWhile, Always {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>,
@@ -84,7 +84,7 @@ define_workflow_mod_OLD! {
             },
             user_items: {},
             stages: [
-                ValidateAndDespawnAndWait: EcsWhile {
+                ValidateAndDespawnAndWait: EcsWhile, WhenUnpaused {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>,

@@ -21,7 +21,7 @@ define_workflow_mod_OLD! {
             },
             user_items: {},
             stages: [
-                SetupPhase1: Ecs {
+                SetupPhase1: Ecs, WhenUnpaused {
                     core_types: [
                         struct MainAccess<'w> {
                             shader_assets: ResMut<'w, Assets<Shader>>,
@@ -68,7 +68,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                SetupPhase2: RenderWhile {
+                SetupPhase2: RenderWhile, WhenUnpaused {
                     core_types: [
                         struct RenderAccess<'w> {
                             render_device: Res<'w, RenderDevice>,
@@ -189,7 +189,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                SetupPhase3: Ecs {
+                SetupPhase3: Ecs, WhenUnpaused {
                     core_types: [
                         struct MainAccess<'w> {
                             shader_registry: ResMut<'w, ShaderRegistry>,
@@ -274,7 +274,7 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                PrepareBatch: Ecs {
+                PrepareBatch: Ecs, WhenUnpaused {
                     core_types: [
                         struct MainAccess<'w> {
                             render_device: Res<'w, RenderDevice>,
@@ -350,7 +350,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                GetTextureViews: RenderWhile {
+                GetTextureViews: RenderWhile, WhenUnpaused {
                     core_types: [
                         struct RenderAccess<'w> {
                             gpu_images: Res<'w, RenderAssets<GpuImage>>,
@@ -396,7 +396,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                DispatchBatch: Render {
+                DispatchBatch: Render, WhenUnpaused {
                     core_types: [
                         struct RenderAccess<'w> {
                             render_device: Res<'w, RenderDevice>,
@@ -456,7 +456,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                WaitForBatch: EcsWhile {
+                WaitForBatch: EcsWhile, WhenUnpaused {
                     core_types: [
                         struct MainAccess {}
                         struct Input {

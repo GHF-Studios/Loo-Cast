@@ -43,7 +43,7 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                Spawn: Ecs {
+                Spawn: Ecs, WhenUnpaused {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>

@@ -6,7 +6,7 @@ use std::sync::Mutex;
 
 use crate::utils::premium_box::AnySendSyncPremiumBox;
 use crate::workflow::composite_workflow_context::{ScopedCompositeWorkflowContext, CURRENT_COMPOSITE_WORKFLOW_ID};
-use crate::workflow::response::WorkflowResponse;
+use crate::workflow::response::{TypedWorkflowResponse, WorkflowResponse};
 use crate::workflow::types::WorkflowID;
 
 use super::{channels::*, request::*, traits::*};
@@ -29,10 +29,6 @@ pub async fn run_workflow<W: WorkflowType>() {
         .unwrap();
 
     loop {
-        if let Some(WorkflowResponse::None(_r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            return;
-        }
-
         if let Some(Some(response)) = {
             let mut receiver = get_response_receiver();
             receiver.recv().now_or_never()
@@ -44,11 +40,27 @@ pub async fn run_workflow<W: WorkflowType>() {
 
             if key == workflow_id {
                 return;
-            } else {
-                RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::None(response));
             }
+
+            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::None(response));
+            tokio::task::yield_now().await;
+            continue;
         }
 
+        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
+        let response = match response {
+            Some(response) => response,
+            None => {
+                tokio::task::yield_now().await;
+                continue;
+            }
+        };
+
+        if let WorkflowResponse::None(_r) = response {
+            return;
+        }
+
+        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
@@ -69,10 +81,6 @@ pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
         .unwrap();
 
     loop {
-        if let Some(WorkflowResponse::E(r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            return r.unpack();
-        }
-
         if let Some(Some(response)) = {
             let mut receiver = get_response_e_receiver();
             receiver.recv().now_or_never()
@@ -84,11 +92,27 @@ pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
 
             if key == workflow_id {
                 return response.unpack();
-            } else {
-                RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::E(response));
             }
+
+            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::E(response));
+            tokio::task::yield_now().await;
+            continue;
         }
 
+        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
+        let response = match response {
+            Some(response) => response,
+            None => {
+                tokio::task::yield_now().await;
+                continue;
+            }
+        };
+
+        if let WorkflowResponse::E(r) = response {
+            return r.unpack();
+        }
+
+        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
@@ -109,10 +133,6 @@ pub async fn run_workflow_o<W: WorkflowTypeO>() -> W::Output {
         .unwrap();
 
     loop {
-        if let Some(WorkflowResponse::O(r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            return r.unpack();
-        }
-
         if let Some(Some(response)) = {
             let mut receiver = get_response_o_receiver();
             receiver.recv().now_or_never()
@@ -124,11 +144,27 @@ pub async fn run_workflow_o<W: WorkflowTypeO>() -> W::Output {
 
             if key == workflow_id {
                 return response.unpack();
-            } else {
-                RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::O(response));
             }
+
+            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::O(response));
+            tokio::task::yield_now().await;
+            continue;
         }
 
+        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
+        let response = match response {
+            Some(response) => response,
+            None => {
+                tokio::task::yield_now().await;
+                continue;
+            }
+        };
+
+        if let WorkflowResponse::O(r) = response {
+            return r.unpack();
+        }
+
+        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
@@ -149,10 +185,6 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error>
         .unwrap();
 
     loop {
-        if let Some(WorkflowResponse::OE(r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            return r.unpack();
-        }
-
         if let Some(Some(response)) = {
             let mut receiver = get_response_oe_receiver();
             receiver.recv().now_or_never()
@@ -164,11 +196,27 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error>
 
             if key == workflow_id {
                 return response.unpack();
-            } else {
-                RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::OE(response));
             }
+
+            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::OE(response));
+            tokio::task::yield_now().await;
+            continue;
         }
 
+        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
+        let response = match response {
+            Some(response) => response,
+            None => {
+                tokio::task::yield_now().await;
+                continue;
+            }
+        };
+
+        if let WorkflowResponse::OE(r) = response {
+            return r.unpack();
+        }
+
+        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
@@ -192,30 +240,40 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
 
     bevy::prelude::warn!("Sent request for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     loop {
-        if let Some(WorkflowResponse::None(_r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            bevy::prelude::warn!("Received None response for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            return;
-        }
-
         if let Some(Some(response)) = {
             let mut receiver = get_response_i_receiver();
             receiver.recv().now_or_never()
         } {
-            bevy::prelude::warn!("Received response for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            bevy::prelude::warn!("Received response for {}::{} immediately", W::MODULE_NAME, W::WORKFLOW_NAME);
             let key = WorkflowID {
                 module: response.module_name,
                 workflow: response.workflow_name,
             };
 
             if key == workflow_id {
+                bevy::prelude::warn!("Finished {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                 return;
-            } else {
-                RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::None(response));
             }
-        } else {
-            bevy::prelude::warn!("No response yet for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+
+            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::None(response));
+            tokio::task::yield_now().await;
+            continue;
         }
 
+        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
+        let response = match response {
+            Some(response) => response,
+            None => {
+                tokio::task::yield_now().await;
+                continue;
+            }
+        };
+
+        if let WorkflowResponse::None(_r) = response {
+            return;
+        }
+
+        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
@@ -237,10 +295,6 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W
         .unwrap();
 
     loop {
-        if let Some(WorkflowResponse::E(r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            return r.unpack();
-        }
-
         if let Some(Some(response)) = {
             let mut receiver = get_response_ie_receiver();
             receiver.recv().now_or_never()
@@ -252,11 +306,27 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W
 
             if key == workflow_id {
                 return response.unpack();
-            } else {
-                RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::E(response));
             }
+
+            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::E(response));
+            tokio::task::yield_now().await;
+            continue;
         }
 
+        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
+        let response = match response {
+            Some(response) => response,
+            None => {
+                tokio::task::yield_now().await;
+                continue;
+            }
+        };
+
+        if let WorkflowResponse::E(r) = response {
+            return r.unpack();
+        }
+
+        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
@@ -278,10 +348,6 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> W::Output {
         .unwrap();
 
     loop {
-        if let Some(WorkflowResponse::O(r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            return r.unpack();
-        }
-
         if let Some(Some(response)) = {
             let mut receiver = get_response_io_receiver();
             receiver.recv().now_or_never()
@@ -293,11 +359,27 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> W::Output {
 
             if key == workflow_id {
                 return response.unpack();
-            } else {
-                RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::O(response));
             }
+
+            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::O(response));
+            tokio::task::yield_now().await;
+            continue;
         }
 
+        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
+        let response = match response {
+            Some(response) => response,
+            None => {
+                tokio::task::yield_now().await;
+                continue;
+            }
+        };
+
+        if let WorkflowResponse::O(r) = response {
+            return r.unpack();
+        }
+
+        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
@@ -319,10 +401,6 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
         .unwrap();
 
     loop {
-        if let Some(WorkflowResponse::OE(r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
-            return r.unpack();
-        }
-
         if let Some(Some(response)) = {
             let mut receiver = get_response_ioe_receiver();
             receiver.recv().now_or_never()
@@ -334,11 +412,27 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
 
             if key == workflow_id {
                 return response.unpack();
-            } else {
-                RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::OE(response));
             }
+
+            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::OE(response));
+            tokio::task::yield_now().await;
+            continue;
         }
 
+        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
+        let response = match response {
+            Some(response) => response,
+            None => {
+                tokio::task::yield_now().await;
+                continue;
+            }
+        };
+
+        if let WorkflowResponse::OE(r) = response {
+            return r.unpack();
+        }
+
+        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }

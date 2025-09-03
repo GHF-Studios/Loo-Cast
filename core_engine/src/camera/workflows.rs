@@ -22,7 +22,7 @@ define_workflow_mod_OLD! {
             },
             user_items: {},
             stages: [
-                SpawnAndWait: EcsWhile {
+                SpawnAndWait: EcsWhile, Always {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>,

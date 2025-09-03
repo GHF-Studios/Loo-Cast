@@ -290,56 +290,86 @@ impl Workflow {
                 let workflow_stage_module_ident = Ident::new(workflow_stage_system_name.as_str(), stage_ident.span());
 
                 match stage {
-                    Stage::Ecs(_) => {
+                    Stage::Ecs(stage) => {
+                        let run_condition = if stage.run_when_paused {
+                            quote!()
+                        } else {
+                            quote!(.run_if(run_if_not_paused))
+                        };
+
                         workflow_stage_ecs_plugin_usage_literals.push(
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_stages_to_ecs_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system).run_if(|| true))
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system.run_if(|| true))
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_stages_to_ecs_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system)#run_condition)
+                                .add_systems(bevy::prelude::Update, (stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system)#run_condition)
                             }
                         );
                     }
-                    Stage::Render(_) => {
+                    Stage::Render(stage) => {
+                        let run_condition = if stage.run_when_paused {
+                            quote!()
+                        } else {
+                            quote!(.run_if(run_if_not_paused))
+                        };
+
                         workflow_stage_render_plugin_usage_literals.push(
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_stages_to_render_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system).run_if(|| true))
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system.run_if(|| true))
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_stages_to_render_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system)#run_condition)
+                                .add_systems(bevy::render::Render, (stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system)#run_condition)
                             }
                         );
                     }
-                    Stage::Async(_) => {
+                    Stage::Async(stage) => {
+                        let run_condition = if stage.run_when_paused {
+                            quote!()
+                        } else {
+                            quote!(.run_if(run_if_not_paused))
+                        };
+
                         workflow_stage_ecs_plugin_usage_literals.push(
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_async_stages_to_async_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system).run_if(|| true))
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system.run_if(|| true))
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_async_stages_to_async_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system)#run_condition)
+                                .add_systems(bevy::prelude::Update, (stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system)#run_condition)
                             }
                         );
                     }
-                    Stage::EcsWhile(_) => {
+                    Stage::EcsWhile(stage) => {
+                        let run_condition = if stage.run_when_paused {
+                            quote!()
+                        } else {
+                            quote!(.run_if(run_if_not_paused))
+                        };
+
                         workflow_stage_ecs_plugin_usage_literals.push(
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_while_stages_to_ecs_while_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system).run_if(|| true))
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system.run_if(|| true))
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_while_stages_to_ecs_while_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system)#run_condition)
+                                .add_systems(bevy::prelude::Update, (stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system)#run_condition)
                             }
                         );
                     }
-                    Stage::RenderWhile(_) => {
+                    Stage::RenderWhile(stage) => {
+                        let run_condition = if stage.run_when_paused {
+                            quote!()
+                        } else {
+                            quote!(.run_if(run_if_not_paused))
+                        };
+
                         workflow_stage_render_plugin_usage_literals.push(
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::RenderWhileWorkflowStateExtractShard::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::split_render_while_workflow_state_extract_system.before(stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system).run_if(|| true))
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system).run_if(|| true))
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system.run_if(|| true))
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::fuse_render_while_workflow_state_extract_shards_system.after(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system).run_if(|| true))
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::split_render_while_workflow_state_extract_system.before(stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system)#run_condition)
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)#run_condition)
+                                .add_systems(bevy::render::Render, (stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)#run_condition)
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::fuse_render_while_workflow_state_extract_shards_system.after(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)#run_condition)
                             }
                         );
                     }
@@ -464,7 +494,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         use crate::time::run_conditions::run_if_not_paused;
-                        
+
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run() {
@@ -586,7 +616,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         use crate::time::run_conditions::run_if_not_paused;
-                        
+
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run() -> Result<(), <TypeE as crate::workflow::traits::WorkflowTypeE>::Error> {
@@ -685,7 +715,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         use crate::time::run_conditions::run_if_not_paused;
-                        
+
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run() -> <TypeO as crate::workflow::traits::WorkflowTypeO>::Output {
@@ -815,7 +845,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         use crate::time::run_conditions::run_if_not_paused;
-                        
+
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run() -> Result<<TypeOE as crate::workflow::traits::WorkflowTypeOE>::Output, <TypeOE as crate::workflow::traits::WorkflowTypeOE>::Error> {
@@ -915,7 +945,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         use crate::time::run_conditions::run_if_not_paused;
-                        
+
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeI as crate::workflow::traits::WorkflowTypeI>::Input) -> () {
@@ -1045,7 +1075,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         use crate::time::run_conditions::run_if_not_paused;
-                        
+
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeIE as crate::workflow::traits::WorkflowTypeIE>::Input) -> Result<(), <TypeIE as crate::workflow::traits::WorkflowTypeIE>::Error> {
@@ -1148,7 +1178,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         use crate::time::run_conditions::run_if_not_paused;
-                        
+
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeIO as crate::workflow::traits::WorkflowTypeIO>::Input) -> <TypeIO as crate::workflow::traits::WorkflowTypeIO>::Output {
@@ -1282,7 +1312,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         use crate::time::run_conditions::run_if_not_paused;
-                        
+
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Input) -> Result<<TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Output, <TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Error> {
