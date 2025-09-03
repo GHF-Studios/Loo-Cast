@@ -62,14 +62,14 @@ pub enum InspectorSelection {
     #[default]
     Entities,
     Resource(TypeId, String),
-    Asset(TypeId, String, #[reflect(ignore)]Option<UntypedAssetId>),
+    Asset(TypeId, String, #[reflect(ignore)] Option<UntypedAssetId>),
 }
 
 pub(super) struct DebugSuiteTabViewer<'a> {
     pub world: &'a mut World,
     pub state: &'a mut DebugSuiteUiState,
     pub game_view_texture_id: Option<egui::TextureId>,
-    pub game_view_texture_size: Option<egui::Vec2>
+    pub game_view_texture_size: Option<egui::Vec2>,
 }
 
 impl TabViewer for DebugSuiteTabViewer<'_> {
@@ -82,7 +82,7 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         let type_registry = self.world.resource::<AppTypeRegistry>().0.clone();
         let type_registry = type_registry.read();
-        
+
         match tab {
             DebugSuiteTab::GameView => {
                 self.state.viewport_rect = Some(ui.clip_rect());
@@ -105,7 +105,7 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
                 if selected {
                     self.state.selection = InspectorSelection::Entities;
                 }
-            },
+            }
             DebugSuiteTab::Resources => select_resource(ui, &type_registry, &mut self.state.selection),
             DebugSuiteTab::Assets => select_asset(ui, &type_registry, self.world, &mut self.state.selection),
             DebugSuiteTab::Inspector => match self.state.selection {
@@ -115,30 +115,26 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
                 },
                 InspectorSelection::Resource(type_id, ref name) => {
                     ui.label(name);
-                    ui_for_resource(
-                        self.world,
-                        type_id,
-                        ui,
-                        name,
-                        &type_registry,
-                    )
+                    ui_for_resource(self.world, type_id, ui, name, &type_registry)
                 }
                 InspectorSelection::Asset(type_id, ref name, handle) => {
                     let handle = handle.unwrap();
                     ui.label(name);
-                    ui_for_asset(
-                        self.world,
-                        type_id,
-                        handle,
-                        ui,
-                        &type_registry,
-                    );
+                    ui_for_asset(self.world, type_id, handle, ui, &type_registry);
                 }
             },
-            DebugSuiteTab::ChunkManager => { ui.label("Chunk Manager (todo)"); },
-            DebugSuiteTab::IntentBuffer => { ui.label("Intent Buffer (todo)"); },
-            DebugSuiteTab::IntentCommit => { ui.label("Intent Commit (todo)"); },
-            DebugSuiteTab::ChunkInspector => { ui.label("Chunk Inspector (todo)"); },
+            DebugSuiteTab::ChunkManager => {
+                ui.label("Chunk Manager (todo)");
+            }
+            DebugSuiteTab::IntentBuffer => {
+                ui.label("Intent Buffer (todo)");
+            }
+            DebugSuiteTab::IntentCommit => {
+                ui.label("Intent Commit (todo)");
+            }
+            DebugSuiteTab::ChunkInspector => {
+                ui.label("Chunk Inspector (todo)");
+            }
         };
     }
 

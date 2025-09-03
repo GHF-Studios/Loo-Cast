@@ -2,7 +2,12 @@ use bevy::prelude::*;
 use core_engine_macros::{composite_workflow, composite_workflow_return};
 
 use crate::{
-    chunk_loader::components::ChunkLoader, config::statics::CONFIG, input::states::InputMode, player::resources::PlayerLifecycle, utils::components::{DropHook, InitHook}, workflow::functions::handle_composite_workflow_return_now
+    chunk_loader::components::ChunkLoader,
+    config::statics::CONFIG,
+    input::states::InputMode,
+    player::resources::PlayerLifecycle,
+    utils::components::{DropHook, InitHook},
+    workflow::functions::handle_composite_workflow_return_now,
 };
 
 #[tracing::instrument(skip_all)]

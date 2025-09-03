@@ -19,11 +19,7 @@ use super::types::ChunkActionWorkflowHandles;
 use super::ActionIntentCommitBuffer;
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn chunk_startup_system(
-    mut commands: Commands, 
-    mut meshes: ResMut<Assets<Mesh>>, 
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
+pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
     let quad = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
     let light_material: Handle<ColorMaterial> = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
     let dark_material = materials.add(ColorMaterial::from_color(Color::srgb(0.25, 0.25, 0.25)));
@@ -71,7 +67,10 @@ pub(crate) fn process_chunk_actions_system(
         let transfer_done = handles.transfer.as_ref().is_none_or(|h| h.is_finished());
 
         if !spawn_done || !despawn_done || !transfer_done {
-            warn!("Waiting for chunk action workflows to finish... spawn_done: {}, despawn_done: {}, transfer_done: {}", spawn_done, despawn_done, transfer_done);
+            warn!(
+                "Waiting for chunk action workflows to finish... spawn_done: {}, despawn_done: {}, transfer_done: {}",
+                spawn_done, despawn_done, transfer_done
+            );
             return;
         }
 
@@ -117,11 +116,16 @@ pub(crate) fn process_chunk_actions_system(
     let mut chunk_loaders_performing_chunk_loads: Vec<ChunkOwnerId> = Vec::new();
     for (_, coords) in action_intent_commit_buffer.priority_buckets.iter() {
         for coord in coords {
-            let action_intent = action_intent_commit_buffer.action_intent
+            let action_intent = action_intent_commit_buffer
+                .action_intent
                 .get(coord)
-                .unwrap_or_else(|| panic!("
-                    Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", 
-                    coord, action_intent_commit_buffer))
+                .unwrap_or_else(|| {
+                    panic!(
+                        "
+                    Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}",
+                        coord, action_intent_commit_buffer
+                    )
+                })
                 .clone();
             warn!("Processing chunk action intent: {:?}", action_intent);
 

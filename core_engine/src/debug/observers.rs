@@ -17,20 +17,20 @@ pub fn on_click_select(
         Err(_) => {
             error!("Egui context not available");
             return;
-        },
+        }
     };
 
     if !input_mode.is_debug_suite() {
         error!("Ignoring click select because input mode is not DebugSuite");
         return;
     }
-    
+
     let pointer_pos = match ctx.pointer_hover_pos() {
         Some(pos) => pos,
         None => {
             error!("Pointer position not available");
             return;
-        },
+        }
     };
 
     if let Some(viewport_rect) = ui_state.viewport_rect {
@@ -46,7 +46,5 @@ pub fn on_click_select(
     let modifiers = ctx.input(|i| i.modifiers);
     let add = modifiers.ctrl || modifiers.shift;
 
-    ui_state
-        .selected_entities
-        .select_maybe_add(click.target(), add);
+    ui_state.selected_entities.select_maybe_add(click.target(), add);
 }

@@ -3,7 +3,12 @@ use bevy::ecs::{component::HookContext, world::DeferredWorld};
 use crate::{chunk::components::Chunk, chunk_loader::resources::RemovedChunkLoaders};
 
 pub(crate) fn hook_on_add_chunk(mut world: DeferredWorld<'_>, hook_context: HookContext) {
-    let HookContext { entity, component_id: _, caller: _, relationship_hook_mode: _ } = hook_context;
+    let HookContext {
+        entity,
+        component_id: _,
+        caller: _,
+        relationship_hook_mode: _,
+    } = hook_context;
     let (chunk, chunk_coord) = match world.get::<Chunk>(entity) {
         Some(chunk) => (chunk, chunk.coord),
         None => return,
@@ -26,4 +31,3 @@ pub(crate) fn hook_on_add_chunk(mut world: DeferredWorld<'_>, hook_context: Hook
         );
     }
 }
-

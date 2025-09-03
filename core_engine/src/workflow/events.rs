@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 
 use super::stage::{Stage, StageType};
-use crate::{utils::premium_box::AnySendSyncPremiumBox, workflow::stage::{StageEcs, StageSignature}};
+use crate::{
+    utils::premium_box::AnySendSyncPremiumBox,
+    workflow::stage::{StageEcs, StageSignature},
+};
 
 #[derive(Event, Reflect)]
 pub struct StageInitializationEvent {
@@ -16,9 +19,9 @@ fn placeholder_stage() -> Stage {
         index: 0,
         name: "PLACEHOLDER",
         signature: StageSignature::None,
-        handle_ecs_run_response: Box::new(|_, _, _, _, _| { Box::new(|_| {}) }),
+        handle_ecs_run_response: Box::new(|_, _, _, _, _| Box::new(|_| {})),
         completion_sender: unsafe { std::mem::transmute(0u128) },
-        failure_sender: None
+        failure_sender: None,
     })
 }
 

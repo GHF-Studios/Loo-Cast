@@ -4,11 +4,14 @@ use tokio::task::JoinHandle;
 
 use crate::{
     chunk::types::ChunkOwnerId,
-    chunk_loader::{components::ChunkLoader, resources::{RemovedChunkLoader, RemovedChunkLoaders}},
+    chunk_loader::{
+        components::ChunkLoader,
+        resources::{RemovedChunkLoader, RemovedChunkLoaders},
+    },
     workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return_now},
 };
 
-// TODO: MAJOR: This silently drops observed chunk loader removals if one is already in-progress composite-workflow-wise, so for now: 
+// TODO: MAJOR: This silently drops observed chunk loader removals if one is already in-progress composite-workflow-wise, so for now:
 // Concurrent chunk loader removals are unsound!
 #[tracing::instrument(skip_all)]
 pub(crate) fn observe_on_remove_chunk_loader(

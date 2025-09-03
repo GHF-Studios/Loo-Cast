@@ -11,15 +11,18 @@ use observers::observe_on_remove_chunk_loader;
 use resources::{RemovedChunkLoader, RemovedChunkLoaders};
 use systems::update_chunk_loader_system;
 
-use crate::{time::run_conditions::run_if_not_paused, utils::{
-    components::{DropHook, InitHook}, functions::{cleanup_drop_hooks_system, cleanup_init_hooks_system, observe_on_remove_drop_hook, observe_on_remove_init_hook}
-}};
+use crate::{
+    time::run_conditions::run_if_not_paused,
+    utils::{
+        components::{DropHook, InitHook},
+        functions::{cleanup_drop_hooks_system, cleanup_init_hooks_system, observe_on_remove_drop_hook, observe_on_remove_init_hook},
+    },
+};
 
 pub(crate) struct ChunkLoaderPlugin;
 impl Plugin for ChunkLoaderPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(RemovedChunkLoaders::default())
+        app.insert_resource(RemovedChunkLoaders::default())
             .add_observer(observe_on_remove_chunk_loader)
             .add_observer(observe_on_remove_init_hook::<ChunkLoader>)
             .add_observer(observe_on_remove_drop_hook::<ChunkLoader>)

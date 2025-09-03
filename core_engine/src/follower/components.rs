@@ -1,4 +1,7 @@
-use bevy::{ecs::component::{ComponentHook, Mutable, StorageType}, prelude::*};
+use bevy::{
+    ecs::component::{ComponentHook, Mutable, StorageType},
+    prelude::*,
+};
 
 use super::hooks::{hook_on_add_follower_target, hook_on_remove_follower_target};
 

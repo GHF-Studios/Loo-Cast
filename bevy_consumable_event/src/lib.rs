@@ -1,12 +1,12 @@
 use std::{
-  ops::{Deref, DerefMut},
-  slice::IterMut,
+    ops::{Deref, DerefMut},
+    slice::IterMut,
 };
 
 use bevy_ecs::{
-  event::Event,
-  system::{ResMut, SystemParam},
-  resource::Resource
+    event::Event,
+    resource::Resource,
+    system::{ResMut, SystemParam},
 };
 
 #[cfg(feature = "bevy_app")]
@@ -66,92 +66,92 @@ pub use app::ConsumableEventApp;
 /// ```
 #[derive(Resource)]
 pub struct ConsumableEvents<E: Event> {
-  /// The events in the buffer. `None` implies that the event there was
-  /// consumed. `Some` means that the event has not been consumed yet.
-  events: Vec<Option<E>>,
+    /// The events in the buffer. `None` implies that the event there was
+    /// consumed. `Some` means that the event has not been consumed yet.
+    events: Vec<Option<E>>,
 }
 
 // Derived Default impl would incorrectly require E: Default
 impl<E: Event> Default for ConsumableEvents<E> {
-  fn default() -> Self {
-    Self { events: Default::default() }
-  }
+    fn default() -> Self {
+        Self { events: Default::default() }
+    }
 }
 
 impl<E: Event> ConsumableEvents<E> {
-  /// "Sends" `event` by writing it to the buffer. [`read`] can then read the
-  /// event.
-  pub fn send(&mut self, event: E) {
-    self.events.push(Some(event));
-  }
+    /// "Sends" `event` by writing it to the buffer. [`read`] can then read the
+    /// event.
+    pub fn send(&mut self, event: E) {
+        self.events.push(Some(event));
+    }
 
-  /// Sends a list of `events` all at once, which can later be [`read`]. This is
-  /// more efficient than sending each event individually.
-  pub fn send_batch(&mut self, events: impl IntoIterator<Item = E>) {
-    self.extend(events);
-  }
+    /// Sends a list of `events` all at once, which can later be [`read`]. This is
+    /// more efficient than sending each event individually.
+    pub fn send_batch(&mut self, events: impl IntoIterator<Item = E>) {
+        self.extend(events);
+    }
 
-  /// Sends the default value of the event. Useful when the event is an empty
-  /// struct.
-  pub fn send_default(&mut self)
-  where
-    E: Default,
-  {
-    self.send(Default::default())
-  }
+    /// Sends the default value of the event. Useful when the event is an empty
+    /// struct.
+    pub fn send_default(&mut self)
+    where
+        E: Default,
+    {
+        self.send(Default::default())
+    }
 
-  /// Reads the unconsumed events stored in self.
-  pub fn read(&mut self) -> ConsumableEventIterator<'_, E> {
-    ConsumableEventIterator { iter: self.events.iter_mut() }
-  }
+    /// Reads the unconsumed events stored in self.
+    pub fn read(&mut self) -> ConsumableEventIterator<'_, E> {
+        ConsumableEventIterator { iter: self.events.iter_mut() }
+    }
 
-  /// Clears all events stored in self. Unconsumed events are also dropped.
-  pub fn clear(&mut self) {
-    self.events.clear();
-  }
+    /// Clears all events stored in self. Unconsumed events are also dropped.
+    pub fn clear(&mut self) {
+        self.events.clear();
+    }
 
-  /// Clears only consumed events stored in self. This is not strictly required,
-  /// but calling it regularly will reduce memory usage (since the consumed
-  /// events cannot be read anyway).
-  pub fn clear_consumed(&mut self) {
-    self.events.retain(|event| event.is_some());
-  }
+    /// Clears only consumed events stored in self. This is not strictly required,
+    /// but calling it regularly will reduce memory usage (since the consumed
+    /// events cannot be read anyway).
+    pub fn clear_consumed(&mut self) {
+        self.events.retain(|event| event.is_some());
+    }
 }
 
 impl<E: Event> Extend<E> for ConsumableEvents<E> {
-  fn extend<I>(&mut self, iter: I)
-  where
-    I: IntoIterator<Item = E>,
-  {
-    self.events.extend(iter.into_iter().map(|event| Some(event)));
-  }
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = E>,
+    {
+        self.events.extend(iter.into_iter().map(|event| Some(event)));
+    }
 }
 
 /// Mutable borrow of a consumable event.
 pub struct Consume<'events, E> {
-  /// The event itself.
-  event: &'events mut Option<E>,
+    /// The event itself.
+    event: &'events mut Option<E>,
 }
 
 impl<'events, E> Deref for Consume<'events, E> {
-  type Target = E;
+    type Target = E;
 
-  fn deref(&self) -> &Self::Target {
-    self.event.as_ref().expect("The event has not been consumed yet.")
-  }
+    fn deref(&self) -> &Self::Target {
+        self.event.as_ref().expect("The event has not been consumed yet.")
+    }
 }
 
 impl<'events, E> DerefMut for Consume<'events, E> {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    self.event.as_mut().expect("The event has not been consumed yet.")
-  }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.event.as_mut().expect("The event has not been consumed yet.")
+    }
 }
 
 impl<'events, E> Consume<'events, E> {
-  /// Consumes the event.
-  pub fn consume(self) -> E {
-    self.event.take().expect("The event has not been consumed until now.")
-  }
+    /// Consumes the event.
+    pub fn consume(self) -> E {
+        self.event.take().expect("The event has not been consumed until now.")
+    }
 }
 
 /// Sends consumable events of type `E`.
@@ -174,31 +174,31 @@ impl<'events, E> Consume<'events, E> {
 /// ```
 #[derive(SystemParam)]
 pub struct ConsumableEventWriter<'w, E: Event> {
-  /// The events to write to.
-  events: ResMut<'w, ConsumableEvents<E>>,
+    /// The events to write to.
+    events: ResMut<'w, ConsumableEvents<E>>,
 }
 
 impl<'w, E: Event> ConsumableEventWriter<'w, E> {
-  /// "Sends" `event` by writing it to the buffer. [`ConsumableEventReader`] can
-  /// then read the event.
-  pub fn send(&mut self, event: E) {
-    self.events.send(event);
-  }
+    /// "Sends" `event` by writing it to the buffer. [`ConsumableEventReader`] can
+    /// then read the event.
+    pub fn send(&mut self, event: E) {
+        self.events.send(event);
+    }
 
-  /// Sends a list of `events` all at once, which can later be [`read`]. This is
-  /// more efficient than sending each event individually.
-  pub fn send_batch(&mut self, events: impl IntoIterator<Item = E>) {
-    self.events.send_batch(events);
-  }
+    /// Sends a list of `events` all at once, which can later be [`read`]. This is
+    /// more efficient than sending each event individually.
+    pub fn send_batch(&mut self, events: impl IntoIterator<Item = E>) {
+        self.events.send_batch(events);
+    }
 
-  /// Sends the default value of the event. Useful when the event is an empty
-  /// struct.
-  pub fn send_default(&mut self)
-  where
-    E: Default,
-  {
-    self.events.send_default()
-  }
+    /// Sends the default value of the event. Useful when the event is an empty
+    /// struct.
+    pub fn send_default(&mut self)
+    where
+        E: Default,
+    {
+        self.events.send_default()
+    }
 }
 
 /// Reads (and possibly consumes) events of type `E`.
@@ -224,39 +224,39 @@ impl<'w, E: Event> ConsumableEventWriter<'w, E> {
 /// ```
 #[derive(SystemParam)]
 pub struct ConsumableEventReader<'w, E: Event> {
-  /// The events to read from.
-  events: ResMut<'w, ConsumableEvents<E>>,
+    /// The events to read from.
+    events: ResMut<'w, ConsumableEvents<E>>,
 }
 
 impl<'w, E: Event> ConsumableEventReader<'w, E> {
-  /// Reads the unconsumed events.
-  pub fn read(&mut self) -> ConsumableEventIterator<'_, E> {
-    self.events.read()
-  }
+    /// Reads the unconsumed events.
+    pub fn read(&mut self) -> ConsumableEventIterator<'_, E> {
+        self.events.read()
+    }
 
-  /// Reads all unconsumed events, consuming them all along the way.
-  pub fn read_and_consume_all(&mut self) -> impl Iterator<Item = E> + '_ {
-    // TODO: The lifetime bounds of this function are wrong. Rust 2024 edition
-    // fixes this, but for now, this will most likely be fine.
-    self.events.read().map(|event| event.consume())
-  }
+    /// Reads all unconsumed events, consuming them all along the way.
+    pub fn read_and_consume_all(&mut self) -> impl Iterator<Item = E> + '_ {
+        // TODO: The lifetime bounds of this function are wrong. Rust 2024 edition
+        // fixes this, but for now, this will most likely be fine.
+        self.events.read().map(|event| event.consume())
+    }
 }
 
 /// An iterator over the unconsumed events.
 #[derive(Debug)]
 pub struct ConsumableEventIterator<'w, E: Event> {
-  /// The iterator being wrapped.
-  iter: IterMut<'w, Option<E>>,
+    /// The iterator being wrapped.
+    iter: IterMut<'w, Option<E>>,
 }
 
 impl<'w, E: Event> Iterator for ConsumableEventIterator<'w, E> {
-  type Item = Consume<'w, E>;
+    type Item = Consume<'w, E>;
 
-  fn next(&mut self) -> Option<Self::Item> {
-    self.iter.find(|event| event.is_some()).map(|event| Consume { event })
-  }
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.find(|event| event.is_some()).map(|event| Consume { event })
+    }
 
-  fn size_hint(&self) -> (usize, Option<usize>) {
-    (0, self.iter.size_hint().1)
-  }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (0, self.iter.size_hint().1)
+    }
 }

@@ -67,8 +67,20 @@ pub trait WorkflowStageEcs {
     fn handle_ecs_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsE {
@@ -81,8 +93,20 @@ pub trait WorkflowStageEcsE {
     fn handle_ecs_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsO {
@@ -95,8 +119,20 @@ pub trait WorkflowStageEcsO {
     fn handle_ecs_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsOE {
@@ -110,8 +146,20 @@ pub trait WorkflowStageEcsOE {
     fn handle_ecs_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsI {
@@ -124,8 +172,20 @@ pub trait WorkflowStageEcsI {
     fn handle_ecs_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsIE {
@@ -139,8 +199,20 @@ pub trait WorkflowStageEcsIE {
     fn handle_ecs_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsIO {
@@ -154,8 +226,20 @@ pub trait WorkflowStageEcsIO {
     fn handle_ecs_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageEcsIOE {
@@ -170,8 +254,20 @@ pub trait WorkflowStageEcsIOE {
     fn handle_ecs_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageEcs, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 
@@ -184,8 +280,20 @@ pub trait WorkflowStageRender {
     fn handle_render_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageRenderE {
@@ -198,8 +306,20 @@ pub trait WorkflowStageRenderE {
     fn handle_render_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageRenderO {
@@ -212,8 +332,20 @@ pub trait WorkflowStageRenderO {
     fn handle_render_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageRenderOE {
@@ -227,8 +359,20 @@ pub trait WorkflowStageRenderOE {
     fn handle_render_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageRenderI {
@@ -241,8 +385,20 @@ pub trait WorkflowStageRenderI {
     fn handle_render_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageRenderIE {
@@ -256,8 +412,20 @@ pub trait WorkflowStageRenderIE {
     fn handle_render_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageRenderIO {
@@ -271,8 +439,20 @@ pub trait WorkflowStageRenderIO {
     fn handle_render_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageRenderIOE {
@@ -287,8 +467,20 @@ pub trait WorkflowStageRenderIOE {
     fn handle_render_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageRender, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 
@@ -301,8 +493,20 @@ pub trait WorkflowStageAsync {
     fn handle_async_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageAsyncE {
@@ -315,8 +519,20 @@ pub trait WorkflowStageAsyncE {
     fn handle_async_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageAsyncO {
@@ -329,8 +545,20 @@ pub trait WorkflowStageAsyncO {
     fn handle_async_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageAsyncOE {
@@ -344,8 +572,20 @@ pub trait WorkflowStageAsyncOE {
     fn handle_async_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageAsyncI {
@@ -358,8 +598,20 @@ pub trait WorkflowStageAsyncI {
     fn handle_async_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageAsyncIE {
@@ -373,8 +625,20 @@ pub trait WorkflowStageAsyncIE {
     fn handle_async_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageAsyncIO {
@@ -388,8 +652,20 @@ pub trait WorkflowStageAsyncIO {
     fn handle_async_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 pub trait WorkflowStageAsyncIOE {
@@ -404,8 +680,20 @@ pub trait WorkflowStageAsyncIOE {
     fn handle_async_run_response(
         &mut self,
         stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-        completion_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
-        failure_sender: Sender<(&str, &str, usize, super::stage::StageAsync, Option<crate::utils::premium_box::AnySendSyncPremiumBox>)>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
     );
 }
 

@@ -6,14 +6,13 @@ pub mod types;
 use bevy::prelude::*;
 use bevy::render::RenderApp;
 use resources::{TimeInfo, VirtualPaused};
-use systems::{configure_virtual_time, sync_virtual_paused, post_update_game_time_info, extract_game_time_info, extract_virtual_paused};
+use systems::{configure_virtual_time, extract_game_time_info, extract_virtual_paused, post_update_game_time_info, sync_virtual_paused};
 use types::PauseState;
 
 pub(crate) struct TimePlugin;
 impl Plugin for TimePlugin {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(TimeInfo::default())
+        app.insert_resource(TimeInfo::default())
             .insert_resource(VirtualPaused::default())
             .add_systems(Startup, configure_virtual_time)
             .add_systems(PreUpdate, sync_virtual_paused)

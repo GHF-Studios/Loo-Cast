@@ -35,7 +35,7 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
         *composite_workflow_handle = Some(handle);
     }
     if handle_is_some && !handle_is_finished {
-        //warn!("Waiting for chunk loader workflow to finish...");
+        warn!("Waiting for chunk loader workflow to finish...");
         return;
     }
 
@@ -44,7 +44,7 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
         handle_composite_workflow_return_now(handle, |_ctx| {
             composite_workflow_return!();
 
-            // warn!("Ran UpdateChunkLoaders");
+            warn!("Ran UpdateChunkLoaders");
         });
     }
 }

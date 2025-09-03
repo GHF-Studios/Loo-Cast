@@ -11,8 +11,8 @@ pub mod workflows;
 
 use bevy::prelude::*;
 use components::Chunk;
-use errors::{SpawnError, DespawnError, TransferOwnershipError};
-use intent::{State, ActionIntent, ActionPriority, ResolutionError, ResolutionWarning, ResolvedActionIntent};
+use errors::{DespawnError, SpawnError, TransferOwnershipError};
+use intent::{ActionIntent, ActionPriority, ResolutionError, ResolutionWarning, ResolvedActionIntent, State};
 use resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, ChunkRenderHandles};
 use systems::{chunk_startup_system, chunk_update_system, process_chunk_actions_system};
 use types::{ChunkActionWorkflowHandles, ChunkOwnerId};

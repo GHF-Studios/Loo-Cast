@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::sync::LazyLock;
-use tracing::{Level as TracingLevel, Metadata};
 use tracing::metadata::Kind;
+use tracing::{Level as TracingLevel, Metadata};
 
 use crate::log::resources::LogRegistry;
 use crate::log::statics::LOG_ID_COUNTER;

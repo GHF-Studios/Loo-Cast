@@ -1,5 +1,7 @@
-use bevy::{ecs::{component::{ComponentHook, Mutable, StorageType}}, prelude::*};
-
+use bevy::{
+    ecs::component::{ComponentHook, Mutable, StorageType},
+    prelude::*,
+};
 
 use crate::chunk::hooks::hook_on_add_chunk;
 

@@ -112,8 +112,7 @@ pub enum Outcome<S, O> {
     Done(O),
 }
 
-#[derive(Reflect)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct WorkflowID {
     pub module: &'static str,
     pub workflow: &'static str,

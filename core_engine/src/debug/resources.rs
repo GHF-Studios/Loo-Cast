@@ -4,7 +4,7 @@ use egui_dock::{DockState, NodeIndex};
 
 use crate::debug::types::InspectorSelection;
 
-use super::types::{DebugSuiteTab, StepMode, StepConfig};
+use super::types::{DebugSuiteTab, StepConfig, StepMode};
 
 #[derive(Resource)]
 pub struct DebugSuiteUiDockState {
@@ -12,19 +12,22 @@ pub struct DebugSuiteUiDockState {
 }
 impl Default for DebugSuiteUiDockState {
     fn default() -> Self {
-        
         let mut dock_state = DockState::new(vec![DebugSuiteTab::GameView]);
         let tree = dock_state.main_surface_mut();
         let [game, _inspector] = tree.split_right(NodeIndex::root(), 0.75, vec![DebugSuiteTab::Inspector]);
         let [game, _hierarchy] = tree.split_left(game, 0.2, vec![DebugSuiteTab::Hierarchy]);
-        let [_game, _bottom] = tree.split_below(game, 0.666, vec![
-            DebugSuiteTab::Resources, 
-            DebugSuiteTab::Assets,
-            DebugSuiteTab::ChunkManager,
-            DebugSuiteTab::IntentBuffer,
-            DebugSuiteTab::IntentCommit,
-            DebugSuiteTab::ChunkInspector
-        ]);
+        let [_game, _bottom] = tree.split_below(
+            game,
+            0.666,
+            vec![
+                DebugSuiteTab::Resources,
+                DebugSuiteTab::Assets,
+                DebugSuiteTab::ChunkManager,
+                DebugSuiteTab::IntentBuffer,
+                DebugSuiteTab::IntentCommit,
+                DebugSuiteTab::ChunkInspector,
+            ],
+        );
 
         Self { dock_state }
     }

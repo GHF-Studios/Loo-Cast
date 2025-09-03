@@ -352,7 +352,6 @@ impl WorkflowInstance {
     }
 }
 
-
 #[derive(Reflect)]
 pub struct TypedWorkflowInstance {
     pub module_name: &'static str,

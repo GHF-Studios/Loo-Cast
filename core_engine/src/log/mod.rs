@@ -15,9 +15,9 @@ use types::*;
 pub(crate) struct LogPlugin;
 impl Plugin for LogPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugins((tracing::TracingPlugin, ui::UiPlugin))
+        app.add_plugins((tracing::TracingPlugin, ui::UiPlugin))
             .insert_resource(LogRegistry::default())
+            .register_type::<LogRegistry>()
             .register_type::<LogLevel>()
             .register_type::<LogEntry>()
             .register_type::<LogId>()

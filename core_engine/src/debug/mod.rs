@@ -11,24 +11,23 @@ use bevy::prelude::*;
 use bevy_egui::EguiPrimaryContextPass;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use components::DebugObjectComponent;
-use resources::{DebugSuiteUiState, DebugSuiteUiDockState};
+use resources::{DebugSuiteUiDockState, DebugSuiteUiState};
 use systems::{
-    perf_ui_startup, toggle_perf_ui_system, debug_object_movement_system, 
-    chunk_inspection_system, chunk_loader_inspection_system, chunk_manager_debug_ui, 
-    log_registry_debug_ui, debug_suite_ui_system, toggle_debug_suite_ui_system
+    chunk_inspection_system, chunk_loader_inspection_system, chunk_manager_debug_ui, debug_object_movement_system, debug_suite_ui_system,
+    log_registry_debug_ui, perf_ui_startup, toggle_debug_suite_ui_system, toggle_perf_ui_system,
 };
-use types::{DebugObjectMovement, StepMode, StepConfig};
+use types::{DebugObjectMovement, StepConfig, StepMode};
 
 use crate::time::run_conditions::run_if_not_paused;
 
 pub(crate) struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugins(DefaultInspectorConfigPlugin)
+        app.add_plugins(DefaultInspectorConfigPlugin)
             .init_resource::<DebugSuiteUiState>()
             .init_resource::<DebugSuiteUiDockState>()
-            .add_systems(Startup, perf_ui_startup).add_systems(
+            .add_systems(Startup, perf_ui_startup)
+            .add_systems(
                 Update,
                 (
                     toggle_perf_ui_system,

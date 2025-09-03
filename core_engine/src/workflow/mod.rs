@@ -155,7 +155,8 @@ impl Plugin for WorkflowPlugin {
                         .before(workflow_request_system),
                     workflow_request_system,
                     workflow_initialization_system.after(workflow_request_system),
-                ).run_if(run_if_not_paused),
+                )
+                    .run_if(run_if_not_paused),
             )
             .add_systems(
                 Update,
@@ -163,7 +164,8 @@ impl Plugin for WorkflowPlugin {
                     send_ecs_stages_to_ecs_buffers_system,
                     send_ecs_while_stages_to_ecs_while_buffers_system,
                     send_async_stages_to_async_buffers_system,
-                ).run_if(run_if_not_paused),
+                )
+                    .run_if(run_if_not_paused),
             )
             .add_systems(
                 PostUpdate,
@@ -171,7 +173,8 @@ impl Plugin for WorkflowPlugin {
                     workflow_wait_handling_system,
                     workflow_completion_handling_system,
                     workflow_failure_handling_system,
-                ).run_if(run_if_not_paused),
+                )
+                    .run_if(run_if_not_paused),
             )
             .register_type::<ContextKey>()
             .register_type::<CompositeWorkflowContext>()
@@ -225,14 +228,16 @@ impl Plugin for WorkflowPlugin {
                     extract_render_stage_buffer_system,
                     extract_render_while_workflow_state_extract_system,
                     extract_render_while_stage_buffer_system,
-                ).run_if(run_if_not_paused),
+                )
+                    .run_if(run_if_not_paused),
             )
             .add_systems(
                 Render,
                 (
                     send_render_stages_to_render_buffers_system,
                     send_render_while_stages_to_render_while_buffers_system,
-                ).run_if(run_if_not_paused),
+                )
+                    .run_if(run_if_not_paused),
             );
     }
 }

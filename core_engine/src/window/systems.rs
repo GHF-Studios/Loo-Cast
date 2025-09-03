@@ -1,4 +1,7 @@
-use bevy::{prelude::*, window::{PrimaryWindow, WindowMode}};
+use bevy::{
+    prelude::*,
+    window::{PrimaryWindow, WindowMode},
+};
 
 #[tracing::instrument(skip_all)]
 pub(super) fn toggle_window_mode(mut window: Single<&mut Window, With<PrimaryWindow>>, keys: Res<ButtonInput<KeyCode>>) {

@@ -1,9 +1,6 @@
 use bevy::input::mouse::MouseScrollUnit;
+use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 use bevy::{input::mouse::MouseWheel, prelude::*};
-use bevy::render::render_resource::{
-    TextureDescriptor, Extent3d,
-    TextureDimension, TextureFormat, TextureUsages,
-};
 
 use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
@@ -13,10 +10,10 @@ use super::resources::GameViewRenderTarget;
 use super::types::ZoomFactor;
 
 pub(crate) fn setup_main_render_target(
-    mut commands: Commands, 
-    mut images: ResMut<Assets<Image>>, 
+    mut commands: Commands,
+    mut images: ResMut<Assets<Image>>,
     mut egui_textures: ResMut<bevy_egui::EguiUserTextures>,
-    windows: Query<&Window>
+    windows: Query<&Window>,
 ) {
     let window = windows.single().unwrap();
     let size_uvec2 = window.physical_size();
@@ -44,7 +41,11 @@ pub(crate) fn setup_main_render_target(
     let image_handle = images.add(image);
     let texture_id = egui_textures.add_image(image_handle.clone());
 
-    commands.insert_resource(GameViewRenderTarget { handle: image_handle, size: size_uvec2, id: texture_id });
+    commands.insert_resource(GameViewRenderTarget {
+        handle: image_handle,
+        size: size_uvec2,
+        id: texture_id,
+    });
 }
 
 #[tracing::instrument(skip_all)]
@@ -64,7 +65,7 @@ pub(crate) fn main_camera_zoom_system(
         scroll_event_reader.clear();
         return;
     }
-    
+
     for event in scroll_event_reader.read() {
         let scroll_delta = match event.unit {
             MouseScrollUnit::Line => -event.y,

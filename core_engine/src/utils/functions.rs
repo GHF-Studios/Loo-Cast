@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use super::components::{InitHook, DropHook};
+use super::components::{DropHook, InitHook};
 
 pub fn cleanup_init_hooks_system<T: Component>(mut commands: Commands, mut init_hook_query: Query<(Entity, &mut InitHook<T>)>) {
     for (entity, init_hook) in init_hook_query.iter_mut() {

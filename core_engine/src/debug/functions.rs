@@ -2,7 +2,14 @@ use bevy::{asset::ReflectAsset, ecs::system::SystemState, prelude::*, reflect::T
 use egui::Color32;
 use egui_dock::{DockArea, Style};
 
-use crate::{camera::resources::GameViewRenderTarget, debug::types::{DebugSuiteTabViewer, InspectorSelection}, time::{resources::TimeInfo, types::{PauseState, StepConfig}}};
+use crate::{
+    camera::resources::GameViewRenderTarget,
+    debug::types::{DebugSuiteTabViewer, InspectorSelection},
+    time::{
+        resources::TimeInfo,
+        types::{PauseState, StepConfig},
+    },
+};
 
 use super::resources::{DebugSuiteUiDockState, DebugSuiteUiState};
 
@@ -37,20 +44,26 @@ pub(super) fn draw_debug_suite(
                     PauseState::Running => {
                         *pause_state = PauseState::Paused;
                         virtual_time.pause();
-                    },
+                    }
                     PauseState::Paused => {
                         *pause_state = PauseState::Running;
                         virtual_time.unpause();
-                    },
-                    PauseState::Step => {},
+                    }
+                    PauseState::Step => {}
                 }
             }
 
             if ui.button("⏭ Step").clicked() {
                 match time_info.pause_state {
-                    PauseState::Running => { return; },
-                    PauseState::Paused => { time_info.pause_state = PauseState::Step; },
-                    PauseState::Step => { return; }
+                    PauseState::Running => {
+                        return;
+                    }
+                    PauseState::Paused => {
+                        time_info.pause_state = PauseState::Step;
+                    }
+                    PauseState::Step => {
+                        return;
+                    }
                 }
             }
 
@@ -78,14 +91,15 @@ pub(super) fn draw_debug_suite(
 
     // Dock area
     egui::CentralPanel::default().show(ctx, |_ui| {
-        DockArea::new(&mut dock_state.dock_state)
-            .style(Style::from_egui(ctx.style().as_ref()))
-            .show(ctx, &mut DebugSuiteTabViewer {
+        DockArea::new(&mut dock_state.dock_state).style(Style::from_egui(ctx.style().as_ref())).show(
+            ctx,
+            &mut DebugSuiteTabViewer {
                 world,
                 state,
                 game_view_texture_id: Some(target.id),
                 game_view_texture_size: Some(egui::Vec2::new(target.size.x as f32, target.size.y as f32)),
-            });
+            },
+        );
     });
 }
 
@@ -117,24 +131,20 @@ pub(super) fn draw_game_view(
     let (rect, _) = ui.allocate_exact_size(available_size, egui::Sense::hover());
 
     let image_rect = egui::Rect::from_min_size(rect.min + offset, final_size);
-    ui.painter().image(texture_id, image_rect, egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), Color32::WHITE);
+    ui.painter().image(
+        texture_id,
+        image_rect,
+        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+        Color32::WHITE,
+    );
 }
 
 #[tracing::instrument(skip_all)]
-pub(super) fn select_resource(
-    ui: &mut egui::Ui,
-    type_registry: &TypeRegistry,
-    selection: &mut InspectorSelection,
-) {
+pub(super) fn select_resource(ui: &mut egui::Ui, type_registry: &TypeRegistry, selection: &mut InspectorSelection) {
     let mut resources: Vec<_> = type_registry
         .iter()
         .filter(|registration| registration.data::<ReflectResource>().is_some())
-        .map(|registration| {
-            (
-                registration.type_info().type_path_table().short_path(),
-                registration.type_id(),
-            )
-        })
+        .map(|registration| (registration.type_info().type_path_table().short_path(), registration.type_id()))
         .collect();
     resources.sort_by(|(name_a, _), (name_b, _)| name_a.cmp(name_b));
 
@@ -151,21 +161,12 @@ pub(super) fn select_resource(
 }
 
 #[tracing::instrument(skip_all)]
-pub(super) fn select_asset(
-    ui: &mut egui::Ui,
-    type_registry: &TypeRegistry,
-    world: &World,
-    selection: &mut InspectorSelection,
-) {
+pub(super) fn select_asset(ui: &mut egui::Ui, type_registry: &TypeRegistry, world: &World, selection: &mut InspectorSelection) {
     let mut assets: Vec<_> = type_registry
         .iter()
         .filter_map(|registration| {
             let reflect_asset = registration.data::<ReflectAsset>()?;
-            Some((
-                registration.type_info().type_path_table().short_path(),
-                registration.type_id(),
-                reflect_asset,
-            ))
+            Some((registration.type_info().type_path_table().short_path(), registration.type_id(), reflect_asset))
         })
         .collect();
     assets.sort_by(|(name_a, ..), (name_b, ..)| name_a.cmp(name_b));
@@ -180,12 +181,8 @@ pub(super) fn select_asset(
                     _ => false,
                 };
 
-                if ui
-                    .selectable_label(selected, format!("{handle:?}"))
-                    .clicked()
-                {
-                    *selection =
-                        InspectorSelection::Asset(asset_type_id, asset_name.to_string(), Some(handle));
+                if ui.selectable_label(selected, format!("{handle:?}")).clicked() {
+                    *selection = InspectorSelection::Asset(asset_type_id, asset_name.to_string(), Some(handle));
                 }
             }
         });

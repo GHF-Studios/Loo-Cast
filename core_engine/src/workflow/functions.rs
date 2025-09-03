@@ -174,6 +174,7 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error>
 }
 
 pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
+    bevy::prelude::warn!("Running run_workflow_i for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
@@ -189,8 +190,10 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
         })
         .unwrap();
 
+    bevy::prelude::warn!("Sent request for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     loop {
         if let Some(WorkflowResponse::None(_r)) = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id) {
+            bevy::prelude::warn!("Received None response for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             return;
         }
 
@@ -198,6 +201,7 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
             let mut receiver = get_response_i_receiver();
             receiver.recv().now_or_never()
         } {
+            bevy::prelude::warn!("Received response for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             let key = WorkflowID {
                 module: response.module_name,
                 workflow: response.workflow_name,
@@ -208,6 +212,8 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
             } else {
                 RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::None(response));
             }
+        } else {
+            bevy::prelude::warn!("No response yet for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
         }
 
         tokio::task::yield_now().await;

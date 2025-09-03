@@ -295,8 +295,8 @@ impl Workflow {
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_stages_to_ecs_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system))
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system)
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_stages_to_ecs_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system).run_if(|| true))
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system.run_if(|| true))
                             }
                         );
                     }
@@ -305,8 +305,8 @@ impl Workflow {
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_stages_to_render_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system))
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system)
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_stages_to_render_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system).run_if(|| true))
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system.run_if(|| true))
                             }
                         );
                     }
@@ -315,8 +315,8 @@ impl Workflow {
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_async_stages_to_async_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system))
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system)
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_async_stages_to_async_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system).run_if(|| true))
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system.run_if(|| true))
                             }
                         );
                     }
@@ -325,8 +325,8 @@ impl Workflow {
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_while_stages_to_ecs_while_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system))
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system)
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_while_stages_to_ecs_while_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system).run_if(|| true))
+                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system.run_if(|| true))
                             }
                         );
                     }
@@ -336,10 +336,10 @@ impl Workflow {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::RenderWhileWorkflowStateExtractShard::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::split_render_while_workflow_state_extract_system.before(stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system))
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system))
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::fuse_render_while_workflow_state_extract_shards_system.after(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system))
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::split_render_while_workflow_state_extract_system.before(stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system).run_if(|| true))
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system).run_if(|| true))
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system.run_if(|| true))
+                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::fuse_render_while_workflow_state_extract_shards_system.after(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system).run_if(|| true))
                             }
                         );
                     }
@@ -463,6 +463,8 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use crate::time::run_conditions::run_if_not_paused;
+                        
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run() {
@@ -583,6 +585,8 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use crate::time::run_conditions::run_if_not_paused;
+                        
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run() -> Result<(), <TypeE as crate::workflow::traits::WorkflowTypeE>::Error> {
@@ -680,6 +684,8 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use crate::time::run_conditions::run_if_not_paused;
+                        
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run() -> <TypeO as crate::workflow::traits::WorkflowTypeO>::Output {
@@ -808,6 +814,8 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use crate::time::run_conditions::run_if_not_paused;
+                        
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run() -> Result<<TypeOE as crate::workflow::traits::WorkflowTypeOE>::Output, <TypeOE as crate::workflow::traits::WorkflowTypeOE>::Error> {
@@ -906,6 +914,8 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use crate::time::run_conditions::run_if_not_paused;
+                        
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeI as crate::workflow::traits::WorkflowTypeI>::Input) -> () {
@@ -1034,6 +1044,8 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use crate::time::run_conditions::run_if_not_paused;
+                        
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeIE as crate::workflow::traits::WorkflowTypeIE>::Input) -> Result<(), <TypeIE as crate::workflow::traits::WorkflowTypeIE>::Error> {
@@ -1135,6 +1147,8 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use crate::time::run_conditions::run_if_not_paused;
+                        
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeIO as crate::workflow::traits::WorkflowTypeIO>::Input) -> <TypeIO as crate::workflow::traits::WorkflowTypeIO>::Output {
@@ -1267,6 +1281,8 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use crate::time::run_conditions::run_if_not_paused;
+                        
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Input) -> Result<<TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Output, <TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Error> {

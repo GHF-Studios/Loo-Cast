@@ -51,7 +51,6 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
 
     DefaultPlugins
         .build()
-
         // Basic Bevy Plugins
         .disable::<LogPlugin>()
         .set(WindowPlugin {
@@ -62,20 +61,18 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
             }),
             ..default()
         })
-
         // Diagnostics Plugins
         .add(FrameTimeDiagnosticsPlugin::default())
         .add(EntityCountDiagnosticsPlugin)
         .add(SystemInformationDiagnosticsPlugin)
-
         // Ui Plugins
         .add(EguiPlugin::default())
 
-        // Picking Plugins
-        //.add(PickingPlugin::default())
-        //.add(MeshPickingPlugin)
-        //.add(UiPickingPlugin)
-        //.add(SpritePickingPlugin)
+    // Picking Plugins
+    //.add(PickingPlugin::default())
+    //.add(MeshPickingPlugin)
+    //.add(UiPickingPlugin)
+    //.add(SpritePickingPlugin)
 }
 
 fn configure_app(bevy_plugins: PluginGroupBuilder) -> App {

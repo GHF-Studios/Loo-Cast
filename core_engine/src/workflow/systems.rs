@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
-use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
+use bevy::prelude::*;
 use bevy::render::MainWorld;
 use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 
