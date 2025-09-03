@@ -244,7 +244,6 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
             let mut receiver = get_response_i_receiver();
             receiver.recv().now_or_never()
         } {
-            bevy::prelude::warn!("Received response for {}::{} immediately", W::MODULE_NAME, W::WORKFLOW_NAME);
             let key = WorkflowID {
                 module: response.module_name,
                 workflow: response.workflow_name,

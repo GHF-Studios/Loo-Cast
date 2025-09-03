@@ -32,7 +32,10 @@ fn setup_tracing() {
         .with_ansi(true)
         .with_filter(EnvFilter::new(CLI_LOG_FILTER));
 
-    let subscriber = tracing_subscriber::registry().with(LogTreeTracingLayer).with(fmt_layer);
+    let subscriber = tracing_subscriber::registry()
+        .with(LogTreeTracingLayer)
+        .with(fmt_layer)
+        .with(console_subscriber::spawn());
 
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set global subscriber");
 }
