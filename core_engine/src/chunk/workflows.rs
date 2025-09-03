@@ -5,7 +5,7 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnChunks {
             user_imports: {
-                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, Handle, Image, Transform, Sprite, Name};
+                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, Handle, Image, Transform, Sprite, Name, warn, error};
 
                 use crate::chunk::{components::Chunk, resources::ChunkManager, functions::chunk_pos_to_world, types::ChunkOwnerId};
                 use crate::config::statics::CONFIG;
@@ -46,6 +46,7 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
+                            error!("Setting up SpawnChunks::ValidateAndSpawnAndWait");
                             let mut commands = main_access.commands;
                             let chunk_query = main_access.chunk_query;
                             let mut chunk_manager = main_access.chunk_manager;
@@ -83,6 +84,8 @@ define_workflow_mod_OLD! {
                                     chunk_name
                                 )).observe(on_click_select).id();
 
+                                warn!("Spawning chunk at coord ({}, {})", chunk_coord.0, chunk_coord.1);
+
                                 chunk_manager.loaded_chunks.insert(chunk_coord);
                                 chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner_id.clone());
 
@@ -92,12 +95,15 @@ define_workflow_mod_OLD! {
                                 });
                             }
 
+                            warn!("Spawning {} chunks", spawn_chunk_states.len());
+
                             Ok(State {
                                 spawn_chunk_states
                             })
                         }
 
                         fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
+                            error!("Running SpawnChunks::ValidateAndSpawnAndWait");
                             let mut commands = main_access.commands;
 
                             let spawn_chunk_states = state.spawn_chunk_states.into_iter().map(|mut spawn_chunk_state| {
@@ -112,10 +118,15 @@ define_workflow_mod_OLD! {
                             if is_done {
                                 let spawned_chunk_entities = spawn_chunk_states.into_iter().map(|spawn_chunk_state| spawn_chunk_state.chunk_entity).collect();
 
+                                warn!("All chunks spawned.");
+
                                 Ok(Outcome::Done(Output {
                                     spawned_chunk_entities
                                 }))
                             } else {
+                                let done_count = spawn_chunk_states.iter().filter(|spawn_chunk_state| spawn_chunk_state.is_spawned).count();
+                                warn!("Waiting for chunks to spawn... {}/{}", done_count, spawn_chunk_states.len());
+
                                 Ok(Outcome::Wait(State {
                                     spawn_chunk_states
                                 }))
@@ -198,7 +209,7 @@ define_workflow_mod_OLD! {
                             let mut commands = main_access.commands;
 
                             let despawn_chunk_states = state.despawn_chunk_states.into_iter().map(|mut despawn_chunk_state| {
-                                if commands.get_entity(despawn_chunk_state.entity).is_ok() {
+                                if commands.get_entity(despawn_chunk_state.entity).is_err() {
                                     despawn_chunk_state.is_despawned = true;
                                 }
 

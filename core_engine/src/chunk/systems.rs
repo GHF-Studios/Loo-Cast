@@ -64,8 +64,6 @@ pub(crate) fn process_chunk_actions_system(
     mut action_intent_commit_buffer: ResMut<ActionIntentCommitBuffer>,
     mut workflow_handles: Local<Option<ChunkActionWorkflowHandles>>,
 ) {
-    let mut processed_coords = vec![];
-
     // Step 1: If workflows are running, wait for all to complete
     if let Some(handles) = &mut *workflow_handles {
         let spawn_done = handles.spawn.as_ref().is_none_or(|h| h.is_finished());
@@ -73,6 +71,7 @@ pub(crate) fn process_chunk_actions_system(
         let transfer_done = handles.transfer.as_ref().is_none_or(|h| h.is_finished());
 
         if !spawn_done || !despawn_done || !transfer_done {
+            warn!("Waiting for chunk action workflows to finish... spawn_done: {}, despawn_done: {}, transfer_done: {}", spawn_done, despawn_done, transfer_done);
             return;
         }
 
@@ -109,6 +108,7 @@ pub(crate) fn process_chunk_actions_system(
     }
 
     // Step 2: Drain the buffer
+    let mut processed_coords = vec![];
     let mut spawn_inputs = vec![];
     let mut spawn_coords = vec![];
     let mut despawn_inputs = vec![];
@@ -117,38 +117,48 @@ pub(crate) fn process_chunk_actions_system(
     let mut chunk_loaders_performing_chunk_loads: Vec<ChunkOwnerId> = Vec::new();
     for (_, coords) in action_intent_commit_buffer.priority_buckets.iter() {
         for coord in coords {
-            if let Some(action_intent) = action_intent_commit_buffer.action_intent.get(coord).cloned() {
-                match action_intent {
-                    ActionIntent::Spawn { owner_id, coord, .. } => {
-                        spawn_coords.push(coord);
-                        spawn_inputs.push(crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
+            let action_intent = action_intent_commit_buffer.action_intent
+                .get(coord)
+                .unwrap_or_else(|| panic!("
+                    Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", 
+                    coord, action_intent_commit_buffer))
+                .clone();
+            warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords.push(coord);
+                    spawn_inputs.push(crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        // Placeholder handle cause I can't be bothered to create a whole separate thing just to not have to use this placeholder.
+                        // I mean look at it, is it really gonna hurt anyone?
+                        // TODO: Probably fix this, it's scuffed, no matter what I said 10 seconds ago
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords.push(coord);
+                    chunk_loaders_performing_chunk_loads.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs.push(crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs.push(
+                        crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
                             chunk_coord: coord,
-                            chunk_owner_id: owner_id.clone(),
-                            metric_texture: Handle::default(), // Placeholder handle
-                        });
-                        processed_coords.push(coord);
-                        chunk_loaders_performing_chunk_loads.push(owner_id);
-                    }
-                    ActionIntent::Despawn { coord, .. } => {
-                        despawn_inputs.push(crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInput { chunk_coord: coord });
-                        processed_coords.push(coord);
-                    }
-                    ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
-                        transfer_inputs.push(
-                            crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput {
-                                new_chunk_owner_id: new_owner_id.clone(),
-                                chunk_coord: coord,
-                            },
-                        );
-                        processed_coords.push(coord);
-                        chunk_loaders_performing_chunk_loads.push(new_owner_id);
-                    }
+                        },
+                    );
+                    processed_coords.push(coord);
+                    chunk_loaders_performing_chunk_loads.push(new_owner_id);
                 }
             }
         }
     }
 
     if spawn_inputs.is_empty() && despawn_inputs.is_empty() && transfer_inputs.is_empty() {
+        // warn!("No chunk actions to process");
         return;
     }
 

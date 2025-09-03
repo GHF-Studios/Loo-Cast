@@ -96,7 +96,7 @@ define_workflow_mod_OLD! {
                                     });
                                 }
 
-                                //debug!("Ran CategorizeChunks for {:?}", chunk_owner_id.id());
+                                // warn!("Ran CategorizeChunks for {:?}", chunk_owner_id.id());
                             }
 
                             Output { load_chunk_inputs, unload_chunk_inputs }
@@ -170,7 +170,7 @@ define_workflow_mod_OLD! {
                                 });
                             }
 
-                            warn!("Ran OnRemoveChunkLoader for {:?} with # of unload targets: {}", chunk_owner_id.id(), unload_chunk_inputs.len());
+                            // warn!("Ran OnRemoveChunkLoader for {:?} with # of unload targets: {}", chunk_owner_id.id(), unload_chunk_inputs.len());
 
                             Output { unload_chunk_inputs }
                         }
@@ -328,9 +328,11 @@ define_workflow_mod_OLD! {
                                         }
                                     },
                                     ResolvedActionIntent::CancelIntent => {
+                                        // warn!("LoadChunks cancelling intent for chunk at {:?}", coord);
                                         action_intent_buffer.cancel_intent(&coord);
                                     }
                                     ResolvedActionIntent::DiscardIncoming(_reason) => {
+                                        // warn!("LoadChunks intent was discarded for chunk at {:?}: {:?}", coord, reason);
                                         continue;
                                     }
                                     ResolvedActionIntent::Error(error) => {
@@ -339,8 +341,8 @@ define_workflow_mod_OLD! {
                                 }
                             }
 
-                            for affected_owner in affected_owners {
-                                warn!("Setup LoadChunks for {:?}", affected_owner.id());
+                            for _affected_owner in affected_owners {
+                                // warn!("Setup LoadChunks for {:?}", affected_owner.id());
                             }
 
                             State {
@@ -373,9 +375,8 @@ define_workflow_mod_OLD! {
 
                             if is_done {
                                 let loaded_chunks_count = spawn_chunk_states.len() + transfer_chunk_ownership_states.len();
-                                if loaded_chunks_count != 0 {
-                                    warn!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
-                                }
+
+                                warn!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
 
                                 Outcome::Done(())
                             } else {
@@ -420,7 +421,7 @@ define_workflow_mod_OLD! {
 
         UnloadChunks {
             user_imports: {
-                use bevy::prelude::{Res, ResMut, Entity, Transform, Query, Vec2, debug, warn};
+                use bevy::prelude::{Res, ResMut, Entity, Transform, Query, Vec2, debug, warn, error};
                 use std::collections::HashSet;
 
                 use crate::chunk::{
@@ -486,6 +487,7 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> State {
+                            error!("Setting up UnloadChunks");
                             let chunk_manager = main_access.chunk_manager;
                             let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
                             let mut action_intent_buffer = main_access.action_intent_buffer;
@@ -506,6 +508,7 @@ define_workflow_mod_OLD! {
 
                                 let is_loaded = chunk_manager.is_loaded(&coord);
                                 if !is_loaded {
+                                    warn!("UnloadChunks received an input for a chunk that is not loaded at {:?}. Ignoring.", coord);
                                     continue;
                                 }
 
@@ -593,7 +596,7 @@ define_workflow_mod_OLD! {
                                         action_intent_buffer.cancel_intent(&coord);
                                     }
                                     ResolvedActionIntent::DiscardIncoming(reason) => {
-                                        debug!("UnloadChunks intent was discarded: {:?}", reason);
+                                        warn!("UnloadChunks intent was discarded: {:?}", reason);
                                         continue;
                                     }
                                     ResolvedActionIntent::Error(error) => {
@@ -613,6 +616,7 @@ define_workflow_mod_OLD! {
                         }
 
                         fn RunEcsWhile |state, main_access| -> Outcome<State, ()> {
+                            error!("Running UnloadChunks");
                             let chunk_query = main_access.chunk_query;
 
                             let despawn_chunk_states = state.despawn_chunk_states.into_iter().map(|mut s| {
@@ -642,7 +646,33 @@ define_workflow_mod_OLD! {
 
                                 Outcome::Done(())
                             } else {
-                                warn!("Waiting for UnloadChunks to finish...");
+                                let not_despawned: Vec<_> = despawn_chunk_states
+                                    .iter()
+                                    .filter(|d| !d.is_despawned)
+                                    .map(|s| s.coord)
+                                    .collect();
+
+                                let not_transferred: Vec<_> = transfer_chunk_ownership_states
+                                    .iter()
+                                    .filter(|ot| !ot.is_ownership_transfered)
+                                    .map(|s| s.coord)
+                                    .collect();
+                                
+                                if !not_despawned.is_empty() {
+                                    warn!(
+                                        "Waiting: {} chunks still not despawned: {:?})",
+                                        not_despawned.len(),
+                                        not_despawned
+                                    );
+                                }
+                                
+                                if !not_transferred.is_empty() {
+                                    warn!(
+                                        "Waiting: {} chunks still not transferred: {:?})",
+                                        not_transferred.len(),
+                                        not_transferred
+                                    );
+                                }
 
                                 Outcome::Wait(State {
                                     despawn_chunk_states,

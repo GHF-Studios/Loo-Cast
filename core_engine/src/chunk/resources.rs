@@ -5,7 +5,7 @@ use crate::chunk::types::ChunkOwnerId;
 
 use super::intent::{ActionIntent, ActionPriority};
 
-#[derive(Resource, Reflect, Default)]
+#[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
 pub struct ActionIntentCommitBuffer {
     pub action_intent: HashMap<(i32, i32), ActionIntent>,
@@ -57,7 +57,7 @@ impl ActionIntentCommitBuffer {
     }
 }
 
-#[derive(Resource, Reflect, Default)]
+#[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
 pub struct ActionIntentBuffer {
     pub action_intents: HashMap<(i32, i32), ActionIntent>,

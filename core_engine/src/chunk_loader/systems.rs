@@ -44,7 +44,7 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
         handle_composite_workflow_return_now(handle, |_ctx| {
             composite_workflow_return!();
 
-            warn!("Ran UpdateChunkLoaders");
+            // warn!("Ran UpdateChunkLoaders");
         });
     }
 }

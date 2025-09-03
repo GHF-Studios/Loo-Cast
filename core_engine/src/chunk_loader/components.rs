@@ -1,6 +1,6 @@
 use std::{collections::HashSet, sync::Mutex};
 
-use crate::{chunk::types::ChunkOwnerId, config::statics::CONFIG, entity::functions::reserve_entity_id};
+use crate::{chunk::types::ChunkOwnerId, config::statics::CONFIG, entity::functions::get_reserved_entity};
 use bevy::prelude::*;
 use lazy_static::lazy_static;
 
@@ -23,7 +23,7 @@ impl ChunkLoader {
 
         ChunkLoader {
             radius: CONFIG.get::<u32>("chunk_loader/default_radius"),
-            chunk_owner_id: ChunkOwnerId::new(owner_id, reserve_entity_id()),
+            chunk_owner_id: ChunkOwnerId::new(owner_id, get_reserved_entity()),
         }
     }
 
