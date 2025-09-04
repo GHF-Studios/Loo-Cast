@@ -1,7 +1,7 @@
 use std::fmt;
 use tracing_subscriber::fmt::{format::Writer, time::FormatTime};
 
-use crate::statics::START_TIME;
+use super::statics::START_TIME;
 
 pub struct ShortTime;
 impl FormatTime for ShortTime {

@@ -1,9 +1,9 @@
 use std::sync::Arc;
-
 use tracing::{Event, Subscriber};
 use tracing_subscriber::{layer::Context, registry::LookupSpan};
 
-use crate::{functions::now_since_start_ns, log::types::*};
+use crate::core::functions::now_since_start_ns;
+use crate::log::types::*;
 
 pub(super) fn extract_span_identity<S>(ctx: &Context<'_, S>) -> SpanPath
 where

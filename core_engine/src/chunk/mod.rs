@@ -17,7 +17,7 @@ use resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, Chun
 use systems::{chunk_startup_system, chunk_update_system, process_chunk_actions_system};
 use types::{ChunkActionWorkflowHandles, ChunkOwnerId};
 
-use crate::time::run_conditions::run_if_not_paused;
+use crate::{core::run_conditions::run_after_startup_finished, time::run_conditions::run_if_not_paused};
 
 pub(crate) struct ChunkPlugin;
 impl Plugin for ChunkPlugin {
@@ -26,8 +26,8 @@ impl Plugin for ChunkPlugin {
             .insert_resource(ActionIntentCommitBuffer::default())
             .insert_resource(ChunkManager::default())
             .add_systems(Startup, chunk_startup_system)
-            .add_systems(Update, chunk_update_system.run_if(run_if_not_paused))
-            .add_systems(PostUpdate, process_chunk_actions_system.run_if(run_if_not_paused))
+            .add_systems(Update, chunk_update_system.run_if(run_after_startup_finished.and(run_if_not_paused)))
+            .add_systems(PostUpdate, process_chunk_actions_system.run_if(run_after_startup_finished.and(run_if_not_paused)))
             .register_type::<Chunk>()
             .register_type::<SpawnError>()
             .register_type::<DespawnError>()

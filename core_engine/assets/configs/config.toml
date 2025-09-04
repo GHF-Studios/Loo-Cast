@@ -20,7 +20,7 @@ movement_speed = 1000.0
 sprint_multiplier = 2.5
 
 [time]
-start_paused = false
+start_paused = true
 start_step_secs = 0.016
 
 [workflow]

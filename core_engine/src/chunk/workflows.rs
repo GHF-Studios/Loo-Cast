@@ -24,7 +24,7 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                ValidateAndSpawnAndWait: EcsWhile, WhenUnpaused {
+                ValidateAndSpawnAndWait: EcsWhile, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>,
@@ -154,7 +154,7 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                FindAndDespawnAndWait: EcsWhile, WhenUnpaused {
+                FindAndDespawnAndWait: EcsWhile, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>,
@@ -247,7 +247,7 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                FindAndTransferOwnership: Ecs, WhenUnpaused {
+                FindAndTransferOwnership: Ecs, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             chunk_query: Query<'w, 's, (Entity, &'static mut Chunk)>,

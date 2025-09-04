@@ -291,10 +291,11 @@ impl Workflow {
 
                 match stage {
                     Stage::Ecs(stage) => {
-                        let run_condition = if stage.run_when_paused {
-                            quote!()
-                        } else {
-                            quote!(.run_if(run_if_not_paused))
+                        let run_condition = match (stage.run_if_paused, stage.run_after_startup_finished) {
+                            (false, false) => quote!(.run_if(run_if_not_paused)),
+                            (false, true) => quote!(.run_if(run_after_startup_finished.and(run_if_not_paused))),
+                            (true, false) => quote!(),
+                            (true, true) => quote!(.run_if(run_after_startup_finished))
                         };
 
                         workflow_stage_ecs_plugin_usage_literals.push(
@@ -307,10 +308,11 @@ impl Workflow {
                         );
                     }
                     Stage::Render(stage) => {
-                        let run_condition = if stage.run_when_paused {
-                            quote!()
-                        } else {
-                            quote!(.run_if(run_if_not_paused))
+                        let run_condition = match (stage.run_if_paused, stage.run_after_startup_finished) {
+                            (false, false) => quote!(.run_if(run_if_not_paused)),
+                            (false, true) => quote!(.run_if(run_after_startup_finished.and(run_if_not_paused))),
+                            (true, false) => quote!(),
+                            (true, true) => quote!(.run_if(run_after_startup_finished))
                         };
 
                         workflow_stage_render_plugin_usage_literals.push(
@@ -323,10 +325,11 @@ impl Workflow {
                         );
                     }
                     Stage::Async(stage) => {
-                        let run_condition = if stage.run_when_paused {
-                            quote!()
-                        } else {
-                            quote!(.run_if(run_if_not_paused))
+                        let run_condition = match (stage.run_if_paused, stage.run_after_startup_finished) {
+                            (false, false) => quote!(.run_if(run_if_not_paused)),
+                            (false, true) => quote!(.run_if(run_after_startup_finished.and(run_if_not_paused))),
+                            (true, false) => quote!(),
+                            (true, true) => quote!(.run_if(run_after_startup_finished))
                         };
 
                         workflow_stage_ecs_plugin_usage_literals.push(
@@ -339,10 +342,11 @@ impl Workflow {
                         );
                     }
                     Stage::EcsWhile(stage) => {
-                        let run_condition = if stage.run_when_paused {
-                            quote!()
-                        } else {
-                            quote!(.run_if(run_if_not_paused))
+                        let run_condition = match (stage.run_if_paused, stage.run_after_startup_finished) {
+                            (false, false) => quote!(.run_if(run_if_not_paused)),
+                            (false, true) => quote!(.run_if(run_after_startup_finished.and(run_if_not_paused))),
+                            (true, false) => quote!(),
+                            (true, true) => quote!(.run_if(run_after_startup_finished))
                         };
 
                         workflow_stage_ecs_plugin_usage_literals.push(
@@ -355,10 +359,11 @@ impl Workflow {
                         );
                     }
                     Stage::RenderWhile(stage) => {
-                        let run_condition = if stage.run_when_paused {
-                            quote!()
-                        } else {
-                            quote!(.run_if(run_if_not_paused))
+                        let run_condition = match (stage.run_if_paused, stage.run_after_startup_finished) {
+                            (false, false) => quote!(.run_if(run_if_not_paused)),
+                            (false, true) => quote!(.run_if(run_after_startup_finished.and(run_if_not_paused))),
+                            (true, false) => quote!(),
+                            (true, true) => quote!(.run_if(run_after_startup_finished))
                         };
 
                         workflow_stage_render_plugin_usage_literals.push(
@@ -493,6 +498,9 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use bevy::prelude::Condition;
+
+                        use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
 
                         pub const NAME: &str = #workflow_name;
@@ -615,6 +623,9 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use bevy::prelude::Condition;
+
+                        use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
 
                         pub const NAME: &str = #workflow_name;
@@ -714,6 +725,9 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use bevy::prelude::Condition;
+
+                        use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
 
                         pub const NAME: &str = #workflow_name;
@@ -844,6 +858,9 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use bevy::prelude::Condition;
+
+                        use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
 
                         pub const NAME: &str = #workflow_name;
@@ -944,6 +961,9 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use bevy::prelude::Condition;
+
+                        use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
 
                         pub const NAME: &str = #workflow_name;
@@ -1074,6 +1094,9 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use bevy::prelude::Condition;
+
+                        use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
 
                         pub const NAME: &str = #workflow_name;
@@ -1177,6 +1200,9 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use bevy::prelude::Condition;
+
+                        use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
 
                         pub const NAME: &str = #workflow_name;
@@ -1311,6 +1337,9 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
+                        use bevy::prelude::Condition;
+
+                        use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
 
                         pub const NAME: &str = #workflow_name;

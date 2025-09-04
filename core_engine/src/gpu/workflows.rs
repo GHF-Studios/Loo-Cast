@@ -21,7 +21,7 @@ define_workflow_mod_OLD! {
             },
             user_items: {},
             stages: [
-                SetupPhase1: Ecs, WhenUnpaused {
+                SetupPhase1: Ecs, run_if_paused: true, run_after_startup_finished: false {
                     core_types: [
                         struct MainAccess<'w> {
                             shader_assets: ResMut<'w, Assets<Shader>>,
@@ -68,7 +68,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                SetupPhase2: RenderWhile, WhenUnpaused {
+                SetupPhase2: RenderWhile, run_if_paused: true, run_after_startup_finished: false {
                     core_types: [
                         struct RenderAccess<'w> {
                             render_device: Res<'w, RenderDevice>,
@@ -189,7 +189,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                SetupPhase3: Ecs, WhenUnpaused {
+                SetupPhase3: Ecs, run_if_paused: true, run_after_startup_finished: false {
                     core_types: [
                         struct MainAccess<'w> {
                             shader_registry: ResMut<'w, ShaderRegistry>,
@@ -274,7 +274,7 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                PrepareBatch: Ecs, WhenUnpaused {
+                PrepareBatch: Ecs, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w> {
                             render_device: Res<'w, RenderDevice>,
@@ -350,7 +350,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                GetTextureViews: RenderWhile, WhenUnpaused {
+                GetTextureViews: RenderWhile, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct RenderAccess<'w> {
                             gpu_images: Res<'w, RenderAssets<GpuImage>>,
@@ -396,7 +396,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                DispatchBatch: Render, WhenUnpaused {
+                DispatchBatch: Render, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct RenderAccess<'w> {
                             render_device: Res<'w, RenderDevice>,
@@ -456,7 +456,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                WaitForBatch: EcsWhile, WhenUnpaused {
+                WaitForBatch: EcsWhile, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess {}
                         struct Input {

@@ -6,7 +6,7 @@ use quote::quote;
 use syn::{
     braced, bracketed,
     parse::{Parse, ParseStream},
-    Ident, LitInt, Result, Token,
+    Ident, LitInt, LitBool, Result, Token,
 };
 
 pub struct Ecs;
@@ -67,7 +67,8 @@ pub enum Stage {
 pub struct TypedStage<T> {
     pub name: Ident,
     pub index: usize,
-    pub run_when_paused: bool,
+    pub run_if_paused: bool,
+    pub run_after_startup_finished: bool,
     pub core_types: CoreTypes<T>,
     pub core_functions: CoreFunctions<T>,
 }
@@ -78,9 +79,25 @@ impl Stage {
 
         let _stage_name: Ident = lookahead.parse()?;
         let _: Token![:] = lookahead.parse()?;
+
         let stage_type: Ident = lookahead.parse()?;
         let _: Token![,] = lookahead.parse()?;
-        let _run_type: Ident = lookahead.parse()?;
+
+        let run_if_paused_ident: Ident = lookahead.parse()?;
+        let _: Token![:] = lookahead.parse()?;
+        let _run_if_paused: LitBool = lookahead.parse()?;
+        let _: Token![,] = lookahead.parse()?;
+
+        let run_after_startup_finished_ident: Ident = lookahead.parse()?;
+        let _: Token![:] = lookahead.parse()?;
+        let _run_after_startup_finished: LitBool = lookahead.parse()?;
+
+        if run_if_paused_ident.to_string().as_str() != "run_if_paused" {
+            return Err(input.error("Expected `run_if_paused`"));
+        }
+        if run_after_startup_finished_ident.to_string().as_str() != "run_after_startup_finished" {
+            return Err(input.error("Expected `run_after_startup_finished`"));
+        }
 
         match stage_type.to_string().as_str() {
             "Ecs" => TypedStage::<Ecs>::parse(input, index).map(Stage::Ecs),
@@ -270,15 +287,18 @@ impl TypedStage<Ecs> {
     fn parse(input: ParseStream, index: usize) -> Result<Self> {
         let stage_name: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
+
         let _stage_type: Ident = input.parse()?;
         let _: Token![,] = input.parse()?;
-        let run_type: Ident = input.parse()?;
 
-        let run_when_paused = match run_type.to_string().as_str() {
-            "WhenUnpaused" => false,
-            "Always" => true,
-            _ => return Err(input.error("Invalid run type. Options: WhenUnpaused, Always")),
-        };
+        let _run_if_paused_ident: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let run_if_paused: LitBool = input.parse()?;
+        let _: Token![,] = input.parse()?;
+        
+        let _run_after_startup_finished_ident: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let run_after_startup_finished: LitBool = input.parse()?;
 
         let stage_content;
         braced!(stage_content in input);
@@ -300,7 +320,8 @@ impl TypedStage<Ecs> {
         Ok(TypedStage {
             name: stage_name,
             index,
-            run_when_paused,
+            run_if_paused: run_if_paused.value,
+            run_after_startup_finished: run_after_startup_finished.value,
             core_types,
             core_functions,
         })
@@ -311,15 +332,18 @@ impl TypedStage<Render> {
     fn parse(input: ParseStream, index: usize) -> Result<Self> {
         let stage_name: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
+
         let _stage_type: Ident = input.parse()?;
         let _: Token![,] = input.parse()?;
-        let run_type: Ident = input.parse()?;
 
-        let run_when_paused = match run_type.to_string().as_str() {
-            "WhenUnpaused" => false,
-            "Always" => true,
-            _ => return Err(input.error("Invalid run type. Options: WhenUnpaused, Always")),
-        };
+        let _run_if_paused_ident: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let run_if_paused: LitBool = input.parse()?;
+        let _: Token![,] = input.parse()?;
+        
+        let _run_after_startup_finished_ident: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let run_after_startup_finished: LitBool = input.parse()?;
 
         let stage_content;
         braced!(stage_content in input);
@@ -341,7 +365,8 @@ impl TypedStage<Render> {
         Ok(TypedStage {
             name: stage_name,
             index,
-            run_when_paused,
+            run_if_paused: run_if_paused.value,
+            run_after_startup_finished: run_after_startup_finished.value,
             core_types,
             core_functions,
         })
@@ -352,15 +377,18 @@ impl TypedStage<Async> {
     fn parse(input: ParseStream, index: usize) -> Result<Self> {
         let stage_name: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
+
         let _stage_type: Ident = input.parse()?;
         let _: Token![,] = input.parse()?;
-        let run_type: Ident = input.parse()?;
 
-        let run_when_paused = match run_type.to_string().as_str() {
-            "WhenUnpaused" => false,
-            "Always" => true,
-            _ => return Err(input.error("Invalid run type. Options: WhenUnpaused, Always")),
-        };
+        let _run_if_paused_ident: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let run_if_paused: LitBool = input.parse()?;
+        let _: Token![,] = input.parse()?;
+        
+        let _run_after_startup_finished_ident: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let run_after_startup_finished: LitBool = input.parse()?;
 
         let stage_content;
         braced!(stage_content in input);
@@ -382,7 +410,8 @@ impl TypedStage<Async> {
         Ok(TypedStage {
             name: stage_name,
             index,
-            run_when_paused,
+            run_if_paused: run_if_paused.value,
+            run_after_startup_finished: run_after_startup_finished.value,
             core_types,
             core_functions,
         })
@@ -393,15 +422,18 @@ impl TypedStage<EcsWhile> {
     fn parse(input: ParseStream, index: usize) -> Result<Self> {
         let stage_name: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
+
         let _stage_type: Ident = input.parse()?;
         let _: Token![,] = input.parse()?;
-        let run_type: Ident = input.parse()?;
 
-        let run_when_paused = match run_type.to_string().as_str() {
-            "WhenUnpaused" => false,
-            "Always" => true,
-            _ => return Err(input.error("Invalid run type. Options: WhenUnpaused, Always")),
-        };
+        let _run_if_paused_ident: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let run_if_paused: LitBool = input.parse()?;
+        let _: Token![,] = input.parse()?;
+        
+        let _run_after_startup_finished_ident: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let run_after_startup_finished: LitBool = input.parse()?;
 
         let stage_content;
         braced!(stage_content in input);
@@ -423,7 +455,8 @@ impl TypedStage<EcsWhile> {
         Ok(TypedStage {
             name: stage_name,
             index,
-            run_when_paused,
+            run_if_paused: run_if_paused.value,
+            run_after_startup_finished: run_after_startup_finished.value,
             core_types,
             core_functions,
         })
@@ -434,15 +467,18 @@ impl TypedStage<RenderWhile> {
     fn parse(input: ParseStream, index: usize) -> Result<Self> {
         let stage_name: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
+
         let _stage_type: Ident = input.parse()?;
         let _: Token![,] = input.parse()?;
-        let run_type: Ident = input.parse()?;
 
-        let run_when_paused = match run_type.to_string().as_str() {
-            "WhenUnpaused" => false,
-            "Always" => true,
-            _ => return Err(input.error("Invalid run type. Options: WhenUnpaused, Always")),
-        };
+        let _run_if_paused_ident: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let run_if_paused: LitBool = input.parse()?;
+        let _: Token![,] = input.parse()?;
+        
+        let _run_after_startup_finished_ident: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let run_after_startup_finished: LitBool = input.parse()?;
 
         let stage_content;
         braced!(stage_content in input);
@@ -464,7 +500,8 @@ impl TypedStage<RenderWhile> {
         Ok(TypedStage {
             name: stage_name,
             index,
-            run_when_paused,
+            run_if_paused: run_if_paused.value,
+            run_after_startup_finished: run_after_startup_finished.value,
             core_types,
             core_functions,
         })

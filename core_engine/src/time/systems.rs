@@ -1,11 +1,13 @@
-use std::time::Instant;
 
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use bevy::render::MainWorld;
+use std::sync::atomic::Ordering;
+use std::time::Instant;
 
 use crate::config::statics::CONFIG;
 use crate::time::resources::VirtualPaused;
+use crate::time::statics::ELAPSED_VIRTUAL_NANOS;
 
 use super::resources::TimeInfo;
 use super::types::{PauseState, StepConfig};
@@ -27,6 +29,11 @@ pub(super) fn configure_virtual_time(mut time: ResMut<Time<Virtual>>, mut time_i
 #[tracing::instrument(skip_all)]
 pub(super) fn sync_virtual_paused(mut paused: ResMut<VirtualPaused>, time: Res<Time<Virtual>>) {
     paused.0 = time.is_paused();
+}
+
+pub(super) fn sync_elapsed_virtual_time(time: Res<Time<Virtual>>) {
+    let nanos = (time.elapsed_secs_f64() * 1_000_000_000.0) as u64;
+    ELAPSED_VIRTUAL_NANOS.store(nanos, Ordering::Relaxed);
 }
 
 #[tracing::instrument(skip_all)]

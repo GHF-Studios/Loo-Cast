@@ -40,12 +40,13 @@ pub(super) fn update_player_system(
 
             if is_player_update_allowed && keys.just_pressed(KeyCode::F1) && input_mode.is_game() {
                 let handle = composite_workflow!(SpawnPlayer, move out entity: Entity, {
+                    warn!("Running composite workflow 'RemoveChunkLoader'");
+
                     let spawn_player_output = workflow!(OE, Player::SpawnPlayer);
                     let entity = spawn_player_output.player_entity;
                 });
 
                 *player_state_resource = PlayerLifecycle::Spawning(Some(handle));
-                info!("Player entity is being spawned.");
             }
         }
         PlayerLifecycle::Spawning(handle) => {
@@ -54,14 +55,15 @@ pub(super) fn update_player_system(
             if let Some(handle) = handle {
                 if !handle.is_finished() {
                     *player_state_resource = PlayerLifecycle::Spawning(Some(handle));
-                    info!("Player entity is still spawning, waiting for completion.");
+                    // warn!("Waiting for composite workflow 'SpawnPlayer' to finish...");
                     return;
                 }
 
                 handle_composite_workflow_return_now(handle, |ctx| {
                     composite_workflow_return!(entity: Entity);
                     *player_state_resource = PlayerLifecycle::PendingActivation(entity);
-                    info!("Player entity has been spawned: {:?}", entity);
+
+                    warn!("Finished composite workflow 'SpawnPlayer'");
                 });
             }
         }
@@ -71,14 +73,15 @@ pub(super) fn update_player_system(
             if let Some(handle) = handle {
                 if !handle.is_finished() {
                     *player_state_resource = PlayerLifecycle::Despawning(Some(handle));
-                    info!("Player entity is still despawning, waiting for completion.");
+                    // warn!("Waiting for composite workflow 'DespawnPlayer' to finish...");
                     return;
                 }
 
                 handle_composite_workflow_return_now(handle, |_ctx| {
                     composite_workflow_return!();
                     *player_state_resource = PlayerLifecycle::None;
-                    info!("Player entity has been despawned.");
+
+                    warn!("Finished composite workflow 'DespawnPlayer'");
                 });
             }
         }
@@ -87,10 +90,10 @@ pub(super) fn update_player_system(
 
             if transform_query.contains(entity) {
                 *player_state_resource = PlayerLifecycle::Active(entity);
-                info!("Player entity is now active: {:?}", entity);
+                warn!("Player entity is now active: {:?}", entity);
             } else {
                 *player_state_resource = PlayerLifecycle::PendingActivation(entity);
-                info!("Player entity is pending activation, waiting for completion.");
+                warn!("Player entity is pending activation, waiting for completion.");
             }
         }
         PlayerLifecycle::Active(entity) => {
@@ -104,10 +107,11 @@ pub(super) fn update_player_system(
 
             if keys.just_pressed(KeyCode::F1) && input_mode.is_game() {
                 let handle = composite_workflow!(DespawnPlayer, {
+                    warn!("Running composite workflow 'DespawnPlayer'");
+
                     workflow!(E, Player::DespawnPlayer);
                 });
                 *player_state_resource = PlayerLifecycle::Despawning(Some(handle));
-                info!("Player entity is being despawned.");
                 return;
             }
             let _movement_span = info_span!("movement").entered();
@@ -143,7 +147,7 @@ pub(super) fn update_player_system(
             } else {
                 // Entity not found? Maybe it was deleted outside this system.
                 *player_state_resource = PlayerLifecycle::None;
-                warn!("Player entity not found in update_player_system. The player entity should not be manually despawned! Resetting player lifecycle..",);
+                warn!("Player entity not found in update_player_system. The player entity should not be manually despawned! Resetting player lifecycle...",);
             }
         }
     };

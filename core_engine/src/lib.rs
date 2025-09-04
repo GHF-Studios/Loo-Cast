@@ -19,17 +19,13 @@
 //pub mod singletons;
 //pub mod traits;
 
-pub mod constants;
-pub mod functions;
-pub mod statics;
-pub mod types;
-
 // Modules
 pub mod camera;
 pub mod chunk;
 pub mod chunk_actor;
 pub mod chunk_loader;
 pub mod config;
+pub mod core;
 pub mod debug;
 pub mod entity;
 pub mod follower;
@@ -45,12 +41,12 @@ pub mod workflow;
 
 use crate::workflow::functions::handle_composite_workflow_return_later;
 use bevy::{app::PluginGroupBuilder, prelude::*};
+use core_engine_macros::{composite_workflow, composite_workflow_return, register_workflow_mods};
 use camera::CameraPlugin;
 use chunk::ChunkPlugin;
 use chunk_actor::ChunkActorPlugin;
 use chunk_loader::ChunkLoaderPlugin;
 use config::ConfigPlugin;
-use core_engine_macros::{composite_workflow, composite_workflow_return, register_workflow_mods};
 use debug::DebugPlugin;
 use entity::EntityPlugin;
 use follower::FollowerPlugin;
@@ -120,6 +116,11 @@ register_workflow_mods!(
             UnloadAndWait: EcsWhile,
         },
     },
+    Core {
+        FinishStartup {
+            InsertResource: Ecs,
+        },
+    },
     Debug {
         SpawnDebugObjects {
             Spawn: Ecs,
@@ -155,9 +156,11 @@ impl Plugin for SpacetimeEngineCorePlugin {
     }
 }
 
-//#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip_all)]
 fn startup_system() {
     let handle = composite_workflow!(Startup, {
+        warn!("Running composite workflow 'Startup'");
+
         workflow!(Camera::SpawnMainCameras);
 
         let chunk_shader_name = "texture_generators/example_compute_uv";
@@ -197,9 +200,13 @@ fn startup_system() {
         // workflow!(IOE, Chunk::SpawnChunks, Input {
         //     inputs: spawn_inputs
         // });
+
+        workflow!(Core::FinishStartup);
     });
 
     handle_composite_workflow_return_later(handle, |_ctx| {
         composite_workflow_return!();
+        
+        warn!("Finished composite workflow 'Startup'");
     });
 }

@@ -21,7 +21,7 @@ define_workflow_mod_OLD! {
             },
             user_items: {},
             stages: [
-                Categorize: Ecs, WhenUnpaused {
+                Categorize: Ecs, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader, Option<&'static DropHook::<ChunkLoader>>)>,
@@ -120,7 +120,7 @@ define_workflow_mod_OLD! {
             },
             user_items: {},
             stages: [
-                ExtractUnloadChunkInputs: Ecs, WhenUnpaused {
+                ExtractUnloadChunkInputs: Ecs, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             chunk_manager: Res<'w, ChunkManager>,
@@ -225,7 +225,7 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                ValidateAndLoadAndWait: EcsWhile, WhenUnpaused {
+                ValidateAndLoadAndWait: EcsWhile, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             chunk_query: Query<'w, 's, &'static Chunk>,
@@ -468,7 +468,7 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                UnloadAndWait: EcsWhile, WhenUnpaused {
+                UnloadAndWait: EcsWhile, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             chunk_manager: Res<'w, ChunkManager>,
@@ -487,7 +487,7 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> State {
-                            error!("Setting up UnloadChunks");
+                            // warn!("Setting up UnloadChunks");
                             let chunk_manager = main_access.chunk_manager;
                             let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
                             let mut action_intent_buffer = main_access.action_intent_buffer;
@@ -605,8 +605,8 @@ define_workflow_mod_OLD! {
                                 }
                             }
 
-                            for affected_owner in affected_owners {
-                                warn!("Setup UnloadChunks for {:?}", affected_owner.id());
+                            for _affected_owner in affected_owners {
+                                // warn!("Setup UnloadChunks for {:?}", affected_owner.id());
                             }
 
                             State {
@@ -616,7 +616,7 @@ define_workflow_mod_OLD! {
                         }
 
                         fn RunEcsWhile |state, main_access| -> Outcome<State, ()> {
-                            error!("Running UnloadChunks");
+                            // warn!("Running UnloadChunks");
                             let chunk_query = main_access.chunk_query;
 
                             let despawn_chunk_states = state.despawn_chunk_states.into_iter().map(|mut s| {
@@ -641,7 +641,7 @@ define_workflow_mod_OLD! {
                             if is_done {
                                 let unloaded_chunks_count = despawn_chunk_states.len() + transfer_chunk_ownership_states.len();
                                 if unloaded_chunks_count != 0 {
-                                    warn!("Ran UnloadChunks for # of chunks: {}", unloaded_chunks_count);
+                                    // warn!("Ran UnloadChunks for # of chunks: {}", unloaded_chunks_count);
                                 }
 
                                 Outcome::Done(())

@@ -84,11 +84,15 @@ pub(crate) fn process_chunk_actions_system(
                         init_hook.fire();
                     }
                 }
+
+                warn!("Finished composite workflow 'SpawnChunks'");
             });
         }
         if let Some(handle) = handles.despawn.take() {
             handle_composite_workflow_return_now(handle, |_ctx| {
                 composite_workflow_return!();
+
+                warn!("Finished composite workflow 'DespawnChunks'");
             });
         }
         if let Some(handle) = handles.transfer.take() {
@@ -100,6 +104,8 @@ pub(crate) fn process_chunk_actions_system(
                         init_hook.fire();
                     }
                 }
+
+                warn!("Finished composite workflow 'TransferChunkOwnerships'");
             });
         }
 
@@ -198,6 +204,8 @@ pub(crate) fn process_chunk_actions_system(
             move in param_data: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
             new_chunk_loaders: Vec<Entity>,
         {
+            warn!("Running composite workflow 'SpawnChunks'");
+            
             let generate_output = workflow!(IO, Gpu::GenerateTextures, Input {
                 shader_name: "texture_generators/example_compute_uv",
                 texture_size,
@@ -226,6 +234,8 @@ pub(crate) fn process_chunk_actions_system(
             DespawnChunks,
             move in despawn_inputs: Vec<DespawnChunkInput>,
         {
+            warn!("Running composite workflow 'DespawnChunks'");
+            
             let _ = workflow!(IOE, Chunk::DespawnChunks, Input {
                 inputs: despawn_inputs
             });
@@ -240,6 +250,8 @@ pub(crate) fn process_chunk_actions_system(
             move in transfer_inputs: Vec<TransferChunkOwnershipInput>,
             new_chunk_loaders: Vec<Entity>,
         {
+            warn!("Running composite workflow 'TransferChunkOwnerships'");
+            
             let _ = workflow!(IOE, Chunk::TransferChunkOwnerships, Input {
                 inputs: transfer_inputs
             });
