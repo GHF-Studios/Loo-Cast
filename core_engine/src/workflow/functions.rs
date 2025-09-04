@@ -33,18 +33,26 @@ pub async fn run_workflow<W: WorkflowType>() {
     loop {
         let mut receiver = get_response_receiver().await;
 
-        if let Some(response) = receiver.recv().await {
-            let key = WorkflowID {
-                module: response.module_name,
-                workflow: response.workflow_name,
-            };
+        match timeout(Duration::from_secs(5), receiver.recv()).await {
+            Ok(Some(response)) => {
+                let key = WorkflowID {
+                    module: response.module_name,
+                    workflow: response.workflow_name,
+                };
 
-            if key == workflow_id {
-                warn!("Finished run_workflow for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-                return;
-            }
+                if key == workflow_id {
+                    warn!("Finished run_workflow for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+                    return;
+                }
 
-            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::None(response));
+                RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::None(response));
+            },
+            Ok(None) => {
+                panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
+            Err(_) => {
+                panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
         }
 
         if let Some(WorkflowResponse::None(_response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
@@ -75,18 +83,26 @@ pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
     loop {
         let mut receiver = get_response_e_receiver().await;
 
-        if let Some(response) = receiver.recv().await {
-            let key = WorkflowID {
-                module: response.module_name,
-                workflow: response.workflow_name,
-            };
+        match timeout(Duration::from_secs(5), receiver.recv()).await {
+            Ok(Some(response)) => {
+                let key = WorkflowID {
+                    module: response.module_name,
+                    workflow: response.workflow_name,
+                };
 
-            if key == workflow_id {
-                warn!("Finished run_workflow_e for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-                return response.unpack();
-            }
+                if key == workflow_id {
+                    warn!("Finished run_workflow_e for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+                    return response.unpack();
+                }
 
-            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::E(response));
+                RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::E(response));
+            },
+            Ok(None) => {
+                panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
+            Err(_) => {
+                panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
         }
 
         if let Some(WorkflowResponse::E(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
@@ -117,18 +133,26 @@ pub async fn run_workflow_o<W: WorkflowTypeO>() -> W::Output {
     loop {
         let mut receiver = get_response_o_receiver().await;
 
-        if let Some(response) = receiver.recv().await {
-            let key = WorkflowID {
-                module: response.module_name,
-                workflow: response.workflow_name,
-            };
+        match timeout(Duration::from_secs(5), receiver.recv()).await {
+            Ok(Some(response)) => {
+                let key = WorkflowID {
+                    module: response.module_name,
+                    workflow: response.workflow_name,
+                };
 
-            if key == workflow_id {
-                warn!("Finished run_workflow_o for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-                return response.unpack();
-            }
+                if key == workflow_id {
+                    warn!("Finished run_workflow_o for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+                    return response.unpack();
+                }
 
-            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
+                RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
+            },
+            Ok(None) => {
+                panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
+            Err(_) => {
+                panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
         }
 
         if let Some(WorkflowResponse::O(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
@@ -159,18 +183,26 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error>
     loop {
         let mut receiver = get_response_oe_receiver().await;
 
-        if let Some(response) = receiver.recv().await {
-            let key = WorkflowID {
-                module: response.module_name,
-                workflow: response.workflow_name,
-            };
+        match timeout(Duration::from_secs(5), receiver.recv()).await {
+            Ok(Some(response)) => {
+                let key = WorkflowID {
+                    module: response.module_name,
+                    workflow: response.workflow_name,
+                };
 
-            if key == workflow_id {
-                warn!("Finished run_workflow_oe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-                return response.unpack();
-            }
+                if key == workflow_id {
+                    warn!("Finished run_workflow_oe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+                    return response.unpack();
+                }
 
-            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
+                RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
+            },
+            Ok(None) => {
+                panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
+            Err(_) => {
+                panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
         }
 
         if let Some(WorkflowResponse::OE(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
@@ -202,18 +234,26 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
     loop {
         let mut receiver = get_response_i_receiver().await;
 
-        if let Some(response) = receiver.recv().await {
-            let key = WorkflowID {
-                module: response.module_name,
-                workflow: response.workflow_name,
-            };
+        match timeout(Duration::from_secs(5), receiver.recv()).await {
+            Ok(Some(response)) => {
+                let key = WorkflowID {
+                    module: response.module_name,
+                    workflow: response.workflow_name,
+                };
 
-            if key == workflow_id {
-                warn!("Finished run_workflow_i for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-                return;
-            }
+                if key == workflow_id {
+                    warn!("Finished run_workflow_i for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+                    return;
+                }
 
-            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::None(response));
+                RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::None(response));
+            },
+            Ok(None) => {
+                panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
+            Err(_) => {
+                panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
         }
 
         if let Some(WorkflowResponse::None(_response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
@@ -245,18 +285,26 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W
     loop {
         let mut receiver = get_response_ie_receiver().await;
 
-        if let Some(response) = receiver.recv().await {
-            let key = WorkflowID {
-                module: response.module_name,
-                workflow: response.workflow_name,
-            };
+        match timeout(Duration::from_secs(5), receiver.recv()).await {
+            Ok(Some(response)) => {
+                let key = WorkflowID {
+                    module: response.module_name,
+                    workflow: response.workflow_name,
+                };
 
-            if key == workflow_id {
-                warn!("Finished run_workflow_ie for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-                return response.unpack();
-            }
+                if key == workflow_id {
+                    warn!("Finished run_workflow_ie for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+                    return response.unpack();
+                }
 
-            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::E(response));
+                RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::E(response));
+            },
+            Ok(None) => {
+                panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
+            Err(_) => {
+                panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
         }
 
         if let Some(WorkflowResponse::E(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
@@ -288,18 +336,26 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> W::Output {
     loop {
         let mut receiver = get_response_io_receiver().await;
 
-        if let Some(response) = receiver.recv().await {
-            let key = WorkflowID {
-                module: response.module_name,
-                workflow: response.workflow_name,
-            };
+        match timeout(Duration::from_secs(5), receiver.recv()).await {
+            Ok(Some(response)) => {
+                let key = WorkflowID {
+                    module: response.module_name,
+                    workflow: response.workflow_name,
+                };
 
-            if key == workflow_id {
-                warn!("Finished run_workflow_io for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-                return response.unpack();
-            }
+                if key == workflow_id {
+                    warn!("Finished run_workflow_io for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+                    return response.unpack();
+                }
 
-            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
+                RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
+            },
+            Ok(None) => {
+                panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
+            Err(_) => {
+                panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
         }
 
         if let Some(WorkflowResponse::O(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
@@ -331,18 +387,26 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
     loop {
         let mut receiver = get_response_ioe_receiver().await;
 
-        if let Some(response) = receiver.recv().await {
-            let key = WorkflowID {
-                module: response.module_name,
-                workflow: response.workflow_name,
-            };
+        match timeout(Duration::from_secs(5), receiver.recv()).await {
+            Ok(Some(response)) => {
+                let key = WorkflowID {
+                    module: response.module_name,
+                    workflow: response.workflow_name,
+                };
 
-            if key == workflow_id {
-                warn!("Finished run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-                return response.unpack();
-            }
+                if key == workflow_id {
+                    warn!("Finished run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+                    return response.unpack();
+                }
 
-            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
+                RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
+            },
+            Ok(None) => {
+                panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
+            Err(_) => {
+                panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            },
         }
 
         if let Some(WorkflowResponse::OE(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
