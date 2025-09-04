@@ -155,7 +155,7 @@ impl Plugin for SpacetimeEngineCorePlugin {
     }
 }
 
-#[tracing::instrument(skip_all)]
+//#[tracing::instrument(skip_all)]
 fn startup_system() {
     let handle = composite_workflow!(Startup, {
         workflow!(Camera::SpawnMainCameras);

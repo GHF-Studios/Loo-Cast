@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crossbeam_channel::{unbounded, Receiver, Sender};
-use std::sync::{Mutex, MutexGuard, OnceLock};
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use std::sync::OnceLock;
+use tokio::sync::{Mutex, MutexGuard, mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender}};
 
 use super::events::*;
 use super::request::*;
@@ -194,12 +194,12 @@ macro_rules! define_sender_getter {
 
 macro_rules! define_receiver_getter {
     ($fn_name:ident, $static_ref:ident, $T:ty) => {
-        pub fn $fn_name() -> MutexGuard<'static, $T> {
+        pub async fn $fn_name() -> MutexGuard<'static, $T> {
             $static_ref
                 .get()
                 .expect(concat!(stringify!($fn_name), " accessed before initialization!"))
                 .lock()
-                .unwrap()
+                .await
         }
     };
 }

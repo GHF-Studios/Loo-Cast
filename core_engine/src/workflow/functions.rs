@@ -2,18 +2,20 @@ use bevy::prelude::*;
 use futures::FutureExt;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 
 use crate::utils::premium_box::AnySendSyncPremiumBox;
 use crate::workflow::composite_workflow_context::{ScopedCompositeWorkflowContext, CURRENT_COMPOSITE_WORKFLOW_ID};
-use crate::workflow::response::{TypedWorkflowResponse, WorkflowResponse};
+use crate::workflow::response::WorkflowResponse;
 use crate::workflow::types::WorkflowID;
+use tokio::time::{timeout, Duration};
 
 use super::{channels::*, request::*, traits::*};
 
 static RESPONSE_INBOX: Lazy<Mutex<HashMap<WorkflowID, WorkflowResponse>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 pub async fn run_workflow<W: WorkflowType>() {
+    warn!("Running run_workflow for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
@@ -29,43 +31,33 @@ pub async fn run_workflow<W: WorkflowType>() {
         .unwrap();
 
     loop {
-        if let Some(Some(response)) = {
-            let mut receiver = get_response_receiver();
-            receiver.recv().now_or_never()
-        } {
+        let mut receiver = get_response_receiver().await;
+
+        if let Some(response) = receiver.recv().await {
             let key = WorkflowID {
                 module: response.module_name,
                 workflow: response.workflow_name,
             };
 
             if key == workflow_id {
+                warn!("Finished run_workflow for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                 return;
             }
 
-            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::None(response));
-            tokio::task::yield_now().await;
-            continue;
+            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::None(response));
         }
 
-        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
-        let response = match response {
-            Some(response) => response,
-            None => {
-                tokio::task::yield_now().await;
-                continue;
-            }
-        };
-
-        if let WorkflowResponse::None(_r) = response {
+        if let Some(WorkflowResponse::None(_response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
+            warn!("Finished run_workflow for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             return;
         }
 
-        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
 
 pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
+    warn!("Running run_workflow_e for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
@@ -81,43 +73,33 @@ pub async fn run_workflow_e<W: WorkflowTypeE>() -> Result<(), W::Error> {
         .unwrap();
 
     loop {
-        if let Some(Some(response)) = {
-            let mut receiver = get_response_e_receiver();
-            receiver.recv().now_or_never()
-        } {
+        let mut receiver = get_response_e_receiver().await;
+
+        if let Some(response) = receiver.recv().await {
             let key = WorkflowID {
                 module: response.module_name,
                 workflow: response.workflow_name,
             };
 
             if key == workflow_id {
+                warn!("Finished run_workflow_e for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                 return response.unpack();
             }
 
-            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::E(response));
-            tokio::task::yield_now().await;
-            continue;
+            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::E(response));
         }
 
-        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
-        let response = match response {
-            Some(response) => response,
-            None => {
-                tokio::task::yield_now().await;
-                continue;
-            }
-        };
-
-        if let WorkflowResponse::E(r) = response {
-            return r.unpack();
+        if let Some(WorkflowResponse::E(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
+            warn!("Finished run_workflow_e for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            return response.unpack();
         }
 
-        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
 
 pub async fn run_workflow_o<W: WorkflowTypeO>() -> W::Output {
+    warn!("Running run_workflow_o for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
@@ -133,43 +115,33 @@ pub async fn run_workflow_o<W: WorkflowTypeO>() -> W::Output {
         .unwrap();
 
     loop {
-        if let Some(Some(response)) = {
-            let mut receiver = get_response_o_receiver();
-            receiver.recv().now_or_never()
-        } {
+        let mut receiver = get_response_o_receiver().await;
+
+        if let Some(response) = receiver.recv().await {
             let key = WorkflowID {
                 module: response.module_name,
                 workflow: response.workflow_name,
             };
 
             if key == workflow_id {
+                warn!("Finished run_workflow_o for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                 return response.unpack();
             }
 
-            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::O(response));
-            tokio::task::yield_now().await;
-            continue;
+            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
         }
 
-        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
-        let response = match response {
-            Some(response) => response,
-            None => {
-                tokio::task::yield_now().await;
-                continue;
-            }
-        };
-
-        if let WorkflowResponse::O(r) = response {
-            return r.unpack();
+        if let Some(WorkflowResponse::O(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
+            warn!("Finished run_workflow_o for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            return response.unpack();
         }
 
-        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
 
 pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error> {
+    warn!("Running run_workflow_oe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
@@ -185,44 +157,33 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>() -> Result<W::Output, W::Error>
         .unwrap();
 
     loop {
-        if let Some(Some(response)) = {
-            let mut receiver = get_response_oe_receiver();
-            receiver.recv().now_or_never()
-        } {
+        let mut receiver = get_response_oe_receiver().await;
+
+        if let Some(response) = receiver.recv().await {
             let key = WorkflowID {
                 module: response.module_name,
                 workflow: response.workflow_name,
             };
 
             if key == workflow_id {
+                warn!("Finished run_workflow_oe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                 return response.unpack();
             }
 
-            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::OE(response));
-            tokio::task::yield_now().await;
-            continue;
+            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
         }
 
-        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
-        let response = match response {
-            Some(response) => response,
-            None => {
-                tokio::task::yield_now().await;
-                continue;
-            }
-        };
-
-        if let WorkflowResponse::OE(r) = response {
-            return r.unpack();
+        if let Some(WorkflowResponse::OE(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
+            warn!("Finished run_workflow_oe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            return response.unpack();
         }
 
-        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
 
 pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
-    bevy::prelude::warn!("Running run_workflow_i for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+    warn!("Running run_workflow_i for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
@@ -231,53 +192,41 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(input: W::Input) {
 
     get_request_i_sender()
         .send(TypedWorkflowRequestI {
-            input: AnySendSyncPremiumBox::new(input, format!("{}::{}::Input", workflow_id.module, workflow_id.workflow)),
+            input: AnySendSyncPremiumBox::new(input, format!("{}::{}::Input", W::MODULE_NAME, W::WORKFLOW_NAME)),
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
         })
         .unwrap();
 
-    bevy::prelude::warn!("Sent request for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     loop {
-        if let Some(Some(response)) = {
-            let mut receiver = get_response_i_receiver();
-            receiver.recv().now_or_never()
-        } {
+        let mut receiver = get_response_i_receiver().await;
+
+        if let Some(response) = receiver.recv().await {
             let key = WorkflowID {
                 module: response.module_name,
                 workflow: response.workflow_name,
             };
 
             if key == workflow_id {
-                bevy::prelude::warn!("Finished {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+                warn!("Finished run_workflow_i for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                 return;
             }
 
-            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::None(response));
-            tokio::task::yield_now().await;
-            continue;
+            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::None(response));
         }
 
-        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
-        let response = match response {
-            Some(response) => response,
-            None => {
-                tokio::task::yield_now().await;
-                continue;
-            }
-        };
-
-        if let WorkflowResponse::None(_r) = response {
+        if let Some(WorkflowResponse::None(_response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
+            warn!("Finished run_workflow_i for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             return;
         }
 
-        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
 
 pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W::Error> {
+    warn!("Running run_workflow_ie for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
@@ -286,7 +235,7 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W
 
     get_request_ie_sender()
         .send(TypedWorkflowRequestIE {
-            input: AnySendSyncPremiumBox::new(input, format!("{}::{}::Input", workflow_id.module, workflow_id.workflow)),
+            input: AnySendSyncPremiumBox::new(input, format!("{}::{}::Input", W::MODULE_NAME, W::WORKFLOW_NAME)),
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
@@ -294,43 +243,33 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(input: W::Input) -> Result<(), W
         .unwrap();
 
     loop {
-        if let Some(Some(response)) = {
-            let mut receiver = get_response_ie_receiver();
-            receiver.recv().now_or_never()
-        } {
+        let mut receiver = get_response_ie_receiver().await;
+
+        if let Some(response) = receiver.recv().await {
             let key = WorkflowID {
                 module: response.module_name,
                 workflow: response.workflow_name,
             };
 
             if key == workflow_id {
+                warn!("Finished run_workflow_ie for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                 return response.unpack();
             }
 
-            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::E(response));
-            tokio::task::yield_now().await;
-            continue;
+            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::E(response));
         }
 
-        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
-        let response = match response {
-            Some(response) => response,
-            None => {
-                tokio::task::yield_now().await;
-                continue;
-            }
-        };
-
-        if let WorkflowResponse::E(r) = response {
-            return r.unpack();
+        if let Some(WorkflowResponse::E(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
+            warn!("Finished run_workflow_ie for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            return response.unpack();
         }
 
-        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
 
 pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> W::Output {
+    warn!("Running run_workflow_io for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
@@ -339,7 +278,7 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> W::Output {
 
     get_request_io_sender()
         .send(TypedWorkflowRequestIO {
-            input: AnySendSyncPremiumBox::new(input, format!("{}::{}::Input", workflow_id.module, workflow_id.workflow)),
+            input: AnySendSyncPremiumBox::new(input, format!("{}::{}::Input", W::MODULE_NAME, W::WORKFLOW_NAME)),
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
@@ -347,43 +286,33 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(input: W::Input) -> W::Output {
         .unwrap();
 
     loop {
-        if let Some(Some(response)) = {
-            let mut receiver = get_response_io_receiver();
-            receiver.recv().now_or_never()
-        } {
+        let mut receiver = get_response_io_receiver().await;
+
+        if let Some(response) = receiver.recv().await {
             let key = WorkflowID {
                 module: response.module_name,
                 workflow: response.workflow_name,
             };
 
             if key == workflow_id {
+                warn!("Finished run_workflow_io for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                 return response.unpack();
             }
 
-            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::O(response));
-            tokio::task::yield_now().await;
-            continue;
+            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
         }
 
-        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
-        let response = match response {
-            Some(response) => response,
-            None => {
-                tokio::task::yield_now().await;
-                continue;
-            }
-        };
-
-        if let WorkflowResponse::O(r) = response {
-            return r.unpack();
+        if let Some(WorkflowResponse::O(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
+            warn!("Finished run_workflow_io for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            return response.unpack();
         }
 
-        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
 
 pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::Output, W::Error> {
+    warn!("Running run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
@@ -392,7 +321,7 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
 
     get_request_ioe_sender()
         .send(TypedWorkflowRequestIOE {
-            input: AnySendSyncPremiumBox::new(input, format!("{}::{}::Input", workflow_id.module, workflow_id.workflow)),
+            input: AnySendSyncPremiumBox::new(input, format!("{}::{}::Input", W::MODULE_NAME, W::WORKFLOW_NAME)),
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
@@ -400,38 +329,27 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(input: W::Input) -> Result<W::
         .unwrap();
 
     loop {
-        if let Some(Some(response)) = {
-            let mut receiver = get_response_ioe_receiver();
-            receiver.recv().now_or_never()
-        } {
+        let mut receiver = get_response_ioe_receiver().await;
+
+        if let Some(response) = receiver.recv().await {
             let key = WorkflowID {
                 module: response.module_name,
                 workflow: response.workflow_name,
             };
 
             if key == workflow_id {
+                warn!("Finished run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                 return response.unpack();
             }
 
-            RESPONSE_INBOX.lock().unwrap().insert(key, WorkflowResponse::OE(response));
-            tokio::task::yield_now().await;
-            continue;
+            RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
         }
 
-        let response = RESPONSE_INBOX.lock().unwrap().remove(&workflow_id);
-        let response = match response {
-            Some(response) => response,
-            None => {
-                tokio::task::yield_now().await;
-                continue;
-            }
-        };
-
-        if let WorkflowResponse::OE(r) = response {
-            return r.unpack();
+        if let Some(WorkflowResponse::OE(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
+            warn!("Finished run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
+            return response.unpack();
         }
 
-        RESPONSE_INBOX.lock().unwrap().insert(response.get_worfklow_id(), response);
         tokio::task::yield_now().await;
     }
 }
