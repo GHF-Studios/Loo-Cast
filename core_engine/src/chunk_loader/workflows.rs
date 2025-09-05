@@ -374,8 +374,8 @@ define_workflow_mod_OLD! {
                                 && transfer_chunk_ownership_states.iter().all(|s| s.is_ownership_transfered);
 
                             if is_done {
-                                let loaded_chunks_count = spawn_chunk_states.len() + transfer_chunk_ownership_states.len();
-
+                                // let loaded_chunks_count = spawn_chunk_states.len() + transfer_chunk_ownership_states.len();
+                                // 
                                 // warn!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
 
                                 Outcome::Done(())
