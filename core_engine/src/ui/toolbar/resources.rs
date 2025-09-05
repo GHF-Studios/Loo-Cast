@@ -34,7 +34,7 @@ impl Default for ToolbarState {
     fn default() -> Self {
         Self {
             enabled: true,
-            show_perf_ui: false,
+            show_perf_ui: true,
             show_log_viewer_ui: false,
             show_chunk_manager_debug_ui: false,
             show_log_registry_debug_ui: false,
