@@ -30,7 +30,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use stage::{Stage, Stages};
 use std::time::Duration;
-use syn::{Ident, LitFloat, LitStr, Path, Result, Token, braced, bracketed, parse::Parse, parse_str};
+use syn::{braced, bracketed, parse::Parse, parse_str, Ident, LitFloat, LitStr, Path, Result, Token};
 use use_statement::UseStatements;
 use user_item::UserItems;
 
@@ -160,14 +160,14 @@ impl Parse for Workflow {
         let _: Token![:] = input.parse()?;
         let timeout_secs: LitFloat = input.parse()?;
         let _: Token![,] = input.parse()?;
-        
+
         let timeout_mode_ident: Ident = input.parse()?;
         if timeout_mode_ident.to_string().as_str() != "timeout_mode" {
             return Err(input.error("Expected `timeout_mode`"));
         }
         let _: Token![:] = input.parse()?;
         let timeout_mode: Ident = input.parse()?;
-        
+
         let timeout_duration = Duration::from_secs_f64(timeout_secs.base10_parse::<f64>()?);
         let timeout_mode = match timeout_mode.to_string().as_str() {
             "RealTime" => WorkflowTimeoutMode::RealTime,
@@ -329,7 +329,7 @@ impl Workflow {
                             (false, false) => quote!(.run_if(run_if_not_paused)),
                             (false, true) => quote!(.run_if(run_after_startup_finished.and(run_if_not_paused))),
                             (true, false) => quote!(),
-                            (true, true) => quote!(.run_if(run_after_startup_finished))
+                            (true, true) => quote!(.run_if(run_after_startup_finished)),
                         };
 
                         workflow_stage_ecs_plugin_usage_literals.push(
@@ -346,7 +346,7 @@ impl Workflow {
                             (false, false) => quote!(.run_if(run_if_not_paused)),
                             (false, true) => quote!(.run_if(run_after_startup_finished.and(run_if_not_paused))),
                             (true, false) => quote!(),
-                            (true, true) => quote!(.run_if(run_after_startup_finished))
+                            (true, true) => quote!(.run_if(run_after_startup_finished)),
                         };
 
                         workflow_stage_render_plugin_usage_literals.push(
@@ -363,7 +363,7 @@ impl Workflow {
                             (false, false) => quote!(.run_if(run_if_not_paused)),
                             (false, true) => quote!(.run_if(run_after_startup_finished.and(run_if_not_paused))),
                             (true, false) => quote!(),
-                            (true, true) => quote!(.run_if(run_after_startup_finished))
+                            (true, true) => quote!(.run_if(run_after_startup_finished)),
                         };
 
                         workflow_stage_ecs_plugin_usage_literals.push(
@@ -380,7 +380,7 @@ impl Workflow {
                             (false, false) => quote!(.run_if(run_if_not_paused)),
                             (false, true) => quote!(.run_if(run_after_startup_finished.and(run_if_not_paused))),
                             (true, false) => quote!(),
-                            (true, true) => quote!(.run_if(run_after_startup_finished))
+                            (true, true) => quote!(.run_if(run_after_startup_finished)),
                         };
 
                         workflow_stage_ecs_plugin_usage_literals.push(
@@ -397,7 +397,7 @@ impl Workflow {
                             (false, false) => quote!(.run_if(run_if_not_paused)),
                             (false, true) => quote!(.run_if(run_after_startup_finished.and(run_if_not_paused))),
                             (true, false) => quote!(),
-                            (true, true) => quote!(.run_if(run_after_startup_finished))
+                            (true, true) => quote!(.run_if(run_after_startup_finished)),
                         };
 
                         workflow_stage_render_plugin_usage_literals.push(

@@ -12,6 +12,9 @@ default_z = -10.0
 [chunk_loader]
 default_radius = 2
 
+[debug]
+spawn_debug_objects = true
+
 [entity]
 reservation_buffer_size = 8
 

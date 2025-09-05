@@ -1,5 +1,5 @@
 use crate::define_composite_workflow::workflow_invocation::*;
-use proc_macro2::{Delimiter, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Group, TokenStream, TokenTree};
 use quote::quote;
 use syn::{parse2, ExprPath, ExprStruct, Ident, Result};
 
@@ -31,7 +31,6 @@ pub fn extract_workflow_segments(input: TokenStream) -> Vec<WorkflowSegment> {
 
                 segments.extend(extract_workflow_segments_inner(group.stream()));
             }
-
             _ => {
                 plain_buffer.extend(Some(token));
             }
@@ -92,7 +91,36 @@ pub fn extract_workflow_segments_inner(input: TokenStream) -> Vec<WorkflowSegmen
 
                 plain_buffer.extend(quote! { #tt });
             }
+            TokenTree::Group(group) => {
+                let inner_segments = extract_workflow_segments_inner(group.stream());
 
+                let mut rebuilt = TokenStream::new();
+                for segment in inner_segments {
+                    match segment {
+                        WorkflowSegment::Plain(ts) => rebuilt.extend(ts),
+                        WorkflowSegment::Invocation(wf) => {
+                            let wf_signature = wf.signature;
+                            let wf_type_path = wf.workflow_type_path;
+
+                            rebuilt.extend(quote! {
+                                #[WorkflowSignature(#wf_signature)]
+                                #[WorkflowType(#wf_type_path)]
+                            });
+                        
+                            if let Some(input) = wf.input_struct {
+                                rebuilt.extend(quote! {
+                                    #[WorkflowInput #input]
+                                });
+                            }
+                        }
+                    }
+                }
+            
+                let mut new_group = Group::new(group.delimiter(), rebuilt);
+                new_group.set_span(group.span());
+            
+                plain_buffer.extend(Some(TokenTree::Group(new_group)));
+            }
             _ => {
                 if !invocation_parts.is_empty() {
                     flush_to_plain(&mut segments, &mut plain_buffer, &mut invocation_parts);

@@ -6,7 +6,7 @@ use quote::quote;
 use syn::{
     braced, bracketed,
     parse::{Parse, ParseStream},
-    Ident, LitInt, LitBool, Result, Token,
+    Ident, LitBool, LitInt, Result, Token,
 };
 
 pub struct Ecs;
@@ -294,7 +294,7 @@ impl TypedStage<Ecs> {
         let _: Token![:] = input.parse()?;
         let run_if_paused: LitBool = input.parse()?;
         let _: Token![,] = input.parse()?;
-        
+
         let _run_after_startup_finished_ident: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
         let run_after_startup_finished: LitBool = input.parse()?;
@@ -339,7 +339,7 @@ impl TypedStage<Render> {
         let _: Token![:] = input.parse()?;
         let run_if_paused: LitBool = input.parse()?;
         let _: Token![,] = input.parse()?;
-        
+
         let _run_after_startup_finished_ident: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
         let run_after_startup_finished: LitBool = input.parse()?;
@@ -384,7 +384,7 @@ impl TypedStage<Async> {
         let _: Token![:] = input.parse()?;
         let run_if_paused: LitBool = input.parse()?;
         let _: Token![,] = input.parse()?;
-        
+
         let _run_after_startup_finished_ident: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
         let run_after_startup_finished: LitBool = input.parse()?;
@@ -429,7 +429,7 @@ impl TypedStage<EcsWhile> {
         let _: Token![:] = input.parse()?;
         let run_if_paused: LitBool = input.parse()?;
         let _: Token![,] = input.parse()?;
-        
+
         let _run_after_startup_finished_ident: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
         let run_after_startup_finished: LitBool = input.parse()?;
@@ -474,7 +474,7 @@ impl TypedStage<RenderWhile> {
         let _: Token![:] = input.parse()?;
         let run_if_paused: LitBool = input.parse()?;
         let _: Token![,] = input.parse()?;
-        
+
         let _run_after_startup_finished_ident: Ident = input.parse()?;
         let _: Token![:] = input.parse()?;
         let run_after_startup_finished: LitBool = input.parse()?;

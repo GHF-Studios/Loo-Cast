@@ -51,7 +51,16 @@ fn pre_process_workflows_inner(tokens: TokenStream) -> TokenStream {
                         }
                     }
                 }
+
                 output.extend(Some(token));
+            }
+
+            TokenTree::Group(group) => {
+                // 🔁 Recurse inside group
+                let inner = pre_process_workflows_inner(group.stream());
+                let mut new_group = Group::new(group.delimiter(), inner);
+                new_group.set_span(group.span()); // preserve original span
+                output.extend(Some(TokenTree::Group(new_group)));
             }
 
             _ => {

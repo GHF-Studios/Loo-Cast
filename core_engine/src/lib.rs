@@ -39,7 +39,6 @@ pub mod utils;
 pub mod window;
 pub mod workflow;
 
-use crate::workflow::functions::handle_composite_workflow_return_later;
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use core_engine_macros::{composite_workflow, composite_workflow_return, register_workflow_mods};
 use camera::CameraPlugin;
@@ -59,6 +58,9 @@ use ui::UiPlugin;
 use utils::UtilsPlugin;
 use window::WindowPlugin;
 use workflow::WorkflowPlugin;
+
+use crate::config::statics::CONFIG;
+use crate::workflow::functions::handle_composite_workflow_return_later;
 
 pub struct SpacetimeEngineCorePlugins;
 impl PluginGroup for SpacetimeEngineCorePlugins {
@@ -173,33 +175,10 @@ fn startup_system() {
                 shader_path: chunk_shader_path,
             }
         );
-        //workflow!(Debug::SpawnDebugObjects);
 
-        // let chunk_coords: Vec<(i32, i32)> = (-8..=8)
-        //     .flat_map(|x| (-8..=8).map(move |y| (x, y)))
-        //     .collect();
-        // let texture_size = crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize;
-        // let param_data: Vec<Vec<f32>> = chunk_coords
-        //     .iter()
-        //     .map(|_| vec![0.0])
-        //     .collect();
-        // let texture_output = workflow!(IO, Gpu::GenerateTextures, Input {
-        //     shader_name: chunk_shader_name,
-        //     texture_sizes: vec![texture_size; chunk_coords.len()],
-        //     param_data,
-        // });
-        // let spawn_inputs: Vec<_> = chunk_coords
-        //     .into_iter()
-        //     .zip(texture_output.texture_handles.into_iter())
-        //     .map(|(chunk_coord, texture_handle)| crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
-        //         chunk_coord,
-        //         chunk_owner_id: None,
-        //         metric_texture: texture_handle,
-        //     })
-        //     .collect();
-        // workflow!(IOE, Chunk::SpawnChunks, Input {
-        //     inputs: spawn_inputs
-        // });
+        if CONFIG.get::<bool>("debug/spawn_debug_objects") {
+            workflow!(Debug::SpawnDebugObjects);
+        }
 
         workflow!(Core::FinishStartup);
     });
@@ -210,3 +189,31 @@ fn startup_system() {
         warn!("Finished composite workflow 'Startup'");
     });
 }
+
+
+// OLD SNIPPETS
+// let chunk_coords: Vec<(i32, i32)> = (-8..=8)
+//     .flat_map(|x| (-8..=8).map(move |y| (x, y)))
+//     .collect();
+// let texture_size = crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize;
+// let param_data: Vec<Vec<f32>> = chunk_coords
+//     .iter()
+//     .map(|_| vec![0.0])
+//     .collect();
+// let texture_output = workflow!(IO, Gpu::GenerateTextures, Input {
+//     shader_name: chunk_shader_name,
+//     texture_sizes: vec![texture_size; chunk_coords.len()],
+//     param_data,
+// });
+// let spawn_inputs: Vec<_> = chunk_coords
+//     .into_iter()
+//     .zip(texture_output.texture_handles.into_iter())
+//     .map(|(chunk_coord, texture_handle)| crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
+//         chunk_coord,
+//         chunk_owner_id: None,
+//         metric_texture: texture_handle,
+//     })
+//     .collect();
+// workflow!(IOE, Chunk::SpawnChunks, Input {
+//     inputs: spawn_inputs
+// });
