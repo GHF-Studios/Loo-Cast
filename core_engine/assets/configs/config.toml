@@ -24,7 +24,7 @@ sprint_multiplier = 2.5
 
 [time]
 start_paused = true
-start_step_secs = 0.016
+start_step_secs = 0.02
 
 [workflow]
 timeout_frames_per_stage = 30

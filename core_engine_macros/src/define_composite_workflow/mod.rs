@@ -3,7 +3,7 @@ mod workflow_invocation;
 mod workflow_segment;
 
 use heck::{ToPascalCase, ToSnakeCase};
-use proc_macro2::TokenStream;
+use proc_macro2::{Group, TokenStream, TokenTree};
 use quote::{quote, ToTokens};
 use std::collections::HashSet;
 use syn::{
@@ -15,6 +15,8 @@ use syn::{
 
 use pre_processor::pre_process_workflows;
 use workflow_segment::{extract_workflow_segments, WorkflowSegment};
+
+use crate::define_composite_workflow::workflow_invocation::WorkflowInvocation;
 
 #[derive(Debug)]
 pub struct CompositeWorkflow {
@@ -37,19 +39,127 @@ impl Parse for CompositeWorkflow {
 }
 
 impl CompositeWorkflow {
+    fn generate_segments(
+        segments: &[WorkflowSegment],
+        error_enum_ident: &Ident,
+    ) -> Vec<TokenStream> {
+        let mut out = Vec::new();
+        for segment in segments {
+            match segment {
+                WorkflowSegment::Plain(tokens) => {
+                    out.push(quote! { #tokens });
+                }
+
+                WorkflowSegment::Invocation(wf) => {
+                    let sig = wf.signature.to_string();
+                    let trait_ident = trait_ident_from_signature(&wf.signature);
+                    let worfklow_path = &wf.workflow_type_path;
+                    let mut module_path = wf.workflow_type_path.clone();
+                    module_path.path.segments.pop();
+
+                    let block = match sig.as_str() {
+                        "None" => quote! {
+                            {
+                                #module_path run().await
+                            }
+                        },
+
+                        "E" => quote! {
+                            {
+                                #module_path run().await.map_err(Into::<#error_enum_ident>::into)?
+                            }
+                        },
+
+                        "O" => quote! {
+                            {
+                                #module_path run().await
+                            }
+                        },
+
+                        "OE" => quote! {
+                            {
+                                #module_path run().await.map_err(Into::<#error_enum_ident>::into)?
+                            }
+                        },
+
+                        "I" | "IE" | "IO" | "IOE" => {
+                            let mut input_expr = wf
+                                .input_struct
+                                .as_ref()
+                                .unwrap_or_else(|| unreachable!(
+                                    "Expected `Input {{ ... }}` block for workflow with signature '{}'",
+                                    sig
+                                ))
+                                .clone();
+                            input_expr.path = syn::parse_quote! { I };
+
+                            let mut inner = quote! {
+                                type T = #worfklow_path;
+                                type I = <T as crate::workflow::traits::#trait_ident>::Input;
+                                #module_path run(#input_expr).await
+                            };
+
+                            if sig.contains('E') {
+                                inner = quote! {
+                                    #inner.map_err(Into::<#error_enum_ident>::into)?
+                                };
+                            }
+
+                            quote! {
+                                {
+                                    #inner
+                                }
+                            }
+                        }
+
+                        _ => unreachable!("Unknown workflow signature: {}", sig),
+                    };
+
+                    out.push(block);
+                }
+
+                WorkflowSegment::Block { delimiter, span, children } => {
+                    let inner = Self::generate_segments(children, error_enum_ident);
+                    let mut group = Group::new(*delimiter, quote! { #(#inner)* });
+                    group.set_span(*span);
+                    out.push(TokenTree::Group(group).into());
+                }
+            }
+        }
+        out
+    }
+
     pub fn generate(self) -> TokenStream {
         let function_ident = Ident::new(self.name.to_string().as_str().to_snake_case().as_str(), self.name.span());
         let error_enum_ident = Ident::new(&format!("{}Error", self.name), self.name.span());
 
         // --- Collect fallible invocations ---
-        let fallible_invocations: Vec<_> = self
-            .segments
-            .iter()
-            .filter_map(|seg| match seg {
-                WorkflowSegment::Invocation(wf) if matches!(wf.signature.to_string().as_str(), "E" | "OE" | "IE" | "IOE") => Some(wf),
-                _ => None,
-            })
-            .collect();
+        let fallible_invocations: Vec<_> = {
+            fn collect<'a>(
+                segs: &'a [WorkflowSegment],
+                out: &mut Vec<&'a WorkflowInvocation>,
+            ) {
+                for seg in segs {
+                    match seg {
+                        WorkflowSegment::Invocation(wf)
+                            if matches!(
+                                wf.signature.to_string().as_str(),
+                                "E" | "OE" | "IE" | "IOE"
+                            ) =>
+                        {
+                            out.push(wf);
+                        }
+                        WorkflowSegment::Block { children, .. } => {
+                            collect(children, out);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            let mut out = Vec::new();
+            collect(&self.segments, &mut out);
+            out
+        };
 
         // --- Deduplicate error types by workflow_type_path ---
         let mut seen_paths = HashSet::new();
@@ -104,80 +214,7 @@ impl CompositeWorkflow {
         };
 
         // --- Build function body ---
-        let mut body_segments = Vec::new();
-
-        for segment in &self.segments {
-            match segment {
-                WorkflowSegment::Plain(tokens) => {
-                    body_segments.push(quote! { #tokens });
-                }
-
-                WorkflowSegment::Invocation(wf) => {
-                    let sig = wf.signature.to_string();
-                    let trait_ident = trait_ident_from_signature(&wf.signature);
-                    let worfklow_path = &wf.workflow_type_path;
-                    let mut module_path = wf.workflow_type_path.clone();
-                    module_path.path.segments.pop();
-
-                    let block = match sig.as_str() {
-                        "None" => quote! {
-                            {
-                                #module_path run().await
-                            }
-                        },
-
-                        "E" => quote! {
-                            {
-                                #module_path run().await.map_err(Into::<#error_enum_ident>::into)?
-                            }
-                        },
-
-                        "O" => quote! {
-                            {
-                                #module_path run().await
-                            }
-                        },
-
-                        "OE" => quote! {
-                            {
-                                #module_path run().await.map_err(Into::<#error_enum_ident>::into)?
-                            }
-                        },
-
-                        "I" | "IE" | "IO" | "IOE" => {
-                            let mut input_expr = wf
-                                .input_struct
-                                .as_ref()
-                                .unwrap_or_else(|| unreachable!("Expected `Input {{ ... }}` block for workflow with signature '{}'", sig))
-                                .clone();
-                            input_expr.path = syn::parse_quote! { I };
-
-                            let mut inner = quote! {
-                                type T = #worfklow_path;
-                                type I = <T as crate::workflow::traits::#trait_ident>::Input;
-                                #module_path run(#input_expr).await
-                            };
-
-                            if sig.contains('E') {
-                                inner = quote! {
-                                    #inner.map_err(Into::<#error_enum_ident>::into)?
-                                };
-                            }
-
-                            quote! {
-                                {
-                                    #inner
-                                }
-                            }
-                        }
-
-                        _ => unreachable!("Unknown workflow signature: {}", sig),
-                    };
-
-                    body_segments.push(block);
-                }
-            }
-        }
+        let body_segments = Self::generate_segments(&self.segments, &error_enum_ident);
 
         let return_type = if fallible_invocations.is_empty() {
             quote! { () }

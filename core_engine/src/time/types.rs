@@ -121,17 +121,29 @@ where
     type Output = Result<F::Output, TimeoutError>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut this = self.project();
+        let me = self.project();
 
-        // Poll the sleep future first
-        if let Poll::Ready(_) = this.sleeper.as_mut().poll(cx) {
-            return Poll::Ready(Err(TimeoutError));
+        // ---- Step 1: Poll inner future first ----
+        if let Poll::Ready(output) = me.future.poll(cx) {
+            return Poll::Ready(Ok(output));
         }
 
-        // Then poll the inner future
-        match this.future.poll(cx) {
-            Poll::Ready(output) => Poll::Ready(Ok(output)),
-            Poll::Pending => Poll::Pending,
-        }
+        // ---- Step 2: Define timeout poller ----
+        let poll_sleep = || -> Poll<Self::Output> {
+            match me.sleeper.poll(cx) {
+                Poll::Ready(()) => Poll::Ready(Err(TimeoutError)),
+                Poll::Pending => Poll::Pending,
+            }
+        };
+
+        // ---- Step 3: (Optional) Coop hook goes here ----
+        // if let (true, false) = (had_budget_before, has_budget_now) {
+        //     with_unconstrained(poll_sleep)
+        // } else {
+        //     poll_sleep()
+        // }
+
+        // We skip coop for now and just poll the sleep directly
+        poll_sleep()
     }
 }

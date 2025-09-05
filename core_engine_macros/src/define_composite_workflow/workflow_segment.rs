@@ -1,5 +1,5 @@
 use crate::define_composite_workflow::workflow_invocation::*;
-use proc_macro2::{Delimiter, Group, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
 use quote::quote;
 use syn::{parse2, ExprPath, ExprStruct, Ident, Result};
 
@@ -7,6 +7,11 @@ use syn::{parse2, ExprPath, ExprStruct, Ident, Result};
 pub enum WorkflowSegment {
     Plain(TokenStream),
     Invocation(Box<WorkflowInvocation>),
+    Block {
+        delimiter: Delimiter,
+        span: Span,
+        children: Vec<WorkflowSegment>,
+    },
 }
 
 pub fn extract_workflow_segments(input: TokenStream) -> Vec<WorkflowSegment> {
@@ -94,32 +99,16 @@ pub fn extract_workflow_segments_inner(input: TokenStream) -> Vec<WorkflowSegmen
             TokenTree::Group(group) => {
                 let inner_segments = extract_workflow_segments_inner(group.stream());
 
-                let mut rebuilt = TokenStream::new();
-                for segment in inner_segments {
-                    match segment {
-                        WorkflowSegment::Plain(ts) => rebuilt.extend(ts),
-                        WorkflowSegment::Invocation(wf) => {
-                            let wf_signature = wf.signature;
-                            let wf_type_path = wf.workflow_type_path;
-
-                            rebuilt.extend(quote! {
-                                #[WorkflowSignature(#wf_signature)]
-                                #[WorkflowType(#wf_type_path)]
-                            });
-                        
-                            if let Some(input) = wf.input_struct {
-                                rebuilt.extend(quote! {
-                                    #[WorkflowInput #input]
-                                });
-                            }
-                        }
-                    }
+                if !plain_buffer.is_empty() {
+                    segments.push(WorkflowSegment::Plain(plain_buffer.clone()));
+                    plain_buffer = TokenStream::new();
                 }
-            
-                let mut new_group = Group::new(group.delimiter(), rebuilt);
-                new_group.set_span(group.span());
-            
-                plain_buffer.extend(Some(TokenTree::Group(new_group)));
+                
+                segments.push(WorkflowSegment::Block {
+                    delimiter: group.delimiter(),
+                    span: group.span(),
+                    children: inner_segments,
+                });
             }
             _ => {
                 if !invocation_parts.is_empty() {
