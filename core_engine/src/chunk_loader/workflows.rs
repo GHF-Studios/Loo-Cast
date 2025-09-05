@@ -328,11 +328,11 @@ define_workflow_mod_OLD! {
                                         }
                                     },
                                     ResolvedActionIntent::CancelIntent => {
-                                        // warn!("LoadChunks cancelling intent for chunk at {:?}", coord);
+                                        warn!("LoadChunks cancelling intent for chunk at {:?}", coord);
                                         action_intent_buffer.cancel_intent(&coord);
                                     }
-                                    ResolvedActionIntent::DiscardIncoming(_reason) => {
-                                        // warn!("LoadChunks intent was discarded for chunk at {:?}: {:?}", coord, reason);
+                                    ResolvedActionIntent::DiscardIncoming(reason) => {
+                                        warn!("LoadChunks intent was discarded for chunk at {:?}: {:?}", coord, reason);
                                         continue;
                                     }
                                     ResolvedActionIntent::Error(error) => {

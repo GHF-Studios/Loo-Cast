@@ -274,7 +274,7 @@ define_workflow_mod_OLD! {
                 }
             },
             stages: [
-                PrepareBatch: Ecs, run_if_paused: false, run_after_startup_finished: true {
+                PrepareBatch: Ecs, run_if_paused: false, run_after_startup_finished: false {
                     core_types: [
                         struct MainAccess<'w> {
                             render_device: Res<'w, RenderDevice>,
@@ -350,7 +350,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                GetTextureViews: RenderWhile, run_if_paused: false, run_after_startup_finished: true {
+                GetTextureViews: RenderWhile, run_if_paused: false, run_after_startup_finished: false {
                     core_types: [
                         struct RenderAccess<'w> {
                             gpu_images: Res<'w, RenderAssets<GpuImage>>,
@@ -396,7 +396,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                DispatchBatch: Render, run_if_paused: false, run_after_startup_finished: true {
+                DispatchBatch: Render, run_if_paused: false, run_after_startup_finished: false {
                     core_types: [
                         struct RenderAccess<'w> {
                             render_device: Res<'w, RenderDevice>,
@@ -456,7 +456,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                WaitForBatch: EcsWhile, run_if_paused: false, run_after_startup_finished: true {
+                WaitForBatch: EcsWhile, run_if_paused: false, run_after_startup_finished: false {
                     core_types: [
                         struct MainAccess {}
                         struct Input {
