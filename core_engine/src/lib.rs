@@ -176,9 +176,9 @@ fn startup_system() {
             }
         );
 
-        if CONFIG.get::<bool>("debug/spawn_debug_objects") {
-            workflow!(Debug::SpawnDebugObjects);
-        }
+        // if CONFIG.get::<bool>("debug/spawn_debug_objects") {
+        //     workflow!(Debug::SpawnDebugObjects);
+        // }
 
         workflow!(Core::FinishStartup);
     });
