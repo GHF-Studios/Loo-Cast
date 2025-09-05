@@ -84,20 +84,19 @@ impl Stage {
         let _: Token![,] = lookahead.parse()?;
 
         let run_if_paused_ident: Ident = lookahead.parse()?;
+        if run_if_paused_ident.to_string().as_str() != "run_if_paused" {
+            return Err(input.error("Expected `run_if_paused`"));
+        }
         let _: Token![:] = lookahead.parse()?;
         let _run_if_paused: LitBool = lookahead.parse()?;
         let _: Token![,] = lookahead.parse()?;
 
         let run_after_startup_finished_ident: Ident = lookahead.parse()?;
-        let _: Token![:] = lookahead.parse()?;
-        let _run_after_startup_finished: LitBool = lookahead.parse()?;
-
-        if run_if_paused_ident.to_string().as_str() != "run_if_paused" {
-            return Err(input.error("Expected `run_if_paused`"));
-        }
         if run_after_startup_finished_ident.to_string().as_str() != "run_after_startup_finished" {
             return Err(input.error("Expected `run_after_startup_finished`"));
         }
+        let _: Token![:] = lookahead.parse()?;
+        let _run_after_startup_finished: LitBool = lookahead.parse()?;
 
         match stage_type.to_string().as_str() {
             "Ecs" => TypedStage::<Ecs>::parse(input, index).map(Stage::Ecs),

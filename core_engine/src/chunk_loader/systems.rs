@@ -15,7 +15,7 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
 
     if !handle_is_some {
         let handle = composite_workflow!(UpdateChunkLoaders, {
-            warn!("Running composite workflow 'UpdateChunkLoaders'");
+            // warn!("Running composite workflow 'UpdateChunkLoaders'");
             
             let categorize_chunks_output = workflow!(O, ChunkLoader::CategorizeChunks);
             let load_chunk_inputs = categorize_chunks_output.load_chunk_inputs;
@@ -38,7 +38,7 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
         handle_composite_workflow_return_now(handle, |_ctx| {
             composite_workflow_return!();
 
-            warn!("Finished composite workflow 'UpdateChunkLoaders'");
+            // warn!("Finished composite workflow 'UpdateChunkLoaders'");
         });
     }
 }

@@ -40,7 +40,7 @@ pub(super) fn update_player_system(
 
             if is_player_update_allowed && keys.just_pressed(KeyCode::F1) && input_mode.is_game() {
                 let handle = composite_workflow!(SpawnPlayer, move out entity: Entity, {
-                    warn!("Running composite workflow 'RemoveChunkLoader'");
+                    warn!("Running composite workflow 'SpawnPlayer'");
 
                     let spawn_player_output = workflow!(OE, Player::SpawnPlayer);
                     let entity = spawn_player_output.player_entity;

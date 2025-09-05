@@ -3,7 +3,7 @@ use core_engine_macros::define_workflow_mod_OLD;
 define_workflow_mod_OLD! {
     name: "ChunkLoader",
     workflows: [
-        CategorizeChunks {
+        CategorizeChunks, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::*;
                 use std::collections::HashSet;
@@ -106,7 +106,7 @@ define_workflow_mod_OLD! {
             ]
         }
 
-        OnRemoveChunkLoader {
+        OnRemoveChunkLoader, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::*;
 
@@ -179,7 +179,7 @@ define_workflow_mod_OLD! {
             ],
         }
 
-        LoadChunks {
+        LoadChunks, timeout_secs: 5.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::{Entity, Res, ResMut, Query, debug, warn};
                 use std::collections::HashSet;
@@ -376,37 +376,37 @@ define_workflow_mod_OLD! {
                             if is_done {
                                 let loaded_chunks_count = spawn_chunk_states.len() + transfer_chunk_ownership_states.len();
 
-                                warn!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
+                                // warn!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
 
                                 Outcome::Done(())
                             } else {
-                                let not_spawned: Vec<_> = spawn_chunk_states
-                                    .iter()
-                                    .filter(|s| !s.is_spawned)
-                                    .map(|s| s.coord)
-                                    .collect();
-
-                                let not_transferred: Vec<_> = transfer_chunk_ownership_states
-                                    .iter()
-                                    .filter(|ot| !ot.is_ownership_transfered)
-                                    .map(|s| s.coord)
-                                    .collect();
-
-                                if !not_spawned.is_empty() {
-                                    warn!(
-                                        "Waiting: {} chunks still not spawned: {:?})",
-                                        not_spawned.len(),
-                                        not_spawned
-                                    );
-                                }
-
-                                if !not_transferred.is_empty() {
-                                    warn!(
-                                        "Waiting: {} chunks still not transferred: {:?})",
-                                        not_transferred.len(),
-                                        not_transferred
-                                    );
-                                }
+                                // let not_spawned: Vec<_> = spawn_chunk_states
+                                //     .iter()
+                                //     .filter(|s| !s.is_spawned)
+                                //     .map(|s| s.coord)
+                                //     .collect();
+                                // 
+                                // let not_transferred: Vec<_> = transfer_chunk_ownership_states
+                                //     .iter()
+                                //     .filter(|ot| !ot.is_ownership_transfered)
+                                //     .map(|s| s.coord)
+                                //     .collect();
+                                // 
+                                // if !not_spawned.is_empty() {
+                                //     warn!(
+                                //         "Waiting: {} chunks still not spawned: {:?})",
+                                //         not_spawned.len(),
+                                //         not_spawned
+                                //     );
+                                // }
+                                // 
+                                // if !not_transferred.is_empty() {
+                                //     warn!(
+                                //         "Waiting: {} chunks still not transferred: {:?})",
+                                //         not_transferred.len(),
+                                //         not_transferred
+                                //     );
+                                // }
 
                                 Outcome::Wait(State {
                                     spawn_chunk_states,
@@ -419,7 +419,7 @@ define_workflow_mod_OLD! {
             ]
         }
 
-        UnloadChunks {
+        UnloadChunks, timeout_secs: 5.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::{Res, ResMut, Entity, Transform, Query, Vec2, debug, warn, error};
                 use std::collections::HashSet;

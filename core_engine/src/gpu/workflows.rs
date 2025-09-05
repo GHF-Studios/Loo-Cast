@@ -3,7 +3,7 @@ use core_engine_macros::define_workflow_mod_OLD;
 define_workflow_mod_OLD! {
     name: "Gpu",
     workflows: [
-        SetupTextureGenerator {
+        SetupTextureGenerator, timeout_secs: 5.0, timeout_mode: RealTime {
             user_imports: {
                 use bevy::prelude::{Handle, Shader, Res, ResMut, Assets};
                 use bevy::ecs::system::SystemState;
@@ -219,7 +219,7 @@ define_workflow_mod_OLD! {
             ]
         }
 
-        GenerateTextures {
+        GenerateTextures, timeout_secs: 5.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::{Handle, Res, ResMut, Assets, Image};
                 use bevy::render::render_resource::{

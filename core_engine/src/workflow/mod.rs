@@ -213,7 +213,8 @@ impl Plugin for WorkflowPlugin {
             .register_type::<WorkflowState>()
             .register_type::<WorkflowTypeModule>()
             .register_type::<WorkflowType>()
-            .register_type::<WorkflowID>();
+            .register_type::<WorkflowID>()
+            .register_type::<WorkflowTimeoutMode>();
 
         let render_app = app.sub_app_mut(RenderApp);
         render_app

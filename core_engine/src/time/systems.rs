@@ -10,6 +10,7 @@ use crate::time::resources::VirtualPaused;
 use crate::time::statics::ELAPSED_VIRTUAL_NANOS;
 
 use super::resources::TimeInfo;
+use super::statics::PENDING_VIRTUAL_SLEEPS;
 use super::types::{PauseState, StepConfig};
 
 #[tracing::instrument(skip_all)]
@@ -34,6 +35,20 @@ pub(super) fn sync_virtual_paused(mut paused: ResMut<VirtualPaused>, time: Res<T
 pub(super) fn sync_elapsed_virtual_time(time: Res<Time<Virtual>>) {
     let nanos = (time.elapsed_secs_f64() * 1_000_000_000.0) as u64;
     ELAPSED_VIRTUAL_NANOS.store(nanos, Ordering::Relaxed);
+}
+
+pub(super) fn wake_virtual_sleeps_system(time: Res<Time<Virtual>>) {
+    let now_nanos = (time.elapsed_secs_f64() * 1_000_000_000.0) as u64;
+
+    let mut pending = PENDING_VIRTUAL_SLEEPS.lock().unwrap();
+    pending.retain(|entry| {
+        if now_nanos >= entry.deadline {
+            entry.waker.wake_by_ref();
+            false
+        } else {
+            true
+        }
+    });
 }
 
 #[tracing::instrument(skip_all)]

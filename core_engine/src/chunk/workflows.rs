@@ -3,7 +3,7 @@ use core_engine_macros::define_workflow_mod_OLD;
 define_workflow_mod_OLD! {
     name: "Chunk",
     workflows: [
-        SpawnChunks {
+        SpawnChunks, timeout_secs: 5.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::{Commands, Entity, Query, Res, ResMut, Handle, Image, Transform, Sprite, Name, warn, error};
 
@@ -137,7 +137,7 @@ define_workflow_mod_OLD! {
             ]
         }
 
-        DespawnChunks {
+        DespawnChunks, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::{Res, ResMut, Commands, Query, Entity};
 
@@ -234,7 +234,7 @@ define_workflow_mod_OLD! {
             ]
         }
 
-        TransferChunkOwnerships {
+        TransferChunkOwnerships, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::{Res, ResMut, Entity};
 

@@ -29,7 +29,8 @@ use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
 use quote::quote;
 use stage::{Stage, Stages};
-use syn::{braced, bracketed, parse::Parse, parse_str, Ident, LitStr, Path, Result, Token};
+use std::time::Duration;
+use syn::{Ident, LitFloat, LitStr, Path, Result, Token, braced, bracketed, parse::Parse, parse_str};
 use use_statement::UseStatements;
 use user_item::UserItems;
 
@@ -120,6 +121,12 @@ impl WorkflowModule {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WorkflowTimeoutMode {
+    RealTime,
+    VirtualTime,
+}
+
 #[allow(clippy::upper_case_acronyms)]
 pub enum WorkflowSignature {
     None,
@@ -134,6 +141,8 @@ pub enum WorkflowSignature {
 pub struct Workflow {
     pub name: Ident,
     pub signature: WorkflowSignature,
+    pub timeout_duration: Duration,
+    pub timeout_mode: WorkflowTimeoutMode,
     pub user_imports: UseStatements,
     pub user_items: UserItems,
     pub stages: Stages,
@@ -142,6 +151,29 @@ pub struct Workflow {
 impl Parse for Workflow {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let name: Ident = input.parse()?;
+        let _: Token![,] = input.parse()?;
+
+        let timeout_secs_ident: Ident = input.parse()?;
+        if timeout_secs_ident.to_string().as_str() != "timeout_secs" {
+            return Err(input.error("Expected `timeout_secs`"));
+        }
+        let _: Token![:] = input.parse()?;
+        let timeout_secs: LitFloat = input.parse()?;
+        let _: Token![,] = input.parse()?;
+        
+        let timeout_mode_ident: Ident = input.parse()?;
+        if timeout_mode_ident.to_string().as_str() != "timeout_mode" {
+            return Err(input.error("Expected `timeout_mode`"));
+        }
+        let _: Token![:] = input.parse()?;
+        let timeout_mode: Ident = input.parse()?;
+        
+        let timeout_duration = Duration::from_secs_f64(timeout_secs.base10_parse::<f64>()?);
+        let timeout_mode = match timeout_mode.to_string().as_str() {
+            "RealTime" => WorkflowTimeoutMode::RealTime,
+            "VirtualTime" => WorkflowTimeoutMode::VirtualTime,
+            _ => return Err(input.error("Invalid timeout mode. Options: RealTime, VirtualTime")),
+        };
 
         let content;
         braced!(content in input);
@@ -201,6 +233,8 @@ impl Parse for Workflow {
         Ok(Workflow {
             name,
             signature,
+            timeout_duration,
+            timeout_mode,
             user_imports,
             user_items,
             stages,
@@ -495,18 +529,26 @@ impl Workflow {
                         )
                     })
                     .unzip();
+                let timeout_secs = self.timeout_duration.as_secs_f64();
+                let timeout_mode = match self.timeout_mode {
+                    WorkflowTimeoutMode::RealTime => quote! { WorkflowTimeoutMode::RealTime },
+                    WorkflowTimeoutMode::VirtualTime => quote! { WorkflowTimeoutMode::VirtualTime },
+                };
+                let workflow_runner_params = quote! { Duration::from_secs_f64(#timeout_secs), #timeout_mode };
 
                 quote! {
                     pub mod #workflow_ident {
                         use bevy::prelude::Condition;
+                        use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
+                        use crate::workflow::types::WorkflowTimeoutMode;
 
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run() {
-                            crate::workflow::functions::run_workflow::<Type>().await
+                            crate::workflow::functions::run_workflow::<Type>(#workflow_runner_params).await
                         }
 
                         #workflow_plugin_declaration
@@ -620,18 +662,26 @@ impl Workflow {
                         )
                     })
                     .unzip();
+                let timeout_secs = self.timeout_duration.as_secs_f64();
+                let timeout_mode = match self.timeout_mode {
+                    WorkflowTimeoutMode::RealTime => quote! { WorkflowTimeoutMode::RealTime },
+                    WorkflowTimeoutMode::VirtualTime => quote! { WorkflowTimeoutMode::VirtualTime },
+                };
+                let workflow_runner_params = quote! { Duration::from_secs_f64(#timeout_secs), #timeout_mode };
 
                 quote! {
                     pub mod #workflow_ident {
                         use bevy::prelude::Condition;
+                        use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
+                        use crate::workflow::types::WorkflowTimeoutMode;
 
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run() -> Result<(), <TypeE as crate::workflow::traits::WorkflowTypeE>::Error> {
-                            crate::workflow::functions::run_workflow_e::<TypeE>().await
+                            crate::workflow::functions::run_workflow_e::<TypeE>(#workflow_runner_params).await
                         }
 
                         #workflow_plugin_declaration
@@ -722,18 +772,26 @@ impl Workflow {
                         )
                     })
                     .unzip();
+                let timeout_secs = self.timeout_duration.as_secs_f64();
+                let timeout_mode = match self.timeout_mode {
+                    WorkflowTimeoutMode::RealTime => quote! { WorkflowTimeoutMode::RealTime },
+                    WorkflowTimeoutMode::VirtualTime => quote! { WorkflowTimeoutMode::VirtualTime },
+                };
+                let workflow_runner_params = quote! { Duration::from_secs_f64(#timeout_secs), #timeout_mode };
 
                 quote! {
                     pub mod #workflow_ident {
                         use bevy::prelude::Condition;
+                        use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
+                        use crate::workflow::types::WorkflowTimeoutMode;
 
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run() -> <TypeO as crate::workflow::traits::WorkflowTypeO>::Output {
-                            crate::workflow::functions::run_workflow_o::<TypeO>().await
+                            crate::workflow::functions::run_workflow_o::<TypeO>(#workflow_runner_params).await
                         }
 
                         #workflow_plugin_declaration
@@ -855,18 +913,26 @@ impl Workflow {
                         )
                     })
                     .unzip();
+                let timeout_secs = self.timeout_duration.as_secs_f64();
+                let timeout_mode = match self.timeout_mode {
+                    WorkflowTimeoutMode::RealTime => quote! { WorkflowTimeoutMode::RealTime },
+                    WorkflowTimeoutMode::VirtualTime => quote! { WorkflowTimeoutMode::VirtualTime },
+                };
+                let workflow_runner_params = quote! { Duration::from_secs_f64(#timeout_secs), #timeout_mode };
 
                 quote! {
                     pub mod #workflow_ident {
                         use bevy::prelude::Condition;
+                        use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
+                        use crate::workflow::types::WorkflowTimeoutMode;
 
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run() -> Result<<TypeOE as crate::workflow::traits::WorkflowTypeOE>::Output, <TypeOE as crate::workflow::traits::WorkflowTypeOE>::Error> {
-                            crate::workflow::functions::run_workflow_oe::<TypeOE>().await
+                            crate::workflow::functions::run_workflow_oe::<TypeOE>(#workflow_runner_params).await
                         }
 
                         #workflow_plugin_declaration
@@ -958,18 +1024,26 @@ impl Workflow {
                         )
                     })
                     .unzip();
+                let timeout_secs = self.timeout_duration.as_secs_f64();
+                let timeout_mode = match self.timeout_mode {
+                    WorkflowTimeoutMode::RealTime => quote! { WorkflowTimeoutMode::RealTime },
+                    WorkflowTimeoutMode::VirtualTime => quote! { WorkflowTimeoutMode::VirtualTime },
+                };
+                let workflow_runner_params = quote! { Duration::from_secs_f64(#timeout_secs), #timeout_mode };
 
                 quote! {
                     pub mod #workflow_ident {
                         use bevy::prelude::Condition;
+                        use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
+                        use crate::workflow::types::WorkflowTimeoutMode;
 
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeI as crate::workflow::traits::WorkflowTypeI>::Input) -> () {
-                            crate::workflow::functions::run_workflow_i::<TypeI>(input).await
+                            crate::workflow::functions::run_workflow_i::<TypeI>(#workflow_runner_params, input).await
                         }
 
                         #workflow_plugin_declaration
@@ -1091,18 +1165,26 @@ impl Workflow {
                         )
                     })
                     .unzip();
+                let timeout_secs = self.timeout_duration.as_secs_f64();
+                let timeout_mode = match self.timeout_mode {
+                    WorkflowTimeoutMode::RealTime => quote! { WorkflowTimeoutMode::RealTime },
+                    WorkflowTimeoutMode::VirtualTime => quote! { WorkflowTimeoutMode::VirtualTime },
+                };
+                let workflow_runner_params = quote! { Duration::from_secs_f64(#timeout_secs), #timeout_mode };
 
                 quote! {
                     pub mod #workflow_ident {
                         use bevy::prelude::Condition;
+                        use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
+                        use crate::workflow::types::WorkflowTimeoutMode;
 
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeIE as crate::workflow::traits::WorkflowTypeIE>::Input) -> Result<(), <TypeIE as crate::workflow::traits::WorkflowTypeIE>::Error> {
-                            crate::workflow::functions::run_workflow_ie::<TypeIE>(input).await
+                            crate::workflow::functions::run_workflow_ie::<TypeIE>(#workflow_runner_params, input).await
                         }
 
                         #workflow_plugin_declaration
@@ -1197,18 +1279,26 @@ impl Workflow {
                         )
                     })
                     .unzip();
+                let timeout_secs = self.timeout_duration.as_secs_f64();
+                let timeout_mode = match self.timeout_mode {
+                    WorkflowTimeoutMode::RealTime => quote! { WorkflowTimeoutMode::RealTime },
+                    WorkflowTimeoutMode::VirtualTime => quote! { WorkflowTimeoutMode::VirtualTime },
+                };
+                let workflow_runner_params = quote! { Duration::from_secs_f64(#timeout_secs), #timeout_mode };
 
                 quote! {
                     pub mod #workflow_ident {
                         use bevy::prelude::Condition;
+                        use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
+                        use crate::workflow::types::WorkflowTimeoutMode;
 
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeIO as crate::workflow::traits::WorkflowTypeIO>::Input) -> <TypeIO as crate::workflow::traits::WorkflowTypeIO>::Output {
-                            crate::workflow::functions::run_workflow_io::<TypeIO>(input).await
+                            crate::workflow::functions::run_workflow_io::<TypeIO>(#workflow_runner_params, input).await
                         }
 
                         #workflow_plugin_declaration
@@ -1334,18 +1424,26 @@ impl Workflow {
                         )
                     })
                     .unzip();
+                let timeout_secs = self.timeout_duration.as_secs_f64();
+                let timeout_mode = match self.timeout_mode {
+                    WorkflowTimeoutMode::RealTime => quote! { WorkflowTimeoutMode::RealTime },
+                    WorkflowTimeoutMode::VirtualTime => quote! { WorkflowTimeoutMode::VirtualTime },
+                };
+                let workflow_runner_params = quote! { Duration::from_secs_f64(#timeout_secs), #timeout_mode };
 
                 quote! {
                     pub mod #workflow_ident {
                         use bevy::prelude::Condition;
+                        use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
                         use crate::time::run_conditions::run_if_not_paused;
+                        use crate::workflow::types::WorkflowTimeoutMode;
 
                         pub const NAME: &str = #workflow_name;
 
                         pub async fn run(input: <TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Input) -> Result<<TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Output, <TypeIOE as crate::workflow::traits::WorkflowTypeIOE>::Error> {
-                            crate::workflow::functions::run_workflow_ioe::<TypeIOE>(input).await
+                            crate::workflow::functions::run_workflow_ioe::<TypeIOE>(#workflow_runner_params, input).await
                         }
 
                         #workflow_plugin_declaration

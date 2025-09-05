@@ -67,10 +67,10 @@ pub(crate) fn process_chunk_actions_system(
         let transfer_done = handles.transfer.as_ref().is_none_or(|h| h.is_finished());
 
         if !spawn_done || !despawn_done || !transfer_done {
-            warn!(
-                "Waiting for chunk action workflows to finish... spawn_done: {}, despawn_done: {}, transfer_done: {}",
-                spawn_done, despawn_done, transfer_done
-            );
+            //warn!(
+            //    "Waiting for chunk action workflows to finish... spawn_done: {}, despawn_done: {}, transfer_done: {}",
+            //    spawn_done, despawn_done, transfer_done
+            //);
             return;
         }
 
@@ -133,7 +133,7 @@ pub(crate) fn process_chunk_actions_system(
                     )
                 })
                 .clone();
-            warn!("Processing chunk action intent: {:?}", action_intent);
+            // warn!("Processing chunk action intent: {:?}", action_intent);
 
             match action_intent {
                 ActionIntent::Spawn { owner_id, coord, .. } => {

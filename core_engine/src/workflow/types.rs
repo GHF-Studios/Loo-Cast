@@ -117,3 +117,9 @@ pub struct WorkflowID {
     pub module: &'static str,
     pub workflow: &'static str,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
+pub enum WorkflowTimeoutMode {
+    RealTime,
+    VirtualTime,
+}
