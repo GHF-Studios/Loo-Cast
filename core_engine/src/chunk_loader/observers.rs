@@ -43,7 +43,7 @@ pub(crate) fn observe_on_remove_chunk_loader(
         handle_composite_workflow_return_now(handle, |_ctx| {
             composite_workflow_return!();
 
-            warn!("Finished composite workflow 'RemoveChunkLoader'");
+            warn!("Finished composite workflow 'OnRemoveChunkLoader'");
         });
     }
     if handle_is_some && !handle_is_finished {
@@ -52,12 +52,12 @@ pub(crate) fn observe_on_remove_chunk_loader(
 
     let owner_id = loader.chunk_owner_id().clone();
     let handle = composite_workflow!(
-        RemoveChunkLoader,
+        OnRemoveChunkLoader,
         move in owner_id: ChunkOwnerId,
         move in loader_position: Vec2,
         move in loader_radius: u32,
     {
-        warn!("Running composite workflow 'RemoveChunkLoader'");
+        warn!("Running composite workflow 'OnRemoveChunkLoader'");
             
         let output = workflow!(IO, ChunkLoader::OnRemoveChunkLoader, Input {
             chunk_owner_id: owner_id,

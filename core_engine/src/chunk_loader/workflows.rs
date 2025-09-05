@@ -170,7 +170,7 @@ define_workflow_mod_OLD! {
                                 });
                             }
 
-                            // warn!("Ran OnRemoveChunkLoader for {:?} with # of unload targets: {}", chunk_owner_id.id(), unload_chunk_inputs.len());
+                            warn!("Ran OnRemoveChunkLoader for {:?} with # of unload targets: {}", chunk_owner_id.id(), unload_chunk_inputs.len());
 
                             Output { unload_chunk_inputs }
                         }
