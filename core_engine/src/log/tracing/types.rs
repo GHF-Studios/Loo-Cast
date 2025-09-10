@@ -5,10 +5,10 @@ use tracing_subscriber::{
     registry::LookupSpan,
 };
 
-use crate::log::{
+use crate::{config::statics::CONFIG, log::{
     statics::{LOG_EVENT_BUFFER, SPAN_EVENT_BUFFER},
     tracing::functions::extract_span_identity,
-};
+}};
 
 use super::functions::extract_log_identity;
 

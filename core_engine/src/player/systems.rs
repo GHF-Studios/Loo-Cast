@@ -55,7 +55,7 @@ pub(super) fn update_player_system(
             if let Some(handle) = handle {
                 if !handle.is_finished() {
                     *player_state_resource = PlayerLifecycle::Spawning(Some(handle));
-                    // warn!("Waiting for composite workflow 'SpawnPlayer' to finish...");
+                    warn!("Waiting for composite workflow 'SpawnPlayer' to finish...");
                     return;
                 }
 
@@ -73,7 +73,7 @@ pub(super) fn update_player_system(
             if let Some(handle) = handle {
                 if !handle.is_finished() {
                     *player_state_resource = PlayerLifecycle::Despawning(Some(handle));
-                    // warn!("Waiting for composite workflow 'DespawnPlayer' to finish...");
+                    warn!("Waiting for composite workflow 'DespawnPlayer' to finish...");
                     return;
                 }
 
@@ -90,7 +90,7 @@ pub(super) fn update_player_system(
 
             if transform_query.contains(entity) {
                 *player_state_resource = PlayerLifecycle::Active(entity);
-                warn!("Player entity is now active: {:?}", entity);
+                warn!("Player entity is now active");
             } else {
                 *player_state_resource = PlayerLifecycle::PendingActivation(entity);
                 warn!("Player entity is pending activation, waiting for completion.");
@@ -101,7 +101,7 @@ pub(super) fn update_player_system(
 
             if !is_player_update_allowed {
                 *player_state_resource = PlayerLifecycle::Active(entity);
-                info!("Player update is not allowed at this time.");
+                // warn!("Player update is not allowed at this time.");
                 return;
             }
 

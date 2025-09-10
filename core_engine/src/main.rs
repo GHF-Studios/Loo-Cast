@@ -7,6 +7,7 @@ use bevy::prelude::*;
 use bevy::window::PresentMode;
 use bevy_egui::EguiPlugin;
 use bevy_rapier2d::prelude::*;
+use core_engine::config::statics::CONFIG;
 use core_engine::core::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
 use core_engine::core::types::ShortTime;
 use core_engine::log::tracing::types::LogTreeTracingLayer;
@@ -26,6 +27,10 @@ fn main() {
 }
 
 fn setup_tracing() {
+    if !CONFIG.get::<bool>("log/tracing/enabled") {
+        return;
+    }
+
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_timer(ShortTime)
         .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
@@ -58,7 +63,7 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
         .disable::<LogPlugin>()
         .set(WindowPlugin {
             primary_window: Some(Window {
-                present_mode: PresentMode::AutoNoVsync,
+                present_mode: PresentMode::AutoVsync,
                 title: "Loo Cast".to_string(),
                 ..default()
             }),
