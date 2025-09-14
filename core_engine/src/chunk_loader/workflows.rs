@@ -179,6 +179,46 @@ define_workflow_mod_OLD! {
             ],
         }
 
+        OnRemovedChunkLoader, timeout_secs: 1.0, timeout_mode: VirtualTime {
+            user_imports: {
+                use bevy::prelude::*;
+
+                use crate::chunk::components::Chunk;
+                use crate::chunk::intent::ActionIntent;
+                use crate::chunk::functions::*;
+                use crate::chunk::resources::{ChunkManager, ActionIntentCommitBuffer};
+                use crate::chunk::types::ChunkOwnerId;
+                use crate::chunk_loader::components::ChunkLoader;
+                use crate::chunk_loader::resources::{RemovedChunkLoader, RemovedChunkLoaders};
+                use crate::chunk_loader::workflows::chunk_loader::unload_chunks::user_items::UnloadChunkInput;
+            },
+            user_items: {},
+            stages: [
+                SendRemovedChunkLoaderEvent: Ecs, run_if_paused: false, run_after_startup_finished: true {
+                    core_types: [
+                        struct MainAccess<'w, 's> {
+                            removed_chunk_loaders: ResMut<'w, RemovedChunkLoaders>,
+                            phantom_data: std::marker::PhantomData<&'s ()>,
+                        }
+                        struct Input {
+                            chunk_owner_id: ChunkOwnerId,
+                        }
+                    ],
+                    core_functions: [
+                        fn RunEcs |input, main_access| {
+                            let mut removed_chunk_loaders = main_access.removed_chunk_loaders;
+
+                            let chunk_owner_id = input.chunk_owner_id;
+
+                            removed_chunk_loaders.0.insert(RemovedChunkLoader {
+                                id: chunk_owner_id,
+                            });
+                        }
+                    ]
+                }
+            ],
+        }
+
         LoadChunks, timeout_secs: 5.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::{Entity, Res, ResMut, Query, debug, warn};
@@ -431,7 +471,9 @@ define_workflow_mod_OLD! {
                     functions::world_pos_to_chunk,
                     types::ChunkOwnerId,
                 };
-                use crate::chunk_loader::components::ChunkLoader;
+                use crate::chunk_loader::{
+                    components::ChunkLoader,
+                };
             },
             user_items: {
                 pub struct UnloadChunkInput {

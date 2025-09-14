@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use core_engine_macros::{composite_workflow, composite_workflow_return};
 use tokio::task::JoinHandle;
 
+use crate::chunk_loader::resources::RemovedChunkLoaders;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
@@ -41,4 +42,11 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
             // warn!("Finished composite workflow 'UpdateChunkLoaders'");
         });
     }
+}
+
+#[tracing::instrument(skip_all)]
+pub(crate) fn post_update_chunk_loader_system(
+    mut removed_chunk_loaders: ResMut<RemovedChunkLoaders>,
+) {
+    removed_chunk_loaders.0.clear();
 }

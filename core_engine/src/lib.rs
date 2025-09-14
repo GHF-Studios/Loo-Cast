@@ -111,6 +111,9 @@ register_workflow_mods!(
         OnRemoveChunkLoader {
             ExtractUnloadChunkInputs: Ecs
         },
+        OnRemovedChunkLoader {
+            SendRemovedChunkLoaderEvent: Ecs
+        },
         LoadChunks {
             ValidateAndLoadAndWait: EcsWhile,
         },

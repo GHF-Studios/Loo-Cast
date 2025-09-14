@@ -9,7 +9,7 @@ use bevy::prelude::*;
 use components::ChunkLoader;
 use observers::observe_on_remove_chunk_loader;
 use resources::{RemovedChunkLoader, RemovedChunkLoaders};
-use systems::update_chunk_loader_system;
+use systems::{update_chunk_loader_system, post_update_chunk_loader_system};
 
 use crate::{
     core::run_conditions::run_after_startup_finished, time::run_conditions::run_if_not_paused, utils::{
@@ -27,7 +27,10 @@ impl Plugin for ChunkLoaderPlugin {
             .add_observer(observe_on_remove_drop_hook::<ChunkLoader>)
             .add_systems(PreUpdate, cleanup_drop_hooks_system::<ChunkLoader>.run_if(run_after_startup_finished.and(run_if_not_paused)))
             .add_systems(Update, update_chunk_loader_system.run_if(run_after_startup_finished.and(run_if_not_paused)))
-            .add_systems(PostUpdate, cleanup_init_hooks_system::<ChunkLoader>.run_if(run_after_startup_finished.and(run_if_not_paused)))
+            .add_systems(PostUpdate, (
+                cleanup_init_hooks_system::<ChunkLoader>,
+                post_update_chunk_loader_system
+            ).run_if(run_after_startup_finished.and(run_if_not_paused)))
             .register_type::<ChunkLoader>()
             .register_type::<RemovedChunkLoader>()
             .register_type::<RemovedChunkLoaders>()

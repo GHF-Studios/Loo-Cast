@@ -35,7 +35,7 @@ pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<As
 pub(crate) fn chunk_update_system(
     mut commands: Commands,
     chunk_query: Query<(Entity, &Transform, &Chunk)>,
-    removed_chunk_loaders: ResMut<RemovedChunkLoaders>,
+    removed_chunk_loaders: Res<RemovedChunkLoaders>,
 ) {
     for (entity, transform, chunk) in chunk_query.iter() {
         let world_pos = transform.translation.truncate();

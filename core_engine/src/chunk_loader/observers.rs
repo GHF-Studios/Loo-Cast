@@ -1,14 +1,12 @@
 use bevy::prelude::*;
 use core_engine_macros::{composite_workflow, composite_workflow_return};
-use tokio::task::JoinHandle;
 
 use crate::{
     chunk::types::ChunkOwnerId,
     chunk_loader::{
         components::ChunkLoader,
-        resources::{RemovedChunkLoader, RemovedChunkLoaders},
     },
-    workflow::{composite_workflow_context::ScopedCompositeWorkflowContext, functions::handle_composite_workflow_return_now},
+    workflow::functions::handle_composite_workflow_return_later,
 };
 
 // TODO: MAJOR: This silently drops observed chunk loader removals if one is already in-progress composite-workflow-wise, so for now:
@@ -16,8 +14,6 @@ use crate::{
 #[tracing::instrument(skip_all)]
 pub(crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoader>,
-    mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>,
-    mut removed_chunk_loaders: ResMut<RemovedChunkLoaders>,
     chunk_loader_query: Query<(&Transform, &ChunkLoader)>,
 ) {
     let loader_entity = trigger.target();
@@ -32,23 +28,6 @@ pub(crate) fn observe_on_remove_chunk_loader(
     };
     let loader_position = loader_transform.translation.truncate();
     let loader_radius = loader.radius;
-    let handle_is_some = (*composite_workflow_handle).is_some();
-    let handle_is_finished = match *composite_workflow_handle {
-        Some(ref handle) => handle.is_finished(),
-        None => false,
-    };
-
-    if handle_is_some && handle_is_finished {
-        let handle = composite_workflow_handle.take().unwrap();
-        handle_composite_workflow_return_now(handle, |_ctx| {
-            composite_workflow_return!();
-
-            warn!("Finished composite workflow 'OnRemoveChunkLoader'");
-        });
-    }
-    if handle_is_some && !handle_is_finished {
-        return;
-    }
 
     let owner_id = loader.chunk_owner_id().clone();
     let handle = composite_workflow!(
@@ -59,18 +38,23 @@ pub(crate) fn observe_on_remove_chunk_loader(
     {
         warn!("Running composite workflow 'OnRemoveChunkLoader'");
             
-        let output = workflow!(IO, ChunkLoader::OnRemoveChunkLoader, Input {
-            chunk_owner_id: owner_id,
-            chunk_loader_position: loader_position,
-            chunk_loader_radius: loader_radius,
-        });
-        workflow!(I, ChunkLoader::UnloadChunks, Input {
-            inputs: output.unload_chunk_inputs
+        // let output = workflow!(IO, ChunkLoader::OnRemoveChunkLoader, Input {
+        //     chunk_owner_id: owner_id.clone(),
+        //     chunk_loader_position: loader_position,
+        //     chunk_loader_radius: loader_radius,
+        // });
+        // // TODO: VERY VERY IMPORTANT: THIS IS TERRIBLE FUCKING SHIT!!!!
+        // We already use ChunkLoader::UnloadChunks in the chunk_loader systems, and workflows cannot be used concurrently!
+        // workflow!(I, ChunkLoader::UnloadChunks, Input {
+        //     inputs: output.unload_chunk_inputs
+        // });
+        workflow!(I, ChunkLoader::OnRemovedChunkLoader, Input {
+            chunk_owner_id: owner_id
         });
     });
-    *composite_workflow_handle = Some(handle);
 
-    removed_chunk_loaders.0.push(RemovedChunkLoader {
-        id: loader.chunk_owner_id().clone(),
+    handle_composite_workflow_return_later(handle, |_ctx| {
+        composite_workflow_return!();
+        warn!("Finished composite workflow 'OnRemoveChunkLoader'");
     });
 }

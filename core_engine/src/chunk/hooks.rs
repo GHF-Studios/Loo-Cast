@@ -1,6 +1,6 @@
 use bevy::ecs::{component::HookContext, world::DeferredWorld};
 
-use crate::{chunk::components::Chunk, chunk_loader::resources::RemovedChunkLoaders};
+use crate::{chunk::components::Chunk, chunk_loader::resources::{RemovedChunkLoader, RemovedChunkLoaders}};
 
 pub(crate) fn hook_on_add_chunk(mut world: DeferredWorld<'_>, hook_context: HookContext) {
     let HookContext {
@@ -19,8 +19,8 @@ pub(crate) fn hook_on_add_chunk(mut world: DeferredWorld<'_>, hook_context: Hook
         None => return,
     };
 
-    let removed_chunk_loaders = world.resource_mut::<RemovedChunkLoaders>();
-    let found_removal_event = removed_chunk_loaders.0.iter().any(|rcl| rcl.id == chunk_owner_id);
+    let mut removed_chunk_loaders = world.resource_mut::<RemovedChunkLoaders>();
+    let found_removal_event = removed_chunk_loaders.0.remove(&RemovedChunkLoader { id: chunk_owner_id.clone() });
 
     if world.get_entity(chunk_owner_id.entity()).is_err() && !found_removal_event {
         panic!(
