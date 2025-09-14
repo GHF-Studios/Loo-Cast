@@ -219,7 +219,7 @@ define_workflow_mod_OLD! {
             ],
         }
 
-        LoadChunks, timeout_secs: 5.0, timeout_mode: VirtualTime {
+        LoadChunks, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::{Entity, Res, ResMut, Query, debug, warn};
                 use std::collections::HashSet;
@@ -459,7 +459,7 @@ define_workflow_mod_OLD! {
             ]
         }
 
-        UnloadChunks, timeout_secs: 5.0, timeout_mode: VirtualTime {
+        UnloadChunks, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::{Res, ResMut, Entity, Transform, Query, Vec2, debug, warn, error};
                 use std::collections::HashSet;

@@ -3,7 +3,7 @@ use core_engine_macros::define_workflow_mod_OLD;
 define_workflow_mod_OLD! {
     name: "Debug",
     workflows: [
-        SpawnDebugObjects, timeout_secs: 5.0, timeout_mode: VirtualTime {
+        SpawnDebugObjects, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::{Commands, Entity, Sprite, Color, Rect, Transform, Quat, Vec2, Res, ResMut, Name};
 
