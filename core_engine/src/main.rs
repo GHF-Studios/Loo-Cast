@@ -94,11 +94,21 @@ fn configure_app(bevy_plugins: PluginGroupBuilder) -> App {
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default());
 
     unsafe {
-        let profile = std::env::var("PROFILE").unwrap(); // "debug" or "release"
-        let lib_path = format!("target/{}/core_mod{}", profile, std::env::consts::DLL_SUFFIX);
-        let lib = libloading::Library::new(lib_path).unwrap();
+        let exe_dir = std::env::current_exe()
+            .expect("failed to get exe path")
+            .parent()
+            .expect("exe has no parent")
+            .to_path_buf();
+
+        let mut lib_path = exe_dir;
+        lib_path.push(format!("core_mod{}", std::env::consts::DLL_SUFFIX));
+
+        let lib = libloading::Library::new(&lib_path)
+            .unwrap_or_else(|e| panic!("Failed to load core_mod library ({}): {}", lib_path.display(), e));
+
         let func: libloading::Symbol<unsafe extern "C" fn(&mut App)> =
-            lib.get(b"init_mod").unwrap();
+            lib.get(b"init_mod").unwrap_or_else(|e| panic!("Failed to load symbol 'init_mod' from core_mod library: {}", e));
+
         func(&mut app);
     }
 

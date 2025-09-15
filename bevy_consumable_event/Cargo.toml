@@ -9,3 +9,4 @@ bevy_ecs = { version = "0.16.1", default-features = false }
 
 [features]
 default = ["bevy_app"]
+

@@ -24,7 +24,7 @@ impl Config {
             abs_path = asset_root().join(path);
         }
 
-        let toml_str = fs::read_to_string(&abs_path)?;
+        let toml_str = fs::read_to_string(&abs_path).unwrap_or_else(|_| panic!("Failed to load config at path: {:?}", abs_path));
         let raw_data: toml::Value = toml::from_str(&toml_str)?;
 
         let mut data = HashMap::new();

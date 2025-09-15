@@ -28,7 +28,7 @@ fn startup_system() {
         workflow!(Camera::SpawnMainCameras);
 
         let chunk_shader_name = "texture_generators/example_compute_uv";
-        let chunk_shader_path = "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string();
+        let chunk_shader_path = "assets/core_lib/shaders/texture_generators/example_compute_uv.wgsl".to_string();
         workflow!(
             IE,
             Gpu::SetupTextureGenerator,
