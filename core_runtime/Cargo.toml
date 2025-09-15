@@ -1,14 +1,8 @@
 [package]
-name = "core_engine"
+name = "core_runtime"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "core_engine"
-path = "src/main.rs"
-
 [dependencies]
 core_api = { path = "../core_api" }
-core_runtime = { path = "../core_runtime" }
 core_runtime_api = { path = "../core_runtime_api" }
-libloading = "0.8.8"

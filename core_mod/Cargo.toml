@@ -7,5 +7,6 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-core_lib = { path = "../core_lib" }
+core_api = { path = "../core_api" }
+core_runtime_api = { path = "../core_runtime_api" }
 core_mod_macros = { path = "../core_mod_macros" }

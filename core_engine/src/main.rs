@@ -1,5 +1,5 @@
 use core_lib::*;
-use core_lib::config::statics::CONFIG;
+use core_lib::config::statics::config;
 use core_lib::core::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
 use core_lib::core::types::ShortTime;
 use core_lib::logging::tracing::types::LogTreeTracingLayer;
@@ -12,11 +12,12 @@ use bevy::window::PresentMode;
 use bevy_egui::EguiPlugin;
 use bevy_rapier2d::prelude::*;
 use iyes_perf_ui::prelude::*;
-use libloading::Library;
+use libloading::{Library, Symbol};
 use std::path::PathBuf;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::{EnvFilter, Layer};
+use core_runtime::{CoreRuntimeApi, build_runtime_api};
 
 fn main() {
     setup_tracing();
@@ -28,7 +29,7 @@ fn main() {
 }
 
 fn setup_tracing() {
-    if !CONFIG.get::<bool>("log/tracing/enabled") {
+    if !config().get::<bool>("log/tracing/enabled") {
         return;
     }
 
@@ -111,16 +112,10 @@ fn load_core_mod(app: &mut App) {
     // println!("🔍 Trying to load core_mod from: {}", lib_path.display());
 
     unsafe {
-        let lib = Library::new(&lib_path)
-            .unwrap_or_else(|e| panic!("Failed to load core_mod library ({}): {}", lib_path.display(), e));
-
-        let func: libloading::Symbol<unsafe extern "C" fn(&mut App)> =
-            lib.get(b"init_mod")
-                .unwrap_or_else(|e| panic!("Failed to load symbol 'init_mod': {}", e));
-
-        // println!("✅ Found init_mod, calling now…");
-        func(app);
-        // println!("✅ init_mod finished");
+        let runtime_api = build_runtime_api();
+        let lib = Library::new(&lib_path)?;
+        let init_mod: Symbol<unsafe extern "C" fn(&mut App, *mut CoreRuntimeApi)> = lib.get(b"init_mod")?;
+        init_mod(app, &runtime_api as *const _ as *mut _);
     }
 }
 

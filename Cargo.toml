@@ -1,11 +1,13 @@
 [workspace]
 members = [
-  "bevy_consumable_event",
   "core_engine",
-  "core_lib",
-  "core_lib_macros",
+  "core_api",
+  "core_api_macros",
+  "core_runtime",
+  "core_runtime_api",
   "core_mod",
   "core_mod_macros",
+  "bevy_consumable_event"
 ]
 
 [profile.dev]
