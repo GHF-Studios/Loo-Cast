@@ -1,6 +1,23 @@
 [workspace]
 members = [
   "bevy_consumable_event",
-  "core_engine", 
-  "core_engine_macros",
+  "core_engine",
+  "core_lib",
+  "core_lib_macros",
+  "core_mod",
+  "core_mod_macros",
 ]
+
+[profile.dev]
+opt-level = 3
+
+[profile.fastdev]
+inherits = "dev"
+lto = "thin"
+
+[profile.release]
+opt-level = 3
+debug = false
+codegen-units = 1
+incremental = false
+lto = true

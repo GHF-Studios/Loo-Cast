@@ -1,4 +1,8 @@
-extern crate core_engine;
+use core_lib::*;
+use core_lib::config::statics::CONFIG;
+use core_lib::core::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
+use core_lib::core::types::ShortTime;
+use core_lib::logging::tracing::types::LogTreeTracingLayer;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
@@ -7,12 +11,9 @@ use bevy::prelude::*;
 use bevy::window::PresentMode;
 use bevy_egui::EguiPlugin;
 use bevy_rapier2d::prelude::*;
-use core_engine::config::statics::CONFIG;
-use core_engine::core::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
-use core_engine::core::types::ShortTime;
-use core_engine::log::tracing::types::LogTreeTracingLayer;
-use core_engine::*;
 use iyes_perf_ui::prelude::*;
+use libloading::Library;
+use std::path::PathBuf;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::{EnvFilter, Layer};
@@ -22,7 +23,8 @@ fn main() {
     let _span = info_span!("main").entered();
     configure_low_level_stuff();
     let bevy_plugins = configure_third_party_plugins();
-    let app = configure_app(bevy_plugins);
+    let mut app = configure_app(bevy_plugins);
+    load_core_mod(&mut app);
     run_app(app);
 }
 
@@ -89,11 +91,36 @@ fn configure_app(bevy_plugins: PluginGroupBuilder) -> App {
     let mut app = App::new();
     app.add_plugins(bevy_plugins)
         .add_plugins(PerfUiPlugin)
-        .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugins(SpacetimeEngineCorePlugins)
-        .add_plugins(SpacetimeEngineWorkflowPlugins);
+        .add_plugins(RapierPhysicsPlugin::<NoUserData>::default());
+
+    unsafe {
+        let profile = std::env::var("PROFILE").unwrap(); // "debug" or "release"
+        let lib_path = format!("target/{}/core_mod{}", profile, std::env::consts::DLL_SUFFIX);
+        let lib = libloading::Library::new(lib_path).unwrap();
+        let func: libloading::Symbol<unsafe extern "C" fn(&mut App)> =
+            lib.get(b"init_mod").unwrap();
+        func(&mut app);
+    }
 
     app
+}
+
+fn load_core_mod(app: &mut App) {
+    let exe_dir = std::env::current_exe()
+        .expect("failed to get exe path")
+        .parent()
+        .expect("exe has no parent")
+        .to_path_buf();
+
+    let mut lib_path = exe_dir;
+    lib_path.push(format!("core_mod{}", std::env::consts::DLL_SUFFIX));
+
+    unsafe {
+        let lib = Library::new(lib_path).unwrap();
+        let func: libloading::Symbol<unsafe extern "C" fn(&mut App)> =
+            lib.get(b"init_mod").unwrap();
+        func(app);
+    }
 }
 
 fn run_app(mut app: App) {
