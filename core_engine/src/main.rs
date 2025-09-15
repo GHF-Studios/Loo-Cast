@@ -24,7 +24,6 @@ fn main() {
     configure_low_level_stuff();
     let bevy_plugins = configure_third_party_plugins();
     let mut app = configure_app(bevy_plugins);
-    load_core_mod(&mut app);
     run_app(app);
 }
 
@@ -77,6 +76,9 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
         .add(SystemInformationDiagnosticsPlugin)
         // Ui Plugins
         .add(EguiPlugin::default())
+        .add(PerfUiPlugin)
+        // Physics Plugins
+        .add(RapierPhysicsPlugin::<NoUserData>::default())
 
     // Picking Plugins
     //.add(PickingPlugin::default())
@@ -85,33 +87,16 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
     //.add(SpritePickingPlugin)
 }
 
-fn configure_app(bevy_plugins: PluginGroupBuilder) -> App {
+fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
     info!("Building App...");
 
     let mut app = App::new();
-    app.add_plugins(bevy_plugins)
-        .add_plugins(PerfUiPlugin)
-        .add_plugins(RapierPhysicsPlugin::<NoUserData>::default());
+    app
+        .add_plugins(third_party_plugins)
+        .add_plugins(CoreLibPluginGroup);
 
-    unsafe {
-        let exe_dir = std::env::current_exe()
-            .expect("failed to get exe path")
-            .parent()
-            .expect("exe has no parent")
-            .to_path_buf();
-
-        let mut lib_path = exe_dir;
-        lib_path.push(format!("core_mod{}", std::env::consts::DLL_SUFFIX));
-
-        let lib = libloading::Library::new(&lib_path)
-            .unwrap_or_else(|e| panic!("Failed to load core_mod library ({}): {}", lib_path.display(), e));
-
-        let func: libloading::Symbol<unsafe extern "C" fn(&mut App)> =
-            lib.get(b"init_mod").unwrap_or_else(|e| panic!("Failed to load symbol 'init_mod' from core_mod library: {}", e));
-
-        func(&mut app);
-    }
-
+    load_core_mod(&mut app);
+    
     app
 }
 
@@ -119,17 +104,23 @@ fn load_core_mod(app: &mut App) {
     let exe_dir = std::env::current_exe()
         .expect("failed to get exe path")
         .parent()
-        .expect("exe has no parent")
+        .unwrap()
         .to_path_buf();
 
-    let mut lib_path = exe_dir;
-    lib_path.push(format!("core_mod{}", std::env::consts::DLL_SUFFIX));
+    let lib_path = exe_dir.join(format!("core_mod{}", std::env::consts::DLL_SUFFIX));
+    // println!("🔍 Trying to load core_mod from: {}", lib_path.display());
 
     unsafe {
-        let lib = Library::new(lib_path).unwrap();
+        let lib = Library::new(&lib_path)
+            .unwrap_or_else(|e| panic!("Failed to load core_mod library ({}): {}", lib_path.display(), e));
+
         let func: libloading::Symbol<unsafe extern "C" fn(&mut App)> =
-            lib.get(b"init_mod").unwrap();
+            lib.get(b"init_mod")
+                .unwrap_or_else(|e| panic!("Failed to load symbol 'init_mod': {}", e));
+
+        // println!("✅ Found init_mod, calling now…");
         func(app);
+        // println!("✅ init_mod finished");
     }
 }
 
