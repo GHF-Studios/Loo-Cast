@@ -1177,8 +1177,6 @@ impl CoreFunctions<Ecs> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1210,8 +1208,6 @@ impl CoreFunctions<Ecs> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1242,8 +1238,6 @@ impl CoreFunctions<Ecs> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1275,8 +1269,6 @@ impl CoreFunctions<Ecs> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1308,8 +1300,6 @@ impl CoreFunctions<Ecs> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1342,8 +1332,6 @@ impl CoreFunctions<Ecs> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1375,8 +1363,6 @@ impl CoreFunctions<Ecs> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1409,8 +1395,6 @@ impl CoreFunctions<Ecs> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1464,8 +1448,6 @@ impl CoreFunctions<Render> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1497,8 +1479,6 @@ impl CoreFunctions<Render> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1529,8 +1509,6 @@ impl CoreFunctions<Render> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1562,8 +1540,6 @@ impl CoreFunctions<Render> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1595,8 +1571,6 @@ impl CoreFunctions<Render> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1629,8 +1603,6 @@ impl CoreFunctions<Render> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1663,8 +1635,6 @@ impl CoreFunctions<Render> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1697,8 +1667,6 @@ impl CoreFunctions<Render> {
                                 );
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
@@ -1745,12 +1713,10 @@ impl CoreFunctions<Async> {
                                 let response_future = (run_async)();
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = tokio_runtime().lock().unwrap().block_on(async move {
+                                if let Err(err) = tokio_runtime().block_on(async move {
                                     handle.spawn(async move {
                                         let _response = response_future.await;
 
@@ -1785,12 +1751,10 @@ impl CoreFunctions<Async> {
                                 let response_future = (run_async)();
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = tokio_runtime().lock().unwrap().block_on(async move {
+                                if let Err(err) = tokio_runtime().block_on(async move {
                                     handle.spawn(async move {
                                         let response = response_future.await;
 
@@ -1824,12 +1788,10 @@ impl CoreFunctions<Async> {
                                 let response_future = (run_async)();
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = tokio_runtime().lock().unwrap().block_on(async move {
+                                if let Err(err) = tokio_runtime().block_on(async move {
                                     handle.spawn(async move {
                                         let response = response_future.await;
 
@@ -1864,12 +1826,10 @@ impl CoreFunctions<Async> {
                                 let response_future = (run_async)();
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = tokio_runtime().lock().unwrap().block_on(async move {
+                                if let Err(err) = tokio_runtime().block_on(async move {
                                     handle.spawn(async move {
                                         let response = response_future.await;
 
@@ -1904,12 +1864,10 @@ impl CoreFunctions<Async> {
                                 let response_future = (run_async)(input);
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = tokio_runtime().lock().unwrap().block_on(async move {
+                                if let Err(err) = tokio_runtime().block_on(async move {
                                     handle.spawn(async move {
                                         let _response = response_future.await;
 
@@ -1945,12 +1903,10 @@ impl CoreFunctions<Async> {
                                 let response_future = (run_async)(input);
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = tokio_runtime().lock().unwrap().block_on(async move {
+                                if let Err(err) = tokio_runtime().block_on(async move {
                                     handle.spawn(async move {
                                         let response = response_future.await;
 
@@ -1985,12 +1941,10 @@ impl CoreFunctions<Async> {
                                 let response_future = (run_async)(input);
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = tokio_runtime().lock().unwrap().block_on(async move {
+                                if let Err(err) = tokio_runtime().block_on(async move {
                                     handle.spawn(async move {
                                         let response = response_future.await;
 
@@ -2026,12 +1980,10 @@ impl CoreFunctions<Async> {
                                 let response_future = (run_async)(input);
 
                                 let handle = crate::workflow::statics::tokio_runtime()
-                                    .lock()
-                                    .unwrap()
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = tokio_runtime().lock().unwrap().block_on(async move {
+                                if let Err(err) = tokio_runtime().block_on(async move {
                                     handle.spawn(async move {
                                         let response = response_future.await;
 
@@ -2125,8 +2077,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2149,8 +2099,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2212,8 +2160,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2236,8 +2182,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2299,8 +2243,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2323,8 +2265,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2386,8 +2326,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2410,8 +2348,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2473,8 +2409,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2497,8 +2431,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2561,8 +2493,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2585,8 +2515,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2648,8 +2576,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2672,8 +2598,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2736,8 +2660,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2760,8 +2682,6 @@ impl CoreFunctions<EcsWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2841,8 +2761,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2865,8 +2783,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2915,8 +2831,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2939,8 +2853,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -2988,8 +2900,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -3012,8 +2922,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -3062,8 +2970,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -3086,8 +2992,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -3137,8 +3041,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -3161,8 +3063,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -3212,8 +3112,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -3236,8 +3134,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -3285,8 +3181,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -3308,8 +3202,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -3372,8 +3264,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {
@@ -3396,8 +3286,6 @@ impl CoreFunctions<RenderWhile> {
                                     );
 
                                     let handle = crate::workflow::statics::tokio_runtime()
-                                        .lock()
-                                        .unwrap()
                                         .handle()
                                         .clone();
                                     handle.spawn(async move {

@@ -1,8 +1,9 @@
-use core_lib::*;
-use core_lib::config::statics::config;
-use core_lib::core::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
-use core_lib::core::types::ShortTime;
-use core_lib::logging::tracing::types::LogTreeTracingLayer;
+use core_api::once_cell::sync::Lazy;
+use core_api::*;
+use core_api::config::statics::config;
+use core_api::core::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
+use core_api::core::types::ShortTime;
+use core_api::logging::tracing::types::LogTreeTracingLayer;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
@@ -13,19 +14,27 @@ use bevy_egui::EguiPlugin;
 use bevy_rapier2d::prelude::*;
 use iyes_perf_ui::prelude::*;
 use libloading::{Library, Symbol};
-use std::path::PathBuf;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::{EnvFilter, Layer};
-use core_runtime::{CoreRuntimeApi, build_runtime_api};
+
+static CORE_RUNTIME_API: Lazy<core_runtime_api::CoreRuntimeApi> = Lazy::new(core_runtime::get_api);
 
 fn main() {
+    init_statics();
     setup_tracing();
     let _span = info_span!("main").entered();
     configure_low_level_stuff();
     let bevy_plugins = configure_third_party_plugins();
-    let mut app = configure_app(bevy_plugins);
+    let app = configure_app(bevy_plugins);
     run_app(app);
+}
+
+fn init_statics() {
+    // Force initialization of CORE_RUNTIME_API
+    // let _ = Lazy::force(&CORE_RUNTIME_API);
+    core_api::statics::init_runtime_api(&CORE_RUNTIME_API);
+    core_runtime::init_statics();
 }
 
 fn setup_tracing() {
@@ -109,13 +118,13 @@ fn load_core_mod(app: &mut App) {
         .to_path_buf();
 
     let lib_path = exe_dir.join(format!("core_mod{}", std::env::consts::DLL_SUFFIX));
-    // println!("🔍 Trying to load core_mod from: {}", lib_path.display());
 
     unsafe {
-        let runtime_api = build_runtime_api();
-        let lib = Library::new(&lib_path)?;
-        let init_mod: Symbol<unsafe extern "C" fn(&mut App, *mut CoreRuntimeApi)> = lib.get(b"init_mod")?;
-        init_mod(app, &runtime_api as *const _ as *mut _);
+        let lib = Library::new(&lib_path)
+            .unwrap_or_else(|e| panic!("Failed to load core_mod from {lib_path:?}: {e}"));
+        let init_mod: Symbol<unsafe extern "C" fn(&mut App, *mut core_runtime_api::CoreRuntimeApi)> = lib.get(b"init_mod")
+            .unwrap_or_else(|e| panic!("Failed to load symbol 'init_mod' from {lib_path:?}: {e}"));
+        init_mod(app, &CORE_RUNTIME_API as *const _ as *mut _);
     }
 }
 

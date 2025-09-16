@@ -1,4 +1,4 @@
-use core_lib::*;
+use core_api::*;
 use core_runtime_api::CoreRuntimeApi;
 use core_mod_macros::*;
 use bevy::prelude::*;

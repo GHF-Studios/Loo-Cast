@@ -1,76 +1,85 @@
-use core_runtime_api::CoreRuntimeApi;
-
+use core_api::bevy::ecs::entity::Entity;
 use core_api::config::structs::Config;
-use core_api::entity::Entity;
-use core_api::logging::types::{LogEntry, LogId, ModulePath, PhysicalStoragePath, SpanPath};
-use core_api::time::types::PendingSleep;
-use core_api::workflow::types::CompositeWorkflowRuntime;
-
 use core_api::crossbeam::queue::SegQueue;
+use core_api::logging::types::{LogEntry, LogId, ModulePath, PhysicalStoragePath, SpanPath};
 use core_api::once_cell::sync::Lazy;
-use core_api::std::collections::HashMap;
-use core_api::std::sync::{atomic::AtomicU64, Mutex, RwLock};
-use core_api::std::time::Instant;
+use core_api::time::types::PendingSleep;
 use core_api::tokio::runtime::Runtime;
+use core_api::workflow::types::CompositeWorkflowRuntime;
+use core_runtime_api::CoreRuntimeApi;
+use std::collections::HashMap;
+use std::ffi::{c_char, c_void, CStr};
+use std::ptr::NonNull;
+use std::sync::{atomic::AtomicU64, Mutex, RwLock};
+use std::time::Instant;
 
-static REGISTRY: Lazy<RwLock<HashMap<&'static str, *mut std::ffi::c_void>>> =
+/// A registry pointer. Guaranteed by engine to be safe for cross-thread usage.
+#[derive(Copy, Clone)]
+pub struct RegistryPtr(NonNull<c_void>);
+
+unsafe impl Send for RegistryPtr {}
+unsafe impl Sync for RegistryPtr {}
+
+static REGISTRY: Lazy<RwLock<HashMap<&'static str, RegistryPtr>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
 
-/// Register a value by key (usually called at init).
-pub fn register<T: 'static>(key: &'static str, value: &'static T) {
+pub fn register<T: 'static>(key: &'static str, value: &'static Lazy<T>) {
+    println!("Registering static {key}");
+    let inner: &T = Lazy::force(value); // this runs init if not done yet
     let mut reg = REGISTRY.write().unwrap();
-    reg.insert(key, value as *const T as *mut std::ffi::c_void);
+    let ptr = NonNull::new(inner as *const T as *mut c_void).unwrap();
+    reg.insert(key, RegistryPtr(ptr));
 }
 
-/// Get a pointer from the registry by key.
-extern "C" fn get(key: *const std::os::raw::c_char) -> *mut std::ffi::c_void {
-    let key = unsafe { std::ffi::CStr::from_ptr(key).to_str().unwrap() };
+extern "C" fn get(key: *const c_char) -> *mut c_void {
+    let key = unsafe { CStr::from_ptr(key).to_str().unwrap() };
     let reg = REGISTRY.read().unwrap();
-    reg.get(key).copied().unwrap_or(std::ptr::null_mut())
+    reg.get(key).map(|rp| rp.0.as_ptr()).unwrap_or(std::ptr::null_mut())
 }
 
-/// Update a key with a new pointer (for mutables / dynamic rebinds).
-extern "C" fn set(key: *const std::os::raw::c_char, value: *mut std::ffi::c_void) {
-    let key = unsafe { std::ffi::CStr::from_ptr(key).to_str().unwrap() };
+extern "C" fn set(key: *const c_char, value: *mut c_void) {
+    let key = unsafe { CStr::from_ptr(key).to_str().unwrap() };
     let mut reg = REGISTRY.write().unwrap();
-    reg.insert(Box::leak(key.to_string().into_boxed_str()), value);
+    let ptr = NonNull::new(value).unwrap();
+    reg.insert(Box::leak(key.to_string().into_boxed_str()), RegistryPtr(ptr));
 }
 
-pub fn build_runtime_api() -> CoreRuntimeApi {
+pub fn get_api() -> CoreRuntimeApi {
     CoreRuntimeApi { get, set }
 }
 
 pub fn init_statics() {
-    static CONFIG: Config = Config::from_file("configs/config.toml").unwrap();
-    static TOKIO_RUNTIME: Runtime = Runtime::new().unwrap();
-    static START: Instant = Instant::now();
+    static CONFIG: Lazy<Config> = Lazy::new(core_api::config::statics::init_config);
 
-    static ENTITY_BUF: Mutex<Vec<Entity>> = Mutex::new(Vec::new());
+    static TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(core_api::core::statics::init_tokio_runtime);
+    static START_TIME: Lazy<Instant> = Lazy::new(core_api::core::statics::init_start_time);
 
-    static LOG_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
-    static SPAN_BUFFER: SegQueue<SpanPath> = SegQueue::new();
-    static LOG_BUFFER: SegQueue<(LogId, LogEntry, SpanPath, ModulePath, PhysicalStoragePath)> = SegQueue::new();
+    static ENTITY_RESERVATION_BUFFER: Lazy<Mutex<Vec<Entity>>> = Lazy::new(core_api::entity::statics::init_entity_reservation_buffer);
 
-    static ELAPSED: AtomicU64 = AtomicU64::new(0);
-    static SLEEPS: Mutex<Vec<PendingSleep>> = Mutex::new(vec![]);
+    static LOG_ID_COUNTER: Lazy<AtomicU64> = Lazy::new(core_api::logging::statics::init_log_id_counter);
+    static SPAN_EVENT_BUFFER: Lazy<SegQueue<SpanPath>> = Lazy::new(core_api::logging::statics::init_span_event_buffer);
+    static LOG_EVENT_BUFFER: Lazy<SegQueue<(LogId, LogEntry, SpanPath, ModulePath, PhysicalStoragePath)>> = Lazy::new(core_api::logging::statics::init_log_event_buffer);
 
-    static WF_RUNTIME: CompositeWorkflowRuntime = CompositeWorkflowRuntime::new();
-    static WF_RT: Runtime = Runtime::new().unwrap();
+    static ELAPSED_VIRTUAL_NANOS: Lazy<AtomicU64> = Lazy::new(core_api::time::statics::init_elapsed_virtual_nanos);
+    static PENDING_VIRTUAL_SLEEPS: Lazy<Mutex<Vec<PendingSleep>>> = Lazy::new(core_api::time::statics::init_pending_virtual_sleeps);
+
+    static COMPOSITE_WORKFLOW_RUNTIME: Lazy<Mutex<CompositeWorkflowRuntime>> = Lazy::new(core_api::workflow::statics::init_composite_workflow_runtime);
+    static WORKFLOW_TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(core_api::workflow::statics::init_workflow_tokio_runtime);
 
     register("config", &CONFIG);
-    register("tokio_runtime", &RUNTIME);
-    register("start_time", &START);
+    register("tokio_runtime", &TOKIO_RUNTIME);
+    register("start_time", &START_TIME);
 
-    register("entity_reservation_buffer", &ENTITY_BUF);
+    register("entity_reservation_buffer", &ENTITY_RESERVATION_BUFFER);
 
     register("log_id_counter", &LOG_ID_COUNTER);
-    register("span_event_buffer", &SPAN_BUFFER);
-    register("log_event_buffer", &LOG_BUFFER);
+    register("span_event_buffer", &SPAN_EVENT_BUFFER);
+    register("log_event_buffer", &LOG_EVENT_BUFFER);
 
-    register("elapsed_virtual_nanos", &ELAPSED);
-    register("pending_virtual_sleeps", &SLEEPS);
+    register("elapsed_virtual_nanos", &ELAPSED_VIRTUAL_NANOS);
+    register("pending_virtual_sleeps", &PENDING_VIRTUAL_SLEEPS);
 
-    register("workflow_tokio_runtime", &WF_RT);
-    register("composite_workflow_runtime", &WF_RUNTIME);
+    register("workflow_tokio_runtime", &WORKFLOW_TOKIO_RUNTIME);
+    register("composite_workflow_runtime", &COMPOSITE_WORKFLOW_RUNTIME);
 }
 

@@ -6,6 +6,7 @@ static API: OnceLock<&'static CoreRuntimeApi> = OnceLock::new();
 
 /// Called from engine to give core_api access to the runtime registry.
 pub fn init_runtime_api(api: &'static CoreRuntimeApi) {
+    println!("Initializing CoreRuntimeApi in core_api");
     API.set(api).ok();
 }
 
@@ -30,6 +31,7 @@ pub fn set_ptr(key: &str, value: *mut std::ffi::c_void) {
 
 /// Type-safe getter
 pub fn get_ref<T>(key: &str) -> &'static T {
+    println!("Getting static {key}");
     let ptr = get_ptr(key);
     assert!(!ptr.is_null(), "Static {key} not found in registry");
     unsafe { &*(ptr as *const T) }

@@ -30,6 +30,8 @@ impl Config {
         let mut data = HashMap::new();
         Self::flatten("", &raw_data, &mut data)?;
 
+        println!("Loaded config from {:?}: {:?}", abs_path, data);
+
         Ok(Self {
             data,
             cache: RwLock::new(HashMap::new()),
