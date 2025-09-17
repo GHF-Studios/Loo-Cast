@@ -305,27 +305,28 @@ define_workflow_mod_OLD! {
 
                             for param in &input.param_data {
                                 // --- Create the texture ---
-                                let texture = Image {
-                                    texture_descriptor: TextureDescriptor {
-                                        label: Some("CHunk Texture"),
-                                        size: Extent3d {
-                                            width: input.texture_size as u32,
-                                            height: input.texture_size as u32,
-                                            depth_or_array_layers: 1,
-                                        },
-                                        mip_level_count: 1,
-                                        sample_count: 1,
-                                        dimension: TextureDimension::D2,
-                                        format: TextureFormat::Rgba8Unorm,
-                                        usage: TextureUsages::COPY_DST
-                                            | TextureUsages::TEXTURE_BINDING
-                                            | TextureUsages::STORAGE_BINDING,
-                                        view_formats: &[],
-                                    },
-                                    sampler: ImageSampler::nearest(),
-                                    data: vec![0; input.texture_size * input.texture_size * 4].into(),
-                                    ..Default::default()
+                                let mut texture = Image::default();
+                                let size = Extent3d {
+                                    width: input.texture_size as u32,
+                                    height: input.texture_size as u32,
+                                    depth_or_array_layers: 1,
                                 };
+                                println!("Creating texture of size: {:?}", size);
+                                texture.resize(size);
+                                texture.texture_descriptor = TextureDescriptor {
+                                    label: Some("Chunk Texture"),
+                                    size,
+                                    mip_level_count: 1,
+                                    sample_count: 1,
+                                    dimension: TextureDimension::D2,
+                                    format: TextureFormat::Rgba8Unorm,
+                                    usage: TextureUsages::COPY_DST
+                                        | TextureUsages::TEXTURE_BINDING
+                                        | TextureUsages::STORAGE_BINDING,
+                                    view_formats: &[],
+                                };
+                                texture.sampler = ImageSampler::nearest();
+
                                 texture_handles.push(images.add(texture));
 
                                 // --- Create the param buffer ---

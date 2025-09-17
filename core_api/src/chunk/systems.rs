@@ -207,7 +207,7 @@ pub(crate) fn process_chunk_actions_system(
             warn!("Running composite workflow 'SpawnChunks'");
             
             let generate_output = workflow!(IO, Gpu::GenerateTextures, Input {
-                shader_name: "texture_generators/example_compute_uv",
+                shader_name: "texture_generators/example_uv",
                 texture_size,
                 param_data,
             });
