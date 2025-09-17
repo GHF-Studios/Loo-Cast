@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy::render::MainWorld;
 use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 
-use crate::{config::statics::config, utils::premium_box::AnySendSyncPremiumBox, workflow::response::*};
+use crate::{config::statics::CONFIG, utils::premium_box::AnySendSyncPremiumBox, workflow::response::*};
 
 use super::{channels::*, events::*, instance::*, resources::*, stage::Stage, types::*};
 
@@ -366,7 +366,7 @@ pub(super) fn workflow_request_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = config().get::<usize>("workflow/max_retries");
+    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
 
     while let Some(mut retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
@@ -425,7 +425,7 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = config().get::<usize>("workflow/max_retries");
+    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
 
     while let Some(mut retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
@@ -486,7 +486,7 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = config().get::<usize>("workflow/max_retries");
+    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
 
     while let Some(mut retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
@@ -545,7 +545,7 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = config().get::<usize>("workflow/max_retries");
+    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
 
     while let Some(mut retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
@@ -606,7 +606,7 @@ pub(super) fn workflow_request_i_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = config().get::<usize>("workflow/max_retries");
+    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
 
     while let Some(mut retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
@@ -667,7 +667,7 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = config().get::<usize>("workflow/max_retries");
+    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
 
     while let Some(mut retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
@@ -728,7 +728,7 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = config().get::<usize>("workflow/max_retries");
+    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
 
     while let Some(mut retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
@@ -789,7 +789,7 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
         });
     }
 
-    let max_retries = config().get::<usize>("workflow/max_retries");
+    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
 
     while let Some(mut retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {

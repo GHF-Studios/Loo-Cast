@@ -200,7 +200,7 @@ impl CompositeWorkflow {
         if is_fallible {
             quote! {{
                 use crate::workflow::composite_workflow_context::{set_context, get_context, ScopedCompositeWorkflowContext};
-                use crate::workflow::statics::composite_workflow_runtime;
+                use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
                 use core_api_macros::define_composite_workflow;
                 use tracing::Instrument;
 
@@ -215,7 +215,7 @@ impl CompositeWorkflow {
                 let spawn_span = info_span!(#spawn_span_name);
                 let run_span = info_span!(#run_span_name);
 
-                let handle = composite_workflow_runtime()
+                let handle = COMPOSITE_WORKFLOW_RUNTIME()
                     .lock()
                     .unwrap()
                     .spawn_fallible(Box::pin(async move {
@@ -235,7 +235,7 @@ impl CompositeWorkflow {
         } else {
             quote! {{
                 use crate::workflow::composite_workflow_context::{set_context, get_context, ScopedCompositeWorkflowContext};
-                use crate::workflow::statics::composite_workflow_runtime;
+                use crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME;
                 use core_api_macros::define_composite_workflow;
                 use tracing::Instrument;
 
@@ -249,7 +249,7 @@ impl CompositeWorkflow {
                 let spawn_span = info_span!(#spawn_span_name);
                 let run_span = info_span!(#run_span_name);
 
-                let handle = composite_workflow_runtime()
+                let handle = COMPOSITE_WORKFLOW_RUNTIME()
                     .lock()
                     .unwrap()
                     .spawn(Box::pin(async move {

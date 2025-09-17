@@ -17,7 +17,7 @@ define_workflow_mod_OLD! {
                 use bevy::window::WindowRef;
 
                 use crate::camera::components::MainCamera;
-                use crate::config::statics::config;
+                use crate::config::statics::CONFIG;
                 use crate::follower::components::{Follower, FollowerTarget};
             },
             user_items: {},
@@ -62,7 +62,7 @@ define_workflow_mod_OLD! {
                                 Follower::new(
                                     "main_camera".to_string(),
                                     Vec2::ZERO,
-                                    config().get::<f32>("camera/follow_smoothness"),
+                                    CONFIG().get::<f32>("camera/follow_smoothness"),
                                 ),
                             )).id();
 

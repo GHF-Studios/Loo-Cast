@@ -1,21 +1,6 @@
+use core_api_macros::export_static;
 use std::time::Instant;
-use once_cell::sync::OnceCell;
 use tokio::runtime::Runtime;
 
-use crate::statics::get_ref;
-
-pub fn init_tokio_runtime() -> Runtime {
-    Runtime::new().unwrap()
-}
-
-pub fn init_start_time() -> Instant {
-    Instant::now()
-}
-
-pub fn tokio_runtime() -> &'static Runtime {
-    get_ref("tokio_runtime")
-}
-
-pub fn start_time() -> &'static Instant {
-    get_ref("start_time")
-}
+export_static!(self, crate::core::statics::TOKIO_RUNTIME: Runtime = Runtime::new().unwrap());
+export_static!(self, crate::core::statics::START_TIME: Instant = Instant::now());

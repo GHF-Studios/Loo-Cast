@@ -10,7 +10,7 @@ pub mod workflows;
 use core_api_macros::{composite_workflow, composite_workflow_return};
 use bevy::prelude::*;
 
-use crate::config::statics::config;
+use crate::config::statics::CONFIG;
 use crate::workflow::functions::handle_composite_workflow_return_later;
 
 pub(crate) struct CorePlugin;
@@ -38,7 +38,7 @@ fn startup_system() {
             }
         );
 
-        if config().get::<bool>("debug/spawn_debug_objects") {
+        if CONFIG().get::<bool>("debug/spawn_debug_objects") {
             workflow!(Debug::SpawnDebugObjects);
         }
 
@@ -56,7 +56,7 @@ fn startup_system() {
 // let chunk_coords: Vec<(i32, i32)> = (-8..=8)
 //     .flat_map(|x| (-8..=8).map(move |y| (x, y)))
 //     .collect();
-// let texture_size = crate::config::statics::config.get::<f32>("chunk/size") as usize;
+// let texture_size = crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize;
 // let param_data: Vec<Vec<f32>> = chunk_coords
 //     .iter()
 //     .map(|_| vec![0.0])

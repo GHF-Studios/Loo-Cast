@@ -1,6 +1,6 @@
 use bevy::prelude::Reflect;
 
-use crate::config::statics::config;
+use crate::config::statics::CONFIG;
 use crate::utils::premium_box::AnySendSyncPremiumBox;
 use crate::workflow::types::*;
 
@@ -525,7 +525,7 @@ impl TypedWorkflowInstance {
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
-        let timeout_frames = num_stages * config().get::<usize>("workflow/timeout_frames_per_stage");
+        let timeout_frames = num_stages * CONFIG().get::<usize>("workflow/timeout_frames_per_stage");
 
         Self {
             module_name,
@@ -544,7 +544,7 @@ impl TypedWorkflowInstanceE {
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
-        let timeout_frames = num_stages * config().get::<usize>("workflow/timeout_frames_per_stage");
+        let timeout_frames = num_stages * CONFIG().get::<usize>("workflow/timeout_frames_per_stage");
 
         Self {
             module_name,
@@ -563,7 +563,7 @@ impl TypedWorkflowInstanceO {
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
-        let timeout_frames = num_stages * config().get::<usize>("workflow/timeout_frames_per_stage");
+        let timeout_frames = num_stages * CONFIG().get::<usize>("workflow/timeout_frames_per_stage");
 
         Self {
             module_name,
@@ -583,7 +583,7 @@ impl TypedWorkflowInstanceOE {
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
-        let timeout_frames = num_stages * config().get::<usize>("workflow/timeout_frames_per_stage");
+        let timeout_frames = num_stages * CONFIG().get::<usize>("workflow/timeout_frames_per_stage");
 
         Self {
             module_name,
@@ -604,7 +604,7 @@ impl TypedWorkflowInstanceI {
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
-        let timeout_frames = num_stages * config().get::<usize>("workflow/timeout_frames_per_stage");
+        let timeout_frames = num_stages * CONFIG().get::<usize>("workflow/timeout_frames_per_stage");
 
         Self {
             module_name,
@@ -625,7 +625,7 @@ impl TypedWorkflowInstanceIE {
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
-        let timeout_frames = num_stages * config().get::<usize>("workflow/timeout_frames_per_stage");
+        let timeout_frames = num_stages * CONFIG().get::<usize>("workflow/timeout_frames_per_stage");
 
         Self {
             module_name,
@@ -646,7 +646,7 @@ impl TypedWorkflowInstanceIO {
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
-        let timeout_frames = num_stages * config().get::<usize>("workflow/timeout_frames_per_stage");
+        let timeout_frames = num_stages * CONFIG().get::<usize>("workflow/timeout_frames_per_stage");
 
         Self {
             module_name,
@@ -667,7 +667,7 @@ impl TypedWorkflowInstanceIOE {
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
-        let timeout_frames = num_stages * config().get::<usize>("workflow/timeout_frames_per_stage");
+        let timeout_frames = num_stages * CONFIG().get::<usize>("workflow/timeout_frames_per_stage");
 
         Self {
             module_name,

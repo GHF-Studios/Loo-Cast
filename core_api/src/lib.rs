@@ -42,6 +42,7 @@ pub use anymap;
 pub use uuid;
 pub use dashmap;
 pub use parking_lot;
+pub use paste;
 
 // Data types
 //pub mod components;
@@ -75,14 +76,13 @@ pub mod gpu;
 pub mod input;
 pub mod logging;
 pub mod player;
-pub mod statics;
 pub mod time;
 pub mod ui;
 pub mod utils;
 pub mod window;
 pub mod workflow;
 
-use core_api_macros::register_workflow_mods;
+use core_api_macros::{api_initializer, register_workflow_mods};
 use bevy::{app::PluginGroupBuilder, prelude::*};
 
 use camera::CameraPlugin;
@@ -104,11 +104,11 @@ use utils::UtilsPlugin;
 use window::WindowPlugin;
 use workflow::WorkflowPlugin;
 
-pub struct CoreLibPluginGroup;
-impl PluginGroup for CoreLibPluginGroup {
+pub struct CoreApiPluginGroup;
+impl PluginGroup for CoreApiPluginGroup {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
-            .add_group(SpacetimeEngineWorkflowPlugins)
+            .add_group(WorkflowPlugins)
             .add(CorePlugin)
             .add(CameraPlugin)
             .add(ChunkPlugin)
@@ -195,4 +195,8 @@ register_workflow_mods!(
             ValidateAndDespawnAndWait: EcsWhile,
         }
     },
+);
+
+api_initializer!(
+    crate::config::statics::CONFIG,
 );

@@ -1,8 +1,0 @@
-[package]
-name = "core_runtime"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-core_api = { path = "../core_api" }
-core_runtime_api = { path = "../core_runtime_api" }

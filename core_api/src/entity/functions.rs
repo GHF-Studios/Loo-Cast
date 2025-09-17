@@ -1,8 +1,8 @@
 use bevy::ecs::entity::Entity;
 
-use super::statics::entity_reservation_buffer;
+use super::statics::ENTITY_RESERVATION_BUFFER;
 
 pub fn get_reserved_entity() -> Entity {
-    let mut queue = entity_reservation_buffer().lock().unwrap();
+    let mut queue = ENTITY_RESERVATION_BUFFER().lock().unwrap();
     queue.pop().expect("Entity reservation buffer exhausted")
 }

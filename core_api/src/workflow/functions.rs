@@ -6,7 +6,7 @@ use std::time::Duration;
 use tokio::sync::Mutex;
 use tokio::time::timeout;
 
-use crate::config::statics::config;
+use crate::config::statics::CONFIG;
 use crate::time::functions::virtual_timeout;
 use crate::utils::premium_box::AnySendSyncPremiumBox;
 use crate::workflow::composite_workflow_context::{ScopedCompositeWorkflowContext, CURRENT_COMPOSITE_WORKFLOW_ID};
@@ -50,7 +50,7 @@ static IGNORED_WORKFLOW_LOGS: Lazy<HashMap<String, HashSet<String>>> = Lazy::new
     }
 
     let mut map = HashMap::new();
-    let config = config().get::<String>("workflow/runner_logging_blacklist");
+    let config = CONFIG().get::<String>("workflow/runner_logging_blacklist");
 
     for entry in split_top_level_commas(&config) {
         if let Some((module, suffix)) = entry.split_once("::") {
@@ -652,7 +652,7 @@ pub fn handle_composite_workflow_return_later<F>(handle: tokio::task::JoinHandle
 where
     F: FnOnce(&ScopedCompositeWorkflowContext) + Send + 'static,
 {
-    crate::workflow::statics::tokio_runtime().handle().spawn(async move {
+    crate::workflow::statics::WORKFLOW_TOKIO_RUNTIME().handle().spawn(async move {
         match handle.await {
             Ok(ctx) => f(&ctx),
             Err(_join_error) => {

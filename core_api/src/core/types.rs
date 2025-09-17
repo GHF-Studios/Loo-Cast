@@ -1,12 +1,12 @@
 use std::fmt;
 use tracing_subscriber::fmt::{format::Writer, time::FormatTime};
 
-use super::statics::start_time;
+use super::statics::START_TIME;
 
 pub struct ShortTime;
 impl FormatTime for ShortTime {
     fn format_time(&self, w: &mut Writer<'_>) -> fmt::Result {
-        let elapsed = start_time().elapsed();
+        let elapsed = START_TIME().elapsed();
         let millis = elapsed.subsec_millis();
         let secs = elapsed.as_secs() % 60;
         let mins = (elapsed.as_secs() / 60) % 60;

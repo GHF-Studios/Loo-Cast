@@ -1,7 +1,0 @@
-[package]
-name = "core_runtime_api"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-# Keep this minimal — only FFI-safe types

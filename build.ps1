@@ -10,8 +10,8 @@ $workspaceRoot  = (Get-Location).Path
 $targetDir      = "$workspaceRoot\target\$BuildProfile"
 $buildTargetDir = "$workspaceRoot\build\$BuildProfile"
 
-$assetCrates = @("core_api", "core_mod")
-$modCrates   = @("core_mod")   # later you’ll add more mods here
+$assetCrates = @("core_api", "base_mod")
+$modCrates   = @("base_mod")   # later you’ll add more mods here
 
 ########## CLEAN TARGET ##########
 if (Test-Path $buildTargetDir) {

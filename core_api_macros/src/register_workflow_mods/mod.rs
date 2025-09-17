@@ -272,8 +272,8 @@ impl WorkflowMods {
 
             #workflow_modules_metadata
 
-            pub struct SpacetimeEngineWorkflowPlugins;
-            impl bevy::prelude::PluginGroup for SpacetimeEngineWorkflowPlugins {
+            pub struct WorkflowPlugins;
+            impl bevy::prelude::PluginGroup for WorkflowPlugins {
                 fn build(self) -> bevy::app::PluginGroupBuilder {
                     let plugin_group_builder = bevy::app::PluginGroupBuilder::start::<Self>()
                         #(#plugin_addition_literals)*;

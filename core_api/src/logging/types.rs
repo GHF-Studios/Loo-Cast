@@ -1,13 +1,13 @@
 use bevy::prelude::Reflect;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::sync::LazyLock;
 use tracing::metadata::Kind;
 use tracing::{Level as TracingLevel, Metadata};
 
 use crate::logging::resources::LogRegistry;
-use crate::logging::statics::log_id_counter;
+use crate::logging::statics::LOG_ID_COUNTER;
 use crate::ui::custom_egui_widgets::tri_checkbox::TriState;
 
 // === Basics ===
@@ -76,7 +76,7 @@ fn placeholder_metadata() -> &'static Metadata<'static> {
 pub struct LogId(pub u64);
 impl LogId {
     pub fn new() -> Self {
-        let counter = log_id_counter();
+        let counter = LOG_ID_COUNTER();
         let id = counter.fetch_add(1, Ordering::Relaxed);
         LogId(id)
     }

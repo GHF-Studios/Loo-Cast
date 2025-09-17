@@ -7,7 +7,7 @@ use std::sync::atomic::Ordering;
 use std::time::Duration;
 
 use super::errors::TimeoutError;
-use super::statics::{elapsed_virtual_nanos, pending_virtual_sleeps};
+use super::statics::{ELAPSED_VIRTUAL_NANOS, PENDING_VIRTUAL_SLEEPS};
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, Reflect)]
 pub enum PauseState {
@@ -47,7 +47,7 @@ pub struct VirtualSleep {
 
 impl VirtualSleep {
     pub fn new(duration: Duration) -> Self {
-        let now = elapsed_virtual_nanos().load(Ordering::Relaxed);
+        let now = ELAPSED_VIRTUAL_NANOS().load(Ordering::Relaxed);
         let nanos = duration.as_nanos() as u64;
         VirtualSleep {
             deadline: now + nanos,
@@ -60,14 +60,14 @@ impl Future for VirtualSleep {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let now = elapsed_virtual_nanos().load(Ordering::Relaxed);
+        let now = ELAPSED_VIRTUAL_NANOS().load(Ordering::Relaxed);
         if now >= self.deadline {
             return Poll::Ready(());
         }
 
         if !self.registered {
             let waker = cx.waker().clone();
-            pending_virtual_sleeps()
+            PENDING_VIRTUAL_SLEEPS()
                 .lock()
                 .unwrap()
                 .push(PendingSleep {

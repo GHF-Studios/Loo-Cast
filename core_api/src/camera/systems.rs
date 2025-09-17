@@ -2,7 +2,7 @@ use bevy::input::mouse::MouseScrollUnit;
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 use bevy::{input::mouse::MouseWheel, prelude::*};
 
-use crate::config::statics::config;
+use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
 use crate::time::resources::VirtualPaused;
 
@@ -57,9 +57,9 @@ pub(crate) fn main_camera_zoom_system(
     virtual_paused: Res<VirtualPaused>,
     mut zoom_factor: Local<ZoomFactor>,
 ) {
-    let min_zoom = config().get::<f32>("camera/min_zoom");
-    let max_zoom = config().get::<f32>("camera/max_zoom");
-    let base_zoom_speed = config().get::<f32>("camera/base_zoom_speed");
+    let min_zoom = CONFIG().get::<f32>("camera/min_zoom");
+    let max_zoom = CONFIG().get::<f32>("camera/max_zoom");
+    let base_zoom_speed = CONFIG().get::<f32>("camera/base_zoom_speed");
 
     if !input_mode.is_game() || virtual_paused.0 {
         scroll_event_reader.clear();

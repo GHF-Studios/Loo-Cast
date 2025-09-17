@@ -1,5 +1,5 @@
 use super::components::Player;
-use crate::{chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader, config::statics::config, utils::components::InitHook};
+use crate::{chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader, config::statics::CONFIG, utils::components::InitHook};
 use bevy::prelude::*;
 
 #[derive(Bundle, Reflect)]
@@ -19,7 +19,7 @@ impl PlayerBundle {
 }
 impl Default for PlayerBundle {
     fn default() -> Self {
-        let player_size = config().get::<f32>("player/size");
+        let player_size = CONFIG().get::<f32>("player/size");
         let half_player_size = player_size / 2.0;
         
         PlayerBundle {

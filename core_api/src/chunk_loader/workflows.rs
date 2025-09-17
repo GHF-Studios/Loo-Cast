@@ -231,7 +231,7 @@ define_workflow_mod_OLD! {
                     types::ChunkOwnerId,
                 };
                 use crate::chunk_loader::components::ChunkLoader;
-                use crate::config::statics::config;
+                use crate::config::statics::CONFIG;
                 use crate::utils::components::InitHook;
             },
             user_items: {

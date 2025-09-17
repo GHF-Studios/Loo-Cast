@@ -527,6 +527,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "base_mod"
+version = "0.1.0"
+dependencies = [
+ "base_mod_macros",
+ "core_api",
+]
+
+[[package]]
+name = "base_mod_macros"
+version = "0.1.0"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "thiserror 2.0.16",
+]
+
+[[package]]
 name = "bevy"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2129,7 +2148,6 @@ dependencies = [
  "bytemuck",
  "console-subscriber",
  "core_api_macros",
- "core_runtime_api",
  "crossbeam",
  "crossbeam-channel",
  "dashmap",
@@ -2148,6 +2166,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "parking_lot",
+ "paste",
  "pin-project-lite",
  "queues",
  "rand",
@@ -2179,42 +2198,8 @@ name = "core_engine"
 version = "0.1.0"
 dependencies = [
  "core_api",
- "core_runtime",
- "core_runtime_api",
  "libloading",
 ]
-
-[[package]]
-name = "core_mod"
-version = "0.1.0"
-dependencies = [
- "core_api",
- "core_mod_macros",
- "core_runtime_api",
-]
-
-[[package]]
-name = "core_mod_macros"
-version = "0.1.0"
-dependencies = [
- "heck 0.4.1",
- "proc-macro2",
- "quote",
- "syn",
- "thiserror 2.0.16",
-]
-
-[[package]]
-name = "core_runtime"
-version = "0.1.0"
-dependencies = [
- "core_api",
- "core_runtime_api",
-]
-
-[[package]]
-name = "core_runtime_api"
-version = "0.1.0"
 
 [[package]]
 name = "coreaudio-rs"

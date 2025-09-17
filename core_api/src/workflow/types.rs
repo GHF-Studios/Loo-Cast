@@ -5,7 +5,7 @@ use tokio::task::JoinHandle;
 use super::{
     composite_workflow_context::ScopedCompositeWorkflowContext,
     stage::{Stage, StageType},
-    statics::tokio_runtime,
+    statics::WORKFLOW_TOKIO_RUNTIME,
 };
 
 #[derive(Reflect)]
@@ -45,12 +45,12 @@ impl CompositeWorkflowRuntime {
 }
 impl Default for CompositeWorkflowRuntime {
     fn default() -> Self {
-        Self(tokio_runtime().handle().clone())
+        Self(WORKFLOW_TOKIO_RUNTIME().handle().clone())
     }
 }
 
 fn tokio_runtime_handle() -> tokio::runtime::Handle {
-    tokio_runtime().handle().clone()
+    WORKFLOW_TOKIO_RUNTIME().handle().clone()
 }
 
 #[derive(Debug, Clone, Copy, Reflect)]

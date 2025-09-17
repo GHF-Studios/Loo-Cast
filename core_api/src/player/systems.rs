@@ -3,7 +3,7 @@ use core_api_macros::{composite_workflow, composite_workflow_return};
 
 use crate::{
     chunk_loader::components::ChunkLoader,
-    config::statics::config,
+    config::statics::CONFIG,
     input::states::InputMode,
     player::resources::PlayerLifecycle,
     utils::components::{DropHook, InitHook},
@@ -134,9 +134,9 @@ pub(super) fn update_player_system(
 
                 if direction.length_squared() > 0.0 {
                     direction = direction.normalize();
-                    let movement_speed = config().get::<f32>("player/movement_speed");
+                    let movement_speed = CONFIG().get::<f32>("player/movement_speed");
                     let sprint_multiplier = if keys.pressed(KeyCode::ShiftLeft) {
-                        config().get::<f32>("player/sprint_multiplier")
+                        CONFIG().get::<f32>("player/sprint_multiplier")
                     } else {
                         1.0
                     };

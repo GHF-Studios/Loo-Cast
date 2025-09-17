@@ -7,7 +7,7 @@ use crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput;
 use crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::resources::RemovedChunkLoaders;
-use crate::config::statics::config;
+use crate::config::statics::CONFIG;
 use crate::utils::components::InitHook;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
@@ -184,8 +184,8 @@ pub(crate) fn process_chunk_actions_system(
 
     // Step 3: Build & launch composite workflows
     let spawn_handle = if !spawn_inputs.is_empty() {
-        let texture_size = config().get::<f32>("chunk/size") as usize;
-        let chunk_size = config().get::<f32>("chunk/size");
+        let texture_size = CONFIG().get::<f32>("chunk/size") as usize;
+        let chunk_size = CONFIG().get::<f32>("chunk/size");
 
         let param_data = spawn_coords
             .iter()

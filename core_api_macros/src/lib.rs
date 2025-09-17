@@ -6,6 +6,7 @@ mod define_composite_workflow;
 mod define_workflow_mod;
 #[allow(non_snake_case)]
 mod define_workflow_mod_OLD;
+mod global_statics;
 mod register_workflow_mods;
 
 use composite_workflow::CompositeWorkflow as OuterCompositeWorkflow;
@@ -62,4 +63,19 @@ pub fn define_workflow(_input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn define_worfklow_stages(_input: TokenStream) -> TokenStream {
     quote! {}.into()
+}
+
+#[proc_macro]
+pub fn export_static(input: TokenStream) -> TokenStream {
+    global_statics::export_static(input)
+}
+
+#[proc_macro]
+pub fn import_static(input: TokenStream) -> TokenStream {
+    global_statics::import_static(input)
+}
+
+#[proc_macro]
+pub fn api_initializer(input: TokenStream) -> TokenStream {
+    global_statics::api_initializer(input)
 }

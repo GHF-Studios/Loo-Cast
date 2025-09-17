@@ -1,6 +1,5 @@
-use core_api::once_cell::sync::Lazy;
 use core_api::*;
-use core_api::config::statics::config;
+use core_api::config::statics::CONFIG;
 use core_api::core::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
 use core_api::core::types::ShortTime;
 use core_api::logging::tracing::types::LogTreeTracingLayer;
@@ -18,10 +17,7 @@ use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::{EnvFilter, Layer};
 
-static CORE_RUNTIME_API: Lazy<core_runtime_api::CoreRuntimeApi> = Lazy::new(core_runtime::get_api);
-
 fn main() {
-    init_statics();
     setup_tracing();
     let _span = info_span!("main").entered();
     configure_low_level_stuff();
@@ -30,15 +26,8 @@ fn main() {
     run_app(app);
 }
 
-fn init_statics() {
-    // Force initialization of CORE_RUNTIME_API
-    // let _ = Lazy::force(&CORE_RUNTIME_API);
-    core_api::statics::init_runtime_api(&CORE_RUNTIME_API);
-    core_runtime::init_statics();
-}
-
 fn setup_tracing() {
-    if !config().get::<bool>("log/tracing/enabled") {
+    if !CONFIG().get::<bool>("log/tracing/enabled") {
         return;
     }
 
@@ -103,28 +92,28 @@ fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
     let mut app = App::new();
     app
         .add_plugins(third_party_plugins)
-        .add_plugins(CoreLibPluginGroup);
+        .add_plugins(CoreApiPluginGroup);
 
-    load_core_mod(&mut app);
+    load_base_mod(&mut app);
     
     app
 }
 
-fn load_core_mod(app: &mut App) {
+fn load_base_mod(_app: &mut App) {
     let exe_dir = std::env::current_exe()
         .expect("failed to get exe path")
         .parent()
         .unwrap()
         .to_path_buf();
 
-    let lib_path = exe_dir.join(format!("core_mod{}", std::env::consts::DLL_SUFFIX));
+    let lib_path = exe_dir.join(format!("base_mod{}", std::env::consts::DLL_SUFFIX));
 
     unsafe {
         let lib = Library::new(&lib_path)
-            .unwrap_or_else(|e| panic!("Failed to load core_mod from {lib_path:?}: {e}"));
-        let init_mod: Symbol<unsafe extern "C" fn(&mut App, *mut core_runtime_api::CoreRuntimeApi)> = lib.get(b"init_mod")
-            .unwrap_or_else(|e| panic!("Failed to load symbol 'init_mod' from {lib_path:?}: {e}"));
-        init_mod(app, &CORE_RUNTIME_API as *const _ as *mut _);
+            .unwrap_or_else(|e| panic!("Failed to load base_mod from {lib_path:?}: {e}"));
+        let init_api: Symbol<unsafe extern "C" fn()> = lib.get(b"init_api")
+            .unwrap_or_else(|e| panic!("Failed to load symbol 'init_api' from {lib_path:?}: {e}"));
+        init_api();
     }
 }
 

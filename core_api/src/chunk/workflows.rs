@@ -8,7 +8,7 @@ define_workflow_mod_OLD! {
                 use bevy::prelude::{Commands, Entity, Query, Res, ResMut, Handle, Image, Transform, Sprite, Name, warn, error};
 
                 use crate::chunk::{components::Chunk, resources::ChunkManager, functions::chunk_pos_to_world, types::ChunkOwnerId};
-                use crate::config::statics::config;
+                use crate::config::statics::CONFIG;
                 use crate::debug::observers::on_click_select;
             },
             user_items: {
@@ -61,7 +61,7 @@ define_workflow_mod_OLD! {
                                     return Err(Error::ChunkAlreadyLoaded { chunk_coord });
                                 }
 
-                                let default_chunk_z = config().get::<f32>("chunk/default_z");
+                                let default_chunk_z = CONFIG().get::<f32>("chunk/default_z");
 
                                 let chunk_transform = Transform {
                                     translation: chunk_pos_to_world(chunk_coord).extend(default_chunk_z),

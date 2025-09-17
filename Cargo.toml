@@ -3,10 +3,8 @@ members = [
   "core_engine",
   "core_api",
   "core_api_macros",
-  "core_runtime",
-  "core_runtime_api",
-  "core_mod",
-  "core_mod_macros",
+  "base_mod",
+  "base_mod_macros",
   "bevy_consumable_event"
 ]
 
