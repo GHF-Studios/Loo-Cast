@@ -148,9 +148,13 @@ impl CoreType<Output> {
 
 impl CoreType<Error> {
     pub fn generate(&self, workflow_path: TokenStream, stage_signature: StageSignature, stage_name_snake_case: Ident) -> TokenStream {
-        let stage_name_pascal_case = Ident::new(&stage_name_snake_case.to_string().to_pascal_case(), stage_name_snake_case.span());
+        let stage_name_pascal_case = stage_name_snake_case.to_string().to_pascal_case();
+        let stage_name_pascal_case = format!("{stage_name_pascal_case}Error");
+        let stage_name_pascal_case = Ident::new(&stage_name_pascal_case, stage_name_snake_case.span());
         let stage_error_type_path = quote! { #workflow_path::stages::#stage_name_snake_case::core_types::Error };
         let workflow_error_type_path = quote! { #workflow_path::Error };
+        // let workflow_name_pascal_case = format!("{}Error", workflow_path.to_string().split("::").last().unwrap().to_string().to_pascal_case());
+        // let workflow_name_pascal_case = Ident::new(&workflow_name_pascal_case, stage_name_snake_case.span());
         let workflow_error_variant_trait_variant = match stage_signature {
             StageSignature::None => panic!("Error type is not allowed in stages with non-error signature"),
             StageSignature::O => panic!("Error type is not allowed in stages with non-error signature"),
@@ -188,7 +192,7 @@ impl CoreType<Error> {
                     }
                     impl crate::workflow::traits::#workflow_error_variant_trait_variant<#workflow_error_type_path> for Error {
                         fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
-                            Error::#stage_name_snake_case(boxed.into_inner::<#stage_error_type_path>())
+                            boxed.into_inner()
                         }
 
                         fn into_workflow_error(self) -> #workflow_error_type_path {

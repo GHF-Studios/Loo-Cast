@@ -616,8 +616,7 @@ impl Workflow {
                             }
                             impl crate::workflow::traits::WorkflowErrorE for Error {
                                 fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
-                                    let stage_error: Box<dyn crate::workflow::traits::WorkflowErrorEVariant<Error> + Send + Sync> = boxed.into_inner();
-                                    stage_error.into_workflow_error()
+                                    boxed.into_inner()
                                 }
                             }
                         }
@@ -873,8 +872,7 @@ impl Workflow {
                             }
                             impl crate::workflow::traits::WorkflowErrorOE for Error {
                                 fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
-                                    let stage_error: Box<dyn crate::workflow::traits::WorkflowErrorOEVariant<Error> + Send + Sync> = boxed.into_inner();
-                                    stage_error.into_workflow_error()
+                                    boxed.into_inner()
                                 }
                             }
                         }
@@ -1131,8 +1129,7 @@ impl Workflow {
                             }
                             impl crate::workflow::traits::WorkflowErrorIE for Error {
                                 fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
-                                    let stage_error: Box<dyn crate::workflow::traits::WorkflowErrorIEVariant<Error> + Send + Sync> = boxed.into_inner();
-                                    stage_error.into_workflow_error()
+                                    boxed.into_inner()
                                 }
                             }
                         }
@@ -1396,8 +1393,7 @@ impl Workflow {
                             }
                             impl crate::workflow::traits::WorkflowErrorIOE for Error {
                                 fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
-                                    let stage_error: Box<dyn crate::workflow::traits::WorkflowErrorIOEVariant<Error> + Send + Sync> = boxed.into_inner();
-                                    stage_error.into_workflow_error()
+                                    boxed.into_inner()
                                 }
                             }
                         }
