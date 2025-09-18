@@ -1,3 +1,5 @@
+use crate::define_workflow_mod_OLD::WorkflowSignature;
+
 use super::stage::{Async, Ecs, EcsWhile, Render, RenderWhile, StageSignature};
 use heck::ToPascalCase;
 use proc_macro2::TokenStream;
@@ -159,6 +161,16 @@ impl CoreType<Error> {
             StageSignature::IE => quote! { WorkflowErrorIEVariant },
             StageSignature::IOE => quote! { WorkflowErrorIOEVariant },
         };
+        // let work_error_trait_variant = match workflow_signature {
+        //     WorkflowSignature::None => panic!("Error type is not allowed in workflows with non-error signature"),
+        //     WorkflowSignature::O => panic!("Error type is not allowed in workflows with non-error signature"),
+        //     WorkflowSignature::E => quote! { WorkflowErrorE },
+        //     WorkflowSignature::OE => quote! { WorkflowErrorOE },
+        //     WorkflowSignature::I => panic!("Error type is not allowed in workflows with non-error signature"),
+        //     WorkflowSignature::IO => panic!("Error type is not allowed in workflows with non-error signature"),
+        //     WorkflowSignature::IE => quote! { WorkflowErrorIE },
+        //     WorkflowSignature::IOE => quote! { WorkflowErrorIOE },
+        // };
 
         match self {
             CoreType::Struct(_item, _) => {
@@ -174,7 +186,7 @@ impl CoreType<Error> {
                             write!(f, "{:?}", self)
                         }
                     }
-                    impl<WE: #workflow_error_type_path> crate::workflow::traits::#workflow_error_variant_trait_variant<WE> for Error {
+                    impl crate::workflow::traits::#workflow_error_variant_trait_variant<#workflow_error_type_path> for Error {
                         fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
                             Error::#stage_name_snake_case(boxed.into_inner::<#stage_error_type_path>())
                         }

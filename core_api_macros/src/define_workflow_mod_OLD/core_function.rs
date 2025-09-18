@@ -678,15 +678,16 @@ impl CoreFunction {
                     }
                 }
                 (false, false, true) => {
+                    let result_mapper = if has_output {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn setup_ecs_while(main_access: MainAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("setup_ecs_while").entered();
                             let result = setup_ecs_while_inner(main_access);
-                            let result = if has_output {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> })
-                            } else {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -705,15 +706,16 @@ impl CoreFunction {
                     }
                 }
                 (false, true, true) => {
+                    let result_mapper = if has_output {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn setup_ecs_while(main_access: MainAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("setup_ecs_while").entered();
                             let result = setup_ecs_while_inner(main_access);
-                            let result = if has_output {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> })
-                            } else {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -733,16 +735,17 @@ impl CoreFunction {
                     }
                 }
                 (true, false, true) => {
+                    let result_mapper = if has_output {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn setup_ecs_while(input: Option<crate::utils::premium_box::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("setup_ecs_while").entered();
                             let input = input.unwrap().into_inner::<Input>();
                             let result = setup_ecs_while_inner(input, main_access);
-                            let result = if has_output {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> })
-                            } else {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -762,16 +765,17 @@ impl CoreFunction {
                     }
                 }
                 (true, true, true) => {
+                    let result_mapper = if has_output {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn setup_ecs_while(input: Option<crate::utils::premium_box::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("setup_ecs_while").entered();
                             let input = input.unwrap().into_inner::<Input>();
                             let result = setup_ecs_while_inner(input, main_access);
-                            let result = if has_output {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> })
-                            } else {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -792,15 +796,16 @@ impl CoreFunction {
                     }
                 }
                 (false, false, true) => {
+                    let result_mapper = if has_output {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn setup_render_while(render_access: RenderAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("setup_render_while").entered();
                             let result = setup_render_while_inner(render_access);
-                            let result = if has_output {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> })
-                            } else {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -819,15 +824,16 @@ impl CoreFunction {
                     }
                 }
                 (false, true, true) => {
+                    let result_mapper = if has_output {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn setup_render_while(render_access: RenderAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("setup_render_while").entered();
                             let result = setup_render_while_inner(render_access);
-                            let result = if has_output {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> })
-                            } else {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -847,16 +853,17 @@ impl CoreFunction {
                     }
                 }
                 (true, false, true) => {
+                    let result_mapper = if has_output {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn setup_render_while(input: Option<crate::utils::premium_box::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("setup_render_while").entered();
                             let input = input.unwrap().into_inner::<Input>();
                             let result = setup_render_while_inner(input, render_access);
-                            let result = if has_output {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> })
-                            } else {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(result, format!("Result<(), {}>", #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -876,17 +883,18 @@ impl CoreFunction {
                     }
                 }
                 (true, true, true) => {
+                    let result_mapper = if has_output {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         // TODO: MINOR: POINTER: Setup functions' responses (and data in general) do not need to be optional at all
                         fn setup_render_while(input: Option<crate::utils::premium_box::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("setup_render_while").entered();
                             let input = input.unwrap().into_inner::<Input>();
                             let result = setup_render_while_inner(input, render_access);
-                            let result = if has_output {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> })
-                            } else {
-                                result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(result, format!("Result<{}, {}>", #state_type_name.to_string(), #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -907,15 +915,16 @@ impl CoreFunction {
                     }
                 }
                 (false, false, true) => {
+                    let result_mapper = if has_input {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn run_ecs_while(_state: Option<crate::utils::premium_box::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("run_ecs_while").entered();
                             let outcome_result = run_ecs_while_inner(main_access);
-                            let outcome_result = if has_input {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIEVariant + Send + Sync> })
-                            } else {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<(), ()>, {}>", #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -934,15 +943,16 @@ impl CoreFunction {
                     }
                 }
                 (false, true, true) => {
+                    let result_mapper = if has_input {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIOEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn run_ecs_while(_state: Option<crate::utils::premium_box::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("run_ecs_while").entered();
                             let outcome_result = run_ecs_while_inner(main_access);
-                            let outcome_result = if has_input {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIOEVariant + Send + Sync> })
-                            } else {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<(), {}>, {}>", #output_type_name.to_string(), #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -962,16 +972,17 @@ impl CoreFunction {
                     }
                 }
                 (true, false, true) => {
+                    let result_mapper = if has_input {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn run_ecs_while(state: Option<crate::utils::premium_box::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("run_ecs_while").entered();
                             let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_ecs_while_inner(state, main_access);
-                            let outcome_result = if has_input {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIEVariant + Send + Sync> })
-                            } else {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<{}, ()>, {}>", #state_type_name.to_string(), #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -991,16 +1002,17 @@ impl CoreFunction {
                     }
                 }
                 (true, true, true) => {
+                    let result_mapper = if has_input {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIOEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn run_ecs_while(state: Option<crate::utils::premium_box::AnySendSyncPremiumBox>, main_access: MainAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("run_ecs_while").entered();
                             let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_ecs_while_inner(state, main_access);
-                            let outcome_result = if has_input {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIOEVariant + Send + Sync> })
-                            } else {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<{}, {}>, {}>", #state_type_name.to_string(), #output_type_name.to_string(), #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -1021,15 +1033,16 @@ impl CoreFunction {
                     }
                 }
                 (false, false, true) => {
+                    let result_mapper = if has_input {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn run_render_while(_state: Option<crate::utils::premium_box::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("run_render_while").entered();
                             let outcome_result = run_render_while_inner(render_access);
-                            let outcome_result = if has_input {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIEVariant + Send + Sync> })
-                            } else {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<(), ()>, {}>", #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -1048,15 +1061,16 @@ impl CoreFunction {
                     }
                 }
                 (false, true, true) => {
+                    let result_mapper = if has_input {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIOEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn run_render_while(_state: Option<crate::utils::premium_box::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("run_render_while").entered();
                             let outcome_result = run_render_while_inner(render_access);
-                            let outcome_result = if has_input {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIOEVariant + Send + Sync> })
-                            } else {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<(), {}>, {}>", #output_type_name.to_string(), #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -1076,16 +1090,17 @@ impl CoreFunction {
                     }
                 }
                 (true, false, true) => {
+                    let result_mapper = if has_input {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn run_render_while(state: Option<crate::utils::premium_box::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("run_render_while").entered();
                             let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_render_while_inner(state, render_access);
-                            let outcome_result = if has_input {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIEVariant + Send + Sync> })
-                            } else {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<{}, ()>, {}>", #state_type_name.to_string(), #dyn_error_type_name.to_string()).to_string()))
                         }
 
@@ -1105,16 +1120,17 @@ impl CoreFunction {
                     }
                 }
                 (true, true, true) => {
+                    let result_mapper = if has_input {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIOEVariant + Send + Sync> }); }
+                    } else {
+                        quote! { outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> }); }
+                    };
                     quote! {
                         fn run_render_while(state: Option<crate::utils::premium_box::AnySendSyncPremiumBox>, render_access: RenderAccess) -> Option<crate::utils::premium_box::AnySendSyncPremiumBox> {
                             let _span = info_span!("run_render_while").entered();
                             let state = state.unwrap().into_inner::<State>();
                             let outcome_result = run_render_while_inner(state, render_access);
-                            let outcome_result = if has_input {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorIOEVariant + Send + Sync> })
-                            } else {
-                                outcome_result.map_err(|e| { Box::new(e) as Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> })
-                            };
+                            #result_mapper
                             Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(outcome_result, format!("Result<Outcome<{}, {}>, {}>", #state_type_name.to_string(), #output_type_name.to_string(), #dyn_error_type_name.to_string()).to_string()))
                         }
 
