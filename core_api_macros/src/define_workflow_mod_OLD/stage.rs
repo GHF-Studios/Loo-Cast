@@ -565,7 +565,7 @@ impl TypedStage<Ecs> {
             match signature {
                 StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
                 StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
-                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant + Send + Sync>", signature)
+                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant<Error> + Send + Sync>", signature)
                 }
             }
         };
@@ -1000,7 +1000,7 @@ impl TypedStage<Render> {
             match signature {
                 StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
                 StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
-                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant + Send + Sync>", signature)
+                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant<Error> + Send + Sync>", signature)
                 }
             }
         };
@@ -1435,7 +1435,7 @@ impl TypedStage<Async> {
             match signature {
                 StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
                 StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
-                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant + Send + Sync>", signature)
+                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant<Error> + Send + Sync>", signature)
                 }
             }
         };
@@ -1871,7 +1871,7 @@ impl TypedStage<EcsWhile> {
             match signature {
                 StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
                 StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
-                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant + Send + Sync>", signature)
+                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant<Error> + Send + Sync>", signature)
                 }
             }
         };
@@ -3039,7 +3039,7 @@ impl TypedStage<RenderWhile> {
             match signature {
                 StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
                 StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
-                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant + Send + Sync>", signature)
+                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant<Error> + Send + Sync>", signature)
                 }
             }
         };
