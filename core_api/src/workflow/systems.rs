@@ -653,7 +653,7 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.into_inner();
+                    let response = TypedWorkflowResponseE { module_name, workflow_name, result: Err(response)};
                     response_sender.send(response).unwrap();
                 }),
             ));

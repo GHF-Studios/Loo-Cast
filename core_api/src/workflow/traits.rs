@@ -10,51 +10,97 @@ pub trait WorkflowType {
     const WORKFLOW_NAME: &'static str;
 }
 pub trait WorkflowTypeE {
-    type Error: 'static + Send + Sync;
+    type Error: WorkflowErrorE;
 
     const MODULE_NAME: &'static str;
     const WORKFLOW_NAME: &'static str;
 }
 pub trait WorkflowTypeO {
-    type Output: 'static + Send + Sync;
+    type Output: WorkflowOutputO;
 
     const MODULE_NAME: &'static str;
     const WORKFLOW_NAME: &'static str;
 }
 pub trait WorkflowTypeOE {
-    type Output: 'static + Send + Sync;
-    type Error: 'static + Send + Sync;
+    type Output: WorkflowOutputOE;
+    type Error: WorkflowErrorOE;
 
     const MODULE_NAME: &'static str;
     const WORKFLOW_NAME: &'static str;
 }
 pub trait WorkflowTypeI {
-    type Input: 'static + Send + Sync;
+    type Input: WorkflowInputI;
 
     const MODULE_NAME: &'static str;
     const WORKFLOW_NAME: &'static str;
 }
 pub trait WorkflowTypeIE {
-    type Input: 'static + Send + Sync;
-    type Error: 'static + Send + Sync;
+    type Input: WorkflowInputIE;
+    type Error: WorkflowErrorIE;
 
     const MODULE_NAME: &'static str;
     const WORKFLOW_NAME: &'static str;
 }
 pub trait WorkflowTypeIO {
-    type Input: 'static + Send + Sync;
-    type Output: 'static + Send + Sync;
+    type Input: WorkflowInputIO;
+    type Output: WorkflowOutputIO;
 
     const MODULE_NAME: &'static str;
     const WORKFLOW_NAME: &'static str;
 }
 pub trait WorkflowTypeIOE {
-    type Input: 'static + Send + Sync;
-    type Output: 'static + Send + Sync;
-    type Error: 'static + Send + Sync;
+    type Input: WorkflowInputIOE;
+    type Output: WorkflowOutputIOE;
+    type Error: WorkflowErrorIOE;
 
     const MODULE_NAME: &'static str;
     const WORKFLOW_NAME: &'static str;
+}
+
+// --- Primitive Workflow-Data Types ---
+pub trait WorkflowInputI: 'static + Send + Sync {
+    fn from_request_i(input: super::request::TypedWorkflowRequestI) -> Self;
+}
+pub trait WorkflowInputIE: 'static + Send + Sync {
+    fn from_request_ie(input: super::request::TypedWorkflowRequestIE) -> Self;
+}
+pub trait WorkflowInputIO: 'static + Send + Sync {
+    fn from_request_io(input: super::request::TypedWorkflowRequestIO) -> Self;
+}
+pub trait WorkflowInputIOE: 'static + Send + Sync {
+    fn from_request_ioe(input: super::request::TypedWorkflowRequestIOE) -> Self;
+}
+
+pub trait WorkflowOutputO: 'static + Send + Sync {
+    fn from_response_o(response: super::response::TypedWorkflowResponseO) -> Self;
+}
+pub trait WorkflowOutputOE: 'static + Send + Sync {}
+pub trait WorkflowOutputIO: 'static + Send + Sync {
+    fn from_response_o(response: super::response::TypedWorkflowResponseO) -> Self;
+}
+pub trait WorkflowOutputIOE: 'static + Send + Sync {}
+
+pub trait WorkflowErrorE: 'static + Send + Sync {
+    fn from_response_e(response: super::response::TypedWorkflowResponseE) -> Self;
+}
+pub trait WorkflowErrorIE: 'static + Send + Sync {
+    fn from_response_e(response: super::response::TypedWorkflowResponseE) -> Self;
+}
+pub trait WorkflowErrorOE: 'static + Send + Sync {}
+pub trait WorkflowErrorIOE: 'static + Send + Sync {}
+
+// --- Complex Workflow-Data Types ---
+pub trait WorkflowResultOE: 'static + Send + Sync {
+    type Output: WorkflowOutputOE;
+    type Error: WorkflowErrorOE;
+
+    fn from_response_oe(response: super::response::TypedWorkflowResponseOE) -> Self;
+}
+pub trait WorkflowResultIOE: 'static + Send + Sync {
+    type Output: WorkflowOutputIOE;
+    type Error: WorkflowErrorIOE;
+
+    fn from_response_oe(response: super::response::TypedWorkflowResponseOE) -> Self;
 }
 
 // TODO: MAYBE: THAT: Rename all to "WorkflowStage*Type"

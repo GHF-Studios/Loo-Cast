@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::prelude::{error, warn};
 use futures::FutureExt;
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
@@ -217,7 +217,7 @@ pub async fn run_workflow_e<W: WorkflowTypeE>(timeout_duration: Duration, timeou
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_e for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return response.unpack();
+                    return <Result<(), W::Error>>::from_response_e(response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::E(response));
@@ -234,7 +234,7 @@ pub async fn run_workflow_e<W: WorkflowTypeE>(timeout_duration: Duration, timeou
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_e for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return response.unpack();
+            return <Result<(), W::Error>>::from_response_e(response);
         }
 
         tokio::task::yield_now().await;
@@ -282,7 +282,7 @@ pub async fn run_workflow_o<W: WorkflowTypeO>(timeout_duration: Duration, timeou
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_o for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return response.unpack();
+                    return W::Output::from_response_o(response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
@@ -299,7 +299,7 @@ pub async fn run_workflow_o<W: WorkflowTypeO>(timeout_duration: Duration, timeou
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_o for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return response.unpack();
+            return W::Output::from_response_o(response);
         }
 
         tokio::task::yield_now().await;
@@ -347,7 +347,7 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>(timeout_duration: Duration, time
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_oe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return response.unpack();
+                    return <Result<W::Output, W::Error>>::from_response_oe(response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
@@ -364,7 +364,7 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>(timeout_duration: Duration, time
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_oe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return response.unpack();
+            return <Result<W::Output, W::Error>>::from_response_oe(response);
         }
 
         tokio::task::yield_now().await;
@@ -479,7 +479,7 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(timeout_duration: Duration, time
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_ie for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return response.unpack();
+                    return <Result<(), W::Error>>::from_response_e(response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::E(response));
@@ -496,7 +496,7 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(timeout_duration: Duration, time
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_ie for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return response.unpack();
+            return <Result<(), W::Error>>::from_response_e(response);
         }
 
         tokio::task::yield_now().await;
@@ -545,7 +545,7 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(timeout_duration: Duration, time
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_io for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return response.unpack();
+                    return W::Output::from_response_o(response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
@@ -562,7 +562,7 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(timeout_duration: Duration, time
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_io for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return response.unpack();
+            return W::Output::from_response_o(response);
         }
 
         tokio::task::yield_now().await;
@@ -611,7 +611,7 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(timeout_duration: Duration, ti
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return response.unpack();
+                    return <Result<W::Output, W::Error>>::from_response_oe(response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
@@ -628,7 +628,7 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(timeout_duration: Duration, ti
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return response.unpack();
+            return <Result<W::Output, W::Error>>::from_response_oe(response);
         }
 
         tokio::task::yield_now().await;
