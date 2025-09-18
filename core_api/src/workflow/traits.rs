@@ -76,6 +76,23 @@ pub trait WorkflowOutputIOE: 'static + Send + Sync {
     fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
 }
 
+pub trait WorkflowErrorEVariant<WE: WorkflowErrorE> {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+    fn into_workflow_error(self) -> WE;
+}
+pub trait WorkflowErrorIEVariant<WE: WorkflowErrorIE> {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+    fn into_workflow_error(self) -> WE;
+}
+pub trait WorkflowErrorOEVariant<WE: WorkflowErrorOE> {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+    fn into_workflow_error(self) -> WE;
+}
+pub trait WorkflowErrorIOEVariant<WE: WorkflowErrorIOE> {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+    fn into_workflow_error(self) -> WE;
+}
+
 pub trait WorkflowErrorE: 'static + Send + Sync {
     fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
 }

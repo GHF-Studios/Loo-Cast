@@ -561,6 +561,14 @@ impl TypedStage<Ecs> {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
+        let dyn_stage_error_type_name = {
+            match signature {
+                StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
+                StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
+                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant + Send + Sync>", signature)
+                }
+            }
+        };
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
@@ -576,7 +584,7 @@ impl TypedStage<Ecs> {
                 .chars()
                 .filter(|c| !c.is_whitespace())
                 .collect();
-            let error_type_name: String = this_stage_err_type_path
+            let stage_error_type_name: String = this_stage_err_type_path
                 .cloned()
                 .unwrap_or_default()
                 .to_string()
@@ -584,7 +592,8 @@ impl TypedStage<Ecs> {
                 .filter(|c| !c.is_whitespace())
                 .collect();
 
-            self.core_functions.generate(signature, output_type_name, error_type_name)
+            self.core_functions
+                .generate(signature, output_type_name, stage_error_type_name, dyn_stage_error_type_name)
         };
         let signature = signature.generate();
 
@@ -617,7 +626,7 @@ impl TypedStage<Ecs> {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -652,9 +661,9 @@ impl TypedStage<Ecs> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -683,7 +692,7 @@ impl TypedStage<Ecs> {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -717,9 +726,9 @@ impl TypedStage<Ecs> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -822,7 +831,7 @@ impl TypedStage<Ecs> {
             (None, Some(this_stage_err_type_path), None) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -854,9 +863,9 @@ impl TypedStage<Ecs> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -987,6 +996,14 @@ impl TypedStage<Render> {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
+        let dyn_stage_error_type_name = {
+            match signature {
+                StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
+                StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
+                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant + Send + Sync>", signature)
+                }
+            }
+        };
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
@@ -1002,7 +1019,7 @@ impl TypedStage<Render> {
                 .chars()
                 .filter(|c| !c.is_whitespace())
                 .collect();
-            let error_type_name: String = this_stage_err_type_path
+            let stage_error_type_name: String = this_stage_err_type_path
                 .cloned()
                 .unwrap_or_default()
                 .to_string()
@@ -1010,7 +1027,8 @@ impl TypedStage<Render> {
                 .filter(|c| !c.is_whitespace())
                 .collect();
 
-            self.core_functions.generate(signature, output_type_name, error_type_name)
+            self.core_functions
+                .generate(signature, output_type_name, stage_error_type_name, dyn_stage_error_type_name)
         };
         let signature = signature.generate();
 
@@ -1043,7 +1061,7 @@ impl TypedStage<Render> {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -1078,9 +1096,9 @@ impl TypedStage<Render> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1109,7 +1127,7 @@ impl TypedStage<Render> {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -1143,9 +1161,9 @@ impl TypedStage<Render> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -1248,7 +1266,7 @@ impl TypedStage<Render> {
             (None, Some(this_stage_err_type_path), None) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -1280,9 +1298,9 @@ impl TypedStage<Render> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1413,6 +1431,14 @@ impl TypedStage<Async> {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
+        let dyn_stage_error_type_name = {
+            match signature {
+                StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
+                StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
+                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant + Send + Sync>", signature)
+                }
+            }
+        };
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
@@ -1428,7 +1454,7 @@ impl TypedStage<Async> {
                 .chars()
                 .filter(|c| !c.is_whitespace())
                 .collect();
-            let error_type_name: String = this_stage_err_type_path
+            let stage_error_type_name: String = this_stage_err_type_path
                 .cloned()
                 .unwrap_or_default()
                 .to_string()
@@ -1436,7 +1462,8 @@ impl TypedStage<Async> {
                 .filter(|c| !c.is_whitespace())
                 .collect();
 
-            self.core_functions.generate(signature, output_type_name, error_type_name)
+            self.core_functions
+                .generate(signature, output_type_name, stage_error_type_name, dyn_stage_error_type_name)
         };
         let signature = signature.generate();
 
@@ -1469,7 +1496,7 @@ impl TypedStage<Async> {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -1504,9 +1531,9 @@ impl TypedStage<Async> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1535,7 +1562,7 @@ impl TypedStage<Async> {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -1569,9 +1596,9 @@ impl TypedStage<Async> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -1674,7 +1701,7 @@ impl TypedStage<Async> {
             (None, Some(this_stage_err_type_path), None) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -1706,9 +1733,9 @@ impl TypedStage<Async> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1840,6 +1867,14 @@ impl TypedStage<EcsWhile> {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
+        let dyn_stage_error_type_name = {
+            match signature {
+                StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
+                StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
+                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant + Send + Sync>", signature)
+                }
+            }
+        };
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
@@ -1862,7 +1897,7 @@ impl TypedStage<EcsWhile> {
                 .chars()
                 .filter(|c| !c.is_whitespace())
                 .collect();
-            let error_type_name: String = this_stage_err_type_path
+            let stage_error_type_name: String = this_stage_err_type_path
                 .cloned()
                 .unwrap_or_default()
                 .to_string()
@@ -1870,7 +1905,8 @@ impl TypedStage<EcsWhile> {
                 .filter(|c| !c.is_whitespace())
                 .collect();
 
-            self.core_functions.generate(signature, state_type_name, output_type_name, error_type_name)
+            self.core_functions
+                .generate(signature, state_type_name, output_type_name, stage_error_type_name, dyn_stage_error_type_name)
         };
         let signature = signature.generate();
 
@@ -1898,7 +1934,7 @@ impl TypedStage<EcsWhile> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -1932,9 +1968,9 @@ impl TypedStage<EcsWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1991,7 +2027,7 @@ impl TypedStage<EcsWhile> {
             (None, Some(this_stage_err_type_path)) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2023,9 +2059,9 @@ impl TypedStage<EcsWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2091,7 +2127,7 @@ impl TypedStage<EcsWhile> {
                 };
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2145,9 +2181,9 @@ impl TypedStage<EcsWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2177,7 +2213,7 @@ impl TypedStage<EcsWhile> {
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -2230,9 +2266,9 @@ impl TypedStage<EcsWhile> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -2378,7 +2414,7 @@ impl TypedStage<EcsWhile> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2427,7 +2463,7 @@ impl TypedStage<EcsWhile> {
                             }
                             Err(error) => {
                                 let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2511,7 +2547,7 @@ impl TypedStage<EcsWhile> {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2563,9 +2599,9 @@ impl TypedStage<EcsWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2594,7 +2630,7 @@ impl TypedStage<EcsWhile> {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -2645,9 +2681,9 @@ impl TypedStage<EcsWhile> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -2787,7 +2823,7 @@ impl TypedStage<EcsWhile> {
             (None, None, Some(this_stage_err_type_path), None) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -2833,7 +2869,7 @@ impl TypedStage<EcsWhile> {
                             }
                             Err(error) => {
                                 let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2999,6 +3035,14 @@ impl TypedStage<RenderWhile> {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
+        let dyn_stage_error_type_name = {
+            match signature {
+                StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
+                StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
+                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant + Send + Sync>", signature)
+                }
+            }
+        };
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
@@ -3021,7 +3065,7 @@ impl TypedStage<RenderWhile> {
                 .chars()
                 .filter(|c| !c.is_whitespace())
                 .collect();
-            let error_type_name: String = this_stage_err_type_path
+            let stage_error_type_name: String = this_stage_err_type_path
                 .cloned()
                 .unwrap_or_default()
                 .to_string()
@@ -3029,7 +3073,8 @@ impl TypedStage<RenderWhile> {
                 .filter(|c| !c.is_whitespace())
                 .collect();
 
-            self.core_functions.generate(signature, state_type_name, output_type_name, error_type_name)
+            self.core_functions
+                .generate(signature, state_type_name, output_type_name, stage_error_type_name, dyn_stage_error_type_name)
         };
         let signature = signature.generate();
 
@@ -3057,7 +3102,7 @@ impl TypedStage<RenderWhile> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3091,9 +3136,9 @@ impl TypedStage<RenderWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3152,7 +3197,7 @@ impl TypedStage<RenderWhile> {
             (None, Some(this_stage_err_type_path)) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3184,9 +3229,9 @@ impl TypedStage<RenderWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3255,7 +3300,7 @@ impl TypedStage<RenderWhile> {
                 };
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3309,9 +3354,9 @@ impl TypedStage<RenderWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3341,7 +3386,7 @@ impl TypedStage<RenderWhile> {
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -3394,9 +3439,9 @@ impl TypedStage<RenderWhile> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -3542,7 +3587,7 @@ impl TypedStage<RenderWhile> {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3591,7 +3636,7 @@ impl TypedStage<RenderWhile> {
                             }
                             Err(error) => {
                                 let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3675,7 +3720,7 @@ impl TypedStage<RenderWhile> {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3727,9 +3772,9 @@ impl TypedStage<RenderWhile> {
                                 let error = crate::workflow::response::TypedWorkflowResponseOE {
                                     module_name,
                                     workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                 };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3758,7 +3803,7 @@ impl TypedStage<RenderWhile> {
                     let stage_err_name = format!("{}Error", stage_name.as_str());
                     let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -3809,9 +3854,9 @@ impl TypedStage<RenderWhile> {
                                     let error = crate::workflow::response::TypedWorkflowResponseOE {
                                         module_name,
                                         workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #error_type_name.to_string()))
+                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
                                     };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -3951,7 +3996,7 @@ impl TypedStage<RenderWhile> {
             (None, None, Some(this_stage_err_type_path), None) => {
                 let stage_err_name = format!("{}Error", stage_name.as_str());
                 let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
+                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                 quote! { Box::new(|
                     module_name: &'static str,
@@ -3997,7 +4042,7 @@ impl TypedStage<RenderWhile> {
                             }
                             Err(error) => {
                                 let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,

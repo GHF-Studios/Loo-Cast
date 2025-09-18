@@ -614,6 +614,12 @@ impl Workflow {
                                     write!(f, "{:?}", self)
                                 }
                             }
+                            impl crate::workflow::traits::WorkflowErrorE for Error {
+                                fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
+                                    let stage_error: Box<dyn crate::workflow::traits::WorkflowErrorEVariant + Send + Sync> = boxed.into_inner();
+                                    stage_error.into_workflow_error()
+                                }
+                            }
                         }
                     } else {
                         quote! {}
@@ -863,6 +869,12 @@ impl Workflow {
                             impl std::fmt::Display for Error {
                                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                                     write!(f, "{:?}", self)
+                                }
+                            }
+                            impl crate::workflow::traits::WorkflowErrorOE for Error {
+                                fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
+                                    let stage_error: Box<dyn crate::workflow::traits::WorkflowErrorOEVariant + Send + Sync> = boxed.into_inner();
+                                    stage_error.into_workflow_error()
                                 }
                             }
                         }
@@ -1115,6 +1127,12 @@ impl Workflow {
                             impl std::fmt::Display for Error {
                                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                                     write!(f, "{:?}", self)
+                                }
+                            }
+                            impl crate::workflow::traits::WorkflowErrorIE for Error {
+                                fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
+                                    let stage_error: Box<dyn crate::workflow::traits::WorkflowErrorIEVariant + Send + Sync> = boxed.into_inner();
+                                    stage_error.into_workflow_error()
                                 }
                             }
                         }
@@ -1374,6 +1392,12 @@ impl Workflow {
                             impl std::fmt::Display for Error {
                                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                                     write!(f, "{:?}", self)
+                                }
+                            }
+                            impl crate::workflow::traits::WorkflowErrorIOE for Error {
+                                fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
+                                    let stage_error: Box<dyn crate::workflow::traits::WorkflowErrorIOEVariant + Send + Sync> = boxed.into_inner();
+                                    stage_error.into_workflow_error()
                                 }
                             }
                         }
