@@ -2,8 +2,8 @@ use bevy::prelude::*;
 use pin_project_lite::pin_project;
 use std::future::Future;
 use std::pin::Pin;
-use std::task::{Context, Poll, Waker};
 use std::sync::atomic::Ordering;
+use std::task::{Context, Poll, Waker};
 use std::time::Duration;
 
 use super::errors::TimeoutError;
@@ -67,13 +67,10 @@ impl Future for VirtualSleep {
 
         if !self.registered {
             let waker = cx.waker().clone();
-            PENDING_VIRTUAL_SLEEPS()
-                .lock()
-                .unwrap()
-                .push(PendingSleep {
-                    deadline: self.deadline,
-                    waker,
-                });
+            PENDING_VIRTUAL_SLEEPS().lock().unwrap().push(PendingSleep {
+                deadline: self.deadline,
+                waker,
+            });
             self.registered = true;
         }
 

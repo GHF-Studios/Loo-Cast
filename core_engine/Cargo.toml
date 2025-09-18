@@ -8,5 +8,5 @@ name = "core_engine"
 path = "src/main.rs"
 
 [dependencies]
-core_api = { path = "../core_api", features = ["init_api"] }
+core_api = { path = "../core_api", features = ["init_api", "allow_premium_box"] }
 libloading = "0.8.8"

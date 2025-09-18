@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 use syn::{
     parse::{Parse, ParseStream},
     token::Pub,
-    Fields, ItemEnum, ItemStruct, Result, Visibility,
+    Fields, Ident, ItemEnum, ItemStruct, Result, Visibility,
 };
 
 fn align_core_struct(item: &mut ItemStruct) {
@@ -48,13 +48,25 @@ pub enum CoreType<T> {
 }
 
 impl CoreType<Input> {
-    pub fn generate(&self) -> TokenStream {
+    pub fn generate(&self, stage_signature: StageSignature) -> TokenStream {
+        let workflow_input_trait_variant = match stage_signature {
+            StageSignature::None => panic!("Input type is not allowed in stages with non-input signature"),
+            StageSignature::O => panic!("Input type is not allowed in stages with non-input signature"),
+            StageSignature::E => panic!("Input type is not allowed in stages with non-input signature"),
+            StageSignature::OE => panic!("Input type is not allowed in stages with non-input signature"),
+            StageSignature::I => quote! { WorkflowInputI },
+            StageSignature::IO => quote! { WorkflowInputIO },
+            StageSignature::IE => quote! { WorkflowInputIE },
+            StageSignature::IOE => quote! { WorkflowInputIOE },
+        };
+
         match self {
             CoreType::Struct(item, _) => {
                 let item = item.to_token_stream();
                 quote! {
                     #[repr(C)]
                     #item
+                    impl crate::workflow::traits::#workflow_input_trait_variant for Input {}
                 }
             }
             CoreType::Enum(item, _) => {
@@ -62,6 +74,7 @@ impl CoreType<Input> {
                 quote! {
                     #[repr(C)]
                     #item
+                    impl crate::workflow::traits::#workflow_input_trait_variant for Input {}
                 }
             }
         }
@@ -90,13 +103,29 @@ impl CoreType<State> {
 }
 
 impl CoreType<Output> {
-    pub fn generate(&self) -> TokenStream {
+    pub fn generate(&self, stage_signature: StageSignature) -> TokenStream {
+        let workflow_output_trait_variant = match stage_signature {
+            StageSignature::None => panic!("Output type is not allowed in stages with non-output signature"),
+            StageSignature::O => quote! { WorkflowOutputO },
+            StageSignature::E => panic!("Output type is not allowed in stages with non-output signature"),
+            StageSignature::OE => quote! { WorkflowOutputOE },
+            StageSignature::I => panic!("Output type is not allowed in stages with non-output signature"),
+            StageSignature::IO => quote! { WorkflowOutputIO },
+            StageSignature::IE => panic!("Output type is not allowed in stages with non-output signature"),
+            StageSignature::IOE => quote! { WorkflowOutputIOE },
+        };
+
         match self {
             CoreType::Struct(item, _) => {
                 let item = item.to_token_stream();
                 quote! {
                     #[repr(C)]
                     #item
+                    impl crate::workflow::traits::#workflow_output_trait_variant for Output {
+                        fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
+                            boxed.into_inner()
+                        }
+                    }
                 }
             }
             CoreType::Enum(item, _) => {
@@ -104,6 +133,11 @@ impl CoreType<Output> {
                 quote! {
                     #[repr(C)]
                     #item
+                    impl crate::workflow::traits::#workflow_output_trait_variant for Output {
+                        fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
+                            boxed.into_inner()
+                        }
+                    }
                 }
             }
         }
@@ -111,9 +145,24 @@ impl CoreType<Output> {
 }
 
 impl CoreType<Error> {
-    pub fn generate(&self) -> TokenStream {
+    pub fn generate(&self, workflow_path: TokenStream, stage_signature: StageSignature, stage_name_snake_case: Ident) -> TokenStream {
+        let stage_error_type_path = quote! { #workflow_path::stages::#stage_name_snake_case::core_types::Error };
+        let workflow_error_trait_variant = match stage_signature {
+            StageSignature::None => panic!("Error type is not allowed in stages with non-error signature"),
+            StageSignature::O => panic!("Error type is not allowed in stages with non-error signature"),
+            StageSignature::E => quote! { WorkflowErrorE },
+            StageSignature::OE => quote! { WorkflowErrorOE },
+            StageSignature::I => panic!("Error type is not allowed in stages with non-error signature"),
+            StageSignature::IO => panic!("Error type is not allowed in stages with non-error signature"),
+            StageSignature::IE => quote! { WorkflowErrorIE },
+            StageSignature::IOE => quote! { WorkflowErrorIOE },
+        };
+
         match self {
-            CoreType::Struct(item, _) => {
+            CoreType::Struct(_item, _) => {
+                panic!("Struct is not supported for Error type");
+            }
+            CoreType::Enum(item, _) => {
                 let item = item.to_token_stream();
                 quote! {
                     #[derive(std::fmt::Debug, Error)]
@@ -123,16 +172,9 @@ impl CoreType<Error> {
                             write!(f, "{:?}", self)
                         }
                     }
-                }
-            }
-            CoreType::Enum(item, _) => {
-                let item = item.to_token_stream();
-                quote! {
-                    #[derive(std::fmt::Debug, Error)]
-                    #item
-                    impl std::fmt::Display for Error {
-                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                            write!(f, "{:?}", self)
+                    impl crate::workflow::traits::#workflow_error_trait_variant for Error {
+                        fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
+                            Error::#stage_name_snake_case(boxed.into_inner::<#stage_error_type_path>())
                         }
                     }
                 }
@@ -1615,11 +1657,11 @@ impl CoreTypes<RenderWhile> {
 }
 
 impl<T> CoreTypes<T> {
-    pub fn generate(&self, other_stuff: TokenStream) -> TokenStream {
-        let input = self.input.as_ref().map(|t| t.generate());
+    pub fn generate(&self, workflow_path: TokenStream, stage_signature: StageSignature, stage_name_snake_case: Ident, other_stuff: TokenStream) -> TokenStream {
+        let input = self.input.as_ref().map(|t| t.generate(stage_signature));
         let state = self.state.as_ref().map(|t| t.generate());
-        let output = self.output.as_ref().map(|t| t.generate());
-        let error = self.error.as_ref().map(|t| t.generate());
+        let output = self.output.as_ref().map(|t| t.generate(stage_signature));
+        let error = self.error.as_ref().map(|t| t.generate(workflow_path, stage_signature, stage_name_snake_case));
         let main_access = self.main_access.as_ref().map(|t| t.generate());
         let render_access = self.render_access.as_ref().map(|t| t.generate());
 

@@ -1,48 +1,48 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
-pub use core_api_macros;
 pub use bevy_consumable_event;
+pub use core_api_macros;
 
+pub use anymap;
 pub use bevy;
 pub use bevy_egui;
 pub use bevy_inspector_egui;
 pub use bevy_rapier2d;
-pub use egui;
-pub use egui_dock;
-pub use transform_gizmo_bevy;
-pub use iyes_perf_ui;
-pub use mlua;
-pub use rand;
-pub use noise;
-pub use image;
-pub use serde;
-pub use serde_json;
-pub use futures;
-pub use num_bigint;
-pub use num_traits;
-pub use lazy_static;
-pub use queues;
-pub use log;
-pub use tracing;
-pub use tracing_subscriber;
-pub use tracing_appender;
-pub use glam;
-pub use tokio;
+pub use bytemuck;
 pub use console_subscriber;
-pub use pin_project_lite;
-pub use toml;
 pub use crossbeam;
 pub use crossbeam_channel;
-pub use bytemuck;
-pub use thiserror;
-pub use once_cell;
-pub use dyn_clone;
-pub use anymap;
-pub use uuid;
 pub use dashmap;
+pub use dyn_clone;
+pub use egui;
+pub use egui_dock;
+pub use futures;
+pub use glam;
+pub use image;
+pub use iyes_perf_ui;
+pub use lazy_static;
+pub use log;
+pub use mlua;
+pub use noise;
+pub use num_bigint;
+pub use num_traits;
+pub use once_cell;
 pub use parking_lot;
 pub use paste;
+pub use pin_project_lite;
+pub use queues;
+pub use rand;
+pub use serde;
+pub use serde_json;
+pub use thiserror;
+pub use tokio;
+pub use toml;
+pub use tracing;
+pub use tracing_appender;
+pub use tracing_subscriber;
+pub use transform_gizmo_bevy;
+pub use uuid;
 
 // Data types
 //pub mod components;
@@ -82,8 +82,8 @@ pub mod utils;
 pub mod window;
 pub mod workflow;
 
-use core_api_macros::{api_initializer, register_workflow_mods};
 use bevy::{app::PluginGroupBuilder, prelude::*};
+use core_api_macros::{api_initializer, register_workflow_mods};
 
 use camera::CameraPlugin;
 use chunk::ChunkPlugin;
@@ -199,4 +199,14 @@ register_workflow_mods!(
 
 api_initializer!(
     crate::config::statics::CONFIG,
+    crate::core::statics::TOKIO_RUNTIME,
+    crate::core::statics::START_TIME,
+    crate::entity::statics::ENTITY_RESERVATION_BUFFER,
+    crate::logging::statics::LOG_ID_COUNTER,
+    crate::logging::statics::SPAN_EVENT_BUFFER,
+    crate::logging::statics::LOG_EVENT_BUFFER,
+    crate::time::statics::ELAPSED_VIRTUAL_NANOS,
+    crate::time::statics::PENDING_VIRTUAL_SLEEPS,
+    crate::workflow::statics::WORKFLOW_TOKIO_RUNTIME,
+    crate::workflow::statics::COMPOSITE_WORKFLOW_RUNTIME,
 );

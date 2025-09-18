@@ -415,7 +415,7 @@ define_workflow_mod_OLD! {
 
                             if is_done {
                                 // let loaded_chunks_count = spawn_chunk_states.len() + transfer_chunk_ownership_states.len();
-                                // 
+                                //
                                 // warn!("Ran LoadChunks for # of chunks: {}", loaded_chunks_count);
 
                                 Outcome::Done(())
@@ -425,13 +425,13 @@ define_workflow_mod_OLD! {
                                 //     .filter(|s| !s.is_spawned)
                                 //     .map(|s| s.coord)
                                 //     .collect();
-                                // 
+                                //
                                 // let not_transferred: Vec<_> = transfer_chunk_ownership_states
                                 //     .iter()
                                 //     .filter(|ot| !ot.is_ownership_transfered)
                                 //     .map(|s| s.coord)
                                 //     .collect();
-                                // 
+                                //
                                 // if !not_spawned.is_empty() {
                                 //     warn!(
                                 //         "Waiting: {} chunks still not spawned: {:?})",
@@ -439,7 +439,7 @@ define_workflow_mod_OLD! {
                                 //         not_spawned
                                 //     );
                                 // }
-                                // 
+                                //
                                 // if !not_transferred.is_empty() {
                                 //     warn!(
                                 //         "Waiting: {} chunks still not transferred: {:?})",

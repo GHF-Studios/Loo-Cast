@@ -21,7 +21,7 @@ impl Default for PlayerBundle {
     fn default() -> Self {
         let player_size = CONFIG().get::<f32>("player/size");
         let half_player_size = player_size / 2.0;
-        
+
         PlayerBundle {
             chunk_actor: Default::default(),
             chunk_loader: ChunkLoader::new("player_entity_chunk_loader".to_string()),

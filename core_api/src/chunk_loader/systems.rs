@@ -17,7 +17,7 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
     if !handle_is_some {
         let handle = composite_workflow!(UpdateChunkLoaders, {
             // warn!("Running composite workflow 'UpdateChunkLoaders'");
-            
+
             let categorize_chunks_output = workflow!(O, ChunkLoader::CategorizeChunks);
             let load_chunk_inputs = categorize_chunks_output.load_chunk_inputs;
             let unload_chunk_inputs = categorize_chunks_output.unload_chunk_inputs;
@@ -45,8 +45,6 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn post_update_chunk_loader_system(
-    mut removed_chunk_loaders: ResMut<RemovedChunkLoaders>,
-) {
+pub(crate) fn post_update_chunk_loader_system(mut removed_chunk_loaders: ResMut<RemovedChunkLoaders>) {
     removed_chunk_loaders.0.clear();
 }

@@ -55,6 +55,21 @@ impl StageSignature {
         matches!(self, StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE)
     }
 }
+impl std::fmt::Display for StageSignature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            StageSignature::None => "",
+            StageSignature::E => "E",
+            StageSignature::O => "O",
+            StageSignature::OE => "OE",
+            StageSignature::I => "I",
+            StageSignature::IE => "IE",
+            StageSignature::IO => "IO",
+            StageSignature::IOE => "IOE",
+        };
+        write!(f, "{}", s)
+    }
+}
 
 pub enum Stage {
     Ecs(TypedStage<Ecs>),
@@ -547,9 +562,12 @@ impl TypedStage<Ecs> {
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self
-            .core_types
-            .generate(self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index));
+        let core_types = self.core_types.generate(
+            workflow_path.clone(),
+            signature,
+            stage_ident.clone(),
+            self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index),
+        );
         let core_functions = {
             let output_type_name: String = this_stage_out_type_path
                 .cloned()
@@ -970,9 +988,12 @@ impl TypedStage<Render> {
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self
-            .core_types
-            .generate(self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index));
+        let core_types = self.core_types.generate(
+            workflow_path.clone(),
+            signature,
+            stage_ident.clone(),
+            self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index),
+        );
         let core_functions = {
             let output_type_name: String = this_stage_out_type_path
                 .cloned()
@@ -1393,9 +1414,12 @@ impl TypedStage<Async> {
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self
-            .core_types
-            .generate(self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index));
+        let core_types = self.core_types.generate(
+            workflow_path.clone(),
+            signature,
+            stage_ident.clone(),
+            self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index),
+        );
         let core_functions = {
             let output_type_name: String = this_stage_out_type_path
                 .cloned()
@@ -1817,9 +1841,12 @@ impl TypedStage<EcsWhile> {
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self
-            .core_types
-            .generate(self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index));
+        let core_types = self.core_types.generate(
+            workflow_path.clone(),
+            signature,
+            stage_ident.clone(),
+            self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index),
+        );
         let core_functions = {
             let state_type_name: String = this_stage_state_type_path
                 .cloned()
@@ -2973,9 +3000,12 @@ impl TypedStage<RenderWhile> {
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
-        let core_types = self
-            .core_types
-            .generate(self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index));
+        let core_types = self.core_types.generate(
+            workflow_path.clone(),
+            signature,
+            stage_ident.clone(),
+            self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index),
+        );
         let core_functions = {
             let state_type_name: String = this_stage_state_type_path
                 .cloned()

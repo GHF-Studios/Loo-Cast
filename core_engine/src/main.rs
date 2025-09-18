@@ -1,8 +1,8 @@
-use core_api::*;
 use core_api::config::statics::CONFIG;
 use core_api::core::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
 use core_api::core::types::ShortTime;
 use core_api::logging::tracing::types::LogTreeTracingLayer;
+use core_api::*;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
@@ -90,28 +90,24 @@ fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
     info!("Building App...");
 
     let mut app = App::new();
-    app
-        .add_plugins(third_party_plugins)
-        .add_plugins(CoreApiPluginGroup);
+    app.add_plugins(third_party_plugins).add_plugins(CoreApiPluginGroup);
 
-    load_base_mod(&mut app);
-    
+    global_init(&mut app);
+
     app
 }
 
-fn load_base_mod(_app: &mut App) {
-    let exe_dir = std::env::current_exe()
-        .expect("failed to get exe path")
-        .parent()
-        .unwrap()
-        .to_path_buf();
+fn global_init(_app: &mut App) {
+    core_api::init_api();
+
+    let exe_dir = std::env::current_exe().expect("failed to get exe path").parent().unwrap().to_path_buf();
 
     let lib_path = exe_dir.join(format!("base_mod{}", std::env::consts::DLL_SUFFIX));
 
     unsafe {
-        let lib = Library::new(&lib_path)
-            .unwrap_or_else(|e| panic!("Failed to load base_mod from {lib_path:?}: {e}"));
-        let init_api: Symbol<unsafe extern "C" fn()> = lib.get(b"init_api")
+        let lib = Library::new(&lib_path).unwrap_or_else(|e| panic!("Failed to load base_mod from {lib_path:?}: {e}"));
+        let init_api: Symbol<unsafe extern "C" fn()> = lib
+            .get(b"init_api")
             .unwrap_or_else(|e| panic!("Failed to load symbol 'init_api' from {lib_path:?}: {e}"));
         init_api();
     }

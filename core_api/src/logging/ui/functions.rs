@@ -229,7 +229,11 @@ pub(super) fn format_log(log: &LogEntry) -> WidgetText {
 
 // === Tree Rendering ===
 
-pub fn render_span_tree(ui: &mut egui::Ui, span_registry: &mut crate::logging::types::SpanRegistry, span_selections: &mut crate::logging::types::SpanPathSelections) {
+pub fn render_span_tree(
+    ui: &mut egui::Ui,
+    span_registry: &mut crate::logging::types::SpanRegistry,
+    span_selections: &mut crate::logging::types::SpanPathSelections,
+) {
     for (root_seg, root_sel) in &mut span_selections.span_roots {
         if let Some(root_node) = span_registry.span_roots.get_mut(root_seg) {
             render_span_branch(ui, root_seg, root_sel, root_node);

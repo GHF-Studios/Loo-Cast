@@ -39,10 +39,7 @@ impl Parse for CompositeWorkflow {
 }
 
 impl CompositeWorkflow {
-    fn generate_segments(
-        segments: &[WorkflowSegment],
-        error_enum_ident: &Ident,
-    ) -> Vec<TokenStream> {
+    fn generate_segments(segments: &[WorkflowSegment], error_enum_ident: &Ident) -> Vec<TokenStream> {
         let mut out = Vec::new();
         for segment in segments {
             match segment {
@@ -86,10 +83,7 @@ impl CompositeWorkflow {
                             let mut input_expr = wf
                                 .input_struct
                                 .as_ref()
-                                .unwrap_or_else(|| unreachable!(
-                                    "Expected `Input {{ ... }}` block for workflow with signature '{}'",
-                                    sig
-                                ))
+                                .unwrap_or_else(|| unreachable!("Expected `Input {{ ... }}` block for workflow with signature '{}'", sig))
                                 .clone();
                             input_expr.path = syn::parse_quote! { I };
 
@@ -135,18 +129,10 @@ impl CompositeWorkflow {
 
         // --- Collect fallible invocations ---
         let fallible_invocations: Vec<_> = {
-            fn collect<'a>(
-                segs: &'a [WorkflowSegment],
-                out: &mut Vec<&'a WorkflowInvocation>,
-            ) {
+            fn collect<'a>(segs: &'a [WorkflowSegment], out: &mut Vec<&'a WorkflowInvocation>) {
                 for seg in segs {
                     match seg {
-                        WorkflowSegment::Invocation(wf)
-                            if matches!(
-                                wf.signature.to_string().as_str(),
-                                "E" | "OE" | "IE" | "IOE"
-                            ) =>
-                        {
+                        WorkflowSegment::Invocation(wf) if matches!(wf.signature.to_string().as_str(), "E" | "OE" | "IE" | "IOE") => {
                             out.push(wf);
                         }
                         WorkflowSegment::Block { children, .. } => {

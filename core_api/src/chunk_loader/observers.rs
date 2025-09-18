@@ -1,21 +1,12 @@
 use bevy::prelude::*;
 use core_api_macros::{composite_workflow, composite_workflow_return};
 
-use crate::{
-    chunk::types::ChunkOwnerId,
-    chunk_loader::{
-        components::ChunkLoader,
-    },
-    workflow::functions::handle_composite_workflow_return_later,
-};
+use crate::{chunk::types::ChunkOwnerId, chunk_loader::components::ChunkLoader, workflow::functions::handle_composite_workflow_return_later};
 
 // TODO: MAJOR: This silently drops observed chunk loader removals if one is already in-progress composite-workflow-wise, so for now:
 // Concurrent chunk loader removals are unsound!
 #[tracing::instrument(skip_all)]
-pub(crate) fn observe_on_remove_chunk_loader(
-    trigger: Trigger<OnRemove, ChunkLoader>,
-    chunk_loader_query: Query<(&Transform, &ChunkLoader)>,
-) {
+pub(crate) fn observe_on_remove_chunk_loader(trigger: Trigger<OnRemove, ChunkLoader>, chunk_loader_query: Query<(&Transform, &ChunkLoader)>) {
     let loader_entity = trigger.target();
     let (loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
         Ok(value) => value,
@@ -37,7 +28,7 @@ pub(crate) fn observe_on_remove_chunk_loader(
         move in loader_radius: u32,
     {
         warn!("Running composite workflow 'OnRemoveChunkLoader'");
-            
+
         // let output = workflow!(IO, ChunkLoader::OnRemoveChunkLoader, Input {
         //     chunk_owner_id: owner_id.clone(),
         //     chunk_loader_position: loader_position,

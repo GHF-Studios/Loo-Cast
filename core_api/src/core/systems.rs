@@ -1,5 +1,5 @@
-use core_api_macros::{composite_workflow, composite_workflow_return};
 use bevy::prelude::*;
+use core_api_macros::{composite_workflow, composite_workflow_return};
 
 use crate::config::statics::CONFIG;
 use crate::workflow::functions::handle_composite_workflow_return_later;
@@ -31,7 +31,7 @@ pub(super) fn startup_system() {
 
     handle_composite_workflow_return_later(handle, |_ctx| {
         composite_workflow_return!();
-        
+
         warn!("Finished composite workflow 'Startup'");
     });
 }

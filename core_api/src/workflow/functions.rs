@@ -106,7 +106,8 @@ static IGNORED_WORKFLOW_LOGS: Lazy<HashMap<String, HashSet<String>>> = Lazy::new
 });
 
 fn is_ignored_workflow(module: &str, workflow: &str) -> bool {
-    IGNORED_WORKFLOW_LOGS.get(module)
+    IGNORED_WORKFLOW_LOGS
+        .get(module)
         .map(|set| set.contains(workflow) || set.contains("*"))
         .unwrap_or(false)
 }
@@ -133,12 +134,8 @@ pub async fn run_workflow<W: WorkflowType>(timeout_duration: Duration, timeout_m
         let mut receiver = get_response_receiver().await;
 
         let result = match timeout_mode {
-            WorkflowTimeoutMode::RealTime => {
-                timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
-            WorkflowTimeoutMode::VirtualTime => {
-                virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
+            WorkflowTimeoutMode::RealTime => timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
+            WorkflowTimeoutMode::VirtualTime => virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
         };
 
         match result {
@@ -156,13 +153,13 @@ pub async fn run_workflow<W: WorkflowType>(timeout_duration: Duration, timeout_m
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::None(response));
-            },
+            }
             Ok(None) => {
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
             Err(_) => {
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
         }
 
         if let Some(WorkflowResponse::None(_response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
@@ -198,12 +195,8 @@ pub async fn run_workflow_e<W: WorkflowTypeE>(timeout_duration: Duration, timeou
         let mut receiver = get_response_e_receiver().await;
 
         let result = match timeout_mode {
-            WorkflowTimeoutMode::RealTime => {
-                timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
-            WorkflowTimeoutMode::VirtualTime => {
-                virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
+            WorkflowTimeoutMode::RealTime => timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
+            WorkflowTimeoutMode::VirtualTime => virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
         };
 
         match result {
@@ -217,24 +210,24 @@ pub async fn run_workflow_e<W: WorkflowTypeE>(timeout_duration: Duration, timeou
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_e for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return <Result<(), W::Error>>::from_response_e(response);
+                    return <Result<(), W::Error>>::from_response(response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::E(response));
-            },
+            }
             Ok(None) => {
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
             Err(_) => {
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
         }
 
         if let Some(WorkflowResponse::E(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_e for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return <Result<(), W::Error>>::from_response_e(response);
+            return <Result<(), W::Error>>::from_response(response);
         }
 
         tokio::task::yield_now().await;
@@ -263,12 +256,8 @@ pub async fn run_workflow_o<W: WorkflowTypeO>(timeout_duration: Duration, timeou
         let mut receiver = get_response_o_receiver().await;
 
         let result = match timeout_mode {
-            WorkflowTimeoutMode::RealTime => {
-                timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
-            WorkflowTimeoutMode::VirtualTime => {
-                virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
+            WorkflowTimeoutMode::RealTime => timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
+            WorkflowTimeoutMode::VirtualTime => virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
         };
 
         match result {
@@ -282,24 +271,24 @@ pub async fn run_workflow_o<W: WorkflowTypeO>(timeout_duration: Duration, timeou
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_o for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return W::Output::from_response_o(response);
+                    return W::Output::from_boxed(response.output);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
-            },
+            }
             Ok(None) => {
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
             Err(_) => {
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
         }
 
         if let Some(WorkflowResponse::O(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_o for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return W::Output::from_response_o(response);
+            return W::Output::from_boxed(response.output);
         }
 
         tokio::task::yield_now().await;
@@ -328,12 +317,8 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>(timeout_duration: Duration, time
         let mut receiver = get_response_oe_receiver().await;
 
         let result = match timeout_mode {
-            WorkflowTimeoutMode::RealTime => {
-                timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
-            WorkflowTimeoutMode::VirtualTime => {
-                virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
+            WorkflowTimeoutMode::RealTime => timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
+            WorkflowTimeoutMode::VirtualTime => virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
         };
 
         match result {
@@ -347,24 +332,24 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>(timeout_duration: Duration, time
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_oe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return <Result<W::Output, W::Error>>::from_response_oe(response);
+                    return <Result<W::Output, W::Error>>::from_response(response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
-            },
+            }
             Ok(None) => {
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
             Err(_) => {
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
         }
 
         if let Some(WorkflowResponse::OE(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_oe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return <Result<W::Output, W::Error>>::from_response_oe(response);
+            return <Result<W::Output, W::Error>>::from_response(response);
         }
 
         tokio::task::yield_now().await;
@@ -394,12 +379,8 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(timeout_duration: Duration, timeou
         let mut receiver = get_response_i_receiver().await;
 
         let result = match timeout_mode {
-            WorkflowTimeoutMode::RealTime => {
-                timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
-            WorkflowTimeoutMode::VirtualTime => {
-                virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
+            WorkflowTimeoutMode::RealTime => timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
+            WorkflowTimeoutMode::VirtualTime => virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
         };
 
         match result {
@@ -417,13 +398,13 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(timeout_duration: Duration, timeou
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::None(response));
-            },
+            }
             Ok(None) => {
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
             Err(_) => {
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
         }
 
         if let Some(WorkflowResponse::None(_response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
@@ -460,12 +441,8 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(timeout_duration: Duration, time
         let mut receiver = get_response_ie_receiver().await;
 
         let result = match timeout_mode {
-            WorkflowTimeoutMode::RealTime => {
-                timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
-            WorkflowTimeoutMode::VirtualTime => {
-                virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
+            WorkflowTimeoutMode::RealTime => timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
+            WorkflowTimeoutMode::VirtualTime => virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
         };
 
         match result {
@@ -479,24 +456,24 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(timeout_duration: Duration, time
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_ie for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return <Result<(), W::Error>>::from_response_e(response);
+                    return <Result<(), W::Error>>::from_response(response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::E(response));
-            },
+            }
             Ok(None) => {
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
             Err(_) => {
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
         }
 
         if let Some(WorkflowResponse::E(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_ie for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return <Result<(), W::Error>>::from_response_e(response);
+            return <Result<(), W::Error>>::from_response(response);
         }
 
         tokio::task::yield_now().await;
@@ -526,12 +503,8 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(timeout_duration: Duration, time
         let mut receiver = get_response_io_receiver().await;
 
         let result = match timeout_mode {
-            WorkflowTimeoutMode::RealTime => {
-                timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
-            WorkflowTimeoutMode::VirtualTime => {
-                virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
+            WorkflowTimeoutMode::RealTime => timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
+            WorkflowTimeoutMode::VirtualTime => virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
         };
 
         match result {
@@ -545,31 +518,35 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(timeout_duration: Duration, time
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_io for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return W::Output::from_response_o(response);
+                    return W::Output::from_boxed(response.output);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
-            },
+            }
             Ok(None) => {
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
             Err(_) => {
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
         }
 
         if let Some(WorkflowResponse::O(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_io for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return W::Output::from_response_o(response);
+            return W::Output::from_boxed(response.output);
         }
 
         tokio::task::yield_now().await;
     }
 }
 
-pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(timeout_duration: Duration, timeout_mode: WorkflowTimeoutMode, input: W::Input) -> Result<W::Output, W::Error> {
+pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(
+    timeout_duration: Duration,
+    timeout_mode: WorkflowTimeoutMode,
+    input: W::Input,
+) -> Result<W::Output, W::Error> {
     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
         warn!("Running run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     }
@@ -592,12 +569,8 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(timeout_duration: Duration, ti
         let mut receiver = get_response_ioe_receiver().await;
 
         let result = match timeout_mode {
-            WorkflowTimeoutMode::RealTime => {
-                timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
-            WorkflowTimeoutMode::VirtualTime => {
-                virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ())
-            },
+            WorkflowTimeoutMode::RealTime => timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
+            WorkflowTimeoutMode::VirtualTime => virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
         };
 
         match result {
@@ -611,24 +584,24 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(timeout_duration: Duration, ti
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return <Result<W::Output, W::Error>>::from_response_oe(response);
+                    return <Result<W::Output, W::Error>>::from_response(response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
-            },
+            }
             Ok(None) => {
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
             Err(_) => {
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
-            },
+            }
         }
 
         if let Some(WorkflowResponse::OE(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return <Result<W::Output, W::Error>>::from_response_oe(response);
+            return <Result<W::Output, W::Error>>::from_response(response);
         }
 
         tokio::task::yield_now().await;

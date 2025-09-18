@@ -103,7 +103,7 @@ pub fn extract_workflow_segments_inner(input: TokenStream) -> Vec<WorkflowSegmen
                     segments.push(WorkflowSegment::Plain(plain_buffer.clone()));
                     plain_buffer = TokenStream::new();
                 }
-                
+
                 segments.push(WorkflowSegment::Block {
                     delimiter: group.delimiter(),
                     span: group.span(),

@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+default = [
+    "allow_premium_box"
+]
 init_api = []
+allow_premium_box = []
 
 [dependencies]
 core_api_macros = { path = "../core_api_macros" }

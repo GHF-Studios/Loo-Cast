@@ -3,7 +3,12 @@ use quote::quote;
 use syn::{parse_macro_input, punctuated::Punctuated, spanned::Spanned, Expr, ExprPath, Ident, Token, Type};
 
 pub fn export_static(input: TokenStream) -> TokenStream {
-    let ExportInput { is_self, static_path, ty, init } = parse_macro_input!(input as ExportInput);
+    let ExportInput {
+        is_self,
+        static_path,
+        ty,
+        init,
+    } = parse_macro_input!(input as ExportInput);
     let ident = static_path.path.segments.last().unwrap().ident.clone();
     let mangled = Ident::new(&mangle_path(&static_path), static_path.span());
 
@@ -31,7 +36,8 @@ pub fn export_static(input: TokenStream) -> TokenStream {
         pub fn #ident() -> &'static #ty {
             &#mangled
         }
-    }.into()
+    }
+    .into()
 }
 
 pub fn import_static(input: TokenStream) -> TokenStream {
@@ -56,7 +62,8 @@ pub fn import_static(input: TokenStream) -> TokenStream {
         pub fn #ident() -> &'static #ty {
             unsafe { &#mangled }
         }
-    }.into()
+    }
+    .into()
 }
 
 pub fn api_initializer(input: TokenStream) -> TokenStream {
@@ -81,19 +88,14 @@ pub fn api_initializer(input: TokenStream) -> TokenStream {
                 #(#init_calls)*
             }
         }
-    }.into()
+    }
+    .into()
 }
 
 /// Converts a path like `core_api::foo::bar::BAZ` to `__STATIC__core_api__foo__bar__BAZ`
 pub fn mangle_path(path: &ExprPath) -> String {
     let mut out = String::from("__STATIC__");
-    out += &path
-        .path
-        .segments
-        .iter()
-        .map(|seg| seg.ident.to_string())
-        .collect::<Vec<_>>()
-        .join("__");
+    out += &path.path.segments.iter().map(|seg| seg.ident.to_string()).collect::<Vec<_>>().join("__");
     out
 }
 
@@ -119,7 +121,12 @@ impl syn::parse::Parse for ExportInput {
         let ty: Type = input.parse()?;
         input.parse::<Token![=]>()?;
         let init: Expr = input.parse()?;
-        Ok(Self { is_self, static_path, ty, init })
+        Ok(Self {
+            is_self,
+            static_path,
+            ty,
+            init,
+        })
     }
 }
 

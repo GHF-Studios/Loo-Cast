@@ -1,5 +1,5 @@
-use std::sync::Mutex;
 use core_api_macros::export_static;
+use std::sync::Mutex;
 use tokio::runtime::Runtime;
 
 use super::types::CompositeWorkflowRuntime;

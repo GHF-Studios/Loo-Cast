@@ -17,14 +17,14 @@ pub(super) fn show_toolbar_ui(mut egui_ctx: EguiContexts, keys: Res<ButtonInput<
     if !toolbar_state.enabled {
         return;
     }
-    
+
     // let ctx = match egui_ctx.ctx_mut() {
     //     Ok(ctx) => ctx,
     //     Err(_) => {
     //         return;
     //     }
     // };
-    // 
+    //
     // egui::Window::new("Toolbar")
     //     .anchor(egui::Align2::LEFT_TOP, [8.0, 8.0])
     //     .title_bar(false)

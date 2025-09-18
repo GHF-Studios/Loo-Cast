@@ -4,5 +4,5 @@ use std::sync::Mutex;
 
 use super::types::PendingSleep;
 
-export_static!(self, crate::entity::statics::ELAPSED_VIRTUAL_NANOS: AtomicU64 = AtomicU64::new(0));
-export_static!(self, crate::entity::statics::PENDING_VIRTUAL_SLEEPS: Mutex<Vec<PendingSleep>> = Mutex::new(vec![]));
+export_static!(self, crate::time::statics::ELAPSED_VIRTUAL_NANOS: AtomicU64 = AtomicU64::new(0));
+export_static!(self, crate::time::statics::PENDING_VIRTUAL_SLEEPS: Mutex<Vec<PendingSleep>> = Mutex::new(vec![]));

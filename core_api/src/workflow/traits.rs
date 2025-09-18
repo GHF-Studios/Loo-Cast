@@ -58,27 +58,19 @@ pub trait WorkflowTypeIOE {
 }
 
 // --- Primitive Workflow-Data Types ---
-pub trait WorkflowInputI: 'static + Send + Sync {
-    fn from_request_i(input: super::request::TypedWorkflowRequestI) -> Self;
-}
-pub trait WorkflowInputIE: 'static + Send + Sync {
-    fn from_request_ie(input: super::request::TypedWorkflowRequestIE) -> Self;
-}
-pub trait WorkflowInputIO: 'static + Send + Sync {
-    fn from_request_io(input: super::request::TypedWorkflowRequestIO) -> Self;
-}
-pub trait WorkflowInputIOE: 'static + Send + Sync {
-    fn from_request_ioe(input: super::request::TypedWorkflowRequestIOE) -> Self;
-}
+pub trait WorkflowInputI: 'static + Send + Sync {}
+pub trait WorkflowInputIE: 'static + Send + Sync {}
+pub trait WorkflowInputIO: 'static + Send + Sync {}
+pub trait WorkflowInputIOE: 'static + Send + Sync {}
 
 pub trait WorkflowOutputO: 'static + Send + Sync {
-    fn from_response_o(response: super::response::TypedWorkflowResponseO) -> Self;
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
 }
 pub trait WorkflowOutputOE: 'static + Send + Sync {
     fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
 }
 pub trait WorkflowOutputIO: 'static + Send + Sync {
-    fn from_response_o(response: super::response::TypedWorkflowResponseO) -> Self;
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
 }
 pub trait WorkflowOutputIOE: 'static + Send + Sync {
     fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
@@ -101,7 +93,7 @@ pub trait WorkflowErrorIOE: 'static + Send + Sync {
 pub trait WorkflowResultE: 'static + Send + Sync {
     type Error: WorkflowErrorE;
 
-    fn from_response_e(response: super::response::TypedWorkflowResponseE) -> Result<(), Self::Error> {
+    fn from_response(response: super::response::TypedWorkflowResponseE) -> Result<(), Self::Error> {
         match response.result {
             Ok(_) => Ok(()),
             Err(boxed) => Err(Self::Error::from_boxed(boxed)),
@@ -116,7 +108,7 @@ pub trait WorkflowResultOE: 'static + Send + Sync {
     type Output: WorkflowOutputOE;
     type Error: WorkflowErrorOE;
 
-    fn from_response_oe(response: super::response::TypedWorkflowResponseOE) -> Result<Self::Output, Self::Error> {
+    fn from_response(response: super::response::TypedWorkflowResponseOE) -> Result<Self::Output, Self::Error> {
         match response.result {
             Ok(boxed) => Ok(Self::Output::from_boxed(boxed)),
             Err(boxed) => Err(Self::Error::from_boxed(boxed)),
@@ -131,7 +123,7 @@ impl<Output: WorkflowOutputOE, Error: WorkflowErrorOE> WorkflowResultOE for Resu
 pub trait WorkflowResultIE: 'static + Send + Sync {
     type Error: WorkflowErrorIE;
 
-    fn from_response_e(response: super::response::TypedWorkflowResponseE) -> Result<(), Self::Error> {
+    fn from_response(response: super::response::TypedWorkflowResponseE) -> Result<(), Self::Error> {
         match response.result {
             Ok(_) => Ok(()),
             Err(boxed) => Err(Self::Error::from_boxed(boxed)),
@@ -146,7 +138,7 @@ pub trait WorkflowResultIOE: 'static + Send + Sync {
     type Output: WorkflowOutputIOE;
     type Error: WorkflowErrorIOE;
 
-    fn from_response_oe(response: super::response::TypedWorkflowResponseOE) -> Result<Self::Output, Self::Error> {
+    fn from_response(response: super::response::TypedWorkflowResponseOE) -> Result<Self::Output, Self::Error> {
         match response.result {
             Ok(boxed) => Ok(Self::Output::from_boxed(boxed)),
             Err(boxed) => Err(Self::Error::from_boxed(boxed)),

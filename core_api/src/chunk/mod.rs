@@ -27,7 +27,10 @@ impl Plugin for ChunkPlugin {
             .insert_resource(ChunkManager::default())
             .add_systems(Startup, chunk_startup_system)
             .add_systems(Update, chunk_update_system.run_if(run_after_startup_finished.and(run_if_not_paused)))
-            .add_systems(PostUpdate, process_chunk_actions_system.run_if(run_after_startup_finished.and(run_if_not_paused)))
+            .add_systems(
+                PostUpdate,
+                process_chunk_actions_system.run_if(run_after_startup_finished.and(run_if_not_paused)),
+            )
             .register_type::<Chunk>()
             .register_type::<SpawnError>()
             .register_type::<DespawnError>()

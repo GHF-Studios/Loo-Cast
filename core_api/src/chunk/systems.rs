@@ -32,11 +32,7 @@ pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<As
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn chunk_update_system(
-    mut commands: Commands,
-    chunk_query: Query<(Entity, &Transform, &Chunk)>,
-    removed_chunk_loaders: Res<RemovedChunkLoaders>,
-) {
+pub(crate) fn chunk_update_system(mut commands: Commands, chunk_query: Query<(Entity, &Transform, &Chunk)>, removed_chunk_loaders: Res<RemovedChunkLoaders>) {
     for (entity, transform, chunk) in chunk_query.iter() {
         let world_pos = transform.translation.truncate();
         let chunk_pos = world_pos_to_chunk(world_pos);
@@ -205,7 +201,7 @@ pub(crate) fn process_chunk_actions_system(
             new_chunk_loaders: Vec<Entity>,
         {
             warn!("Running composite workflow 'SpawnChunks'");
-            
+
             let generate_output = workflow!(IO, Gpu::GenerateTextures, Input {
                 shader_name: "texture_generators/example_compute_uv",
                 texture_size,
@@ -235,7 +231,7 @@ pub(crate) fn process_chunk_actions_system(
             move in despawn_inputs: Vec<DespawnChunkInput>,
         {
             warn!("Running composite workflow 'DespawnChunks'");
-            
+
             let _ = workflow!(IOE, Chunk::DespawnChunks, Input {
                 inputs: despawn_inputs
             });
@@ -251,7 +247,7 @@ pub(crate) fn process_chunk_actions_system(
             new_chunk_loaders: Vec<Entity>,
         {
             warn!("Running composite workflow 'TransferChunkOwnerships'");
-            
+
             let _ = workflow!(IOE, Chunk::TransferChunkOwnerships, Input {
                 inputs: transfer_inputs
             });

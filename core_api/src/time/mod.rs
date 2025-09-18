@@ -9,7 +9,10 @@ pub mod types;
 use bevy::prelude::*;
 use bevy::render::RenderApp;
 use resources::{TimeInfo, VirtualPaused};
-use systems::{configure_virtual_time, extract_game_time_info, extract_virtual_paused, post_update_game_time_info, sync_virtual_paused, sync_elapsed_virtual_time, wake_virtual_sleeps_system};
+use systems::{
+    configure_virtual_time, extract_game_time_info, extract_virtual_paused, post_update_game_time_info, sync_elapsed_virtual_time, sync_virtual_paused,
+    wake_virtual_sleeps_system,
+};
 use types::{PauseState, StepConfig};
 
 pub(crate) struct TimePlugin;
