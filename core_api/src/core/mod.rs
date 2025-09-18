@@ -3,19 +3,53 @@ pub mod functions;
 pub mod resources;
 pub mod run_conditions;
 pub mod statics;
-pub mod systems;
 pub mod types;
 
 pub mod workflows;
 
+use core_api_macros::{composite_workflow, composite_workflow_return};
 use bevy::prelude::*;
-use systems::startup_system;
+
+use crate::config::statics::CONFIG;
+use crate::workflow::functions::handle_composite_workflow_return_later;
 
 pub(crate) struct CorePlugin;
 impl Plugin for CorePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, startup_system);
     }
+}
+
+#[tracing::instrument(skip_all)]
+fn startup_system() {
+    let handle = composite_workflow!(Startup, {
+        warn!("Running composite workflow 'Startup'");
+
+        workflow!(Camera::SpawnMainCameras);
+
+        let chunk_shader_name = "texture_generators/example_compute_uv";
+        let chunk_shader_path = "assets/core_api/shaders/texture_generators/example_compute_uv.wgsl".to_string();
+        workflow!(
+            IE,
+            Gpu::SetupTextureGenerator,
+            Input {
+                shader_name: chunk_shader_name,
+                shader_path: chunk_shader_path,
+            }
+        );
+
+        if CONFIG().get::<bool>("debug/spawn_debug_objects") {
+            workflow!(Debug::SpawnDebugObjects);
+        }
+
+        workflow!(Core::FinishStartup);
+    });
+
+    handle_composite_workflow_return_later(handle, |_ctx| {
+        composite_workflow_return!();
+        
+        warn!("Finished composite workflow 'Startup'");
+    });
 }
 
 // OLD SNIPPETS
