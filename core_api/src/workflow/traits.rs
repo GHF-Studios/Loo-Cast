@@ -85,10 +85,10 @@ pub trait WorkflowOutputIOE: 'static + Send + Sync {
 }
 
 pub trait WorkflowErrorE: 'static + Send + Sync {
-    fn from_response_e(response: super::response::TypedWorkflowResponseE) -> Self;
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
 }
 pub trait WorkflowErrorIE: 'static + Send + Sync {
-    fn from_response_e(response: super::response::TypedWorkflowResponseE) -> Self;
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
 }
 pub trait WorkflowErrorOE: 'static + Send + Sync {
     fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
@@ -98,23 +98,47 @@ pub trait WorkflowErrorIOE: 'static + Send + Sync {
 }
 
 // --- Complex Workflow-Data Types ---
+pub trait WorkflowResultE: 'static + Send + Sync {
+    type Error: WorkflowErrorE;
+
+    fn from_response_e(response: super::response::TypedWorkflowResponseE) -> Result<(), Self::Error> {
+        match response.result {
+            Ok(_) => Ok(()),
+            Err(boxed) => Err(Self::Error::from_boxed(boxed)),
+        }
+    }
+}
+impl<Error: WorkflowErrorE> WorkflowResultE for Result<(), Error> {
+    type Error = Error;
+}
+
 pub trait WorkflowResultOE: 'static + Send + Sync {
     type Output: WorkflowOutputOE;
     type Error: WorkflowErrorOE;
 
     fn from_response_oe(response: super::response::TypedWorkflowResponseOE) -> Result<Self::Output, Self::Error> {
-        match response {
-            super::response::TypedWorkflowResponseOE::Ok(boxed) => Ok(Self::Output::from_boxed(boxed)),
-            super::response::TypedWorkflowResponseOE::Err(boxed) => Err(Self::Error::from_boxed(boxed)),
+        match response.result {
+            Ok(boxed) => Ok(Self::Output::from_boxed(boxed)),
+            Err(boxed) => Err(Self::Error::from_boxed(boxed)),
         }
     }
 }
-impl<Output, Error> WorkflowResultOE for Result<Output, Error>
-where
-    Output: WorkflowOutputOE,
-    Error: WorkflowErrorOE,
-{
+impl<Output: WorkflowOutputOE, Error: WorkflowErrorOE> WorkflowResultOE for Result<Output, Error> {
     type Output = Output;
+    type Error = Error;
+}
+
+pub trait WorkflowResultIE: 'static + Send + Sync {
+    type Error: WorkflowErrorIE;
+
+    fn from_response_e(response: super::response::TypedWorkflowResponseE) -> Result<(), Self::Error> {
+        match response.result {
+            Ok(_) => Ok(()),
+            Err(boxed) => Err(Self::Error::from_boxed(boxed)),
+        }
+    }
+}
+impl<Error: WorkflowErrorIE> WorkflowResultIE for Result<(), Error> {
     type Error = Error;
 }
 
@@ -123,17 +147,13 @@ pub trait WorkflowResultIOE: 'static + Send + Sync {
     type Error: WorkflowErrorIOE;
 
     fn from_response_oe(response: super::response::TypedWorkflowResponseOE) -> Result<Self::Output, Self::Error> {
-        match response {
-            super::response::TypedWorkflowResponseOE::Ok(boxed) => Ok(Self::Output::from_boxed(boxed)),
-            super::response::TypedWorkflowResponseOE::Err(boxed) => Err(Self::Error::from_boxed(boxed)),
+        match response.result {
+            Ok(boxed) => Ok(Self::Output::from_boxed(boxed)),
+            Err(boxed) => Err(Self::Error::from_boxed(boxed)),
         }
     }
 }
-impl<Output, Error> WorkflowResultIOE for Result<Output, Error>
-where
-    Output: WorkflowOutputIOE,
-    Error: WorkflowErrorIOE,
-{
+impl<Output: WorkflowOutputIOE, Error: WorkflowErrorIOE> WorkflowResultIOE for Result<Output, Error> {
     type Output = Output;
     type Error = Error;
 }
