@@ -11,6 +11,7 @@ pub fn export_static(input: TokenStream) -> TokenStream {
     } = parse_macro_input!(input as ExportInput);
     let ident = static_path.path.segments.last().unwrap().ident.clone();
     let mangled = Ident::new(&mangle_path(&static_path), static_path.span());
+    let mangled_string = mangled.to_string();
 
     let core_path = if is_self {
         quote! { crate }
@@ -28,6 +29,7 @@ pub fn export_static(input: TokenStream) -> TokenStream {
             #[allow(non_snake_case)]
             #[no_mangle]
             pub extern "C" fn [<#mangled _init>]() {
+                println!("Calling init for {}", #mangled_string);
                 #core_path::once_cell::sync::Lazy::force(&#mangled);
             }
         }
@@ -67,7 +69,28 @@ pub fn import_static(input: TokenStream) -> TokenStream {
 }
 
 pub fn api_initializer(input: TokenStream) -> TokenStream {
-    let paths = parse_macro_input!(input with Punctuated::<ExprPath, Token![,]>::parse_terminated);
+    let mut tokens = input.into_iter();
+
+    let custom_name = if let Some(first) = tokens.next() {
+        if let proc_macro::TokenTree::Literal(lit) = &first {
+            let symbol_name = lit.to_string().trim_matches('"').to_string();
+            // Consume the comma after the name if present
+            if let Some(proc_macro::TokenTree::Punct(p)) = tokens.next() {
+                if p.as_char() != ',' {
+                    panic!("Expected ',' after symbol name");
+                }
+            }
+            Some(symbol_name)
+        } else {
+            panic!("Expected the caller's crate name as string literal as the first argument to api_initializer!");
+        }
+    } else {
+        None
+    };
+
+    // Turn back into TokenStream for parsing the list of paths
+    let tail: TokenStream = tokens.collect::<Vec<_>>().into_iter().collect();
+    let paths = parse_macro_input!(tail with Punctuated::<ExprPath, Token![,]>::parse_terminated);
 
     let init_calls = paths.iter().map(|path| {
         let segments = &path.path.segments;
@@ -80,10 +103,21 @@ pub fn api_initializer(input: TokenStream) -> TokenStream {
         }
     });
 
+    let symbol_ident = Ident::new(
+        &format!("__init_api{}", custom_name.as_ref().map(|s| format!("__{}", s)).unwrap_or_default()),
+        proc_macro2::Span::call_site(),
+    );
+
+    let log_msg = custom_name
+        .as_ref()
+        .map(|s| format!("Calling __init_api__{}", s))
+        .unwrap_or_else(|| "Calling init_api".to_string());
+
     quote! {
         #[cfg(feature = "init_api")]
         #[no_mangle]
-        pub extern "C" fn init_api() {
+        pub extern "C" fn #symbol_ident() {
+            println!(#log_msg);
             unsafe {
                 #(#init_calls)*
             }

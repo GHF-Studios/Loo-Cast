@@ -34,7 +34,19 @@ if ($BuildProfile -eq "release") {
 $targetDir      = "$workspaceRoot\target\$targetName"
 $buildTargetDir = "$workspaceRoot\build\$BuildProfile"
 
-cargo build $cargoArgs
+# Join excludes into one string
+$excludeArgs = $modCrates | ForEach-Object { "--exclude $_" } | Out-String
+$excludeArgs = $excludeArgs -replace "\r?\n", " "  # flatten line breaks
+
+# Build the non-mod part of the workspace
+Write-Host "Building main executable..."
+Invoke-Expression "cargo build $cargoArgs --workspace $excludeArgs"
+
+# Build mods separately with required features
+foreach ($crate in $modCrates) {
+    Write-Host "Building mod crate: $crate with init_api feature..."
+    cargo build $cargoArgs --manifest-path "$crate/Cargo.toml" --features init_api
+}
 
 ########## COPY ENGINE EXECUTABLES ##########
 $engineExe = Get-ChildItem -Path $targetDir -Filter "core_engine.exe" -Recurse

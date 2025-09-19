@@ -29,27 +29,27 @@ pub trait WorkflowTypeOE {
     const WORKFLOW_NAME: &'static str;
 }
 pub trait WorkflowTypeI {
-    type Input: WorkflowInputI;
+    type Input: WorkflowInput;
 
     const MODULE_NAME: &'static str;
     const WORKFLOW_NAME: &'static str;
 }
 pub trait WorkflowTypeIE {
-    type Input: WorkflowInputIE;
+    type Input: WorkflowInput;
     type Error: WorkflowErrorIE;
 
     const MODULE_NAME: &'static str;
     const WORKFLOW_NAME: &'static str;
 }
 pub trait WorkflowTypeIO {
-    type Input: WorkflowInputIO;
+    type Input: WorkflowInput;
     type Output: WorkflowOutputIO;
 
     const MODULE_NAME: &'static str;
     const WORKFLOW_NAME: &'static str;
 }
 pub trait WorkflowTypeIOE {
-    type Input: WorkflowInputIOE;
+    type Input: WorkflowInput;
     type Output: WorkflowOutputIOE;
     type Error: WorkflowErrorIOE;
 
@@ -58,10 +58,12 @@ pub trait WorkflowTypeIOE {
 }
 
 // --- Primitive Workflow-Data Types ---
-pub trait WorkflowInputI: 'static + Send + Sync {}
-pub trait WorkflowInputIE: 'static + Send + Sync {}
-pub trait WorkflowInputIO: 'static + Send + Sync {}
-pub trait WorkflowInputIOE: 'static + Send + Sync {}
+pub trait WorkflowInput: 'static + Send + Sync {}
+impl<T: 'static + Send + Sync> WorkflowInput for T {}
+pub trait WorkflowInputI: WorkflowInput {}
+pub trait WorkflowInputIE: WorkflowInput {}
+pub trait WorkflowInputIO: WorkflowInput {}
+pub trait WorkflowInputIOE: WorkflowInput {}
 
 pub trait WorkflowOutputO: 'static + Send + Sync {
     fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;

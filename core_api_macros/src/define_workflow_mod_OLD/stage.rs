@@ -3,7 +3,6 @@ use crate::define_workflow_mod_OLD::WorkflowSignature;
 use super::core_function::CoreFunctions;
 use super::core_type::CoreTypes;
 use heck::ToSnakeCase;
-use paste::paste;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
@@ -572,6 +571,7 @@ impl TypedStage<Ecs> {
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let workflow_error_type_path = quote! { #workflow_path::Error };
+        let workflow_error_type_path_string = workflow_error_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect::<String>();
         let workflow_error_variant_ident = Ident::new(format!("{}Error", stage_name).as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
@@ -622,17 +622,13 @@ impl TypedStage<Ecs> {
             }
         };
         let ecs_run_response_handler = match (this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path) {
-            (Some(this_stage_out_type_path), Some(this_stage_err_type_path), Some(next_stage_in_type_path)) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+            (Some(this_stage_out_type_path), Some(_this_stage_err_type_path), Some(next_stage_in_type_path)) => {
                 let stage_output_transmutation = if is_last {
                     quote! {}
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -644,7 +640,7 @@ impl TypedStage<Ecs> {
                         stage: crate::workflow::stage::StageEcs
                     | {
                         let response = response.expect("Ecs stages with output and error must have a response");
-                        let result: Result<#this_stage_out_type_path, #this_stage_err_type_path> = response.into_inner();
+                        let result: Result<#this_stage_out_type_path, #workflow_path::Error> = response.into_inner();
 
                         match result {
                             Ok(output) => {
@@ -663,12 +659,7 @@ impl TypedStage<Ecs> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -692,12 +683,9 @@ impl TypedStage<Ecs> {
                     })
                 })}
             }
-            (Some(this_stage_out_type_path), Some(this_stage_err_type_path), None) => {
+            (Some(this_stage_out_type_path), Some(_this_stage_err_type_path), None) => {
                 if is_last {
-                    let stage_err_name = format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -710,7 +698,7 @@ impl TypedStage<Ecs> {
                             stage: crate::workflow::stage::StageEcs
                         | {
                             let response = response.expect("Ecs stages with output and error (last stage) must have a response");
-                            let result: Result<#this_stage_out_type_path, #this_stage_err_type_path> = response.into_inner();
+                            let result: Result<#this_stage_out_type_path, #workflow_path::Error> = response.into_inner();
 
                             match result {
                                 Ok(output) => {
@@ -728,12 +716,7 @@ impl TypedStage<Ecs> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                        module_name,
-                                        workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                    };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -767,7 +750,6 @@ impl TypedStage<Ecs> {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -833,11 +815,7 @@ impl TypedStage<Ecs> {
             (None, Some(_), Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, Some(this_stage_err_type_path), None) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
+            (None, Some(_this_stage_err_type_path), None) => {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -849,7 +827,7 @@ impl TypedStage<Ecs> {
                         stage: crate::workflow::stage::StageEcs
                     | {
                         let response = response.expect("Ecs stages with error must have a response");
-                        let result: Result<(), #this_stage_err_type_path> = response.into_inner();
+                        let result: Result<(), #workflow_path::Error> = response.into_inner();
 
                         match result {
                             Ok(_) => {
@@ -865,12 +843,7 @@ impl TypedStage<Ecs> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -897,8 +870,7 @@ impl TypedStage<Ecs> {
             (None, None, Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, None, None) => {
-                quote! { Box::new(|
+            (None, None, None) => {                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
@@ -1003,6 +975,7 @@ impl TypedStage<Render> {
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let workflow_error_type_path = quote! { #workflow_path::Error };
+        let workflow_error_type_path_string = workflow_error_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect::<String>();
         let workflow_error_variant_ident = Ident::new(format!("{}Error", stage_name).as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
@@ -1053,17 +1026,13 @@ impl TypedStage<Render> {
             }
         };
         let render_run_response_handler = match (this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path) {
-            (Some(this_stage_out_type_path), Some(this_stage_err_type_path), Some(next_stage_in_type_path)) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+            (Some(this_stage_out_type_path), Some(_this_stage_err_type_path), Some(next_stage_in_type_path)) => {
                 let stage_output_transmutation = if is_last {
                     quote! {}
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -1075,7 +1044,7 @@ impl TypedStage<Render> {
                         stage: crate::workflow::stage::StageRender
                     | {
                         let response = response.expect("Render stages with output and error must have a response");
-                        let result: Result<#this_stage_out_type_path, #this_stage_err_type_path> = response.into_inner();
+                        let result: Result<#this_stage_out_type_path, #workflow_path::Error> = response.into_inner();
 
                         match result {
                             Ok(output) => {
@@ -1094,12 +1063,7 @@ impl TypedStage<Render> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1123,12 +1087,9 @@ impl TypedStage<Render> {
                     })
                 })}
             }
-            (Some(this_stage_out_type_path), Some(this_stage_err_type_path), None) => {
+            (Some(this_stage_out_type_path), Some(_this_stage_err_type_path), None) => {
                 if is_last {
-                    let stage_err_name = format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -1141,7 +1102,7 @@ impl TypedStage<Render> {
                             stage: crate::workflow::stage::StageRender
                         | {
                             let response = response.expect("Render stages with output and error (last stage) must have a response");
-                            let result: Result<#this_stage_out_type_path, #this_stage_err_type_path> = response.into_inner();
+                            let result: Result<#this_stage_out_type_path, #workflow_path::Error> = response.into_inner();
 
                             match result {
                                 Ok(output) => {
@@ -1159,12 +1120,7 @@ impl TypedStage<Render> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                        module_name,
-                                        workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                    };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -1198,7 +1154,6 @@ impl TypedStage<Render> {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -1264,11 +1219,7 @@ impl TypedStage<Render> {
             (None, Some(_), Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, Some(this_stage_err_type_path), None) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
+            (None, Some(_this_stage_err_type_path), None) => {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -1280,7 +1231,7 @@ impl TypedStage<Render> {
                         stage: crate::workflow::stage::StageRender
                     | {
                         let response = response.expect("Render stages with error (last stage) must have a response");
-                        let result: Result<(), #this_stage_err_type_path> = response.into_inner();
+                        let result: Result<(), #workflow_path::Error> = response.into_inner();
 
                         match result {
                             Ok(_) => {
@@ -1296,12 +1247,7 @@ impl TypedStage<Render> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1328,8 +1274,7 @@ impl TypedStage<Render> {
             (None, None, Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, None, None) => {
-                quote! { Box::new(|
+            (None, None, None) => {                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
@@ -1434,6 +1379,7 @@ impl TypedStage<Async> {
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let workflow_error_type_path = quote! { #workflow_path::Error };
+        let workflow_error_type_path_string = workflow_error_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect::<String>();
         let workflow_error_variant_ident = Ident::new(format!("{}Error", stage_name).as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
@@ -1484,17 +1430,13 @@ impl TypedStage<Async> {
             }
         };
         let async_run_response_handler = match (this_stage_out_type_path, this_stage_err_type_path, next_stage_in_type_path) {
-            (Some(this_stage_out_type_path), Some(this_stage_err_type_path), Some(next_stage_in_type_path)) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+            (Some(this_stage_out_type_path), Some(_this_stage_err_type_path), Some(next_stage_in_type_path)) => {
                 let stage_output_transmutation = if is_last {
                     quote! {}
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -1506,7 +1448,7 @@ impl TypedStage<Async> {
                         stage: crate::workflow::stage::StageAsync
                     | {
                         let response = response.expect("Async stages with output and error must have a response");
-                        let result: Result<#this_stage_out_type_path, #this_stage_err_type_path> = response.into_inner();
+                        let result: Result<#this_stage_out_type_path, #workflow_path::Error> = response.into_inner();
 
                         match result {
                             Ok(output) => {
@@ -1525,12 +1467,7 @@ impl TypedStage<Async> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1554,12 +1491,9 @@ impl TypedStage<Async> {
                     })
                 })}
             }
-            (Some(this_stage_out_type_path), Some(this_stage_err_type_path), None) => {
+            (Some(this_stage_out_type_path), Some(_this_stage_err_type_path), None) => {
                 if is_last {
-                    let stage_err_name = format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -1572,7 +1506,7 @@ impl TypedStage<Async> {
                             stage: crate::workflow::stage::StageAsync
                         | {
                             let response = response.expect("Async stages with output and error (last stage) must have a response");
-                            let result: Result<#this_stage_out_type_path, #this_stage_err_type_path> = response.into_inner();
+                            let result: Result<#this_stage_out_type_path, #workflow_path::Error> = response.into_inner();
 
                             match result {
                                 Ok(output) => {
@@ -1590,12 +1524,7 @@ impl TypedStage<Async> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                        module_name,
-                                        workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                    };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -1629,7 +1558,6 @@ impl TypedStage<Async> {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -1695,11 +1623,7 @@ impl TypedStage<Async> {
             (None, Some(_), Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, Some(this_stage_err_type_path), None) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
+            (None, Some(_this_stage_err_type_path), None) => {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -1711,7 +1635,7 @@ impl TypedStage<Async> {
                         stage: crate::workflow::stage::StageAsync
                     | {
                         let response = response.expect("Async stages with error must have a response");
-                        let result: Result<(), #this_stage_err_type_path> = response.into_inner();
+                        let result: Result<(), #workflow_path::Error> = response.into_inner();
 
                         match result {
                             Ok(_) => {
@@ -1727,12 +1651,7 @@ impl TypedStage<Async> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1759,8 +1678,7 @@ impl TypedStage<Async> {
             (None, None, Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, None, None) => {
-                quote! { Box::new(|
+            (None, None, None) => {                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
@@ -1866,6 +1784,7 @@ impl TypedStage<EcsWhile> {
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let workflow_error_type_path = quote! { #workflow_path::Error };
+        let workflow_error_type_path_string = workflow_error_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect::<String>();
         let workflow_error_variant_ident = Ident::new(format!("{}Error", stage_name).as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
@@ -1928,12 +1847,8 @@ impl TypedStage<EcsWhile> {
             }
         };
         let ecs_while_setup_response_handler = match (this_stage_state_type_path, this_stage_err_type_path) {
-            (Some(this_stage_state_type_path), Some(this_stage_err_type_path)) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+            (Some(this_stage_state_type_path), Some(_this_stage_err_type_path)) => {
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -1945,7 +1860,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with state and error must have a response");
-                        let result: Result<#this_stage_state_type_path, #this_stage_err_type_path> = response.into_inner();
+                        let result: Result<#this_stage_state_type_path, #workflow_path::Error> = response.into_inner();
 
                         match result {
                             Ok(state) => {
@@ -1963,12 +1878,7 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -1994,7 +1904,6 @@ impl TypedStage<EcsWhile> {
             }
             (Some(this_stage_state_type_path), None) => {
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -2022,11 +1931,7 @@ impl TypedStage<EcsWhile> {
                     })
                 })}
             }
-            (None, Some(this_stage_err_type_path)) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
+            (None, Some(_this_stage_err_type_path)) => {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -2038,7 +1943,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with error must have a response");
-                        let result: Result<(), #this_stage_err_type_path> = response.into_inner();
+                        let result: Result<(), #workflow_path::Error> = response.into_inner();
 
                         match result {
                             Ok(_) => {
@@ -2054,12 +1959,7 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2083,8 +1983,7 @@ impl TypedStage<EcsWhile> {
                     })
                 })}
             }
-            (None, None) => {
-                quote! { Box::new(|
+            (None, None) => {                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
@@ -2115,9 +2014,7 @@ impl TypedStage<EcsWhile> {
             this_stage_err_type_path,
             next_stage_in_type_path,
         ) {
-            (Some(this_stage_state_type_path), Some(this_stage_out_type_path), Some(this_stage_err_type_path), Some(next_stage_in_type_path)) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+            (Some(this_stage_state_type_path), Some(this_stage_out_type_path), Some(_this_stage_err_type_path), Some(next_stage_in_type_path)) => {
                 let stage_output_transmutation = if is_last {
                     quote! {}
                 } else {
@@ -2125,8 +2022,6 @@ impl TypedStage<EcsWhile> {
                 };
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -2139,7 +2034,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output and error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, #this_stage_out_type_path>, #this_stage_err_type_path> = response.into_inner();
+                        let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, #this_stage_out_type_path>, #workflow_path::Error> = response.into_inner();
 
                         match outcome_result {
                             Ok(outcome) => {
@@ -2176,12 +2071,7 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2205,13 +2095,10 @@ impl TypedStage<EcsWhile> {
                     })
                 })}
             }
-            (Some(this_stage_state_type_path), Some(this_stage_out_type_path), Some(this_stage_err_type_path), None) => {
+            (Some(this_stage_state_type_path), Some(this_stage_out_type_path), Some(_this_stage_err_type_path), None) => {
                 if is_last {
-                    let stage_err_name = format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -2225,7 +2112,7 @@ impl TypedStage<EcsWhile> {
                             stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output and error (last stage) must have a response");
-                            let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, #this_stage_out_type_path>, #this_stage_err_type_path> = response.into_inner();
+                            let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, #this_stage_out_type_path>, #workflow_path::Error> = response.into_inner();
 
                             match outcome_result {
                                 Ok(outcome) => {
@@ -2261,12 +2148,7 @@ impl TypedStage<EcsWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                        module_name,
-                                        workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                    };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -2301,7 +2183,6 @@ impl TypedStage<EcsWhile> {
                 };
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -2408,12 +2289,8 @@ impl TypedStage<EcsWhile> {
             (Some(_), None, Some(_), Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (Some(this_stage_state_type_path), None, Some(this_stage_err_type_path), None) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+            (Some(this_stage_state_type_path), None, Some(_this_stage_err_type_path), None) => {
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -2426,7 +2303,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, ()>, #this_stage_err_type_path> = response.into_inner();
+                        let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, ()>, #workflow_path::Error> = response.into_inner();
 
                         match outcome_result {
                             Ok(outcome) => {
@@ -2460,8 +2337,7 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2490,7 +2366,6 @@ impl TypedStage<EcsWhile> {
             }
             (Some(this_stage_state_type_path), None, None, None) => {
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -2536,17 +2411,13 @@ impl TypedStage<EcsWhile> {
                     })
                 })}
             }
-            (None, Some(this_stage_out_type_path), Some(this_stage_err_type_path), Some(next_stage_in_type_path)) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+            (None, Some(this_stage_out_type_path), Some(_this_stage_err_type_path), Some(next_stage_in_type_path)) => {
                 let stage_output_transmutation = if is_last {
                     quote! {}
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -2559,7 +2430,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with output and error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<(), #this_stage_out_type_path>, #this_stage_err_type_path> = response.into_inner();
+                        let outcome_result: Result<crate::workflow::types::Outcome<(), #this_stage_out_type_path>, #workflow_path::Error> = response.into_inner();
 
                         match outcome_result {
                             Ok(outcome) => {
@@ -2594,12 +2465,7 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2623,12 +2489,9 @@ impl TypedStage<EcsWhile> {
                     })
                 })}
             }
-            (None, Some(this_stage_out_type_path), Some(this_stage_err_type_path), None) => {
+            (None, Some(this_stage_out_type_path), Some(_this_stage_err_type_path), None) => {
                 if is_last {
-                    let stage_err_name = format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -2642,7 +2505,7 @@ impl TypedStage<EcsWhile> {
                             stage: crate::workflow::stage::StageEcsWhile,
                         | {
                             let response = response.expect("EcsWhile stages with output and error (last stage) must have a response");
-                            let outcome_result: Result<crate::workflow::types::Outcome<(), #this_stage_out_type_path>, #this_stage_err_type_path> = response.into_inner();
+                            let outcome_result: Result<crate::workflow::types::Outcome<(), #this_stage_out_type_path>, #workflow_path::Error> = response.into_inner();
 
                             match outcome_result {
                                 Ok(outcome) => {
@@ -2676,12 +2539,7 @@ impl TypedStage<EcsWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                        module_name,
-                                        workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                    };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -2715,7 +2573,6 @@ impl TypedStage<EcsWhile> {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -2818,11 +2675,7 @@ impl TypedStage<EcsWhile> {
             (None, None, Some(_), Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, None, Some(this_stage_err_type_path), None) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
+            (None, None, Some(_this_stage_err_type_path), None) => {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -2834,7 +2687,7 @@ impl TypedStage<EcsWhile> {
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
                         let response = response.expect("EcsWhile stages with error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<(), ()>, #this_stage_err_type_path> = response.into_inner();
+                        let outcome_result: Result<crate::workflow::types::Outcome<(), ()>, #workflow_path::Error> = response.into_inner();
 
                         match outcome_result {
                             Ok(outcome) => {
@@ -2866,8 +2719,7 @@ impl TypedStage<EcsWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -2894,8 +2746,7 @@ impl TypedStage<EcsWhile> {
             (None, None, None, Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, None, None, None) => {
-                quote! { Box::new(|
+            (None, None, None, None) => {                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
@@ -3035,6 +2886,7 @@ impl TypedStage<RenderWhile> {
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let workflow_error_type_path = quote! { #workflow_path::Error };
+        let workflow_error_type_path_string = workflow_error_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect::<String>();
         let workflow_error_variant_ident = Ident::new(format!("{}Error", stage_name).as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
@@ -3097,12 +2949,8 @@ impl TypedStage<RenderWhile> {
             }
         };
         let render_while_setup_response_handler = match (this_stage_state_type_path, this_stage_err_type_path) {
-            (Some(this_stage_state_type_path), Some(this_stage_err_type_path)) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+            (Some(this_stage_state_type_path), Some(_this_stage_err_type_path)) => {
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -3114,7 +2962,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with state and error must have a response");
-                        let result: Result<#this_stage_state_type_path, #this_stage_err_type_path> = response.into_inner();
+                        let result: Result<#this_stage_state_type_path, #workflow_path::Error> = response.into_inner();
 
                         match result {
                             Ok(state) => {
@@ -3132,12 +2980,7 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3163,7 +3006,6 @@ impl TypedStage<RenderWhile> {
             }
             (Some(this_stage_state_type_path), None) => {
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -3193,11 +3035,7 @@ impl TypedStage<RenderWhile> {
                     })
                 })}
             }
-            (None, Some(this_stage_err_type_path)) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
+            (None, Some(_this_stage_err_type_path)) => {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -3209,7 +3047,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with error must have a response");
-                        let result: Result<(), #this_stage_err_type_path> = response.into_inner();
+                        let result: Result<(), #workflow_path::Error> = response.into_inner();
 
                         match result {
                             Ok(_) => {
@@ -3225,12 +3063,7 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3254,8 +3087,7 @@ impl TypedStage<RenderWhile> {
                     })
                 })}
             }
-            (None, None) => {
-                quote! { Box::new(|
+            (None, None) => {                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
@@ -3289,9 +3121,7 @@ impl TypedStage<RenderWhile> {
             this_stage_err_type_path,
             next_stage_in_type_path,
         ) {
-            (Some(this_stage_state_type_path), Some(this_stage_out_type_path), Some(this_stage_err_type_path), Some(next_stage_in_type_path)) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+            (Some(this_stage_state_type_path), Some(this_stage_out_type_path), Some(_this_stage_err_type_path), Some(next_stage_in_type_path)) => {
                 let stage_output_transmutation = if is_last {
                     quote! {}
                 } else {
@@ -3299,8 +3129,6 @@ impl TypedStage<RenderWhile> {
                 };
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -3313,7 +3141,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output and error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, #this_stage_out_type_path>, #this_stage_err_type_path> = response.into_inner();
+                        let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, #this_stage_out_type_path>, #workflow_path::Error> = response.into_inner();
 
                         match outcome_result {
                             Ok(outcome) => {
@@ -3350,12 +3178,7 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3379,13 +3202,10 @@ impl TypedStage<RenderWhile> {
                     })
                 })}
             }
-            (Some(this_stage_state_type_path), Some(this_stage_out_type_path), Some(this_stage_err_type_path), None) => {
+            (Some(this_stage_state_type_path), Some(this_stage_out_type_path), Some(_this_stage_err_type_path), None) => {
                 if is_last {
-                    let stage_err_name = format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -3399,7 +3219,7 @@ impl TypedStage<RenderWhile> {
                             stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output and error (last stage) must have a response");
-                            let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, #this_stage_out_type_path>, #this_stage_err_type_path> = response.into_inner();
+                            let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, #this_stage_out_type_path>, #workflow_path::Error> = response.into_inner();
 
                             match outcome_result {
                                 Ok(outcome) => {
@@ -3435,12 +3255,7 @@ impl TypedStage<RenderWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                        module_name,
-                                        workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                    };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -3475,7 +3290,6 @@ impl TypedStage<RenderWhile> {
                 };
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -3582,12 +3396,8 @@ impl TypedStage<RenderWhile> {
             (Some(_), None, Some(_), Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (Some(this_stage_state_type_path), None, Some(this_stage_err_type_path), None) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+            (Some(this_stage_state_type_path), None, Some(_this_stage_err_type_path), None) => {
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -3600,7 +3410,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, ()>, #this_stage_err_type_path> = response.into_inner();
+                        let outcome_result: Result<crate::workflow::types::Outcome<#this_stage_state_type_path, ()>, #workflow_path::Error> = response.into_inner();
 
                         match outcome_result {
                             Ok(outcome) => {
@@ -3634,8 +3444,7 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3664,7 +3473,6 @@ impl TypedStage<RenderWhile> {
             }
             (Some(this_stage_state_type_path), None, None, None) => {
                 let state_type_name: String = this_stage_state_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -3710,17 +3518,13 @@ impl TypedStage<RenderWhile> {
                     })
                 })}
             }
-            (None, Some(this_stage_out_type_path), Some(this_stage_err_type_path), Some(next_stage_in_type_path)) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
+            (None, Some(this_stage_out_type_path), Some(_this_stage_err_type_path), Some(next_stage_in_type_path)) => {
                 let stage_output_transmutation = if is_last {
                     quote! {}
                 } else {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -3733,7 +3537,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with output and error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<(), #this_stage_out_type_path>, #this_stage_err_type_path> = response.into_inner();
+                        let outcome_result: Result<crate::workflow::types::Outcome<(), #this_stage_out_type_path>, #workflow_path::Error> = response.into_inner();
 
                         match outcome_result {
                             Ok(outcome) => {
@@ -3768,12 +3572,7 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                };
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -3797,12 +3596,9 @@ impl TypedStage<RenderWhile> {
                     })
                 })}
             }
-            (None, Some(this_stage_out_type_path), Some(this_stage_err_type_path), None) => {
+            (None, Some(this_stage_out_type_path), Some(_this_stage_err_type_path), None) => {
                 if is_last {
-                    let stage_err_name = format!("{}Error", stage_name.as_str());
-                    let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
                     let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-                    let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
 
                     quote! { Box::new(|
                         module_name: &'static str,
@@ -3816,7 +3612,7 @@ impl TypedStage<RenderWhile> {
                             stage: crate::workflow::stage::StageRenderWhile,
                         | {
                             let response = response.expect("RenderWhile stages with output and error (last stage) must have a response");
-                            let outcome_result: Result<crate::workflow::types::Outcome<(), #this_stage_out_type_path>, #this_stage_err_type_path> = response.into_inner();
+                            let outcome_result: Result<crate::workflow::types::Outcome<(), #this_stage_out_type_path>, #workflow_path::Error> = response.into_inner();
 
                             match outcome_result {
                                 Ok(outcome) => {
@@ -3850,12 +3646,7 @@ impl TypedStage<RenderWhile> {
                                     }
                                 }
                                 Err(error) => {
-                                    let error = crate::workflow::response::TypedWorkflowResponseOE {
-                                        module_name,
-                                        workflow_name,
-                                        result: Err(crate::utils::premium_box::AnySendSyncPremiumBox::new(#workflow_path::Error::#stage_err_name(error), #stage_error_type_name.to_string()))
-                                    };
-                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                    let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
@@ -3889,7 +3680,6 @@ impl TypedStage<RenderWhile> {
                     quote! { let output: #next_stage_in_type_path = unsafe { std::mem::transmute(output) }; }
                 };
                 let output_type_name: String = this_stage_out_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -3992,11 +3782,7 @@ impl TypedStage<RenderWhile> {
             (None, None, Some(_), Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, None, Some(this_stage_err_type_path), None) => {
-                let stage_err_name = format!("{}Error", stage_name.as_str());
-                let stage_err_name = Ident::new(stage_err_name.as_str(), stage_ident.span());
-                let stage_error_type_name: String = this_stage_err_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect();
-
+            (None, None, Some(_this_stage_err_type_path), None) => {
                 quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
@@ -4008,7 +3794,7 @@ impl TypedStage<RenderWhile> {
                         stage: crate::workflow::stage::StageRenderWhile
                     | {
                         let response = response.expect("RenderWhile stages with error must have a response");
-                        let outcome_result: Result<crate::workflow::types::Outcome<(), ()>, #this_stage_err_type_path> = response.into_inner();
+                        let outcome_result: Result<crate::workflow::types::Outcome<(), ()>, #workflow_path::Error> = response.into_inner();
 
                         match outcome_result {
                             Ok(outcome) => {
@@ -4040,8 +3826,7 @@ impl TypedStage<RenderWhile> {
                                 }
                             }
                             Err(error) => {
-                                let error = #workflow_path::Error::#stage_err_name(error);
-                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #stage_error_type_name.to_string()));
+                                let error = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(error, #workflow_error_type_path_string.to_string()));
 
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
@@ -4068,8 +3853,7 @@ impl TypedStage<RenderWhile> {
             (None, None, None, Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, None, None, None) => {
-                quote! { Box::new(|
+            (None, None, None, None) => {                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,

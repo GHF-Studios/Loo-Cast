@@ -378,7 +378,7 @@ impl CoreFunction {
         let result_mapper = quote! { let result = result.map_err(|e| { #workflow_error_type_path::#workflow_error_variant_ident(e) }); };
         let outcome_result_mapper =
             quote! { let outcome_result = outcome_result.map_err(|e| { #workflow_error_type_path::#workflow_error_variant_ident(e) }); };
-        let workflow_error_type_path = workflow_error_type_path.to_string();
+        let workflow_error_type_path = workflow_error_type_path.to_string().chars().filter(|c| !c.is_whitespace()).collect::<String>();
 
         match self.signature.function_type {
             CoreFunctionType::RunEcs { .. } => match (has_input, has_output, has_error) {

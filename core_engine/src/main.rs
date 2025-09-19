@@ -98,7 +98,7 @@ fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
 }
 
 fn global_init(_app: &mut App) {
-    core_api::init_api();
+    core_api::__init_api__core_api();
 
     let exe_dir = std::env::current_exe().expect("failed to get exe path").parent().unwrap().to_path_buf();
 
@@ -107,8 +107,8 @@ fn global_init(_app: &mut App) {
     unsafe {
         let lib = Library::new(&lib_path).unwrap_or_else(|e| panic!("Failed to load base_mod from {lib_path:?}: {e}"));
         let init_api: Symbol<unsafe extern "C" fn()> = lib
-            .get(b"init_api")
-            .unwrap_or_else(|e| panic!("Failed to load symbol 'init_api' from {lib_path:?}: {e}"));
+            .get(b"__init_api__base_mod")
+            .unwrap_or_else(|e| panic!("Failed to load symbol '__init_api__base_mod' from {lib_path:?}: {e}"));
         init_api();
     }
 }

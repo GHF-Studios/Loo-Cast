@@ -198,6 +198,7 @@ register_workflow_mods!(
 );
 
 api_initializer!(
+    "core_api",
     crate::config::statics::CONFIG,
     crate::core::statics::TOKIO_RUNTIME,
     crate::core::statics::START_TIME,

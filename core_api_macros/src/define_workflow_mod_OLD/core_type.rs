@@ -151,7 +151,7 @@ impl CoreType<Error> {
         let stage_name_pascal_case = stage_name_snake_case.to_string().to_pascal_case();
         let stage_name_pascal_case = format!("{stage_name_pascal_case}Error");
         let stage_name_pascal_case = Ident::new(&stage_name_pascal_case, stage_name_snake_case.span());
-        let stage_error_type_path = quote! { #workflow_path::stages::#stage_name_snake_case::core_types::Error };
+        // let stage_error_type_path = quote! { #workflow_path::stages::#stage_name_snake_case::core_types::Error };
         let workflow_error_type_path = quote! { #workflow_path::Error };
         // let workflow_name_pascal_case = format!("{}Error", workflow_path.to_string().split("::").last().unwrap().to_string().to_pascal_case());
         // let workflow_name_pascal_case = Ident::new(&workflow_name_pascal_case, stage_name_snake_case.span());
