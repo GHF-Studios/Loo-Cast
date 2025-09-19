@@ -3,7 +3,7 @@ use core_api_macros::define_workflow_mod_OLD;
 define_workflow_mod_OLD! {
     name: "Camera",
     workflows: [
-        SpawnMainCameras, timeout_secs: 1.0, timeout_mode: RealTime {
+        SpawnMainCameras, timeout_secs: 5.0, timeout_mode: RealTime {
             user_imports: {
                 use bevy::prelude::{Commands, Res, ResMut, Camera2d, Vec2, Name, Camera};
                 use bevy::render::view::RenderLayers;

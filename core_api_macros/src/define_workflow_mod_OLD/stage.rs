@@ -870,7 +870,8 @@ impl TypedStage<Ecs> {
             (None, None, Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, None, None) => {                quote! { Box::new(|
+            (None, None, None) => {
+                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
@@ -1274,7 +1275,8 @@ impl TypedStage<Render> {
             (None, None, Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, None, None) => {                quote! { Box::new(|
+            (None, None, None) => {
+                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
@@ -1678,7 +1680,8 @@ impl TypedStage<Async> {
             (None, None, Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, None, None) => {                quote! { Box::new(|
+            (None, None, None) => {
+                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
@@ -1983,7 +1986,8 @@ impl TypedStage<EcsWhile> {
                     })
                 })}
             }
-            (None, None) => {                quote! { Box::new(|
+            (None, None) => {
+                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
@@ -2746,7 +2750,8 @@ impl TypedStage<EcsWhile> {
             (None, None, None, Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, None, None, None) => {                quote! { Box::new(|
+            (None, None, None, None) => {
+                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
@@ -3087,7 +3092,8 @@ impl TypedStage<RenderWhile> {
                     })
                 })}
             }
-            (None, None) => {                quote! { Box::new(|
+            (None, None) => {
+                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
@@ -3853,7 +3859,8 @@ impl TypedStage<RenderWhile> {
             (None, None, None, Some(_)) => {
                 unreachable!("This stage has no output, but the next stage has input!")
             }
-            (None, None, None, None) => {                quote! { Box::new(|
+            (None, None, None, None) => {
+                quote! { Box::new(|
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
