@@ -2187,6 +2187,7 @@ name = "core_api_macros"
 version = "0.1.0"
 dependencies = [
  "heck 0.4.1",
+ "paste",
  "proc-macro2",
  "quote",
  "syn",

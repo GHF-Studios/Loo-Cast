@@ -1,6 +1,7 @@
 use super::core_function::CoreFunctions;
 use super::core_type::CoreTypes;
 use heck::ToSnakeCase;
+use paste::paste;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
@@ -561,14 +562,8 @@ impl TypedStage<Ecs> {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
-        let dyn_stage_error_type_name = {
-            match signature {
-                StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
-                StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
-                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant<Error> + Send + Sync>", signature)
-                }
-            }
-        };
+        let workflow_error_type_path = quote! { #workflow_path::Error };
+        let workflow_error_variant_ident = Ident::new(format!("{}Error", stage_name).as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
@@ -584,16 +579,16 @@ impl TypedStage<Ecs> {
                 .chars()
                 .filter(|c| !c.is_whitespace())
                 .collect();
-            let stage_error_type_name: String = this_stage_err_type_path
-                .cloned()
-                .unwrap_or_default()
-                .to_string()
-                .chars()
-                .filter(|c| !c.is_whitespace())
-                .collect();
+            // let stage_error_type_name: String = this_stage_err_type_path
+            //     .cloned()
+            //     .unwrap_or_default()
+            //     .to_string()
+            //     .chars()
+            //     .filter(|c| !c.is_whitespace())
+            //     .collect();
 
             self.core_functions
-                .generate(signature, output_type_name, stage_error_type_name, dyn_stage_error_type_name)
+                .generate(signature, output_type_name, workflow_error_type_path, workflow_error_variant_ident)
         };
         let signature = signature.generate();
 
@@ -996,14 +991,8 @@ impl TypedStage<Render> {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
-        let dyn_stage_error_type_name = {
-            match signature {
-                StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
-                StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
-                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant<Error> + Send + Sync>", signature)
-                }
-            }
-        };
+        let workflow_error_type_path = quote! { #workflow_path::Error };
+        let workflow_error_variant_ident = Ident::new(format!("{}Error", stage_name).as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
@@ -1019,16 +1008,16 @@ impl TypedStage<Render> {
                 .chars()
                 .filter(|c| !c.is_whitespace())
                 .collect();
-            let stage_error_type_name: String = this_stage_err_type_path
-                .cloned()
-                .unwrap_or_default()
-                .to_string()
-                .chars()
-                .filter(|c| !c.is_whitespace())
-                .collect();
+            // let stage_error_type_name: String = this_stage_err_type_path
+            //     .cloned()
+            //     .unwrap_or_default()
+            //     .to_string()
+            //     .chars()
+            //     .filter(|c| !c.is_whitespace())
+            //     .collect();
 
             self.core_functions
-                .generate(signature, output_type_name, stage_error_type_name, dyn_stage_error_type_name)
+                .generate(signature, output_type_name, workflow_error_type_path, workflow_error_variant_ident)
         };
         let signature = signature.generate();
 
@@ -1431,14 +1420,8 @@ impl TypedStage<Async> {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
-        let dyn_stage_error_type_name = {
-            match signature {
-                StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
-                StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
-                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant<Error> + Send + Sync>", signature)
-                }
-            }
-        };
+        let workflow_error_type_path = quote! { #workflow_path::Error };
+        let workflow_error_variant_ident = Ident::new(format!("{}Error", stage_name).as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
@@ -1454,16 +1437,16 @@ impl TypedStage<Async> {
                 .chars()
                 .filter(|c| !c.is_whitespace())
                 .collect();
-            let stage_error_type_name: String = this_stage_err_type_path
-                .cloned()
-                .unwrap_or_default()
-                .to_string()
-                .chars()
-                .filter(|c| !c.is_whitespace())
-                .collect();
+            // let stage_error_type_name: String = this_stage_err_type_path
+            //     .cloned()
+            //     .unwrap_or_default()
+            //     .to_string()
+            //     .chars()
+            //     .filter(|c| !c.is_whitespace())
+            //     .collect();
 
             self.core_functions
-                .generate(signature, output_type_name, stage_error_type_name, dyn_stage_error_type_name)
+                .generate(signature, output_type_name, workflow_error_type_path, workflow_error_variant_ident)
         };
         let signature = signature.generate();
 
@@ -1867,14 +1850,8 @@ impl TypedStage<EcsWhile> {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
-        let dyn_stage_error_type_name = {
-            match signature {
-                StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
-                StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
-                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant<Error> + Send + Sync>", signature)
-                }
-            }
-        };
+        let workflow_error_type_path = quote! { #workflow_path::Error };
+        let workflow_error_variant_ident = Ident::new(format!("{}Error", stage_name).as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
@@ -1897,16 +1874,21 @@ impl TypedStage<EcsWhile> {
                 .chars()
                 .filter(|c| !c.is_whitespace())
                 .collect();
-            let stage_error_type_name: String = this_stage_err_type_path
-                .cloned()
-                .unwrap_or_default()
-                .to_string()
-                .chars()
-                .filter(|c| !c.is_whitespace())
-                .collect();
+            // let stage_error_type_name: String = this_stage_err_type_path
+            //     .cloned()
+            //     .unwrap_or_default()
+            //     .to_string()
+            //     .chars()
+            //     .filter(|c| !c.is_whitespace())
+            //     .collect();
 
-            self.core_functions
-                .generate(signature, state_type_name, output_type_name, stage_error_type_name, dyn_stage_error_type_name)
+            self.core_functions.generate(
+                signature,
+                state_type_name,
+                output_type_name,
+                workflow_error_type_path,
+                workflow_error_variant_ident,
+            )
         };
         let signature = signature.generate();
 
@@ -3035,14 +3017,8 @@ impl TypedStage<RenderWhile> {
         let stage_ident = &self.name;
         let stage_name = stage_ident.to_string();
         let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
-        let dyn_stage_error_type_name = {
-            match signature {
-                StageSignature::None | StageSignature::O | StageSignature::I | StageSignature::IO => String::new(),
-                StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE => {
-                    format!("Box<dyn crate::workflow::traits::WorkflowError{}Variant<Error> + Send + Sync>", signature)
-                }
-            }
-        };
+        let workflow_error_type_path = quote! { #workflow_path::Error };
+        let workflow_error_variant_ident = Ident::new(format!("{}Error", stage_name).as_str(), stage_ident.span());
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
@@ -3065,16 +3041,21 @@ impl TypedStage<RenderWhile> {
                 .chars()
                 .filter(|c| !c.is_whitespace())
                 .collect();
-            let stage_error_type_name: String = this_stage_err_type_path
-                .cloned()
-                .unwrap_or_default()
-                .to_string()
-                .chars()
-                .filter(|c| !c.is_whitespace())
-                .collect();
+            // let stage_error_type_name: String = this_stage_err_type_path
+            //     .cloned()
+            //     .unwrap_or_default()
+            //     .to_string()
+            //     .chars()
+            //     .filter(|c| !c.is_whitespace())
+            //     .collect();
 
-            self.core_functions
-                .generate(signature, state_type_name, output_type_name, stage_error_type_name, dyn_stage_error_type_name)
+            self.core_functions.generate(
+                signature,
+                state_type_name,
+                output_type_name,
+                workflow_error_type_path,
+                workflow_error_variant_ident,
+            )
         };
         let signature = signature.generate();
 
