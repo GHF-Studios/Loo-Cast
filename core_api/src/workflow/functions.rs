@@ -50,9 +50,9 @@ static IGNORED_WORKFLOW_LOGS: Lazy<HashMap<String, HashSet<String>>> = Lazy::new
     }
 
     let mut map = HashMap::new();
-    let config = CONFIG().get::<String>("workflow/runner_logging_blacklist");
+    let config = CONFIG().get::<&'static str>("workflow/runner_logging_blacklist");
 
-    for entry in split_top_level_commas(&config) {
+    for entry in split_top_level_commas(config) {
         if let Some((module, suffix)) = entry.split_once("::") {
             let module = module.trim().to_string();
 

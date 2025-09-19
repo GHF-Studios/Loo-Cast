@@ -7,7 +7,7 @@ pub enum ConfigValue {
     Integer(i64),
     Float(f64),
     Boolean(bool),
-    String(String),
+    String(&'static str),
 }
 impl TryFrom<ConfigValue> for bool {
     type Error = String;
@@ -195,12 +195,22 @@ impl TryFrom<ConfigValue> for f64 {
         }
     }
 }
-impl TryFrom<ConfigValue> for String {
+impl TryFrom<ConfigValue> for &'static str {
     type Error = String;
 
     fn try_from(value: ConfigValue) -> Result<Self, Self::Error> {
         match value {
             ConfigValue::String(s) => Ok(s),
+            _ => Err(format!("Cannot convert {:?} to &'static str", value)),
+        }
+    }
+}
+impl TryFrom<ConfigValue> for String {
+    type Error = String;
+
+    fn try_from(value: ConfigValue) -> Result<Self, Self::Error> {
+        match value {
+            ConfigValue::String(s) => Ok(s.to_string()), // clone from static
             _ => Err(format!("Cannot convert {:?} to String", value)),
         }
     }

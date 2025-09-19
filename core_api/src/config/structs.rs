@@ -57,7 +57,8 @@ impl Config {
                 data.insert(prefix.to_string(), ConfigValue::Boolean(*b));
             }
             toml::Value::String(s) => {
-                data.insert(prefix.to_string(), ConfigValue::String(s.clone()));
+                let leaked: &'static str = Box::leak(s.clone().into_boxed_str());
+                data.insert(prefix.to_string(), ConfigValue::String(leaked));
             }
             _ => {
                 return Err(format!("Unsupported value at key: {}", prefix));

@@ -11,14 +11,25 @@ pub(super) fn startup_system() {
 
         workflow!(Camera::SpawnMainCameras);
 
-        let chunk_shader_name = "texture_generators/example_compute_uv";
-        let chunk_shader_path = "assets/core_api/shaders/texture_generators/example_compute_uv.wgsl".to_string();
+        let example_uv_texture_generator_shader_name = "texture_generators/example_uv";
+        let example_uv_texture_generator_shader_path = "assets/core_api/shaders/texture_generators/example_uv.wgsl".to_string();
         workflow!(
             IE,
             Gpu::SetupTextureGenerator,
             Input {
-                shader_name: chunk_shader_name,
-                shader_path: chunk_shader_path,
+                shader_name: example_uv_texture_generator_shader_name,
+                shader_path: example_uv_texture_generator_shader_path,
+            }
+        );
+
+        let example_world_texture_generator_shader_name = "texture_generators/example_world";
+        let example_world_texture_generator_shader_path = "assets/core_api/shaders/texture_generators/example_world.wgsl".to_string();
+        workflow!(
+            IE,
+            Gpu::SetupTextureGenerator,
+            Input {
+                shader_name: example_world_texture_generator_shader_name,
+                shader_path: example_world_texture_generator_shader_path,
             }
         );
 
