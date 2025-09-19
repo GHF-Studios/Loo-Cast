@@ -66,21 +66,21 @@ impl Stage {
 
     pub fn get_index(&self) -> usize {
         match self {
-            Stage::Ecs(stage) => stage.signature as usize,
-            Stage::Render(stage) => stage.signature as usize,
-            Stage::Async(stage) => stage.signature as usize,
-            Stage::EcsWhile(stage) => stage.signature as usize,
-            Stage::RenderWhile(stage) => stage.signature as usize,
+            Stage::Ecs(stage) => stage.stage_signature as usize,
+            Stage::Render(stage) => stage.stage_signature as usize,
+            Stage::Async(stage) => stage.stage_signature as usize,
+            Stage::EcsWhile(stage) => stage.stage_signature as usize,
+            Stage::RenderWhile(stage) => stage.stage_signature as usize,
         }
     }
 
     pub fn get_signature(&self) -> StageSignature {
         match self {
-            Stage::Ecs(stage) => stage.signature,
-            Stage::Render(stage) => stage.signature,
-            Stage::Async(stage) => stage.signature,
-            Stage::EcsWhile(stage) => stage.signature,
-            Stage::RenderWhile(stage) => stage.signature,
+            Stage::Ecs(stage) => stage.stage_signature,
+            Stage::Render(stage) => stage.stage_signature,
+            Stage::Async(stage) => stage.stage_signature,
+            Stage::EcsWhile(stage) => stage.stage_signature,
+            Stage::RenderWhile(stage) => stage.stage_signature,
         }
     }
 
@@ -118,7 +118,7 @@ impl Stage {
 pub struct StageEcs {
     pub index: usize,
     pub name: &'static str,
-    pub signature: StageSignature,
+    pub stage_signature: StageSignature,
     pub handle_ecs_run_response: Box<
         dyn FnMut(
                 &'static str,
@@ -137,7 +137,7 @@ pub struct StageEcs {
 pub struct StageRender {
     pub index: usize,
     pub name: &'static str,
-    pub signature: StageSignature,
+    pub stage_signature: StageSignature,
     pub handle_render_run_response: Box<
         dyn FnMut(
                 &'static str,
@@ -156,7 +156,7 @@ pub struct StageRender {
 pub struct StageAsync {
     pub index: usize,
     pub name: &'static str,
-    pub signature: StageSignature,
+    pub stage_signature: StageSignature,
     pub handle_async_run_response: Box<
         dyn FnMut(
                 &'static str,
@@ -175,7 +175,7 @@ pub struct StageAsync {
 pub struct StageEcsWhile {
     pub index: usize,
     pub name: &'static str,
-    pub signature: StageSignature,
+    pub stage_signature: StageSignature,
     pub handle_ecs_while_setup_response: Box<
         dyn FnMut(
                 &'static str,
@@ -208,7 +208,7 @@ pub struct StageEcsWhile {
 pub struct StageRenderWhile {
     pub index: usize,
     pub name: &'static str,
-    pub signature: StageSignature,
+    pub stage_signature: StageSignature,
     pub handle_render_while_setup_response: Box<
         dyn FnMut(
                 &'static str,

@@ -1,3 +1,5 @@
+use crate::define_workflow_mod_OLD::WorkflowSignature;
+
 use super::core_function::CoreFunctions;
 use super::core_type::CoreTypes;
 use heck::ToSnakeCase;
@@ -133,51 +135,55 @@ impl Stage {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
+        workflow_signature: WorkflowSignature,
         module_name: &str,
         workflow_name: &str,
     ) -> (TokenStream, TokenStream) {
         match self {
             Stage::Ecs(stage) => {
-                let signature = stage.core_types.get_signature();
+                let stage_signature = stage.core_types.get_signature();
                 stage.generate(
                     workflow_path,
                     this_stage_out_type_path,
                     this_stage_err_type_path,
                     next_stage_in_type_path,
                     is_last,
-                    signature,
+                    stage_signature,
+                    workflow_signature,
                     module_name,
                     workflow_name,
                 )
             }
             Stage::Render(stage) => {
-                let signature = stage.core_types.get_signature();
+                let stage_signature = stage.core_types.get_signature();
                 stage.generate(
                     workflow_path,
                     this_stage_out_type_path,
                     this_stage_err_type_path,
                     next_stage_in_type_path,
                     is_last,
-                    signature,
+                    stage_signature,
+                    workflow_signature,
                     module_name,
                     workflow_name,
                 )
             }
             Stage::Async(stage) => {
-                let signature = stage.core_types.get_signature();
+                let stage_signature = stage.core_types.get_signature();
                 stage.generate(
                     workflow_path,
                     this_stage_out_type_path,
                     this_stage_err_type_path,
                     next_stage_in_type_path,
                     is_last,
-                    signature,
+                    stage_signature,
+                    workflow_signature,
                     module_name,
                     workflow_name,
                 )
             }
             Stage::EcsWhile(stage) => {
-                let signature = stage.core_types.get_signature();
+                let stage_signature = stage.core_types.get_signature();
                 stage.generate(
                     workflow_path,
                     this_stage_state_type_path,
@@ -185,13 +191,14 @@ impl Stage {
                     this_stage_err_type_path,
                     next_stage_in_type_path,
                     is_last,
-                    signature,
+                    stage_signature,
+                    workflow_signature,
                     module_name,
                     workflow_name,
                 )
             }
             Stage::RenderWhile(stage) => {
-                let signature = stage.core_types.get_signature();
+                let stage_signature = stage.core_types.get_signature();
                 stage.generate(
                     workflow_path,
                     this_stage_state_type_path,
@@ -199,7 +206,8 @@ impl Stage {
                     this_stage_err_type_path,
                     next_stage_in_type_path,
                     is_last,
-                    signature,
+                    stage_signature,
+                    workflow_signature,
                     module_name,
                     workflow_name,
                 )
@@ -555,7 +563,8 @@ impl TypedStage<Ecs> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-        signature: StageSignature,
+        stage_signature: StageSignature,
+        workflow_signature: WorkflowSignature,
         module_name: &str,
         workflow_name: &str,
     ) -> (TokenStream, TokenStream) {
@@ -567,7 +576,8 @@ impl TypedStage<Ecs> {
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
-            signature,
+            stage_signature,
+            workflow_signature,
             stage_ident.clone(),
             self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index),
         );
@@ -588,9 +598,9 @@ impl TypedStage<Ecs> {
             //     .collect();
 
             self.core_functions
-                .generate(signature, output_type_name, workflow_error_type_path, workflow_error_variant_ident)
+                .generate(stage_signature, output_type_name, workflow_error_type_path, workflow_error_variant_ident)
         };
-        let signature = signature.generate();
+        let stage_signature = stage_signature.generate();
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -923,7 +933,7 @@ impl TypedStage<Ecs> {
             crate::workflow::stage::Stage::Ecs(crate::workflow::stage::StageEcs {
                 index: #index_literal,
                 name: #stage_name,
-                signature: #signature,
+                stage_signature: #stage_signature,
                 handle_ecs_run_response: #ecs_run_response_handler,
                 completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                 failure_sender: #failure_sender,
@@ -984,7 +994,8 @@ impl TypedStage<Render> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-        signature: StageSignature,
+        stage_signature: StageSignature,
+        workflow_signature: WorkflowSignature,
         module_name: &str,
         workflow_name: &str,
     ) -> (TokenStream, TokenStream) {
@@ -996,7 +1007,8 @@ impl TypedStage<Render> {
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
-            signature,
+            stage_signature,
+            workflow_signature,
             stage_ident.clone(),
             self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index),
         );
@@ -1017,9 +1029,9 @@ impl TypedStage<Render> {
             //     .collect();
 
             self.core_functions
-                .generate(signature, output_type_name, workflow_error_type_path, workflow_error_variant_ident)
+                .generate(stage_signature, output_type_name, workflow_error_type_path, workflow_error_variant_ident)
         };
-        let signature = signature.generate();
+        let stage_signature = stage_signature.generate();
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -1352,7 +1364,7 @@ impl TypedStage<Render> {
             crate::workflow::stage::Stage::Render(crate::workflow::stage::StageRender {
                 index: #index_literal,
                 name: #stage_name,
-                signature: #signature,
+                stage_signature: #stage_signature,
                 handle_render_run_response: #render_run_response_handler,
                 completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                 failure_sender: #failure_sender,
@@ -1413,7 +1425,8 @@ impl TypedStage<Async> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-        signature: StageSignature,
+        stage_signature: StageSignature,
+        workflow_signature: WorkflowSignature,
         module_name: &str,
         workflow_name: &str,
     ) -> (TokenStream, TokenStream) {
@@ -1425,7 +1438,8 @@ impl TypedStage<Async> {
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
-            signature,
+            stage_signature,
+            workflow_signature,
             stage_ident.clone(),
             self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index),
         );
@@ -1446,9 +1460,9 @@ impl TypedStage<Async> {
             //     .collect();
 
             self.core_functions
-                .generate(signature, output_type_name, workflow_error_type_path, workflow_error_variant_ident)
+                .generate(stage_signature, output_type_name, workflow_error_type_path, workflow_error_variant_ident)
         };
-        let signature = signature.generate();
+        let stage_signature = stage_signature.generate();
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -1781,7 +1795,7 @@ impl TypedStage<Async> {
             crate::workflow::stage::Stage::Async(crate::workflow::stage::StageAsync {
                 index: #index_literal,
                 name: #stage_name,
-                signature: #signature,
+                stage_signature: #stage_signature,
                 handle_async_run_response: #async_run_response_handler,
                 completion_sender: crate::workflow::channels::get_stage_completion_sender().clone(),
                 failure_sender: #failure_sender,
@@ -1843,7 +1857,8 @@ impl TypedStage<EcsWhile> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-        signature: StageSignature,
+        stage_signature: StageSignature,
+        workflow_signature: WorkflowSignature,
         module_name: &str,
         workflow_name: &str,
     ) -> (TokenStream, TokenStream) {
@@ -1855,7 +1870,8 @@ impl TypedStage<EcsWhile> {
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
-            signature,
+            stage_signature,
+            workflow_signature,
             stage_ident.clone(),
             self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index),
         );
@@ -1883,14 +1899,14 @@ impl TypedStage<EcsWhile> {
             //     .collect();
 
             self.core_functions.generate(
-                signature,
+                stage_signature,
                 state_type_name,
                 output_type_name,
                 workflow_error_type_path,
                 workflow_error_variant_ident,
             )
         };
-        let signature = signature.generate();
+        let stage_signature = stage_signature.generate();
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -2934,7 +2950,7 @@ impl TypedStage<EcsWhile> {
             crate::workflow::stage::Stage::EcsWhile(crate::workflow::stage::StageEcsWhile {
                 index: #index_literal,
                 name: #stage_name,
-                signature: #signature,
+                stage_signature: #stage_signature,
                 handle_ecs_while_setup_response: #ecs_while_setup_response_handler,
                 handle_ecs_while_run_response: #ecs_while_run_response_handler,
                 setup_sender: crate::workflow::channels::get_stage_setup_sender().clone(),
@@ -3010,7 +3026,8 @@ impl TypedStage<RenderWhile> {
         this_stage_err_type_path: Option<&TokenStream>,
         next_stage_in_type_path: Option<&TokenStream>,
         is_last: bool,
-        signature: StageSignature,
+        stage_signature: StageSignature,
+        workflow_signature: WorkflowSignature,
         module_name: &str,
         workflow_name: &str,
     ) -> (TokenStream, TokenStream) {
@@ -3022,7 +3039,8 @@ impl TypedStage<RenderWhile> {
         let index_literal = LitInt::new(&(self.index).to_string(), stage_ident.span());
         let core_types = self.core_types.generate(
             workflow_path.clone(),
-            signature,
+            stage_signature,
+            workflow_signature,
             stage_ident.clone(),
             self.core_types.generate_stage_type_dependent_stuff(module_name, workflow_name, self.index),
         );
@@ -3050,14 +3068,14 @@ impl TypedStage<RenderWhile> {
             //     .collect();
 
             self.core_functions.generate(
-                signature,
+                stage_signature,
                 state_type_name,
                 output_type_name,
                 workflow_error_type_path,
                 workflow_error_variant_ident,
             )
         };
-        let signature = signature.generate();
+        let stage_signature = stage_signature.generate();
 
         let stage_module = quote! {
             pub mod #stage_ident {
@@ -4106,7 +4124,7 @@ impl TypedStage<RenderWhile> {
             crate::workflow::stage::Stage::RenderWhile(crate::workflow::stage::StageRenderWhile {
                 index: #index_literal,
                 name: #stage_name,
-                signature: #signature,
+                stage_signature: #stage_signature,
                 handle_render_while_setup_response: #render_while_setup_response_handler,
                 handle_render_while_run_response: #render_while_run_response_handler,
                 setup_sender: crate::workflow::channels::get_stage_setup_sender().clone(),

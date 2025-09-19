@@ -18,7 +18,7 @@ fn placeholder_stage() -> Stage {
     Stage::Ecs(StageEcs {
         index: 0,
         name: "PLACEHOLDER",
-        signature: StageSignature::None,
+        stage_signature: StageSignature::None,
         handle_ecs_run_response: Box::new(|_, _, _, _, _| Box::new(|_| {})),
         completion_sender: unsafe { std::mem::transmute(0u128) },
         failure_sender: None,

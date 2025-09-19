@@ -911,7 +911,7 @@ pub(super) fn workflow_initialization_system(world: &mut World) {
             Stage::Ecs(super::stage::StageEcs {
                 index: 0,
                 name: "placeholder",
-                signature: super::stage::StageSignature::None,
+                stage_signature: super::stage::StageSignature::None,
                 handle_ecs_run_response: Box::new(|_, _, _, _, _| unreachable!()),
                 completion_sender: get_stage_completion_sender().clone(),
                 failure_sender: None,
@@ -1093,7 +1093,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                     Stage::Ecs(super::stage::StageEcs {
                         index: 0,
                         name: "placeholder",
-                        signature: super::stage::StageSignature::None,
+                        stage_signature: super::stage::StageSignature::None,
                         handle_ecs_run_response: Box::new(|_, _, _, _, _| unreachable!()),
                         completion_sender: get_stage_completion_sender().clone(),
                         failure_sender: None,

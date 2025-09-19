@@ -147,7 +147,7 @@ impl CoreType<Output> {
 }
 
 impl CoreType<Error> {
-    pub fn generate(&self, workflow_path: TokenStream, stage_signature: StageSignature, stage_name_snake_case: Ident) -> TokenStream {
+    pub fn generate(&self, workflow_path: TokenStream, workflow_signature: WorkflowSignature, stage_name_snake_case: Ident) -> TokenStream {
         let stage_name_pascal_case = stage_name_snake_case.to_string().to_pascal_case();
         let stage_name_pascal_case = format!("{stage_name_pascal_case}Error");
         let stage_name_pascal_case = Ident::new(&stage_name_pascal_case, stage_name_snake_case.span());
@@ -155,15 +155,15 @@ impl CoreType<Error> {
         let workflow_error_type_path = quote! { #workflow_path::Error };
         // let workflow_name_pascal_case = format!("{}Error", workflow_path.to_string().split("::").last().unwrap().to_string().to_pascal_case());
         // let workflow_name_pascal_case = Ident::new(&workflow_name_pascal_case, stage_name_snake_case.span());
-        let workflow_error_variant_trait_variant = match stage_signature {
-            StageSignature::None => panic!("Error type is not allowed in stages with non-error signature"),
-            StageSignature::O => panic!("Error type is not allowed in stages with non-error signature"),
-            StageSignature::E => quote! { WorkflowErrorEVariant },
-            StageSignature::OE => quote! { WorkflowErrorOEVariant },
-            StageSignature::I => panic!("Error type is not allowed in stages with non-error signature"),
-            StageSignature::IO => panic!("Error type is not allowed in stages with non-error signature"),
-            StageSignature::IE => quote! { WorkflowErrorIEVariant },
-            StageSignature::IOE => quote! { WorkflowErrorIOEVariant },
+        let workflow_error_variant_trait_variant = match workflow_signature {
+            WorkflowSignature::None => panic!("Error type is not allowed in stages with non-error signature"),
+            WorkflowSignature::O => panic!("Error type is not allowed in stages with non-error signature"),
+            WorkflowSignature::E => quote! { WorkflowErrorEVariant },
+            WorkflowSignature::OE => quote! { WorkflowErrorOEVariant },
+            WorkflowSignature::I => panic!("Error type is not allowed in stages with non-error signature"),
+            WorkflowSignature::IO => panic!("Error type is not allowed in stages with non-error signature"),
+            WorkflowSignature::IE => quote! { WorkflowErrorIEVariant },
+            WorkflowSignature::IOE => quote! { WorkflowErrorIOEVariant },
         };
         // let work_error_trait_variant = match workflow_signature {
         //     WorkflowSignature::None => panic!("Error type is not allowed in workflows with non-error signature"),
@@ -1679,11 +1679,21 @@ impl CoreTypes<RenderWhile> {
 }
 
 impl<T> CoreTypes<T> {
-    pub fn generate(&self, workflow_path: TokenStream, stage_signature: StageSignature, stage_name_snake_case: Ident, other_stuff: TokenStream) -> TokenStream {
+    pub fn generate(
+        &self,
+        workflow_path: TokenStream,
+        stage_signature: StageSignature,
+        workflow_signature: WorkflowSignature,
+        stage_name_snake_case: Ident,
+        other_stuff: TokenStream,
+    ) -> TokenStream {
         let input = self.input.as_ref().map(|t| t.generate(stage_signature));
         let state = self.state.as_ref().map(|t| t.generate());
         let output = self.output.as_ref().map(|t| t.generate(stage_signature));
-        let error = self.error.as_ref().map(|t| t.generate(workflow_path, stage_signature, stage_name_snake_case));
+        let error = self
+            .error
+            .as_ref()
+            .map(|t| t.generate(workflow_path, workflow_signature, stage_name_snake_case));
         let main_access = self.main_access.as_ref().map(|t| t.generate());
         let render_access = self.render_access.as_ref().map(|t| t.generate());
 

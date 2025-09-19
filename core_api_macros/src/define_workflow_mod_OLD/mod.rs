@@ -128,6 +128,7 @@ pub enum WorkflowTimeoutMode {
 }
 
 #[allow(clippy::upper_case_acronyms)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WorkflowSignature {
     None,
     E,
@@ -138,6 +139,22 @@ pub enum WorkflowSignature {
     IO,
     IOE,
 }
+impl std::fmt::Display for WorkflowSignature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            WorkflowSignature::None => "None",
+            WorkflowSignature::E => "E",
+            WorkflowSignature::O => "O",
+            WorkflowSignature::OE => "OE",
+            WorkflowSignature::I => "I",
+            WorkflowSignature::IE => "IE",
+            WorkflowSignature::IO => "IO",
+            WorkflowSignature::IOE => "IOE",
+        };
+        write!(f, "{s}")
+    }
+}
+
 pub struct Workflow {
     pub name: Ident,
     pub signature: WorkflowSignature,
@@ -296,6 +313,7 @@ impl<T: ?Sized> IteratorExt for T where T: Iterator {}
 impl Workflow {
     pub fn generate(self, workflow_module_ident: Ident) -> (TokenStream, (WorkflowSignature, Ident), TokenStream) {
         let workflow_ident = &self.name;
+        let workflow_signature = self.signature;
         let workflow_name = workflow_ident.to_string();
         let workflow_ident = Ident::new(workflow_name.as_str().to_snake_case().as_str(), workflow_ident.span());
         let workflow_path = format!("crate::{}::workflows::{}::{}", workflow_module_ident, workflow_module_ident, workflow_ident);
@@ -524,6 +542,7 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_signature,
                             workflow_module_ident.to_string().as_str(),
                             workflow_ident.to_string().as_str(),
                         )
@@ -662,6 +681,7 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_signature,
                             workflow_module_ident.to_string().as_str(),
                             workflow_ident.to_string().as_str(),
                         )
@@ -772,6 +792,7 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_signature,
                             workflow_module_ident.to_string().as_str(),
                             workflow_ident.to_string().as_str(),
                         )
@@ -918,6 +939,7 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_signature,
                             workflow_module_ident.to_string().as_str(),
                             workflow_ident.to_string().as_str(),
                         )
@@ -1029,6 +1051,7 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_signature,
                             workflow_module_ident.to_string().as_str(),
                             workflow_ident.to_string().as_str(),
                         )
@@ -1175,6 +1198,7 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_signature,
                             workflow_module_ident.to_string().as_str(),
                             workflow_ident.to_string().as_str(),
                         )
@@ -1289,6 +1313,7 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_signature,
                             workflow_module_ident.to_string().as_str(),
                             workflow_ident.to_string().as_str(),
                         )
@@ -1439,6 +1464,7 @@ impl Workflow {
                             this_err_type_path,
                             next_stage_in_type_path,
                             is_last,
+                            workflow_signature,
                             workflow_module_ident.to_string().as_str(),
                             workflow_ident.to_string().as_str(),
                         )
