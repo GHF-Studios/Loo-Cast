@@ -1,10 +1,9 @@
-use bevy::prelude::{info, Reflect};
+use bevy::prelude::{warn, Reflect};
 use std::any::Any;
 use std::fmt::Debug;
 use std::panic::Location;
 
-#[cfg(feature = "allow_premium_box")]
-const SUCCESS_INFO_LOGGING: bool = false;
+use crate::config::statics::CONFIG;
 
 #[cfg(feature = "allow_premium_box")]
 #[derive(Reflect)]
@@ -40,6 +39,7 @@ impl AnySendSyncPremiumBox {
 
     #[track_caller]
     pub fn into_inner<T: Any>(self) -> T {
+
         let src_call_site = self.src_call_site;
         let dest_call_site = Location::caller();
 
@@ -53,8 +53,8 @@ impl AnySendSyncPremiumBox {
             )
         });
 
-        if SUCCESS_INFO_LOGGING {
-            info!(
+        if CONFIG().get("utils/premium_box/success_logging_enabled") {
+            warn!(
                 "Succeeded to downcast AnySendSyncPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
                 src_call_site,
                 self.name,
@@ -81,8 +81,8 @@ impl AnySendSyncPremiumBox {
             )
         });
 
-        if SUCCESS_INFO_LOGGING {
-            info!(
+        if CONFIG().get("utils/premium_box/success_logging_enabled") {
+            warn!(
                 "Succeeded to downcast AnySendSyncPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
                 src_call_site,
                 self.name,
@@ -109,8 +109,8 @@ impl AnySendSyncPremiumBox {
             )
         });
 
-        if SUCCESS_INFO_LOGGING {
-            info!(
+        if CONFIG().get("utils/premium_box/success_logging_enabled") {
+            warn!(
                 "Succeeded to downcast AnySendSyncPremiumBox: {{\n\tSrc:\t\t'{}' \n\tSrcType:\t'{}' \n\tDest:\t\t'{}' \n\tDestType:\t'{}'\n}}",
                 src_call_site,
                 self.name,
