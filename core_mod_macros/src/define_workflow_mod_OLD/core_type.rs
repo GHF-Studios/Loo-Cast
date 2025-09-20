@@ -122,14 +122,14 @@ impl CoreType<Output> {
             StageSignature::O => {
                 quote! {
                     let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseO>();
-                    response.output.into_inner::<Output>()
+                    response.output.into_inner()
                 }
             },
             StageSignature::OE => {
                 quote! {
                     let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
                     match response.result {
-                        Ok(output) => output.into_inner::<Output>(),
+                        Ok(output) => output.into_inner(),
                         Err(_) => panic!("Expected Output but got Error"),
                     }
                 }
@@ -139,7 +139,7 @@ impl CoreType<Output> {
             StageSignature::IO => {
                 quote! {
                     let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseO>();
-                    response.output.into_inner::<Output>()
+                    response.output.into_inner()
                 }
             },
             StageSignature::IE => panic!("Output type is not allowed in workflows with non-output signature"),
@@ -147,7 +147,7 @@ impl CoreType<Output> {
                 quote! {
                     let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
                     match response.result {
-                        Ok(output) => output.into_inner::<Output>(),
+                        Ok(output) => output.into_inner(),
                         Err(_) => panic!("Expected Output but got Error"),
                     }
                 }
@@ -218,16 +218,19 @@ impl CoreType<Error> {
             StageSignature::E => {
                 quote! {
                     let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseE>();
-                    let error = response.error.into_inner::<Error>();
+                    match response.result {
+                        Ok(_) => panic!("Expected Error but got Output"),
+                        Err(error) => error.into_inner(),
+                    }
                 }
             },
             StageSignature::OE => {
                 quote! {
                     let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
-                    let result = match response.result {
-                        Ok(output) => output.into_inner::<Output>(),
-                        Err(error) => error.into_inner::<Error>(),
-                    };
+                    match response.result {
+                        Ok(_) => panic!("Expected Error but got Output"),
+                        Err(error) => error.into_inner(),
+                    }
                 }
             },
             StageSignature::I => panic!("Error type is not allowed in stages with non-error signature"),
@@ -235,16 +238,19 @@ impl CoreType<Error> {
             StageSignature::IE => {
                 quote! {
                     let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseE>();
-                    let error = response.error.into_inner::<Error>();
+                    match response.result {
+                        Ok(_) => panic!("Expected Error but got Output"),
+                        Err(error) => error.into_inner(),
+                    }
                 }
             },
             StageSignature::IOE => {
                 quote! {
                     let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
-                    let result = match response.result {
-                        Ok(output) => output.into_inner::<Output>(),
-                        Err(error) => error.into_inner::<Error>(),
-                    };
+                    match response.result {
+                        Ok(_) => panic!("Expected Error but got Output"),
+                        Err(error) => error.into_inner(),
+                    }
                 }
             },
         };

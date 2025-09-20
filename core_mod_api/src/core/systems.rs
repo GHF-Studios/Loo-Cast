@@ -12,7 +12,7 @@ pub(super) fn startup_system() {
         workflow!(Camera::SpawnMainCameras);
 
         let example_uv_texture_generator_shader_name = "texture_generators/example_uv";
-        let example_uv_texture_generator_shader_path = "assets/core_mod_api/shaders/texture_generators/example_uv.wgsl".to_string();
+        let example_uv_texture_generator_shader_path = "assets/core_mod/shaders/texture_generators/example_uv.wgsl".to_string();
         workflow!(
             IE,
             Gpu::SetupTextureGenerator,
@@ -23,7 +23,7 @@ pub(super) fn startup_system() {
         );
 
         let example_world_texture_generator_shader_name = "texture_generators/example_world";
-        let example_world_texture_generator_shader_path = "assets/core_mod_api/shaders/texture_generators/example_world.wgsl".to_string();
+        let example_world_texture_generator_shader_path = "assets/core_mod/shaders/texture_generators/example_world.wgsl".to_string();
         workflow!(
             IE,
             Gpu::SetupTextureGenerator,
