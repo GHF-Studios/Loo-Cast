@@ -16,7 +16,7 @@ pub fn export_static(input: TokenStream) -> TokenStream {
     let core_path = if is_self {
         quote! { crate }
     } else {
-        quote! { ::core_mod }
+        quote! { ::core_mod_api }
     };
 
     quote! {
@@ -24,12 +24,11 @@ pub fn export_static(input: TokenStream) -> TokenStream {
         #[no_mangle]
         pub static #mangled: #core_path::once_cell::sync::Lazy<#ty> = #core_path::once_cell::sync::Lazy::new(|| #init);
 
-        #[cfg(feature = "init_api")]
         paste::paste! {
             #[allow(non_snake_case)]
             #[no_mangle]
             pub extern "C" fn [<#mangled _init>]() {
-                println!("Calling init for {}", #mangled_string);
+                // println!("Calling init for {}", #mangled_string);
                 #core_path::once_cell::sync::Lazy::force(&#mangled);
             }
         }
@@ -50,7 +49,7 @@ pub fn import_static(input: TokenStream) -> TokenStream {
     let core_path = if is_self {
         quote! { crate }
     } else {
-        quote! { ::core_mod }
+        quote! { ::core_mod_api }
     };
 
     quote! {
@@ -126,7 +125,7 @@ pub fn api_initializer(input: TokenStream) -> TokenStream {
     .into()
 }
 
-/// Converts a path like `core_mod::foo::bar::BAZ` to `__STATIC__core_mod__foo__bar__BAZ`
+/// Converts a path like `core_mod_api::foo::bar::BAZ` to `__STATIC__core_mod_api__foo__bar__BAZ`
 pub fn mangle_path(path: &ExprPath) -> String {
     let mut out = String::from("__STATIC__");
     out += &path.path.segments.iter().map(|seg| seg.ident.to_string()).collect::<Vec<_>>().join("__");

@@ -1,0 +1,50 @@
+[package]
+name = "core_mod_api"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+allow_premium_box = []
+
+[dependencies]
+core_mod_macros = { path = "../core_mod_macros" }
+bevy = { version = "0.16.1", features = ["bevy_picking"] }
+bevy_egui = { version = "0.36", features = ["picking"] }
+bevy-inspector-egui = "0.33.1"
+bevy_rapier2d = { version = "0.31.0", features = ["debug-render-2d", "serde-serialize"] }
+bevy_consumable_event = { path = "../bevy_consumable_event" }
+egui = "0.32.1"
+egui_dock = "0.17.0"
+transform-gizmo-bevy = "0.6.0"
+iyes_perf_ui = "0.5"
+mlua = { version = "0.6.1", features = ["vendored", "lua54"] }
+rand = "0.8.5"
+noise = "0.9"
+image = "0.25.1"
+serde = "1.0.185"
+serde_json = "1.0"
+futures = "0.3"
+num-bigint = "0.4"
+num-traits = "0.2"
+lazy_static = "1.4"
+queues = "1.0.2"
+log = "0.4"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+tracing-appender = "0.2"
+glam = "0.27.0"
+tokio = { version = "1.47.1", features = ["full", "tracing"] }
+console-subscriber = "0.4.1"
+pin-project-lite = "0.2.16"
+toml = "0.8.19"
+crossbeam = "0.8"
+crossbeam-channel = "0.5.14"
+bytemuck = "1.21.0"
+thiserror = "2.0.12"
+once_cell = "1.20.3"
+dyn-clone = "1.0.19"
+anymap = "0.12.1"
+uuid = "1.12.0"
+dashmap = "6.1.0"
+parking_lot = "0.12.1"
+paste = "1.0.15"

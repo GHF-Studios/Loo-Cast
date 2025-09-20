@@ -531,7 +531,7 @@ name = "base_mod"
 version = "0.1.0"
 dependencies = [
  "base_mod_macros",
- "core_api",
+ "core_mod_api",
 ]
 
 [[package]]
@@ -2136,7 +2136,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "core_api"
+name = "core_engine"
+version = "0.1.0"
+dependencies = [
+ "core_mod",
+ "libloading",
+]
+
+[[package]]
+name = "core_mod"
+version = "0.1.0"
+dependencies = [
+ "core_mod_api",
+ "core_mod_macros",
+ "paste",
+]
+
+[[package]]
+name = "core_mod_api"
 version = "0.1.0"
 dependencies = [
  "anymap",
@@ -2147,7 +2164,7 @@ dependencies = [
  "bevy_rapier2d",
  "bytemuck",
  "console-subscriber",
- "core_api_macros",
+ "core_mod_macros",
  "crossbeam",
  "crossbeam-channel",
  "dashmap",
@@ -2183,7 +2200,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "core_api_macros"
+name = "core_mod_macros"
 version = "0.1.0"
 dependencies = [
  "heck 0.4.1",
@@ -2192,14 +2209,6 @@ dependencies = [
  "quote",
  "syn",
  "thiserror 2.0.16",
-]
-
-[[package]]
-name = "core_engine"
-version = "0.1.0"
-dependencies = [
- "core_api",
- "libloading",
 ]
 
 [[package]]

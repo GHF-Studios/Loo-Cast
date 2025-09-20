@@ -1,12 +1,12 @@
 [workspace]
 members = [
   "core_engine",
-  "core_mod",
+  "core_mod_api",
   "core_mod_macros",
   "base_mod",
   "base_mod_macros",
   "bevy_consumable_event"
-]
+, "core_mod"]
 
 [profile.dev]
 opt-level = 3
