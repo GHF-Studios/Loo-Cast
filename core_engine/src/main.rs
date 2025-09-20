@@ -100,17 +100,15 @@ fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
 fn global_init(_app: &mut App) {
     core_api::__init_api__core_api();
 
-    let exe_dir = std::env::current_exe().expect("failed to get exe path").parent().unwrap().to_path_buf();
-
-    let lib_path = exe_dir.join(format!("base_mod{}", std::env::consts::DLL_SUFFIX));
-
-    unsafe {
-        let lib = Library::new(&lib_path).unwrap_or_else(|e| panic!("Failed to load base_mod from {lib_path:?}: {e}"));
-        let init_api: Symbol<unsafe extern "C" fn()> = lib
-            .get(b"__init_api__base_mod")
-            .unwrap_or_else(|e| panic!("Failed to load symbol '__init_api__base_mod' from {lib_path:?}: {e}"));
-        init_api();
-    }
+    // let exe_dir = std::env::current_exe().expect("failed to get exe path").parent().unwrap().to_path_buf();
+    // let lib_path = exe_dir.join(format!("base_mod{}", std::env::consts::DLL_SUFFIX));
+    // unsafe {
+    //     let lib = Library::new(&lib_path).unwrap_or_else(|e| panic!("Failed to load base_mod from {lib_path:?}: {e}"));
+    //     let init_api: Symbol<unsafe extern "C" fn()> = lib
+    //         .get(b"__init_api__base_mod")
+    //         .unwrap_or_else(|e| panic!("Failed to load symbol '__init_api__base_mod' from {lib_path:?}: {e}"));
+    //     init_api();
+    // }
 }
 
 fn run_app(mut app: App) {

@@ -39,7 +39,6 @@ impl AnySendSyncPremiumBox {
 
     #[track_caller]
     pub fn into_inner<T: Any>(self) -> T {
-
         let src_call_site = self.src_call_site;
         let dest_call_site = Location::caller();
 

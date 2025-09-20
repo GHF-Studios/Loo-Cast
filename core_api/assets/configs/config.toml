@@ -32,7 +32,7 @@ start_paused = false
 start_step_secs = 0.02
 
 [utils.premium_box]
-success_logging_enabled = true
+success_logging_enabled = false
 
 [workflow]
 timeout_frames_per_stage = 30
