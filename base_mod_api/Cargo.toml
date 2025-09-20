@@ -1,0 +1,14 @@
+[package]
+name = "base_mod_api"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = [
+    "allow_premium_box"
+]
+allow_premium_box = ["core_mod_api/allow_premium_box"]
+
+[dependencies]
+core_mod_api = { path = "../core_mod_api" }
+base_mod_macros = { path = "../base_mod_macros" }

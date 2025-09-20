@@ -4,12 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = []
+default = [
+    "allow_premium_box"
+]
 init_api = []
+allow_premium_box = ["base_mod_api/allow_premium_box"]
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-core_mod_api = { path = "../core_mod_api" }
+base_mod_api = { path = "../base_mod_api" }
 base_mod_macros = { path = "../base_mod_macros" }

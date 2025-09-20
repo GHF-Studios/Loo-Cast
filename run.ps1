@@ -1,11 +1,10 @@
 param(
-    [ValidateSet("dev","fastdev","release")]
+    [ValidateSet("dev", "fastdev", "release")]
     [Alias("profile")]
     [string]$BuildProfile = "fastdev"
 )
 
 $env:BUILD_PROFILE = $BuildProfile
 
-Push-Location ".\build\$BuildProfile"
-.\core_engine.exe
-Pop-Location
+$exePath = Join-Path -Path ".\build\$BuildProfile" -ChildPath "core_engine.exe"
+& $exePath

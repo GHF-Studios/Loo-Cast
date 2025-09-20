@@ -530,6 +530,14 @@ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 name = "base_mod"
 version = "0.1.0"
 dependencies = [
+ "base_mod_api",
+ "base_mod_macros",
+]
+
+[[package]]
+name = "base_mod_api"
+version = "0.1.0"
+dependencies = [
  "base_mod_macros",
  "core_mod_api",
 ]

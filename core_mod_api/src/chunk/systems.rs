@@ -28,7 +28,7 @@ pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<As
     if chunk_size % workgroup_size_total != 0 {
         panic!("Chunk size {} is not divisible by {workgroup_size_x}x{workgroup_size_y}={workgroup_size_total}(the configured texture generator shader workgroup size)", chunk_size);
     }
-    
+
     let quad = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
     let light_material: Handle<ColorMaterial> = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
     let dark_material = materials.add(ColorMaterial::from_color(Color::srgb(0.25, 0.25, 0.25)));

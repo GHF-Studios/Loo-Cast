@@ -3,6 +3,7 @@ use crate::define_workflow_mod_OLD::WorkflowSignature;
 use super::stage::{Async, Ecs, EcsWhile, Render, RenderWhile, StageSignature};
 use heck::ToPascalCase;
 use proc_macro2::TokenStream;
+use paste::paste;
 use quote::{quote, ToTokens};
 use std::marker::PhantomData;
 use syn::{
@@ -116,6 +117,42 @@ impl CoreType<Output> {
             StageSignature::IE => panic!("Output type is not allowed in stages with non-output signature"),
             StageSignature::IOE => quote! { WorkflowOutputIOE },
         };
+        let from_boxed = match stage_signature {
+            StageSignature::None => panic!("Output type is not allowed in workflows with non-output signature"),
+            StageSignature::O => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseO>();
+                    response.output.into_inner::<Output>()
+                }
+            },
+            StageSignature::OE => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
+                    match response.result {
+                        Ok(output) => output.into_inner::<Output>(),
+                        Err(_) => panic!("Expected Output but got Error"),
+                    }
+                }
+            },
+            StageSignature::E => panic!("Output type is not allowed in workflows with non-output signature"),
+            StageSignature::I => panic!("Output type is not allowed in workflows with non-output signature"),
+            StageSignature::IO => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseO>();
+                    response.output.into_inner::<Output>()
+                }
+            },
+            StageSignature::IE => panic!("Output type is not allowed in workflows with non-output signature"),
+            StageSignature::IOE => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
+                    match response.result {
+                        Ok(output) => output.into_inner::<Output>(),
+                        Err(_) => panic!("Expected Output but got Error"),
+                    }
+                }
+            },
+        };
 
         match self {
             CoreType::Struct(item, _) => {
@@ -125,7 +162,7 @@ impl CoreType<Output> {
                     #item
                     impl crate::workflow::traits::#workflow_output_trait_variant for Output {
                         fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
-                            boxed.into_inner()
+                            #from_boxed
                         }
                     }
                 }
@@ -147,7 +184,7 @@ impl CoreType<Output> {
 }
 
 impl CoreType<Error> {
-    pub fn generate(&self, workflow_path: TokenStream, workflow_signature: WorkflowSignature, stage_name_snake_case: Ident) -> TokenStream {
+    pub fn generate(&self, workflow_path: TokenStream, workflow_signature: WorkflowSignature, stage_signature: StageSignature, stage_name_snake_case: Ident) -> TokenStream {
         let stage_name_pascal_case = stage_name_snake_case.to_string().to_pascal_case();
         let stage_name_pascal_case = format!("{stage_name_pascal_case}Error");
         let stage_name_pascal_case = Ident::new(&stage_name_pascal_case, stage_name_snake_case.span());
@@ -175,6 +212,42 @@ impl CoreType<Error> {
         //     WorkflowSignature::IE => quote! { WorkflowErrorIE },
         //     WorkflowSignature::IOE => quote! { WorkflowErrorIOE },
         // };
+        let from_boxed = match stage_signature {
+            StageSignature::None => panic!("Error type is not allowed in stages with non-error signature"),
+            StageSignature::O => panic!("Error type is not allowed in stages with non-error signature"),
+            StageSignature::E => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseE>();
+                    let error = response.error.into_inner::<Error>();
+                }
+            },
+            StageSignature::OE => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
+                    let result = match response.result {
+                        Ok(output) => output.into_inner::<Output>(),
+                        Err(error) => error.into_inner::<Error>(),
+                    };
+                }
+            },
+            StageSignature::I => panic!("Error type is not allowed in stages with non-error signature"),
+            StageSignature::IO => panic!("Error type is not allowed in stages with non-error signature"),
+            StageSignature::IE => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseE>();
+                    let error = response.error.into_inner::<Error>();
+                }
+            },
+            StageSignature::IOE => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
+                    let result = match response.result {
+                        Ok(output) => output.into_inner::<Output>(),
+                        Err(error) => error.into_inner::<Error>(),
+                    };
+                }
+            },
+        };
 
         match self {
             CoreType::Struct(_item, _) => {
@@ -192,7 +265,7 @@ impl CoreType<Error> {
                     }
                     impl crate::workflow::traits::#workflow_error_variant_trait_variant<#workflow_error_type_path> for Error {
                         fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
-                            boxed.into_inner()
+                            #from_boxed
                         }
 
                         fn into_workflow_error(self) -> #workflow_error_type_path {
@@ -1693,7 +1766,7 @@ impl<T> CoreTypes<T> {
         let error = self
             .error
             .as_ref()
-            .map(|t| t.generate(workflow_path, workflow_signature, stage_name_snake_case));
+            .map(|t| t.generate(workflow_path, workflow_signature, stage_signature, stage_name_snake_case));
         let main_access = self.main_access.as_ref().map(|t| t.generate());
         let render_access = self.render_access.as_ref().map(|t| t.generate());
 

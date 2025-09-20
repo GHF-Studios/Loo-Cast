@@ -352,7 +352,8 @@ pub(super) fn workflow_request_relay_system(world: &mut World) {
                 workflow_name,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.into_inner();
+                    // let response = response.into_inner();
+                    let response = TypedWorkflowResponse { module_name, workflow_name };
                     response_sender.send(response).unwrap();
                 }),
             ));
@@ -411,7 +412,12 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
                 workflow_name,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.into_inner();
+                    // let response = response.into_inner();
+                    let response = TypedWorkflowResponseE {
+                        module_name,
+                        workflow_name,
+                        result: Err(response),
+                    };
                     response_sender.send(response).unwrap();
                 }),
             ));
@@ -472,7 +478,12 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
                 workflow_name,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.into_inner();
+                    // let response = response.into_inner();
+                    let response = TypedWorkflowResponseO {
+                        module_name,
+                        workflow_name,
+                        output: response,
+                    };
                     response_sender.send(response).unwrap();
                 }),
             ));
@@ -531,7 +542,12 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
                 workflow_name,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.into_inner();
+                    // let response = response.into_inner();
+                    let response = TypedWorkflowResponseOE {
+                        module_name,
+                        workflow_name,
+                        result: Err(response),
+                    };
                     response_sender.send(response).unwrap();
                 }),
             ));
@@ -592,7 +608,8 @@ pub(super) fn workflow_request_i_relay_system(world: &mut World) {
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.into_inner();
+                    // let response = response.into_inner();
+                    let response = TypedWorkflowResponse { module_name, workflow_name };
                     response_sender.send(response).unwrap();
                 }),
             ));
@@ -653,12 +670,12 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.into_inner();
-                    // let response = TypedWorkflowResponseE {
-                    //     module_name,
-                    //     workflow_name,
-                    //     result: Err(response),
-                    // };
+                    // let response = response.into_inner();
+                    let response = TypedWorkflowResponseE {
+                        module_name,
+                        workflow_name,
+                        result: Err(response),
+                    };
                     response_sender.send(response).unwrap();
                 }),
             ));
@@ -719,7 +736,12 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.into_inner();
+                    // let response = response.into_inner();
+                    let response = TypedWorkflowResponseO {
+                        module_name,
+                        workflow_name,
+                        output: response,
+                    };
                     response_sender.send(response).unwrap();
                 }),
             ));
@@ -780,7 +802,12 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    let response = response.into_inner();
+                    // let response = response.into_inner();
+                    let response = TypedWorkflowResponseOE {
+                        module_name,
+                        workflow_name,
+                        result: Err(response),
+                    };
                     response_sender.send(response).unwrap();
                 }),
             ));
