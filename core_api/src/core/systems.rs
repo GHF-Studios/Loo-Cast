@@ -51,7 +51,7 @@ pub(super) fn startup_system() {
 // let chunk_coords: Vec<(i32, i32)> = (-8..=8)
 //     .flat_map(|x| (-8..=8).map(move |y| (x, y)))
 //     .collect();
-// let texture_size = crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize;
+// let texture_size = crate::config::statics::CONFIG.get::<u32>("chunk/size") as usize;
 // let param_data: Vec<Vec<f32>> = chunk_coords
 //     .iter()
 //     .map(|_| vec![0.0])

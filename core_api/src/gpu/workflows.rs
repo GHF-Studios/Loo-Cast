@@ -237,6 +237,7 @@ define_workflow_mod_OLD! {
                 use bevy::render::render_resource::PipelineCache;
                 use crossbeam_channel::Receiver;
 
+                use crate::config::statics::CONFIG;
                 use crate::gpu::resources::ShaderRegistry;
             },
             user_items: {
@@ -244,7 +245,7 @@ define_workflow_mod_OLD! {
                 #[derive(Clone, Copy, Debug)]
                 pub struct ShaderParams {
                     pub chunk_pos: [i32; 2],
-                    pub chunk_size: f32,
+                    pub chunk_size: u32,
                     pub _padding: u32,
                 }
                 unsafe impl bytemuck::Pod for ShaderParams {}
@@ -254,6 +255,7 @@ define_workflow_mod_OLD! {
                     pub shader_name: &'static str,
                     pub pipeline_id: CachedComputePipelineId,
                     pub bind_group_layout: BindGroupLayout,
+                    pub texture_size: u32,
                     pub texture_handles: Vec<Handle<Image>>,
                     pub param_buffers: Vec<Buffer>,
                 }
@@ -262,6 +264,7 @@ define_workflow_mod_OLD! {
                     pub shader_name: &'static str,
                     pub pipeline_id: CachedComputePipelineId,
                     pub bind_group_layout: BindGroupLayout,
+                    pub texture_size: u32,
                     pub texture_handles: Vec<Handle<Image>>,
                     pub texture_views: Vec<TextureView>,
                     pub param_buffers: Vec<Buffer>,
@@ -283,7 +286,7 @@ define_workflow_mod_OLD! {
                         }
                         struct Input {
                             shader_name: &'static str,
-                            texture_size: usize,
+                            texture_size: u32,
                             param_data: Vec<ShaderParams>,
                         }
                         struct Output {
@@ -309,8 +312,8 @@ define_workflow_mod_OLD! {
                                     texture_descriptor: TextureDescriptor {
                                         label: Some("Chunk Texture"),
                                         size: Extent3d {
-                                            width: input.texture_size as u32,
-                                            height: input.texture_size as u32,
+                                            width: input.texture_size,
+                                            height: input.texture_size,
                                             depth_or_array_layers: 1,
                                         },
                                         mip_level_count: 1,
@@ -323,7 +326,7 @@ define_workflow_mod_OLD! {
                                         view_formats: &[],
                                     },
                                     sampler: ImageSampler::nearest(),
-                                    data: vec![0; input.texture_size * input.texture_size * 4].into(),
+                                    data: vec![0; input.texture_size as usize * input.texture_size as usize * 4].into(),
                                     ..Default::default()
                                 };
                                 texture_handles.push(images.add(texture));
@@ -342,6 +345,7 @@ define_workflow_mod_OLD! {
                                     shader_name,
                                     pipeline_id,
                                     bind_group_layout,
+                                    texture_size: input.texture_size,
                                     texture_handles,
                                     param_buffers,
                                 }
@@ -387,6 +391,7 @@ define_workflow_mod_OLD! {
                                     shader_name: state.params.shader_name,
                                     pipeline_id: state.params.pipeline_id,
                                     bind_group_layout: state.params.bind_group_layout,
+                                    texture_size: state.params.texture_size,
                                     texture_handles: state.params.texture_handles,
                                     texture_views,
                                     param_buffers: state.params.param_buffers,
@@ -431,10 +436,18 @@ define_workflow_mod_OLD! {
                                     ]
                                 );
 
+                                let texture_size = prepared.texture_size;
+                                let (width, height) = (texture_size, texture_size);
+                                let workgroup_size_x = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_x");
+                                let workgroup_size_y = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_y");
+                                
+                                let dispatch_x = width.div_ceil(workgroup_size_x);
+                                let dispatch_y = height.div_ceil(workgroup_size_y);
+                                
                                 let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor { label: None, timestamp_writes: None });
                                 compute_pass.set_pipeline(pipeline);
                                 compute_pass.set_bind_group(0, &bind_group, &[]);
-                                compute_pass.dispatch_workgroups(8, 8, 1);
+                                compute_pass.dispatch_workgroups(dispatch_x, dispatch_y, 1);
                                 drop(compute_pass);
                             }
 

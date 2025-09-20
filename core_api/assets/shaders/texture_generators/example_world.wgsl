@@ -1,6 +1,6 @@
 struct ShaderParams {
     chunk_pos: vec2<i32>,
-    chunk_size: f32,
+    chunk_size: u32,
     _padding: u32, // 16-byte alignment
 };
 
@@ -83,16 +83,16 @@ fn fbm(p: vec2<f32>, octaves: i32, lacunarity: f32, gain: f32) -> f32 {
 @group(0) @binding(0) var output_texture: texture_storage_2d<rgba8unorm, write>;
 @group(0) @binding(1) var<storage, read> params: ShaderParams;
 
-@compute @workgroup_size(8, 8)
+@compute @workgroup_size(16, 16)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let tex_size = vec2<f32>(textureDimensions(output_texture));
     let uv = vec2<f32>(global_id.xy) / tex_size;
     let flipped_uv = vec2<f32>(uv.x, 1.0 - uv.y);
 
     // Compute world position
-    let chunk_pos_f32 = vec2<f32>(params.chunk_pos);
-    let chunk_size = params.chunk_size;
-    let world_pos = chunk_pos_f32 * chunk_size + flipped_uv * chunk_size;
+    let chunk_pos = vec2<f32>(params.chunk_pos);
+    let chunk_size = f32(params.chunk_size);
+    let world_pos = chunk_pos * chunk_size + flipped_uv * chunk_size;
 
     // Define the visible world range
     let world_min = -8.0 * chunk_size;

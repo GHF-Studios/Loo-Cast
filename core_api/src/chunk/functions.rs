@@ -44,15 +44,15 @@ pub(crate) fn calculate_chunk_distance_from_owner(coord1: &(i32, i32), coord2: &
 }
 
 pub(crate) fn world_pos_to_chunk(position: Vec2) -> (i32, i32) {
-    let chunk_size = CONFIG().get::<f32>("chunk/size");
+    let chunk_size = CONFIG().get::<u32>("chunk/size") as f32;
     let chunk_x = ((position.x + chunk_size / 2.0) / chunk_size).floor() as i32;
     let chunk_y = ((position.y + chunk_size / 2.0) / chunk_size).floor() as i32;
     (chunk_x, chunk_y)
 }
 
 pub(crate) fn chunk_pos_to_world(grid_coord: (i32, i32)) -> Vec2 {
-    let chunk_size = CONFIG().get::<f32>("chunk/size");
-    let chunk_x = grid_coord.0 as f32 * chunk_size;
-    let chunk_y = grid_coord.1 as f32 * chunk_size;
+    let chunk_size = CONFIG().get::<u32>("chunk/size");
+    let chunk_x = grid_coord.0 as f32 * chunk_size as f32;
+    let chunk_y = grid_coord.1 as f32 * chunk_size as f32;
     Vec2::new(chunk_x, chunk_y)
 }
