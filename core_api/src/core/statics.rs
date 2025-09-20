@@ -1,4 +1,4 @@
-use core_api_macros::export_static;
+use core_mod_macros::export_static;
 use std::time::Instant;
 use tokio::runtime::Runtime;
 

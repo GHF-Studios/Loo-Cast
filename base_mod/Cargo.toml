@@ -11,5 +11,5 @@ init_api = []
 crate-type = ["cdylib"]
 
 [dependencies]
-core_api = { path = "../core_api" }
+core_mod = { path = "../core_mod" }
 base_mod_macros = { path = "../base_mod_macros" }

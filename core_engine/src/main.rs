@@ -1,8 +1,8 @@
-use core_api::config::statics::CONFIG;
-use core_api::core::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
-use core_api::core::types::ShortTime;
-use core_api::logging::tracing::types::LogTreeTracingLayer;
-use core_api::*;
+use core_mod::config::statics::CONFIG;
+use core_mod::core::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
+use core_mod::core::types::ShortTime;
+use core_mod::logging::tracing::types::LogTreeTracingLayer;
+use core_mod::*;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
@@ -98,7 +98,7 @@ fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
 }
 
 fn global_init(_app: &mut App) {
-    core_api::__init_api__core_api();
+    core_mod::__init_api__core_mod();
 
     // let exe_dir = std::env::current_exe().expect("failed to get exe path").parent().unwrap().to_path_buf();
     // let lib_path = exe_dir.join(format!("base_mod{}", std::env::consts::DLL_SUFFIX));

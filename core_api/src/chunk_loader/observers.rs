@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use core_api_macros::{composite_workflow, composite_workflow_return};
+use core_mod_macros::{composite_workflow, composite_workflow_return};
 
 use crate::{chunk::types::ChunkOwnerId, chunk_loader::components::ChunkLoader, workflow::functions::handle_composite_workflow_return_later};
 

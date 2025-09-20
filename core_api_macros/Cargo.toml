@@ -1,5 +1,5 @@
 [package]
-name = "core_api_macros"
+name = "core_mod_macros"
 version = "0.1.0"
 edition = "2021"
 

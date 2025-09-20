@@ -2,7 +2,7 @@
 #![allow(clippy::too_many_arguments)]
 
 pub use bevy_consumable_event;
-pub use core_api_macros;
+pub use core_mod_macros;
 
 pub use anymap;
 pub use bevy;
@@ -83,7 +83,7 @@ pub mod window;
 pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
-use core_api_macros::{api_initializer, register_workflow_mods};
+use core_mod_macros::{api_initializer, register_workflow_mods};
 
 use camera::CameraPlugin;
 use chunk::ChunkPlugin;
@@ -198,7 +198,7 @@ register_workflow_mods!(
 );
 
 api_initializer!(
-    "core_api",
+    "core_mod",
     crate::config::statics::CONFIG,
     crate::core::statics::TOKIO_RUNTIME,
     crate::core::statics::START_TIME,

@@ -16,7 +16,7 @@ pub fn export_static(input: TokenStream) -> TokenStream {
     let core_path = if is_self {
         quote! { crate }
     } else {
-        quote! { ::core_api }
+        quote! { ::core_mod }
     };
 
     quote! {
@@ -50,7 +50,7 @@ pub fn import_static(input: TokenStream) -> TokenStream {
     let core_path = if is_self {
         quote! { crate }
     } else {
-        quote! { ::core_api }
+        quote! { ::core_mod }
     };
 
     quote! {
@@ -126,7 +126,7 @@ pub fn api_initializer(input: TokenStream) -> TokenStream {
     .into()
 }
 
-/// Converts a path like `core_api::foo::bar::BAZ` to `__STATIC__core_api__foo__bar__BAZ`
+/// Converts a path like `core_mod::foo::bar::BAZ` to `__STATIC__core_mod__foo__bar__BAZ`
 pub fn mangle_path(path: &ExprPath) -> String {
     let mut out = String::from("__STATIC__");
     out += &path.path.segments.iter().map(|seg| seg.ident.to_string()).collect::<Vec<_>>().join("__");

@@ -1,5 +1,5 @@
 [package]
-name = "core_api"
+name = "core_mod"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,7 +11,7 @@ init_api = []
 allow_premium_box = []
 
 [dependencies]
-core_api_macros = { path = "../core_api_macros" }
+core_mod_macros = { path = "../core_mod_macros" }
 
 # Core core_engine/game deps (only types, traits, re-exports, no statics)
 bevy = { version = "0.16.1", features = ["bevy_picking"] }
