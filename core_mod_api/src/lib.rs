@@ -78,6 +78,7 @@ pub mod logging;
 pub mod player;
 pub mod time;
 pub mod ui;
+pub mod usf;
 pub mod utils;
 pub mod window;
 pub mod workflow;
