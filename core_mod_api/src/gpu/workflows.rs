@@ -59,7 +59,7 @@ define_workflow_mod_OLD! {
                             }
 
                             let shader_source = std::fs::read_to_string(shader_path)
-                                .map_err(|e| Error::FailedToReadShader { shader_path, shader_name, error: e })?;
+                                .map_err(|e| Error::FailedToReadShader { shader_path: shader_path.clone(), shader_name, error: e })?;
 
                             let shader = Shader::from_wgsl(shader_source, shader_path.clone());
                             let shader_handle = shader_assets.add(shader);
