@@ -2,8 +2,8 @@ use crate::define_workflow_mod_OLD::WorkflowSignature;
 
 use super::stage::{Async, Ecs, EcsWhile, Render, RenderWhile, StageSignature};
 use heck::ToPascalCase;
-use proc_macro2::TokenStream;
 use paste::paste;
+use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use std::marker::PhantomData;
 use syn::{
@@ -124,7 +124,7 @@ impl CoreType<Output> {
                     let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseO>();
                     response.output.into_inner()
                 }
-            },
+            }
             StageSignature::OE => {
                 quote! {
                     let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
@@ -133,7 +133,7 @@ impl CoreType<Output> {
                         Err(_) => panic!("Expected Output but got Error"),
                     }
                 }
-            },
+            }
             StageSignature::E => panic!("Output type is not allowed in workflows with non-output signature"),
             StageSignature::I => panic!("Output type is not allowed in workflows with non-output signature"),
             StageSignature::IO => {
@@ -141,7 +141,7 @@ impl CoreType<Output> {
                     let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseO>();
                     response.output.into_inner()
                 }
-            },
+            }
             StageSignature::IE => panic!("Output type is not allowed in workflows with non-output signature"),
             StageSignature::IOE => {
                 quote! {
@@ -151,7 +151,7 @@ impl CoreType<Output> {
                         Err(_) => panic!("Expected Output but got Error"),
                     }
                 }
-            },
+            }
         };
 
         match self {
@@ -184,7 +184,13 @@ impl CoreType<Output> {
 }
 
 impl CoreType<Error> {
-    pub fn generate(&self, workflow_path: TokenStream, workflow_signature: WorkflowSignature, stage_signature: StageSignature, stage_name_snake_case: Ident) -> TokenStream {
+    pub fn generate(
+        &self,
+        workflow_path: TokenStream,
+        workflow_signature: WorkflowSignature,
+        stage_signature: StageSignature,
+        stage_name_snake_case: Ident,
+    ) -> TokenStream {
         let stage_name_pascal_case = stage_name_snake_case.to_string().to_pascal_case();
         let stage_name_pascal_case = format!("{stage_name_pascal_case}Error");
         let stage_name_pascal_case = Ident::new(&stage_name_pascal_case, stage_name_snake_case.span());
@@ -223,7 +229,7 @@ impl CoreType<Error> {
                         Err(error) => error.into_inner(),
                     }
                 }
-            },
+            }
             StageSignature::OE => {
                 quote! {
                     let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
@@ -232,7 +238,7 @@ impl CoreType<Error> {
                         Err(error) => error.into_inner(),
                     }
                 }
-            },
+            }
             StageSignature::I => panic!("Error type is not allowed in stages with non-error signature"),
             StageSignature::IO => panic!("Error type is not allowed in stages with non-error signature"),
             StageSignature::IE => {
@@ -243,7 +249,7 @@ impl CoreType<Error> {
                         Err(error) => error.into_inner(),
                     }
                 }
-            },
+            }
             StageSignature::IOE => {
                 quote! {
                     let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
@@ -252,7 +258,7 @@ impl CoreType<Error> {
                         Err(error) => error.into_inner(),
                     }
                 }
-            },
+            }
         };
 
         match self {

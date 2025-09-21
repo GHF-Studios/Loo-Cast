@@ -352,9 +352,7 @@ pub(super) fn workflow_request_relay_system(world: &mut World) {
                 workflow_name,
                 num_stages,
                 Box::new(move |response| {
-                    // let response = response.into_inner();
-                    let response = TypedWorkflowResponse { module_name, workflow_name };
-                    response_sender.send(response).unwrap();
+                    response_sender.send(response.into_inner()).unwrap();
                 }),
             ));
         });
@@ -412,13 +410,7 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
                 workflow_name,
                 num_stages,
                 Box::new(move |response| {
-                    // let response = response.into_inner();
-                    let response = TypedWorkflowResponseE {
-                        module_name,
-                        workflow_name,
-                        result: Err(response),
-                    };
-                    response_sender.send(response).unwrap();
+                    response_sender.send(response.into_inner()).unwrap();
                 }),
             ));
         });
@@ -478,13 +470,7 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
                 workflow_name,
                 num_stages,
                 Box::new(move |response| {
-                    // let response = response.into_inner();
-                    let response = TypedWorkflowResponseO {
-                        module_name,
-                        workflow_name,
-                        output: response,
-                    };
-                    response_sender.send(response).unwrap();
+                    response_sender.send(response.into_inner()).unwrap();
                 }),
             ));
         });
@@ -542,13 +528,7 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
                 workflow_name,
                 num_stages,
                 Box::new(move |response| {
-                    // let response = response.into_inner();
-                    let response = TypedWorkflowResponseOE {
-                        module_name,
-                        workflow_name,
-                        result: Err(response),
-                    };
-                    response_sender.send(response).unwrap();
+                    response_sender.send(response.into_inner()).unwrap();
                 }),
             ));
         });
@@ -608,9 +588,7 @@ pub(super) fn workflow_request_i_relay_system(world: &mut World) {
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    // let response = response.into_inner();
-                    let response = TypedWorkflowResponse { module_name, workflow_name };
-                    response_sender.send(response).unwrap();
+                    response_sender.send(response.into_inner()).unwrap();
                 }),
             ));
         });
@@ -670,13 +648,7 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    // let response = response.into_inner();
-                    let response = TypedWorkflowResponseE {
-                        module_name,
-                        workflow_name,
-                        result: Err(response),
-                    };
-                    response_sender.send(response).unwrap();
+                    response_sender.send(response.into_inner()).unwrap();
                 }),
             ));
         });
@@ -736,13 +708,7 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    // let response = response.into_inner();
-                    let response = TypedWorkflowResponseO {
-                        module_name,
-                        workflow_name,
-                        output: response,
-                    };
-                    response_sender.send(response).unwrap();
+                    response_sender.send(response.into_inner()).unwrap();
                 }),
             ));
         });
@@ -802,13 +768,7 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    // let response = response.into_inner();
-                    let response = TypedWorkflowResponseOE {
-                        module_name,
-                        workflow_name,
-                        result: Err(response),
-                    };
-                    response_sender.send(response).unwrap();
+                    response_sender.send(response.into_inner()).unwrap();
                 }),
             ));
         });
@@ -1162,86 +1122,122 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
     }
 
     // Handle final stage completions
-    for (module_name, workflow_name, _current_stage, callback, stage_output) in final_stage_completions {
+    for (module_name, workflow_name, _current_stage, callback, output) in final_stage_completions {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             workflows.remove(workflow_name);
 
             match callback {
-                WorkflowCallback::None(callback) => callback(AnySendSyncPremiumBox::new(
-                    TypedWorkflowResponse { module_name, workflow_name },
-                    format!("{module_name}::{workflow_name}::Response"),
-                )),
+                WorkflowCallback::None(callback) => match output {
+                    Some(_output) => {
+                        let response = TypedWorkflowResponse { module_name, workflow_name };
+                        let boxed_response = AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse"));
+                        callback(boxed_response);
+                    }
+                    None => {
+                        unreachable!("Workflow success callback error: Expected Some(output), but got None.")
+                    }
+                },
 
-                WorkflowCallback::E(callback) => callback(AnySendSyncPremiumBox::new(
-                    TypedWorkflowResponseE {
-                        module_name,
-                        workflow_name,
-                        result: Ok(()),
-                    },
-                    format!("{module_name}::{workflow_name}::ResponseE"),
-                )),
+                WorkflowCallback::E(callback) => match output {
+                    Some(_output) => {
+                        let response = TypedWorkflowResponseE {
+                            module_name,
+                            workflow_name,
+                            result: Ok(()),
+                        };
+                        let boxed_response = AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-[E]"));
+                        callback(boxed_response);
+                    }
+                    None => {
+                        unreachable!("Workflow success callback error: Expected Some(output), but got None.")
+                    }
+                },
 
-                WorkflowCallback::O(callback) => {
-                    let output = stage_output.expect("Expected Some(output), got None");
-                    callback(AnySendSyncPremiumBox::new(
-                        TypedWorkflowResponseO {
+                WorkflowCallback::O(callback) => match output {
+                    Some(output) => {
+                        let response = TypedWorkflowResponseO {
                             module_name,
                             workflow_name,
                             output,
-                        },
-                        format!("{module_name}::{workflow_name}::ResponseO"),
-                    ))
-                }
+                        };
+                        let boxed_response = AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
+                        callback(boxed_response);
+                    }
+                    None => {
+                        unreachable!("Workflow success callback error: Expected Some(output), but got None.")
+                    }
+                },
 
-                WorkflowCallback::OE(callback) => {
-                    let output = stage_output.expect("Expected Some(output), got None");
-                    callback(AnySendSyncPremiumBox::new(
-                        TypedWorkflowResponseOE {
+                WorkflowCallback::OE(callback) => match output {
+                    Some(output) => {
+                        let response = TypedWorkflowResponseOE {
                             module_name,
                             workflow_name,
                             result: Ok(output),
-                        },
-                        format!("{module_name}::{workflow_name}::ResponseOE"),
-                    ))
-                }
+                        };
+                        let boxed_response = AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
+                        callback(boxed_response);
+                    }
+                    None => {
+                        unreachable!("Workflow success callback error: Expected Some(output), but got None.")
+                    }
+                },
 
-                WorkflowCallback::I(callback) => callback(AnySendSyncPremiumBox::new(
-                    TypedWorkflowResponse { module_name, workflow_name },
-                    format!("{module_name}::{workflow_name}::ResponseI"),
-                )),
+                WorkflowCallback::I(callback) => match output {
+                    Some(_output) => {
+                        let response = TypedWorkflowResponse { module_name, workflow_name };
+                        let boxed_response = AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-(I)"));
+                        callback(boxed_response);
+                    }
+                    None => {
+                        unreachable!("Workflow success callback error: Expected Some(output), but got None.")
+                    }
+                },
 
-                WorkflowCallback::IE(callback) => callback(AnySendSyncPremiumBox::new(
-                    TypedWorkflowResponseE {
-                        module_name,
-                        workflow_name,
-                        result: Ok(()),
-                    },
-                    format!("{module_name}::{workflow_name}::ResponseIE"),
-                )),
+                WorkflowCallback::IE(callback) => match output {
+                    Some(_output) => {
+                        let response = TypedWorkflowResponseE {
+                            module_name,
+                            workflow_name,
+                            result: Ok(()),
+                        };
+                        let boxed_response = AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-(I)[E]"));
+                        callback(boxed_response);
+                    }
+                    None => {
+                        unreachable!("Workflow success callback error: Expected Some(output), but got None.")
+                    }
+                },
 
-                WorkflowCallback::IO(callback) => {
-                    let output = stage_output.expect("Expected Some(output), got None");
-                    callback(AnySendSyncPremiumBox::new(
-                        TypedWorkflowResponseO {
+                WorkflowCallback::IO(callback) => match output {
+                    Some(output) => {
+                        let response = TypedWorkflowResponseO {
                             module_name,
                             workflow_name,
                             output,
-                        },
-                        format!("{module_name}::{workflow_name}::ResponseIO"),
-                    ))
-                }
+                        };
+                        let boxed_response = AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-(I)O"));
+                        callback(boxed_response);
+                    }
+                    None => {
+                        unreachable!("Workflow success callback error: Expected Some(output), but got None.")
+                    }
+                },
 
-                WorkflowCallback::IOE(callback) => {
-                    let output = stage_output.expect("Expected Some(output), got None");
-                    callback(AnySendSyncPremiumBox::new(
-                        TypedWorkflowResponseOE {
+                WorkflowCallback::IOE(callback) => match output {
+                    Some(output) => {
+                        let response = TypedWorkflowResponseOE {
                             module_name,
                             workflow_name,
                             result: Ok(output),
-                        },
-                        format!("{module_name}::{workflow_name}::ResponseIOE"),
-                    ))
-                }
+                        };
+                        let boxed_response = AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-(I)O[E]"));
+                        callback(boxed_response);
+                    }
+                    None => {
+                        unreachable!("Workflow success callback error: Expected Some(output), but got None.")
+                    }
+                },
             };
         }
     }
@@ -1272,64 +1268,87 @@ pub(super) fn workflow_failure_handling_system(world: &mut World) {
         workflow_type.stages[current_stage] = stage;
     }
 
-    for (module_name, workflow_name, stage_error) in stage_failures {
+    for (module_name, workflow_name, error) in stage_failures {
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
                 let callback = instance.take_callback();
 
                 match callback {
                     WorkflowCallback::None(_callback) => {
-                        unreachable!("Workflow callback error: Stage type 'None' does not support failure handling");
+                        unreachable!("Workflow failure callback error: Stage type 'None' does not support failure handling");
                     }
-                    WorkflowCallback::E(callback) => {
-                        let stage_error = match stage_error {
-                            Some(stage_error) => stage_error,
-                            None => {
-                                unreachable!("Workflow callback error: Expected Some(error), but got None.")
-                            }
-                        };
 
-                        (callback)(stage_error)
-                    }
+                    WorkflowCallback::E(callback) => match error {
+                        Some(error) => {
+                            let response = TypedWorkflowResponseE {
+                                module_name,
+                                workflow_name,
+                                result: Err(error),
+                            };
+                            let boxed_response = AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-E"));
+                            callback(boxed_response);
+                        }
+                        None => {
+                            unreachable!("Workflow failure callback error: Expected Some(error), but got None.")
+                        }
+                    },
+
                     WorkflowCallback::O(_callback) => {
-                        unreachable!("Workflow callback error: Stage type 'O' does not support failure handling");
+                        unreachable!("Workflow failure callback error: Stage type 'O' does not support failure handling");
                     }
-                    WorkflowCallback::OE(callback) => {
-                        let stage_error = match stage_error {
-                            Some(stage_error) => stage_error,
-                            None => {
-                                unreachable!("Workflow callback error: Expected Some(error), but got None.")
-                            }
-                        };
 
-                        (callback)(stage_error)
-                    }
+                    WorkflowCallback::OE(callback) => match error {
+                        Some(error) => {
+                            let response = TypedWorkflowResponseOE {
+                                module_name,
+                                workflow_name,
+                                result: Err(error),
+                            };
+                            let boxed_response = AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-[O]E"));
+                            callback(boxed_response);
+                        }
+                        None => {
+                            unreachable!("Workflow failure callback error: Expected Some(error), but got None.")
+                        }
+                    },
+
                     WorkflowCallback::I(_callback) => {
-                        unreachable!("Workflow callback error: Stage type 'I' does not support failure handling");
+                        unreachable!("Workflow failure callback error: Stage type 'I' does not support failure handling");
                     }
-                    WorkflowCallback::IE(callback) => {
-                        let stage_error = match stage_error {
-                            Some(stage_error) => stage_error,
-                            None => {
-                                unreachable!("Workflow callback error: Expected Some(error), but got None.")
-                            }
-                        };
 
-                        (callback)(stage_error)
-                    }
+                    WorkflowCallback::IE(callback) => match error {
+                        Some(error) => {
+                            let response = TypedWorkflowResponseE {
+                                module_name,
+                                workflow_name,
+                                result: Err(error),
+                            };
+                            let boxed_response = AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-(I)E"));
+                            callback(boxed_response);
+                        }
+                        None => {
+                            unreachable!("Workflow failure callback error: Expected Some(error), but got None.")
+                        }
+                    },
+
                     WorkflowCallback::IO(_callback) => {
-                        unreachable!("Workflow callback error: Stage type 'IO' does not support failure handling");
+                        unreachable!("Workflow failure callback error: Stage type 'IO' does not support failure handling");
                     }
-                    WorkflowCallback::IOE(callback) => {
-                        let stage_error = match stage_error {
-                            Some(stage_error) => stage_error,
-                            None => {
-                                unreachable!("Workflow callback error: Expected Some(error), but got None.")
-                            }
-                        };
 
-                        (callback)(stage_error)
-                    }
+                    WorkflowCallback::IOE(callback) => match error {
+                        Some(error) => {
+                            let response = TypedWorkflowResponseOE {
+                                module_name,
+                                workflow_name,
+                                result: Err(error),
+                            };
+                            let boxed_response = AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-(I)[O]E"));
+                            callback(boxed_response);
+                        }
+                        None => {
+                            unreachable!("Workflow failure callback error: Expected Some(error), but got None.")
+                        }
+                    },
                 };
             }
 
