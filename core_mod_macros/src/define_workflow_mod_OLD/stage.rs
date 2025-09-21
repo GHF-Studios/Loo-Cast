@@ -646,12 +646,6 @@ impl TypedStage<Ecs> {
                             Ok(output) => {
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                                let response = crate::workflow::response::TypedWorkflowResponseOE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Ok(output),
-                                };
-                                let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::Ecs,
@@ -659,7 +653,7 @@ impl TypedStage<Ecs> {
                                     workflow_name,
                                     current_stage: #index_literal,
                                     stage_return: crate::workflow::stage::Stage::Ecs(stage),
-                                    stage_output: Some(boxed_response),
+                                    stage_output: Some(output),
                                 }) {
                                     unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
                                 }
@@ -776,12 +770,6 @@ impl TypedStage<Ecs> {
                         let output: #this_stage_out_type_path = response.into_inner();
                         #stage_output_transmutation
                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                        let response = crate::workflow::response::TypedWorkflowResponseO {
-                            module_name,
-                            workflow_name,
-                            output,
-                        };
-                        let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                             ty: crate::workflow::stage::StageType::Ecs,
@@ -789,7 +777,7 @@ impl TypedStage<Ecs> {
                             workflow_name,
                             current_stage: #index_literal,
                             stage_return: crate::workflow::stage::Stage::Ecs(stage),
-                            stage_output: Some(boxed_response),
+                            stage_output: Some(output),
                         }) {
                             unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
                         }
@@ -1088,12 +1076,6 @@ impl TypedStage<Render> {
                             Ok(output) => {
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                                let response = crate::workflow::response::TypedWorkflowResponseOE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Ok(output),
-                                };
-                                let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::Render,
@@ -1101,7 +1083,7 @@ impl TypedStage<Render> {
                                     workflow_name,
                                     current_stage: #index_literal,
                                     stage_return: crate::workflow::stage::Stage::Render(stage),
-                                    stage_output: Some(boxed_response),
+                                    stage_output: Some(output),
                                 }) {
                                     unreachable!("Render response handler error: Completion event send error: {}", send_err);
                                 }
@@ -1218,12 +1200,6 @@ impl TypedStage<Render> {
                         let output: #this_stage_out_type_path = response.into_inner();
                         #stage_output_transmutation
                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                        let response = crate::workflow::response::TypedWorkflowResponseO {
-                            module_name,
-                            workflow_name,
-                            output,
-                        };
-                        let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                             ty: crate::workflow::stage::StageType::Render,
@@ -1231,7 +1207,7 @@ impl TypedStage<Render> {
                             workflow_name,
                             current_stage: #index_literal,
                             stage_return: crate::workflow::stage::Stage::Render(stage),
-                            stage_output: Some(boxed_response),
+                            stage_output: Some(output),
                         }) {
                             unreachable!("Render response handler error: Completion event send error: {}", send_err);
                         }
@@ -1530,12 +1506,6 @@ impl TypedStage<Async> {
                             Ok(output) => {
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                                let response = crate::workflow::response::TypedWorkflowResponseOE {
-                                    module_name,
-                                    workflow_name,
-                                    result: Ok(output),
-                                };
-                                let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::Async,
@@ -1543,7 +1513,7 @@ impl TypedStage<Async> {
                                     workflow_name,
                                     current_stage: #index_literal,
                                     stage_return: crate::workflow::stage::Stage::Async(stage),
-                                    stage_output: Some(boxed_response),
+                                    stage_output: Some(output),
                                 }) {
                                     unreachable!("Async response handler error: Completion event send error: {}", send_err);
                                 }
@@ -1660,12 +1630,6 @@ impl TypedStage<Async> {
                         let output: #this_stage_out_type_path = response.into_inner();
                         #stage_output_transmutation
                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                        let response = crate::workflow::response::TypedWorkflowResponseO {
-                            module_name,
-                            workflow_name,
-                            output,
-                        };
-                        let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                             ty: crate::workflow::stage::StageType::Async,
@@ -1673,7 +1637,7 @@ impl TypedStage<Async> {
                             workflow_name,
                             current_stage: #index_literal,
                             stage_return: crate::workflow::stage::Stage::Async(stage),
-                            stage_output: Some(boxed_response),
+                            stage_output: Some(output),
                         }) {
                             unreachable!("Async response handler error: Completion event send error: {}", send_err);
                         }
@@ -2171,12 +2135,6 @@ impl TypedStage<EcsWhile> {
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
                                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                                        let response = crate::workflow::response::TypedWorkflowResponseOE {
-                                            module_name,
-                                            workflow_name,
-                                            result: Ok(output),
-                                        };
-                                        let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
                                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2184,7 +2142,7 @@ impl TypedStage<EcsWhile> {
                                             workflow_name,
                                             current_stage: #index_literal,
                                             stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
-                                            stage_output: Some(boxed_response),
+                                            stage_output: Some(output),
                                         }) {
                                             unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
                                         }
@@ -2342,12 +2300,6 @@ impl TypedStage<EcsWhile> {
                             crate::workflow::types::Outcome::Done(output) => {
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                                let response = crate::workflow::response::TypedWorkflowResponseO {
-                                    module_name,
-                                    workflow_name,
-                                    output,
-                                };
-                                let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2355,7 +2307,7 @@ impl TypedStage<EcsWhile> {
                                     workflow_name,
                                     current_stage: #index_literal,
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
-                                    stage_output: Some(boxed_response),
+                                    stage_output: Some(output),
                                 }) {
                                     unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
                                 }
@@ -2602,12 +2554,6 @@ impl TypedStage<EcsWhile> {
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
                                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                                        let response = crate::workflow::response::TypedWorkflowResponseOE {
-                                            module_name,
-                                            workflow_name,
-                                            result: Ok(output),
-                                        };
-                                        let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
                                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2615,7 +2561,7 @@ impl TypedStage<EcsWhile> {
                                             workflow_name,
                                             current_stage: #index_literal,
                                             stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
-                                            stage_output: Some(boxed_response),
+                                            stage_output: Some(output),
                                         }) {
                                             unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
                                         }
@@ -2768,12 +2714,6 @@ impl TypedStage<EcsWhile> {
                                 let output: #this_stage_out_type_path = response.into_inner();
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                                let response = crate::workflow::response::TypedWorkflowResponseO {
-                                    module_name,
-                                    workflow_name,
-                                    output,
-                                };
-                                let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
@@ -2781,7 +2721,7 @@ impl TypedStage<EcsWhile> {
                                     workflow_name,
                                     current_stage: #index_literal,
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
-                                    stage_output: Some(boxed_response),
+                                    stage_output: Some(output),
                                 }) {
                                     unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
                                 }
@@ -3354,12 +3294,6 @@ impl TypedStage<RenderWhile> {
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
                                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                                        let response = crate::workflow::response::TypedWorkflowResponseOE {
-                                            module_name,
-                                            workflow_name,
-                                            result: Ok(output),
-                                        };
-                                        let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
                                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3367,7 +3301,7 @@ impl TypedStage<RenderWhile> {
                                             workflow_name,
                                             current_stage: #index_literal,
                                             stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
-                                            stage_output: Some(boxed_response),
+                                            stage_output: Some(output),
                                         }) {
                                             unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
                                         }
@@ -3525,12 +3459,6 @@ impl TypedStage<RenderWhile> {
                             crate::workflow::types::Outcome::Done(output) => {
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                                let response = crate::workflow::response::TypedWorkflowResponseO {
-                                    module_name,
-                                    workflow_name,
-                                    output,
-                                };
-                                let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3538,7 +3466,7 @@ impl TypedStage<RenderWhile> {
                                     workflow_name,
                                     current_stage: #index_literal,
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
-                                    stage_output: Some(boxed_response),
+                                    stage_output: Some(output),
                                 }) {
                                     unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
                                 }
@@ -3785,12 +3713,6 @@ impl TypedStage<RenderWhile> {
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
                                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                                        let response = crate::workflow::response::TypedWorkflowResponseOE {
-                                            module_name,
-                                            workflow_name,
-                                            result: Ok(output),
-                                        };
-                                        let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
                                         if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3798,7 +3720,7 @@ impl TypedStage<RenderWhile> {
                                             workflow_name,
                                             current_stage: #index_literal,
                                             stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
-                                            stage_output: Some(boxed_response),
+                                            stage_output: Some(output),
                                         }) {
                                             unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
                                         }
@@ -3951,12 +3873,6 @@ impl TypedStage<RenderWhile> {
                                 let output: #this_stage_out_type_path = response.into_inner();
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
-                                let response = crate::workflow::response::TypedWorkflowResponseO {
-                                    module_name,
-                                    workflow_name,
-                                    output,
-                                };
-                                let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
                                 if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
@@ -3964,7 +3880,7 @@ impl TypedStage<RenderWhile> {
                                     workflow_name,
                                     current_stage: #index_literal,
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
-                                    stage_output: Some(boxed_response),
+                                    stage_output: Some(output),
                                 }) {
                                     unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
                                 }
