@@ -16,7 +16,9 @@ define_workflow_mod_OLD! {
                 };
                 use bevy::render::render_asset::RenderAssets;
                 use bevy::render::renderer::RenderDevice;
+                use std::path::PathBuf;
 
+                use crate::core::functions::asset_root;
                 use crate::gpu::resources::ShaderRegistry;
             },
             user_items: {},
@@ -58,10 +60,16 @@ define_workflow_mod_OLD! {
                                 return Err(Error::ShaderAlreadyRegistered { shader_name })
                             }
 
-                            let shader_source = std::fs::read_to_string(shader_path)
+                            let mut abs_shader_path = PathBuf::from(shader_path);
+                            if abs_shader_path.is_relative() {
+                                abs_shader_path = asset_root().join(shader_path);
+                            }
+                            let shader_path = abs_shader_path.to_string_lossy().to_string();
+
+                            let shader_source = std::fs::read_to_string(shader_path.clone())
                                 .map_err(|e| Error::FailedToReadShader { shader_path: shader_path.clone(), shader_name, error: e })?;
 
-                            let shader = Shader::from_wgsl(shader_source, shader_path.clone());
+                            let shader = Shader::from_wgsl(shader_source, shader_path);
                             let shader_handle = shader_assets.add(shader);
 
                             Ok(Output { shader_name, shader_handle })

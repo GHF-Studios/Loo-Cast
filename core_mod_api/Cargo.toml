@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+default = [
+    "allow_premium_box"
+]
 allow_premium_box = []
 
 [dependencies]
