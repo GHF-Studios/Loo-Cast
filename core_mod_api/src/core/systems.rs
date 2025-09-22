@@ -11,6 +11,17 @@ pub(super) fn startup_system() {
 
         workflow!(Camera::SpawnMainCameras);
 
+        let example_dev_texture_generator_shader_name = "texture_generators/example_dev";
+        let example_dev_texture_generator_shader_path = "core_mod/shaders/texture_generators/example_dev.wgsl".to_string();
+        workflow!(
+            IE,
+            Gpu::SetupTextureGenerator,
+            Input {
+                shader_name: example_dev_texture_generator_shader_name,
+                shader_path: example_dev_texture_generator_shader_path,
+            }
+        );
+
         let example_uv_texture_generator_shader_name = "texture_generators/example_uv";
         let example_uv_texture_generator_shader_path = "core_mod/shaders/texture_generators/example_uv.wgsl".to_string();
         workflow!(

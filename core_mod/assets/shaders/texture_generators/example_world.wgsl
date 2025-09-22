@@ -1,7 +1,9 @@
 struct ShaderParams {
     chunk_pos: vec2<i32>,
     chunk_size: u32,
-    _padding: u32, // 16-byte alignment
+    chunk_scale: u32,        // Scale of *this* chunk
+    current_view_scale: u32, // Scale currently being viewed
+    _padding: vec3<u32>, // Padding for 16-byte alignment
 };
 
 fn mod289(x: vec2<f32>) -> vec2<f32> {

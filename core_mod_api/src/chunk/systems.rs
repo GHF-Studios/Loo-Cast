@@ -191,13 +191,18 @@ pub(crate) fn process_chunk_actions_system(
     let spawn_handle = if !spawn_inputs.is_empty() {
         let texture_size = CONFIG().get::<u32>("chunk/size");
         let chunk_size = CONFIG().get::<u32>("chunk/size");
+        let chunk_scale = CONFIG().get::<u32>("chunk/scale");
+        let current_view_scale = CONFIG().get::<u32>("chunk_loader/current_view_scale");
 
         let param_data = spawn_coords
             .iter()
             .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
                 chunk_pos: [x, y],
                 chunk_size,
-                _padding: u32::default(),
+                chunk_scale,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
             })
             .collect::<Vec<_>>();
         let new_chunk_loaders = new_chunk_loaders.clone();

@@ -7,11 +7,13 @@ follow_smoothness = 0.15
 
 [chunk]
 size = 512
+scale = 35
 default_z = -10.0
-texture_generator_shader = "texture_generators/example_world"
+texture_generator_shader = "texture_generators/example_dev"
 
 [chunk_loader]
 default_radius = 8
+current_view_scale = 35
 
 [debug]
 spawn_debug_objects = false

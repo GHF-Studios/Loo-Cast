@@ -16,10 +16,12 @@ define_workflow_mod_OLD! {
                 };
                 use bevy::render::render_asset::RenderAssets;
                 use bevy::render::renderer::RenderDevice;
+                use std::num::NonZeroU64;
                 use std::path::PathBuf;
 
                 use crate::core::functions::asset_root;
                 use crate::gpu::resources::ShaderRegistry;
+                use crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams;
             },
             user_items: {},
             stages: [
@@ -139,7 +141,7 @@ define_workflow_mod_OLD! {
                                         ty: BindingType::Buffer {
                                             ty: BufferBindingType::Storage { read_only: true },
                                             has_dynamic_offset: false,
-                                            min_binding_size: None,
+                                            min_binding_size: Some(NonZeroU64::new(std::mem::size_of::<ShaderParams>() as u64).unwrap()),
                                         },
                                         count: None,
                                     },
@@ -250,12 +252,15 @@ define_workflow_mod_OLD! {
                 use crate::gpu::resources::ShaderRegistry;
             },
             user_items: {
-                #[repr(C)]
+                #[repr(C, align(16))]
                 #[derive(Clone, Copy, Debug)]
                 pub struct ShaderParams {
-                    pub chunk_pos: [i32; 2],
-                    pub chunk_size: u32,
-                    pub _padding: u32,
+                    pub chunk_pos: [i32; 2],           // 8 bytes
+                    pub chunk_size: u32,               // 4 bytes
+                    pub chunk_scale: u32,              // 4 bytes
+                    pub current_view_scale: u32,       // 4 bytes
+                    pub _padding0: u32,                // Pad to next 16-byte boundary
+                    pub _padding1: [u32; 4],           // Add 16 more to reach 48
                 }
                 unsafe impl bytemuck::Pod for ShaderParams {}
                 unsafe impl bytemuck::Zeroable for ShaderParams {}
