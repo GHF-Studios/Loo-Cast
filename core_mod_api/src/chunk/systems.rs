@@ -130,7 +130,7 @@ pub(crate) fn process_chunk_actions_system<S: Scale>(
     let mut despawn_inputs = vec![];
     let mut transfer_inputs = vec![];
 
-    let mut chunk_loaders_performing_chunk_loads: Vec<ChunkOwnerId> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads: Vec<ChunkOwnerId<S>> = Vec::new();
     for (_, coords) in action_intent_commit_buffer.priority_buckets.iter() {
         for coord in coords {
             let action_intent = action_intent_commit_buffer

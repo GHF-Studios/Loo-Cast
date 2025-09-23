@@ -14,7 +14,7 @@ lazy_static! {
 #[reflect(Component)]
 pub struct ChunkLoader<S: Scale> {
     pub radius: u32,
-    chunk_owner_id: ChunkOwnerId,
+    chunk_owner_id: ChunkOwnerId<S>,
     #[reflect(ignore)]
     phantom_scale: std::marker::PhantomData<S>,
 }
@@ -32,7 +32,7 @@ impl<S: Scale> ChunkLoader<S> {
         }
     }
 
-    pub fn chunk_owner_id(&self) -> &ChunkOwnerId {
+    pub fn chunk_owner_id(&self) -> &ChunkOwnerId<S> {
         &self.chunk_owner_id
     }
 }

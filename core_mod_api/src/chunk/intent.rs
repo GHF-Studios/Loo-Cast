@@ -1,15 +1,18 @@
 use bevy::prelude::Reflect;
+use std::marker::PhantomData;
+
+use crate::usf::scale::Scale;
 
 use super::types::ChunkOwnerId;
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Reflect)]
-pub enum State {
+pub enum State<S: Scale> {
     #[default]
     Absent,
-    Owned(ChunkOwnerId),
+    Owned(ChunkOwnerId<S>),
 }
-impl State {
-    pub fn owner_id(&self) -> Option<ChunkOwnerId> {
+impl<S: Scale> State<S> {
+    pub fn owner_id(&self) -> Option<ChunkOwnerId<S>> {
         match self {
             State::Absent => None,
             State::Owned(owner_id) => Some(owner_id.clone()),
@@ -18,24 +21,24 @@ impl State {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Reflect)]
-pub enum ActionIntent {
+pub enum ActionIntent<S: Scale> {
     Spawn {
-        owner_id: ChunkOwnerId,
+        owner_id: ChunkOwnerId<S>,
         coord: (i32, i32),
         priority: ActionPriority,
     },
     Despawn {
-        owner_id: ChunkOwnerId,
+        owner_id: ChunkOwnerId<S>,
         coord: (i32, i32),
         priority: ActionPriority,
     },
     TransferOwnership {
-        new_owner_id: ChunkOwnerId,
+        new_owner_id: ChunkOwnerId<S>,
         coord: (i32, i32),
         priority: ActionPriority,
     },
 }
-impl ActionIntent {
+impl<S: Scale> ActionIntent<S> {
     pub fn is_spawn(&self) -> bool {
         matches!(self, ActionIntent::Spawn { .. })
     }
@@ -48,7 +51,7 @@ impl ActionIntent {
         matches!(self, ActionIntent::TransferOwnership { .. })
     }
 
-    pub fn owner_id(&self) -> ChunkOwnerId {
+    pub fn owner_id(&self) -> ChunkOwnerId<S> {
         match self {
             ActionIntent::Spawn { owner_id, .. } | ActionIntent::Despawn { owner_id, .. } | ActionIntent::TransferOwnership { new_owner_id: owner_id, .. } => {
                 owner_id.clone()
@@ -98,33 +101,33 @@ impl Default for ActionPriority {
 }
 
 #[derive(Debug, Reflect)]
-pub enum ResolutionError {
-    IntentBufferNotFlushed,
-    InvalidIntentCommitted,
-    CurrentOwnerNotFoundInQuery,
+pub enum ResolutionError<S: Scale> {
+    IntentBufferNotFlushed(PhantomData<S>),
+    InvalidIntentCommitted(PhantomData<S>),
+    CurrentOwnerNotFoundInQuery(PhantomData<S>),
 }
 
 #[derive(Debug, Reflect)]
-pub enum ResolutionWarning {
-    RedundantIntent,
-    IntentWithoutOwnership,
-    IntentBufferUnavailable,
-    SpawnIntentAfterCommittingToOwnershipTransfer,
-    DespawnIntentAfterCommittingToOwnershipTransfer,
-    OwnershipTransferIntentOfNonexistentChunk,
-    OwnershipTransferItentOfDespawningChunk,
+pub enum ResolutionWarning<S: Scale> {
+    RedundantIntent(PhantomData<S>),
+    IntentWithoutOwnership(PhantomData<S>),
+    IntentBufferUnavailable(PhantomData<S>),
+    SpawnIntentAfterCommittingToOwnershipTransfer(PhantomData<S>),
+    DespawnIntentAfterCommittingToOwnershipTransfer(PhantomData<S>),
+    OwnershipTransferIntentOfNonexistentChunk(PhantomData<S>),
+    OwnershipTransferItentOfDespawningChunk(PhantomData<S>),
 }
 
 #[derive(Debug, Reflect)]
-pub enum ResolvedActionIntent {
-    PushCommit(ActionIntent),
-    PushBuffer(ActionIntent),
+pub enum ResolvedActionIntent<S: Scale> {
+    PushCommit(ActionIntent<S>),
+    PushBuffer(ActionIntent<S>),
     CancelIntent,
-    DiscardIncoming(ResolutionWarning),
-    Error(ResolutionError),
+    DiscardIncoming(ResolutionWarning<S>),
+    Error(ResolutionError<S>),
 }
 
-pub fn resolve_intent(chunk_state: &State, committed: Option<&ActionIntent>, buffered: Option<&ActionIntent>, incoming: ActionIntent) -> ResolvedActionIntent {
+pub fn resolve_intent<S: Scale>(chunk_state: &State<S>, committed: Option<&ActionIntent<S>>, buffered: Option<&ActionIntent<S>>, incoming: ActionIntent<S>) -> ResolvedActionIntent<S> {
     use ActionIntent::*;
     use ResolutionError::*;
     use ResolutionWarning::*;

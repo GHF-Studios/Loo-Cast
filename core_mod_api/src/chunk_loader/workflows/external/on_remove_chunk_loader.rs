@@ -1,5 +1,6 @@
 // Imports
 use bevy::prelude::*;
+use std::marker::PhantomData;
 
 use crate::chunk::components::Chunk;
 use crate::chunk::functions::*;
@@ -7,7 +8,7 @@ use crate::chunk::intent::ActionIntent;
 use crate::chunk::resources::{ActionIntentCommitBuffer, ChunkManager};
 use crate::chunk::types::ChunkOwnerId;
 use crate::chunk_loader::components::ChunkLoader;
-use crate::chunk_loader::workflows::chunk_loader::unload_chunks::user_items::UnloadChunkInput;
+use crate::chunk_loader::workflows::external::unload_chunks::UnloadChunkInput;
 use crate::usf::scale::Scale;
 
 // Items
@@ -15,10 +16,11 @@ use crate::usf::scale::Scale;
 // Core Types
 pub struct MainAccess<'w, 's, S: Scale> {
     pub chunk_manager: Res<'w, ChunkManager<S>>,
+    pub phantom_data: PhantomData<&'s ()>
 }
 
 pub struct Input<S: Scale> {
-    pub chunk_owner_id: ChunkOwnerId,
+    pub chunk_owner_id: ChunkOwnerId<S>,
     pub chunk_loader_position: Vec2,
     pub chunk_loader_radius: u32,
 }

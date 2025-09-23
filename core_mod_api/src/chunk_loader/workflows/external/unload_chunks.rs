@@ -1,6 +1,7 @@
 // Imports
 use bevy::prelude::{debug, error, warn, Entity, Query, Res, ResMut, Transform, Vec2};
 use std::collections::HashSet;
+use std::marker::PhantomData;
 
 use crate::chunk::{
     components::Chunk,
@@ -11,23 +12,25 @@ use crate::chunk::{
 };
 use crate::chunk_loader::components::ChunkLoader;
 use crate::usf::scale::Scale;
+use crate::workflow::types::Outcome;
 
 // Items
-pub struct UnloadChunkInput {
-    pub owner_id: ChunkOwnerId,
+pub struct UnloadChunkInput<S: Scale> {
+    pub owner_id: ChunkOwnerId<S>,
     pub chunk_coord: (i32, i32),
     pub chunk_loader_distance_squared: u32,
     pub chunk_loader_radius_squared: u32,
 }
 
-pub struct DespawnChunkState {
+pub struct DespawnChunkState<S: Scale> {
     pub coord: (i32, i32),
     pub is_despawned: bool,
+    pub phantom_scale: std::marker::PhantomData<S>,
 }
 
-pub struct TransferChunkOwnershipState {
+pub struct TransferChunkOwnershipState<S: Scale> {
     pub coord: (i32, i32),
-    pub owner_id: ChunkOwnerId,
+    pub owner_id: ChunkOwnerId<S>,
     pub is_ownership_transfered: bool,
 }
 
@@ -141,7 +144,7 @@ pub fn setup_ecs_while<S: Scale>(input: Input<S>, main_access: MainAccess<S>) ->
             ResolvedActionIntent::PushCommit(action) => match action.clone() {
                 ActionIntent::Despawn { .. } => {
                     action_intent_commit_buffer.commit_intent(action);
-                    despawn_chunk_states.push(DespawnChunkState { coord, is_despawned: false });
+                    despawn_chunk_states.push(DespawnChunkState { coord, is_despawned: false, phantom_scale: PhantomData });
                 }
                 ActionIntent::TransferOwnership { new_owner_id, .. } => {
                     action_intent_commit_buffer.commit_intent(action);
@@ -189,7 +192,7 @@ pub fn setup_ecs_while<S: Scale>(input: Input<S>, main_access: MainAccess<S>) ->
     }
 }
 
-pub fn run_ecs_while<S: Scale>(state: State<S>, main_access: MainAccess<S>) -> Outcome<State, ()> {
+pub fn run_ecs_while<S: Scale>(state: State<S>, main_access: MainAccess<S>) -> Outcome<State<S>, ()> {
     // warn!("Running UnloadChunks");
     let chunk_query = main_access.chunk_query;
 

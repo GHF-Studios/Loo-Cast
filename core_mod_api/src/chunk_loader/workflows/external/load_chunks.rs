@@ -12,24 +12,25 @@ use crate::chunk_loader::components::ChunkLoader;
 use crate::config::statics::CONFIG;
 use crate::usf::scale::Scale;
 use crate::utils::components::InitHook;
+use crate::workflow::types::Outcome;
 
 // Items
-pub struct LoadChunkInput {
-    pub owner_id: ChunkOwnerId,
+pub struct LoadChunkInput<S: Scale> {
+    pub owner_id: ChunkOwnerId<S>,
     pub chunk_coord: (i32, i32),
     pub chunk_loader_distance_squared: u32,
     pub chunk_loader_radius_squared: u32,
 }
 
-pub struct SpawnChunkState {
+pub struct SpawnChunkState<S: Scale> {
     pub coord: (i32, i32),
-    pub owner_id: ChunkOwnerId,
+    pub owner_id: ChunkOwnerId<S>,
     pub is_spawned: bool,
 }
 
-pub struct TransferChunkOwnershipState {
+pub struct TransferChunkOwnershipState<S: Scale> {
     pub coord: (i32, i32),
-    pub owner_id: ChunkOwnerId,
+    pub owner_id: ChunkOwnerId<S>,
     pub is_ownership_transfered: bool,
 }
 
@@ -162,7 +163,7 @@ pub fn setup_ecs_while<S: Scale>(input: Input<S>, main_access: MainAccess<S>) ->
     }
 }
 
-pub fn run_ecs_while<S: Scale>(state: State<S>, main_access: MainAccess<S>) -> Outcome<State, ()> {
+pub fn run_ecs_while<S: Scale>(state: State<S>, main_access: MainAccess<S>) -> Outcome<State<S>, ()> {
     let chunk_query = main_access.chunk_query;
 
     let spawn_chunk_states = state

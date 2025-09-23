@@ -7,7 +7,7 @@ use crate::chunk::intent::ActionIntent;
 use crate::chunk::resources::ActionIntentCommitBuffer;
 use crate::chunk::resources::ChunkManager;
 use crate::chunk_loader::components::ChunkLoader;
-use crate::chunk_loader::workflows::chunk_loader::{load_chunks::user_items::LoadChunkInput, unload_chunks::user_items::UnloadChunkInput};
+use crate::chunk_loader::workflows::external::{load_chunks::LoadChunkInput, unload_chunks::UnloadChunkInput};
 use crate::usf::scale::Scale;
 use crate::utils::components::DropHook;
 

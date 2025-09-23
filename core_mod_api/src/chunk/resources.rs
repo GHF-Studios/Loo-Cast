@@ -9,13 +9,13 @@ use super::intent::{ActionIntent, ActionPriority};
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
 pub struct ActionIntentCommitBuffer<S: Scale> {
-    pub action_intent: HashMap<(i32, i32), ActionIntent>,
+    pub action_intent: HashMap<(i32, i32), ActionIntent<S>>,
     pub priority_buckets: BTreeMap<ActionPriority, HashSet<(i32, i32)>>,
     #[reflect(ignore)]
     phantom_scale: std::marker::PhantomData<S>,
 }
 impl<S: Scale> ActionIntentCommitBuffer<S> {
-    pub fn commit_intent(&mut self, action_intent: ActionIntent) {
+    pub fn commit_intent(&mut self, action_intent: ActionIntent<S>) {
         let coord = action_intent.coord();
         let priority = action_intent.priority();
 
@@ -23,7 +23,7 @@ impl<S: Scale> ActionIntentCommitBuffer<S> {
         self.priority_buckets.entry(priority).or_default().insert(coord);
     }
 
-    pub fn commit_intents(&mut self, action_intents: impl IntoIterator<Item = ActionIntent>) {
+    pub fn commit_intents(&mut self, action_intents: impl IntoIterator<Item = ActionIntent<S>>) {
         for action_intent in action_intents {
             self.commit_intent(action_intent);
         }
@@ -48,14 +48,14 @@ impl<S: Scale> ActionIntentCommitBuffer<S> {
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&(i32, i32), &ActionIntent)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&(i32, i32), &ActionIntent<S>)> {
         self.priority_buckets
             .iter()
             .flat_map(|(_, coords)| coords.iter())
             .filter_map(|coord| self.action_intent.get_key_value(coord))
     }
 
-    pub fn get(&self, coord: &(i32, i32)) -> Option<&ActionIntent> {
+    pub fn get(&self, coord: &(i32, i32)) -> Option<&ActionIntent<S>> {
         self.action_intent.get(coord)
     }
 }
@@ -63,13 +63,13 @@ impl<S: Scale> ActionIntentCommitBuffer<S> {
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
 pub struct ActionIntentBuffer<S: Scale> {
-    pub action_intents: HashMap<(i32, i32), ActionIntent>,
+    pub action_intents: HashMap<(i32, i32), ActionIntent<S>>,
     pub priority_buckets: BTreeMap<ActionPriority, HashSet<(i32, i32)>>,
     #[reflect(ignore)]
     phantom_scale: std::marker::PhantomData<S>,
 }
 impl<S: Scale> ActionIntentBuffer<S> {
-    pub fn buffer_intent(&mut self, action_intent: ActionIntent) {
+    pub fn buffer_intent(&mut self, action_intent: ActionIntent<S>) {
         let coord = action_intent.coord();
         let priority = action_intent.priority();
 
@@ -90,7 +90,7 @@ impl<S: Scale> ActionIntentBuffer<S> {
         }
     }
 
-    pub fn get(&self, coord: &(i32, i32)) -> Option<&ActionIntent> {
+    pub fn get(&self, coord: &(i32, i32)) -> Option<&ActionIntent<S>> {
         self.action_intents.get(coord)
     }
 }
@@ -99,7 +99,7 @@ impl<S: Scale> ActionIntentBuffer<S> {
 #[reflect(Resource)]
 pub struct ChunkManager<S: Scale> {
     pub loaded_chunks: HashSet<(i32, i32)>,
-    pub owned_chunks: HashMap<(i32, i32), ChunkOwnerId>,
+    pub owned_chunks: HashMap<(i32, i32), ChunkOwnerId<S>>,
     #[reflect(ignore)]
     phantom_scale: std::marker::PhantomData<S>,
 }

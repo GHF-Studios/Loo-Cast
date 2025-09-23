@@ -13,7 +13,7 @@ use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use components::DebugObjectComponent;
 use resources::{DebugSuiteUiDockState, DebugSuiteUiState};
 use systems::{
-    chunk_inspection_system, chunk_loader_inspection_system, chunk_manager_debug_ui, debug_object_movement_system, debug_suite_ui_system,
+    debug_object_movement_system, debug_suite_ui_system,
     log_registry_debug_ui, perf_ui_startup, toggle_debug_suite_ui_system, toggle_perf_ui_system,
 };
 use types::{DebugObjectMovement, StepConfig, StepMode};
@@ -33,9 +33,6 @@ impl Plugin for DebugPlugin {
                     toggle_perf_ui_system,
                     toggle_debug_suite_ui_system,
                     debug_object_movement_system.run_if(run_after_startup_finished.and(run_if_not_paused)),
-                    chunk_inspection_system,
-                    chunk_loader_inspection_system,
-                    chunk_manager_debug_ui,
                     log_registry_debug_ui,
                 ),
             )

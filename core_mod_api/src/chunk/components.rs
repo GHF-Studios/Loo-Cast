@@ -12,12 +12,12 @@ use super::types::ChunkOwnerId;
 #[reflect(Component)]
 pub struct Chunk<S: Scale> {
     pub coord: (i32, i32),
-    pub(crate) owner_id: Option<ChunkOwnerId>,
+    pub(crate) owner_id: Option<ChunkOwnerId<S>>,
     #[reflect(ignore)]
     pub phantom_scale: std::marker::PhantomData<S>,
 }
 impl<S: Scale> Chunk<S> {
-    pub fn owner_id(&self) -> &ChunkOwnerId {
+    pub fn owner_id(&self) -> &ChunkOwnerId<S> {
         self.owner_id.as_ref().expect("Unreachable state: Chunk has no owner_id")
     }
 }

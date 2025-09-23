@@ -1,6 +1,6 @@
 use bevy::prelude::Reflect;
 
-pub trait Scale: 'static + Send + Sync + std::fmt::Debug {
+pub trait Scale: 'static + Send + Sync + Default + Debug + Reflect + PartialOrd + Ord + PartialEq + Eq + Hash {
     type Up: Scale;
     type Down: Scale;
 
@@ -29,7 +29,7 @@ impl<Min: Scale, Max: Scale> ScaleRangeMarker for ScaleRange<Min, Max> {
     type Max = Max;
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct NoLowerScale;
 impl Scale for NoLowerScale {
     type Up = NoLowerScale;
@@ -44,7 +44,7 @@ impl std::fmt::Debug for NoLowerScale {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter000001;
 impl Scale for ScaleQuectoMeter000001 {
     type Up = ScaleQuectoMeter00001;
@@ -59,7 +59,7 @@ impl std::fmt::Debug for ScaleQuectoMeter000001 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter00001;
 impl Scale for ScaleQuectoMeter00001 {
     type Up = ScaleQuectoMeter0001;
@@ -74,7 +74,7 @@ impl std::fmt::Debug for ScaleQuectoMeter00001 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter0001;
 impl Scale for ScaleQuectoMeter0001 {
     type Up = ScaleQuectoMeter001;
@@ -89,7 +89,7 @@ impl std::fmt::Debug for ScaleQuectoMeter0001 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter001;
 impl Scale for ScaleQuectoMeter001 {
     type Up = ScaleQuectoMeter01;
@@ -104,7 +104,7 @@ impl std::fmt::Debug for ScaleQuectoMeter001 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter01;
 impl Scale for ScaleQuectoMeter01 {
     type Up = ScaleQuectoMeter1;
@@ -119,7 +119,7 @@ impl std::fmt::Debug for ScaleQuectoMeter01 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter1;
 impl Scale for ScaleQuectoMeter1 {
     type Up = ScaleQuectoMeter10;
@@ -134,7 +134,7 @@ impl std::fmt::Debug for ScaleQuectoMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter10;
 impl Scale for ScaleQuectoMeter10 {
     type Up = ScaleQuectoMeter100;
@@ -149,7 +149,7 @@ impl std::fmt::Debug for ScaleQuectoMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter100;
 impl Scale for ScaleQuectoMeter100 {
     type Up = ScaleRontoMeter1;
@@ -164,7 +164,7 @@ impl std::fmt::Debug for ScaleQuectoMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRontoMeter1;
 impl Scale for ScaleRontoMeter1 {
     type Up = ScaleRontoMeter10;
@@ -179,7 +179,7 @@ impl std::fmt::Debug for ScaleRontoMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRontoMeter10;
 impl Scale for ScaleRontoMeter10 {
     type Up = ScaleRontoMeter100;
@@ -194,7 +194,7 @@ impl std::fmt::Debug for ScaleRontoMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRontoMeter100;
 impl Scale for ScaleRontoMeter100 {
     type Up = ScaleYoctoMeter1;
@@ -209,7 +209,7 @@ impl std::fmt::Debug for ScaleRontoMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYoctoMeter1;
 impl Scale for ScaleYoctoMeter1 {
     type Up = ScaleYoctoMeter10;
@@ -224,7 +224,7 @@ impl std::fmt::Debug for ScaleYoctoMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYoctoMeter10;
 impl Scale for ScaleYoctoMeter10 {
     type Up = ScaleYoctoMeter100;
@@ -239,7 +239,7 @@ impl std::fmt::Debug for ScaleYoctoMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYoctoMeter100;
 impl Scale for ScaleYoctoMeter100 {
     type Up = ScaleZeptoMeter1;
@@ -254,7 +254,7 @@ impl std::fmt::Debug for ScaleYoctoMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZeptoMeter1;
 impl Scale for ScaleZeptoMeter1 {
     type Up = ScaleZeptoMeter10;
@@ -269,7 +269,7 @@ impl std::fmt::Debug for ScaleZeptoMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZeptoMeter10;
 impl Scale for ScaleZeptoMeter10 {
     type Up = ScaleZeptoMeter100;
@@ -284,7 +284,7 @@ impl std::fmt::Debug for ScaleZeptoMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZeptoMeter100;
 impl Scale for ScaleZeptoMeter100 {
     type Up = ScaleAttoMeter1;
@@ -299,7 +299,7 @@ impl std::fmt::Debug for ScaleZeptoMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleAttoMeter1;
 impl Scale for ScaleAttoMeter1 {
     type Up = ScaleAttoMeter10;
@@ -314,7 +314,7 @@ impl std::fmt::Debug for ScaleAttoMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleAttoMeter10;
 impl Scale for ScaleAttoMeter10 {
     type Up = ScaleAttoMeter100;
@@ -329,7 +329,7 @@ impl std::fmt::Debug for ScaleAttoMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleAttoMeter100;
 impl Scale for ScaleAttoMeter100 {
     type Up = ScaleFemtoMeter1;
@@ -344,7 +344,7 @@ impl std::fmt::Debug for ScaleAttoMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleFemtoMeter1;
 impl Scale for ScaleFemtoMeter1 {
     type Up = ScaleFemtoMeter10;
@@ -359,7 +359,7 @@ impl std::fmt::Debug for ScaleFemtoMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleFemtoMeter10;
 impl Scale for ScaleFemtoMeter10 {
     type Up = ScaleFemtoMeter100;
@@ -374,7 +374,7 @@ impl std::fmt::Debug for ScaleFemtoMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleFemtoMeter100;
 impl Scale for ScaleFemtoMeter100 {
     type Up = ScalePicoMeter1;
@@ -389,7 +389,7 @@ impl std::fmt::Debug for ScaleFemtoMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePicoMeter1;
 impl Scale for ScalePicoMeter1 {
     type Up = ScalePicoMeter10;
@@ -404,7 +404,7 @@ impl std::fmt::Debug for ScalePicoMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePicoMeter10;
 impl Scale for ScalePicoMeter10 {
     type Up = ScalePicoMeter100;
@@ -419,7 +419,7 @@ impl std::fmt::Debug for ScalePicoMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePicoMeter100;
 impl Scale for ScalePicoMeter100 {
     type Up = ScaleNanoMeter1;
@@ -434,7 +434,7 @@ impl std::fmt::Debug for ScalePicoMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleNanoMeter1;
 impl Scale for ScaleNanoMeter1 {
     type Up = ScaleNanoMeter10;
@@ -449,7 +449,7 @@ impl std::fmt::Debug for ScaleNanoMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleNanoMeter10;
 impl Scale for ScaleNanoMeter10 {
     type Up = ScaleNanoMeter100;
@@ -464,7 +464,7 @@ impl std::fmt::Debug for ScaleNanoMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleNanoMeter100;
 impl Scale for ScaleNanoMeter100 {
     type Up = ScaleMicroMeter1;
@@ -479,7 +479,7 @@ impl std::fmt::Debug for ScaleNanoMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMicroMeter1;
 impl Scale for ScaleMicroMeter1 {
     type Up = ScaleMicroMeter10;
@@ -494,7 +494,7 @@ impl std::fmt::Debug for ScaleMicroMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMicroMeter10;
 impl Scale for ScaleMicroMeter10 {
     type Up = ScaleMicroMeter100;
@@ -509,7 +509,7 @@ impl std::fmt::Debug for ScaleMicroMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMicroMeter100;
 impl Scale for ScaleMicroMeter100 {
     type Up = ScaleMilliMeter1;
@@ -524,7 +524,7 @@ impl std::fmt::Debug for ScaleMicroMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMilliMeter1;
 impl Scale for ScaleMilliMeter1 {
     type Up = ScaleMilliMeter10;
@@ -539,7 +539,7 @@ impl std::fmt::Debug for ScaleMilliMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMilliMeter10;
 impl Scale for ScaleMilliMeter10 {
     type Up = ScaleMilliMeter100;
@@ -554,7 +554,7 @@ impl std::fmt::Debug for ScaleMilliMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMilliMeter100;
 impl Scale for ScaleMilliMeter100 {
     type Up = ScaleMilliMeter10;
@@ -569,7 +569,7 @@ impl std::fmt::Debug for ScaleMilliMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMeter1;
 impl Scale for ScaleMeter1 {
     type Up = ScaleMeter10;
@@ -584,7 +584,7 @@ impl std::fmt::Debug for ScaleMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMeter10;
 impl Scale for ScaleMeter10 {
     type Up = ScaleMeter100;
@@ -599,7 +599,7 @@ impl std::fmt::Debug for ScaleMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMeter100;
 impl Scale for ScaleMeter100 {
     type Up = ScaleKiloMeter1;
@@ -614,7 +614,7 @@ impl std::fmt::Debug for ScaleMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleKiloMeter1;
 impl Scale for ScaleKiloMeter1 {
     type Up = ScaleKiloMeter10;
@@ -629,7 +629,7 @@ impl std::fmt::Debug for ScaleKiloMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleKiloMeter10;
 impl Scale for ScaleKiloMeter10 {
     type Up = ScaleKiloMeter100;
@@ -644,7 +644,7 @@ impl std::fmt::Debug for ScaleKiloMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleKiloMeter100;
 impl Scale for ScaleKiloMeter100 {
     type Up = ScaleMegaMeter1;
@@ -659,7 +659,7 @@ impl std::fmt::Debug for ScaleKiloMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMegaMeter1;
 impl Scale for ScaleMegaMeter1 {
     type Up = ScaleMegaMeter10;
@@ -674,7 +674,7 @@ impl std::fmt::Debug for ScaleMegaMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMegaMeter10;
 impl Scale for ScaleMegaMeter10 {
     type Up = ScaleMegaMeter100;
@@ -689,7 +689,7 @@ impl std::fmt::Debug for ScaleMegaMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMegaMeter100;
 impl Scale for ScaleMegaMeter100 {
     type Up = ScaleGigaMeter1;
@@ -704,7 +704,7 @@ impl std::fmt::Debug for ScaleMegaMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleGigaMeter1;
 impl Scale for ScaleGigaMeter1 {
     type Up = ScaleGigaMeter10;
@@ -719,7 +719,7 @@ impl std::fmt::Debug for ScaleGigaMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleGigaMeter10;
 impl Scale for ScaleGigaMeter10 {
     type Up = ScaleGigaMeter100;
@@ -734,7 +734,7 @@ impl std::fmt::Debug for ScaleGigaMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleGigaMeter100;
 impl Scale for ScaleGigaMeter100 {
     type Up = ScaleTeraMeter1;
@@ -749,7 +749,7 @@ impl std::fmt::Debug for ScaleGigaMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleTeraMeter1;
 impl Scale for ScaleTeraMeter1 {
     type Up = ScaleTeraMeter10;
@@ -764,7 +764,7 @@ impl std::fmt::Debug for ScaleTeraMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleTeraMeter10;
 impl Scale for ScaleTeraMeter10 {
     type Up = ScaleTeraMeter100;
@@ -779,7 +779,7 @@ impl std::fmt::Debug for ScaleTeraMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleTeraMeter100;
 impl Scale for ScaleTeraMeter100 {
     type Up = ScalePetaMeter1;
@@ -794,7 +794,7 @@ impl std::fmt::Debug for ScaleTeraMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePetaMeter1;
 impl Scale for ScalePetaMeter1 {
     type Up = ScalePetaMeter10;
@@ -809,7 +809,7 @@ impl std::fmt::Debug for ScalePetaMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePetaMeter10;
 impl Scale for ScalePetaMeter10 {
     type Up = ScalePetaMeter100;
@@ -824,7 +824,7 @@ impl std::fmt::Debug for ScalePetaMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePetaMeter100;
 impl Scale for ScalePetaMeter100 {
     type Up = ScaleExaMeter1;
@@ -839,7 +839,7 @@ impl std::fmt::Debug for ScalePetaMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleExaMeter1;
 impl Scale for ScaleExaMeter1 {
     type Up = ScaleExaMeter10;
@@ -854,7 +854,7 @@ impl std::fmt::Debug for ScaleExaMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleExaMeter10;
 impl Scale for ScaleExaMeter10 {
     type Up = ScaleExaMeter100;
@@ -869,7 +869,7 @@ impl std::fmt::Debug for ScaleExaMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleExaMeter100;
 impl Scale for ScaleExaMeter100 {
     type Up = ScaleZettaMeter1;
@@ -884,7 +884,7 @@ impl std::fmt::Debug for ScaleExaMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZettaMeter1;
 impl Scale for ScaleZettaMeter1 {
     type Up = ScaleZettaMeter10;
@@ -899,7 +899,7 @@ impl std::fmt::Debug for ScaleZettaMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZettaMeter10;
 impl Scale for ScaleZettaMeter10 {
     type Up = ScaleZettaMeter100;
@@ -914,7 +914,7 @@ impl std::fmt::Debug for ScaleZettaMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZettaMeter100;
 impl Scale for ScaleZettaMeter100 {
     type Up = ScaleYottaMeter1;
@@ -929,7 +929,7 @@ impl std::fmt::Debug for ScaleZettaMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYottaMeter1;
 impl Scale for ScaleYottaMeter1 {
     type Up = ScaleYottaMeter10;
@@ -944,7 +944,7 @@ impl std::fmt::Debug for ScaleYottaMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYottaMeter10;
 impl Scale for ScaleYottaMeter10 {
     type Up = ScaleYottaMeter100;
@@ -959,7 +959,7 @@ impl std::fmt::Debug for ScaleYottaMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYottaMeter100;
 impl Scale for ScaleYottaMeter100 {
     type Up = ScaleRonnaMeter1;
@@ -974,7 +974,7 @@ impl std::fmt::Debug for ScaleYottaMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRonnaMeter1;
 impl Scale for ScaleRonnaMeter1 {
     type Up = ScaleRonnaMeter10;
@@ -989,7 +989,7 @@ impl std::fmt::Debug for ScaleRonnaMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRonnaMeter10;
 impl Scale for ScaleRonnaMeter10 {
     type Up = ScaleRonnaMeter100;
@@ -1004,7 +1004,7 @@ impl std::fmt::Debug for ScaleRonnaMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRonnaMeter100;
 impl Scale for ScaleRonnaMeter100 {
     type Up = ScaleQuettaMeter1;
@@ -1019,7 +1019,7 @@ impl std::fmt::Debug for ScaleRonnaMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter1;
 impl Scale for ScaleQuettaMeter1 {
     type Up = ScaleQuettaMeter10;
@@ -1034,7 +1034,7 @@ impl std::fmt::Debug for ScaleQuettaMeter1 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter10;
 impl Scale for ScaleQuettaMeter10 {
     type Up = ScaleQuettaMeter100;
@@ -1049,7 +1049,7 @@ impl std::fmt::Debug for ScaleQuettaMeter10 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter100;
 impl Scale for ScaleQuettaMeter100 {
     type Up = ScaleQuettaMeter1000;
@@ -1064,7 +1064,7 @@ impl std::fmt::Debug for ScaleQuettaMeter100 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter1000;
 impl Scale for ScaleQuettaMeter1000 {
     type Up = ScaleQuettaMeter10000;
@@ -1079,7 +1079,7 @@ impl std::fmt::Debug for ScaleQuettaMeter1000 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter10000;
 impl Scale for ScaleQuettaMeter10000 {
     type Up = ScaleQuettaMeter100000;
@@ -1094,7 +1094,7 @@ impl std::fmt::Debug for ScaleQuettaMeter10000 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter100000;
 impl Scale for ScaleQuettaMeter100000 {
     type Up = NoHigherScale;
@@ -1109,7 +1109,7 @@ impl std::fmt::Debug for ScaleQuettaMeter100000 {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct NoHigherScale;
 impl Scale for NoHigherScale {
     type Up = NoHigherScale;

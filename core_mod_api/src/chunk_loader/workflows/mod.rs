@@ -107,7 +107,7 @@ define_workflow_mod_OLD! {
                     Input as ValidateAndLoadAndWaitStageInput,
                     State as ValidateAndLoadAndWaitStageState,
                     setup_ecs_while as validate_and_load_and_wait_stage_setup_ecs_while,
-                    run_ecs as validate_and_load_and_wait_stage_run_ecs,
+                    run_ecs_while as validate_and_load_and_wait_stage_run_ecs_while,
                 };
                 use crate::usf::scale::ScaleMeter1;
             },
@@ -133,7 +133,7 @@ define_workflow_mod_OLD! {
                         }
 
                         fn RunEcsWhile |state, main_access| -> Outcome<State, ()> {
-                            let outcome = validate_and_load_and_wait_stage_run_ecs(state.inner, main_access.inner);
+                            let outcome = validate_and_load_and_wait_stage_run_ecs_while(state.inner, main_access.inner);
                             outcome.map_wait(|s| State { inner: s })
                         }
                     ]
@@ -148,7 +148,7 @@ define_workflow_mod_OLD! {
                     Input as UnloadAndWaitStageInput,
                     State as UnloadAndWaitStageState,
                     setup_ecs_while as unload_and_wait_stage_setup_ecs_while,
-                    run_ecs as unload_and_wait_stage_run_ecs,
+                    run_ecs_while as unload_and_wait_stage_run_ecs_while,
                 };
                 use crate::usf::scale::ScaleMeter1;
             },
@@ -174,7 +174,7 @@ define_workflow_mod_OLD! {
                         }
 
                         fn RunEcsWhile |state, main_access| -> Outcome<State, ()> {
-                            let outcome = unload_and_wait_stage_run_ecs(state.inner, main_access.inner);
+                            let outcome = unload_and_wait_stage_run_ecs_while(state.inner, main_access.inner);
                             outcome.map_wait(|s| State { inner: s })
                         }
                     ]
