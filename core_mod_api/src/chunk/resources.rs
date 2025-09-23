@@ -1,17 +1,20 @@
 use bevy::prelude::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
+use crate::usf::scale::Scale;
 use crate::{chunk::types::ChunkOwnerId, gpu::workflows::gpu::generate_render_textures::user_items::ChunkRenderExecutor};
 
 use super::intent::{ActionIntent, ActionPriority};
 
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
-pub struct ActionIntentCommitBuffer {
+pub struct ActionIntentCommitBuffer<S: Scale> {
     pub action_intent: HashMap<(i32, i32), ActionIntent>,
     pub priority_buckets: BTreeMap<ActionPriority, HashSet<(i32, i32)>>,
+    #[reflect(ignore)]
+    phantom_scale: std::marker::PhantomData<S>,
 }
-impl ActionIntentCommitBuffer {
+impl<S: Scale> ActionIntentCommitBuffer<S> {
     pub fn commit_intent(&mut self, action_intent: ActionIntent) {
         let coord = action_intent.coord();
         let priority = action_intent.priority();
@@ -59,11 +62,13 @@ impl ActionIntentCommitBuffer {
 
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
-pub struct ActionIntentBuffer {
+pub struct ActionIntentBuffer<S: Scale> {
     pub action_intents: HashMap<(i32, i32), ActionIntent>,
     pub priority_buckets: BTreeMap<ActionPriority, HashSet<(i32, i32)>>,
+    #[reflect(ignore)]
+    phantom_scale: std::marker::PhantomData<S>,
 }
-impl ActionIntentBuffer {
+impl<S: Scale> ActionIntentBuffer<S> {
     pub fn buffer_intent(&mut self, action_intent: ActionIntent) {
         let coord = action_intent.coord();
         let priority = action_intent.priority();
@@ -92,11 +97,13 @@ impl ActionIntentBuffer {
 
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
-pub struct ChunkManager {
+pub struct ChunkManager<S: Scale> {
     pub loaded_chunks: HashSet<(i32, i32)>,
     pub owned_chunks: HashMap<(i32, i32), ChunkOwnerId>,
+    #[reflect(ignore)]
+    phantom_scale: std::marker::PhantomData<S>,
 }
-impl ChunkManager {
+impl<S: Scale> ChunkManager<S> {
     pub fn get_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool) {
         (self.loaded_chunks.contains(chunk_coord), self.owned_chunks.contains_key(chunk_coord))
     }
@@ -112,10 +119,12 @@ impl ChunkManager {
 
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
-pub struct ChunkRenderHandles {
+pub struct ChunkRenderHandles<S: Scale> {
     pub quad: Handle<Mesh>,
     pub light_material: Handle<ColorMaterial>,
     pub dark_material: Handle<ColorMaterial>,
+    #[reflect(ignore)]
+    pub phantom_scale: std::marker::PhantomData<S>,
 }
 
 #[derive(Default, Resource)]

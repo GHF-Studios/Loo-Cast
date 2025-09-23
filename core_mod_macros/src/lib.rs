@@ -8,16 +8,20 @@ mod define_workflow_mod;
 mod define_workflow_mod_OLD;
 mod global_statics;
 mod register_workflow_mods;
+mod usf;
 
 use composite_workflow::CompositeWorkflow as OuterCompositeWorkflow;
 use composite_workflow_return::CompositeWorkflowReturn;
 use define_composite_workflow::CompositeWorkflow as InnerCompositeWorkflow;
 use define_workflow_mod_OLD::WorkflowModule;
 use register_workflow_mods::WorkflowMods;
+use usf::scale::configure_app_with_all_scales::AppConfigInput;
 
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse_macro_input;
+
+// Workflow
 
 #[proc_macro]
 pub fn composite_workflow(input: TokenStream) -> TokenStream {
@@ -64,6 +68,18 @@ pub fn define_workflow(_input: TokenStream) -> TokenStream {
 pub fn define_worfklow_stages(_input: TokenStream) -> TokenStream {
     quote! {}.into()
 }
+
+// Usf
+
+// Scale
+
+#[proc_macro]
+pub fn configure_app_with_all_scales(input: TokenStream) -> TokenStream {
+    let app_config_input = parse_macro_input!(input as AppConfigInput);
+    app_config_input.generate().into()
+}
+
+// Global statics
 
 #[proc_macro]
 pub fn export_static(input: TokenStream) -> TokenStream {

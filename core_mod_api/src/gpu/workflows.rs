@@ -454,10 +454,10 @@ define_workflow_mod_OLD! {
                                 let (width, height) = (texture_size, texture_size);
                                 let workgroup_size_x = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_x");
                                 let workgroup_size_y = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_y");
-                                
+
                                 let dispatch_x = width.div_ceil(workgroup_size_x);
                                 let dispatch_y = height.div_ceil(workgroup_size_y);
-                                
+
                                 let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor { label: None, timestamp_writes: None });
                                 compute_pass.set_pipeline(pipeline);
                                 compute_pass.set_bind_group(0, &bind_group, &[]);
@@ -757,7 +757,7 @@ define_workflow_mod_OLD! {
                             render_access.queue.on_submitted_work_done(move || {
                                 let _ = sender.send(());
                             });
-                            
+
                             let mut executor = input.executor.clone();
                             executor.receiver = Some(receiver);
 
@@ -767,7 +767,7 @@ define_workflow_mod_OLD! {
                         }
                     ]
                 }
-                
+
                 WaitForTexturesReady: EcsWhile, run_if_paused: false, run_after_startup_finished: false {
                     core_types: [
                         struct MainAccess {}
@@ -785,7 +785,7 @@ define_workflow_mod_OLD! {
                         fn SetupEcsWhile |input, main_access| -> State {
                             State { executor: input.executor }
                         }
-                    
+
                         fn RunEcsWhile |state, main_access| -> Outcome<State, Output> {
                             match &state.executor.receiver {
                                 Some(receiver) => {

@@ -2,16 +2,19 @@ use bevy::ecs::entity::Entity;
 use bevy::prelude::Reflect;
 use tokio::task::JoinHandle;
 
+use crate::usf::scale::Scale;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 
 #[derive(Reflect)]
-pub struct ChunkActionWorkflowHandles {
+pub struct ChunkActionWorkflowHandles<S: Scale> {
     #[reflect(ignore)]
     pub spawn: Option<JoinHandle<ScopedCompositeWorkflowContext>>,
     #[reflect(ignore)]
     pub despawn: Option<JoinHandle<ScopedCompositeWorkflowContext>>,
     #[reflect(ignore)]
     pub transfer: Option<JoinHandle<ScopedCompositeWorkflowContext>>,
+    #[reflect(ignore)]
+    pub phantom_scale: std::marker::PhantomData<S>,
 }
 
 #[derive(Debug, Clone, Reflect)]

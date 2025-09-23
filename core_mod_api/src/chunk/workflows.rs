@@ -76,9 +76,10 @@ define_workflow_mod_OLD! {
                                         image: metric_texture,
                                         ..Default::default()
                                     },
-                                    Chunk {
+                                    Chunk::<S> {
                                         coord: chunk_coord,
                                         owner_id: Some(chunk_owner_id.clone()),
+                                        phantom_scale: std::marker::PhantomData,
                                     },
                                     chunk_name
                                 )).observe(on_click_select).id();

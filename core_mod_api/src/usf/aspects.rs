@@ -1,5 +1,3 @@
-
-
 // Atomic / fundamental aspects
 pub struct Mass;
 pub struct Charge;
@@ -39,12 +37,12 @@ pub struct Growth;
 pub struct Decay;
 
 // Scale-local semantics
-pub struct Cohesion;    // (macro)
-pub struct Curvature;   // (relativistic)
+pub struct Cohesion; // (macro)
+pub struct Curvature; // (relativistic)
 pub struct Superposition; // (quantum)
 pub struct Consciousness; // (macro + above)
 
 // Organizational / metadata-ish
 pub struct Composition; // element makeup
-pub struct State;       // internal state of an entity or system
-pub struct FieldValue;  // placeholder for external field effect
+pub struct State; // internal state of an entity or system
+pub struct FieldValue; // placeholder for external field effect

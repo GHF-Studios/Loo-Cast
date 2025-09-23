@@ -1,0 +1,1 @@
+pub mod configure_app_with_all_scales;

@@ -111,6 +111,21 @@ pub enum Outcome<S, O> {
     Wait(S),
     Done(O),
 }
+impl<S, O> Outcome<S, O> {
+    pub fn map_wait<T, F: FnOnce(S) -> T>(self, f: F) -> Outcome<T, O> {
+        match self {
+            Outcome::Wait(s) => Outcome::Wait(f(s)),
+            Outcome::Done(o) => Outcome::Done(o),
+        }
+    }
+
+    pub fn map_done<T, F: FnOnce(O) -> T>(self, f: F) -> Outcome<S, T> {
+        match self {
+            Outcome::Wait(s) => Outcome::Wait(s),
+            Outcome::Done(o) => Outcome::Done(f(o)),
+        }
+    }
+}
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct WorkflowID {

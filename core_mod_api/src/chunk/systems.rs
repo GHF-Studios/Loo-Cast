@@ -8,6 +8,7 @@ use crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::Trans
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::resources::RemovedChunkLoaders;
 use crate::config::statics::CONFIG;
+use crate::usf::scale::Scale;
 use crate::utils::components::InitHook;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
@@ -19,7 +20,7 @@ use super::types::ChunkActionWorkflowHandles;
 use super::ActionIntentCommitBuffer;
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
+pub(crate) fn chunk_startup_system<S: Scale>(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
     let workgroup_size_x = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_x");
     let workgroup_size_y = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_y");
     let workgroup_size_total = workgroup_size_x * workgroup_size_y;
@@ -33,15 +34,20 @@ pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<As
     let light_material: Handle<ColorMaterial> = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
     let dark_material = materials.add(ColorMaterial::from_color(Color::srgb(0.25, 0.25, 0.25)));
 
-    commands.insert_resource(ChunkRenderHandles {
+    commands.insert_resource(ChunkRenderHandles::<S> {
         quad,
         light_material,
         dark_material,
+        phantom_scale: std::marker::PhantomData,
     });
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn chunk_update_system(mut commands: Commands, chunk_query: Query<(Entity, &Transform, &Chunk)>, removed_chunk_loaders: Res<RemovedChunkLoaders>) {
+pub(crate) fn chunk_update_system<S: Scale>(
+    mut commands: Commands,
+    chunk_query: Query<(Entity, &Transform, &Chunk<S>)>,
+    removed_chunk_loaders: Res<RemovedChunkLoaders<S>>,
+) {
     for (entity, transform, chunk) in chunk_query.iter() {
         let world_pos = transform.translation.truncate();
         let chunk_pos = world_pos_to_chunk(world_pos);
@@ -60,10 +66,10 @@ pub(crate) fn chunk_update_system(mut commands: Commands, chunk_query: Query<(En
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn process_chunk_actions_system(
-    mut chunk_loader_init_hook_query: Query<&mut InitHook<ChunkLoader>>,
-    mut action_intent_commit_buffer: ResMut<ActionIntentCommitBuffer>,
-    mut workflow_handles: Local<Option<ChunkActionWorkflowHandles>>,
+pub(crate) fn process_chunk_actions_system<S: Scale>(
+    mut chunk_loader_init_hook_query: Query<&mut InitHook<ChunkLoader<S>>>,
+    mut action_intent_commit_buffer: ResMut<ActionIntentCommitBuffer<S>>,
+    mut workflow_handles: Local<Option<ChunkActionWorkflowHandles<S>>>,
 ) {
     // Step 1: If workflows are running, wait for all to complete
     if let Some(handles) = &mut *workflow_handles {
@@ -272,10 +278,11 @@ pub(crate) fn process_chunk_actions_system(
         None
     };
 
-    *workflow_handles = Some(ChunkActionWorkflowHandles {
+    *workflow_handles = Some(ChunkActionWorkflowHandles::<S> {
         spawn: spawn_handle,
         despawn: despawn_handle,
         transfer: transfer_handle,
+        phantom_scale: std::marker::PhantomData::<S>,
     });
 
     // Step 4: Mark all these actions as in-progress (remove them from the commit buffer)

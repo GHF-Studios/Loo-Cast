@@ -1,3 +1,4 @@
+use crate::usf::scale::Scale;
 use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 use tokio::task::JoinHandle;
@@ -7,7 +8,7 @@ use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>) {
+pub(crate) fn update_chunk_loader_system<S: Scale>(mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>) {
     let handle_is_some = (*composite_workflow_handle).is_some();
     let handle_is_finished = match *composite_workflow_handle {
         Some(ref handle) => handle.is_finished(),
@@ -45,6 +46,6 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn post_update_chunk_loader_system(mut removed_chunk_loaders: ResMut<RemovedChunkLoaders>) {
+pub(crate) fn post_update_chunk_loader_system<S: Scale>(mut removed_chunk_loaders: ResMut<RemovedChunkLoaders<S>>) {
     removed_chunk_loaders.0.clear();
 }
