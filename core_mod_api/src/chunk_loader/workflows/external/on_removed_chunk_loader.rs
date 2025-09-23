@@ -15,6 +15,7 @@ use crate::usf::scale::Scale;
 // Items
 
 // Core Types
+#[derive(bevy::ecs::system::SystemParam)]
 pub struct MainAccess<'w, 's, S: Scale> {
     pub removed_chunk_loaders: ResMut<'w, RemovedChunkLoaders<S>>,
     pub phantom_data: PhantomData<&'s ()>,

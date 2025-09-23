@@ -42,6 +42,7 @@ pub fn calculate_spawn_priority(distance_squared: u32, radius_squared: u32) -> A
 }
 
 // Core Types
+#[derive(bevy::ecs::system::SystemParam)]
 pub struct MainAccess<'w, 's, S: Scale> {
     pub chunk_query: Query<'w, 's, &'static Chunk<S>>,
     pub chunk_manager: Res<'w, ChunkManager<S>>,

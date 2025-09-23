@@ -7,6 +7,8 @@ define_workflow_mod_OLD! {
     workflows: [
         CategorizeChunks, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
+                use bevy::prelude::ResMut;
+
                 use crate::chunk_loader::workflows::external::categorize_chunks::{
                     MainAccess as CategorizeStageMainAccess,
                     Output as CategorizeStageOutput,
@@ -39,6 +41,8 @@ define_workflow_mod_OLD! {
 
         OnRemoveChunkLoader, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
+                use bevy::prelude::ResMut;
+                
                 use crate::chunk_loader::workflows::external::on_remove_chunk_loader::{
                     MainAccess as ExtractUnloadChunkInputsStageMainAccess,
                     Input as ExtractUnloadChunkInputsStageInput,
@@ -73,6 +77,8 @@ define_workflow_mod_OLD! {
 
         OnRemovedChunkLoader, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
+                use bevy::prelude::ResMut;
+                
                 use crate::chunk_loader::workflows::external::on_removed_chunk_loader::{
                     MainAccess as SendRemovedChunkLoaderEventStageMainAccess,
                     Input as SendRemovedChunkLoaderEventStageInput,
@@ -102,6 +108,8 @@ define_workflow_mod_OLD! {
 
         LoadChunks, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
+                use bevy::prelude::ResMut;
+                
                 use crate::chunk_loader::workflows::external::load_chunks::{
                     MainAccess as ValidateAndLoadAndWaitStageMainAccess,
                     Input as ValidateAndLoadAndWaitStageInput,
@@ -143,6 +151,8 @@ define_workflow_mod_OLD! {
 
         UnloadChunks, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
+                use bevy::prelude::ResMut;
+                
                 use crate::chunk_loader::workflows::external::unload_chunks::{
                     MainAccess as UnloadAndWaitStageMainAccess,
                     Input as UnloadAndWaitStageInput,

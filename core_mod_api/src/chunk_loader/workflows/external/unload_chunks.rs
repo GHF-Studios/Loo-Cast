@@ -50,6 +50,7 @@ pub fn is_chunk_in_loader_range(chunk_coord: &(i32, i32), loader_position: Vec2,
 }
 
 // Core Types
+#[derive(bevy::ecs::system::SystemParam)]
 pub struct MainAccess<'w, 's, S: Scale> {
     pub chunk_manager: Res<'w, ChunkManager<S>>,
     pub action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer<S>>,

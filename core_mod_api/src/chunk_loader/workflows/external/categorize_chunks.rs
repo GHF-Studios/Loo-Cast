@@ -14,6 +14,7 @@ use crate::utils::components::DropHook;
 // Items
 
 // Core Types
+#[derive(bevy::ecs::system::SystemParam)]
 pub struct MainAccess<'w, 's, S: Scale> {
     pub chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader<S>, Option<&'static DropHook<ChunkLoader<S>>>)>,
     pub chunk_manager: Res<'w, ChunkManager<S>>,
