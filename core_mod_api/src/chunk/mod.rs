@@ -13,7 +13,7 @@ use bevy::prelude::*;
 use components::Chunk;
 use errors::{DespawnError, SpawnError, TransferOwnershipError};
 use intent::{ActionIntent, ActionPriority, ResolutionError, ResolutionWarning, ResolvedActionIntent, State};
-use resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, ChunkRenderHandles};
+use resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, ChunkRenderExecutorRegistry, ChunkRenderHandles};
 use systems::{chunk_startup_system, chunk_update_system, process_chunk_actions_system};
 use types::{ChunkActionWorkflowHandles, ChunkOwnerId};
 
@@ -25,6 +25,7 @@ impl Plugin for ChunkPlugin {
         app.insert_resource(ActionIntentBuffer::default())
             .insert_resource(ActionIntentCommitBuffer::default())
             .insert_resource(ChunkManager::default())
+            .insert_resource(ChunkRenderExecutorRegistry::default())
             .add_systems(Startup, chunk_startup_system)
             .add_systems(Update, chunk_update_system.run_if(run_after_startup_finished.and(run_if_not_paused)))
             .add_systems(
