@@ -257,8 +257,8 @@ define_workflow_mod_OLD! {
                 pub struct ShaderParams {
                     pub chunk_pos: [i32; 2],           // 8 bytes
                     pub chunk_size: u32,               // 4 bytes
-                    pub chunk_scale: u32,              // 4 bytes
-                    pub current_view_scale: u32,       // 4 bytes
+                    pub chunk_scale: i32,              // 4 bytes
+                    pub current_view_scale: i32,       // 4 bytes
                     pub _padding0: u32,                // Pad to next 16-byte boundary
                     pub _padding1: [u32; 4],           // Add 16 more to reach 48
                 }

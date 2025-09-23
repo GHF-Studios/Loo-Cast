@@ -191,8 +191,8 @@ pub(crate) fn process_chunk_actions_system(
     let spawn_handle = if !spawn_inputs.is_empty() {
         let texture_size = CONFIG().get::<u32>("chunk/size");
         let chunk_size = CONFIG().get::<u32>("chunk/size");
-        let chunk_scale = CONFIG().get::<u32>("chunk/scale");
-        let current_view_scale = CONFIG().get::<u32>("chunk_loader/current_view_scale");
+        let chunk_scale = CONFIG().get::<i32>("chunk/scale");
+        let current_view_scale = CONFIG().get::<i32>("chunk_loader/current_view_scale");
 
         let param_data = spawn_coords
             .iter()

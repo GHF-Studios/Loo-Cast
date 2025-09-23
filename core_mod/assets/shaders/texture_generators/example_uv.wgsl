@@ -1,8 +1,8 @@
 struct ShaderParams {
     chunk_pos: vec2<i32>,
     chunk_size: u32,
-    chunk_scale: u32,        // Scale of *this* chunk
-    current_view_scale: u32, // Scale currently being viewed
+    chunk_scale: i32,        // Scale of *this* chunk
+    _current_view_scale: i32, // Scale currently being viewed
     _padding: vec3<u32>, // Padding for 16-byte alignment
 };
 

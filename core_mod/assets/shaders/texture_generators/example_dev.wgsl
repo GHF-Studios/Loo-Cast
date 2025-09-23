@@ -1,8 +1,8 @@
 struct ShaderParams {
     chunk_pos: vec2<i32>,
     chunk_size: u32,
-    chunk_scale: u32,
-    current_view_scale: u32,
+    chunk_scale: i32,
+    current_view_scale: i32,
     _padding: vec3<u32>,
 };
 
@@ -35,17 +35,34 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let normalized_scale = clamp((f32(params.chunk_scale) + 35.0) / 70.0, 0.0, 1.0);
     let base_color = hsv_to_rgb(normalized_scale, 1.0, 1.0);
 
-    let border_thickness = 16u;
-    let is_border_x = global_id.x < border_thickness || global_id.x >= (params.chunk_size - border_thickness);
-    let is_border_y = global_id.y < border_thickness || global_id.y >= (params.chunk_size - border_thickness);
-    let is_border = is_border_x || is_border_y;
+    let checker = (params.chunk_pos.x + params.chunk_pos.y + params.chunk_scale) % 2;
+    let opacity_multiplier = select(1.0, 4.0, checker == 1);
 
-    var color: vec4<f32>;
-    if (is_border) {
-        color = vec4<f32>(1.0, 1.0, 1.0, 1.0);
-    } else {
-        color = vec4<f32>(base_color, 0.05);
+    var final_color = vec4<f32>(base_color, 0.05 * opacity_multiplier);
+    
+    // === Border Levels ===
+    let divisions = array<u32, 5u>(1u, 2u, 8u, 32u, 128u);
+    let thicknesses = array<u32, 5u>(16u, 8u, 4u, 2u, 1u);
+    let opacities = array<f32, 5u>(1.0, 0.5, 0.25, 0.125, 0.0625);
+
+    for (var i = 0u; i < 5u; i = i + 1u) {
+        let div = divisions[i];
+        let section_size = params.chunk_size / div;
+        let thickness = thicknesses[i];
+        let opacity = opacities[i];
+
+        let section_x = global_id.x % section_size;
+        let section_y = global_id.y % section_size;
+
+        let is_border_x = section_x < thickness || section_x >= (section_size - thickness);
+        let is_border_y = section_y < thickness || section_y >= (section_size - thickness);
+        let is_border = is_border_x || is_border_y;
+
+        if (is_border) {
+            final_color += vec4<f32>(1.0, 1.0, 1.0, opacity);
+        }
     }
 
-    textureStore(output_texture, global_id.xy, color);
+    final_color = clamp(final_color, vec4(0.0), vec4(1.0));
+    textureStore(output_texture, global_id.xy, final_color);
 }
