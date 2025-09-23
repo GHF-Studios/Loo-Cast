@@ -22,6 +22,7 @@ pub struct ChunkActionWorkflowHandles<S: Scale> {
 pub struct ChunkOwnerId<S: Scale> {
     id: String,
     entity: Entity,
+    #[reflect(ignore)]
     phantom_scale: std::marker::PhantomData<S>,
 }
 impl<S: Scale> ChunkOwnerId<S> {

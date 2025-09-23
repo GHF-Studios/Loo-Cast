@@ -138,7 +138,7 @@ pub fn setup_ecs_while<S: Scale>(input: Input<S>, main_access: MainAccess<S>) ->
 
         let resolution = match proposed_intent {
             Some(proposed_intent) => resolve_intent(&chunk_state, committed, buffered, proposed_intent.clone()),
-            None => ResolvedActionIntent::DiscardIncoming(ResolutionWarning::RedundantIntent),
+            None => ResolvedActionIntent::DiscardIncoming(ResolutionWarning::RedundantIntent(PhantomData)),
         };
 
         match resolution {

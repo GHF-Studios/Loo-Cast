@@ -28,13 +28,7 @@ impl Plugin for ChunkPlugin {
             .register_type::<SpawnError>()
             .register_type::<DespawnError>()
             .register_type::<TransferOwnershipError>()
-            .register_type::<State>()
-            .register_type::<ActionIntent>()
-            .register_type::<ActionPriority>()
-            .register_type::<ResolutionError>()
-            .register_type::<ResolutionWarning>()
-            .register_type::<ResolvedActionIntent>()
-            .register_type::<ChunkOwnerId>();
+            .register_type::<ActionPriority>();
 
         configure_app_with_all_scales!(
             { .insert_resource(ActionIntentBuffer::<__S__>::default()) },
@@ -51,6 +45,12 @@ impl Plugin for ChunkPlugin {
             { .register_type::<ChunkManager::<__S__>>() },
             { .register_type::<ChunkRenderHandles::<__S__>>() },
             { .register_type::<ChunkActionWorkflowHandles::<__S__>>() },
+            { .register_type::<State::<__S__>>() },
+            { .register_type::<ActionIntent::<__S__>>() },
+            { .register_type::<ResolutionError::<__S__>>() },
+            { .register_type::<ResolutionWarning::<__S__>>() },
+            { .register_type::<ResolvedActionIntent::<__S__>>() },
+            { .register_type::<ChunkOwnerId::<__S__>>() },
         );
     }
 }

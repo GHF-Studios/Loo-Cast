@@ -1,3 +1,5 @@
+pub mod external;
+
 use core_mod_macros::define_workflow_mod_OLD;
 
 define_workflow_mod_OLD! {
