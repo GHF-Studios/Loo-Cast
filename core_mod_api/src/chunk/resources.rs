@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use crate::chunk::types::ChunkOwnerId;
+use crate::{chunk::types::ChunkOwnerId, gpu::workflows::gpu::generate_render_textures::user_items::ChunkRenderExecutor};
 
 use super::intent::{ActionIntent, ActionPriority};
 
@@ -116,4 +116,9 @@ pub struct ChunkRenderHandles {
     pub quad: Handle<Mesh>,
     pub light_material: Handle<ColorMaterial>,
     pub dark_material: Handle<ColorMaterial>,
+}
+
+#[derive(Default, Resource)]
+pub struct ChunkRenderExecutorRegistry {
+    pub executors: HashMap<(i32, i32), ChunkRenderExecutor>,
 }

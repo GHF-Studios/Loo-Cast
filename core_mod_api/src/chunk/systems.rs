@@ -218,7 +218,7 @@ pub(crate) fn process_chunk_actions_system(
 
             let shader_name = CONFIG().get::<&'static str>("chunk/texture_generator_shader");
 
-            let generate_output = workflow!(IO, Gpu::GenerateTextures, Input {
+            let generate_output = workflow!(IO, Gpu::GenerateRenderTextures, Input {
                 shader_name,
                 texture_size,
                 param_data,
@@ -226,7 +226,7 @@ pub(crate) fn process_chunk_actions_system(
 
             let spawn_inputs_with_textures = spawn_inputs
                 .into_iter()
-                .zip(generate_output.texture_handles.into_iter())
+                .zip(generate_output.executor.texture_handles.clone().into_iter())
                 .map(|(mut input, tex)| {
                     input.metric_texture = tex; // Placeholder handle replaced
                     input

@@ -187,6 +187,12 @@ register_workflow_mods!(
             DispatchBatch: Render,
             WaitForBatch: EcsWhile,
         },
+        GenerateRenderTextures {
+            PrepareRenderExecutor: Ecs,
+            GetTextureViews: RenderWhile,
+            DispatchRenderTextures: Render,
+            WaitForTexturesReady: EcsWhile,
+        }
     },
     Player {
         SpawnPlayer {
