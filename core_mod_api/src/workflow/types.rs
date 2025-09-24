@@ -112,6 +112,14 @@ pub enum Outcome<S, O> {
     Done(O),
 }
 impl<S, O> Outcome<S, O> {
+    pub fn is_wait(&self) -> bool {
+        matches!(self, Outcome::Wait(_))
+    }
+
+    pub fn is_done(&self) -> bool {
+        matches!(self, Outcome::Done(_))
+    }
+
     pub fn map_wait<T, F: FnOnce(S) -> T>(self, f: F) -> Outcome<T, O> {
         match self {
             Outcome::Wait(s) => Outcome::Wait(f(s)),
