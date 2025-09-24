@@ -7,131 +7,395 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnChunks, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
-                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, Handle, Image, Transform, Sprite, Name, warn, error};
+                use bevy::prelude::ResMut;
 
-                use crate::chunk::{components::Chunk, resources::ChunkManager, functions::chunk_pos_to_world, types::ChunkOwnerId};
-                use crate::config::statics::CONFIG;
-                use crate::debug::observers::on_click_select;
+                use crate::chunk::workflows::external::spawn_chunks::{
+                    MainAccess as ValidateAndSpawnAndWaitMainAccess,
+                    Input as ValidateAndSpawnAndWaitInput,
+                    State as ValidateAndSpawnAndWaitState,
+                    Output as ValidateAndSpawnAndWaitOutput,
+                    Error as ValidateAndSpawnAndWaitError,
+                    setup_ecs_while as validate_and_spawn_and_wait_setup_ecs_while,
+                    run_ecs_while as validate_and_spawn_and_wait_run_ecs_while,
+                };
+                use crate::usf::scale::*;
             },
             user_items: {
-                pub struct SpawnChunkInput {
-                    pub chunk_coord: (i32, i32),
-                    pub chunk_owner_id: ChunkOwnerId,
-                    pub metric_texture: Handle<Image>
-                }
-                #[derive(Clone)]
-                pub struct SpawnChunkState {
-                    pub chunk_entity: Entity,
-                    pub is_spawned: bool,
-                }
             },
             stages: [
                 ValidateAndSpawnAndWait: EcsWhile, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
-                            commands: Commands<'w, 's>,
-                            chunk_query: Query<'w, 's, &'static Chunk>,
-                            chunk_manager: ResMut<'w, ChunkManager>,
+                            inner_scale_quecto_meter_000001: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter000001>,
+                            inner_scale_quecto_meter_00001: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter00001>,
+                            inner_scale_quecto_meter_0001: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter0001>,
+                            inner_scale_quecto_meter_001: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter001>,
+                            inner_scale_quecto_meter_01: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter01>,
+                            inner_scale_quecto_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter1>,
+                            inner_scale_quecto_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter10>,
+                            inner_scale_quecto_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter100>,
+                            inner_scale_ronto_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleRontoMeter1>,
+                            inner_scale_ronto_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleRontoMeter10>,
+                            inner_scale_ronto_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleRontoMeter100>,
+                            inner_scale_yocto_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleYoctoMeter1>,
+                            inner_scale_yocto_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleYoctoMeter10>,
+                            inner_scale_yocto_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleYoctoMeter100>,
+                            inner_scale_zepto_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleZeptoMeter1>,
+                            inner_scale_zepto_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleZeptoMeter10>,
+                            inner_scale_zepto_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleZeptoMeter100>,
+                            inner_scale_atto_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleAttoMeter1>,
+                            inner_scale_atto_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleAttoMeter10>,
+                            inner_scale_atto_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleAttoMeter100>,
+                            inner_scale_femto_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleFemtoMeter1>,
+                            inner_scale_femto_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleFemtoMeter10>,
+                            inner_scale_femto_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleFemtoMeter100>,
+                            inner_scale_pico_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScalePicoMeter1>,
+                            inner_scale_pico_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScalePicoMeter10>,
+                            inner_scale_pico_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScalePicoMeter100>,
+                            inner_scale_nano_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleNanoMeter1>,
+                            inner_scale_nano_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleNanoMeter10>,
+                            inner_scale_nano_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleNanoMeter100>,
+                            inner_scale_micro_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleMicroMeter1>,
+                            inner_scale_micro_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleMicroMeter10>,
+                            inner_scale_micro_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleMicroMeter100>,
+                            inner_scale_milli_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleMilliMeter1>,
+                            inner_scale_milli_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleMilliMeter10>,
+                            inner_scale_milli_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleMilliMeter100>,
+                            inner_scale_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleMeter1>,
+                            inner_scale_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleMeter10>,
+                            inner_scale_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleMeter100>,
+                            inner_scale_kilo_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleKiloMeter1>,
+                            inner_scale_kilo_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleKiloMeter10>,
+                            inner_scale_kilo_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleKiloMeter100>,
+                            inner_scale_mega_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleMegaMeter1>,
+                            inner_scale_mega_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleMegaMeter10>,
+                            inner_scale_mega_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleMegaMeter100>,
+                            inner_scale_giga_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleGigaMeter1>,
+                            inner_scale_giga_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleGigaMeter10>,
+                            inner_scale_giga_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleGigaMeter100>,
+                            inner_scale_tera_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleTeraMeter1>,
+                            inner_scale_tera_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleTeraMeter10>,
+                            inner_scale_tera_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleTeraMeter100>,
+                            inner_scale_peta_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScalePetaMeter1>,
+                            inner_scale_peta_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScalePetaMeter10>,
+                            inner_scale_peta_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScalePetaMeter100>,
+                            inner_scale_exa_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleExaMeter1>,
+                            inner_scale_exa_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleExaMeter10>,
+                            inner_scale_exa_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleExaMeter100>,
+                            inner_scale_zetta_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleZettaMeter1>,
+                            inner_scale_zetta_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleZettaMeter10>,
+                            inner_scale_zetta_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleZettaMeter100>,
+                            inner_scale_yotta_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleYottaMeter1>,
+                            inner_scale_yotta_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleYottaMeter10>,
+                            inner_scale_yotta_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleYottaMeter100>,
+                            inner_scale_ronna_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleRonnaMeter1>,
+                            inner_scale_ronna_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleRonnaMeter10>,
+                            inner_scale_ronna_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleRonnaMeter100>,
+                            inner_scale_quetta_meter_1: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter1>,
+                            inner_scale_quetta_meter_10: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter10>,
+                            inner_scale_quetta_meter_100: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter100>,
+                            inner_scale_quetta_meter_1000: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter1000>,
+                            inner_scale_quetta_meter_10000: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter10000>,
+                            inner_scale_quetta_meter_100000: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter100000>,
                         }
                         struct Input {
-                            inputs: Vec<SpawnChunkInput>,
+                            inner_scale_quecto_meter_000001: ValidateAndSpawnAndWaitInput<ScaleQuectoMeter000001>,
+                            inner_scale_quecto_meter_00001: ValidateAndSpawnAndWaitInput<ScaleQuectoMeter00001>,
+                            inner_scale_quecto_meter_0001: ValidateAndSpawnAndWaitInput<ScaleQuectoMeter0001>,
+                            inner_scale_quecto_meter_001: ValidateAndSpawnAndWaitInput<ScaleQuectoMeter001>,
+                            inner_scale_quecto_meter_01: ValidateAndSpawnAndWaitInput<ScaleQuectoMeter01>,
+                            inner_scale_quecto_meter_1: ValidateAndSpawnAndWaitInput<ScaleQuectoMeter1>,
+                            inner_scale_quecto_meter_10: ValidateAndSpawnAndWaitInput<ScaleQuectoMeter10>,
+                            inner_scale_quecto_meter_100: ValidateAndSpawnAndWaitInput<ScaleQuectoMeter100>,
+                            inner_scale_ronto_meter_1: ValidateAndSpawnAndWaitInput<ScaleRontoMeter1>,
+                            inner_scale_ronto_meter_10: ValidateAndSpawnAndWaitInput<ScaleRontoMeter10>,
+                            inner_scale_ronto_meter_100: ValidateAndSpawnAndWaitInput<ScaleRontoMeter100>,
+                            inner_scale_yocto_meter_1: ValidateAndSpawnAndWaitInput<ScaleYoctoMeter1>,
+                            inner_scale_yocto_meter_10: ValidateAndSpawnAndWaitInput<ScaleYoctoMeter10>,
+                            inner_scale_yocto_meter_100: ValidateAndSpawnAndWaitInput<ScaleYoctoMeter100>,
+                            inner_scale_zepto_meter_1: ValidateAndSpawnAndWaitInput<ScaleZeptoMeter1>,
+                            inner_scale_zepto_meter_10: ValidateAndSpawnAndWaitInput<ScaleZeptoMeter10>,
+                            inner_scale_zepto_meter_100: ValidateAndSpawnAndWaitInput<ScaleZeptoMeter100>,
+                            inner_scale_atto_meter_1: ValidateAndSpawnAndWaitInput<ScaleAttoMeter1>,
+                            inner_scale_atto_meter_10: ValidateAndSpawnAndWaitInput<ScaleAttoMeter10>,
+                            inner_scale_atto_meter_100: ValidateAndSpawnAndWaitInput<ScaleAttoMeter100>,
+                            inner_scale_femto_meter_1: ValidateAndSpawnAndWaitInput<ScaleFemtoMeter1>,
+                            inner_scale_femto_meter_10: ValidateAndSpawnAndWaitInput<ScaleFemtoMeter10>,
+                            inner_scale_femto_meter_100: ValidateAndSpawnAndWaitInput<ScaleFemtoMeter100>,
+                            inner_scale_pico_meter_1: ValidateAndSpawnAndWaitInput<ScalePicoMeter1>,
+                            inner_scale_pico_meter_10: ValidateAndSpawnAndWaitInput<ScalePicoMeter10>,
+                            inner_scale_pico_meter_100: ValidateAndSpawnAndWaitInput<ScalePicoMeter100>,
+                            inner_scale_nano_meter_1: ValidateAndSpawnAndWaitInput<ScaleNanoMeter1>,
+                            inner_scale_nano_meter_10: ValidateAndSpawnAndWaitInput<ScaleNanoMeter10>,
+                            inner_scale_nano_meter_100: ValidateAndSpawnAndWaitInput<ScaleNanoMeter100>,
+                            inner_scale_micro_meter_1: ValidateAndSpawnAndWaitInput<ScaleMicroMeter1>,
+                            inner_scale_micro_meter_10: ValidateAndSpawnAndWaitInput<ScaleMicroMeter10>,
+                            inner_scale_micro_meter_100: ValidateAndSpawnAndWaitInput<ScaleMicroMeter100>,
+                            inner_scale_milli_meter_1: ValidateAndSpawnAndWaitInput<ScaleMilliMeter1>,
+                            inner_scale_milli_meter_10: ValidateAndSpawnAndWaitInput<ScaleMilliMeter10>,
+                            inner_scale_milli_meter_100: ValidateAndSpawnAndWaitInput<ScaleMilliMeter100>,
+                            inner_scale_meter_1: ValidateAndSpawnAndWaitInput<ScaleMeter1>,
+                            inner_scale_meter_10: ValidateAndSpawnAndWaitInput<ScaleMeter10>,
+                            inner_scale_meter_100: ValidateAndSpawnAndWaitInput<ScaleMeter100>,
+                            inner_scale_kilo_meter_1: ValidateAndSpawnAndWaitInput<ScaleKiloMeter1>,
+                            inner_scale_kilo_meter_10: ValidateAndSpawnAndWaitInput<ScaleKiloMeter10>,
+                            inner_scale_kilo_meter_100: ValidateAndSpawnAndWaitInput<ScaleKiloMeter100>,
+                            inner_scale_mega_meter_1: ValidateAndSpawnAndWaitInput<ScaleMegaMeter1>,
+                            inner_scale_mega_meter_10: ValidateAndSpawnAndWaitInput<ScaleMegaMeter10>,
+                            inner_scale_mega_meter_100: ValidateAndSpawnAndWaitInput<ScaleMegaMeter100>,
+                            inner_scale_giga_meter_1: ValidateAndSpawnAndWaitInput<ScaleGigaMeter1>,
+                            inner_scale_giga_meter_10: ValidateAndSpawnAndWaitInput<ScaleGigaMeter10>,
+                            inner_scale_giga_meter_100: ValidateAndSpawnAndWaitInput<ScaleGigaMeter100>,
+                            inner_scale_tera_meter_1: ValidateAndSpawnAndWaitInput<ScaleTeraMeter1>,
+                            inner_scale_tera_meter_10: ValidateAndSpawnAndWaitInput<ScaleTeraMeter10>,
+                            inner_scale_tera_meter_100: ValidateAndSpawnAndWaitInput<ScaleTeraMeter100>,
+                            inner_scale_peta_meter_1: ValidateAndSpawnAndWaitInput<ScalePetaMeter1>,
+                            inner_scale_peta_meter_10: ValidateAndSpawnAndWaitInput<ScalePetaMeter10>,
+                            inner_scale_peta_meter_100: ValidateAndSpawnAndWaitInput<ScalePetaMeter100>,
+                            inner_scale_exa_meter_1: ValidateAndSpawnAndWaitInput<ScaleExaMeter1>,
+                            inner_scale_exa_meter_10: ValidateAndSpawnAndWaitInput<ScaleExaMeter10>,
+                            inner_scale_exa_meter_100: ValidateAndSpawnAndWaitInput<ScaleExaMeter100>,
+                            inner_scale_zetta_meter_1: ValidateAndSpawnAndWaitInput<ScaleZettaMeter1>,
+                            inner_scale_zetta_meter_10: ValidateAndSpawnAndWaitInput<ScaleZettaMeter10>,
+                            inner_scale_zetta_meter_100: ValidateAndSpawnAndWaitInput<ScaleZettaMeter100>,
+                            inner_scale_yotta_meter_1: ValidateAndSpawnAndWaitInput<ScaleYottaMeter1>,
+                            inner_scale_yotta_meter_10: ValidateAndSpawnAndWaitInput<ScaleYottaMeter10>,
+                            inner_scale_yotta_meter_100: ValidateAndSpawnAndWaitInput<ScaleYottaMeter100>,
+                            inner_scale_ronna_meter_1: ValidateAndSpawnAndWaitInput<ScaleRonnaMeter1>,
+                            inner_scale_ronna_meter_10: ValidateAndSpawnAndWaitInput<ScaleRonnaMeter10>,
+                            inner_scale_ronna_meter_100: ValidateAndSpawnAndWaitInput<ScaleRonnaMeter100>,
+                            inner_scale_quetta_meter_1: ValidateAndSpawnAndWaitInput<ScaleQuettaMeter1>,
+                            inner_scale_quetta_meter_10: ValidateAndSpawnAndWaitInput<ScaleQuettaMeter10>,
+                            inner_scale_quetta_meter_100: ValidateAndSpawnAndWaitInput<ScaleQuettaMeter100>,
+                            inner_scale_quetta_meter_1000: ValidateAndSpawnAndWaitInput<ScaleQuettaMeter1000>,
+                            inner_scale_quetta_meter_10000: ValidateAndSpawnAndWaitInput<ScaleQuettaMeter10000>,
+                            inner_scale_quetta_meter_100000: ValidateAndSpawnAndWaitInput<ScaleQuettaMeter100000>,
                         }
                         struct State {
-                            spawn_chunk_states: Vec<SpawnChunkState>,
+                            inner_scale_quecto_meter_000001: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quecto_meter_00001: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quecto_meter_0001: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quecto_meter_001: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quecto_meter_01: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quecto_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quecto_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quecto_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_ronto_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_ronto_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_ronto_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_yocto_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_yocto_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_yocto_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_zepto_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_zepto_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_zepto_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_atto_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_atto_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_atto_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_femto_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_femto_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_femto_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_pico_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_pico_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_pico_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_nano_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_nano_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_nano_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_micro_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_micro_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_micro_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_milli_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_milli_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_milli_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_kilo_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_kilo_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_kilo_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_mega_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_mega_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_mega_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_giga_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_giga_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_giga_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_tera_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_tera_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_tera_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_peta_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_peta_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_peta_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_exa_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_exa_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_exa_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_zetta_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_zetta_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_zetta_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_yotta_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_yotta_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_yotta_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_ronna_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_ronna_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_ronna_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quetta_meter_1: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quetta_meter_10: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quetta_meter_100: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quetta_meter_1000: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quetta_meter_10000: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quetta_meter_100000: Option<ValidateAndSpawnAndWaitState>,
                         }
                         struct Output {
-                            spawned_chunk_entities: Vec<Entity>,
+                            inner_scale_quecto_meter_000001: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_quecto_meter_00001: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_quecto_meter_0001: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_quecto_meter_001: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_quecto_meter_01: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_quecto_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_quecto_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_quecto_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_ronto_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_ronto_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_ronto_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_yocto_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_yocto_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_yocto_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_zepto_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_zepto_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_zepto_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_atto_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_atto_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_atto_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_femto_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_femto_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_femto_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_pico_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_pico_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_pico_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_nano_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_nano_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_nano_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_micro_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_micro_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_micro_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_milli_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_milli_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_milli_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_kilo_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_kilo_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_kilo_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_mega_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_mega_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_mega_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_giga_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_giga_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_giga_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_tera_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_tera_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_tera_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_peta_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_peta_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_peta_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_exa_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_exa_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_exa_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_zetta_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_zetta_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_zetta_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_yotta_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_yotta_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_yotta_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_ronna_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_ronna_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_ronna_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_quetta_meter_1: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_quetta_meter_10: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_quetta_meter_100: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_quetta_meter_1000: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_quetta_meter_10000: ValidateAndSpawnAndWaitOutput,
+                            inner_scale_quetta_meter_100000: ValidateAndSpawnAndWaitOutput,
                         }
                         enum Error {
-                            ChunkAlreadyLoaded { chunk_coord: (i32, i32) },
+                            ScaleQuectoMeter000001Error(ValidateAndSpawnAndWaitError),
+                            ScaleQuectoMeter00001Error(ValidateAndSpawnAndWaitError),
+                            ScaleQuectoMeter0001Error(ValidateAndSpawnAndWaitError),
+                            ScaleQuectoMeter001Error(ValidateAndSpawnAndWaitError),
+                            ScaleQuectoMeter01Error(ValidateAndSpawnAndWaitError),
+                            ScaleQuectoMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleQuectoMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleQuectoMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleRontoMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleRontoMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleRontoMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleYoctoMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleYoctoMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleYoctoMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleZeptoMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleZeptoMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleZeptoMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleAttoMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleAttoMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleAttoMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleFemtoMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleFemtoMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleFemtoMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScalePicoMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScalePicoMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScalePicoMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleNanoMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleNanoMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleNanoMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleMicroMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleMicroMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleMicroMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleMilliMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleMilliMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleMilliMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleKiloMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleKiloMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleKiloMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleMegaMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleMegaMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleMegaMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleGigaMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleGigaMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleGigaMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleTeraMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleTeraMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleTeraMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScalePetaMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScalePetaMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScalePetaMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleExaMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleExaMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleExaMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleZettaMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleZettaMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleZettaMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleYottaMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleYottaMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleYottaMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleRonnaMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleRonnaMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleRonnaMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleQuettaMeter1Error(ValidateAndSpawnAndWaitError),
+                            ScaleQuettaMeter10Error(ValidateAndSpawnAndWaitError),
+                            ScaleQuettaMeter100Error(ValidateAndSpawnAndWaitError),
+                            ScaleQuettaMeter1000Error(ValidateAndSpawnAndWaitError),
+                            ScaleQuettaMeter10000Error(ValidateAndSpawnAndWaitError),
+                            ScaleQuettaMeter100000Error(ValidateAndSpawnAndWaitError),
                         }
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
-                            let mut commands = main_access.commands;
-                            let chunk_query = main_access.chunk_query;
-                            let mut chunk_manager = main_access.chunk_manager;
-
-                            let mut spawn_chunk_states = Vec::new();
-
-                            for input in input.inputs {
-                                let chunk_coord = input.chunk_coord;
-                                let chunk_owner_id = input.chunk_owner_id;
-                                let metric_texture = input.metric_texture.clone();
-
-                                if chunk_query.iter().any(|chunk| chunk.coord == chunk_coord) {
-                                    return Err(Error::ChunkAlreadyLoaded { chunk_coord });
-                                }
-
-                                let default_chunk_z = CONFIG().get::<f32>("chunk/default_z");
-
-                                let chunk_transform = Transform {
-                                    translation: chunk_pos_to_world(chunk_coord).extend(default_chunk_z),
-                                    ..Default::default()
-                                };
-
-                                let chunk_name = Name::new(format!("chunk_entity({}, {})", chunk_coord.0, chunk_coord.1));
-
-                                let chunk_entity = commands.spawn((
-                                    chunk_transform,
-                                    Sprite {
-                                        image: metric_texture,
-                                        ..Default::default()
-                                    },
-                                    Chunk {
-                                        coord: chunk_coord,
-                                        owner_id: Some(chunk_owner_id.clone()),
-                                        phantom_scale: std::marker::PhantomData,
-                                    },
-                                    chunk_name
-                                )).observe(on_click_select).id();
-
-                                // warn!("Spawning chunk at coord ({}, {})", chunk_coord.0, chunk_coord.1);
-
-                                chunk_manager.loaded_chunks.insert(chunk_coord);
-                                chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner_id.clone());
-
-                                spawn_chunk_states.push(SpawnChunkState {
-                                    chunk_entity,
-                                    is_spawned: false,
-                                });
-                            }
-
-                            warn!("Spawning {} chunks", spawn_chunk_states.len());
-
-                            Ok(State {
-                                spawn_chunk_states
-                            })
                         }
 
                         fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
-                            let mut commands = main_access.commands;
-
-                            let spawn_chunk_states = state.spawn_chunk_states.into_iter().map(|mut spawn_chunk_state| {
-                                if commands.get_entity(spawn_chunk_state.chunk_entity).is_ok() {
-                                    spawn_chunk_state.is_spawned = true;
-                                }
-
-                                spawn_chunk_state
-                            }).collect::<Vec<_>>();
-                            let is_done = spawn_chunk_states.iter().all(|spawn_chunk_state| spawn_chunk_state.is_spawned);
-
-                            if is_done {
-                                let spawned_chunk_entities = spawn_chunk_states.into_iter().map(|spawn_chunk_state| spawn_chunk_state.chunk_entity).collect();
-
-                                warn!("All chunks spawned.");
-
-                                Ok(Outcome::Done(Output {
-                                    spawned_chunk_entities
-                                }))
-                            } else {
-                                let done_count = spawn_chunk_states.iter().filter(|spawn_chunk_state| spawn_chunk_state.is_spawned).count();
-                                warn!("Waiting for chunks to spawn... {}/{}", done_count, spawn_chunk_states.len());
-
-                                Ok(Outcome::Wait(State {
-                                    spawn_chunk_states
-                                }))
-                            }
                         }
                     ]
                 }
@@ -140,95 +404,325 @@ define_workflow_mod_OLD! {
 
         DespawnChunks, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
-                use bevy::prelude::{Res, ResMut, Commands, Query, Entity};
+                use bevy::prelude::ResMut;
 
-                use crate::chunk::{components::Chunk, resources::ChunkManager};
+                use crate::chunk::workflows::external::despawn_chunks::{
+                    MainAccess as FindAndDespawnAndWaitMainAccess,
+                    Input as FindAndDespawnAndWaitInput,
+                    State as FindAndDespawnAndWaitState,
+                    Output as FindAndDespawnAndWaitOutput,
+                    Error as FindAndDespawnAndWaitError,
+                    setup_ecs_while as find_and_despawn_and_wait_setup_ecs_while,
+                    run_ecs_while as find_and_despawn_and_wait_run_ecs_while,
+                };
+                use crate::usf::scale::*;
             },
             user_items: {
-                pub struct DespawnChunkInput {
-                    pub chunk_coord: (i32, i32)
-                }
-                #[derive(Clone)]
-                pub struct DespawnChunkState {
-                    pub entity: Entity,
-                    pub is_despawned: bool,
-                }
             },
             stages: [
                 FindAndDespawnAndWait: EcsWhile, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
-                            commands: Commands<'w, 's>,
-                            chunk_query: Query<'w, 's, (Entity, &'static Chunk)>,
-                            chunk_manager: ResMut<'w, ChunkManager>,
+                            inner_scale_quecto_meter_000001: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter000001>,
+                            inner_scale_quecto_meter_00001: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter00001>,
+                            inner_scale_quecto_meter_0001: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter0001>,
+                            inner_scale_quecto_meter_001: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter001>,
+                            inner_scale_quecto_meter_01: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter01>,
+                            inner_scale_quecto_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter1>,
+                            inner_scale_quecto_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter10>,
+                            inner_scale_quecto_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter100>,
+                            inner_scale_ronto_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleRontoMeter1>,
+                            inner_scale_ronto_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleRontoMeter10>,
+                            inner_scale_ronto_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleRontoMeter100>,
+                            inner_scale_yocto_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleYoctoMeter1>,
+                            inner_scale_yocto_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleYoctoMeter10>,
+                            inner_scale_yocto_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleYoctoMeter100>,
+                            inner_scale_zepto_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleZeptoMeter1>,
+                            inner_scale_zepto_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleZeptoMeter10>,
+                            inner_scale_zepto_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleZeptoMeter100>,
+                            inner_scale_atto_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleAttoMeter1>,
+                            inner_scale_atto_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleAttoMeter10>,
+                            inner_scale_atto_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleAttoMeter100>,
+                            inner_scale_femto_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleFemtoMeter1>,
+                            inner_scale_femto_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleFemtoMeter10>,
+                            inner_scale_femto_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleFemtoMeter100>,
+                            inner_scale_pico_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScalePicoMeter1>,
+                            inner_scale_pico_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScalePicoMeter10>,
+                            inner_scale_pico_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScalePicoMeter100>,
+                            inner_scale_nano_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleNanoMeter1>,
+                            inner_scale_nano_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleNanoMeter10>,
+                            inner_scale_nano_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleNanoMeter100>,
+                            inner_scale_micro_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleMicroMeter1>,
+                            inner_scale_micro_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleMicroMeter10>,
+                            inner_scale_micro_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleMicroMeter100>,
+                            inner_scale_milli_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleMilliMeter1>,
+                            inner_scale_milli_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleMilliMeter10>,
+                            inner_scale_milli_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleMilliMeter100>,
+                            inner_scale_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleMeter1>,
+                            inner_scale_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleMeter10>,
+                            inner_scale_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleMeter100>,
+                            inner_scale_kilo_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleKiloMeter1>,
+                            inner_scale_kilo_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleKiloMeter10>,
+                            inner_scale_kilo_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleKiloMeter100>,
+                            inner_scale_mega_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleMegaMeter1>,
+                            inner_scale_mega_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleMegaMeter10>,
+                            inner_scale_mega_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleMegaMeter100>,
+                            inner_scale_giga_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleGigaMeter1>,
+                            inner_scale_giga_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleGigaMeter10>,
+                            inner_scale_giga_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleGigaMeter100>,
+                            inner_scale_tera_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleTeraMeter1>,
+                            inner_scale_tera_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleTeraMeter10>,
+                            inner_scale_tera_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleTeraMeter100>,
+                            inner_scale_peta_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScalePetaMeter1>,
+                            inner_scale_peta_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScalePetaMeter10>,
+                            inner_scale_peta_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScalePetaMeter100>,
+                            inner_scale_exa_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleExaMeter1>,
+                            inner_scale_exa_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleExaMeter10>,
+                            inner_scale_exa_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleExaMeter100>,
+                            inner_scale_zetta_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleZettaMeter1>,
+                            inner_scale_zetta_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleZettaMeter10>,
+                            inner_scale_zetta_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleZettaMeter100>,
+                            inner_scale_yotta_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleYottaMeter1>,
+                            inner_scale_yotta_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleYottaMeter10>,
+                            inner_scale_yotta_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleYottaMeter100>,
+                            inner_scale_ronna_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleRonnaMeter1>,
+                            inner_scale_ronna_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleRonnaMeter10>,
+                            inner_scale_ronna_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleRonnaMeter100>,
+                            inner_scale_quetta_meter_1: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter1>,
+                            inner_scale_quetta_meter_10: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter10>,
+                            inner_scale_quetta_meter_100: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter100>,
+                            inner_scale_quetta_meter_1000: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter1000>,
+                            inner_scale_quetta_meter_10000: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter10000>,
+                            inner_scale_quetta_meter_100000: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter100000>,
                         }
                         struct Input {
-                            inputs: Vec<DespawnChunkInput>,
+                            inner_scale_quecto_meter_000001: FindAndDespawnAndWaitInput,
+                            inner_scale_quecto_meter_00001: FindAndDespawnAndWaitInput,
+                            inner_scale_quecto_meter_0001: FindAndDespawnAndWaitInput,
+                            inner_scale_quecto_meter_001: FindAndDespawnAndWaitInput,
+                            inner_scale_quecto_meter_01: FindAndDespawnAndWaitInput,
+                            inner_scale_quecto_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_quecto_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_quecto_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_ronto_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_ronto_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_ronto_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_yocto_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_yocto_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_yocto_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_zepto_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_zepto_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_zepto_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_atto_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_atto_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_atto_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_femto_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_femto_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_femto_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_pico_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_pico_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_pico_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_nano_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_nano_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_nano_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_micro_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_micro_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_micro_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_milli_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_milli_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_milli_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_kilo_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_kilo_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_kilo_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_mega_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_mega_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_mega_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_giga_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_giga_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_giga_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_tera_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_tera_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_tera_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_peta_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_peta_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_peta_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_exa_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_exa_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_exa_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_zetta_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_zetta_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_zetta_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_yotta_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_yotta_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_yotta_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_ronna_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_ronna_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_ronna_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_quetta_meter_1: FindAndDespawnAndWaitInput,
+                            inner_scale_quetta_meter_10: FindAndDespawnAndWaitInput,
+                            inner_scale_quetta_meter_100: FindAndDespawnAndWaitInput,
+                            inner_scale_quetta_meter_1000: FindAndDespawnAndWaitInput,
+                            inner_scale_quetta_meter_10000: FindAndDespawnAndWaitInput,
+                            inner_scale_quetta_meter_100000: FindAndDespawnAndWaitInput,
                         }
                         struct State {
-                            despawn_chunk_states: Vec<DespawnChunkState>
+                            inner_scale_quecto_meter_000001: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quecto_meter_00001: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quecto_meter_0001: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quecto_meter_001: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quecto_meter_01: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quecto_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quecto_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quecto_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_ronto_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_ronto_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_ronto_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_yocto_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_yocto_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_yocto_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_zepto_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_zepto_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_zepto_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_atto_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_atto_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_atto_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_femto_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_femto_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_femto_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_pico_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_pico_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_pico_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_nano_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_nano_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_nano_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_micro_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_micro_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_micro_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_milli_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_milli_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_milli_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_kilo_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_kilo_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_kilo_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_mega_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_mega_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_mega_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_giga_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_giga_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_giga_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_tera_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_tera_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_tera_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_peta_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_peta_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_peta_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_exa_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_exa_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_exa_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_zetta_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_zetta_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_zetta_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_yotta_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_yotta_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_yotta_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_ronna_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_ronna_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_ronna_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quetta_meter_1: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quetta_meter_10: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quetta_meter_100: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quetta_meter_1000: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quetta_meter_10000: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quetta_meter_100000: Option<FindAndDespawnAndWaitState>,
                         }
                         struct Output {
                             despawned_chunk_entities: Vec<Entity>
                         }
                         enum Error {
-                            ChunkNotLoaded { chunk_coord: (i32, i32) },
+                            ScaleQuectoMeter000001Error(FindAndDespawnAndWaitError),
+                            ScaleQuectoMeter00001Error(FindAndDespawnAndWaitError),
+                            ScaleQuectoMeter0001Error(FindAndDespawnAndWaitError),
+                            ScaleQuectoMeter001Error(FindAndDespawnAndWaitError),
+                            ScaleQuectoMeter01Error(FindAndDespawnAndWaitError),
+                            ScaleQuectoMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleQuectoMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleQuectoMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleRontoMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleRontoMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleRontoMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleYoctoMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleYoctoMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleYoctoMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleZeptoMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleZeptoMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleZeptoMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleAttoMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleAttoMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleAttoMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleFemtoMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleFemtoMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleFemtoMeter100Error(FindAndDespawnAndWaitError),
+                            ScalePicoMeter1Error(FindAndDespawnAndWaitError),
+                            ScalePicoMeter10Error(FindAndDespawnAndWaitError),
+                            ScalePicoMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleNanoMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleNanoMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleNanoMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleMicroMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleMicroMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleMicroMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleMilliMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleMilliMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleMilliMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleKiloMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleKiloMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleKiloMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleMegaMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleMegaMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleMegaMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleGigaMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleGigaMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleGigaMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleTeraMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleTeraMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleTeraMeter100Error(FindAndDespawnAndWaitError),
+                            ScalePetaMeter1Error(FindAndDespawnAndWaitError),
+                            ScalePetaMeter10Error(FindAndDespawnAndWaitError),
+                            ScalePetaMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleExaMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleExaMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleExaMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleZettaMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleZettaMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleZettaMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleYottaMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleYottaMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleYottaMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleRonnaMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleRonnaMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleRonnaMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleQuettaMeter1Error(FindAndDespawnAndWaitError),
+                            ScaleQuettaMeter10Error(FindAndDespawnAndWaitError),
+                            ScaleQuettaMeter100Error(FindAndDespawnAndWaitError),
+                            ScaleQuettaMeter1000Error(FindAndDespawnAndWaitError),
+                            ScaleQuettaMeter10000Error(FindAndDespawnAndWaitError),
+                            ScaleQuettaMeter100000Error(FindAndDespawnAndWaitError),
                         }
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
-                            let mut commands = main_access.commands;
-                            let chunk_query = main_access.chunk_query;
-                            let mut chunk_manager = main_access.chunk_manager;
-
-                            let mut despawn_chunk_states = Vec::new();
-
-                            for input in input.inputs {
-                                let chunk_coord = input.chunk_coord;
-
-                                if let Some((entity, _)) = chunk_query.iter().find(|(_, chunk)| chunk.coord == chunk_coord) {
-                                    chunk_manager.loaded_chunks.remove(&chunk_coord);
-                                    chunk_manager.owned_chunks.remove(&chunk_coord);
-
-                                    let mut chunk_entity_commands = commands.entity(entity);
-                                    despawn_chunk_states.push(DespawnChunkState {
-                                        entity: chunk_entity_commands.id(),
-                                        is_despawned: false,
-                                    });
-                                    chunk_entity_commands.despawn();
-                                } else {
-                                    return Err(Error::ChunkNotLoaded { chunk_coord });
-                                }
-                            }
-
-                            Ok(State {
-                                despawn_chunk_states
-                            })
                         }
 
                         fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
-                            let mut commands = main_access.commands;
-
-                            let despawn_chunk_states = state.despawn_chunk_states.into_iter().map(|mut despawn_chunk_state| {
-                                if commands.get_entity(despawn_chunk_state.entity).is_err() {
-                                    despawn_chunk_state.is_despawned = true;
-                                }
-
-                                despawn_chunk_state
-                            }).collect::<Vec<_>>();
-                            let is_done = despawn_chunk_states.iter().all(|despawn_chunk_state| despawn_chunk_state.is_despawned);
-
-                            if is_done {
-                                let despawned_chunk_entities = despawn_chunk_states.into_iter().map(|despawn_chunk_state| despawn_chunk_state.entity).collect();
-
-                                Ok(Outcome::Done(Output {
-                                    despawned_chunk_entities
-                                }))
-                            } else {
-                                Ok(Outcome::Wait(State {
-                                    despawn_chunk_states
-                                }))
-                            }
                         }
                     ]
                 }
@@ -237,60 +731,247 @@ define_workflow_mod_OLD! {
 
         TransferChunkOwnerships, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
-                use bevy::prelude::{Res, ResMut, Entity};
+                use bevy::prelude::ResMut;
 
-                use crate::chunk::{components::Chunk, resources::ChunkManager, types::ChunkOwnerId};
+                use crate::chunk::workflows::external::transfer_chunk_ownerships::{
+                    MainAccess as FindAndTransferOwnershipMainAccess,
+                    Input as FindAndTransferOwnershipInput,
+                    Output as FindAndTransferOwnershipOutput,
+                    Error as FindAndTransferOwnershipError,
+                    run_ecs as find_and_transfer_ownership_run_ecs,
+                };
+                use crate::usf::scale::*;
             },
             user_items: {
-                pub struct TransferChunkOwnershipInput {
-                    pub new_chunk_owner_id: ChunkOwnerId,
-                    pub chunk_coord: (i32, i32),
-                }
             },
             stages: [
                 FindAndTransferOwnership: Ecs, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
-                            chunk_query: Query<'w, 's, (Entity, &'static mut Chunk)>,
-                            chunk_manager: ResMut<'w, ChunkManager>,
+                            inner_scale_quecto_meter_000001: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuectoMeter000001>,
+                            inner_scale_quecto_meter_00001: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuectoMeter00001>,
+                            inner_scale_quecto_meter_0001: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuectoMeter0001>,
+                            inner_scale_quecto_meter_001: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuectoMeter001>,
+                            inner_scale_quecto_meter_01: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuectoMeter01>,
+                            inner_scale_quecto_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuectoMeter1>,
+                            inner_scale_quecto_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuectoMeter10>,
+                            inner_scale_quecto_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuectoMeter100>,
+                            inner_scale_ronto_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleRontoMeter1>,
+                            inner_scale_ronto_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleRontoMeter10>,
+                            inner_scale_ronto_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleRontoMeter100>,
+                            inner_scale_yocto_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleYoctoMeter1>,
+                            inner_scale_yocto_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleYoctoMeter10>,
+                            inner_scale_yocto_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleYoctoMeter100>,
+                            inner_scale_zepto_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleZeptoMeter1>,
+                            inner_scale_zepto_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleZeptoMeter10>,
+                            inner_scale_zepto_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleZeptoMeter100>,
+                            inner_scale_atto_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleAttoMeter1>,
+                            inner_scale_atto_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleAttoMeter10>,
+                            inner_scale_atto_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleAttoMeter100>,
+                            inner_scale_femto_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleFemtoMeter1>,
+                            inner_scale_femto_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleFemtoMeter10>,
+                            inner_scale_femto_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleFemtoMeter100>,
+                            inner_scale_pico_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScalePicoMeter1>,
+                            inner_scale_pico_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScalePicoMeter10>,
+                            inner_scale_pico_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScalePicoMeter100>,
+                            inner_scale_nano_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleNanoMeter1>,
+                            inner_scale_nano_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleNanoMeter10>,
+                            inner_scale_nano_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleNanoMeter100>,
+                            inner_scale_micro_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleMicroMeter1>,
+                            inner_scale_micro_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleMicroMeter10>,
+                            inner_scale_micro_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleMicroMeter100>,
+                            inner_scale_milli_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleMilliMeter1>,
+                            inner_scale_milli_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleMilliMeter10>,
+                            inner_scale_milli_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleMilliMeter100>,
+                            inner_scale_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleMeter1>,
+                            inner_scale_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleMeter10>,
+                            inner_scale_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleMeter100>,
+                            inner_scale_kilo_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleKiloMeter1>,
+                            inner_scale_kilo_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleKiloMeter10>,
+                            inner_scale_kilo_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleKiloMeter100>,
+                            inner_scale_mega_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleMegaMeter1>,
+                            inner_scale_mega_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleMegaMeter10>,
+                            inner_scale_mega_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleMegaMeter100>,
+                            inner_scale_giga_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleGigaMeter1>,
+                            inner_scale_giga_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleGigaMeter10>,
+                            inner_scale_giga_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleGigaMeter100>,
+                            inner_scale_tera_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleTeraMeter1>,
+                            inner_scale_tera_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleTeraMeter10>,
+                            inner_scale_tera_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleTeraMeter100>,
+                            inner_scale_peta_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScalePetaMeter1>,
+                            inner_scale_peta_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScalePetaMeter10>,
+                            inner_scale_peta_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScalePetaMeter100>,
+                            inner_scale_exa_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleExaMeter1>,
+                            inner_scale_exa_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleExaMeter10>,
+                            inner_scale_exa_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleExaMeter100>,
+                            inner_scale_zetta_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleZettaMeter1>,
+                            inner_scale_zetta_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleZettaMeter10>,
+                            inner_scale_zetta_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleZettaMeter100>,
+                            inner_scale_yotta_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleYottaMeter1>,
+                            inner_scale_yotta_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleYottaMeter10>,
+                            inner_scale_yotta_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleYottaMeter100>,
+                            inner_scale_ronna_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleRonnaMeter1>,
+                            inner_scale_ronna_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleRonnaMeter10>,
+                            inner_scale_ronna_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleRonnaMeter100>,
+                            inner_scale_quetta_meter_1: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuettaMeter1>,
+                            inner_scale_quetta_meter_10: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuettaMeter10>,
+                            inner_scale_quetta_meter_100: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuettaMeter100>,
+                            inner_scale_quetta_meter_1000: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuettaMeter1000>,
+                            inner_scale_quetta_meter_10000: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuettaMeter10000>,
+                            inner_scale_quetta_meter_100000: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuettaMeter100000>,
                         }
                         struct Input {
-                            inputs: Vec<TransferChunkOwnershipInput>,
+                            inner_scale_quecto_meter_000001: FindAndTransferOwnershipInput<ScaleQuectoMeter000001>,
+                            inner_scale_quecto_meter_00001: FindAndTransferOwnershipInput<ScaleQuectoMeter00001>,
+                            inner_scale_quecto_meter_0001: FindAndTransferOwnershipInput<ScaleQuectoMeter0001>,
+                            inner_scale_quecto_meter_001: FindAndTransferOwnershipInput<ScaleQuectoMeter001>,
+                            inner_scale_quecto_meter_01: FindAndTransferOwnershipInput<ScaleQuectoMeter01>,
+                            inner_scale_quecto_meter_1: FindAndTransferOwnershipInput<ScaleQuectoMeter1>,
+                            inner_scale_quecto_meter_10: FindAndTransferOwnershipInput<ScaleQuectoMeter10>,
+                            inner_scale_quecto_meter_100: FindAndTransferOwnershipInput<ScaleQuectoMeter100>,
+                            inner_scale_ronto_meter_1: FindAndTransferOwnershipInput<ScaleRontoMeter1>,
+                            inner_scale_ronto_meter_10: FindAndTransferOwnershipInput<ScaleRontoMeter10>,
+                            inner_scale_ronto_meter_100: FindAndTransferOwnershipInput<ScaleRontoMeter100>,
+                            inner_scale_yocto_meter_1: FindAndTransferOwnershipInput<ScaleYoctoMeter1>,
+                            inner_scale_yocto_meter_10: FindAndTransferOwnershipInput<ScaleYoctoMeter10>,
+                            inner_scale_yocto_meter_100: FindAndTransferOwnershipInput<ScaleYoctoMeter100>,
+                            inner_scale_zepto_meter_1: FindAndTransferOwnershipInput<ScaleZeptoMeter1>,
+                            inner_scale_zepto_meter_10: FindAndTransferOwnershipInput<ScaleZeptoMeter10>,
+                            inner_scale_zepto_meter_100: FindAndTransferOwnershipInput<ScaleZeptoMeter100>,
+                            inner_scale_atto_meter_1: FindAndTransferOwnershipInput<ScaleAttoMeter1>,
+                            inner_scale_atto_meter_10: FindAndTransferOwnershipInput<ScaleAttoMeter10>,
+                            inner_scale_atto_meter_100: FindAndTransferOwnershipInput<ScaleAttoMeter100>,
+                            inner_scale_femto_meter_1: FindAndTransferOwnershipInput<ScaleFemtoMeter1>,
+                            inner_scale_femto_meter_10: FindAndTransferOwnershipInput<ScaleFemtoMeter10>,
+                            inner_scale_femto_meter_100: FindAndTransferOwnershipInput<ScaleFemtoMeter100>,
+                            inner_scale_pico_meter_1: FindAndTransferOwnershipInput<ScalePicoMeter1>,
+                            inner_scale_pico_meter_10: FindAndTransferOwnershipInput<ScalePicoMeter10>,
+                            inner_scale_pico_meter_100: FindAndTransferOwnershipInput<ScalePicoMeter100>,
+                            inner_scale_nano_meter_1: FindAndTransferOwnershipInput<ScaleNanoMeter1>,
+                            inner_scale_nano_meter_10: FindAndTransferOwnershipInput<ScaleNanoMeter10>,
+                            inner_scale_nano_meter_100: FindAndTransferOwnershipInput<ScaleNanoMeter100>,
+                            inner_scale_micro_meter_1: FindAndTransferOwnershipInput<ScaleMicroMeter1>,
+                            inner_scale_micro_meter_10: FindAndTransferOwnershipInput<ScaleMicroMeter10>,
+                            inner_scale_micro_meter_100: FindAndTransferOwnershipInput<ScaleMicroMeter100>,
+                            inner_scale_milli_meter_1: FindAndTransferOwnershipInput<ScaleMilliMeter1>,
+                            inner_scale_milli_meter_10: FindAndTransferOwnershipInput<ScaleMilliMeter10>,
+                            inner_scale_milli_meter_100: FindAndTransferOwnershipInput<ScaleMilliMeter100>,
+                            inner_scale_meter_1: FindAndTransferOwnershipInput<ScaleMeter1>,
+                            inner_scale_meter_10: FindAndTransferOwnershipInput<ScaleMeter10>,
+                            inner_scale_meter_100: FindAndTransferOwnershipInput<ScaleMeter100>,
+                            inner_scale_kilo_meter_1: FindAndTransferOwnershipInput<ScaleKiloMeter1>,
+                            inner_scale_kilo_meter_10: FindAndTransferOwnershipInput<ScaleKiloMeter10>,
+                            inner_scale_kilo_meter_100: FindAndTransferOwnershipInput<ScaleKiloMeter100>,
+                            inner_scale_mega_meter_1: FindAndTransferOwnershipInput<ScaleMegaMeter1>,
+                            inner_scale_mega_meter_10: FindAndTransferOwnershipInput<ScaleMegaMeter10>,
+                            inner_scale_mega_meter_100: FindAndTransferOwnershipInput<ScaleMegaMeter100>,
+                            inner_scale_giga_meter_1: FindAndTransferOwnershipInput<ScaleGigaMeter1>,
+                            inner_scale_giga_meter_10: FindAndTransferOwnershipInput<ScaleGigaMeter10>,
+                            inner_scale_giga_meter_100: FindAndTransferOwnershipInput<ScaleGigaMeter100>,
+                            inner_scale_tera_meter_1: FindAndTransferOwnershipInput<ScaleTeraMeter1>,
+                            inner_scale_tera_meter_10: FindAndTransferOwnershipInput<ScaleTeraMeter10>,
+                            inner_scale_tera_meter_100: FindAndTransferOwnershipInput<ScaleTeraMeter100>,
+                            inner_scale_peta_meter_1: FindAndTransferOwnershipInput<ScalePetaMeter1>,
+                            inner_scale_peta_meter_10: FindAndTransferOwnershipInput<ScalePetaMeter10>,
+                            inner_scale_peta_meter_100: FindAndTransferOwnershipInput<ScalePetaMeter100>,
+                            inner_scale_exa_meter_1: FindAndTransferOwnershipInput<ScaleExaMeter1>,
+                            inner_scale_exa_meter_10: FindAndTransferOwnershipInput<ScaleExaMeter10>,
+                            inner_scale_exa_meter_100: FindAndTransferOwnershipInput<ScaleExaMeter100>,
+                            inner_scale_zetta_meter_1: FindAndTransferOwnershipInput<ScaleZettaMeter1>,
+                            inner_scale_zetta_meter_10: FindAndTransferOwnershipInput<ScaleZettaMeter10>,
+                            inner_scale_zetta_meter_100: FindAndTransferOwnershipInput<ScaleZettaMeter100>,
+                            inner_scale_yotta_meter_1: FindAndTransferOwnershipInput<ScaleYottaMeter1>,
+                            inner_scale_yotta_meter_10: FindAndTransferOwnershipInput<ScaleYottaMeter10>,
+                            inner_scale_yotta_meter_100: FindAndTransferOwnershipInput<ScaleYottaMeter100>,
+                            inner_scale_ronna_meter_1: FindAndTransferOwnershipInput<ScaleRonnaMeter1>,
+                            inner_scale_ronna_meter_10: FindAndTransferOwnershipInput<ScaleRonnaMeter10>,
+                            inner_scale_ronna_meter_100: FindAndTransferOwnershipInput<ScaleRonnaMeter100>,
+                            inner_scale_quetta_meter_1: FindAndTransferOwnershipInput<ScaleQuettaMeter1>,
+                            inner_scale_quetta_meter_10: FindAndTransferOwnershipInput<ScaleQuettaMeter10>,
+                            inner_scale_quetta_meter_100: FindAndTransferOwnershipInput<ScaleQuettaMeter100>,
+                            inner_scale_quetta_meter_1000: FindAndTransferOwnershipInput<ScaleQuettaMeter1000>,
+                            inner_scale_quetta_meter_10000: FindAndTransferOwnershipInput<ScaleQuettaMeter10000>,
+                            inner_scale_quetta_meter_100000: FindAndTransferOwnershipInput<ScaleQuettaMeter100000>,
                         }
                         struct Output {
                             ownership_transfered_chunk_entities: Vec<Entity>
                         }
                         enum Error {
-                            ChunkNotLoaded { chunk_coord: (i32, i32) },
+                            ScaleQuectoMeter000001Error(FindAndTransferOwnershipError),
+                            ScaleQuectoMeter00001Error(FindAndTransferOwnershipError),
+                            ScaleQuectoMeter0001Error(FindAndTransferOwnershipError),
+                            ScaleQuectoMeter001Error(FindAndTransferOwnershipError),
+                            ScaleQuectoMeter01Error(FindAndTransferOwnershipError),
+                            ScaleQuectoMeter1Error(FindAndTransferOwnershipError),
+                            ScaleQuectoMeter10Error(FindAndTransferOwnershipError),
+                            ScaleQuectoMeter100Error(FindAndTransferOwnershipError),
+                            ScaleRontoMeter1Error(FindAndTransferOwnershipError),
+                            ScaleRontoMeter10Error(FindAndTransferOwnershipError),
+                            ScaleRontoMeter100Error(FindAndTransferOwnershipError),
+                            ScaleYoctoMeter1Error(FindAndTransferOwnershipError),
+                            ScaleYoctoMeter10Error(FindAndTransferOwnershipError),
+                            ScaleYoctoMeter100Error(FindAndTransferOwnershipError),
+                            ScaleZeptoMeter1Error(FindAndTransferOwnershipError),
+                            ScaleZeptoMeter10Error(FindAndTransferOwnershipError),
+                            ScaleZeptoMeter100Error(FindAndTransferOwnershipError),
+                            ScaleAttoMeter1Error(FindAndTransferOwnershipError),
+                            ScaleAttoMeter10Error(FindAndTransferOwnershipError),
+                            ScaleAttoMeter100Error(FindAndTransferOwnershipError),
+                            ScaleFemtoMeter1Error(FindAndTransferOwnershipError),
+                            ScaleFemtoMeter10Error(FindAndTransferOwnershipError),
+                            ScaleFemtoMeter100Error(FindAndTransferOwnershipError),
+                            ScalePicoMeter1Error(FindAndTransferOwnershipError),
+                            ScalePicoMeter10Error(FindAndTransferOwnershipError),
+                            ScalePicoMeter100Error(FindAndTransferOwnershipError),
+                            ScaleNanoMeter1Error(FindAndTransferOwnershipError),
+                            ScaleNanoMeter10Error(FindAndTransferOwnershipError),
+                            ScaleNanoMeter100Error(FindAndTransferOwnershipError),
+                            ScaleMicroMeter1Error(FindAndTransferOwnershipError),
+                            ScaleMicroMeter10Error(FindAndTransferOwnershipError),
+                            ScaleMicroMeter100Error(FindAndTransferOwnershipError),
+                            ScaleMilliMeter1Error(FindAndTransferOwnershipError),
+                            ScaleMilliMeter10Error(FindAndTransferOwnershipError),
+                            ScaleMilliMeter100Error(FindAndTransferOwnershipError),
+                            ScaleMeter1Error(FindAndTransferOwnershipError),
+                            ScaleMeter10Error(FindAndTransferOwnershipError),
+                            ScaleMeter100Error(FindAndTransferOwnershipError),
+                            ScaleKiloMeter1Error(FindAndTransferOwnershipError),
+                            ScaleKiloMeter10Error(FindAndTransferOwnershipError),
+                            ScaleKiloMeter100Error(FindAndTransferOwnershipError),
+                            ScaleMegaMeter1Error(FindAndTransferOwnershipError),
+                            ScaleMegaMeter10Error(FindAndTransferOwnershipError),
+                            ScaleMegaMeter100Error(FindAndTransferOwnershipError),
+                            ScaleGigaMeter1Error(FindAndTransferOwnershipError),
+                            ScaleGigaMeter10Error(FindAndTransferOwnershipError),
+                            ScaleGigaMeter100Error(FindAndTransferOwnershipError),
+                            ScaleTeraMeter1Error(FindAndTransferOwnershipError),
+                            ScaleTeraMeter10Error(FindAndTransferOwnershipError),
+                            ScaleTeraMeter100Error(FindAndTransferOwnershipError),
+                            ScalePetaMeter1Error(FindAndTransferOwnershipError),
+                            ScalePetaMeter10Error(FindAndTransferOwnershipError),
+                            ScalePetaMeter100Error(FindAndTransferOwnershipError),
+                            ScaleExaMeter1Error(FindAndTransferOwnershipError),
+                            ScaleExaMeter10Error(FindAndTransferOwnershipError),
+                            ScaleExaMeter100Error(FindAndTransferOwnershipError),
+                            ScaleZettaMeter1Error(FindAndTransferOwnershipError),
+                            ScaleZettaMeter10Error(FindAndTransferOwnershipError),
+                            ScaleZettaMeter100Error(FindAndTransferOwnershipError),
+                            ScaleYottaMeter1Error(FindAndTransferOwnershipError),
+                            ScaleYottaMeter10Error(FindAndTransferOwnershipError),
+                            ScaleYottaMeter100Error(FindAndTransferOwnershipError),
+                            ScaleRonnaMeter1Error(FindAndTransferOwnershipError),
+                            ScaleRonnaMeter10Error(FindAndTransferOwnershipError),
+                            ScaleRonnaMeter100Error(FindAndTransferOwnershipError),
+                            ScaleQuettaMeter1Error(FindAndTransferOwnershipError),
+                            ScaleQuettaMeter10Error(FindAndTransferOwnershipError),
+                            ScaleQuettaMeter100Error(FindAndTransferOwnershipError),
+                            ScaleQuettaMeter1000Error(FindAndTransferOwnershipError),
+                            ScaleQuettaMeter10000Error(FindAndTransferOwnershipError),
+                            ScaleQuettaMeter100000Error(FindAndTransferOwnershipError),
                         }
                     ],
                     core_functions: [
                         fn RunEcs |input, main_access| -> Result<Output, Error> {
-                            let mut chunk_query = main_access.chunk_query;
-                            let mut chunk_manager = main_access.chunk_manager;
-
-                            let mut chunk_entities = Vec::new();
-
-                            for input in input.inputs {
-                                let new_chunk_owner_id = input.new_chunk_owner_id;
-                                let chunk_coord = input.chunk_coord;
-
-                                if let Some((entity, mut chunk)) = chunk_query.iter_mut().find(|(_, chunk)| chunk.coord == chunk_coord) {
-                                    if chunk.owner_id.is_some() {
-                                        chunk_manager.owned_chunks.remove(&chunk_coord);
-                                    }
-                                    chunk.owner_id = Some(new_chunk_owner_id.clone());
-                                    chunk_manager.owned_chunks.insert(chunk_coord, new_chunk_owner_id);
-
-                                    chunk_entities.push(entity);
-                                } else {
-                                    return Err(Error::ChunkNotLoaded { chunk_coord });
-                                }
-                            }
-
-                            Ok(Output {
-                                ownership_transfered_chunk_entities: chunk_entities
-                            })
                         }
                     ]
                 }
