@@ -25,7 +25,7 @@ pub(crate) fn hook_on_add_chunk<S: Scale>(mut world: DeferredWorld<'_>, hook_con
     };
 
     let mut removed_chunk_loaders = world.resource_mut::<RemovedChunkLoaders<S>>();
-    let found_removal_event = removed_chunk_loaders.0.remove(&RemovedChunkLoader { id: chunk_owner_id.clone() });
+    let found_removal_event = removed_chunk_loaders.0.remove(&RemovedChunkLoader::<S> { id: chunk_owner_id.clone() });
 
     if world.get_entity(chunk_owner_id.entity()).is_err() && !found_removal_event {
         panic!(
