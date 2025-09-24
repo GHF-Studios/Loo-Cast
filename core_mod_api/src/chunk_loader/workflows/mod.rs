@@ -1117,77 +1117,77 @@ define_workflow_mod_OLD! {
                             inner_scale_quetta_meter_100000: ValidateAndLoadAndWaitStageInput<ScaleQuettaMeter100000>,
                         }
                         struct State {
-                            inner_scale_quecto_meter_000001: (ValidateAndLoadAndWaitStageState<ScaleQuectoMeter000001>, bool),
-                            inner_scale_quecto_meter_00001: (ValidateAndLoadAndWaitStageState<ScaleQuectoMeter00001>, bool),
-                            inner_scale_quecto_meter_0001: (ValidateAndLoadAndWaitStageState<ScaleQuectoMeter0001>, bool),
-                            inner_scale_quecto_meter_001: (ValidateAndLoadAndWaitStageState<ScaleQuectoMeter001>, bool),
-                            inner_scale_quecto_meter_01: (ValidateAndLoadAndWaitStageState<ScaleQuectoMeter01>, bool),
-                            inner_scale_quecto_meter_1: (ValidateAndLoadAndWaitStageState<ScaleQuectoMeter1>, bool),
-                            inner_scale_quecto_meter_10: (ValidateAndLoadAndWaitStageState<ScaleQuectoMeter10>, bool),
-                            inner_scale_quecto_meter_100: (ValidateAndLoadAndWaitStageState<ScaleQuectoMeter100>, bool),
-                            inner_scale_ronto_meter_1: (ValidateAndLoadAndWaitStageState<ScaleRontoMeter1>, bool),
-                            inner_scale_ronto_meter_10: (ValidateAndLoadAndWaitStageState<ScaleRontoMeter10>, bool),
-                            inner_scale_ronto_meter_100: (ValidateAndLoadAndWaitStageState<ScaleRontoMeter100>, bool),
-                            inner_scale_yocto_meter_1: (ValidateAndLoadAndWaitStageState<ScaleYoctoMeter1>, bool),
-                            inner_scale_yocto_meter_10: (ValidateAndLoadAndWaitStageState<ScaleYoctoMeter10>, bool),
-                            inner_scale_yocto_meter_100: (ValidateAndLoadAndWaitStageState<ScaleYoctoMeter100>, bool),
-                            inner_scale_zepto_meter_1: (ValidateAndLoadAndWaitStageState<ScaleZeptoMeter1>, bool),
-                            inner_scale_zepto_meter_10: (ValidateAndLoadAndWaitStageState<ScaleZeptoMeter10>, bool),
-                            inner_scale_zepto_meter_100: (ValidateAndLoadAndWaitStageState<ScaleZeptoMeter100>, bool),
-                            inner_scale_atto_meter_1: (ValidateAndLoadAndWaitStageState<ScaleAttoMeter1>, bool),
-                            inner_scale_atto_meter_10: (ValidateAndLoadAndWaitStageState<ScaleAttoMeter10>, bool),
-                            inner_scale_atto_meter_100: (ValidateAndLoadAndWaitStageState<ScaleAttoMeter100>, bool),
-                            inner_scale_femto_meter_1: (ValidateAndLoadAndWaitStageState<ScaleFemtoMeter1>, bool),
-                            inner_scale_femto_meter_10: (ValidateAndLoadAndWaitStageState<ScaleFemtoMeter10>, bool),
-                            inner_scale_femto_meter_100: (ValidateAndLoadAndWaitStageState<ScaleFemtoMeter100>, bool),
-                            inner_scale_pico_meter_1: (ValidateAndLoadAndWaitStageState<ScalePicoMeter1>, bool),
-                            inner_scale_pico_meter_10: (ValidateAndLoadAndWaitStageState<ScalePicoMeter10>, bool),
-                            inner_scale_pico_meter_100: (ValidateAndLoadAndWaitStageState<ScalePicoMeter100>, bool),
-                            inner_scale_nano_meter_1: (ValidateAndLoadAndWaitStageState<ScaleNanoMeter1>, bool),
-                            inner_scale_nano_meter_10: (ValidateAndLoadAndWaitStageState<ScaleNanoMeter10>, bool),
-                            inner_scale_nano_meter_100: (ValidateAndLoadAndWaitStageState<ScaleNanoMeter100>, bool),
-                            inner_scale_micro_meter_1: (ValidateAndLoadAndWaitStageState<ScaleMicroMeter1>, bool),
-                            inner_scale_micro_meter_10: (ValidateAndLoadAndWaitStageState<ScaleMicroMeter10>, bool),
-                            inner_scale_micro_meter_100: (ValidateAndLoadAndWaitStageState<ScaleMicroMeter100>, bool),
-                            inner_scale_milli_meter_1: (ValidateAndLoadAndWaitStageState<ScaleMilliMeter1>, bool),
-                            inner_scale_milli_meter_10: (ValidateAndLoadAndWaitStageState<ScaleMilliMeter10>, bool),
-                            inner_scale_milli_meter_100: (ValidateAndLoadAndWaitStageState<ScaleMilliMeter100>, bool),
-                            inner_scale_meter_1: (ValidateAndLoadAndWaitStageState<ScaleMeter1>, bool),
-                            inner_scale_meter_10: (ValidateAndLoadAndWaitStageState<ScaleMeter10>, bool),
-                            inner_scale_meter_100: (ValidateAndLoadAndWaitStageState<ScaleMeter100>, bool),
-                            inner_scale_kilo_meter_1: (ValidateAndLoadAndWaitStageState<ScaleKiloMeter1>, bool),
-                            inner_scale_kilo_meter_10: (ValidateAndLoadAndWaitStageState<ScaleKiloMeter10>, bool),
-                            inner_scale_kilo_meter_100: (ValidateAndLoadAndWaitStageState<ScaleKiloMeter100>, bool),
-                            inner_scale_mega_meter_1: (ValidateAndLoadAndWaitStageState<ScaleMegaMeter1>, bool),
-                            inner_scale_mega_meter_10: (ValidateAndLoadAndWaitStageState<ScaleMegaMeter10>, bool),
-                            inner_scale_mega_meter_100: (ValidateAndLoadAndWaitStageState<ScaleMegaMeter100>, bool),
-                            inner_scale_giga_meter_1: (ValidateAndLoadAndWaitStageState<ScaleGigaMeter1>, bool),
-                            inner_scale_giga_meter_10: (ValidateAndLoadAndWaitStageState<ScaleGigaMeter10>, bool),
-                            inner_scale_giga_meter_100: (ValidateAndLoadAndWaitStageState<ScaleGigaMeter100>, bool),
-                            inner_scale_tera_meter_1: (ValidateAndLoadAndWaitStageState<ScaleTeraMeter1>, bool),
-                            inner_scale_tera_meter_10: (ValidateAndLoadAndWaitStageState<ScaleTeraMeter10>, bool),
-                            inner_scale_tera_meter_100: (ValidateAndLoadAndWaitStageState<ScaleTeraMeter100>, bool),
-                            inner_scale_peta_meter_1: (ValidateAndLoadAndWaitStageState<ScalePetaMeter1>, bool),
-                            inner_scale_peta_meter_10: (ValidateAndLoadAndWaitStageState<ScalePetaMeter10>, bool),
-                            inner_scale_peta_meter_100: (ValidateAndLoadAndWaitStageState<ScalePetaMeter100>, bool),
-                            inner_scale_exa_meter_1: (ValidateAndLoadAndWaitStageState<ScaleExaMeter1>, bool),
-                            inner_scale_exa_meter_10: (ValidateAndLoadAndWaitStageState<ScaleExaMeter10>, bool),
-                            inner_scale_exa_meter_100: (ValidateAndLoadAndWaitStageState<ScaleExaMeter100>, bool),
-                            inner_scale_zetta_meter_1: (ValidateAndLoadAndWaitStageState<ScaleZettaMeter1>, bool),
-                            inner_scale_zetta_meter_10: (ValidateAndLoadAndWaitStageState<ScaleZettaMeter10>, bool),
-                            inner_scale_zetta_meter_100: (ValidateAndLoadAndWaitStageState<ScaleZettaMeter100>, bool),
-                            inner_scale_yotta_meter_1: (ValidateAndLoadAndWaitStageState<ScaleYottaMeter1>, bool),
-                            inner_scale_yotta_meter_10: (ValidateAndLoadAndWaitStageState<ScaleYottaMeter10>, bool),
-                            inner_scale_yotta_meter_100: (ValidateAndLoadAndWaitStageState<ScaleYottaMeter100>, bool),
-                            inner_scale_ronna_meter_1: (ValidateAndLoadAndWaitStageState<ScaleRonnaMeter1>, bool),
-                            inner_scale_ronna_meter_10: (ValidateAndLoadAndWaitStageState<ScaleRonnaMeter10>, bool),
-                            inner_scale_ronna_meter_100: (ValidateAndLoadAndWaitStageState<ScaleRonnaMeter100>, bool),
-                            inner_scale_quetta_meter_1: (ValidateAndLoadAndWaitStageState<ScaleQuettaMeter1>, bool),
-                            inner_scale_quetta_meter_10: (ValidateAndLoadAndWaitStageState<ScaleQuettaMeter10>, bool),
-                            inner_scale_quetta_meter_100: (ValidateAndLoadAndWaitStageState<ScaleQuettaMeter100>, bool),
-                            inner_scale_quetta_meter_1000: (ValidateAndLoadAndWaitStageState<ScaleQuettaMeter1000>, bool),
-                            inner_scale_quetta_meter_10000: (ValidateAndLoadAndWaitStageState<ScaleQuettaMeter10000>, bool),
-                            inner_scale_quetta_meter_100000: (ValidateAndLoadAndWaitStageState<ScaleQuettaMeter100000>, bool),
+                            inner_scale_quecto_meter_000001: Option<ValidateAndLoadAndWaitStageState<ScaleQuectoMeter000001>>,
+                            inner_scale_quecto_meter_00001: Option<ValidateAndLoadAndWaitStageState<ScaleQuectoMeter00001>>,
+                            inner_scale_quecto_meter_0001: Option<ValidateAndLoadAndWaitStageState<ScaleQuectoMeter0001>>,
+                            inner_scale_quecto_meter_001: Option<ValidateAndLoadAndWaitStageState<ScaleQuectoMeter001>>,
+                            inner_scale_quecto_meter_01: Option<ValidateAndLoadAndWaitStageState<ScaleQuectoMeter01>>,
+                            inner_scale_quecto_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleQuectoMeter1>>,
+                            inner_scale_quecto_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleQuectoMeter10>>,
+                            inner_scale_quecto_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleQuectoMeter100>>,
+                            inner_scale_ronto_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleRontoMeter1>>,
+                            inner_scale_ronto_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleRontoMeter10>>,
+                            inner_scale_ronto_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleRontoMeter100>>,
+                            inner_scale_yocto_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleYoctoMeter1>>,
+                            inner_scale_yocto_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleYoctoMeter10>>,
+                            inner_scale_yocto_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleYoctoMeter100>>,
+                            inner_scale_zepto_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleZeptoMeter1>>,
+                            inner_scale_zepto_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleZeptoMeter10>>,
+                            inner_scale_zepto_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleZeptoMeter100>>,
+                            inner_scale_atto_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleAttoMeter1>>,
+                            inner_scale_atto_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleAttoMeter10>>,
+                            inner_scale_atto_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleAttoMeter100>>,
+                            inner_scale_femto_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleFemtoMeter1>>,
+                            inner_scale_femto_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleFemtoMeter10>>,
+                            inner_scale_femto_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleFemtoMeter100>>,
+                            inner_scale_pico_meter_1: Option<ValidateAndLoadAndWaitStageState<ScalePicoMeter1>>,
+                            inner_scale_pico_meter_10: Option<ValidateAndLoadAndWaitStageState<ScalePicoMeter10>>,
+                            inner_scale_pico_meter_100: Option<ValidateAndLoadAndWaitStageState<ScalePicoMeter100>>,
+                            inner_scale_nano_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleNanoMeter1>>,
+                            inner_scale_nano_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleNanoMeter10>>,
+                            inner_scale_nano_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleNanoMeter100>>,
+                            inner_scale_micro_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleMicroMeter1>>,
+                            inner_scale_micro_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleMicroMeter10>>,
+                            inner_scale_micro_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleMicroMeter100>>,
+                            inner_scale_milli_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleMilliMeter1>>,
+                            inner_scale_milli_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleMilliMeter10>>,
+                            inner_scale_milli_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleMilliMeter100>>,
+                            inner_scale_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleMeter1>>,
+                            inner_scale_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleMeter10>>,
+                            inner_scale_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleMeter100>>,
+                            inner_scale_kilo_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleKiloMeter1>>,
+                            inner_scale_kilo_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleKiloMeter10>>,
+                            inner_scale_kilo_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleKiloMeter100>>,
+                            inner_scale_mega_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleMegaMeter1>>,
+                            inner_scale_mega_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleMegaMeter10>>,
+                            inner_scale_mega_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleMegaMeter100>>,
+                            inner_scale_giga_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleGigaMeter1>>,
+                            inner_scale_giga_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleGigaMeter10>>,
+                            inner_scale_giga_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleGigaMeter100>>,
+                            inner_scale_tera_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleTeraMeter1>>,
+                            inner_scale_tera_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleTeraMeter10>>,
+                            inner_scale_tera_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleTeraMeter100>>,
+                            inner_scale_peta_meter_1: Option<ValidateAndLoadAndWaitStageState<ScalePetaMeter1>>,
+                            inner_scale_peta_meter_10: Option<ValidateAndLoadAndWaitStageState<ScalePetaMeter10>>,
+                            inner_scale_peta_meter_100: Option<ValidateAndLoadAndWaitStageState<ScalePetaMeter100>>,
+                            inner_scale_exa_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleExaMeter1>>,
+                            inner_scale_exa_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleExaMeter10>>,
+                            inner_scale_exa_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleExaMeter100>>,
+                            inner_scale_zetta_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleZettaMeter1>>,
+                            inner_scale_zetta_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleZettaMeter10>>,
+                            inner_scale_zetta_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleZettaMeter100>>,
+                            inner_scale_yotta_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleYottaMeter1>>,
+                            inner_scale_yotta_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleYottaMeter10>>,
+                            inner_scale_yotta_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleYottaMeter100>>,
+                            inner_scale_ronna_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleRonnaMeter1>>,
+                            inner_scale_ronna_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleRonnaMeter10>>,
+                            inner_scale_ronna_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleRonnaMeter100>>,
+                            inner_scale_quetta_meter_1: Option<ValidateAndLoadAndWaitStageState<ScaleQuettaMeter1>>,
+                            inner_scale_quetta_meter_10: Option<ValidateAndLoadAndWaitStageState<ScaleQuettaMeter10>>,
+                            inner_scale_quetta_meter_100: Option<ValidateAndLoadAndWaitStageState<ScaleQuettaMeter100>>,
+                            inner_scale_quetta_meter_1000: Option<ValidateAndLoadAndWaitStageState<ScaleQuettaMeter1000>>,
+                            inner_scale_quetta_meter_10000: Option<ValidateAndLoadAndWaitStageState<ScaleQuettaMeter10000>>,
+                            inner_scale_quetta_meter_100000: Option<ValidateAndLoadAndWaitStageState<ScaleQuettaMeter100000>>,
                         }
                     ],
                     core_functions: [
@@ -1265,586 +1265,799 @@ define_workflow_mod_OLD! {
                             let state_scale_quetta_meter_100000 = validate_and_load_and_wait_stage_setup_ecs_while(input.inner_scale_quetta_meter_100000, main_access.inner_scale_quetta_meter_100000);
                             
                             State {
-                                inner_scale_quecto_meter_000001: (state_scale_quecto_meter_000001, false),
-                                inner_scale_quecto_meter_00001: (state_scale_quecto_meter_00001, false),
-                                inner_scale_quecto_meter_0001: (state_scale_quecto_meter_0001, false),
-                                inner_scale_quecto_meter_001: (state_scale_quecto_meter_001, false),
-                                inner_scale_quecto_meter_01: (state_scale_quecto_meter_01, false),
-                                inner_scale_quecto_meter_1: (state_scale_quecto_meter_1, false),
-                                inner_scale_quecto_meter_10: (state_scale_quecto_meter_10, false),
-                                inner_scale_quecto_meter_100: (state_scale_quecto_meter_100, false),
-                                inner_scale_ronto_meter_1: (state_scale_ronto_meter_1, false),
-                                inner_scale_ronto_meter_10: (state_scale_ronto_meter_10, false),
-                                inner_scale_ronto_meter_100: (state_scale_ronto_meter_100, false),
-                                inner_scale_yocto_meter_1: (state_scale_yocto_meter_1, false),
-                                inner_scale_yocto_meter_10: (state_scale_yocto_meter_10, false),
-                                inner_scale_yocto_meter_100: (state_scale_yocto_meter_100, false),
-                                inner_scale_zepto_meter_1: (state_scale_zepto_meter_1, false),
-                                inner_scale_zepto_meter_10: (state_scale_zepto_meter_10, false),
-                                inner_scale_zepto_meter_100: (state_scale_zepto_meter_100, false),
-                                inner_scale_atto_meter_1: (state_scale_atto_meter_1, false),
-                                inner_scale_atto_meter_10: (state_scale_atto_meter_10, false),
-                                inner_scale_atto_meter_100: (state_scale_atto_meter_100, false),
-                                inner_scale_femto_meter_1: (state_scale_femto_meter_1, false),
-                                inner_scale_femto_meter_10: (state_scale_femto_meter_10, false),
-                                inner_scale_femto_meter_100: (state_scale_femto_meter_100, false),
-                                inner_scale_pico_meter_1: (state_scale_pico_meter_1, false),
-                                inner_scale_pico_meter_10: (state_scale_pico_meter_10, false),
-                                inner_scale_pico_meter_100: (state_scale_pico_meter_100, false),
-                                inner_scale_nano_meter_1: (state_scale_nano_meter_1, false),
-                                inner_scale_nano_meter_10: (state_scale_nano_meter_10, false),
-                                inner_scale_nano_meter_100: (state_scale_nano_meter_100, false),
-                                inner_scale_micro_meter_1: (state_scale_micro_meter_1, false),
-                                inner_scale_micro_meter_10: (state_scale_micro_meter_10, false),
-                                inner_scale_micro_meter_100: (state_scale_micro_meter_100, false),
-                                inner_scale_milli_meter_1: (state_scale_milli_meter_1, false),
-                                inner_scale_milli_meter_10: (state_scale_milli_meter_10, false),
-                                inner_scale_milli_meter_100: (state_scale_milli_meter_100, false),
-                                inner_scale_meter_1: (state_scale_meter_1, false),
-                                inner_scale_meter_10: (state_scale_meter_10, false),
-                                inner_scale_meter_100: (state_scale_meter_100, false),
-                                inner_scale_kilo_meter_1: (state_scale_kilo_meter_1, false),
-                                inner_scale_kilo_meter_10: (state_scale_kilo_meter_10, false),
-                                inner_scale_kilo_meter_100: (state_scale_kilo_meter_100, false),
-                                inner_scale_mega_meter_1: (state_scale_mega_meter_1, false),
-                                inner_scale_mega_meter_10: (state_scale_mega_meter_10, false),
-                                inner_scale_mega_meter_100: (state_scale_mega_meter_100, false),
-                                inner_scale_giga_meter_1: (state_scale_giga_meter_1, false),
-                                inner_scale_giga_meter_10: (state_scale_giga_meter_10, false),
-                                inner_scale_giga_meter_100: (state_scale_giga_meter_100, false),
-                                inner_scale_tera_meter_1: (state_scale_tera_meter_1, false),
-                                inner_scale_tera_meter_10: (state_scale_tera_meter_10, false),
-                                inner_scale_tera_meter_100: (state_scale_tera_meter_100, false),
-                                inner_scale_peta_meter_1: (state_scale_peta_meter_1, false),
-                                inner_scale_peta_meter_10: (state_scale_peta_meter_10, false),
-                                inner_scale_peta_meter_100: (state_scale_peta_meter_100, false),
-                                inner_scale_exa_meter_1: (state_scale_exa_meter_1, false),
-                                inner_scale_exa_meter_10: (state_scale_exa_meter_10, false),
-                                inner_scale_exa_meter_100: (state_scale_exa_meter_100, false),
-                                inner_scale_zetta_meter_1: (state_scale_zetta_meter_1, false),
-                                inner_scale_zetta_meter_10: (state_scale_zetta_meter_10, false),
-                                inner_scale_zetta_meter_100: (state_scale_zetta_meter_100, false),
-                                inner_scale_yotta_meter_1: (state_scale_yotta_meter_1, false),
-                                inner_scale_yotta_meter_10: (state_scale_yotta_meter_10, false),
-                                inner_scale_yotta_meter_100: (state_scale_yotta_meter_100, false),
-                                inner_scale_ronna_meter_1: (state_scale_ronna_meter_1, false),
-                                inner_scale_ronna_meter_10: (state_scale_ronna_meter_10, false),
-                                inner_scale_ronna_meter_100: (state_scale_ronna_meter_100, false),
-                                inner_scale_quetta_meter_1: (state_scale_quetta_meter_1, false),
-                                inner_scale_quetta_meter_10: (state_scale_quetta_meter_10, false),
-                                inner_scale_quetta_meter_100: (state_scale_quetta_meter_100, false),
-                                inner_scale_quetta_meter_1000: (state_scale_quetta_meter_1000, false),
-                                inner_scale_quetta_meter_10000: (state_scale_quetta_meter_10000, false),
-                                inner_scale_quetta_meter_100000: (state_scale_quetta_meter_100000, false),
+                                inner_scale_quecto_meter_000001: Some(state_scale_quecto_meter_000001),
+                                inner_scale_quecto_meter_00001: Some(state_scale_quecto_meter_00001),
+                                inner_scale_quecto_meter_0001: Some(state_scale_quecto_meter_0001),
+                                inner_scale_quecto_meter_001: Some(state_scale_quecto_meter_001),
+                                inner_scale_quecto_meter_01: Some(state_scale_quecto_meter_01),
+                                inner_scale_quecto_meter_1: Some(state_scale_quecto_meter_1),
+                                inner_scale_quecto_meter_10: Some(state_scale_quecto_meter_10),
+                                inner_scale_quecto_meter_100: Some(state_scale_quecto_meter_100),
+                                inner_scale_ronto_meter_1: Some(state_scale_ronto_meter_1),
+                                inner_scale_ronto_meter_10: Some(state_scale_ronto_meter_10),
+                                inner_scale_ronto_meter_100: Some(state_scale_ronto_meter_100),
+                                inner_scale_yocto_meter_1: Some(state_scale_yocto_meter_1),
+                                inner_scale_yocto_meter_10: Some(state_scale_yocto_meter_10),
+                                inner_scale_yocto_meter_100: Some(state_scale_yocto_meter_100),
+                                inner_scale_zepto_meter_1: Some(state_scale_zepto_meter_1),
+                                inner_scale_zepto_meter_10: Some(state_scale_zepto_meter_10),
+                                inner_scale_zepto_meter_100: Some(state_scale_zepto_meter_100),
+                                inner_scale_atto_meter_1: Some(state_scale_atto_meter_1),
+                                inner_scale_atto_meter_10: Some(state_scale_atto_meter_10),
+                                inner_scale_atto_meter_100: Some(state_scale_atto_meter_100),
+                                inner_scale_femto_meter_1: Some(state_scale_femto_meter_1),
+                                inner_scale_femto_meter_10: Some(state_scale_femto_meter_10),
+                                inner_scale_femto_meter_100: Some(state_scale_femto_meter_100),
+                                inner_scale_pico_meter_1: Some(state_scale_pico_meter_1),
+                                inner_scale_pico_meter_10: Some(state_scale_pico_meter_10),
+                                inner_scale_pico_meter_100: Some(state_scale_pico_meter_100),
+                                inner_scale_nano_meter_1: Some(state_scale_nano_meter_1),
+                                inner_scale_nano_meter_10: Some(state_scale_nano_meter_10),
+                                inner_scale_nano_meter_100: Some(state_scale_nano_meter_100),
+                                inner_scale_micro_meter_1: Some(state_scale_micro_meter_1),
+                                inner_scale_micro_meter_10: Some(state_scale_micro_meter_10),
+                                inner_scale_micro_meter_100: Some(state_scale_micro_meter_100),
+                                inner_scale_milli_meter_1: Some(state_scale_milli_meter_1),
+                                inner_scale_milli_meter_10: Some(state_scale_milli_meter_10),
+                                inner_scale_milli_meter_100: Some(state_scale_milli_meter_100),
+                                inner_scale_meter_1: Some(state_scale_meter_1),
+                                inner_scale_meter_10: Some(state_scale_meter_10),
+                                inner_scale_meter_100: Some(state_scale_meter_100),
+                                inner_scale_kilo_meter_1: Some(state_scale_kilo_meter_1),
+                                inner_scale_kilo_meter_10: Some(state_scale_kilo_meter_10),
+                                inner_scale_kilo_meter_100: Some(state_scale_kilo_meter_100),
+                                inner_scale_mega_meter_1: Some(state_scale_mega_meter_1),
+                                inner_scale_mega_meter_10: Some(state_scale_mega_meter_10),
+                                inner_scale_mega_meter_100: Some(state_scale_mega_meter_100),
+                                inner_scale_giga_meter_1: Some(state_scale_giga_meter_1),
+                                inner_scale_giga_meter_10: Some(state_scale_giga_meter_10),
+                                inner_scale_giga_meter_100: Some(state_scale_giga_meter_100),
+                                inner_scale_tera_meter_1: Some(state_scale_tera_meter_1),
+                                inner_scale_tera_meter_10: Some(state_scale_tera_meter_10),
+                                inner_scale_tera_meter_100: Some(state_scale_tera_meter_100),
+                                inner_scale_peta_meter_1: Some(state_scale_peta_meter_1),
+                                inner_scale_peta_meter_10: Some(state_scale_peta_meter_10),
+                                inner_scale_peta_meter_100: Some(state_scale_peta_meter_100),
+                                inner_scale_exa_meter_1: Some(state_scale_exa_meter_1),
+                                inner_scale_exa_meter_10: Some(state_scale_exa_meter_10),
+                                inner_scale_exa_meter_100: Some(state_scale_exa_meter_100),
+                                inner_scale_zetta_meter_1: Some(state_scale_zetta_meter_1),
+                                inner_scale_zetta_meter_10: Some(state_scale_zetta_meter_10),
+                                inner_scale_zetta_meter_100: Some(state_scale_zetta_meter_100),
+                                inner_scale_yotta_meter_1: Some(state_scale_yotta_meter_1),
+                                inner_scale_yotta_meter_10: Some(state_scale_yotta_meter_10),
+                                inner_scale_yotta_meter_100: Some(state_scale_yotta_meter_100),
+                                inner_scale_ronna_meter_1: Some(state_scale_ronna_meter_1),
+                                inner_scale_ronna_meter_10: Some(state_scale_ronna_meter_10),
+                                inner_scale_ronna_meter_100: Some(state_scale_ronna_meter_100),
+                                inner_scale_quetta_meter_1: Some(state_scale_quetta_meter_1),
+                                inner_scale_quetta_meter_10: Some(state_scale_quetta_meter_10),
+                                inner_scale_quetta_meter_100: Some(state_scale_quetta_meter_100),
+                                inner_scale_quetta_meter_1000: Some(state_scale_quetta_meter_1000),
+                                inner_scale_quetta_meter_10000: Some(state_scale_quetta_meter_10000),
+                                inner_scale_quetta_meter_100000: Some(state_scale_quetta_meter_100000),
                             }
                         }
 
                         fn RunEcsWhile |state, main_access| -> Outcome<State, ()> {
-                            let outcome_scale_quecto_meter_000001 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_000001.0, main_access.inner_scale_quecto_meter_000001);
-                            let outcome_scale_quecto_meter_00001 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_00001.0, main_access.inner_scale_quecto_meter_00001);
-                            let outcome_scale_quecto_meter_0001 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_0001.0, main_access.inner_scale_quecto_meter_0001);
-                            let outcome_scale_quecto_meter_001 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_001.0, main_access.inner_scale_quecto_meter_001);
-                            let outcome_scale_quecto_meter_01 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_01.0, main_access.inner_scale_quecto_meter_01);
-                            let outcome_scale_quecto_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_1.0, main_access.inner_scale_quecto_meter_1);
-                            let outcome_scale_quecto_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_10.0, main_access.inner_scale_quecto_meter_10);
-                            let outcome_scale_quecto_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_100.0, main_access.inner_scale_quecto_meter_100);
-                            let outcome_scale_ronto_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_ronto_meter_1.0, main_access.inner_scale_ronto_meter_1);
-                            let outcome_scale_ronto_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_ronto_meter_10.0, main_access.inner_scale_ronto_meter_10);
-                            let outcome_scale_ronto_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_ronto_meter_100.0, main_access.inner_scale_ronto_meter_100);
-                            let outcome_scale_yocto_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_yocto_meter_1.0, main_access.inner_scale_yocto_meter_1);
-                            let outcome_scale_yocto_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_yocto_meter_10.0, main_access.inner_scale_yocto_meter_10);
-                            let outcome_scale_yocto_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_yocto_meter_100.0, main_access.inner_scale_yocto_meter_100);
-                            let outcome_scale_zepto_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_zepto_meter_1.0, main_access.inner_scale_zepto_meter_1);
-                            let outcome_scale_zepto_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_zepto_meter_10.0, main_access.inner_scale_zepto_meter_10);
-                            let outcome_scale_zepto_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_zepto_meter_100.0, main_access.inner_scale_zepto_meter_100);
-                            let outcome_scale_atto_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_atto_meter_1.0, main_access.inner_scale_atto_meter_1);
-                            let outcome_scale_atto_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_atto_meter_10.0, main_access.inner_scale_atto_meter_10);
-                            let outcome_scale_atto_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_atto_meter_100.0, main_access.inner_scale_atto_meter_100);
-                            let outcome_scale_femto_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_femto_meter_1.0, main_access.inner_scale_femto_meter_1);
-                            let outcome_scale_femto_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_femto_meter_10.0, main_access.inner_scale_femto_meter_10);
-                            let outcome_scale_femto_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_femto_meter_100.0, main_access.inner_scale_femto_meter_100);
-                            let outcome_scale_pico_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_pico_meter_1.0, main_access.inner_scale_pico_meter_1);
-                            let outcome_scale_pico_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_pico_meter_10.0, main_access.inner_scale_pico_meter_10);
-                            let outcome_scale_pico_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_pico_meter_100.0, main_access.inner_scale_pico_meter_100);
-                            let outcome_scale_nano_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_nano_meter_1.0, main_access.inner_scale_nano_meter_1);
-                            let outcome_scale_nano_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_nano_meter_10.0, main_access.inner_scale_nano_meter_10);
-                            let outcome_scale_nano_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_nano_meter_100.0, main_access.inner_scale_nano_meter_100);
-                            let outcome_scale_micro_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_micro_meter_1.0, main_access.inner_scale_micro_meter_1);
-                            let outcome_scale_micro_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_micro_meter_10.0, main_access.inner_scale_micro_meter_10);
-                            let outcome_scale_micro_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_micro_meter_100.0, main_access.inner_scale_micro_meter_100);
-                            let outcome_scale_milli_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_milli_meter_1.0, main_access.inner_scale_milli_meter_1);
-                            let outcome_scale_milli_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_milli_meter_10.0, main_access.inner_scale_milli_meter_10);
-                            let outcome_scale_milli_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_milli_meter_100.0, main_access.inner_scale_milli_meter_100);
-                            let outcome_scale_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_meter_1.0, main_access.inner_scale_meter_1);
-                            let outcome_scale_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_meter_10.0, main_access.inner_scale_meter_10);
-                            let outcome_scale_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_meter_100.0, main_access.inner_scale_meter_100);
-                            let outcome_scale_kilo_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_kilo_meter_1.0, main_access.inner_scale_kilo_meter_1);
-                            let outcome_scale_kilo_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_kilo_meter_10.0, main_access.inner_scale_kilo_meter_10);
-                            let outcome_scale_kilo_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_kilo_meter_100.0, main_access.inner_scale_kilo_meter_100);
-                            let outcome_scale_mega_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_mega_meter_1.0, main_access.inner_scale_mega_meter_1);
-                            let outcome_scale_mega_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_mega_meter_10.0, main_access.inner_scale_mega_meter_10);
-                            let outcome_scale_mega_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_mega_meter_100.0, main_access.inner_scale_mega_meter_100);
-                            let outcome_scale_giga_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_giga_meter_1.0, main_access.inner_scale_giga_meter_1);
-                            let outcome_scale_giga_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_giga_meter_10.0, main_access.inner_scale_giga_meter_10);
-                            let outcome_scale_giga_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_giga_meter_100.0, main_access.inner_scale_giga_meter_100);
-                            let outcome_scale_tera_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_tera_meter_1.0, main_access.inner_scale_tera_meter_1);
-                            let outcome_scale_tera_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_tera_meter_10.0, main_access.inner_scale_tera_meter_10);
-                            let outcome_scale_tera_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_tera_meter_100.0, main_access.inner_scale_tera_meter_100);
-                            let outcome_scale_peta_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_peta_meter_1.0, main_access.inner_scale_peta_meter_1);
-                            let outcome_scale_peta_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_peta_meter_10.0, main_access.inner_scale_peta_meter_10);
-                            let outcome_scale_peta_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_peta_meter_100.0, main_access.inner_scale_peta_meter_100);
-                            let outcome_scale_exa_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_exa_meter_1.0, main_access.inner_scale_exa_meter_1);
-                            let outcome_scale_exa_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_exa_meter_10.0, main_access.inner_scale_exa_meter_10);
-                            let outcome_scale_exa_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_exa_meter_100.0, main_access.inner_scale_exa_meter_100);
-                            let outcome_scale_zetta_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_zetta_meter_1.0, main_access.inner_scale_zetta_meter_1);
-                            let outcome_scale_zetta_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_zetta_meter_10.0, main_access.inner_scale_zetta_meter_10);
-                            let outcome_scale_zetta_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_zetta_meter_100.0, main_access.inner_scale_zetta_meter_100);
-                            let outcome_scale_yotta_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_yotta_meter_1.0, main_access.inner_scale_yotta_meter_1);
-                            let outcome_scale_yotta_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_yotta_meter_10.0, main_access.inner_scale_yotta_meter_10);
-                            let outcome_scale_yotta_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_yotta_meter_100.0, main_access.inner_scale_yotta_meter_100);
-                            let outcome_scale_ronna_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_ronna_meter_1.0, main_access.inner_scale_ronna_meter_1);
-                            let outcome_scale_ronna_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_ronna_meter_10.0, main_access.inner_scale_ronna_meter_10);
-                            let outcome_scale_ronna_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_ronna_meter_100.0, main_access.inner_scale_ronna_meter_100);
-                            let outcome_scale_quetta_meter_1 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quetta_meter_1.0, main_access.inner_scale_quetta_meter_1);
-                            let outcome_scale_quetta_meter_10 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quetta_meter_10.0, main_access.inner_scale_quetta_meter_10);
-                            let outcome_scale_quetta_meter_100 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quetta_meter_100.0, main_access.inner_scale_quetta_meter_100);
-                            let outcome_scale_quetta_meter_1000 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quetta_meter_1000.0, main_access.inner_scale_quetta_meter_1000);
-                            let outcome_scale_quetta_meter_10000 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quetta_meter_10000.0, main_access.inner_scale_quetta_meter_10000);
-                            let outcome_scale_quetta_meter_100000 = validate_and_load_and_wait_stage_run_ecs_while(state.inner_scale_quetta_meter_100000.0, main_access.inner_scale_quetta_meter_100000);
+                            let outcome_scale_quecto_meter_000001 = if let Some(state) = state.inner_scale_quecto_meter_000001 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_000001))
+                            } else { None };
+                            let outcome_scale_quecto_meter_00001 = if let Some(state) = state.inner_scale_quecto_meter_00001 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_00001))
+                            } else { None };
+                            let outcome_scale_quecto_meter_0001 = if let Some(state) = state.inner_scale_quecto_meter_0001 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_0001))
+                            } else { None };
+                            let outcome_scale_quecto_meter_001 = if let Some(state) = state.inner_scale_quecto_meter_001 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_001))
+                            } else { None };
+                            let outcome_scale_quecto_meter_01 = if let Some(state) = state.inner_scale_quecto_meter_01 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_01))
+                            } else { None };
+                            let outcome_scale_quecto_meter_1 = if let Some(state) = state.inner_scale_quecto_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_1))
+                            } else { None };
+                            let outcome_scale_quecto_meter_10 = if let Some(state) = state.inner_scale_quecto_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_10))
+                            } else { None };
+                            let outcome_scale_quecto_meter_100 = if let Some(state) = state.inner_scale_quecto_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_100))
+                            } else { None };
+                            let outcome_scale_ronto_meter_1 = if let Some(state) = state.inner_scale_ronto_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_ronto_meter_1))
+                            } else { None };
+                            let outcome_scale_ronto_meter_10 = if let Some(state) = state.inner_scale_ronto_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_ronto_meter_10))
+                            } else { None };
+                            let outcome_scale_ronto_meter_100 = if let Some(state) = state.inner_scale_ronto_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_ronto_meter_100))
+                            } else { None };
+                            let outcome_scale_yocto_meter_1 = if let Some(state) = state.inner_scale_yocto_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_yocto_meter_1))
+                            } else { None };
+                            let outcome_scale_yocto_meter_10 = if let Some(state) = state.inner_scale_yocto_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_yocto_meter_10))
+                            } else { None };
+                            let outcome_scale_yocto_meter_100 = if let Some(state) = state.inner_scale_yocto_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_yocto_meter_100))
+                            } else { None };
+                            let outcome_scale_zepto_meter_1 = if let Some(state) = state.inner_scale_zepto_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_zepto_meter_1))
+                            } else { None };
+                            let outcome_scale_zepto_meter_10 = if let Some(state) = state.inner_scale_zepto_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_zepto_meter_10))
+                            } else { None };
+                            let outcome_scale_zepto_meter_100 = if let Some(state) = state.inner_scale_zepto_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_zepto_meter_100))
+                            } else { None };
+                            let outcome_scale_atto_meter_1 = if let Some(state) = state.inner_scale_atto_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_atto_meter_1))
+                            } else { None };
+                            let outcome_scale_atto_meter_10 = if let Some(state) = state.inner_scale_atto_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_atto_meter_10))
+                            } else { None };
+                            let outcome_scale_atto_meter_100 = if let Some(state) = state.inner_scale_atto_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_atto_meter_100))
+                            } else { None };
+                            let outcome_scale_femto_meter_1 = if let Some(state) = state.inner_scale_femto_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_femto_meter_1))
+                            } else { None };
+                            let outcome_scale_femto_meter_10 = if let Some(state) = state.inner_scale_femto_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_femto_meter_10))
+                            } else { None };
+                            let outcome_scale_femto_meter_100 = if let Some(state) = state.inner_scale_femto_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_femto_meter_100))
+                            } else { None };
+                            let outcome_scale_pico_meter_1 = if let Some(state) = state.inner_scale_pico_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_pico_meter_1))
+                            } else { None };
+                            let outcome_scale_pico_meter_10 = if let Some(state) = state.inner_scale_pico_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_pico_meter_10))
+                            } else { None };
+                            let outcome_scale_pico_meter_100 = if let Some(state) = state.inner_scale_pico_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_pico_meter_100))
+                            } else { None };
+                            let outcome_scale_nano_meter_1 = if let Some(state) = state.inner_scale_nano_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_nano_meter_1))
+                            } else { None };
+                            let outcome_scale_nano_meter_10 = if let Some(state) = state.inner_scale_nano_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_nano_meter_10))
+                            } else { None };
+                            let outcome_scale_nano_meter_100 = if let Some(state) = state.inner_scale_nano_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_nano_meter_100))
+                            } else { None };
+                            let outcome_scale_micro_meter_1 = if let Some(state) = state.inner_scale_micro_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_micro_meter_1))
+                            } else { None };
+                            let outcome_scale_micro_meter_10 = if let Some(state) = state.inner_scale_micro_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_micro_meter_10))
+                            } else { None };
+                            let outcome_scale_micro_meter_100 = if let Some(state) = state.inner_scale_micro_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_micro_meter_100))
+                            } else { None };
+                            let outcome_scale_milli_meter_1 = if let Some(state) = state.inner_scale_milli_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_milli_meter_1))
+                            } else { None };
+                            let outcome_scale_milli_meter_10 = if let Some(state) = state.inner_scale_milli_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_milli_meter_10))
+                            } else { None };
+                            let outcome_scale_milli_meter_100 = if let Some(state) = state.inner_scale_milli_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_milli_meter_100))
+                            } else { None };
+                            let outcome_scale_meter_1 = if let Some(state) = state.inner_scale_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_meter_1))
+                            } else { None };
+                            let outcome_scale_meter_10 = if let Some(state) = state.inner_scale_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_meter_10))
+                            } else { None };
+                            let outcome_scale_meter_100 = if let Some(state) = state.inner_scale_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_meter_100))
+                            } else { None };
+                            let outcome_scale_kilo_meter_1 = if let Some(state) = state.inner_scale_kilo_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_kilo_meter_1))
+                            } else { None };
+                            let outcome_scale_kilo_meter_10 = if let Some(state) = state.inner_scale_kilo_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_kilo_meter_10))
+                            } else { None };
+                            let outcome_scale_kilo_meter_100 = if let Some(state) = state.inner_scale_kilo_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_kilo_meter_100))
+                            } else { None };
+                            let outcome_scale_mega_meter_1 = if let Some(state) = state.inner_scale_mega_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_mega_meter_1))
+                            } else { None };
+                            let outcome_scale_mega_meter_10 = if let Some(state) = state.inner_scale_mega_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_mega_meter_10))
+                            } else { None };
+                            let outcome_scale_mega_meter_100 = if let Some(state) = state.inner_scale_mega_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_mega_meter_100))
+                            } else { None };
+                            let outcome_scale_giga_meter_1 = if let Some(state) = state.inner_scale_giga_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_giga_meter_1))
+                            } else { None };
+                            let outcome_scale_giga_meter_10 = if let Some(state) = state.inner_scale_giga_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_giga_meter_10))
+                            } else { None };
+                            let outcome_scale_giga_meter_100 = if let Some(state) = state.inner_scale_giga_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_giga_meter_100))
+                            } else { None };
+                            let outcome_scale_tera_meter_1 = if let Some(state) = state.inner_scale_tera_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_tera_meter_1))
+                            } else { None };
+                            let outcome_scale_tera_meter_10 = if let Some(state) = state.inner_scale_tera_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_tera_meter_10))
+                            } else { None };
+                            let outcome_scale_tera_meter_100 = if let Some(state) = state.inner_scale_tera_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_tera_meter_100))
+                            } else { None };
+                            let outcome_scale_peta_meter_1 = if let Some(state) = state.inner_scale_peta_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_peta_meter_1))
+                            } else { None };
+                            let outcome_scale_peta_meter_10 = if let Some(state) = state.inner_scale_peta_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_peta_meter_10))
+                            } else { None };
+                            let outcome_scale_peta_meter_100 = if let Some(state) = state.inner_scale_peta_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_peta_meter_100))
+                            } else { None };
+                            let outcome_scale_exa_meter_1 = if let Some(state) = state.inner_scale_exa_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_exa_meter_1))
+                            } else { None };
+                            let outcome_scale_exa_meter_10 = if let Some(state) = state.inner_scale_exa_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_exa_meter_10))
+                            } else { None };
+                            let outcome_scale_exa_meter_100 = if let Some(state) = state.inner_scale_exa_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_exa_meter_100))
+                            } else { None };
+                            let outcome_scale_zetta_meter_1 = if let Some(state) = state.inner_scale_zetta_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_zetta_meter_1))
+                            } else { None };
+                            let outcome_scale_zetta_meter_10 = if let Some(state) = state.inner_scale_zetta_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_zetta_meter_10))
+                            } else { None };
+                            let outcome_scale_zetta_meter_100 = if let Some(state) = state.inner_scale_zetta_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_zetta_meter_100))
+                            } else { None };
+                            let outcome_scale_yotta_meter_1 = if let Some(state) = state.inner_scale_yotta_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_yotta_meter_1))
+                            } else { None };
+                            let outcome_scale_yotta_meter_10 = if let Some(state) = state.inner_scale_yotta_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_yotta_meter_10))
+                            } else { None };
+                            let outcome_scale_yotta_meter_100 = if let Some(state) = state.inner_scale_yotta_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_yotta_meter_100))
+                            } else { None };
+                            let outcome_scale_ronna_meter_1 = if let Some(state) = state.inner_scale_ronna_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_ronna_meter_1))
+                            } else { None };
+                            let outcome_scale_ronna_meter_10 = if let Some(state) = state.inner_scale_ronna_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_ronna_meter_10))
+                            } else { None };
+                            let outcome_scale_ronna_meter_100 = if let Some(state) = state.inner_scale_ronna_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_ronna_meter_100))
+                            } else { None };
+                            let outcome_scale_quetta_meter_1 = if let Some(state) = state.inner_scale_quetta_meter_1 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quetta_meter_1))
+                            } else { None };
+                            let outcome_scale_quetta_meter_10 = if let Some(state) = state.inner_scale_quetta_meter_10 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quetta_meter_10))
+                            } else { None };
+                            let outcome_scale_quetta_meter_100 = if let Some(state) = state.inner_scale_quetta_meter_100 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quetta_meter_100))
+                            } else { None };
+                            let outcome_scale_quetta_meter_1000 = if let Some(state) = state.inner_scale_quetta_meter_1000 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quetta_meter_1000))
+                            } else { None };
+                            let outcome_scale_quetta_meter_10000 = if let Some(state) = state.inner_scale_quetta_meter_10000 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quetta_meter_10000))
+                            } else { None };
+                            let outcome_scale_quetta_meter_100000 = if let Some(state) = state.inner_scale_quetta_meter_100000 {
+                                Some(validate_and_load_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quetta_meter_100000))
+                            } else { None };
 
-                            let (outcome_scale_quecto_meter_000001, is_done_outcome_scale_quecto_meter_000001) = match outcome_scale_quecto_meter_000001 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_00001, is_done_outcome_scale_quecto_meter_00001) = match outcome_scale_quecto_meter_00001 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_0001, is_done_outcome_scale_quecto_meter_0001) = match outcome_scale_quecto_meter_0001 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_001, is_done_outcome_scale_quecto_meter_001) = match outcome_scale_quecto_meter_001 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_01, is_done_outcome_scale_quecto_meter_01) = match outcome_scale_quecto_meter_01 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_1, is_done_outcome_scale_quecto_meter_1) = match outcome_scale_quecto_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_10, is_done_outcome_scale_quecto_meter_10) = match outcome_scale_quecto_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_100, is_done_outcome_scale_quecto_meter_100) = match outcome_scale_quecto_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_ronto_meter_1, is_done_outcome_scale_ronto_meter_1) = match outcome_scale_ronto_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_ronto_meter_10, is_done_outcome_scale_ronto_meter_10) = match outcome_scale_ronto_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_ronto_meter_100, is_done_outcome_scale_ronto_meter_100) = match outcome_scale_ronto_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_yocto_meter_1, is_done_outcome_scale_yocto_meter_1) = match outcome_scale_yocto_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_yocto_meter_10, is_done_outcome_scale_yocto_meter_10) = match outcome_scale_yocto_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_yocto_meter_100, is_done_outcome_scale_yocto_meter_100) = match outcome_scale_yocto_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_zepto_meter_1, is_done_outcome_scale_zepto_meter_1) = match outcome_scale_zepto_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_zepto_meter_10, is_done_outcome_scale_zepto_meter_10) = match outcome_scale_zepto_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_zepto_meter_100, is_done_outcome_scale_zepto_meter_100) = match outcome_scale_zepto_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_atto_meter_1, is_done_outcome_scale_atto_meter_1) = match outcome_scale_atto_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_atto_meter_10, is_done_outcome_scale_atto_meter_10) = match outcome_scale_atto_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_atto_meter_100, is_done_outcome_scale_atto_meter_100) = match outcome_scale_atto_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_femto_meter_1, is_done_outcome_scale_femto_meter_1) = match outcome_scale_femto_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_femto_meter_10, is_done_outcome_scale_femto_meter_10) = match outcome_scale_femto_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_femto_meter_100, is_done_outcome_scale_femto_meter_100) = match outcome_scale_femto_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_pico_meter_1, is_done_outcome_scale_pico_meter_1) = match outcome_scale_pico_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_pico_meter_10, is_done_outcome_scale_pico_meter_10) = match outcome_scale_pico_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_pico_meter_100, is_done_outcome_scale_pico_meter_100) = match outcome_scale_pico_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_nano_meter_1, is_done_outcome_scale_nano_meter_1) = match outcome_scale_nano_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_nano_meter_10, is_done_outcome_scale_nano_meter_10) = match outcome_scale_nano_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_nano_meter_100, is_done_outcome_scale_nano_meter_100) = match outcome_scale_nano_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_micro_meter_1, is_done_outcome_scale_micro_meter_1) = match outcome_scale_micro_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_micro_meter_10, is_done_outcome_scale_micro_meter_10) = match outcome_scale_micro_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_micro_meter_100, is_done_outcome_scale_micro_meter_100) = match outcome_scale_micro_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_milli_meter_1, is_done_outcome_scale_milli_meter_1) = match outcome_scale_milli_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_milli_meter_10, is_done_outcome_scale_milli_meter_10) = match outcome_scale_milli_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_milli_meter_100, is_done_outcome_scale_milli_meter_100) = match outcome_scale_milli_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_meter_1, is_done_outcome_scale_meter_1) = match outcome_scale_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_meter_10, is_done_outcome_scale_meter_10) = match outcome_scale_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_meter_100, is_done_outcome_scale_meter_100) = match outcome_scale_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_kilo_meter_1, is_done_outcome_scale_kilo_meter_1) = match outcome_scale_kilo_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_kilo_meter_10, is_done_outcome_scale_kilo_meter_10) = match outcome_scale_kilo_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_kilo_meter_100, is_done_outcome_scale_kilo_meter_100) = match outcome_scale_kilo_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_mega_meter_1, is_done_outcome_scale_mega_meter_1) = match outcome_scale_mega_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_mega_meter_10, is_done_outcome_scale_mega_meter_10) = match outcome_scale_mega_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_mega_meter_100, is_done_outcome_scale_mega_meter_100) = match outcome_scale_mega_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_giga_meter_1, is_done_outcome_scale_giga_meter_1) = match outcome_scale_giga_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_giga_meter_10, is_done_outcome_scale_giga_meter_10) = match outcome_scale_giga_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_giga_meter_100, is_done_outcome_scale_giga_meter_100) = match outcome_scale_giga_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_tera_meter_1, is_done_outcome_scale_tera_meter_1) = match outcome_scale_tera_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_tera_meter_10, is_done_outcome_scale_tera_meter_10) = match outcome_scale_tera_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_tera_meter_100, is_done_outcome_scale_tera_meter_100) = match outcome_scale_tera_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_peta_meter_1, is_done_outcome_scale_peta_meter_1) = match outcome_scale_peta_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_peta_meter_10, is_done_outcome_scale_peta_meter_10) = match outcome_scale_peta_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_peta_meter_100, is_done_outcome_scale_peta_meter_100) = match outcome_scale_peta_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_exa_meter_1, is_done_outcome_scale_exa_meter_1) = match outcome_scale_exa_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_exa_meter_10, is_done_outcome_scale_exa_meter_10) = match outcome_scale_exa_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_exa_meter_100, is_done_outcome_scale_exa_meter_100) = match outcome_scale_exa_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_zetta_meter_1, is_done_outcome_scale_zetta_meter_1) = match outcome_scale_zetta_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_zetta_meter_10, is_done_outcome_scale_zetta_meter_10) = match outcome_scale_zetta_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_zetta_meter_100, is_done_outcome_scale_zetta_meter_100) = match outcome_scale_zetta_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_yotta_meter_1, is_done_outcome_scale_yotta_meter_1) = match outcome_scale_yotta_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_yotta_meter_10, is_done_outcome_scale_yotta_meter_10) = match outcome_scale_yotta_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_yotta_meter_100, is_done_outcome_scale_yotta_meter_100) = match outcome_scale_yotta_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_ronna_meter_1, is_done_outcome_scale_ronna_meter_1) = match outcome_scale_ronna_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_ronna_meter_10, is_done_outcome_scale_ronna_meter_10) = match outcome_scale_ronna_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_ronna_meter_100, is_done_outcome_scale_ronna_meter_100) = match outcome_scale_ronna_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quetta_meter_1, is_done_outcome_scale_quetta_meter_1) = match outcome_scale_quetta_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quetta_meter_10, is_done_outcome_scale_quetta_meter_10) = match outcome_scale_quetta_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quetta_meter_100, is_done_outcome_scale_quetta_meter_100) = match outcome_scale_quetta_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quetta_meter_1000, is_done_outcome_scale_quetta_meter_1000) = match outcome_scale_quetta_meter_1000 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quetta_meter_10000, is_done_outcome_scale_quetta_meter_10000) = match outcome_scale_quetta_meter_10000 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quetta_meter_100000, is_done_outcome_scale_quetta_meter_100000) = match outcome_scale_quetta_meter_100000 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-
-                            if is_done_outcome_scale_quecto_meter_000001
-                                && is_done_outcome_scale_quecto_meter_00001
-                                && is_done_outcome_scale_quecto_meter_0001
-                                && is_done_outcome_scale_quecto_meter_001
-                                && is_done_outcome_scale_quecto_meter_01
-                                && is_done_outcome_scale_quecto_meter_1
-                                && is_done_outcome_scale_quecto_meter_10
-                                && is_done_outcome_scale_quecto_meter_100
-                                && is_done_outcome_scale_ronto_meter_1
-                                && is_done_outcome_scale_ronto_meter_10
-                                && is_done_outcome_scale_ronto_meter_100
-                                && is_done_outcome_scale_yocto_meter_1
-                                && is_done_outcome_scale_yocto_meter_10
-                                && is_done_outcome_scale_yocto_meter_100
-                                && is_done_outcome_scale_zepto_meter_1
-                                && is_done_outcome_scale_zepto_meter_10
-                                && is_done_outcome_scale_zepto_meter_100
-                                && is_done_outcome_scale_atto_meter_1
-                                && is_done_outcome_scale_atto_meter_10
-                                && is_done_outcome_scale_atto_meter_100
-                                && is_done_outcome_scale_femto_meter_1
-                                && is_done_outcome_scale_femto_meter_10
-                                && is_done_outcome_scale_femto_meter_100
-                                && is_done_outcome_scale_pico_meter_1
-                                && is_done_outcome_scale_pico_meter_10
-                                && is_done_outcome_scale_pico_meter_100
-                                && is_done_outcome_scale_nano_meter_1
-                                && is_done_outcome_scale_nano_meter_10
-                                && is_done_outcome_scale_nano_meter_100
-                                && is_done_outcome_scale_micro_meter_1
-                                && is_done_outcome_scale_micro_meter_10
-                                && is_done_outcome_scale_micro_meter_100
-                                && is_done_outcome_scale_milli_meter_1
-                                && is_done_outcome_scale_milli_meter_10
-                                && is_done_outcome_scale_milli_meter_100
-                                && is_done_outcome_scale_meter_1
-                                && is_done_outcome_scale_meter_10
-                                && is_done_outcome_scale_meter_100
-                                && is_done_outcome_scale_kilo_meter_1
-                                && is_done_outcome_scale_kilo_meter_10
-                                && is_done_outcome_scale_kilo_meter_100
-                                && is_done_outcome_scale_mega_meter_1
-                                && is_done_outcome_scale_mega_meter_10
-                                && is_done_outcome_scale_mega_meter_100
-                                && is_done_outcome_scale_giga_meter_1
-                                && is_done_outcome_scale_giga_meter_10
-                                && is_done_outcome_scale_giga_meter_100
-                                && is_done_outcome_scale_tera_meter_1
-                                && is_done_outcome_scale_tera_meter_10
-                                && is_done_outcome_scale_tera_meter_100
-                                && is_done_outcome_scale_peta_meter_1
-                                && is_done_outcome_scale_peta_meter_10
-                                && is_done_outcome_scale_peta_meter_100
-                                && is_done_outcome_scale_exa_meter_1
-                                && is_done_outcome_scale_exa_meter_10
-                                && is_done_outcome_scale_exa_meter_100
-                                && is_done_outcome_scale_zetta_meter_1
-                                && is_done_outcome_scale_zetta_meter_10
-                                && is_done_outcome_scale_zetta_meter_100
-                                && is_done_outcome_scale_yotta_meter_1
-                                && is_done_outcome_scale_yotta_meter_10
-                                && is_done_outcome_scale_yotta_meter_100
-                                && is_done_outcome_scale_ronna_meter_1
-                                && is_done_outcome_scale_ronna_meter_10
-                                && is_done_outcome_scale_ronna_meter_100
-                                && is_done_outcome_scale_quetta_meter_1
-                                && is_done_outcome_scale_quetta_meter_10
-                                && is_done_outcome_scale_quetta_meter_100
-                                && is_done_outcome_scale_quetta_meter_1000
-                                && is_done_outcome_scale_quetta_meter_10000
-                                && is_done_outcome_scale_quetta_meter_100000
+                            if outcome_scale_quecto_meter_000001.is_none()
+                                && outcome_scale_quecto_meter_00001.is_none()
+                                && outcome_scale_quecto_meter_0001.is_none()
+                                && outcome_scale_quecto_meter_001.is_none()
+                                && outcome_scale_quecto_meter_01.is_none()
+                                && outcome_scale_quecto_meter_1.is_none()
+                                && outcome_scale_quecto_meter_10.is_none()
+                                && outcome_scale_quecto_meter_100.is_none()
+                                && outcome_scale_ronto_meter_1.is_none()
+                                && outcome_scale_ronto_meter_10.is_none()
+                                && outcome_scale_ronto_meter_100.is_none()
+                                && outcome_scale_yocto_meter_1.is_none()
+                                && outcome_scale_yocto_meter_10.is_none()
+                                && outcome_scale_yocto_meter_100.is_none()
+                                && outcome_scale_zepto_meter_1.is_none()
+                                && outcome_scale_zepto_meter_10.is_none()
+                                && outcome_scale_zepto_meter_100.is_none()
+                                && outcome_scale_atto_meter_1.is_none()
+                                && outcome_scale_atto_meter_10.is_none()
+                                && outcome_scale_atto_meter_100.is_none()
+                                && outcome_scale_femto_meter_1.is_none()
+                                && outcome_scale_femto_meter_10.is_none()
+                                && outcome_scale_femto_meter_100.is_none()
+                                && outcome_scale_pico_meter_1.is_none()
+                                && outcome_scale_pico_meter_10.is_none()
+                                && outcome_scale_pico_meter_100.is_none()
+                                && outcome_scale_nano_meter_1.is_none()
+                                && outcome_scale_nano_meter_10.is_none()
+                                && outcome_scale_nano_meter_100.is_none()
+                                && outcome_scale_micro_meter_1.is_none()
+                                && outcome_scale_micro_meter_10.is_none()
+                                && outcome_scale_micro_meter_100.is_none()
+                                && outcome_scale_milli_meter_1.is_none()
+                                && outcome_scale_milli_meter_10.is_none()
+                                && outcome_scale_milli_meter_100.is_none()
+                                && outcome_scale_meter_1.is_none()
+                                && outcome_scale_meter_10.is_none()
+                                && outcome_scale_meter_100.is_none()
+                                && outcome_scale_kilo_meter_1.is_none()
+                                && outcome_scale_kilo_meter_10.is_none()
+                                && outcome_scale_kilo_meter_100.is_none()
+                                && outcome_scale_mega_meter_1.is_none()
+                                && outcome_scale_mega_meter_10.is_none()
+                                && outcome_scale_mega_meter_100.is_none()
+                                && outcome_scale_giga_meter_1.is_none()
+                                && outcome_scale_giga_meter_10.is_none()
+                                && outcome_scale_giga_meter_100.is_none()
+                                && outcome_scale_tera_meter_1.is_none()
+                                && outcome_scale_tera_meter_10.is_none()
+                                && outcome_scale_tera_meter_100.is_none()
+                                && outcome_scale_peta_meter_1.is_none()
+                                && outcome_scale_peta_meter_10.is_none()
+                                && outcome_scale_peta_meter_100.is_none()
+                                && outcome_scale_exa_meter_1.is_none()
+                                && outcome_scale_exa_meter_10.is_none()
+                                && outcome_scale_exa_meter_100.is_none()
+                                && outcome_scale_zetta_meter_1.is_none()
+                                && outcome_scale_zetta_meter_10.is_none()
+                                && outcome_scale_zetta_meter_100.is_none()
+                                && outcome_scale_yotta_meter_1.is_none()
+                                && outcome_scale_yotta_meter_10.is_none()
+                                && outcome_scale_yotta_meter_100.is_none()
+                                && outcome_scale_ronna_meter_1.is_none()
+                                && outcome_scale_ronna_meter_10.is_none()
+                                && outcome_scale_ronna_meter_100.is_none()
+                                && outcome_scale_quetta_meter_1.is_none()
+                                && outcome_scale_quetta_meter_10.is_none()
+                                && outcome_scale_quetta_meter_100.is_none()
+                                && outcome_scale_quetta_meter_1000.is_none()
+                                && outcome_scale_quetta_meter_10000.is_none()
+                                && outcome_scale_quetta_meter_100000.is_none()
                             {
-                                Done(())
-                            } else {
-                                Wait(State {
-                                    inner_scale_quecto_meter_000001: (outcome_scale_quecto_meter_000001, is_done_outcome_scale_quecto_meter_000001),
-                                    inner_scale_quecto_meter_00001: (outcome_scale_quecto_meter_00001, is_done_outcome_scale_quecto_meter_00001),
-                                    inner_scale_quecto_meter_0001: (outcome_scale_quecto_meter_0001, is_done_outcome_scale_quecto_meter_0001),
-                                    inner_scale_quecto_meter_001: (outcome_scale_quecto_meter_001, is_done_outcome_scale_quecto_meter_001),
-                                    inner_scale_quecto_meter_01: (outcome_scale_quecto_meter_01, is_done_outcome_scale_quecto_meter_01),
-                                    inner_scale_quecto_meter_1: (outcome_scale_quecto_meter_1, is_done_outcome_scale_quecto_meter_1),
-                                    inner_scale_quecto_meter_10: (outcome_scale_quecto_meter_10, is_done_outcome_scale_quecto_meter_10),
-                                    inner_scale_quecto_meter_100: (outcome_scale_quecto_meter_100, is_done_outcome_scale_quecto_meter_100),
-                                    inner_scale_ronto_meter_1: (outcome_scale_ronto_meter_1, is_done_outcome_scale_ronto_meter_1),
-                                    inner_scale_ronto_meter_10: (outcome_scale_ronto_meter_10, is_done_outcome_scale_ronto_meter_10),
-                                    inner_scale_ronto_meter_100: (outcome_scale_ronto_meter_100, is_done_outcome_scale_ronto_meter_100),
-                                    inner_scale_yocto_meter_1: (outcome_scale_yocto_meter_1, is_done_outcome_scale_yocto_meter_1),
-                                    inner_scale_yocto_meter_10: (outcome_scale_yocto_meter_10, is_done_outcome_scale_yocto_meter_10),
-                                    inner_scale_yocto_meter_100: (outcome_scale_yocto_meter_100, is_done_outcome_scale_yocto_meter_100),
-                                    inner_scale_zepto_meter_1: (outcome_scale_zepto_meter_1, is_done_outcome_scale_zepto_meter_1),
-                                    inner_scale_zepto_meter_10: (outcome_scale_zepto_meter_10, is_done_outcome_scale_zepto_meter_10),
-                                    inner_scale_zepto_meter_100: (outcome_scale_zepto_meter_100, is_done_outcome_scale_zepto_meter_100),
-                                    inner_scale_atto_meter_1: (outcome_scale_atto_meter_1, is_done_outcome_scale_atto_meter_1),
-                                    inner_scale_atto_meter_10: (outcome_scale_atto_meter_10, is_done_outcome_scale_atto_meter_10),
-                                    inner_scale_atto_meter_100: (outcome_scale_atto_meter_100, is_done_outcome_scale_atto_meter_100),
-                                    inner_scale_femto_meter_1: (outcome_scale_femto_meter_1, is_done_outcome_scale_femto_meter_1),
-                                    inner_scale_femto_meter_10: (outcome_scale_femto_meter_10, is_done_outcome_scale_femto_meter_10),
-                                    inner_scale_femto_meter_100: (outcome_scale_femto_meter_100, is_done_outcome_scale_femto_meter_100),
-                                    inner_scale_pico_meter_1: (outcome_scale_pico_meter_1, is_done_outcome_scale_pico_meter_1),
-                                    inner_scale_pico_meter_10: (outcome_scale_pico_meter_10, is_done_outcome_scale_pico_meter_10),
-                                    inner_scale_pico_meter_100: (outcome_scale_pico_meter_100, is_done_outcome_scale_pico_meter_100),
-                                    inner_scale_nano_meter_1: (outcome_scale_nano_meter_1, is_done_outcome_scale_nano_meter_1),
-                                    inner_scale_nano_meter_10: (outcome_scale_nano_meter_10, is_done_outcome_scale_nano_meter_10),
-                                    inner_scale_nano_meter_100: (outcome_scale_nano_meter_100, is_done_outcome_scale_nano_meter_100),
-                                    inner_scale_micro_meter_1: (outcome_scale_micro_meter_1, is_done_outcome_scale_micro_meter_1),
-                                    inner_scale_micro_meter_10: (outcome_scale_micro_meter_10, is_done_outcome_scale_micro_meter_10),
-                                    inner_scale_micro_meter_100: (outcome_scale_micro_meter_100, is_done_outcome_scale_micro_meter_100),
-                                    inner_scale_milli_meter_1: (outcome_scale_milli_meter_1, is_done_outcome_scale_milli_meter_1),
-                                    inner_scale_milli_meter_10: (outcome_scale_milli_meter_10, is_done_outcome_scale_milli_meter_10),
-                                    inner_scale_milli_meter_100: (outcome_scale_milli_meter_100, is_done_outcome_scale_milli_meter_100),
-                                    inner_scale_meter_1: (outcome_scale_meter_1, is_done_outcome_scale_meter_1),
-                                    inner_scale_meter_10: (outcome_scale_meter_10, is_done_outcome_scale_meter_10),
-                                    inner_scale_meter_100: (outcome_scale_meter_100, is_done_outcome_scale_meter_100),
-                                    inner_scale_kilo_meter_1: (outcome_scale_kilo_meter_1, is_done_outcome_scale_kilo_meter_1),
-                                    inner_scale_kilo_meter_10: (outcome_scale_kilo_meter_10, is_done_outcome_scale_kilo_meter_10),
-                                    inner_scale_kilo_meter_100: (outcome_scale_kilo_meter_100, is_done_outcome_scale_kilo_meter_100),
-                                    inner_scale_mega_meter_1: (outcome_scale_mega_meter_1, is_done_outcome_scale_mega_meter_1),
-                                    inner_scale_mega_meter_10: (outcome_scale_mega_meter_10, is_done_outcome_scale_mega_meter_10),
-                                    inner_scale_mega_meter_100: (outcome_scale_mega_meter_100, is_done_outcome_scale_mega_meter_100),
-                                    inner_scale_giga_meter_1: (outcome_scale_giga_meter_1, is_done_outcome_scale_giga_meter_1),
-                                    inner_scale_giga_meter_10: (outcome_scale_giga_meter_10, is_done_outcome_scale_giga_meter_10),
-                                    inner_scale_giga_meter_100: (outcome_scale_giga_meter_100, is_done_outcome_scale_giga_meter_100),
-                                    inner_scale_tera_meter_1: (outcome_scale_tera_meter_1, is_done_outcome_scale_tera_meter_1),
-                                    inner_scale_tera_meter_10: (outcome_scale_tera_meter_10, is_done_outcome_scale_tera_meter_10),
-                                    inner_scale_tera_meter_100: (outcome_scale_tera_meter_100, is_done_outcome_scale_tera_meter_100),
-                                    inner_scale_peta_meter_1: (outcome_scale_peta_meter_1, is_done_outcome_scale_peta_meter_1),
-                                    inner_scale_peta_meter_10: (outcome_scale_peta_meter_10, is_done_outcome_scale_peta_meter_10),
-                                    inner_scale_peta_meter_100: (outcome_scale_peta_meter_100, is_done_outcome_scale_peta_meter_100),
-                                    inner_scale_exa_meter_1: (outcome_scale_exa_meter_1, is_done_outcome_scale_exa_meter_1),
-                                    inner_scale_exa_meter_10: (outcome_scale_exa_meter_10, is_done_outcome_scale_exa_meter_10),
-                                    inner_scale_exa_meter_100: (outcome_scale_exa_meter_100, is_done_outcome_scale_exa_meter_100),
-                                    inner_scale_zetta_meter_1: (outcome_scale_zetta_meter_1, is_done_outcome_scale_zetta_meter_1),
-                                    inner_scale_zetta_meter_10: (outcome_scale_zetta_meter_10, is_done_outcome_scale_zetta_meter_10),
-                                    inner_scale_zetta_meter_100: (outcome_scale_zetta_meter_100, is_done_outcome_scale_zetta_meter_100),
-                                    inner_scale_yotta_meter_1: (outcome_scale_yotta_meter_1, is_done_outcome_scale_yotta_meter_1),
-                                    inner_scale_yotta_meter_10: (outcome_scale_yotta_meter_10, is_done_outcome_scale_yotta_meter_10),
-                                    inner_scale_yotta_meter_100: (outcome_scale_yotta_meter_100, is_done_outcome_scale_yotta_meter_100),
-                                    inner_scale_ronna_meter_1: (outcome_scale_ronna_meter_1, is_done_outcome_scale_ronna_meter_1),
-                                    inner_scale_ronna_meter_10: (outcome_scale_ronna_meter_10, is_done_outcome_scale_ronna_meter_10),
-                                    inner_scale_ronna_meter_100: (outcome_scale_ronna_meter_100, is_done_outcome_scale_ronna_meter_100),
-                                    inner_scale_quetta_meter_1: (outcome_scale_quetta_meter_1, is_done_outcome_scale_quetta_meter_1),
-                                    inner_scale_quetta_meter_10: (outcome_scale_quetta_meter_10, is_done_outcome_scale_quetta_meter_10),
-                                    inner_scale_quetta_meter_100: (outcome_scale_quetta_meter_100, is_done_outcome_scale_quetta_meter_100),
-                                    inner_scale_quetta_meter_1000: (outcome_scale_quetta_meter_1000, is_done_outcome_scale_quetta_meter_1000),
-                                    inner_scale_quetta_meter_10000: (outcome_scale_quetta_meter_10000, is_done_outcome_scale_quetta_meter_10000),
-                                    inner_scale_quetta_meter_100000: (outcome_scale_quetta_meter_100000, is_done_outcome_scale_quetta_meter_100000),
-                                })
+                                return Done(());
                             }
+
+                            let outcome_scale_quecto_meter_000001 = match outcome_scale_quecto_meter_000001 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_00001 = match outcome_scale_quecto_meter_00001 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_0001 = match outcome_scale_quecto_meter_0001 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_001 = match outcome_scale_quecto_meter_001 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_01 = match outcome_scale_quecto_meter_01 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_1 = match outcome_scale_quecto_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_10 = match outcome_scale_quecto_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_100 = match outcome_scale_quecto_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_ronto_meter_1 = match outcome_scale_ronto_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_ronto_meter_10 = match outcome_scale_ronto_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_ronto_meter_100 = match outcome_scale_ronto_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_yocto_meter_1 = match outcome_scale_yocto_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_yocto_meter_10 = match outcome_scale_yocto_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_yocto_meter_100 = match outcome_scale_yocto_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_zepto_meter_1 = match outcome_scale_zepto_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_zepto_meter_10 = match outcome_scale_zepto_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_zepto_meter_100 = match outcome_scale_zepto_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_atto_meter_1 = match outcome_scale_atto_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_atto_meter_10 = match outcome_scale_atto_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_atto_meter_100 = match outcome_scale_atto_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_femto_meter_1 = match outcome_scale_femto_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_femto_meter_10 = match outcome_scale_femto_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_femto_meter_100 = match outcome_scale_femto_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_pico_meter_1 = match outcome_scale_pico_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_pico_meter_10 = match outcome_scale_pico_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_pico_meter_100 = match outcome_scale_pico_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_nano_meter_1 = match outcome_scale_nano_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_nano_meter_10 = match outcome_scale_nano_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_nano_meter_100 = match outcome_scale_nano_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_micro_meter_1 = match outcome_scale_micro_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_micro_meter_10 = match outcome_scale_micro_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_micro_meter_100 = match outcome_scale_micro_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_milli_meter_1 = match outcome_scale_milli_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_milli_meter_10 = match outcome_scale_milli_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_milli_meter_100 = match outcome_scale_milli_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_meter_1 = match outcome_scale_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_meter_10 = match outcome_scale_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_meter_100 = match outcome_scale_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_kilo_meter_1 = match outcome_scale_kilo_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_kilo_meter_10 = match outcome_scale_kilo_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_kilo_meter_100 = match outcome_scale_kilo_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_mega_meter_1 = match outcome_scale_mega_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_mega_meter_10 = match outcome_scale_mega_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_mega_meter_100 = match outcome_scale_mega_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_giga_meter_1 = match outcome_scale_giga_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_giga_meter_10 = match outcome_scale_giga_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_giga_meter_100 = match outcome_scale_giga_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_tera_meter_1 = match outcome_scale_tera_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_tera_meter_10 = match outcome_scale_tera_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_tera_meter_100 = match outcome_scale_tera_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_peta_meter_1 = match outcome_scale_peta_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_peta_meter_10 = match outcome_scale_peta_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_peta_meter_100 = match outcome_scale_peta_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_exa_meter_1 = match outcome_scale_exa_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_exa_meter_10 = match outcome_scale_exa_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_exa_meter_100 = match outcome_scale_exa_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_zetta_meter_1 = match outcome_scale_zetta_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_zetta_meter_10 = match outcome_scale_zetta_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_zetta_meter_100 = match outcome_scale_zetta_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_yotta_meter_1 = match outcome_scale_yotta_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_yotta_meter_10 = match outcome_scale_yotta_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_yotta_meter_100 = match outcome_scale_yotta_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_ronna_meter_1 = match outcome_scale_ronna_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_ronna_meter_10 = match outcome_scale_ronna_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_ronna_meter_100 = match outcome_scale_ronna_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quetta_meter_1 = match outcome_scale_quetta_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quetta_meter_10 = match outcome_scale_quetta_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quetta_meter_100 = match outcome_scale_quetta_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quetta_meter_1000 = match outcome_scale_quetta_meter_1000 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quetta_meter_10000 = match outcome_scale_quetta_meter_10000 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quetta_meter_100000 = match outcome_scale_quetta_meter_100000 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+
+                            Wait(State {
+                                inner_scale_quecto_meter_000001: outcome_scale_quecto_meter_000001,
+                                inner_scale_quecto_meter_00001: outcome_scale_quecto_meter_00001,
+                                inner_scale_quecto_meter_0001: outcome_scale_quecto_meter_0001,
+                                inner_scale_quecto_meter_001: outcome_scale_quecto_meter_001,
+                                inner_scale_quecto_meter_01: outcome_scale_quecto_meter_01,
+                                inner_scale_quecto_meter_1: outcome_scale_quecto_meter_1,
+                                inner_scale_quecto_meter_10: outcome_scale_quecto_meter_10,
+                                inner_scale_quecto_meter_100: outcome_scale_quecto_meter_100,
+                                inner_scale_ronto_meter_1: outcome_scale_ronto_meter_1,
+                                inner_scale_ronto_meter_10: outcome_scale_ronto_meter_10,
+                                inner_scale_ronto_meter_100: outcome_scale_ronto_meter_100,
+                                inner_scale_yocto_meter_1: outcome_scale_yocto_meter_1,
+                                inner_scale_yocto_meter_10: outcome_scale_yocto_meter_10,
+                                inner_scale_yocto_meter_100: outcome_scale_yocto_meter_100,
+                                inner_scale_zepto_meter_1: outcome_scale_zepto_meter_1,
+                                inner_scale_zepto_meter_10: outcome_scale_zepto_meter_10,
+                                inner_scale_zepto_meter_100: outcome_scale_zepto_meter_100,
+                                inner_scale_atto_meter_1: outcome_scale_atto_meter_1,
+                                inner_scale_atto_meter_10: outcome_scale_atto_meter_10,
+                                inner_scale_atto_meter_100: outcome_scale_atto_meter_100,
+                                inner_scale_femto_meter_1: outcome_scale_femto_meter_1,
+                                inner_scale_femto_meter_10: outcome_scale_femto_meter_10,
+                                inner_scale_femto_meter_100: outcome_scale_femto_meter_100,
+                                inner_scale_pico_meter_1: outcome_scale_pico_meter_1,
+                                inner_scale_pico_meter_10: outcome_scale_pico_meter_10,
+                                inner_scale_pico_meter_100: outcome_scale_pico_meter_100,
+                                inner_scale_nano_meter_1: outcome_scale_nano_meter_1,
+                                inner_scale_nano_meter_10: outcome_scale_nano_meter_10,
+                                inner_scale_nano_meter_100: outcome_scale_nano_meter_100,
+                                inner_scale_micro_meter_1: outcome_scale_micro_meter_1,
+                                inner_scale_micro_meter_10: outcome_scale_micro_meter_10,
+                                inner_scale_micro_meter_100: outcome_scale_micro_meter_100,
+                                inner_scale_milli_meter_1: outcome_scale_milli_meter_1,
+                                inner_scale_milli_meter_10: outcome_scale_milli_meter_10,
+                                inner_scale_milli_meter_100: outcome_scale_milli_meter_100,
+                                inner_scale_meter_1: outcome_scale_meter_1,
+                                inner_scale_meter_10: outcome_scale_meter_10,
+                                inner_scale_meter_100: outcome_scale_meter_100,
+                                inner_scale_kilo_meter_1: outcome_scale_kilo_meter_1,
+                                inner_scale_kilo_meter_10: outcome_scale_kilo_meter_10,
+                                inner_scale_kilo_meter_100: outcome_scale_kilo_meter_100,
+                                inner_scale_mega_meter_1: outcome_scale_mega_meter_1,
+                                inner_scale_mega_meter_10: outcome_scale_mega_meter_10,
+                                inner_scale_mega_meter_100: outcome_scale_mega_meter_100,
+                                inner_scale_giga_meter_1: outcome_scale_giga_meter_1,
+                                inner_scale_giga_meter_10: outcome_scale_giga_meter_10,
+                                inner_scale_giga_meter_100: outcome_scale_giga_meter_100,
+                                inner_scale_tera_meter_1: outcome_scale_tera_meter_1,
+                                inner_scale_tera_meter_10: outcome_scale_tera_meter_10,
+                                inner_scale_tera_meter_100: outcome_scale_tera_meter_100,
+                                inner_scale_peta_meter_1: outcome_scale_peta_meter_1,
+                                inner_scale_peta_meter_10: outcome_scale_peta_meter_10,
+                                inner_scale_peta_meter_100: outcome_scale_peta_meter_100,
+                                inner_scale_exa_meter_1: outcome_scale_exa_meter_1,
+                                inner_scale_exa_meter_10: outcome_scale_exa_meter_10,
+                                inner_scale_exa_meter_100: outcome_scale_exa_meter_100,
+                                inner_scale_zetta_meter_1: outcome_scale_zetta_meter_1,
+                                inner_scale_zetta_meter_10: outcome_scale_zetta_meter_10,
+                                inner_scale_zetta_meter_100: outcome_scale_zetta_meter_100,
+                                inner_scale_yotta_meter_1: outcome_scale_yotta_meter_1,
+                                inner_scale_yotta_meter_10: outcome_scale_yotta_meter_10,
+                                inner_scale_yotta_meter_100: outcome_scale_yotta_meter_100,
+                                inner_scale_ronna_meter_1: outcome_scale_ronna_meter_1,
+                                inner_scale_ronna_meter_10: outcome_scale_ronna_meter_10,
+                                inner_scale_ronna_meter_100: outcome_scale_ronna_meter_100,
+                                inner_scale_quetta_meter_1: outcome_scale_quetta_meter_1,
+                                inner_scale_quetta_meter_10: outcome_scale_quetta_meter_10,
+                                inner_scale_quetta_meter_100: outcome_scale_quetta_meter_100,
+                                inner_scale_quetta_meter_1000: outcome_scale_quetta_meter_1000,
+                                inner_scale_quetta_meter_10000: outcome_scale_quetta_meter_10000,
+                                inner_scale_quetta_meter_100000: outcome_scale_quetta_meter_100000,
+                            })
                         }
                     ]
                 }
@@ -2016,77 +2229,77 @@ define_workflow_mod_OLD! {
                             inner_scale_quetta_meter_100000: UnloadAndWaitStageInput<ScaleQuettaMeter100000>,
                         }
                         struct State {
-                            inner_scale_quecto_meter_000001: (UnloadAndWaitStageState<ScaleQuectoMeter000001>, bool),
-                            inner_scale_quecto_meter_00001: (UnloadAndWaitStageState<ScaleQuectoMeter00001>, bool),
-                            inner_scale_quecto_meter_0001: (UnloadAndWaitStageState<ScaleQuectoMeter0001>, bool),
-                            inner_scale_quecto_meter_001: (UnloadAndWaitStageState<ScaleQuectoMeter001>, bool),
-                            inner_scale_quecto_meter_01: (UnloadAndWaitStageState<ScaleQuectoMeter01>, bool),
-                            inner_scale_quecto_meter_1: (UnloadAndWaitStageState<ScaleQuectoMeter1>, bool),
-                            inner_scale_quecto_meter_10: (UnloadAndWaitStageState<ScaleQuectoMeter10>, bool),
-                            inner_scale_quecto_meter_100: (UnloadAndWaitStageState<ScaleQuectoMeter100>, bool),
-                            inner_scale_ronto_meter_1: (UnloadAndWaitStageState<ScaleRontoMeter1>, bool),
-                            inner_scale_ronto_meter_10: (UnloadAndWaitStageState<ScaleRontoMeter10>, bool),
-                            inner_scale_ronto_meter_100: (UnloadAndWaitStageState<ScaleRontoMeter100>, bool),
-                            inner_scale_yocto_meter_1: (UnloadAndWaitStageState<ScaleYoctoMeter1>, bool),
-                            inner_scale_yocto_meter_10: (UnloadAndWaitStageState<ScaleYoctoMeter10>, bool),
-                            inner_scale_yocto_meter_100: (UnloadAndWaitStageState<ScaleYoctoMeter100>, bool),
-                            inner_scale_zepto_meter_1: (UnloadAndWaitStageState<ScaleZeptoMeter1>, bool),
-                            inner_scale_zepto_meter_10: (UnloadAndWaitStageState<ScaleZeptoMeter10>, bool),
-                            inner_scale_zepto_meter_100: (UnloadAndWaitStageState<ScaleZeptoMeter100>, bool),
-                            inner_scale_atto_meter_1: (UnloadAndWaitStageState<ScaleAttoMeter1>, bool),
-                            inner_scale_atto_meter_10: (UnloadAndWaitStageState<ScaleAttoMeter10>, bool),
-                            inner_scale_atto_meter_100: (UnloadAndWaitStageState<ScaleAttoMeter100>, bool),
-                            inner_scale_femto_meter_1: (UnloadAndWaitStageState<ScaleFemtoMeter1>, bool),
-                            inner_scale_femto_meter_10: (UnloadAndWaitStageState<ScaleFemtoMeter10>, bool),
-                            inner_scale_femto_meter_100: (UnloadAndWaitStageState<ScaleFemtoMeter100>, bool),
-                            inner_scale_pico_meter_1: (UnloadAndWaitStageState<ScalePicoMeter1>, bool),
-                            inner_scale_pico_meter_10: (UnloadAndWaitStageState<ScalePicoMeter10>, bool),
-                            inner_scale_pico_meter_100: (UnloadAndWaitStageState<ScalePicoMeter100>, bool),
-                            inner_scale_nano_meter_1: (UnloadAndWaitStageState<ScaleNanoMeter1>, bool),
-                            inner_scale_nano_meter_10: (UnloadAndWaitStageState<ScaleNanoMeter10>, bool),
-                            inner_scale_nano_meter_100: (UnloadAndWaitStageState<ScaleNanoMeter100>, bool),
-                            inner_scale_micro_meter_1: (UnloadAndWaitStageState<ScaleMicroMeter1>, bool),
-                            inner_scale_micro_meter_10: (UnloadAndWaitStageState<ScaleMicroMeter10>, bool),
-                            inner_scale_micro_meter_100: (UnloadAndWaitStageState<ScaleMicroMeter100>, bool),
-                            inner_scale_milli_meter_1: (UnloadAndWaitStageState<ScaleMilliMeter1>, bool),
-                            inner_scale_milli_meter_10: (UnloadAndWaitStageState<ScaleMilliMeter10>, bool),
-                            inner_scale_milli_meter_100: (UnloadAndWaitStageState<ScaleMilliMeter100>, bool),
-                            inner_scale_meter_1: (UnloadAndWaitStageState<ScaleMeter1>, bool),
-                            inner_scale_meter_10: (UnloadAndWaitStageState<ScaleMeter10>, bool),
-                            inner_scale_meter_100: (UnloadAndWaitStageState<ScaleMeter100>, bool),
-                            inner_scale_kilo_meter_1: (UnloadAndWaitStageState<ScaleKiloMeter1>, bool),
-                            inner_scale_kilo_meter_10: (UnloadAndWaitStageState<ScaleKiloMeter10>, bool),
-                            inner_scale_kilo_meter_100: (UnloadAndWaitStageState<ScaleKiloMeter100>, bool),
-                            inner_scale_mega_meter_1: (UnloadAndWaitStageState<ScaleMegaMeter1>, bool),
-                            inner_scale_mega_meter_10: (UnloadAndWaitStageState<ScaleMegaMeter10>, bool),
-                            inner_scale_mega_meter_100: (UnloadAndWaitStageState<ScaleMegaMeter100>, bool),
-                            inner_scale_giga_meter_1: (UnloadAndWaitStageState<ScaleGigaMeter1>, bool),
-                            inner_scale_giga_meter_10: (UnloadAndWaitStageState<ScaleGigaMeter10>, bool),
-                            inner_scale_giga_meter_100: (UnloadAndWaitStageState<ScaleGigaMeter100>, bool),
-                            inner_scale_tera_meter_1: (UnloadAndWaitStageState<ScaleTeraMeter1>, bool),
-                            inner_scale_tera_meter_10: (UnloadAndWaitStageState<ScaleTeraMeter10>, bool),
-                            inner_scale_tera_meter_100: (UnloadAndWaitStageState<ScaleTeraMeter100>, bool),
-                            inner_scale_peta_meter_1: (UnloadAndWaitStageState<ScalePetaMeter1>, bool),
-                            inner_scale_peta_meter_10: (UnloadAndWaitStageState<ScalePetaMeter10>, bool),
-                            inner_scale_peta_meter_100: (UnloadAndWaitStageState<ScalePetaMeter100>, bool),
-                            inner_scale_exa_meter_1: (UnloadAndWaitStageState<ScaleExaMeter1>, bool),
-                            inner_scale_exa_meter_10: (UnloadAndWaitStageState<ScaleExaMeter10>, bool),
-                            inner_scale_exa_meter_100: (UnloadAndWaitStageState<ScaleExaMeter100>, bool),
-                            inner_scale_zetta_meter_1: (UnloadAndWaitStageState<ScaleZettaMeter1>, bool),
-                            inner_scale_zetta_meter_10: (UnloadAndWaitStageState<ScaleZettaMeter10>, bool),
-                            inner_scale_zetta_meter_100: (UnloadAndWaitStageState<ScaleZettaMeter100>, bool),
-                            inner_scale_yotta_meter_1: (UnloadAndWaitStageState<ScaleYottaMeter1>, bool),
-                            inner_scale_yotta_meter_10: (UnloadAndWaitStageState<ScaleYottaMeter10>, bool),
-                            inner_scale_yotta_meter_100: (UnloadAndWaitStageState<ScaleYottaMeter100>, bool),
-                            inner_scale_ronna_meter_1: (UnloadAndWaitStageState<ScaleRonnaMeter1>, bool),
-                            inner_scale_ronna_meter_10: (UnloadAndWaitStageState<ScaleRonnaMeter10>, bool),
-                            inner_scale_ronna_meter_100: (UnloadAndWaitStageState<ScaleRonnaMeter100>, bool),
-                            inner_scale_quetta_meter_1: (UnloadAndWaitStageState<ScaleQuettaMeter1>, bool),
-                            inner_scale_quetta_meter_10: (UnloadAndWaitStageState<ScaleQuettaMeter10>, bool),
-                            inner_scale_quetta_meter_100: (UnloadAndWaitStageState<ScaleQuettaMeter100>, bool),
-                            inner_scale_quetta_meter_1000: (UnloadAndWaitStageState<ScaleQuettaMeter1000>, bool),
-                            inner_scale_quetta_meter_10000: (UnloadAndWaitStageState<ScaleQuettaMeter10000>, bool),
-                            inner_scale_quetta_meter_100000: (UnloadAndWaitStageState<ScaleQuettaMeter100000>, bool),
+                            inner_scale_quecto_meter_000001: Option<UnloadAndWaitStageState<ScaleQuectoMeter000001>>,
+                            inner_scale_quecto_meter_00001: Option<UnloadAndWaitStageState<ScaleQuectoMeter00001>>,
+                            inner_scale_quecto_meter_0001: Option<UnloadAndWaitStageState<ScaleQuectoMeter0001>>,
+                            inner_scale_quecto_meter_001: Option<UnloadAndWaitStageState<ScaleQuectoMeter001>>,
+                            inner_scale_quecto_meter_01: Option<UnloadAndWaitStageState<ScaleQuectoMeter01>>,
+                            inner_scale_quecto_meter_1: Option<UnloadAndWaitStageState<ScaleQuectoMeter1>>,
+                            inner_scale_quecto_meter_10: Option<UnloadAndWaitStageState<ScaleQuectoMeter10>>,
+                            inner_scale_quecto_meter_100: Option<UnloadAndWaitStageState<ScaleQuectoMeter100>>,
+                            inner_scale_ronto_meter_1: Option<UnloadAndWaitStageState<ScaleRontoMeter1>>,
+                            inner_scale_ronto_meter_10: Option<UnloadAndWaitStageState<ScaleRontoMeter10>>,
+                            inner_scale_ronto_meter_100: Option<UnloadAndWaitStageState<ScaleRontoMeter100>>,
+                            inner_scale_yocto_meter_1: Option<UnloadAndWaitStageState<ScaleYoctoMeter1>>,
+                            inner_scale_yocto_meter_10: Option<UnloadAndWaitStageState<ScaleYoctoMeter10>>,
+                            inner_scale_yocto_meter_100: Option<UnloadAndWaitStageState<ScaleYoctoMeter100>>,
+                            inner_scale_zepto_meter_1: Option<UnloadAndWaitStageState<ScaleZeptoMeter1>>,
+                            inner_scale_zepto_meter_10: Option<UnloadAndWaitStageState<ScaleZeptoMeter10>>,
+                            inner_scale_zepto_meter_100: Option<UnloadAndWaitStageState<ScaleZeptoMeter100>>,
+                            inner_scale_atto_meter_1: Option<UnloadAndWaitStageState<ScaleAttoMeter1>>,
+                            inner_scale_atto_meter_10: Option<UnloadAndWaitStageState<ScaleAttoMeter10>>,
+                            inner_scale_atto_meter_100: Option<UnloadAndWaitStageState<ScaleAttoMeter100>>,
+                            inner_scale_femto_meter_1: Option<UnloadAndWaitStageState<ScaleFemtoMeter1>>,
+                            inner_scale_femto_meter_10: Option<UnloadAndWaitStageState<ScaleFemtoMeter10>>,
+                            inner_scale_femto_meter_100: Option<UnloadAndWaitStageState<ScaleFemtoMeter100>>,
+                            inner_scale_pico_meter_1: Option<UnloadAndWaitStageState<ScalePicoMeter1>>,
+                            inner_scale_pico_meter_10: Option<UnloadAndWaitStageState<ScalePicoMeter10>>,
+                            inner_scale_pico_meter_100: Option<UnloadAndWaitStageState<ScalePicoMeter100>>,
+                            inner_scale_nano_meter_1: Option<UnloadAndWaitStageState<ScaleNanoMeter1>>,
+                            inner_scale_nano_meter_10: Option<UnloadAndWaitStageState<ScaleNanoMeter10>>,
+                            inner_scale_nano_meter_100: Option<UnloadAndWaitStageState<ScaleNanoMeter100>>,
+                            inner_scale_micro_meter_1: Option<UnloadAndWaitStageState<ScaleMicroMeter1>>,
+                            inner_scale_micro_meter_10: Option<UnloadAndWaitStageState<ScaleMicroMeter10>>,
+                            inner_scale_micro_meter_100: Option<UnloadAndWaitStageState<ScaleMicroMeter100>>,
+                            inner_scale_milli_meter_1: Option<UnloadAndWaitStageState<ScaleMilliMeter1>>,
+                            inner_scale_milli_meter_10: Option<UnloadAndWaitStageState<ScaleMilliMeter10>>,
+                            inner_scale_milli_meter_100: Option<UnloadAndWaitStageState<ScaleMilliMeter100>>,
+                            inner_scale_meter_1: Option<UnloadAndWaitStageState<ScaleMeter1>>,
+                            inner_scale_meter_10: Option<UnloadAndWaitStageState<ScaleMeter10>>,
+                            inner_scale_meter_100: Option<UnloadAndWaitStageState<ScaleMeter100>>,
+                            inner_scale_kilo_meter_1: Option<UnloadAndWaitStageState<ScaleKiloMeter1>>,
+                            inner_scale_kilo_meter_10: Option<UnloadAndWaitStageState<ScaleKiloMeter10>>,
+                            inner_scale_kilo_meter_100: Option<UnloadAndWaitStageState<ScaleKiloMeter100>>,
+                            inner_scale_mega_meter_1: Option<UnloadAndWaitStageState<ScaleMegaMeter1>>,
+                            inner_scale_mega_meter_10: Option<UnloadAndWaitStageState<ScaleMegaMeter10>>,
+                            inner_scale_mega_meter_100: Option<UnloadAndWaitStageState<ScaleMegaMeter100>>,
+                            inner_scale_giga_meter_1: Option<UnloadAndWaitStageState<ScaleGigaMeter1>>,
+                            inner_scale_giga_meter_10: Option<UnloadAndWaitStageState<ScaleGigaMeter10>>,
+                            inner_scale_giga_meter_100: Option<UnloadAndWaitStageState<ScaleGigaMeter100>>,
+                            inner_scale_tera_meter_1: Option<UnloadAndWaitStageState<ScaleTeraMeter1>>,
+                            inner_scale_tera_meter_10: Option<UnloadAndWaitStageState<ScaleTeraMeter10>>,
+                            inner_scale_tera_meter_100: Option<UnloadAndWaitStageState<ScaleTeraMeter100>>,
+                            inner_scale_peta_meter_1: Option<UnloadAndWaitStageState<ScalePetaMeter1>>,
+                            inner_scale_peta_meter_10: Option<UnloadAndWaitStageState<ScalePetaMeter10>>,
+                            inner_scale_peta_meter_100: Option<UnloadAndWaitStageState<ScalePetaMeter100>>,
+                            inner_scale_exa_meter_1: Option<UnloadAndWaitStageState<ScaleExaMeter1>>,
+                            inner_scale_exa_meter_10: Option<UnloadAndWaitStageState<ScaleExaMeter10>>,
+                            inner_scale_exa_meter_100: Option<UnloadAndWaitStageState<ScaleExaMeter100>>,
+                            inner_scale_zetta_meter_1: Option<UnloadAndWaitStageState<ScaleZettaMeter1>>,
+                            inner_scale_zetta_meter_10: Option<UnloadAndWaitStageState<ScaleZettaMeter10>>,
+                            inner_scale_zetta_meter_100: Option<UnloadAndWaitStageState<ScaleZettaMeter100>>,
+                            inner_scale_yotta_meter_1: Option<UnloadAndWaitStageState<ScaleYottaMeter1>>,
+                            inner_scale_yotta_meter_10: Option<UnloadAndWaitStageState<ScaleYottaMeter10>>,
+                            inner_scale_yotta_meter_100: Option<UnloadAndWaitStageState<ScaleYottaMeter100>>,
+                            inner_scale_ronna_meter_1: Option<UnloadAndWaitStageState<ScaleRonnaMeter1>>,
+                            inner_scale_ronna_meter_10: Option<UnloadAndWaitStageState<ScaleRonnaMeter10>>,
+                            inner_scale_ronna_meter_100: Option<UnloadAndWaitStageState<ScaleRonnaMeter100>>,
+                            inner_scale_quetta_meter_1: Option<UnloadAndWaitStageState<ScaleQuettaMeter1>>,
+                            inner_scale_quetta_meter_10: Option<UnloadAndWaitStageState<ScaleQuettaMeter10>>,
+                            inner_scale_quetta_meter_100: Option<UnloadAndWaitStageState<ScaleQuettaMeter100>>,
+                            inner_scale_quetta_meter_1000: Option<UnloadAndWaitStageState<ScaleQuettaMeter1000>>,
+                            inner_scale_quetta_meter_10000: Option<UnloadAndWaitStageState<ScaleQuettaMeter10000>>,
+                            inner_scale_quetta_meter_100000: Option<UnloadAndWaitStageState<ScaleQuettaMeter100000>>,
                         }
                     ],
                     core_functions: [
@@ -2164,586 +2377,799 @@ define_workflow_mod_OLD! {
                             let state_scale_quetta_meter_100000 = unload_and_wait_stage_setup_ecs_while(input.inner_scale_quetta_meter_100000, main_access.inner_scale_quetta_meter_100000);
                             
                             State {
-                                inner_scale_quecto_meter_000001: (state_scale_quecto_meter_000001, false),
-                                inner_scale_quecto_meter_00001: (state_scale_quecto_meter_00001, false),
-                                inner_scale_quecto_meter_0001: (state_scale_quecto_meter_0001, false),
-                                inner_scale_quecto_meter_001: (state_scale_quecto_meter_001, false),
-                                inner_scale_quecto_meter_01: (state_scale_quecto_meter_01, false),
-                                inner_scale_quecto_meter_1: (state_scale_quecto_meter_1, false),
-                                inner_scale_quecto_meter_10: (state_scale_quecto_meter_10, false),
-                                inner_scale_quecto_meter_100: (state_scale_quecto_meter_100, false),
-                                inner_scale_ronto_meter_1: (state_scale_ronto_meter_1, false),
-                                inner_scale_ronto_meter_10: (state_scale_ronto_meter_10, false),
-                                inner_scale_ronto_meter_100: (state_scale_ronto_meter_100, false),
-                                inner_scale_yocto_meter_1: (state_scale_yocto_meter_1, false),
-                                inner_scale_yocto_meter_10: (state_scale_yocto_meter_10, false),
-                                inner_scale_yocto_meter_100: (state_scale_yocto_meter_100, false),
-                                inner_scale_zepto_meter_1: (state_scale_zepto_meter_1, false),
-                                inner_scale_zepto_meter_10: (state_scale_zepto_meter_10, false),
-                                inner_scale_zepto_meter_100: (state_scale_zepto_meter_100, false),
-                                inner_scale_atto_meter_1: (state_scale_atto_meter_1, false),
-                                inner_scale_atto_meter_10: (state_scale_atto_meter_10, false),
-                                inner_scale_atto_meter_100: (state_scale_atto_meter_100, false),
-                                inner_scale_femto_meter_1: (state_scale_femto_meter_1, false),
-                                inner_scale_femto_meter_10: (state_scale_femto_meter_10, false),
-                                inner_scale_femto_meter_100: (state_scale_femto_meter_100, false),
-                                inner_scale_pico_meter_1: (state_scale_pico_meter_1, false),
-                                inner_scale_pico_meter_10: (state_scale_pico_meter_10, false),
-                                inner_scale_pico_meter_100: (state_scale_pico_meter_100, false),
-                                inner_scale_nano_meter_1: (state_scale_nano_meter_1, false),
-                                inner_scale_nano_meter_10: (state_scale_nano_meter_10, false),
-                                inner_scale_nano_meter_100: (state_scale_nano_meter_100, false),
-                                inner_scale_micro_meter_1: (state_scale_micro_meter_1, false),
-                                inner_scale_micro_meter_10: (state_scale_micro_meter_10, false),
-                                inner_scale_micro_meter_100: (state_scale_micro_meter_100, false),
-                                inner_scale_milli_meter_1: (state_scale_milli_meter_1, false),
-                                inner_scale_milli_meter_10: (state_scale_milli_meter_10, false),
-                                inner_scale_milli_meter_100: (state_scale_milli_meter_100, false),
-                                inner_scale_meter_1: (state_scale_meter_1, false),
-                                inner_scale_meter_10: (state_scale_meter_10, false),
-                                inner_scale_meter_100: (state_scale_meter_100, false),
-                                inner_scale_kilo_meter_1: (state_scale_kilo_meter_1, false),
-                                inner_scale_kilo_meter_10: (state_scale_kilo_meter_10, false),
-                                inner_scale_kilo_meter_100: (state_scale_kilo_meter_100, false),
-                                inner_scale_mega_meter_1: (state_scale_mega_meter_1, false),
-                                inner_scale_mega_meter_10: (state_scale_mega_meter_10, false),
-                                inner_scale_mega_meter_100: (state_scale_mega_meter_100, false),
-                                inner_scale_giga_meter_1: (state_scale_giga_meter_1, false),
-                                inner_scale_giga_meter_10: (state_scale_giga_meter_10, false),
-                                inner_scale_giga_meter_100: (state_scale_giga_meter_100, false),
-                                inner_scale_tera_meter_1: (state_scale_tera_meter_1, false),
-                                inner_scale_tera_meter_10: (state_scale_tera_meter_10, false),
-                                inner_scale_tera_meter_100: (state_scale_tera_meter_100, false),
-                                inner_scale_peta_meter_1: (state_scale_peta_meter_1, false),
-                                inner_scale_peta_meter_10: (state_scale_peta_meter_10, false),
-                                inner_scale_peta_meter_100: (state_scale_peta_meter_100, false),
-                                inner_scale_exa_meter_1: (state_scale_exa_meter_1, false),
-                                inner_scale_exa_meter_10: (state_scale_exa_meter_10, false),
-                                inner_scale_exa_meter_100: (state_scale_exa_meter_100, false),
-                                inner_scale_zetta_meter_1: (state_scale_zetta_meter_1, false),
-                                inner_scale_zetta_meter_10: (state_scale_zetta_meter_10, false),
-                                inner_scale_zetta_meter_100: (state_scale_zetta_meter_100, false),
-                                inner_scale_yotta_meter_1: (state_scale_yotta_meter_1, false),
-                                inner_scale_yotta_meter_10: (state_scale_yotta_meter_10, false),
-                                inner_scale_yotta_meter_100: (state_scale_yotta_meter_100, false),
-                                inner_scale_ronna_meter_1: (state_scale_ronna_meter_1, false),
-                                inner_scale_ronna_meter_10: (state_scale_ronna_meter_10, false),
-                                inner_scale_ronna_meter_100: (state_scale_ronna_meter_100, false),
-                                inner_scale_quetta_meter_1: (state_scale_quetta_meter_1, false),
-                                inner_scale_quetta_meter_10: (state_scale_quetta_meter_10, false),
-                                inner_scale_quetta_meter_100: (state_scale_quetta_meter_100, false),
-                                inner_scale_quetta_meter_1000: (state_scale_quetta_meter_1000, false),
-                                inner_scale_quetta_meter_10000: (state_scale_quetta_meter_10000, false),
-                                inner_scale_quetta_meter_100000: (state_scale_quetta_meter_100000, false),
+                                inner_scale_quecto_meter_000001: Some(state_scale_quecto_meter_000001),
+                                inner_scale_quecto_meter_00001: Some(state_scale_quecto_meter_00001),
+                                inner_scale_quecto_meter_0001: Some(state_scale_quecto_meter_0001),
+                                inner_scale_quecto_meter_001: Some(state_scale_quecto_meter_001),
+                                inner_scale_quecto_meter_01: Some(state_scale_quecto_meter_01),
+                                inner_scale_quecto_meter_1: Some(state_scale_quecto_meter_1),
+                                inner_scale_quecto_meter_10: Some(state_scale_quecto_meter_10),
+                                inner_scale_quecto_meter_100: Some(state_scale_quecto_meter_100),
+                                inner_scale_ronto_meter_1: Some(state_scale_ronto_meter_1),
+                                inner_scale_ronto_meter_10: Some(state_scale_ronto_meter_10),
+                                inner_scale_ronto_meter_100: Some(state_scale_ronto_meter_100),
+                                inner_scale_yocto_meter_1: Some(state_scale_yocto_meter_1),
+                                inner_scale_yocto_meter_10: Some(state_scale_yocto_meter_10),
+                                inner_scale_yocto_meter_100: Some(state_scale_yocto_meter_100),
+                                inner_scale_zepto_meter_1: Some(state_scale_zepto_meter_1),
+                                inner_scale_zepto_meter_10: Some(state_scale_zepto_meter_10),
+                                inner_scale_zepto_meter_100: Some(state_scale_zepto_meter_100),
+                                inner_scale_atto_meter_1: Some(state_scale_atto_meter_1),
+                                inner_scale_atto_meter_10: Some(state_scale_atto_meter_10),
+                                inner_scale_atto_meter_100: Some(state_scale_atto_meter_100),
+                                inner_scale_femto_meter_1: Some(state_scale_femto_meter_1),
+                                inner_scale_femto_meter_10: Some(state_scale_femto_meter_10),
+                                inner_scale_femto_meter_100: Some(state_scale_femto_meter_100),
+                                inner_scale_pico_meter_1: Some(state_scale_pico_meter_1),
+                                inner_scale_pico_meter_10: Some(state_scale_pico_meter_10),
+                                inner_scale_pico_meter_100: Some(state_scale_pico_meter_100),
+                                inner_scale_nano_meter_1: Some(state_scale_nano_meter_1),
+                                inner_scale_nano_meter_10: Some(state_scale_nano_meter_10),
+                                inner_scale_nano_meter_100: Some(state_scale_nano_meter_100),
+                                inner_scale_micro_meter_1: Some(state_scale_micro_meter_1),
+                                inner_scale_micro_meter_10: Some(state_scale_micro_meter_10),
+                                inner_scale_micro_meter_100: Some(state_scale_micro_meter_100),
+                                inner_scale_milli_meter_1: Some(state_scale_milli_meter_1),
+                                inner_scale_milli_meter_10: Some(state_scale_milli_meter_10),
+                                inner_scale_milli_meter_100: Some(state_scale_milli_meter_100),
+                                inner_scale_meter_1: Some(state_scale_meter_1),
+                                inner_scale_meter_10: Some(state_scale_meter_10),
+                                inner_scale_meter_100: Some(state_scale_meter_100),
+                                inner_scale_kilo_meter_1: Some(state_scale_kilo_meter_1),
+                                inner_scale_kilo_meter_10: Some(state_scale_kilo_meter_10),
+                                inner_scale_kilo_meter_100: Some(state_scale_kilo_meter_100),
+                                inner_scale_mega_meter_1: Some(state_scale_mega_meter_1),
+                                inner_scale_mega_meter_10: Some(state_scale_mega_meter_10),
+                                inner_scale_mega_meter_100: Some(state_scale_mega_meter_100),
+                                inner_scale_giga_meter_1: Some(state_scale_giga_meter_1),
+                                inner_scale_giga_meter_10: Some(state_scale_giga_meter_10),
+                                inner_scale_giga_meter_100: Some(state_scale_giga_meter_100),
+                                inner_scale_tera_meter_1: Some(state_scale_tera_meter_1),
+                                inner_scale_tera_meter_10: Some(state_scale_tera_meter_10),
+                                inner_scale_tera_meter_100: Some(state_scale_tera_meter_100),
+                                inner_scale_peta_meter_1: Some(state_scale_peta_meter_1),
+                                inner_scale_peta_meter_10: Some(state_scale_peta_meter_10),
+                                inner_scale_peta_meter_100: Some(state_scale_peta_meter_100),
+                                inner_scale_exa_meter_1: Some(state_scale_exa_meter_1),
+                                inner_scale_exa_meter_10: Some(state_scale_exa_meter_10),
+                                inner_scale_exa_meter_100: Some(state_scale_exa_meter_100),
+                                inner_scale_zetta_meter_1: Some(state_scale_zetta_meter_1),
+                                inner_scale_zetta_meter_10: Some(state_scale_zetta_meter_10),
+                                inner_scale_zetta_meter_100: Some(state_scale_zetta_meter_100),
+                                inner_scale_yotta_meter_1: Some(state_scale_yotta_meter_1),
+                                inner_scale_yotta_meter_10: Some(state_scale_yotta_meter_10),
+                                inner_scale_yotta_meter_100: Some(state_scale_yotta_meter_100),
+                                inner_scale_ronna_meter_1: Some(state_scale_ronna_meter_1),
+                                inner_scale_ronna_meter_10: Some(state_scale_ronna_meter_10),
+                                inner_scale_ronna_meter_100: Some(state_scale_ronna_meter_100),
+                                inner_scale_quetta_meter_1: Some(state_scale_quetta_meter_1),
+                                inner_scale_quetta_meter_10: Some(state_scale_quetta_meter_10),
+                                inner_scale_quetta_meter_100: Some(state_scale_quetta_meter_100),
+                                inner_scale_quetta_meter_1000: Some(state_scale_quetta_meter_1000),
+                                inner_scale_quetta_meter_10000: Some(state_scale_quetta_meter_10000),
+                                inner_scale_quetta_meter_100000: Some(state_scale_quetta_meter_100000),
                             }
                         }
 
                         fn RunEcsWhile |state, main_access| -> Outcome<State, ()> {
-                            let outcome_scale_quecto_meter_000001 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_000001.0, main_access.inner_scale_quecto_meter_000001);
-                            let outcome_scale_quecto_meter_00001 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_00001.0, main_access.inner_scale_quecto_meter_00001);
-                            let outcome_scale_quecto_meter_0001 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_0001.0, main_access.inner_scale_quecto_meter_0001);
-                            let outcome_scale_quecto_meter_001 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_001.0, main_access.inner_scale_quecto_meter_001);
-                            let outcome_scale_quecto_meter_01 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_01.0, main_access.inner_scale_quecto_meter_01);
-                            let outcome_scale_quecto_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_1.0, main_access.inner_scale_quecto_meter_1);
-                            let outcome_scale_quecto_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_10.0, main_access.inner_scale_quecto_meter_10);
-                            let outcome_scale_quecto_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quecto_meter_100.0, main_access.inner_scale_quecto_meter_100);
-                            let outcome_scale_ronto_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_ronto_meter_1.0, main_access.inner_scale_ronto_meter_1);
-                            let outcome_scale_ronto_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_ronto_meter_10.0, main_access.inner_scale_ronto_meter_10);
-                            let outcome_scale_ronto_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_ronto_meter_100.0, main_access.inner_scale_ronto_meter_100);
-                            let outcome_scale_yocto_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_yocto_meter_1.0, main_access.inner_scale_yocto_meter_1);
-                            let outcome_scale_yocto_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_yocto_meter_10.0, main_access.inner_scale_yocto_meter_10);
-                            let outcome_scale_yocto_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_yocto_meter_100.0, main_access.inner_scale_yocto_meter_100);
-                            let outcome_scale_zepto_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_zepto_meter_1.0, main_access.inner_scale_zepto_meter_1);
-                            let outcome_scale_zepto_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_zepto_meter_10.0, main_access.inner_scale_zepto_meter_10);
-                            let outcome_scale_zepto_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_zepto_meter_100.0, main_access.inner_scale_zepto_meter_100);
-                            let outcome_scale_atto_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_atto_meter_1.0, main_access.inner_scale_atto_meter_1);
-                            let outcome_scale_atto_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_atto_meter_10.0, main_access.inner_scale_atto_meter_10);
-                            let outcome_scale_atto_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_atto_meter_100.0, main_access.inner_scale_atto_meter_100);
-                            let outcome_scale_femto_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_femto_meter_1.0, main_access.inner_scale_femto_meter_1);
-                            let outcome_scale_femto_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_femto_meter_10.0, main_access.inner_scale_femto_meter_10);
-                            let outcome_scale_femto_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_femto_meter_100.0, main_access.inner_scale_femto_meter_100);
-                            let outcome_scale_pico_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_pico_meter_1.0, main_access.inner_scale_pico_meter_1);
-                            let outcome_scale_pico_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_pico_meter_10.0, main_access.inner_scale_pico_meter_10);
-                            let outcome_scale_pico_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_pico_meter_100.0, main_access.inner_scale_pico_meter_100);
-                            let outcome_scale_nano_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_nano_meter_1.0, main_access.inner_scale_nano_meter_1);
-                            let outcome_scale_nano_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_nano_meter_10.0, main_access.inner_scale_nano_meter_10);
-                            let outcome_scale_nano_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_nano_meter_100.0, main_access.inner_scale_nano_meter_100);
-                            let outcome_scale_micro_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_micro_meter_1.0, main_access.inner_scale_micro_meter_1);
-                            let outcome_scale_micro_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_micro_meter_10.0, main_access.inner_scale_micro_meter_10);
-                            let outcome_scale_micro_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_micro_meter_100.0, main_access.inner_scale_micro_meter_100);
-                            let outcome_scale_milli_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_milli_meter_1.0, main_access.inner_scale_milli_meter_1);
-                            let outcome_scale_milli_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_milli_meter_10.0, main_access.inner_scale_milli_meter_10);
-                            let outcome_scale_milli_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_milli_meter_100.0, main_access.inner_scale_milli_meter_100);
-                            let outcome_scale_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_meter_1.0, main_access.inner_scale_meter_1);
-                            let outcome_scale_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_meter_10.0, main_access.inner_scale_meter_10);
-                            let outcome_scale_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_meter_100.0, main_access.inner_scale_meter_100);
-                            let outcome_scale_kilo_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_kilo_meter_1.0, main_access.inner_scale_kilo_meter_1);
-                            let outcome_scale_kilo_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_kilo_meter_10.0, main_access.inner_scale_kilo_meter_10);
-                            let outcome_scale_kilo_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_kilo_meter_100.0, main_access.inner_scale_kilo_meter_100);
-                            let outcome_scale_mega_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_mega_meter_1.0, main_access.inner_scale_mega_meter_1);
-                            let outcome_scale_mega_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_mega_meter_10.0, main_access.inner_scale_mega_meter_10);
-                            let outcome_scale_mega_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_mega_meter_100.0, main_access.inner_scale_mega_meter_100);
-                            let outcome_scale_giga_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_giga_meter_1.0, main_access.inner_scale_giga_meter_1);
-                            let outcome_scale_giga_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_giga_meter_10.0, main_access.inner_scale_giga_meter_10);
-                            let outcome_scale_giga_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_giga_meter_100.0, main_access.inner_scale_giga_meter_100);
-                            let outcome_scale_tera_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_tera_meter_1.0, main_access.inner_scale_tera_meter_1);
-                            let outcome_scale_tera_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_tera_meter_10.0, main_access.inner_scale_tera_meter_10);
-                            let outcome_scale_tera_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_tera_meter_100.0, main_access.inner_scale_tera_meter_100);
-                            let outcome_scale_peta_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_peta_meter_1.0, main_access.inner_scale_peta_meter_1);
-                            let outcome_scale_peta_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_peta_meter_10.0, main_access.inner_scale_peta_meter_10);
-                            let outcome_scale_peta_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_peta_meter_100.0, main_access.inner_scale_peta_meter_100);
-                            let outcome_scale_exa_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_exa_meter_1.0, main_access.inner_scale_exa_meter_1);
-                            let outcome_scale_exa_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_exa_meter_10.0, main_access.inner_scale_exa_meter_10);
-                            let outcome_scale_exa_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_exa_meter_100.0, main_access.inner_scale_exa_meter_100);
-                            let outcome_scale_zetta_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_zetta_meter_1.0, main_access.inner_scale_zetta_meter_1);
-                            let outcome_scale_zetta_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_zetta_meter_10.0, main_access.inner_scale_zetta_meter_10);
-                            let outcome_scale_zetta_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_zetta_meter_100.0, main_access.inner_scale_zetta_meter_100);
-                            let outcome_scale_yotta_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_yotta_meter_1.0, main_access.inner_scale_yotta_meter_1);
-                            let outcome_scale_yotta_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_yotta_meter_10.0, main_access.inner_scale_yotta_meter_10);
-                            let outcome_scale_yotta_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_yotta_meter_100.0, main_access.inner_scale_yotta_meter_100);
-                            let outcome_scale_ronna_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_ronna_meter_1.0, main_access.inner_scale_ronna_meter_1);
-                            let outcome_scale_ronna_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_ronna_meter_10.0, main_access.inner_scale_ronna_meter_10);
-                            let outcome_scale_ronna_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_ronna_meter_100.0, main_access.inner_scale_ronna_meter_100);
-                            let outcome_scale_quetta_meter_1 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quetta_meter_1.0, main_access.inner_scale_quetta_meter_1);
-                            let outcome_scale_quetta_meter_10 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quetta_meter_10.0, main_access.inner_scale_quetta_meter_10);
-                            let outcome_scale_quetta_meter_100 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quetta_meter_100.0, main_access.inner_scale_quetta_meter_100);
-                            let outcome_scale_quetta_meter_1000 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quetta_meter_1000.0, main_access.inner_scale_quetta_meter_1000);
-                            let outcome_scale_quetta_meter_10000 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quetta_meter_10000.0, main_access.inner_scale_quetta_meter_10000);
-                            let outcome_scale_quetta_meter_100000 = unload_and_wait_stage_run_ecs_while(state.inner_scale_quetta_meter_100000.0, main_access.inner_scale_quetta_meter_100000);
+                            let outcome_scale_quecto_meter_000001 = if let Some(state) = state.inner_scale_quecto_meter_000001 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_000001))
+                            } else { None };
+                            let outcome_scale_quecto_meter_00001 = if let Some(state) = state.inner_scale_quecto_meter_00001 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_00001))
+                            } else { None };
+                            let outcome_scale_quecto_meter_0001 = if let Some(state) = state.inner_scale_quecto_meter_0001 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_0001))
+                            } else { None };
+                            let outcome_scale_quecto_meter_001 = if let Some(state) = state.inner_scale_quecto_meter_001 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_001))
+                            } else { None };
+                            let outcome_scale_quecto_meter_01 = if let Some(state) = state.inner_scale_quecto_meter_01 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_01))
+                            } else { None };
+                            let outcome_scale_quecto_meter_1 = if let Some(state) = state.inner_scale_quecto_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_1))
+                            } else { None };
+                            let outcome_scale_quecto_meter_10 = if let Some(state) = state.inner_scale_quecto_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_10))
+                            } else { None };
+                            let outcome_scale_quecto_meter_100 = if let Some(state) = state.inner_scale_quecto_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quecto_meter_100))
+                            } else { None };
+                            let outcome_scale_ronto_meter_1 = if let Some(state) = state.inner_scale_ronto_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_ronto_meter_1))
+                            } else { None };
+                            let outcome_scale_ronto_meter_10 = if let Some(state) = state.inner_scale_ronto_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_ronto_meter_10))
+                            } else { None };
+                            let outcome_scale_ronto_meter_100 = if let Some(state) = state.inner_scale_ronto_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_ronto_meter_100))
+                            } else { None };
+                            let outcome_scale_yocto_meter_1 = if let Some(state) = state.inner_scale_yocto_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_yocto_meter_1))
+                            } else { None };
+                            let outcome_scale_yocto_meter_10 = if let Some(state) = state.inner_scale_yocto_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_yocto_meter_10))
+                            } else { None };
+                            let outcome_scale_yocto_meter_100 = if let Some(state) = state.inner_scale_yocto_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_yocto_meter_100))
+                            } else { None };
+                            let outcome_scale_zepto_meter_1 = if let Some(state) = state.inner_scale_zepto_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_zepto_meter_1))
+                            } else { None };
+                            let outcome_scale_zepto_meter_10 = if let Some(state) = state.inner_scale_zepto_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_zepto_meter_10))
+                            } else { None };
+                            let outcome_scale_zepto_meter_100 = if let Some(state) = state.inner_scale_zepto_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_zepto_meter_100))
+                            } else { None };
+                            let outcome_scale_atto_meter_1 = if let Some(state) = state.inner_scale_atto_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_atto_meter_1))
+                            } else { None };
+                            let outcome_scale_atto_meter_10 = if let Some(state) = state.inner_scale_atto_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_atto_meter_10))
+                            } else { None };
+                            let outcome_scale_atto_meter_100 = if let Some(state) = state.inner_scale_atto_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_atto_meter_100))
+                            } else { None };
+                            let outcome_scale_femto_meter_1 = if let Some(state) = state.inner_scale_femto_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_femto_meter_1))
+                            } else { None };
+                            let outcome_scale_femto_meter_10 = if let Some(state) = state.inner_scale_femto_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_femto_meter_10))
+                            } else { None };
+                            let outcome_scale_femto_meter_100 = if let Some(state) = state.inner_scale_femto_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_femto_meter_100))
+                            } else { None };
+                            let outcome_scale_pico_meter_1 = if let Some(state) = state.inner_scale_pico_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_pico_meter_1))
+                            } else { None };
+                            let outcome_scale_pico_meter_10 = if let Some(state) = state.inner_scale_pico_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_pico_meter_10))
+                            } else { None };
+                            let outcome_scale_pico_meter_100 = if let Some(state) = state.inner_scale_pico_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_pico_meter_100))
+                            } else { None };
+                            let outcome_scale_nano_meter_1 = if let Some(state) = state.inner_scale_nano_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_nano_meter_1))
+                            } else { None };
+                            let outcome_scale_nano_meter_10 = if let Some(state) = state.inner_scale_nano_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_nano_meter_10))
+                            } else { None };
+                            let outcome_scale_nano_meter_100 = if let Some(state) = state.inner_scale_nano_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_nano_meter_100))
+                            } else { None };
+                            let outcome_scale_micro_meter_1 = if let Some(state) = state.inner_scale_micro_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_micro_meter_1))
+                            } else { None };
+                            let outcome_scale_micro_meter_10 = if let Some(state) = state.inner_scale_micro_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_micro_meter_10))
+                            } else { None };
+                            let outcome_scale_micro_meter_100 = if let Some(state) = state.inner_scale_micro_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_micro_meter_100))
+                            } else { None };
+                            let outcome_scale_milli_meter_1 = if let Some(state) = state.inner_scale_milli_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_milli_meter_1))
+                            } else { None };
+                            let outcome_scale_milli_meter_10 = if let Some(state) = state.inner_scale_milli_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_milli_meter_10))
+                            } else { None };
+                            let outcome_scale_milli_meter_100 = if let Some(state) = state.inner_scale_milli_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_milli_meter_100))
+                            } else { None };
+                            let outcome_scale_meter_1 = if let Some(state) = state.inner_scale_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_meter_1))
+                            } else { None };
+                            let outcome_scale_meter_10 = if let Some(state) = state.inner_scale_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_meter_10))
+                            } else { None };
+                            let outcome_scale_meter_100 = if let Some(state) = state.inner_scale_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_meter_100))
+                            } else { None };
+                            let outcome_scale_kilo_meter_1 = if let Some(state) = state.inner_scale_kilo_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_kilo_meter_1))
+                            } else { None };
+                            let outcome_scale_kilo_meter_10 = if let Some(state) = state.inner_scale_kilo_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_kilo_meter_10))
+                            } else { None };
+                            let outcome_scale_kilo_meter_100 = if let Some(state) = state.inner_scale_kilo_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_kilo_meter_100))
+                            } else { None };
+                            let outcome_scale_mega_meter_1 = if let Some(state) = state.inner_scale_mega_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_mega_meter_1))
+                            } else { None };
+                            let outcome_scale_mega_meter_10 = if let Some(state) = state.inner_scale_mega_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_mega_meter_10))
+                            } else { None };
+                            let outcome_scale_mega_meter_100 = if let Some(state) = state.inner_scale_mega_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_mega_meter_100))
+                            } else { None };
+                            let outcome_scale_giga_meter_1 = if let Some(state) = state.inner_scale_giga_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_giga_meter_1))
+                            } else { None };
+                            let outcome_scale_giga_meter_10 = if let Some(state) = state.inner_scale_giga_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_giga_meter_10))
+                            } else { None };
+                            let outcome_scale_giga_meter_100 = if let Some(state) = state.inner_scale_giga_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_giga_meter_100))
+                            } else { None };
+                            let outcome_scale_tera_meter_1 = if let Some(state) = state.inner_scale_tera_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_tera_meter_1))
+                            } else { None };
+                            let outcome_scale_tera_meter_10 = if let Some(state) = state.inner_scale_tera_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_tera_meter_10))
+                            } else { None };
+                            let outcome_scale_tera_meter_100 = if let Some(state) = state.inner_scale_tera_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_tera_meter_100))
+                            } else { None };
+                            let outcome_scale_peta_meter_1 = if let Some(state) = state.inner_scale_peta_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_peta_meter_1))
+                            } else { None };
+                            let outcome_scale_peta_meter_10 = if let Some(state) = state.inner_scale_peta_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_peta_meter_10))
+                            } else { None };
+                            let outcome_scale_peta_meter_100 = if let Some(state) = state.inner_scale_peta_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_peta_meter_100))
+                            } else { None };
+                            let outcome_scale_exa_meter_1 = if let Some(state) = state.inner_scale_exa_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_exa_meter_1))
+                            } else { None };
+                            let outcome_scale_exa_meter_10 = if let Some(state) = state.inner_scale_exa_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_exa_meter_10))
+                            } else { None };
+                            let outcome_scale_exa_meter_100 = if let Some(state) = state.inner_scale_exa_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_exa_meter_100))
+                            } else { None };
+                            let outcome_scale_zetta_meter_1 = if let Some(state) = state.inner_scale_zetta_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_zetta_meter_1))
+                            } else { None };
+                            let outcome_scale_zetta_meter_10 = if let Some(state) = state.inner_scale_zetta_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_zetta_meter_10))
+                            } else { None };
+                            let outcome_scale_zetta_meter_100 = if let Some(state) = state.inner_scale_zetta_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_zetta_meter_100))
+                            } else { None };
+                            let outcome_scale_yotta_meter_1 = if let Some(state) = state.inner_scale_yotta_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_yotta_meter_1))
+                            } else { None };
+                            let outcome_scale_yotta_meter_10 = if let Some(state) = state.inner_scale_yotta_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_yotta_meter_10))
+                            } else { None };
+                            let outcome_scale_yotta_meter_100 = if let Some(state) = state.inner_scale_yotta_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_yotta_meter_100))
+                            } else { None };
+                            let outcome_scale_ronna_meter_1 = if let Some(state) = state.inner_scale_ronna_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_ronna_meter_1))
+                            } else { None };
+                            let outcome_scale_ronna_meter_10 = if let Some(state) = state.inner_scale_ronna_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_ronna_meter_10))
+                            } else { None };
+                            let outcome_scale_ronna_meter_100 = if let Some(state) = state.inner_scale_ronna_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_ronna_meter_100))
+                            } else { None };
+                            let outcome_scale_quetta_meter_1 = if let Some(state) = state.inner_scale_quetta_meter_1 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quetta_meter_1))
+                            } else { None };
+                            let outcome_scale_quetta_meter_10 = if let Some(state) = state.inner_scale_quetta_meter_10 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quetta_meter_10))
+                            } else { None };
+                            let outcome_scale_quetta_meter_100 = if let Some(state) = state.inner_scale_quetta_meter_100 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quetta_meter_100))
+                            } else { None };
+                            let outcome_scale_quetta_meter_1000 = if let Some(state) = state.inner_scale_quetta_meter_1000 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quetta_meter_1000))
+                            } else { None };
+                            let outcome_scale_quetta_meter_10000 = if let Some(state) = state.inner_scale_quetta_meter_10000 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quetta_meter_10000))
+                            } else { None };
+                            let outcome_scale_quetta_meter_100000 = if let Some(state) = state.inner_scale_quetta_meter_100000 {
+                                Some(unload_and_wait_stage_run_ecs_while(state, main_access.inner_scale_quetta_meter_100000))
+                            } else { None };
 
-                            let (outcome_scale_quecto_meter_000001, is_done_outcome_scale_quecto_meter_000001) = match outcome_scale_quecto_meter_000001 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_00001, is_done_outcome_scale_quecto_meter_00001) = match outcome_scale_quecto_meter_00001 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_0001, is_done_outcome_scale_quecto_meter_0001) = match outcome_scale_quecto_meter_0001 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_001, is_done_outcome_scale_quecto_meter_001) = match outcome_scale_quecto_meter_001 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_01, is_done_outcome_scale_quecto_meter_01) = match outcome_scale_quecto_meter_01 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_1, is_done_outcome_scale_quecto_meter_1) = match outcome_scale_quecto_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_10, is_done_outcome_scale_quecto_meter_10) = match outcome_scale_quecto_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quecto_meter_100, is_done_outcome_scale_quecto_meter_100) = match outcome_scale_quecto_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_ronto_meter_1, is_done_outcome_scale_ronto_meter_1) = match outcome_scale_ronto_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_ronto_meter_10, is_done_outcome_scale_ronto_meter_10) = match outcome_scale_ronto_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_ronto_meter_100, is_done_outcome_scale_ronto_meter_100) = match outcome_scale_ronto_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_yocto_meter_1, is_done_outcome_scale_yocto_meter_1) = match outcome_scale_yocto_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_yocto_meter_10, is_done_outcome_scale_yocto_meter_10) = match outcome_scale_yocto_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_yocto_meter_100, is_done_outcome_scale_yocto_meter_100) = match outcome_scale_yocto_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_zepto_meter_1, is_done_outcome_scale_zepto_meter_1) = match outcome_scale_zepto_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_zepto_meter_10, is_done_outcome_scale_zepto_meter_10) = match outcome_scale_zepto_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_zepto_meter_100, is_done_outcome_scale_zepto_meter_100) = match outcome_scale_zepto_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_atto_meter_1, is_done_outcome_scale_atto_meter_1) = match outcome_scale_atto_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_atto_meter_10, is_done_outcome_scale_atto_meter_10) = match outcome_scale_atto_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_atto_meter_100, is_done_outcome_scale_atto_meter_100) = match outcome_scale_atto_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_femto_meter_1, is_done_outcome_scale_femto_meter_1) = match outcome_scale_femto_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_femto_meter_10, is_done_outcome_scale_femto_meter_10) = match outcome_scale_femto_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_femto_meter_100, is_done_outcome_scale_femto_meter_100) = match outcome_scale_femto_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_pico_meter_1, is_done_outcome_scale_pico_meter_1) = match outcome_scale_pico_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_pico_meter_10, is_done_outcome_scale_pico_meter_10) = match outcome_scale_pico_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_pico_meter_100, is_done_outcome_scale_pico_meter_100) = match outcome_scale_pico_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_nano_meter_1, is_done_outcome_scale_nano_meter_1) = match outcome_scale_nano_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_nano_meter_10, is_done_outcome_scale_nano_meter_10) = match outcome_scale_nano_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_nano_meter_100, is_done_outcome_scale_nano_meter_100) = match outcome_scale_nano_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_micro_meter_1, is_done_outcome_scale_micro_meter_1) = match outcome_scale_micro_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_micro_meter_10, is_done_outcome_scale_micro_meter_10) = match outcome_scale_micro_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_micro_meter_100, is_done_outcome_scale_micro_meter_100) = match outcome_scale_micro_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_milli_meter_1, is_done_outcome_scale_milli_meter_1) = match outcome_scale_milli_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_milli_meter_10, is_done_outcome_scale_milli_meter_10) = match outcome_scale_milli_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_milli_meter_100, is_done_outcome_scale_milli_meter_100) = match outcome_scale_milli_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_meter_1, is_done_outcome_scale_meter_1) = match outcome_scale_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_meter_10, is_done_outcome_scale_meter_10) = match outcome_scale_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_meter_100, is_done_outcome_scale_meter_100) = match outcome_scale_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_kilo_meter_1, is_done_outcome_scale_kilo_meter_1) = match outcome_scale_kilo_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_kilo_meter_10, is_done_outcome_scale_kilo_meter_10) = match outcome_scale_kilo_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_kilo_meter_100, is_done_outcome_scale_kilo_meter_100) = match outcome_scale_kilo_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_mega_meter_1, is_done_outcome_scale_mega_meter_1) = match outcome_scale_mega_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_mega_meter_10, is_done_outcome_scale_mega_meter_10) = match outcome_scale_mega_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_mega_meter_100, is_done_outcome_scale_mega_meter_100) = match outcome_scale_mega_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_giga_meter_1, is_done_outcome_scale_giga_meter_1) = match outcome_scale_giga_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_giga_meter_10, is_done_outcome_scale_giga_meter_10) = match outcome_scale_giga_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_giga_meter_100, is_done_outcome_scale_giga_meter_100) = match outcome_scale_giga_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_tera_meter_1, is_done_outcome_scale_tera_meter_1) = match outcome_scale_tera_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_tera_meter_10, is_done_outcome_scale_tera_meter_10) = match outcome_scale_tera_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_tera_meter_100, is_done_outcome_scale_tera_meter_100) = match outcome_scale_tera_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_peta_meter_1, is_done_outcome_scale_peta_meter_1) = match outcome_scale_peta_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_peta_meter_10, is_done_outcome_scale_peta_meter_10) = match outcome_scale_peta_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_peta_meter_100, is_done_outcome_scale_peta_meter_100) = match outcome_scale_peta_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_exa_meter_1, is_done_outcome_scale_exa_meter_1) = match outcome_scale_exa_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_exa_meter_10, is_done_outcome_scale_exa_meter_10) = match outcome_scale_exa_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_exa_meter_100, is_done_outcome_scale_exa_meter_100) = match outcome_scale_exa_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_zetta_meter_1, is_done_outcome_scale_zetta_meter_1) = match outcome_scale_zetta_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_zetta_meter_10, is_done_outcome_scale_zetta_meter_10) = match outcome_scale_zetta_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_zetta_meter_100, is_done_outcome_scale_zetta_meter_100) = match outcome_scale_zetta_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_yotta_meter_1, is_done_outcome_scale_yotta_meter_1) = match outcome_scale_yotta_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_yotta_meter_10, is_done_outcome_scale_yotta_meter_10) = match outcome_scale_yotta_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_yotta_meter_100, is_done_outcome_scale_yotta_meter_100) = match outcome_scale_yotta_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_ronna_meter_1, is_done_outcome_scale_ronna_meter_1) = match outcome_scale_ronna_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_ronna_meter_10, is_done_outcome_scale_ronna_meter_10) = match outcome_scale_ronna_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_ronna_meter_100, is_done_outcome_scale_ronna_meter_100) = match outcome_scale_ronna_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quetta_meter_1, is_done_outcome_scale_quetta_meter_1) = match outcome_scale_quetta_meter_1 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quetta_meter_10, is_done_outcome_scale_quetta_meter_10) = match outcome_scale_quetta_meter_10 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quetta_meter_100, is_done_outcome_scale_quetta_meter_100) = match outcome_scale_quetta_meter_100 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quetta_meter_1000, is_done_outcome_scale_quetta_meter_1000) = match outcome_scale_quetta_meter_1000 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quetta_meter_10000, is_done_outcome_scale_quetta_meter_10000) = match outcome_scale_quetta_meter_10000 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-                            let (outcome_scale_quetta_meter_100000, is_done_outcome_scale_quetta_meter_100000) = match outcome_scale_quetta_meter_100000 {
-                                Outcome::Wait(state) => (Outcome::Wait(state), false),
-                                Outcome::Done(_) => (Outcome::Done(()), true)
-                            };
-
-                            if is_done_outcome_scale_quecto_meter_000001
-                                && is_done_outcome_scale_quecto_meter_00001
-                                && is_done_outcome_scale_quecto_meter_0001
-                                && is_done_outcome_scale_quecto_meter_001
-                                && is_done_outcome_scale_quecto_meter_01
-                                && is_done_outcome_scale_quecto_meter_1
-                                && is_done_outcome_scale_quecto_meter_10
-                                && is_done_outcome_scale_quecto_meter_100
-                                && is_done_outcome_scale_ronto_meter_1
-                                && is_done_outcome_scale_ronto_meter_10
-                                && is_done_outcome_scale_ronto_meter_100
-                                && is_done_outcome_scale_yocto_meter_1
-                                && is_done_outcome_scale_yocto_meter_10
-                                && is_done_outcome_scale_yocto_meter_100
-                                && is_done_outcome_scale_zepto_meter_1
-                                && is_done_outcome_scale_zepto_meter_10
-                                && is_done_outcome_scale_zepto_meter_100
-                                && is_done_outcome_scale_atto_meter_1
-                                && is_done_outcome_scale_atto_meter_10
-                                && is_done_outcome_scale_atto_meter_100
-                                && is_done_outcome_scale_femto_meter_1
-                                && is_done_outcome_scale_femto_meter_10
-                                && is_done_outcome_scale_femto_meter_100
-                                && is_done_outcome_scale_pico_meter_1
-                                && is_done_outcome_scale_pico_meter_10
-                                && is_done_outcome_scale_pico_meter_100
-                                && is_done_outcome_scale_nano_meter_1
-                                && is_done_outcome_scale_nano_meter_10
-                                && is_done_outcome_scale_nano_meter_100
-                                && is_done_outcome_scale_micro_meter_1
-                                && is_done_outcome_scale_micro_meter_10
-                                && is_done_outcome_scale_micro_meter_100
-                                && is_done_outcome_scale_milli_meter_1
-                                && is_done_outcome_scale_milli_meter_10
-                                && is_done_outcome_scale_milli_meter_100
-                                && is_done_outcome_scale_meter_1
-                                && is_done_outcome_scale_meter_10
-                                && is_done_outcome_scale_meter_100
-                                && is_done_outcome_scale_kilo_meter_1
-                                && is_done_outcome_scale_kilo_meter_10
-                                && is_done_outcome_scale_kilo_meter_100
-                                && is_done_outcome_scale_mega_meter_1
-                                && is_done_outcome_scale_mega_meter_10
-                                && is_done_outcome_scale_mega_meter_100
-                                && is_done_outcome_scale_giga_meter_1
-                                && is_done_outcome_scale_giga_meter_10
-                                && is_done_outcome_scale_giga_meter_100
-                                && is_done_outcome_scale_tera_meter_1
-                                && is_done_outcome_scale_tera_meter_10
-                                && is_done_outcome_scale_tera_meter_100
-                                && is_done_outcome_scale_peta_meter_1
-                                && is_done_outcome_scale_peta_meter_10
-                                && is_done_outcome_scale_peta_meter_100
-                                && is_done_outcome_scale_exa_meter_1
-                                && is_done_outcome_scale_exa_meter_10
-                                && is_done_outcome_scale_exa_meter_100
-                                && is_done_outcome_scale_zetta_meter_1
-                                && is_done_outcome_scale_zetta_meter_10
-                                && is_done_outcome_scale_zetta_meter_100
-                                && is_done_outcome_scale_yotta_meter_1
-                                && is_done_outcome_scale_yotta_meter_10
-                                && is_done_outcome_scale_yotta_meter_100
-                                && is_done_outcome_scale_ronna_meter_1
-                                && is_done_outcome_scale_ronna_meter_10
-                                && is_done_outcome_scale_ronna_meter_100
-                                && is_done_outcome_scale_quetta_meter_1
-                                && is_done_outcome_scale_quetta_meter_10
-                                && is_done_outcome_scale_quetta_meter_100
-                                && is_done_outcome_scale_quetta_meter_1000
-                                && is_done_outcome_scale_quetta_meter_10000
-                                && is_done_outcome_scale_quetta_meter_100000
+                            if outcome_scale_quecto_meter_000001.is_none() 
+                                && outcome_scale_quecto_meter_00001.is_none() 
+                                && outcome_scale_quecto_meter_0001.is_none() 
+                                && outcome_scale_quecto_meter_001.is_none() 
+                                && outcome_scale_quecto_meter_01.is_none() 
+                                && outcome_scale_quecto_meter_1.is_none() 
+                                && outcome_scale_quecto_meter_10.is_none() 
+                                && outcome_scale_quecto_meter_100.is_none() 
+                                && outcome_scale_ronto_meter_1.is_none() 
+                                && outcome_scale_ronto_meter_10.is_none() 
+                                && outcome_scale_ronto_meter_100.is_none() 
+                                && outcome_scale_yocto_meter_1.is_none() 
+                                && outcome_scale_yocto_meter_10.is_none() 
+                                && outcome_scale_yocto_meter_100.is_none() 
+                                && outcome_scale_zepto_meter_1.is_none() 
+                                && outcome_scale_zepto_meter_10.is_none() 
+                                && outcome_scale_zepto_meter_100.is_none() 
+                                && outcome_scale_atto_meter_1.is_none() 
+                                && outcome_scale_atto_meter_10.is_none() 
+                                && outcome_scale_atto_meter_100.is_none() 
+                                && outcome_scale_femto_meter_1.is_none() 
+                                && outcome_scale_femto_meter_10.is_none() 
+                                && outcome_scale_femto_meter_100.is_none() 
+                                && outcome_scale_pico_meter_1.is_none() 
+                                && outcome_scale_pico_meter_10.is_none() 
+                                && outcome_scale_pico_meter_100.is_none() 
+                                && outcome_scale_nano_meter_1.is_none() 
+                                && outcome_scale_nano_meter_10.is_none() 
+                                && outcome_scale_nano_meter_100.is_none() 
+                                && outcome_scale_micro_meter_1.is_none() 
+                                && outcome_scale_micro_meter_10.is_none() 
+                                && outcome_scale_micro_meter_100.is_none() 
+                                && outcome_scale_milli_meter_1.is_none() 
+                                && outcome_scale_milli_meter_10.is_none() 
+                                && outcome_scale_milli_meter_100.is_none() 
+                                && outcome_scale_meter_1.is_none() 
+                                && outcome_scale_meter_10.is_none() 
+                                && outcome_scale_meter_100.is_none() 
+                                && outcome_scale_kilo_meter_1.is_none() 
+                                && outcome_scale_kilo_meter_10.is_none() 
+                                && outcome_scale_kilo_meter_100.is_none() 
+                                && outcome_scale_mega_meter_1.is_none() 
+                                && outcome_scale_mega_meter_10.is_none() 
+                                && outcome_scale_mega_meter_100.is_none() 
+                                && outcome_scale_giga_meter_1.is_none() 
+                                && outcome_scale_giga_meter_10.is_none() 
+                                && outcome_scale_giga_meter_100.is_none() 
+                                && outcome_scale_tera_meter_1.is_none() 
+                                && outcome_scale_tera_meter_10.is_none() 
+                                && outcome_scale_tera_meter_100.is_none() 
+                                && outcome_scale_peta_meter_1.is_none() 
+                                && outcome_scale_peta_meter_10.is_none() 
+                                && outcome_scale_peta_meter_100.is_none() 
+                                && outcome_scale_exa_meter_1.is_none() 
+                                && outcome_scale_exa_meter_10.is_none() 
+                                && outcome_scale_exa_meter_100.is_none() 
+                                && outcome_scale_zetta_meter_1.is_none() 
+                                && outcome_scale_zetta_meter_10.is_none() 
+                                && outcome_scale_zetta_meter_100.is_none() 
+                                && outcome_scale_yotta_meter_1.is_none() 
+                                && outcome_scale_yotta_meter_10.is_none() 
+                                && outcome_scale_yotta_meter_100.is_none() 
+                                && outcome_scale_ronna_meter_1.is_none() 
+                                && outcome_scale_ronna_meter_10.is_none() 
+                                && outcome_scale_ronna_meter_100.is_none() 
+                                && outcome_scale_quetta_meter_1.is_none() 
+                                && outcome_scale_quetta_meter_10.is_none() 
+                                && outcome_scale_quetta_meter_100.is_none() 
+                                && outcome_scale_quetta_meter_1000.is_none() 
+                                && outcome_scale_quetta_meter_10000.is_none() 
+                                && outcome_scale_quetta_meter_100000.is_none() 
                             {
-                                Done(())
-                            } else {
-                                Wait(State {
-                                    inner_scale_quecto_meter_000001: (outcome_scale_quecto_meter_000001, is_done_outcome_scale_quecto_meter_000001),
-                                    inner_scale_quecto_meter_00001: (outcome_scale_quecto_meter_00001, is_done_outcome_scale_quecto_meter_00001),
-                                    inner_scale_quecto_meter_0001: (outcome_scale_quecto_meter_0001, is_done_outcome_scale_quecto_meter_0001),
-                                    inner_scale_quecto_meter_001: (outcome_scale_quecto_meter_001, is_done_outcome_scale_quecto_meter_001),
-                                    inner_scale_quecto_meter_01: (outcome_scale_quecto_meter_01, is_done_outcome_scale_quecto_meter_01),
-                                    inner_scale_quecto_meter_1: (outcome_scale_quecto_meter_1, is_done_outcome_scale_quecto_meter_1),
-                                    inner_scale_quecto_meter_10: (outcome_scale_quecto_meter_10, is_done_outcome_scale_quecto_meter_10),
-                                    inner_scale_quecto_meter_100: (outcome_scale_quecto_meter_100, is_done_outcome_scale_quecto_meter_100),
-                                    inner_scale_ronto_meter_1: (outcome_scale_ronto_meter_1, is_done_outcome_scale_ronto_meter_1),
-                                    inner_scale_ronto_meter_10: (outcome_scale_ronto_meter_10, is_done_outcome_scale_ronto_meter_10),
-                                    inner_scale_ronto_meter_100: (outcome_scale_ronto_meter_100, is_done_outcome_scale_ronto_meter_100),
-                                    inner_scale_yocto_meter_1: (outcome_scale_yocto_meter_1, is_done_outcome_scale_yocto_meter_1),
-                                    inner_scale_yocto_meter_10: (outcome_scale_yocto_meter_10, is_done_outcome_scale_yocto_meter_10),
-                                    inner_scale_yocto_meter_100: (outcome_scale_yocto_meter_100, is_done_outcome_scale_yocto_meter_100),
-                                    inner_scale_zepto_meter_1: (outcome_scale_zepto_meter_1, is_done_outcome_scale_zepto_meter_1),
-                                    inner_scale_zepto_meter_10: (outcome_scale_zepto_meter_10, is_done_outcome_scale_zepto_meter_10),
-                                    inner_scale_zepto_meter_100: (outcome_scale_zepto_meter_100, is_done_outcome_scale_zepto_meter_100),
-                                    inner_scale_atto_meter_1: (outcome_scale_atto_meter_1, is_done_outcome_scale_atto_meter_1),
-                                    inner_scale_atto_meter_10: (outcome_scale_atto_meter_10, is_done_outcome_scale_atto_meter_10),
-                                    inner_scale_atto_meter_100: (outcome_scale_atto_meter_100, is_done_outcome_scale_atto_meter_100),
-                                    inner_scale_femto_meter_1: (outcome_scale_femto_meter_1, is_done_outcome_scale_femto_meter_1),
-                                    inner_scale_femto_meter_10: (outcome_scale_femto_meter_10, is_done_outcome_scale_femto_meter_10),
-                                    inner_scale_femto_meter_100: (outcome_scale_femto_meter_100, is_done_outcome_scale_femto_meter_100),
-                                    inner_scale_pico_meter_1: (outcome_scale_pico_meter_1, is_done_outcome_scale_pico_meter_1),
-                                    inner_scale_pico_meter_10: (outcome_scale_pico_meter_10, is_done_outcome_scale_pico_meter_10),
-                                    inner_scale_pico_meter_100: (outcome_scale_pico_meter_100, is_done_outcome_scale_pico_meter_100),
-                                    inner_scale_nano_meter_1: (outcome_scale_nano_meter_1, is_done_outcome_scale_nano_meter_1),
-                                    inner_scale_nano_meter_10: (outcome_scale_nano_meter_10, is_done_outcome_scale_nano_meter_10),
-                                    inner_scale_nano_meter_100: (outcome_scale_nano_meter_100, is_done_outcome_scale_nano_meter_100),
-                                    inner_scale_micro_meter_1: (outcome_scale_micro_meter_1, is_done_outcome_scale_micro_meter_1),
-                                    inner_scale_micro_meter_10: (outcome_scale_micro_meter_10, is_done_outcome_scale_micro_meter_10),
-                                    inner_scale_micro_meter_100: (outcome_scale_micro_meter_100, is_done_outcome_scale_micro_meter_100),
-                                    inner_scale_milli_meter_1: (outcome_scale_milli_meter_1, is_done_outcome_scale_milli_meter_1),
-                                    inner_scale_milli_meter_10: (outcome_scale_milli_meter_10, is_done_outcome_scale_milli_meter_10),
-                                    inner_scale_milli_meter_100: (outcome_scale_milli_meter_100, is_done_outcome_scale_milli_meter_100),
-                                    inner_scale_meter_1: (outcome_scale_meter_1, is_done_outcome_scale_meter_1),
-                                    inner_scale_meter_10: (outcome_scale_meter_10, is_done_outcome_scale_meter_10),
-                                    inner_scale_meter_100: (outcome_scale_meter_100, is_done_outcome_scale_meter_100),
-                                    inner_scale_kilo_meter_1: (outcome_scale_kilo_meter_1, is_done_outcome_scale_kilo_meter_1),
-                                    inner_scale_kilo_meter_10: (outcome_scale_kilo_meter_10, is_done_outcome_scale_kilo_meter_10),
-                                    inner_scale_kilo_meter_100: (outcome_scale_kilo_meter_100, is_done_outcome_scale_kilo_meter_100),
-                                    inner_scale_mega_meter_1: (outcome_scale_mega_meter_1, is_done_outcome_scale_mega_meter_1),
-                                    inner_scale_mega_meter_10: (outcome_scale_mega_meter_10, is_done_outcome_scale_mega_meter_10),
-                                    inner_scale_mega_meter_100: (outcome_scale_mega_meter_100, is_done_outcome_scale_mega_meter_100),
-                                    inner_scale_giga_meter_1: (outcome_scale_giga_meter_1, is_done_outcome_scale_giga_meter_1),
-                                    inner_scale_giga_meter_10: (outcome_scale_giga_meter_10, is_done_outcome_scale_giga_meter_10),
-                                    inner_scale_giga_meter_100: (outcome_scale_giga_meter_100, is_done_outcome_scale_giga_meter_100),
-                                    inner_scale_tera_meter_1: (outcome_scale_tera_meter_1, is_done_outcome_scale_tera_meter_1),
-                                    inner_scale_tera_meter_10: (outcome_scale_tera_meter_10, is_done_outcome_scale_tera_meter_10),
-                                    inner_scale_tera_meter_100: (outcome_scale_tera_meter_100, is_done_outcome_scale_tera_meter_100),
-                                    inner_scale_peta_meter_1: (outcome_scale_peta_meter_1, is_done_outcome_scale_peta_meter_1),
-                                    inner_scale_peta_meter_10: (outcome_scale_peta_meter_10, is_done_outcome_scale_peta_meter_10),
-                                    inner_scale_peta_meter_100: (outcome_scale_peta_meter_100, is_done_outcome_scale_peta_meter_100),
-                                    inner_scale_exa_meter_1: (outcome_scale_exa_meter_1, is_done_outcome_scale_exa_meter_1),
-                                    inner_scale_exa_meter_10: (outcome_scale_exa_meter_10, is_done_outcome_scale_exa_meter_10),
-                                    inner_scale_exa_meter_100: (outcome_scale_exa_meter_100, is_done_outcome_scale_exa_meter_100),
-                                    inner_scale_zetta_meter_1: (outcome_scale_zetta_meter_1, is_done_outcome_scale_zetta_meter_1),
-                                    inner_scale_zetta_meter_10: (outcome_scale_zetta_meter_10, is_done_outcome_scale_zetta_meter_10),
-                                    inner_scale_zetta_meter_100: (outcome_scale_zetta_meter_100, is_done_outcome_scale_zetta_meter_100),
-                                    inner_scale_yotta_meter_1: (outcome_scale_yotta_meter_1, is_done_outcome_scale_yotta_meter_1),
-                                    inner_scale_yotta_meter_10: (outcome_scale_yotta_meter_10, is_done_outcome_scale_yotta_meter_10),
-                                    inner_scale_yotta_meter_100: (outcome_scale_yotta_meter_100, is_done_outcome_scale_yotta_meter_100),
-                                    inner_scale_ronna_meter_1: (outcome_scale_ronna_meter_1, is_done_outcome_scale_ronna_meter_1),
-                                    inner_scale_ronna_meter_10: (outcome_scale_ronna_meter_10, is_done_outcome_scale_ronna_meter_10),
-                                    inner_scale_ronna_meter_100: (outcome_scale_ronna_meter_100, is_done_outcome_scale_ronna_meter_100),
-                                    inner_scale_quetta_meter_1: (outcome_scale_quetta_meter_1, is_done_outcome_scale_quetta_meter_1),
-                                    inner_scale_quetta_meter_10: (outcome_scale_quetta_meter_10, is_done_outcome_scale_quetta_meter_10),
-                                    inner_scale_quetta_meter_100: (outcome_scale_quetta_meter_100, is_done_outcome_scale_quetta_meter_100),
-                                    inner_scale_quetta_meter_1000: (outcome_scale_quetta_meter_1000, is_done_outcome_scale_quetta_meter_1000),
-                                    inner_scale_quetta_meter_10000: (outcome_scale_quetta_meter_10000, is_done_outcome_scale_quetta_meter_10000),
-                                    inner_scale_quetta_meter_100000: (outcome_scale_quetta_meter_100000, is_done_outcome_scale_quetta_meter_100000),
-                                })
+                                return Done(());
                             }
+
+                            let outcome_scale_quecto_meter_000001 = match outcome_scale_quecto_meter_000001 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_00001 = match outcome_scale_quecto_meter_00001 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_0001 = match outcome_scale_quecto_meter_0001 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_001 = match outcome_scale_quecto_meter_001 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_01 = match outcome_scale_quecto_meter_01 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_1 = match outcome_scale_quecto_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_10 = match outcome_scale_quecto_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quecto_meter_100 = match outcome_scale_quecto_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_ronto_meter_1 = match outcome_scale_ronto_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_ronto_meter_10 = match outcome_scale_ronto_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_ronto_meter_100 = match outcome_scale_ronto_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_yocto_meter_1 = match outcome_scale_yocto_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_yocto_meter_10 = match outcome_scale_yocto_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_yocto_meter_100 = match outcome_scale_yocto_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_zepto_meter_1 = match outcome_scale_zepto_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_zepto_meter_10 = match outcome_scale_zepto_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_zepto_meter_100 = match outcome_scale_zepto_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_atto_meter_1 = match outcome_scale_atto_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_atto_meter_10 = match outcome_scale_atto_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_atto_meter_100 = match outcome_scale_atto_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_femto_meter_1 = match outcome_scale_femto_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_femto_meter_10 = match outcome_scale_femto_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_femto_meter_100 = match outcome_scale_femto_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_pico_meter_1 = match outcome_scale_pico_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_pico_meter_10 = match outcome_scale_pico_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_pico_meter_100 = match outcome_scale_pico_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_nano_meter_1 = match outcome_scale_nano_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_nano_meter_10 = match outcome_scale_nano_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_nano_meter_100 = match outcome_scale_nano_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_micro_meter_1 = match outcome_scale_micro_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_micro_meter_10 = match outcome_scale_micro_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_micro_meter_100 = match outcome_scale_micro_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_milli_meter_1 = match outcome_scale_milli_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_milli_meter_10 = match outcome_scale_milli_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_milli_meter_100 = match outcome_scale_milli_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_meter_1 = match outcome_scale_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_meter_10 = match outcome_scale_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_meter_100 = match outcome_scale_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_kilo_meter_1 = match outcome_scale_kilo_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_kilo_meter_10 = match outcome_scale_kilo_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_kilo_meter_100 = match outcome_scale_kilo_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_mega_meter_1 = match outcome_scale_mega_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_mega_meter_10 = match outcome_scale_mega_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_mega_meter_100 = match outcome_scale_mega_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_giga_meter_1 = match outcome_scale_giga_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_giga_meter_10 = match outcome_scale_giga_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_giga_meter_100 = match outcome_scale_giga_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_tera_meter_1 = match outcome_scale_tera_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_tera_meter_10 = match outcome_scale_tera_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_tera_meter_100 = match outcome_scale_tera_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_peta_meter_1 = match outcome_scale_peta_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_peta_meter_10 = match outcome_scale_peta_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_peta_meter_100 = match outcome_scale_peta_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_exa_meter_1 = match outcome_scale_exa_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_exa_meter_10 = match outcome_scale_exa_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_exa_meter_100 = match outcome_scale_exa_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_zetta_meter_1 = match outcome_scale_zetta_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_zetta_meter_10 = match outcome_scale_zetta_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_zetta_meter_100 = match outcome_scale_zetta_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_yotta_meter_1 = match outcome_scale_yotta_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_yotta_meter_10 = match outcome_scale_yotta_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_yotta_meter_100 = match outcome_scale_yotta_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_ronna_meter_1 = match outcome_scale_ronna_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_ronna_meter_10 = match outcome_scale_ronna_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_ronna_meter_100 = match outcome_scale_ronna_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quetta_meter_1 = match outcome_scale_quetta_meter_1 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quetta_meter_10 = match outcome_scale_quetta_meter_10 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quetta_meter_100 = match outcome_scale_quetta_meter_100 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quetta_meter_1000 = match outcome_scale_quetta_meter_1000 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quetta_meter_10000 = match outcome_scale_quetta_meter_10000 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+                            let outcome_scale_quetta_meter_100000 = match outcome_scale_quetta_meter_100000 {
+                                Some(Outcome::Wait(state)) => Some(state),
+                                Some(Outcome::Done(_)) => None,
+                                None => None,
+                            };
+
+                            Wait(State {
+                                inner_scale_quecto_meter_000001: outcome_scale_quecto_meter_000001,
+                                inner_scale_quecto_meter_00001: outcome_scale_quecto_meter_00001,
+                                inner_scale_quecto_meter_0001: outcome_scale_quecto_meter_0001,
+                                inner_scale_quecto_meter_001: outcome_scale_quecto_meter_001,
+                                inner_scale_quecto_meter_01: outcome_scale_quecto_meter_01,
+                                inner_scale_quecto_meter_1: outcome_scale_quecto_meter_1,
+                                inner_scale_quecto_meter_10: outcome_scale_quecto_meter_10,
+                                inner_scale_quecto_meter_100: outcome_scale_quecto_meter_100,
+                                inner_scale_ronto_meter_1: outcome_scale_ronto_meter_1,
+                                inner_scale_ronto_meter_10: outcome_scale_ronto_meter_10,
+                                inner_scale_ronto_meter_100: outcome_scale_ronto_meter_100,
+                                inner_scale_yocto_meter_1: outcome_scale_yocto_meter_1,
+                                inner_scale_yocto_meter_10: outcome_scale_yocto_meter_10,
+                                inner_scale_yocto_meter_100: outcome_scale_yocto_meter_100,
+                                inner_scale_zepto_meter_1: outcome_scale_zepto_meter_1,
+                                inner_scale_zepto_meter_10: outcome_scale_zepto_meter_10,
+                                inner_scale_zepto_meter_100: outcome_scale_zepto_meter_100,
+                                inner_scale_atto_meter_1: outcome_scale_atto_meter_1,
+                                inner_scale_atto_meter_10: outcome_scale_atto_meter_10,
+                                inner_scale_atto_meter_100: outcome_scale_atto_meter_100,
+                                inner_scale_femto_meter_1: outcome_scale_femto_meter_1,
+                                inner_scale_femto_meter_10: outcome_scale_femto_meter_10,
+                                inner_scale_femto_meter_100: outcome_scale_femto_meter_100,
+                                inner_scale_pico_meter_1: outcome_scale_pico_meter_1,
+                                inner_scale_pico_meter_10: outcome_scale_pico_meter_10,
+                                inner_scale_pico_meter_100: outcome_scale_pico_meter_100,
+                                inner_scale_nano_meter_1: outcome_scale_nano_meter_1,
+                                inner_scale_nano_meter_10: outcome_scale_nano_meter_10,
+                                inner_scale_nano_meter_100: outcome_scale_nano_meter_100,
+                                inner_scale_micro_meter_1: outcome_scale_micro_meter_1,
+                                inner_scale_micro_meter_10: outcome_scale_micro_meter_10,
+                                inner_scale_micro_meter_100: outcome_scale_micro_meter_100,
+                                inner_scale_milli_meter_1: outcome_scale_milli_meter_1,
+                                inner_scale_milli_meter_10: outcome_scale_milli_meter_10,
+                                inner_scale_milli_meter_100: outcome_scale_milli_meter_100,
+                                inner_scale_meter_1: outcome_scale_meter_1,
+                                inner_scale_meter_10: outcome_scale_meter_10,
+                                inner_scale_meter_100: outcome_scale_meter_100,
+                                inner_scale_kilo_meter_1: outcome_scale_kilo_meter_1,
+                                inner_scale_kilo_meter_10: outcome_scale_kilo_meter_10,
+                                inner_scale_kilo_meter_100: outcome_scale_kilo_meter_100,
+                                inner_scale_mega_meter_1: outcome_scale_mega_meter_1,
+                                inner_scale_mega_meter_10: outcome_scale_mega_meter_10,
+                                inner_scale_mega_meter_100: outcome_scale_mega_meter_100,
+                                inner_scale_giga_meter_1: outcome_scale_giga_meter_1,
+                                inner_scale_giga_meter_10: outcome_scale_giga_meter_10,
+                                inner_scale_giga_meter_100: outcome_scale_giga_meter_100,
+                                inner_scale_tera_meter_1: outcome_scale_tera_meter_1,
+                                inner_scale_tera_meter_10: outcome_scale_tera_meter_10,
+                                inner_scale_tera_meter_100: outcome_scale_tera_meter_100,
+                                inner_scale_peta_meter_1: outcome_scale_peta_meter_1,
+                                inner_scale_peta_meter_10: outcome_scale_peta_meter_10,
+                                inner_scale_peta_meter_100: outcome_scale_peta_meter_100,
+                                inner_scale_exa_meter_1: outcome_scale_exa_meter_1,
+                                inner_scale_exa_meter_10: outcome_scale_exa_meter_10,
+                                inner_scale_exa_meter_100: outcome_scale_exa_meter_100,
+                                inner_scale_zetta_meter_1: outcome_scale_zetta_meter_1,
+                                inner_scale_zetta_meter_10: outcome_scale_zetta_meter_10,
+                                inner_scale_zetta_meter_100: outcome_scale_zetta_meter_100,
+                                inner_scale_yotta_meter_1: outcome_scale_yotta_meter_1,
+                                inner_scale_yotta_meter_10: outcome_scale_yotta_meter_10,
+                                inner_scale_yotta_meter_100: outcome_scale_yotta_meter_100,
+                                inner_scale_ronna_meter_1: outcome_scale_ronna_meter_1,
+                                inner_scale_ronna_meter_10: outcome_scale_ronna_meter_10,
+                                inner_scale_ronna_meter_100: outcome_scale_ronna_meter_100,
+                                inner_scale_quetta_meter_1: outcome_scale_quetta_meter_1,
+                                inner_scale_quetta_meter_10: outcome_scale_quetta_meter_10,
+                                inner_scale_quetta_meter_100: outcome_scale_quetta_meter_100,
+                                inner_scale_quetta_meter_1000: outcome_scale_quetta_meter_1000,
+                                inner_scale_quetta_meter_10000: outcome_scale_quetta_meter_10000,
+                                inner_scale_quetta_meter_100000: outcome_scale_quetta_meter_100000,
+                            })
                         }
                     ]
                 }
