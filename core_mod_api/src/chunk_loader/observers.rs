@@ -16,1220 +16,730 @@ pub(crate) fn observe_on_remove_chunk_loader<S: Scale>(
     queue.0.insert(RemovedChunkLoaderObservation { entity: loader_entity, scale: S::SCALE_FACTOR_EXPONENT });
 }
 
+#[derive(bevy::ecs::system::SystemParam)]
+struct ProcessingSystemChunkLoaderQueries<'w, 's> {
+    pub chunk_loader_query_scale_quecto_meter_000001: Query<'w, 's, &'static ChunkLoader<ScaleQuectoMeter000001>>,
+    pub chunk_loader_query_scale_quecto_meter_00001: Query<'w, 's, &'static ChunkLoader<ScaleQuectoMeter00001>>,
+    pub chunk_loader_query_scale_quecto_meter_0001: Query<'w, 's, &'static ChunkLoader<ScaleQuectoMeter0001>>,
+    pub chunk_loader_query_scale_quecto_meter_001: Query<'w, 's, &'static ChunkLoader<ScaleQuectoMeter001>>,
+    pub chunk_loader_query_scale_quecto_meter_01: Query<'w, 's, &'static ChunkLoader<ScaleQuectoMeter01>>,
+    pub chunk_loader_query_scale_quecto_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleQuectoMeter1>>,
+    pub chunk_loader_query_scale_quecto_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleQuectoMeter10>>,
+    pub chunk_loader_query_scale_quecto_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleQuectoMeter100>>,
+    pub chunk_loader_query_scale_ronto_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleRontoMeter1>>,
+    pub chunk_loader_query_scale_ronto_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleRontoMeter10>>,
+    pub chunk_loader_query_scale_ronto_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleRontoMeter100>>,
+    pub chunk_loader_query_scale_yocto_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleYoctoMeter1>>,
+    pub chunk_loader_query_scale_yocto_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleYoctoMeter10>>,
+    pub chunk_loader_query_scale_yocto_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleYoctoMeter100>>,
+    pub chunk_loader_query_scale_zepto_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleZeptoMeter1>>,
+    pub chunk_loader_query_scale_zepto_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleZeptoMeter10>>,
+    pub chunk_loader_query_scale_zepto_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleZeptoMeter100>>,
+    pub chunk_loader_query_scale_atto_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleAttoMeter1>>,
+    pub chunk_loader_query_scale_atto_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleAttoMeter10>>,
+    pub chunk_loader_query_scale_atto_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleAttoMeter100>>,
+    pub chunk_loader_query_scale_femto_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleFemtoMeter1>>,
+    pub chunk_loader_query_scale_femto_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleFemtoMeter10>>,
+    pub chunk_loader_query_scale_femto_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleFemtoMeter100>>,
+    pub chunk_loader_query_scale_pico_meter_1: Query<'w, 's, &'static ChunkLoader<ScalePicoMeter1>>,
+    pub chunk_loader_query_scale_pico_meter_10: Query<'w, 's, &'static ChunkLoader<ScalePicoMeter10>>,
+    pub chunk_loader_query_scale_pico_meter_100: Query<'w, 's, &'static ChunkLoader<ScalePicoMeter100>>,
+    pub chunk_loader_query_scale_nano_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleNanoMeter1>>,
+    pub chunk_loader_query_scale_nano_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleNanoMeter10>>,
+    pub chunk_loader_query_scale_nano_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleNanoMeter100>>,
+    pub chunk_loader_query_scale_micro_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleMicroMeter1>>,
+    pub chunk_loader_query_scale_micro_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleMicroMeter10>>,
+    pub chunk_loader_query_scale_micro_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleMicroMeter100>>,
+    pub chunk_loader_query_scale_milli_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleMilliMeter1>>,
+    pub chunk_loader_query_scale_milli_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleMilliMeter10>>,
+    pub chunk_loader_query_scale_milli_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleMilliMeter100>>,
+    pub chunk_loader_query_scale_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleMeter1>>,
+    pub chunk_loader_query_scale_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleMeter10>>,
+    pub chunk_loader_query_scale_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleMeter100>>,
+    pub chunk_loader_query_scale_kilo_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleKiloMeter1>>,
+    pub chunk_loader_query_scale_kilo_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleKiloMeter10>>,
+    pub chunk_loader_query_scale_kilo_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleKiloMeter100>>,
+    pub chunk_loader_query_scale_mega_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleMegaMeter1>>,
+    pub chunk_loader_query_scale_mega_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleMegaMeter10>>,
+    pub chunk_loader_query_scale_mega_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleMegaMeter100>>,
+    pub chunk_loader_query_scale_giga_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleGigaMeter1>>,
+    pub chunk_loader_query_scale_giga_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleGigaMeter10>>,
+    pub chunk_loader_query_scale_giga_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleGigaMeter100>>,
+    pub chunk_loader_query_scale_tera_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleTeraMeter1>>,
+    pub chunk_loader_query_scale_tera_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleTeraMeter10>>,
+    pub chunk_loader_query_scale_tera_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleTeraMeter100>>,
+    pub chunk_loader_query_scale_peta_meter_1: Query<'w, 's, &'static ChunkLoader<ScalePetaMeter1>>,
+    pub chunk_loader_query_scale_peta_meter_10: Query<'w, 's, &'static ChunkLoader<ScalePetaMeter10>>,
+    pub chunk_loader_query_scale_peta_meter_100: Query<'w, 's, &'static ChunkLoader<ScalePetaMeter100>>,
+    pub chunk_loader_query_scale_exa_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleExaMeter1>>,
+    pub chunk_loader_query_scale_exa_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleExaMeter10>>,
+    pub chunk_loader_query_scale_exa_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleExaMeter100>>,
+    pub chunk_loader_query_scale_zetta_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleZettaMeter1>>,
+    pub chunk_loader_query_scale_zetta_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleZettaMeter10>>,
+    pub chunk_loader_query_scale_zetta_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleZettaMeter100>>,
+    pub chunk_loader_query_scale_yotta_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleYottaMeter1>>,
+    pub chunk_loader_query_scale_yotta_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleYottaMeter10>>,
+    pub chunk_loader_query_scale_yotta_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleYottaMeter100>>,
+    pub chunk_loader_query_scale_ronna_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleRonnaMeter1>>,
+    pub chunk_loader_query_scale_ronna_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleRonnaMeter10>>,
+    pub chunk_loader_query_scale_ronna_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleRonnaMeter100>>,
+    pub chunk_loader_query_scale_quetta_meter_1: Query<'w, 's, &'static ChunkLoader<ScaleQuettaMeter1>>,
+    pub chunk_loader_query_scale_quetta_meter_10: Query<'w, 's, &'static ChunkLoader<ScaleQuettaMeter10>>,
+    pub chunk_loader_query_scale_quetta_meter_100: Query<'w, 's, &'static ChunkLoader<ScaleQuettaMeter100>>,
+    pub chunk_loader_query_scale_quetta_meter_1000: Query<'w, 's, &'static ChunkLoader<ScaleQuettaMeter1000>>,
+    pub chunk_loader_query_scale_quetta_meter_10000: Query<'w, 's, &'static ChunkLoader<ScaleQuettaMeter10000>>,
+    pub chunk_loader_query_scale_quetta_meter_100000: Query<'w, 's, &'static ChunkLoader<ScaleQuettaMeter100000>>,
+}
 
-// TODO: MAJOR: This silently drops observed chunk loader removals if one is already in-progress composite-workflow-wise, so for now:
-// Concurrent chunk loader removals are unsound!
+// TODO: MAJOR: This silently drops observed chunk loader removals in the same scale if one is already in-progress composite-workflow-wise, so for now:
+// Concurrent chunk loader removals of the same scale are unsound!
 #[tracing::instrument(skip_all)]
 pub(crate) fn on_remove_chunk_loader_observation_queue_processing_system(
+    chunk_loader_queries: ProcessingSystemChunkLoaderQueries,
     mut queue: ResMut<RemovedChunkLoaderObservationQueue>,
-    chunk_loader_query_scale_quecto_meter_000001: Query<(&Transform, &ChunkLoader<ScaleQuectoMeter000001>)>,
-    chunk_loader_query_scale_quecto_meter_00001: Query<(&Transform, &ChunkLoader<ScaleQuectoMeter00001>)>,
-    chunk_loader_query_scale_quecto_meter_0001: Query<(&Transform, &ChunkLoader<ScaleQuectoMeter0001>)>,
-    chunk_loader_query_scale_quecto_meter_001: Query<(&Transform, &ChunkLoader<ScaleQuectoMeter001>)>,
-    chunk_loader_query_scale_quecto_meter_01: Query<(&Transform, &ChunkLoader<ScaleQuectoMeter01>)>,
-    chunk_loader_query_scale_quecto_meter_1: Query<(&Transform, &ChunkLoader<ScaleQuectoMeter1>)>,
-    chunk_loader_query_scale_quecto_meter_10: Query<(&Transform, &ChunkLoader<ScaleQuectoMeter10>)>,
-    chunk_loader_query_scale_quecto_meter_100: Query<(&Transform, &ChunkLoader<ScaleQuectoMeter100>)>,
-    chunk_loader_query_scale_ronto_meter_1: Query<(&Transform, &ChunkLoader<ScaleRontoMeter1>)>,
-    chunk_loader_query_scale_ronto_meter_10: Query<(&Transform, &ChunkLoader<ScaleRontoMeter10>)>,
-    chunk_loader_query_scale_ronto_meter_100: Query<(&Transform, &ChunkLoader<ScaleRontoMeter100>)>,
-    chunk_loader_query_scale_yocto_meter_1: Query<(&Transform, &ChunkLoader<ScaleYoctoMeter1>)>,
-    chunk_loader_query_scale_yocto_meter_10: Query<(&Transform, &ChunkLoader<ScaleYoctoMeter10>)>,
-    chunk_loader_query_scale_yocto_meter_100: Query<(&Transform, &ChunkLoader<ScaleYoctoMeter100>)>,
-    chunk_loader_query_scale_zepto_meter_1: Query<(&Transform, &ChunkLoader<ScaleZeptoMeter1>)>,
-    chunk_loader_query_scale_zepto_meter_10: Query<(&Transform, &ChunkLoader<ScaleZeptoMeter10>)>,
-    chunk_loader_query_scale_zepto_meter_100: Query<(&Transform, &ChunkLoader<ScaleZeptoMeter100>)>,
-    chunk_loader_query_scale_atto_meter_1: Query<(&Transform, &ChunkLoader<ScaleAttoMeter1>)>,
-    chunk_loader_query_scale_atto_meter_10: Query<(&Transform, &ChunkLoader<ScaleAttoMeter10>)>,
-    chunk_loader_query_scale_atto_meter_100: Query<(&Transform, &ChunkLoader<ScaleAttoMeter100>)>,
-    chunk_loader_query_scale_femto_meter_1: Query<(&Transform, &ChunkLoader<ScaleFemtoMeter1>)>,
-    chunk_loader_query_scale_femto_meter_10: Query<(&Transform, &ChunkLoader<ScaleFemtoMeter10>)>,
-    chunk_loader_query_scale_femto_meter_100: Query<(&Transform, &ChunkLoader<ScaleFemtoMeter100>)>,
-    chunk_loader_query_scale_pico_meter_1: Query<(&Transform, &ChunkLoader<ScalePicoMeter1>)>,
-    chunk_loader_query_scale_pico_meter_10: Query<(&Transform, &ChunkLoader<ScalePicoMeter10>)>,
-    chunk_loader_query_scale_pico_meter_100: Query<(&Transform, &ChunkLoader<ScalePicoMeter100>)>,
-    chunk_loader_query_scale_nano_meter_1: Query<(&Transform, &ChunkLoader<ScaleNanoMeter1>)>,
-    chunk_loader_query_scale_nano_meter_10: Query<(&Transform, &ChunkLoader<ScaleNanoMeter10>)>,
-    chunk_loader_query_scale_nano_meter_100: Query<(&Transform, &ChunkLoader<ScaleNanoMeter100>)>,
-    chunk_loader_query_scale_micro_meter_1: Query<(&Transform, &ChunkLoader<ScaleMicroMeter1>)>,
-    chunk_loader_query_scale_micro_meter_10: Query<(&Transform, &ChunkLoader<ScaleMicroMeter10>)>,
-    chunk_loader_query_scale_micro_meter_100: Query<(&Transform, &ChunkLoader<ScaleMicroMeter100>)>,
-    chunk_loader_query_scale_milli_meter_1: Query<(&Transform, &ChunkLoader<ScaleMilliMeter1>)>,
-    chunk_loader_query_scale_milli_meter_10: Query<(&Transform, &ChunkLoader<ScaleMilliMeter10>)>,
-    chunk_loader_query_scale_milli_meter_100: Query<(&Transform, &ChunkLoader<ScaleMilliMeter100>)>,
-    chunk_loader_query_scale_meter_1: Query<(&Transform, &ChunkLoader<ScaleMeter1>)>,
-    chunk_loader_query_scale_meter_10: Query<(&Transform, &ChunkLoader<ScaleMeter10>)>,
-    chunk_loader_query_scale_meter_100: Query<(&Transform, &ChunkLoader<ScaleMeter100>)>,
-    chunk_loader_query_scale_kilo_meter_1: Query<(&Transform, &ChunkLoader<ScaleKiloMeter1>)>,
-    chunk_loader_query_scale_kilo_meter_10: Query<(&Transform, &ChunkLoader<ScaleKiloMeter10>)>,
-    chunk_loader_query_scale_kilo_meter_100: Query<(&Transform, &ChunkLoader<ScaleKiloMeter100>)>,
-    chunk_loader_query_scale_mega_meter_1: Query<(&Transform, &ChunkLoader<ScaleMegaMeter1>)>,
-    chunk_loader_query_scale_mega_meter_10: Query<(&Transform, &ChunkLoader<ScaleMegaMeter10>)>,
-    chunk_loader_query_scale_mega_meter_100: Query<(&Transform, &ChunkLoader<ScaleMegaMeter100>)>,
-    chunk_loader_query_scale_giga_meter_1: Query<(&Transform, &ChunkLoader<ScaleGigaMeter1>)>,
-    chunk_loader_query_scale_giga_meter_10: Query<(&Transform, &ChunkLoader<ScaleGigaMeter10>)>,
-    chunk_loader_query_scale_giga_meter_100: Query<(&Transform, &ChunkLoader<ScaleGigaMeter100>)>,
-    chunk_loader_query_scale_tera_meter_1: Query<(&Transform, &ChunkLoader<ScaleTeraMeter1>)>,
-    chunk_loader_query_scale_tera_meter_10: Query<(&Transform, &ChunkLoader<ScaleTeraMeter10>)>,
-    chunk_loader_query_scale_tera_meter_100: Query<(&Transform, &ChunkLoader<ScaleTeraMeter100>)>,
-    chunk_loader_query_scale_peta_meter_1: Query<(&Transform, &ChunkLoader<ScalePetaMeter1>)>,
-    chunk_loader_query_scale_peta_meter_10: Query<(&Transform, &ChunkLoader<ScalePetaMeter10>)>,
-    chunk_loader_query_scale_peta_meter_100: Query<(&Transform, &ChunkLoader<ScalePetaMeter100>)>,
-    chunk_loader_query_scale_exa_meter_1: Query<(&Transform, &ChunkLoader<ScaleExaMeter1>)>,
-    chunk_loader_query_scale_exa_meter_10: Query<(&Transform, &ChunkLoader<ScaleExaMeter10>)>,
-    chunk_loader_query_scale_exa_meter_100: Query<(&Transform, &ChunkLoader<ScaleExaMeter100>)>,
-    chunk_loader_query_scale_zetta_meter_1: Query<(&Transform, &ChunkLoader<ScaleZettaMeter1>)>,
-    chunk_loader_query_scale_zetta_meter_10: Query<(&Transform, &ChunkLoader<ScaleZettaMeter10>)>,
-    chunk_loader_query_scale_zetta_meter_100: Query<(&Transform, &ChunkLoader<ScaleZettaMeter100>)>,
-    chunk_loader_query_scale_yotta_meter_1: Query<(&Transform, &ChunkLoader<ScaleYottaMeter1>)>,
-    chunk_loader_query_scale_yotta_meter_10: Query<(&Transform, &ChunkLoader<ScaleYottaMeter10>)>,
-    chunk_loader_query_scale_yotta_meter_100: Query<(&Transform, &ChunkLoader<ScaleYottaMeter100>)>,
-    chunk_loader_query_scale_ronna_meter_1: Query<(&Transform, &ChunkLoader<ScaleRonnaMeter1>)>,
-    chunk_loader_query_scale_ronna_meter_10: Query<(&Transform, &ChunkLoader<ScaleRonnaMeter10>)>,
-    chunk_loader_query_scale_ronna_meter_100: Query<(&Transform, &ChunkLoader<ScaleRonnaMeter100>)>,
-    chunk_loader_query_scale_quetta_meter_1: Query<(&Transform, &ChunkLoader<ScaleQuettaMeter1>)>,
-    chunk_loader_query_scale_quetta_meter_10: Query<(&Transform, &ChunkLoader<ScaleQuettaMeter10>)>,
-    chunk_loader_query_scale_quetta_meter_100: Query<(&Transform, &ChunkLoader<ScaleQuettaMeter100>)>,
-    chunk_loader_query_scale_quetta_meter_1000: Query<(&Transform, &ChunkLoader<ScaleQuettaMeter1000>)>,
-    chunk_loader_query_scale_quetta_meter_10000: Query<(&Transform, &ChunkLoader<ScaleQuettaMeter10000>)>,
-    chunk_loader_query_scale_quetta_meter_100000: Query<(&Transform, &ChunkLoader<ScaleQuettaMeter100000>)>,
 ) {
-    let removed_owner_id_scale_quecto_meter_000001 = None;
-    let removed_owner_id_scale_quecto_meter_00001 = None;
-    let removed_owner_id_scale_quecto_meter_0001 = None;
-    let removed_owner_id_scale_quecto_meter_001 = None;
-    let removed_owner_id_scale_quecto_meter_01 = None;
-    let removed_owner_id_scale_quecto_meter_1 = None;
-    let removed_owner_id_scale_quecto_meter_10 = None;
-    let removed_owner_id_scale_quecto_meter_100 = None;
-    let removed_owner_id_scale_ronto_meter_1 = None;
-    let removed_owner_id_scale_ronto_meter_10 = None;
-    let removed_owner_id_scale_ronto_meter_100 = None;
-    let removed_owner_id_scale_yocto_meter_1 = None;
-    let removed_owner_id_scale_yocto_meter_10 = None;
-    let removed_owner_id_scale_yocto_meter_100 = None;
-    let removed_owner_id_scale_zepto_meter_1 = None;
-    let removed_owner_id_scale_zepto_meter_10 = None;
-    let removed_owner_id_scale_zepto_meter_100 = None;
-    let removed_owner_id_scale_atto_meter_1 = None;
-    let removed_owner_id_scale_atto_meter_10 = None;
-    let removed_owner_id_scale_atto_meter_100 = None;
-    let removed_owner_id_scale_femto_meter_1 = None;
-    let removed_owner_id_scale_femto_meter_10 = None;
-    let removed_owner_id_scale_femto_meter_100 = None;
-    let removed_owner_id_scale_pico_meter_1 = None;
-    let removed_owner_id_scale_pico_meter_10 = None;
-    let removed_owner_id_scale_pico_meter_100 = None;
-    let removed_owner_id_scale_nano_meter_1 = None;
-    let removed_owner_id_scale_nano_meter_10 = None;
-    let removed_owner_id_scale_nano_meter_100 = None;
-    let removed_owner_id_scale_micro_meter_1 = None;
-    let removed_owner_id_scale_micro_meter_10 = None;
-    let removed_owner_id_scale_micro_meter_100 = None;
-    let removed_owner_id_scale_milli_meter_1 = None;
-    let removed_owner_id_scale_milli_meter_10 = None;
-    let removed_owner_id_scale_milli_meter_100 = None;
-    let removed_owner_id_scale_meter_1 = None;
-    let removed_owner_id_scale_meter_10 = None;
-    let removed_owner_id_scale_meter_100 = None;
-    let removed_owner_id_scale_kilo_meter_1 = None;
-    let removed_owner_id_scale_kilo_meter_10 = None;
-    let removed_owner_id_scale_kilo_meter_100 = None;
-    let removed_owner_id_scale_mega_meter_1 = None;
-    let removed_owner_id_scale_mega_meter_10 = None;
-    let removed_owner_id_scale_mega_meter_100 = None;
-    let removed_owner_id_scale_giga_meter_1 = None;
-    let removed_owner_id_scale_giga_meter_10 = None;
-    let removed_owner_id_scale_giga_meter_100 = None;
-    let removed_owner_id_scale_tera_meter_1 = None;
-    let removed_owner_id_scale_tera_meter_10 = None;
-    let removed_owner_id_scale_tera_meter_100 = None;
-    let removed_owner_id_scale_peta_meter_1 = None;
-    let removed_owner_id_scale_peta_meter_10 = None;
-    let removed_owner_id_scale_peta_meter_100 = None;
-    let removed_owner_id_scale_exa_meter_1 = None;
-    let removed_owner_id_scale_exa_meter_10 = None;
-    let removed_owner_id_scale_exa_meter_100 = None;
-    let removed_owner_id_scale_zetta_meter_1 = None;
-    let removed_owner_id_scale_zetta_meter_10 = None;
-    let removed_owner_id_scale_zetta_meter_100 = None;
-    let removed_owner_id_scale_yotta_meter_1 = None;
-    let removed_owner_id_scale_yotta_meter_10 = None;
-    let removed_owner_id_scale_yotta_meter_100 = None;
-    let removed_owner_id_scale_ronna_meter_1 = None;
-    let removed_owner_id_scale_ronna_meter_10 = None;
-    let removed_owner_id_scale_ronna_meter_100 = None;
-    let removed_owner_id_scale_quetta_meter_1 = None;
-    let removed_owner_id_scale_quetta_meter_10 = None;
-    let removed_owner_id_scale_quetta_meter_100 = None;
-    let removed_owner_id_scale_quetta_meter_1000 = None;
-    let removed_owner_id_scale_quetta_meter_10000 = None;
-    let removed_owner_id_scale_quetta_meter_100000 = None;
+    let mut removed_owner_id_scale_quecto_meter_000001 = None;
+    let mut removed_owner_id_scale_quecto_meter_00001 = None;
+    let mut removed_owner_id_scale_quecto_meter_0001 = None;
+    let mut removed_owner_id_scale_quecto_meter_001 = None;
+    let mut removed_owner_id_scale_quecto_meter_01 = None;
+    let mut removed_owner_id_scale_quecto_meter_1 = None;
+    let mut removed_owner_id_scale_quecto_meter_10 = None;
+    let mut removed_owner_id_scale_quecto_meter_100 = None;
+    let mut removed_owner_id_scale_ronto_meter_1 = None;
+    let mut removed_owner_id_scale_ronto_meter_10 = None;
+    let mut removed_owner_id_scale_ronto_meter_100 = None;
+    let mut removed_owner_id_scale_yocto_meter_1 = None;
+    let mut removed_owner_id_scale_yocto_meter_10 = None;
+    let mut removed_owner_id_scale_yocto_meter_100 = None;
+    let mut removed_owner_id_scale_zepto_meter_1 = None;
+    let mut removed_owner_id_scale_zepto_meter_10 = None;
+    let mut removed_owner_id_scale_zepto_meter_100 = None;
+    let mut removed_owner_id_scale_atto_meter_1 = None;
+    let mut removed_owner_id_scale_atto_meter_10 = None;
+    let mut removed_owner_id_scale_atto_meter_100 = None;
+    let mut removed_owner_id_scale_femto_meter_1 = None;
+    let mut removed_owner_id_scale_femto_meter_10 = None;
+    let mut removed_owner_id_scale_femto_meter_100 = None;
+    let mut removed_owner_id_scale_pico_meter_1 = None;
+    let mut removed_owner_id_scale_pico_meter_10 = None;
+    let mut removed_owner_id_scale_pico_meter_100 = None;
+    let mut removed_owner_id_scale_nano_meter_1 = None;
+    let mut removed_owner_id_scale_nano_meter_10 = None;
+    let mut removed_owner_id_scale_nano_meter_100 = None;
+    let mut removed_owner_id_scale_micro_meter_1 = None;
+    let mut removed_owner_id_scale_micro_meter_10 = None;
+    let mut removed_owner_id_scale_micro_meter_100 = None;
+    let mut removed_owner_id_scale_milli_meter_1 = None;
+    let mut removed_owner_id_scale_milli_meter_10 = None;
+    let mut removed_owner_id_scale_milli_meter_100 = None;
+    let mut removed_owner_id_scale_meter_1 = None;
+    let mut removed_owner_id_scale_meter_10 = None;
+    let mut removed_owner_id_scale_meter_100 = None;
+    let mut removed_owner_id_scale_kilo_meter_1 = None;
+    let mut removed_owner_id_scale_kilo_meter_10 = None;
+    let mut removed_owner_id_scale_kilo_meter_100 = None;
+    let mut removed_owner_id_scale_mega_meter_1 = None;
+    let mut removed_owner_id_scale_mega_meter_10 = None;
+    let mut removed_owner_id_scale_mega_meter_100 = None;
+    let mut removed_owner_id_scale_giga_meter_1 = None;
+    let mut removed_owner_id_scale_giga_meter_10 = None;
+    let mut removed_owner_id_scale_giga_meter_100 = None;
+    let mut removed_owner_id_scale_tera_meter_1 = None;
+    let mut removed_owner_id_scale_tera_meter_10 = None;
+    let mut removed_owner_id_scale_tera_meter_100 = None;
+    let mut removed_owner_id_scale_peta_meter_1 = None;
+    let mut removed_owner_id_scale_peta_meter_10 = None;
+    let mut removed_owner_id_scale_peta_meter_100 = None;
+    let mut removed_owner_id_scale_exa_meter_1 = None;
+    let mut removed_owner_id_scale_exa_meter_10 = None;
+    let mut removed_owner_id_scale_exa_meter_100 = None;
+    let mut removed_owner_id_scale_zetta_meter_1 = None;
+    let mut removed_owner_id_scale_zetta_meter_10 = None;
+    let mut removed_owner_id_scale_zetta_meter_100 = None;
+    let mut removed_owner_id_scale_yotta_meter_1 = None;
+    let mut removed_owner_id_scale_yotta_meter_10 = None;
+    let mut removed_owner_id_scale_yotta_meter_100 = None;
+    let mut removed_owner_id_scale_ronna_meter_1 = None;
+    let mut removed_owner_id_scale_ronna_meter_10 = None;
+    let mut removed_owner_id_scale_ronna_meter_100 = None;
+    let mut removed_owner_id_scale_quetta_meter_1 = None;
+    let mut removed_owner_id_scale_quetta_meter_10 = None;
+    let mut removed_owner_id_scale_quetta_meter_100 = None;
+    let mut removed_owner_id_scale_quetta_meter_1000 = None;
+    let mut removed_owner_id_scale_quetta_meter_10000 = None;
+    let mut removed_owner_id_scale_quetta_meter_100000 = None;
 
     for RemovedChunkLoaderObservation { entity: loader_entity, scale } in std::mem::take(&mut queue.0).into_iter() {
         match scale {
-            -35 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quecto_meter_000001.get(loader_entity) {
+            i8::MIN..=-36_i8 | 36_i8..=i8::MAX => {
+                unreachable!("Unsupported scale 'Scale {{ scale_factor_exponent: {} }}' for chunk loader removal observation processing.", scale);
+            }
+            -35_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quecto_meter_000001.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quecto_meter_000001 = Some(loader.chunk_owner_id().clone());
             }
-            -34 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quecto_meter_00001.get(loader_entity) {
+            -34_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quecto_meter_00001.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quecto_meter_00001 = Some(loader.chunk_owner_id().clone());
             }
-            -33 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quecto_meter_0001.get(loader_entity) {
+            -33_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quecto_meter_0001.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quecto_meter_0001 = Some(loader.chunk_owner_id().clone());
             }
-            -32 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quecto_meter_001.get(loader_entity) {
+            -32_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quecto_meter_001.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quecto_meter_001 = Some(loader.chunk_owner_id().clone());
             }
-            -31 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quecto_meter_01.get(loader_entity) {
+            -31_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quecto_meter_01.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quecto_meter_01 = Some(loader.chunk_owner_id().clone());
             }
-            -30 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quecto_meter_1.get(loader_entity) {
+            -30_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quecto_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quecto_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            -29 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quecto_meter_10.get(loader_entity) {
+            -29_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quecto_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quecto_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            -28 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quecto_meter_100.get(loader_entity) {
+            -28_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quecto_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quecto_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            -27 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_ronto_meter_1.get(loader_entity) {
+            -27_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_ronto_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_ronto_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            -26 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_ronto_meter_10.get(loader_entity) {
+            -26_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_ronto_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_ronto_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            -25 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_ronto_meter_100.get(loader_entity) {
+            -25_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_ronto_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_ronto_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            -24 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_yocto_meter_1.get(loader_entity) {
+            -24_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_yocto_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_yocto_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            -23 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_yocto_meter_10.get(loader_entity) {
+            -23_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_yocto_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_yocto_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            -22 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_yocto_meter_100.get(loader_entity) {
+            -22_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_yocto_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_yocto_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            -21 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_zepto_meter_1.get(loader_entity) {
+            -21_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_zepto_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_zepto_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            -20 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_zepto_meter_10.get(loader_entity) {
+            -20_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_zepto_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_zepto_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            -19 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_zepto_meter_100.get(loader_entity) {
+            -19_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_zepto_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_zepto_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            -18 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_atto_meter_1.get(loader_entity) {
+            -18_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_atto_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_atto_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            -17 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_atto_meter_10.get(loader_entity) {
+            -17_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_atto_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_atto_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            -16 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_atto_meter_100.get(loader_entity) {
+            -16_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_atto_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_atto_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            -15 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_femto_meter_1.get(loader_entity) {
+            -15_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_femto_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_femto_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            -14 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_femto_meter_10.get(loader_entity) {
+            -14_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_femto_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_femto_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            -13 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_femto_meter_100.get(loader_entity) {
+            -13_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_femto_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_femto_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            -12 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_pico_meter_1.get(loader_entity) {
+            -12_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_pico_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_pico_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            -11 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_pico_meter_10.get(loader_entity) {
+            -11_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_pico_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_pico_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            -10 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_pico_meter_100.get(loader_entity) {
+            -10_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_pico_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_pico_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            -9 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_nano_meter_1.get(loader_entity) {
+            -9_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_nano_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_nano_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            -8 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_nano_meter_10.get(loader_entity) {
+            -8_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_nano_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_nano_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            -7 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_nano_meter_100.get(loader_entity) {
+            -7_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_nano_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_nano_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            -6 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_micro_meter_1.get(loader_entity) {
+            -6_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_micro_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_micro_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            -5 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_micro_meter_10.get(loader_entity) {
+            -5_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_micro_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_micro_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            -4 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_micro_meter_100.get(loader_entity) {
+            -4_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_micro_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_micro_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            -3 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_milli_meter_1.get(loader_entity) {
+            -3_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_milli_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_milli_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            -2 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_milli_meter_10.get(loader_entity) {
+            -2_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_milli_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_milli_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            -1 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_milli_meter_100.get(loader_entity) {
+            -1_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_milli_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_milli_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            0 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_meter_1.get(loader_entity) {
+            0_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            1 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_meter_10.get(loader_entity) {
+            1_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            2 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_meter_100.get(loader_entity) {
+            2_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            3 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_kilo_meter_1.get(loader_entity) {
+            3_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_kilo_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_kilo_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            4 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_kilo_meter_10.get(loader_entity) {
+            4_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_kilo_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_kilo_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            5 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_kilo_meter_100.get(loader_entity) {
+            5_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_kilo_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_kilo_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            6 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_mega_meter_1.get(loader_entity) {
+            6_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_mega_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_mega_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            7 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_mega_meter_10.get(loader_entity) {
+            7_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_mega_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_mega_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            8 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_mega_meter_100.get(loader_entity) {
+            8_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_mega_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_mega_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            9 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_giga_meter_1.get(loader_entity) {
+            9_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_giga_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_giga_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            10 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_giga_meter_10.get(loader_entity) {
+            10_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_giga_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_giga_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            11 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_giga_meter_100.get(loader_entity) {
+            11_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_giga_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_giga_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            12 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_tera_meter_1.get(loader_entity) {
+            12_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_tera_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_tera_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            13 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_tera_meter_10.get(loader_entity) {
+            13_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_tera_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_tera_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            14 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_tera_meter_100.get(loader_entity) {
+            14_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_tera_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_tera_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            15 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_peta_meter_1.get(loader_entity) {
+            15_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_peta_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_peta_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            16 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_peta_meter_10.get(loader_entity) {
+            16_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_peta_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_peta_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            17 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_peta_meter_100.get(loader_entity) {
+            17_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_peta_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_peta_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            18 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_exa_meter_1.get(loader_entity) {
+            18_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_exa_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_exa_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            19 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_exa_meter_10.get(loader_entity) {
+            19_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_exa_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_exa_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            20 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_exa_meter_100.get(loader_entity) {
+            20_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_exa_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_exa_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            21 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_zetta_meter_1.get(loader_entity) {
+            21_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_zetta_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_zetta_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            22 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_zetta_meter_10.get(loader_entity) {
+            22_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_zetta_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_zetta_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            23 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_zetta_meter_100.get(loader_entity) {
+            23_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_zetta_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_zetta_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            24 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_yotta_meter_1.get(loader_entity) {
+            24_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_yotta_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_yotta_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            25 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_yotta_meter_10.get(loader_entity) {
+            25_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_yotta_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_yotta_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            26 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_yotta_meter_100.get(loader_entity) {
+            26_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_yotta_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_yotta_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            27 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_ronna_meter_1.get(loader_entity) {
+            27_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_ronna_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_ronna_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            28 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_ronna_meter_10.get(loader_entity) {
+            28_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_ronna_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_ronna_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            29 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_ronna_meter_100.get(loader_entity) {
+            29_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_ronna_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_ronna_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            30 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quetta_meter_1.get(loader_entity) {
+            30_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quetta_meter_1.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quetta_meter_1 = Some(loader.chunk_owner_id().clone());
             }
-            31 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quetta_meter_10.get(loader_entity) {
+            31_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quetta_meter_10.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quetta_meter_10 = Some(loader.chunk_owner_id().clone());
             }
-            32 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quetta_meter_100.get(loader_entity) {
+            32_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quetta_meter_100.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quetta_meter_100 = Some(loader.chunk_owner_id().clone());
             }
-            33 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quetta_meter_1000.get(loader_entity) {
+            33_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quetta_meter_1000.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quetta_meter_1000 = Some(loader.chunk_owner_id().clone());
             }
-            34 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quetta_meter_10000.get(loader_entity) {
+            34_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quetta_meter_10000.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quetta_meter_10000 = Some(loader.chunk_owner_id().clone());
             }
-            35 => {
-                let (loader_transform, loader) = match chunk_loader_query_scale_quetta_meter_100000.get(loader_entity) {
+            35_i8 => {
+                let loader = match chunk_loader_queries.chunk_loader_query_scale_quetta_meter_100000.get(loader_entity) {
                     Ok(value) => value,
-                    Err(_) => {
-                        unreachable!(
-                            "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
-                            loader_entity
-                        );
-                    }
+                    Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
                 };
-                let loader_position = loader_transform.translation.truncate();
-                let loader_radius = loader.radius;
 
                 removed_owner_id_scale_quetta_meter_100000 = Some(loader.chunk_owner_id().clone());
             }

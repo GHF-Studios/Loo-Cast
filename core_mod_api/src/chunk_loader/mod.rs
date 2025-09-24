@@ -8,7 +8,7 @@ pub mod workflows;
 
 use bevy::prelude::*;
 use components::ChunkLoader;
-use observers::observe_on_remove_chunk_loader;
+use observers::{observe_on_remove_chunk_loader, on_remove_chunk_loader_observation_queue_processing_system};
 use resources::{RemovedChunkLoaders, RemovedChunkLoaderObservationQueue};
 use systems::{post_update_chunk_loader_system, update_chunk_loader_system};
 use types::{RemovedChunkLoader, RemovedChunkLoaderObservation};

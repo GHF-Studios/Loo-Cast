@@ -3,7 +3,8 @@ use bevy::ecs::{component::HookContext, world::DeferredWorld};
 use crate::usf::scale::Scale;
 use crate::{
     chunk::components::Chunk,
-    chunk_loader::resources::{RemovedChunkLoader, RemovedChunkLoaders},
+    chunk_loader::resources::RemovedChunkLoaders,
+    chunk_loader::types::RemovedChunkLoader,
 };
 
 pub(crate) fn hook_on_add_chunk<S: Scale>(mut world: DeferredWorld<'_>, hook_context: HookContext) {
