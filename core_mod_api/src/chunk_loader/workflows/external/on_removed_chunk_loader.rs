@@ -23,7 +23,7 @@ pub struct Input<S: Scale> {
 
 // Core Functions
 pub fn run_ecs<S: Scale>(input: Input<S>, mut main_access: MainAccess<S>) {
-    let mut removed_chunk_loaders = &mut main_access.removed_chunk_loaders;
+    let removed_chunk_loaders = &mut main_access.removed_chunk_loaders;
 
     if let Some(id) = input.chunk_owner_id {
         removed_chunk_loaders.0.insert(RemovedChunkLoader { id });

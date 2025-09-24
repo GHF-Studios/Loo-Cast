@@ -1,5 +1,5 @@
 // Imports
-use bevy::prelude::{debug, error, warn, Entity, Query, Res, ResMut, Transform, Vec2};
+use bevy::prelude::{warn, Query, Res, ResMut, Transform, Vec2};
 use std::collections::HashSet;
 use std::marker::PhantomData;
 

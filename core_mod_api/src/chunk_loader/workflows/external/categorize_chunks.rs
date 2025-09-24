@@ -3,8 +3,6 @@ use bevy::prelude::*;
 use std::collections::HashSet;
 
 use crate::chunk::functions::{calculate_chunk_distance_from_owner, calculate_chunks_in_radius, world_pos_to_chunk};
-use crate::chunk::intent::ActionIntent;
-use crate::chunk::resources::ActionIntentCommitBuffer;
 use crate::chunk::resources::ChunkManager;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::workflows::external::{load_chunks::LoadChunkInput, unload_chunks::UnloadChunkInput};

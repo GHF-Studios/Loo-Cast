@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use std::collections::HashSet;
 
 use crate::chunk::types::ChunkOwnerId;
 use crate::usf::scale::Scale;

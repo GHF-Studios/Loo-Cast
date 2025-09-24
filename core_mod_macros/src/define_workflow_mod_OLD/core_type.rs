@@ -2,7 +2,6 @@ use crate::define_workflow_mod_OLD::WorkflowSignature;
 
 use super::stage::{Async, Ecs, EcsWhile, Render, RenderWhile, StageSignature};
 use heck::ToPascalCase;
-use paste::paste;
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use std::marker::PhantomData;

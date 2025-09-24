@@ -11,7 +11,6 @@ pub fn export_static(input: TokenStream) -> TokenStream {
     } = parse_macro_input!(input as ExportInput);
     let ident = static_path.path.segments.last().unwrap().ident.clone();
     let mangled = Ident::new(&mangle_path(&static_path), static_path.span());
-    let mangled_string = mangled.to_string();
 
     let core_path = if is_self {
         quote! { crate }
