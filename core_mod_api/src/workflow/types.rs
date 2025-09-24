@@ -2,6 +2,8 @@ use bevy::prelude::Reflect;
 use futures::future::BoxFuture;
 use tokio::task::JoinHandle;
 
+use crate::utils::progress::Progress;
+
 use super::{
     composite_workflow_context::ScopedCompositeWorkflowContext,
     stage::{Stage, StageType},
@@ -145,6 +147,13 @@ impl<S, O> Outcome<S, O> {
         match self {
             Outcome::Wait(_) => panic!("Called unwrap_done on Outcome::Wait"),
             Outcome::Done(o) => o,
+        }
+    }
+
+    pub fn into_progress(self) -> Progress<S, O> {
+        match self {
+            Outcome::Wait(s) => Progress::Unfinished(s),
+            Outcome::Done(o) => Progress::Finished(o),
         }
     }
 }

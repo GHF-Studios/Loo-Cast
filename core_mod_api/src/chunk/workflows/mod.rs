@@ -19,6 +19,7 @@ define_workflow_mod_OLD! {
                     run_ecs_while as validate_and_spawn_and_wait_run_ecs_while,
                 };
                 use crate::usf::scale::*;
+                use crate::utils::progress::Progress;
             },
             user_items: {
             },
@@ -98,6 +99,7 @@ define_workflow_mod_OLD! {
                             inner_scale_quetta_meter_10000: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter10000>,
                             inner_scale_quetta_meter_100000: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuettaMeter100000>,
                         }
+
                         struct Input {
                             inner_scale_quecto_meter_000001: ValidateAndSpawnAndWaitInput<ScaleQuectoMeter000001>,
                             inner_scale_quecto_meter_00001: ValidateAndSpawnAndWaitInput<ScaleQuectoMeter00001>,
@@ -172,77 +174,77 @@ define_workflow_mod_OLD! {
                             inner_scale_quetta_meter_100000: ValidateAndSpawnAndWaitInput<ScaleQuettaMeter100000>,
                         }
                         struct State {
-                            inner_scale_quecto_meter_000001: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_quecto_meter_00001: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_quecto_meter_0001: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_quecto_meter_001: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_quecto_meter_01: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_quecto_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_quecto_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_quecto_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_ronto_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_ronto_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_ronto_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_yocto_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_yocto_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_yocto_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_zepto_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_zepto_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_zepto_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_atto_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_atto_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_atto_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_femto_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_femto_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_femto_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_pico_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_pico_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_pico_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_nano_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_nano_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_nano_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_micro_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_micro_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_micro_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_milli_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_milli_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_milli_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_kilo_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_kilo_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_kilo_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_mega_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_mega_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_mega_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_giga_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_giga_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_giga_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_tera_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_tera_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_tera_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_peta_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_peta_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_peta_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_exa_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_exa_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_exa_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_zetta_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_zetta_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_zetta_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_yotta_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_yotta_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_yotta_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_ronna_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_ronna_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_ronna_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_quetta_meter_1: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_quetta_meter_10: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_quetta_meter_100: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_quetta_meter_1000: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_quetta_meter_10000: Option<ValidateAndSpawnAndWaitState>,
-                            inner_scale_quetta_meter_100000: Option<ValidateAndSpawnAndWaitState>,
+                            inner_scale_quecto_meter_000001: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_quecto_meter_00001: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_quecto_meter_0001: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_quecto_meter_001: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_quecto_meter_01: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_quecto_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_quecto_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_quecto_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_ronto_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_ronto_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_ronto_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_yocto_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_yocto_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_yocto_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_zepto_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_zepto_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_zepto_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_atto_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_atto_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_atto_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_femto_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_femto_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_femto_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_pico_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_pico_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_pico_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_nano_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_nano_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_nano_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_micro_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_micro_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_micro_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_milli_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_milli_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_milli_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_kilo_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_kilo_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_kilo_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_mega_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_mega_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_mega_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_giga_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_giga_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_giga_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_tera_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_tera_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_tera_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_peta_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_peta_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_peta_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_exa_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_exa_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_exa_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_zetta_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_zetta_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_zetta_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_yotta_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_yotta_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_yotta_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_ronna_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_ronna_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_ronna_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_quetta_meter_1: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_quetta_meter_10: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_quetta_meter_100: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_quetta_meter_1000: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_quetta_meter_10000: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner_scale_quetta_meter_100000: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
                         }
                         struct Output {
                             inner_scale_quecto_meter_000001: ValidateAndSpawnAndWaitOutput,
@@ -393,9 +395,659 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
+                            let state_scale_quecto_meter_000001 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_000001, main_access.inner_scale_quecto_meter_000001).map_err(|e| Error::ScaleQuectoMeter000001Error(e))?;
+                            let state_scale_quecto_meter_00001 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_00001, main_access.inner_scale_quecto_meter_00001).map_err(|e| Error::ScaleQuectoMeter00001Error(e))?;
+                            let state_scale_quecto_meter_0001 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_0001, main_access.inner_scale_quecto_meter_0001).map_err(|e| Error::ScaleQuectoMeter0001Error(e))?;
+                            let state_scale_quecto_meter_001 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_001, main_access.inner_scale_quecto_meter_001).map_err(|e| Error::ScaleQuectoMeter001Error(e))?;
+                            let state_scale_quecto_meter_01 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_01, main_access.inner_scale_quecto_meter_01).map_err(|e| Error::ScaleQuectoMeter01Error(e))?;
+                            let state_scale_quecto_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_1, main_access.inner_scale_quecto_meter_1).map_err(|e| Error::ScaleQuectoMeter1Error(e))?;
+                            let state_scale_quecto_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_10, main_access.inner_scale_quecto_meter_10).map_err(|e| Error::ScaleQuectoMeter10Error(e))?;
+                            let state_scale_quecto_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_100, main_access.inner_scale_quecto_meter_100).map_err(|e| Error::ScaleQuectoMeter100Error(e))?;
+                            let state_scale_ronto_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_ronto_meter_1, main_access.inner_scale_ronto_meter_1).map_err(|e| Error::ScaleRontoMeter1Error(e))?;
+                            let state_scale_ronto_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_ronto_meter_10, main_access.inner_scale_ronto_meter_10).map_err(|e| Error::ScaleRontoMeter10Error(e))?;
+                            let state_scale_ronto_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_ronto_meter_100, main_access.inner_scale_ronto_meter_100).map_err(|e| Error::ScaleRontoMeter100Error(e))?;
+                            let state_scale_yocto_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_yocto_meter_1, main_access.inner_scale_yocto_meter_1).map_err(|e| Error::ScaleYoctoMeter1Error(e))?;
+                            let state_scale_yocto_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_yocto_meter_10, main_access.inner_scale_yocto_meter_10).map_err(|e| Error::ScaleYoctoMeter10Error(e))?;
+                            let state_scale_yocto_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_yocto_meter_100, main_access.inner_scale_yocto_meter_100).map_err(|e| Error::ScaleYoctoMeter100Error(e))?;
+                            let state_scale_zepto_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_zepto_meter_1, main_access.inner_scale_zepto_meter_1).map_err(|e| Error::ScaleZeptoMeter1Error(e))?;
+                            let state_scale_zepto_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_zepto_meter_10, main_access.inner_scale_zepto_meter_10).map_err(|e| Error::ScaleZeptoMeter10Error(e))?;
+                            let state_scale_zepto_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_zepto_meter_100, main_access.inner_scale_zepto_meter_100).map_err(|e| Error::ScaleZeptoMeter100Error(e))?;
+                            let state_scale_atto_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_atto_meter_1, main_access.inner_scale_atto_meter_1).map_err(|e| Error::ScaleAttoMeter1Error(e))?;
+                            let state_scale_atto_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_atto_meter_10, main_access.inner_scale_atto_meter_10).map_err(|e| Error::ScaleAttoMeter10Error(e))?;
+                            let state_scale_atto_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_atto_meter_100, main_access.inner_scale_atto_meter_100).map_err(|e| Error::ScaleAttoMeter100Error(e))?;
+                            let state_scale_femto_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_femto_meter_1, main_access.inner_scale_femto_meter_1).map_err(|e| Error::ScaleFemtoMeter1Error(e))?;
+                            let state_scale_femto_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_femto_meter_10, main_access.inner_scale_femto_meter_10).map_err(|e| Error::ScaleFemtoMeter10Error(e))?;
+                            let state_scale_femto_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_femto_meter_100, main_access.inner_scale_femto_meter_100).map_err(|e| Error::ScaleFemtoMeter100Error(e))?;
+                            let state_scale_pico_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_pico_meter_1, main_access.inner_scale_pico_meter_1).map_err(|e| Error::ScalePicoMeter1Error(e))?;
+                            let state_scale_pico_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_pico_meter_10, main_access.inner_scale_pico_meter_10).map_err(|e| Error::ScalePicoMeter10Error(e))?;
+                            let state_scale_pico_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_pico_meter_100, main_access.inner_scale_pico_meter_100).map_err(|e| Error::ScalePicoMeter100Error(e))?;
+                            let state_scale_nano_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_nano_meter_1, main_access.inner_scale_nano_meter_1).map_err(|e| Error::ScaleNanoMeter1Error(e))?;
+                            let state_scale_nano_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_nano_meter_10, main_access.inner_scale_nano_meter_10).map_err(|e| Error::ScaleNanoMeter10Error(e))?;
+                            let state_scale_nano_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_nano_meter_100, main_access.inner_scale_nano_meter_100).map_err(|e| Error::ScaleNanoMeter100Error(e))?;
+                            let state_scale_micro_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_micro_meter_1, main_access.inner_scale_micro_meter_1).map_err(|e| Error::ScaleMicroMeter1Error(e))?;
+                            let state_scale_micro_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_micro_meter_10, main_access.inner_scale_micro_meter_10).map_err(|e| Error::ScaleMicroMeter10Error(e))?;
+                            let state_scale_micro_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_micro_meter_100, main_access.inner_scale_micro_meter_100).map_err(|e| Error::ScaleMicroMeter100Error(e))?;
+                            let state_scale_milli_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_milli_meter_1, main_access.inner_scale_milli_meter_1).map_err(|e| Error::ScaleMilliMeter1Error(e))?;
+                            let state_scale_milli_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_milli_meter_10, main_access.inner_scale_milli_meter_10).map_err(|e| Error::ScaleMilliMeter10Error(e))?;
+                            let state_scale_milli_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_milli_meter_100, main_access.inner_scale_milli_meter_100).map_err(|e| Error::ScaleMilliMeter100Error(e))?;
+                            let state_scale_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_meter_1, main_access.inner_scale_meter_1).map_err(|e| Error::ScaleMeter1Error(e))?;
+                            let state_scale_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_meter_10, main_access.inner_scale_meter_10).map_err(|e| Error::ScaleMeter10Error(e))?;
+                            let state_scale_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_meter_100, main_access.inner_scale_meter_100).map_err(|e| Error::ScaleMeter100Error(e))?;
+                            let state_scale_kilo_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_kilo_meter_1, main_access.inner_scale_kilo_meter_1).map_err(|e| Error::ScaleKiloMeter1Error(e))?;
+                            let state_scale_kilo_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_kilo_meter_10, main_access.inner_scale_kilo_meter_10).map_err(|e| Error::ScaleKiloMeter10Error(e))?;
+                            let state_scale_kilo_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_kilo_meter_100, main_access.inner_scale_kilo_meter_100).map_err(|e| Error::ScaleKiloMeter100Error(e))?;
+                            let state_scale_mega_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_mega_meter_1, main_access.inner_scale_mega_meter_1).map_err(|e| Error::ScaleMegaMeter1Error(e))?;
+                            let state_scale_mega_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_mega_meter_10, main_access.inner_scale_mega_meter_10).map_err(|e| Error::ScaleMegaMeter10Error(e))?;
+                            let state_scale_mega_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_mega_meter_100, main_access.inner_scale_mega_meter_100).map_err(|e| Error::ScaleMegaMeter100Error(e))?;
+                            let state_scale_giga_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_giga_meter_1, main_access.inner_scale_giga_meter_1).map_err(|e| Error::ScaleGigaMeter1Error(e))?;
+                            let state_scale_giga_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_giga_meter_10, main_access.inner_scale_giga_meter_10).map_err(|e| Error::ScaleGigaMeter10Error(e))?;
+                            let state_scale_giga_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_giga_meter_100, main_access.inner_scale_giga_meter_100).map_err(|e| Error::ScaleGigaMeter100Error(e))?;
+                            let state_scale_tera_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_tera_meter_1, main_access.inner_scale_tera_meter_1).map_err(|e| Error::ScaleTeraMeter1Error(e))?;
+                            let state_scale_tera_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_tera_meter_10, main_access.inner_scale_tera_meter_10).map_err(|e| Error::ScaleTeraMeter10Error(e))?;
+                            let state_scale_tera_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_tera_meter_100, main_access.inner_scale_tera_meter_100).map_err(|e| Error::ScaleTeraMeter100Error(e))?;
+                            let state_scale_peta_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_peta_meter_1, main_access.inner_scale_peta_meter_1).map_err(|e| Error::ScalePetaMeter1Error(e))?;
+                            let state_scale_peta_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_peta_meter_10, main_access.inner_scale_peta_meter_10).map_err(|e| Error::ScalePetaMeter10Error(e))?;
+                            let state_scale_peta_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_peta_meter_100, main_access.inner_scale_peta_meter_100).map_err(|e| Error::ScalePetaMeter100Error(e))?;
+                            let state_scale_exa_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_exa_meter_1, main_access.inner_scale_exa_meter_1).map_err(|e| Error::ScaleExaMeter1Error(e))?;
+                            let state_scale_exa_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_exa_meter_10, main_access.inner_scale_exa_meter_10).map_err(|e| Error::ScaleExaMeter10Error(e))?;
+                            let state_scale_exa_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_exa_meter_100, main_access.inner_scale_exa_meter_100).map_err(|e| Error::ScaleExaMeter100Error(e))?;
+                            let state_scale_zetta_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_zetta_meter_1, main_access.inner_scale_zetta_meter_1).map_err(|e| Error::ScaleZettaMeter1Error(e))?;
+                            let state_scale_zetta_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_zetta_meter_10, main_access.inner_scale_zetta_meter_10).map_err(|e| Error::ScaleZettaMeter10Error(e))?;
+                            let state_scale_zetta_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_zetta_meter_100, main_access.inner_scale_zetta_meter_100).map_err(|e| Error::ScaleZettaMeter100Error(e))?;
+                            let state_scale_yotta_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_yotta_meter_1, main_access.inner_scale_yotta_meter_1).map_err(|e| Error::ScaleYottaMeter1Error(e))?;
+                            let state_scale_yotta_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_yotta_meter_10, main_access.inner_scale_yotta_meter_10).map_err(|e| Error::ScaleYottaMeter10Error(e))?;
+                            let state_scale_yotta_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_yotta_meter_100, main_access.inner_scale_yotta_meter_100).map_err(|e| Error::ScaleYottaMeter100Error(e))?;
+                            let state_scale_ronna_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_ronna_meter_1, main_access.inner_scale_ronna_meter_1).map_err(|e| Error::ScaleRonnaMeter1Error(e))?;
+                            let state_scale_ronna_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_ronna_meter_10, main_access.inner_scale_ronna_meter_10).map_err(|e| Error::ScaleRonnaMeter10Error(e))?;
+                            let state_scale_ronna_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_ronna_meter_100, main_access.inner_scale_ronna_meter_100).map_err(|e| Error::ScaleRonnaMeter100Error(e))?;
+                            let state_scale_quetta_meter_1 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quetta_meter_1, main_access.inner_scale_quetta_meter_1).map_err(|e| Error::ScaleQuettaMeter1Error(e))?;
+                            let state_scale_quetta_meter_10 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quetta_meter_10, main_access.inner_scale_quetta_meter_10).map_err(|e| Error::ScaleQuettaMeter10Error(e))?;
+                            let state_scale_quetta_meter_100 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quetta_meter_100, main_access.inner_scale_quetta_meter_100).map_err(|e| Error::ScaleQuettaMeter100Error(e))?;
+                            let state_scale_quetta_meter_1000 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quetta_meter_1000, main_access.inner_scale_quetta_meter_1000).map_err(|e| Error::ScaleQuettaMeter1000Error(e))?;
+                            let state_scale_quetta_meter_10000 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quetta_meter_10000, main_access.inner_scale_quetta_meter_10000).map_err(|e| Error::ScaleQuettaMeter10000Error(e))?;
+                            let state_scale_quetta_meter_100000 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quetta_meter_100000, main_access.inner_scale_quetta_meter_100000).map_err(|e| Error::ScaleQuettaMeter100000Error(e))?;
+                            
+                            Ok(State {
+                                inner_scale_quecto_meter_000001: Progress::Unfinished(state_scale_quecto_meter_000001),
+                                inner_scale_quecto_meter_00001: Progress::Unfinished(state_scale_quecto_meter_00001),
+                                inner_scale_quecto_meter_0001: Progress::Unfinished(state_scale_quecto_meter_0001),
+                                inner_scale_quecto_meter_001: Progress::Unfinished(state_scale_quecto_meter_001),
+                                inner_scale_quecto_meter_01: Progress::Unfinished(state_scale_quecto_meter_01),
+                                inner_scale_quecto_meter_1: Progress::Unfinished(state_scale_quecto_meter_1),
+                                inner_scale_quecto_meter_10: Progress::Unfinished(state_scale_quecto_meter_10),
+                                inner_scale_quecto_meter_100: Progress::Unfinished(state_scale_quecto_meter_100),
+                                inner_scale_ronto_meter_1: Progress::Unfinished(state_scale_ronto_meter_1),
+                                inner_scale_ronto_meter_10: Progress::Unfinished(state_scale_ronto_meter_10),
+                                inner_scale_ronto_meter_100: Progress::Unfinished(state_scale_ronto_meter_100),
+                                inner_scale_yocto_meter_1: Progress::Unfinished(state_scale_yocto_meter_1),
+                                inner_scale_yocto_meter_10: Progress::Unfinished(state_scale_yocto_meter_10),
+                                inner_scale_yocto_meter_100: Progress::Unfinished(state_scale_yocto_meter_100),
+                                inner_scale_zepto_meter_1: Progress::Unfinished(state_scale_zepto_meter_1),
+                                inner_scale_zepto_meter_10: Progress::Unfinished(state_scale_zepto_meter_10),
+                                inner_scale_zepto_meter_100: Progress::Unfinished(state_scale_zepto_meter_100),
+                                inner_scale_atto_meter_1: Progress::Unfinished(state_scale_atto_meter_1),
+                                inner_scale_atto_meter_10: Progress::Unfinished(state_scale_atto_meter_10),
+                                inner_scale_atto_meter_100: Progress::Unfinished(state_scale_atto_meter_100),
+                                inner_scale_femto_meter_1: Progress::Unfinished(state_scale_femto_meter_1),
+                                inner_scale_femto_meter_10: Progress::Unfinished(state_scale_femto_meter_10),
+                                inner_scale_femto_meter_100: Progress::Unfinished(state_scale_femto_meter_100),
+                                inner_scale_pico_meter_1: Progress::Unfinished(state_scale_pico_meter_1),
+                                inner_scale_pico_meter_10: Progress::Unfinished(state_scale_pico_meter_10),
+                                inner_scale_pico_meter_100: Progress::Unfinished(state_scale_pico_meter_100),
+                                inner_scale_nano_meter_1: Progress::Unfinished(state_scale_nano_meter_1),
+                                inner_scale_nano_meter_10: Progress::Unfinished(state_scale_nano_meter_10),
+                                inner_scale_nano_meter_100: Progress::Unfinished(state_scale_nano_meter_100),
+                                inner_scale_micro_meter_1: Progress::Unfinished(state_scale_micro_meter_1),
+                                inner_scale_micro_meter_10: Progress::Unfinished(state_scale_micro_meter_10),
+                                inner_scale_micro_meter_100: Progress::Unfinished(state_scale_micro_meter_100),
+                                inner_scale_milli_meter_1: Progress::Unfinished(state_scale_milli_meter_1),
+                                inner_scale_milli_meter_10: Progress::Unfinished(state_scale_milli_meter_10),
+                                inner_scale_milli_meter_100: Progress::Unfinished(state_scale_milli_meter_100),
+                                inner_scale_meter_1: Progress::Unfinished(state_scale_meter_1),
+                                inner_scale_meter_10: Progress::Unfinished(state_scale_meter_10),
+                                inner_scale_meter_100: Progress::Unfinished(state_scale_meter_100),
+                                inner_scale_kilo_meter_1: Progress::Unfinished(state_scale_kilo_meter_1),
+                                inner_scale_kilo_meter_10: Progress::Unfinished(state_scale_kilo_meter_10),
+                                inner_scale_kilo_meter_100: Progress::Unfinished(state_scale_kilo_meter_100),
+                                inner_scale_mega_meter_1: Progress::Unfinished(state_scale_mega_meter_1),
+                                inner_scale_mega_meter_10: Progress::Unfinished(state_scale_mega_meter_10),
+                                inner_scale_mega_meter_100: Progress::Unfinished(state_scale_mega_meter_100),
+                                inner_scale_giga_meter_1: Progress::Unfinished(state_scale_giga_meter_1),
+                                inner_scale_giga_meter_10: Progress::Unfinished(state_scale_giga_meter_10),
+                                inner_scale_giga_meter_100: Progress::Unfinished(state_scale_giga_meter_100),
+                                inner_scale_tera_meter_1: Progress::Unfinished(state_scale_tera_meter_1),
+                                inner_scale_tera_meter_10: Progress::Unfinished(state_scale_tera_meter_10),
+                                inner_scale_tera_meter_100: Progress::Unfinished(state_scale_tera_meter_100),
+                                inner_scale_peta_meter_1: Progress::Unfinished(state_scale_peta_meter_1),
+                                inner_scale_peta_meter_10: Progress::Unfinished(state_scale_peta_meter_10),
+                                inner_scale_peta_meter_100: Progress::Unfinished(state_scale_peta_meter_100),
+                                inner_scale_exa_meter_1: Progress::Unfinished(state_scale_exa_meter_1),
+                                inner_scale_exa_meter_10: Progress::Unfinished(state_scale_exa_meter_10),
+                                inner_scale_exa_meter_100: Progress::Unfinished(state_scale_exa_meter_100),
+                                inner_scale_zetta_meter_1: Progress::Unfinished(state_scale_zetta_meter_1),
+                                inner_scale_zetta_meter_10: Progress::Unfinished(state_scale_zetta_meter_10),
+                                inner_scale_zetta_meter_100: Progress::Unfinished(state_scale_zetta_meter_100),
+                                inner_scale_yotta_meter_1: Progress::Unfinished(state_scale_yotta_meter_1),
+                                inner_scale_yotta_meter_10: Progress::Unfinished(state_scale_yotta_meter_10),
+                                inner_scale_yotta_meter_100: Progress::Unfinished(state_scale_yotta_meter_100),
+                                inner_scale_ronna_meter_1: Progress::Unfinished(state_scale_ronna_meter_1),
+                                inner_scale_ronna_meter_10: Progress::Unfinished(state_scale_ronna_meter_10),
+                                inner_scale_ronna_meter_100: Progress::Unfinished(state_scale_ronna_meter_100),
+                                inner_scale_quetta_meter_1: Progress::Unfinished(state_scale_quetta_meter_1),
+                                inner_scale_quetta_meter_10: Progress::Unfinished(state_scale_quetta_meter_10),
+                                inner_scale_quetta_meter_100: Progress::Unfinished(state_scale_quetta_meter_100),
+                                inner_scale_quetta_meter_1000: Progress::Unfinished(state_scale_quetta_meter_1000),
+                                inner_scale_quetta_meter_10000: Progress::Unfinished(state_scale_quetta_meter_10000),
+                                inner_scale_quetta_meter_100000: Progress::Unfinished(state_scale_quetta_meter_100000),
+                            })
                         }
 
                         fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
+                            let progress_scale_quecto_meter_000001 = match state.inner_scale_quecto_meter_000001 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_000001).map_err(|e| Error::ScaleQuectoMeter000001Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_00001 = match state.inner_scale_quecto_meter_00001 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_00001).map_err(|e| Error::ScaleQuectoMeter00001Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_0001 = match state.inner_scale_quecto_meter_0001 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_0001).map_err(|e| Error::ScaleQuectoMeter0001Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_001 = match state.inner_scale_quecto_meter_001 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_001).map_err(|e| Error::ScaleQuectoMeter001Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_01 = match state.inner_scale_quecto_meter_01 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_01).map_err(|e| Error::ScaleQuectoMeter01Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_1 = match state.inner_scale_quecto_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_1).map_err(|e| Error::ScaleQuectoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_10 = match state.inner_scale_quecto_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_10).map_err(|e| Error::ScaleQuectoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_100 = match state.inner_scale_quecto_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_100).map_err(|e| Error::ScaleQuectoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_ronto_meter_1 = match state.inner_scale_ronto_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_ronto_meter_1).map_err(|e| Error::ScaleRontoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_ronto_meter_10 = match state.inner_scale_ronto_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_ronto_meter_10).map_err(|e| Error::ScaleRontoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_ronto_meter_100 = match state.inner_scale_ronto_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_ronto_meter_100).map_err(|e| Error::ScaleRontoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_yocto_meter_1 = match state.inner_scale_yocto_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_yocto_meter_1).map_err(|e| Error::ScaleYoctoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_yocto_meter_10 = match state.inner_scale_yocto_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_yocto_meter_10).map_err(|e| Error::ScaleYoctoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_yocto_meter_100 = match state.inner_scale_yocto_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_yocto_meter_100).map_err(|e| Error::ScaleYoctoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_zepto_meter_1 = match state.inner_scale_zepto_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_zepto_meter_1).map_err(|e| Error::ScaleZeptoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_zepto_meter_10 = match state.inner_scale_zepto_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_zepto_meter_10).map_err(|e| Error::ScaleZeptoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_zepto_meter_100 = match state.inner_scale_zepto_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_zepto_meter_100).map_err(|e| Error::ScaleZeptoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_atto_meter_1 = match state.inner_scale_atto_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_atto_meter_1).map_err(|e| Error::ScaleAttoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_atto_meter_10 = match state.inner_scale_atto_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_atto_meter_10).map_err(|e| Error::ScaleAttoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_atto_meter_100 = match state.inner_scale_atto_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_atto_meter_100).map_err(|e| Error::ScaleAttoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_femto_meter_1 = match state.inner_scale_femto_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_femto_meter_1).map_err(|e| Error::ScaleFemtoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_femto_meter_10 = match state.inner_scale_femto_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_femto_meter_10).map_err(|e| Error::ScaleFemtoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_femto_meter_100 = match state.inner_scale_femto_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_femto_meter_100).map_err(|e| Error::ScaleFemtoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_pico_meter_1 = match state.inner_scale_pico_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_pico_meter_1).map_err(|e| Error::ScalePicoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_pico_meter_10 = match state.inner_scale_pico_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_pico_meter_10).map_err(|e| Error::ScalePicoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_pico_meter_100 = match state.inner_scale_pico_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_pico_meter_100).map_err(|e| Error::ScalePicoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_nano_meter_1 = match state.inner_scale_nano_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_nano_meter_1).map_err(|e| Error::ScaleNanoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_nano_meter_10 = match state.inner_scale_nano_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_nano_meter_10).map_err(|e| Error::ScaleNanoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_nano_meter_100 = match state.inner_scale_nano_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_nano_meter_100).map_err(|e| Error::ScaleNanoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_micro_meter_1 = match state.inner_scale_micro_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_micro_meter_1).map_err(|e| Error::ScaleMicroMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_micro_meter_10 = match state.inner_scale_micro_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_micro_meter_10).map_err(|e| Error::ScaleMicroMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_micro_meter_100 = match state.inner_scale_micro_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_micro_meter_100).map_err(|e| Error::ScaleMicroMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_milli_meter_1 = match state.inner_scale_milli_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_milli_meter_1).map_err(|e| Error::ScaleMilliMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_milli_meter_10 = match state.inner_scale_milli_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_milli_meter_10).map_err(|e| Error::ScaleMilliMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_milli_meter_100 = match state.inner_scale_milli_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_milli_meter_100).map_err(|e| Error::ScaleMilliMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_meter_1 = match state.inner_scale_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_meter_1).map_err(|e| Error::ScaleMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_meter_10 = match state.inner_scale_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_meter_10).map_err(|e| Error::ScaleMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_meter_100 = match state.inner_scale_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_meter_100).map_err(|e| Error::ScaleMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_kilo_meter_1 = match state.inner_scale_kilo_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_kilo_meter_1).map_err(|e| Error::ScaleKiloMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_kilo_meter_10 = match state.inner_scale_kilo_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_kilo_meter_10).map_err(|e| Error::ScaleKiloMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_kilo_meter_100 = match state.inner_scale_kilo_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_kilo_meter_100).map_err(|e| Error::ScaleKiloMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_mega_meter_1 = match state.inner_scale_mega_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_mega_meter_1).map_err(|e| Error::ScaleMegaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_mega_meter_10 = match state.inner_scale_mega_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_mega_meter_10).map_err(|e| Error::ScaleMegaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_mega_meter_100 = match state.inner_scale_mega_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_mega_meter_100).map_err(|e| Error::ScaleMegaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_giga_meter_1 = match state.inner_scale_giga_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_giga_meter_1).map_err(|e| Error::ScaleGigaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_giga_meter_10 = match state.inner_scale_giga_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_giga_meter_10).map_err(|e| Error::ScaleGigaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_giga_meter_100 = match state.inner_scale_giga_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_giga_meter_100).map_err(|e| Error::ScaleGigaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_tera_meter_1 = match state.inner_scale_tera_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_tera_meter_1).map_err(|e| Error::ScaleTeraMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_tera_meter_10 = match state.inner_scale_tera_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_tera_meter_10).map_err(|e| Error::ScaleTeraMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_tera_meter_100 = match state.inner_scale_tera_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_tera_meter_100).map_err(|e| Error::ScaleTeraMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_peta_meter_1 = match state.inner_scale_peta_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_peta_meter_1).map_err(|e| Error::ScalePetaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_peta_meter_10 = match state.inner_scale_peta_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_peta_meter_10).map_err(|e| Error::ScalePetaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_peta_meter_100 = match state.inner_scale_peta_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_peta_meter_100).map_err(|e| Error::ScalePetaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_exa_meter_1 = match state.inner_scale_exa_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_exa_meter_1).map_err(|e| Error::ScaleExaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_exa_meter_10 = match state.inner_scale_exa_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_exa_meter_10).map_err(|e| Error::ScaleExaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_exa_meter_100 = match state.inner_scale_exa_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_exa_meter_100).map_err(|e| Error::ScaleExaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_zetta_meter_1 = match state.inner_scale_zetta_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_zetta_meter_1).map_err(|e| Error::ScaleZettaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_zetta_meter_10 = match state.inner_scale_zetta_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_zetta_meter_10).map_err(|e| Error::ScaleZettaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_zetta_meter_100 = match state.inner_scale_zetta_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_zetta_meter_100).map_err(|e| Error::ScaleZettaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_yotta_meter_1 = match state.inner_scale_yotta_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_yotta_meter_1).map_err(|e| Error::ScaleYottaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_yotta_meter_10 = match state.inner_scale_yotta_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_yotta_meter_10).map_err(|e| Error::ScaleYottaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_yotta_meter_100 = match state.inner_scale_yotta_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_yotta_meter_100).map_err(|e| Error::ScaleYottaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_ronna_meter_1 = match state.inner_scale_ronna_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_ronna_meter_1).map_err(|e| Error::ScaleRonnaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_ronna_meter_10 = match state.inner_scale_ronna_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_ronna_meter_10).map_err(|e| Error::ScaleRonnaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_ronna_meter_100 = match state.inner_scale_ronna_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_ronna_meter_100).map_err(|e| Error::ScaleRonnaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quetta_meter_1 = match state.inner_scale_quetta_meter_1 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quetta_meter_1).map_err(|e| Error::ScaleQuettaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quetta_meter_10 = match state.inner_scale_quetta_meter_10 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quetta_meter_10).map_err(|e| Error::ScaleQuettaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quetta_meter_100 = match state.inner_scale_quetta_meter_100 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quetta_meter_100).map_err(|e| Error::ScaleQuettaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quetta_meter_1000 = match state.inner_scale_quetta_meter_1000 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quetta_meter_1000).map_err(|e| Error::ScaleQuettaMeter1000Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quetta_meter_10000 = match state.inner_scale_quetta_meter_10000 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quetta_meter_10000).map_err(|e| Error::ScaleQuettaMeter10000Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quetta_meter_100000 = match state.inner_scale_quetta_meter_100000 {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quetta_meter_100000).map_err(|e| Error::ScaleQuettaMeter100000Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            
+                            if progress_scale_quecto_meter_000001.is_finished()
+                                && progress_scale_quecto_meter_00001.is_finished()
+                                && progress_scale_quecto_meter_0001.is_finished()
+                                && progress_scale_quecto_meter_001.is_finished()
+                                && progress_scale_quecto_meter_01.is_finished()
+                                && progress_scale_quecto_meter_1.is_finished()
+                                && progress_scale_quecto_meter_10.is_finished()
+                                && progress_scale_quecto_meter_100.is_finished()
+                                && progress_scale_ronto_meter_1.is_finished()
+                                && progress_scale_ronto_meter_10.is_finished()
+                                && progress_scale_ronto_meter_100.is_finished()
+                                && progress_scale_yocto_meter_1.is_finished()
+                                && progress_scale_yocto_meter_10.is_finished()
+                                && progress_scale_yocto_meter_100.is_finished()
+                                && progress_scale_zepto_meter_1.is_finished()
+                                && progress_scale_zepto_meter_10.is_finished()
+                                && progress_scale_zepto_meter_100.is_finished()
+                                && progress_scale_atto_meter_1.is_finished()
+                                && progress_scale_atto_meter_10.is_finished()
+                                && progress_scale_atto_meter_100.is_finished()
+                                && progress_scale_femto_meter_1.is_finished()
+                                && progress_scale_femto_meter_10.is_finished()
+                                && progress_scale_femto_meter_100.is_finished()
+                                && progress_scale_pico_meter_1.is_finished()
+                                && progress_scale_pico_meter_10.is_finished()
+                                && progress_scale_pico_meter_100.is_finished()
+                                && progress_scale_nano_meter_1.is_finished()
+                                && progress_scale_nano_meter_10.is_finished()
+                                && progress_scale_nano_meter_100.is_finished()
+                                && progress_scale_micro_meter_1.is_finished()
+                                && progress_scale_micro_meter_10.is_finished()
+                                && progress_scale_micro_meter_100.is_finished()
+                                && progress_scale_milli_meter_1.is_finished()
+                                && progress_scale_milli_meter_10.is_finished()
+                                && progress_scale_milli_meter_100.is_finished()
+                                && progress_scale_meter_1.is_finished()
+                                && progress_scale_meter_10.is_finished()
+                                && progress_scale_meter_100.is_finished()
+                                && progress_scale_kilo_meter_1.is_finished()
+                                && progress_scale_kilo_meter_10.is_finished()
+                                && progress_scale_kilo_meter_100.is_finished()
+                                && progress_scale_mega_meter_1.is_finished()
+                                && progress_scale_mega_meter_10.is_finished()
+                                && progress_scale_mega_meter_100.is_finished()
+                                && progress_scale_giga_meter_1.is_finished()
+                                && progress_scale_giga_meter_10.is_finished()
+                                && progress_scale_giga_meter_100.is_finished()
+                                && progress_scale_tera_meter_1.is_finished()
+                                && progress_scale_tera_meter_10.is_finished()
+                                && progress_scale_tera_meter_100.is_finished()
+                                && progress_scale_peta_meter_1.is_finished()
+                                && progress_scale_peta_meter_10.is_finished()
+                                && progress_scale_peta_meter_100.is_finished()
+                                && progress_scale_exa_meter_1.is_finished()
+                                && progress_scale_exa_meter_10.is_finished()
+                                && progress_scale_exa_meter_100.is_finished()
+                                && progress_scale_zetta_meter_1.is_finished()
+                                && progress_scale_zetta_meter_10.is_finished()
+                                && progress_scale_zetta_meter_100.is_finished()
+                                && progress_scale_yotta_meter_1.is_finished()
+                                && progress_scale_yotta_meter_10.is_finished()
+                                && progress_scale_yotta_meter_100.is_finished()
+                                && progress_scale_ronna_meter_1.is_finished()
+                                && progress_scale_ronna_meter_10.is_finished()
+                                && progress_scale_ronna_meter_100.is_finished()
+                                && progress_scale_quetta_meter_1.is_finished()
+                                && progress_scale_quetta_meter_10.is_finished()
+                                && progress_scale_quetta_meter_100.is_finished()
+                                && progress_scale_quetta_meter_1000.is_finished()
+                                && progress_scale_quetta_meter_10000.is_finished()
+                                && progress_scale_quetta_meter_100000.is_finished()
+                            {
+                                return Ok(Done(Output {
+                                    inner_scale_quecto_meter_000001: progress_scale_quecto_meter_000001.unwrap_finished(),
+                                    inner_scale_quecto_meter_00001: progress_scale_quecto_meter_00001.unwrap_finished(),
+                                    inner_scale_quecto_meter_0001: progress_scale_quecto_meter_0001.unwrap_finished(),
+                                    inner_scale_quecto_meter_001: progress_scale_quecto_meter_001.unwrap_finished(),
+                                    inner_scale_quecto_meter_01: progress_scale_quecto_meter_01.unwrap_finished(),
+                                    inner_scale_quecto_meter_1: progress_scale_quecto_meter_1.unwrap_finished(),
+                                    inner_scale_quecto_meter_10: progress_scale_quecto_meter_10.unwrap_finished(),
+                                    inner_scale_quecto_meter_100: progress_scale_quecto_meter_100.unwrap_finished(),
+                                    inner_scale_ronto_meter_1: progress_scale_ronto_meter_1.unwrap_finished(),
+                                    inner_scale_ronto_meter_10: progress_scale_ronto_meter_10.unwrap_finished(),
+                                    inner_scale_ronto_meter_100: progress_scale_ronto_meter_100.unwrap_finished(),
+                                    inner_scale_yocto_meter_1: progress_scale_yocto_meter_1.unwrap_finished(),
+                                    inner_scale_yocto_meter_10: progress_scale_yocto_meter_10.unwrap_finished(),
+                                    inner_scale_yocto_meter_100: progress_scale_yocto_meter_100.unwrap_finished(),
+                                    inner_scale_zepto_meter_1: progress_scale_zepto_meter_1.unwrap_finished(),
+                                    inner_scale_zepto_meter_10: progress_scale_zepto_meter_10.unwrap_finished(),
+                                    inner_scale_zepto_meter_100: progress_scale_zepto_meter_100.unwrap_finished(),
+                                    inner_scale_atto_meter_1: progress_scale_atto_meter_1.unwrap_finished(),
+                                    inner_scale_atto_meter_10: progress_scale_atto_meter_10.unwrap_finished(),
+                                    inner_scale_atto_meter_100: progress_scale_atto_meter_100.unwrap_finished(),
+                                    inner_scale_femto_meter_1: progress_scale_femto_meter_1.unwrap_finished(),
+                                    inner_scale_femto_meter_10: progress_scale_femto_meter_10.unwrap_finished(),
+                                    inner_scale_femto_meter_100: progress_scale_femto_meter_100.unwrap_finished(),
+                                    inner_scale_pico_meter_1: progress_scale_pico_meter_1.unwrap_finished(),
+                                    inner_scale_pico_meter_10: progress_scale_pico_meter_10.unwrap_finished(),
+                                    inner_scale_pico_meter_100: progress_scale_pico_meter_100.unwrap_finished(),
+                                    inner_scale_nano_meter_1: progress_scale_nano_meter_1.unwrap_finished(),
+                                    inner_scale_nano_meter_10: progress_scale_nano_meter_10.unwrap_finished(),
+                                    inner_scale_nano_meter_100: progress_scale_nano_meter_100.unwrap_finished(),
+                                    inner_scale_micro_meter_1: progress_scale_micro_meter_1.unwrap_finished(),
+                                    inner_scale_micro_meter_10: progress_scale_micro_meter_10.unwrap_finished(),
+                                    inner_scale_micro_meter_100: progress_scale_micro_meter_100.unwrap_finished(),
+                                    inner_scale_milli_meter_1: progress_scale_milli_meter_1.unwrap_finished(),
+                                    inner_scale_milli_meter_10: progress_scale_milli_meter_10.unwrap_finished(),
+                                    inner_scale_milli_meter_100: progress_scale_milli_meter_100.unwrap_finished(),
+                                    inner_scale_meter_1: progress_scale_meter_1.unwrap_finished(),
+                                    inner_scale_meter_10: progress_scale_meter_10.unwrap_finished(),
+                                    inner_scale_meter_100: progress_scale_meter_100.unwrap_finished(),
+                                    inner_scale_kilo_meter_1: progress_scale_kilo_meter_1.unwrap_finished(),
+                                    inner_scale_kilo_meter_10: progress_scale_kilo_meter_10.unwrap_finished(),
+                                    inner_scale_kilo_meter_100: progress_scale_kilo_meter_100.unwrap_finished(),
+                                    inner_scale_mega_meter_1: progress_scale_mega_meter_1.unwrap_finished(),
+                                    inner_scale_mega_meter_10: progress_scale_mega_meter_10.unwrap_finished(),
+                                    inner_scale_mega_meter_100: progress_scale_mega_meter_100.unwrap_finished(),
+                                    inner_scale_giga_meter_1: progress_scale_giga_meter_1.unwrap_finished(),
+                                    inner_scale_giga_meter_10: progress_scale_giga_meter_10.unwrap_finished(),
+                                    inner_scale_giga_meter_100: progress_scale_giga_meter_100.unwrap_finished(),
+                                    inner_scale_tera_meter_1: progress_scale_tera_meter_1.unwrap_finished(),
+                                    inner_scale_tera_meter_10: progress_scale_tera_meter_10.unwrap_finished(),
+                                    inner_scale_tera_meter_100: progress_scale_tera_meter_100.unwrap_finished(),
+                                    inner_scale_peta_meter_1: progress_scale_peta_meter_1.unwrap_finished(),
+                                    inner_scale_peta_meter_10: progress_scale_peta_meter_10.unwrap_finished(),
+                                    inner_scale_peta_meter_100: progress_scale_peta_meter_100.unwrap_finished(),
+                                    inner_scale_exa_meter_1: progress_scale_exa_meter_1.unwrap_finished(),
+                                    inner_scale_exa_meter_10: progress_scale_exa_meter_10.unwrap_finished(),
+                                    inner_scale_exa_meter_100: progress_scale_exa_meter_100.unwrap_finished(),
+                                    inner_scale_zetta_meter_1: progress_scale_zetta_meter_1.unwrap_finished(),
+                                    inner_scale_zetta_meter_10: progress_scale_zetta_meter_10.unwrap_finished(),
+                                    inner_scale_zetta_meter_100: progress_scale_zetta_meter_100.unwrap_finished(),
+                                    inner_scale_yotta_meter_1: progress_scale_yotta_meter_1.unwrap_finished(),
+                                    inner_scale_yotta_meter_10: progress_scale_yotta_meter_10.unwrap_finished(),
+                                    inner_scale_yotta_meter_100: progress_scale_yotta_meter_100.unwrap_finished(),
+                                    inner_scale_ronna_meter_1: progress_scale_ronna_meter_1.unwrap_finished(),
+                                    inner_scale_ronna_meter_10: progress_scale_ronna_meter_10.unwrap_finished(),
+                                    inner_scale_ronna_meter_100: progress_scale_ronna_meter_100.unwrap_finished(),
+                                    inner_scale_quetta_meter_1: progress_scale_quetta_meter_1.unwrap_finished(),
+                                    inner_scale_quetta_meter_10: progress_scale_quetta_meter_10.unwrap_finished(),
+                                    inner_scale_quetta_meter_100: progress_scale_quetta_meter_100.unwrap_finished(),
+                                    inner_scale_quetta_meter_1000: progress_scale_quetta_meter_1000.unwrap_finished(),
+                                    inner_scale_quetta_meter_10000: progress_scale_quetta_meter_10000.unwrap_finished(),
+                                    inner_scale_quetta_meter_100000: progress_scale_quetta_meter_100000.unwrap_finished(),
+                                }));
+                            }
+                            
+                            Ok(Wait(State {
+                                inner_scale_quecto_meter_000001: progress_scale_quecto_meter_000001,
+                                inner_scale_quecto_meter_00001: progress_scale_quecto_meter_00001,
+                                inner_scale_quecto_meter_0001: progress_scale_quecto_meter_0001,
+                                inner_scale_quecto_meter_001: progress_scale_quecto_meter_001,
+                                inner_scale_quecto_meter_01: progress_scale_quecto_meter_01,
+                                inner_scale_quecto_meter_1: progress_scale_quecto_meter_1,
+                                inner_scale_quecto_meter_10: progress_scale_quecto_meter_10,
+                                inner_scale_quecto_meter_100: progress_scale_quecto_meter_100,
+                                inner_scale_ronto_meter_1: progress_scale_ronto_meter_1,
+                                inner_scale_ronto_meter_10: progress_scale_ronto_meter_10,
+                                inner_scale_ronto_meter_100: progress_scale_ronto_meter_100,
+                                inner_scale_yocto_meter_1: progress_scale_yocto_meter_1,
+                                inner_scale_yocto_meter_10: progress_scale_yocto_meter_10,
+                                inner_scale_yocto_meter_100: progress_scale_yocto_meter_100,
+                                inner_scale_zepto_meter_1: progress_scale_zepto_meter_1,
+                                inner_scale_zepto_meter_10: progress_scale_zepto_meter_10,
+                                inner_scale_zepto_meter_100: progress_scale_zepto_meter_100,
+                                inner_scale_atto_meter_1: progress_scale_atto_meter_1,
+                                inner_scale_atto_meter_10: progress_scale_atto_meter_10,
+                                inner_scale_atto_meter_100: progress_scale_atto_meter_100,
+                                inner_scale_femto_meter_1: progress_scale_femto_meter_1,
+                                inner_scale_femto_meter_10: progress_scale_femto_meter_10,
+                                inner_scale_femto_meter_100: progress_scale_femto_meter_100,
+                                inner_scale_pico_meter_1: progress_scale_pico_meter_1,
+                                inner_scale_pico_meter_10: progress_scale_pico_meter_10,
+                                inner_scale_pico_meter_100: progress_scale_pico_meter_100,
+                                inner_scale_nano_meter_1: progress_scale_nano_meter_1,
+                                inner_scale_nano_meter_10: progress_scale_nano_meter_10,
+                                inner_scale_nano_meter_100: progress_scale_nano_meter_100,
+                                inner_scale_micro_meter_1: progress_scale_micro_meter_1,
+                                inner_scale_micro_meter_10: progress_scale_micro_meter_10,
+                                inner_scale_micro_meter_100: progress_scale_micro_meter_100,
+                                inner_scale_milli_meter_1: progress_scale_milli_meter_1,
+                                inner_scale_milli_meter_10: progress_scale_milli_meter_10,
+                                inner_scale_milli_meter_100: progress_scale_milli_meter_100,
+                                inner_scale_meter_1: progress_scale_meter_1,
+                                inner_scale_meter_10: progress_scale_meter_10,
+                                inner_scale_meter_100: progress_scale_meter_100,
+                                inner_scale_kilo_meter_1: progress_scale_kilo_meter_1,
+                                inner_scale_kilo_meter_10: progress_scale_kilo_meter_10,
+                                inner_scale_kilo_meter_100: progress_scale_kilo_meter_100,
+                                inner_scale_mega_meter_1: progress_scale_mega_meter_1,
+                                inner_scale_mega_meter_10: progress_scale_mega_meter_10,
+                                inner_scale_mega_meter_100: progress_scale_mega_meter_100,
+                                inner_scale_giga_meter_1: progress_scale_giga_meter_1,
+                                inner_scale_giga_meter_10: progress_scale_giga_meter_10,
+                                inner_scale_giga_meter_100: progress_scale_giga_meter_100,
+                                inner_scale_tera_meter_1: progress_scale_tera_meter_1,
+                                inner_scale_tera_meter_10: progress_scale_tera_meter_10,
+                                inner_scale_tera_meter_100: progress_scale_tera_meter_100,
+                                inner_scale_peta_meter_1: progress_scale_peta_meter_1,
+                                inner_scale_peta_meter_10: progress_scale_peta_meter_10,
+                                inner_scale_peta_meter_100: progress_scale_peta_meter_100,
+                                inner_scale_exa_meter_1: progress_scale_exa_meter_1,
+                                inner_scale_exa_meter_10: progress_scale_exa_meter_10,
+                                inner_scale_exa_meter_100: progress_scale_exa_meter_100,
+                                inner_scale_zetta_meter_1: progress_scale_zetta_meter_1,
+                                inner_scale_zetta_meter_10: progress_scale_zetta_meter_10,
+                                inner_scale_zetta_meter_100: progress_scale_zetta_meter_100,
+                                inner_scale_yotta_meter_1: progress_scale_yotta_meter_1,
+                                inner_scale_yotta_meter_10: progress_scale_yotta_meter_10,
+                                inner_scale_yotta_meter_100: progress_scale_yotta_meter_100,
+                                inner_scale_ronna_meter_1: progress_scale_ronna_meter_1,
+                                inner_scale_ronna_meter_10: progress_scale_ronna_meter_10,
+                                inner_scale_ronna_meter_100: progress_scale_ronna_meter_100,
+                                inner_scale_quetta_meter_1: progress_scale_quetta_meter_1,
+                                inner_scale_quetta_meter_10: progress_scale_quetta_meter_10,
+                                inner_scale_quetta_meter_100: progress_scale_quetta_meter_100,
+                                inner_scale_quetta_meter_1000: progress_scale_quetta_meter_1000,
+                                inner_scale_quetta_meter_10000: progress_scale_quetta_meter_10000,
+                                inner_scale_quetta_meter_100000: progress_scale_quetta_meter_100000,
+                            }))
                         }
                     ]
                 }
@@ -416,6 +1068,7 @@ define_workflow_mod_OLD! {
                     run_ecs_while as find_and_despawn_and_wait_run_ecs_while,
                 };
                 use crate::usf::scale::*;
+                use crate::utils::progress::Progress;
             },
             user_items: {
             },
@@ -569,81 +1222,152 @@ define_workflow_mod_OLD! {
                             inner_scale_quetta_meter_100000: FindAndDespawnAndWaitInput,
                         }
                         struct State {
-                            inner_scale_quecto_meter_000001: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_quecto_meter_00001: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_quecto_meter_0001: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_quecto_meter_001: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_quecto_meter_01: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_quecto_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_quecto_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_quecto_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_ronto_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_ronto_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_ronto_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_yocto_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_yocto_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_yocto_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_zepto_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_zepto_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_zepto_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_atto_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_atto_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_atto_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_femto_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_femto_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_femto_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_pico_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_pico_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_pico_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_nano_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_nano_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_nano_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_micro_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_micro_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_micro_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_milli_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_milli_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_milli_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_kilo_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_kilo_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_kilo_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_mega_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_mega_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_mega_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_giga_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_giga_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_giga_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_tera_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_tera_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_tera_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_peta_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_peta_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_peta_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_exa_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_exa_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_exa_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_zetta_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_zetta_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_zetta_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_yotta_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_yotta_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_yotta_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_ronna_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_ronna_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_ronna_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_quetta_meter_1: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_quetta_meter_10: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_quetta_meter_100: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_quetta_meter_1000: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_quetta_meter_10000: Option<FindAndDespawnAndWaitState>,
-                            inner_scale_quetta_meter_100000: Option<FindAndDespawnAndWaitState>,
+                            inner_scale_quecto_meter_000001: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_quecto_meter_00001: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_quecto_meter_0001: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_quecto_meter_001: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_quecto_meter_01: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_quecto_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_quecto_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_quecto_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_ronto_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_ronto_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_ronto_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_yocto_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_yocto_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_yocto_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_zepto_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_zepto_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_zepto_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_atto_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_atto_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_atto_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_femto_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_femto_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_femto_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_pico_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_pico_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_pico_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_nano_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_nano_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_nano_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_micro_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_micro_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_micro_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_milli_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_milli_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_milli_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_kilo_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_kilo_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_kilo_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_mega_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_mega_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_mega_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_giga_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_giga_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_giga_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_tera_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_tera_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_tera_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_peta_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_peta_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_peta_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_exa_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_exa_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_exa_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_zetta_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_zetta_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_zetta_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_yotta_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_yotta_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_yotta_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_ronna_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_ronna_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_ronna_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_quetta_meter_1: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_quetta_meter_10: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_quetta_meter_100: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_quetta_meter_1000: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_quetta_meter_10000: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner_scale_quetta_meter_100000: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
                         }
                         struct Output {
-                            despawned_chunk_entities: Vec<Entity>
+                            inner_scale_quecto_meter_000001: FindAndDespawnAndWaitOutput,
+                            inner_scale_quecto_meter_00001: FindAndDespawnAndWaitOutput,
+                            inner_scale_quecto_meter_0001: FindAndDespawnAndWaitOutput,
+                            inner_scale_quecto_meter_001: FindAndDespawnAndWaitOutput,
+                            inner_scale_quecto_meter_01: FindAndDespawnAndWaitOutput,
+                            inner_scale_quecto_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_quecto_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_quecto_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_ronto_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_ronto_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_ronto_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_yocto_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_yocto_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_yocto_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_zepto_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_zepto_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_zepto_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_atto_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_atto_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_atto_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_femto_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_femto_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_femto_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_pico_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_pico_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_pico_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_nano_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_nano_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_nano_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_micro_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_micro_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_micro_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_milli_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_milli_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_milli_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_kilo_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_kilo_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_kilo_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_mega_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_mega_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_mega_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_giga_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_giga_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_giga_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_tera_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_tera_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_tera_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_peta_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_peta_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_peta_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_exa_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_exa_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_exa_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_zetta_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_zetta_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_zetta_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_yotta_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_yotta_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_yotta_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_ronna_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_ronna_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_ronna_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_quetta_meter_1: FindAndDespawnAndWaitOutput,
+                            inner_scale_quetta_meter_10: FindAndDespawnAndWaitOutput,
+                            inner_scale_quetta_meter_100: FindAndDespawnAndWaitOutput,
+                            inner_scale_quetta_meter_1000: FindAndDespawnAndWaitOutput,
+                            inner_scale_quetta_meter_10000: FindAndDespawnAndWaitOutput,
+                            inner_scale_quetta_meter_100000: FindAndDespawnAndWaitOutput,
                         }
+
                         enum Error {
                             ScaleQuectoMeter000001Error(FindAndDespawnAndWaitError),
                             ScaleQuectoMeter00001Error(FindAndDespawnAndWaitError),
@@ -720,9 +1444,659 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
+                            let state_scale_quecto_meter_000001 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_000001, main_access.inner_scale_quecto_meter_000001).map_err(|e| Error::ScaleQuectoMeter000001Error(e))?;
+                            let state_scale_quecto_meter_00001 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_00001, main_access.inner_scale_quecto_meter_00001).map_err(|e| Error::ScaleQuectoMeter00001Error(e))?;
+                            let state_scale_quecto_meter_0001 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_0001, main_access.inner_scale_quecto_meter_0001).map_err(|e| Error::ScaleQuectoMeter0001Error(e))?;
+                            let state_scale_quecto_meter_001 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_001, main_access.inner_scale_quecto_meter_001).map_err(|e| Error::ScaleQuectoMeter001Error(e))?;
+                            let state_scale_quecto_meter_01 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_01, main_access.inner_scale_quecto_meter_01).map_err(|e| Error::ScaleQuectoMeter01Error(e))?;
+                            let state_scale_quecto_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_1, main_access.inner_scale_quecto_meter_1).map_err(|e| Error::ScaleQuectoMeter1Error(e))?;
+                            let state_scale_quecto_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_10, main_access.inner_scale_quecto_meter_10).map_err(|e| Error::ScaleQuectoMeter10Error(e))?;
+                            let state_scale_quecto_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_100, main_access.inner_scale_quecto_meter_100).map_err(|e| Error::ScaleQuectoMeter100Error(e))?;
+                            let state_scale_ronto_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_ronto_meter_1, main_access.inner_scale_ronto_meter_1).map_err(|e| Error::ScaleRontoMeter1Error(e))?;
+                            let state_scale_ronto_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_ronto_meter_10, main_access.inner_scale_ronto_meter_10).map_err(|e| Error::ScaleRontoMeter10Error(e))?;
+                            let state_scale_ronto_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_ronto_meter_100, main_access.inner_scale_ronto_meter_100).map_err(|e| Error::ScaleRontoMeter100Error(e))?;
+                            let state_scale_yocto_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_yocto_meter_1, main_access.inner_scale_yocto_meter_1).map_err(|e| Error::ScaleYoctoMeter1Error(e))?;
+                            let state_scale_yocto_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_yocto_meter_10, main_access.inner_scale_yocto_meter_10).map_err(|e| Error::ScaleYoctoMeter10Error(e))?;
+                            let state_scale_yocto_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_yocto_meter_100, main_access.inner_scale_yocto_meter_100).map_err(|e| Error::ScaleYoctoMeter100Error(e))?;
+                            let state_scale_zepto_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_zepto_meter_1, main_access.inner_scale_zepto_meter_1).map_err(|e| Error::ScaleZeptoMeter1Error(e))?;
+                            let state_scale_zepto_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_zepto_meter_10, main_access.inner_scale_zepto_meter_10).map_err(|e| Error::ScaleZeptoMeter10Error(e))?;
+                            let state_scale_zepto_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_zepto_meter_100, main_access.inner_scale_zepto_meter_100).map_err(|e| Error::ScaleZeptoMeter100Error(e))?;
+                            let state_scale_atto_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_atto_meter_1, main_access.inner_scale_atto_meter_1).map_err(|e| Error::ScaleAttoMeter1Error(e))?;
+                            let state_scale_atto_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_atto_meter_10, main_access.inner_scale_atto_meter_10).map_err(|e| Error::ScaleAttoMeter10Error(e))?;
+                            let state_scale_atto_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_atto_meter_100, main_access.inner_scale_atto_meter_100).map_err(|e| Error::ScaleAttoMeter100Error(e))?;
+                            let state_scale_femto_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_femto_meter_1, main_access.inner_scale_femto_meter_1).map_err(|e| Error::ScaleFemtoMeter1Error(e))?;
+                            let state_scale_femto_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_femto_meter_10, main_access.inner_scale_femto_meter_10).map_err(|e| Error::ScaleFemtoMeter10Error(e))?;
+                            let state_scale_femto_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_femto_meter_100, main_access.inner_scale_femto_meter_100).map_err(|e| Error::ScaleFemtoMeter100Error(e))?;
+                            let state_scale_pico_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_pico_meter_1, main_access.inner_scale_pico_meter_1).map_err(|e| Error::ScalePicoMeter1Error(e))?;
+                            let state_scale_pico_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_pico_meter_10, main_access.inner_scale_pico_meter_10).map_err(|e| Error::ScalePicoMeter10Error(e))?;
+                            let state_scale_pico_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_pico_meter_100, main_access.inner_scale_pico_meter_100).map_err(|e| Error::ScalePicoMeter100Error(e))?;
+                            let state_scale_nano_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_nano_meter_1, main_access.inner_scale_nano_meter_1).map_err(|e| Error::ScaleNanoMeter1Error(e))?;
+                            let state_scale_nano_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_nano_meter_10, main_access.inner_scale_nano_meter_10).map_err(|e| Error::ScaleNanoMeter10Error(e))?;
+                            let state_scale_nano_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_nano_meter_100, main_access.inner_scale_nano_meter_100).map_err(|e| Error::ScaleNanoMeter100Error(e))?;
+                            let state_scale_micro_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_micro_meter_1, main_access.inner_scale_micro_meter_1).map_err(|e| Error::ScaleMicroMeter1Error(e))?;
+                            let state_scale_micro_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_micro_meter_10, main_access.inner_scale_micro_meter_10).map_err(|e| Error::ScaleMicroMeter10Error(e))?;
+                            let state_scale_micro_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_micro_meter_100, main_access.inner_scale_micro_meter_100).map_err(|e| Error::ScaleMicroMeter100Error(e))?;
+                            let state_scale_milli_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_milli_meter_1, main_access.inner_scale_milli_meter_1).map_err(|e| Error::ScaleMilliMeter1Error(e))?;
+                            let state_scale_milli_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_milli_meter_10, main_access.inner_scale_milli_meter_10).map_err(|e| Error::ScaleMilliMeter10Error(e))?;
+                            let state_scale_milli_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_milli_meter_100, main_access.inner_scale_milli_meter_100).map_err(|e| Error::ScaleMilliMeter100Error(e))?;
+                            let state_scale_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_meter_1, main_access.inner_scale_meter_1).map_err(|e| Error::ScaleMeter1Error(e))?;
+                            let state_scale_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_meter_10, main_access.inner_scale_meter_10).map_err(|e| Error::ScaleMeter10Error(e))?;
+                            let state_scale_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_meter_100, main_access.inner_scale_meter_100).map_err(|e| Error::ScaleMeter100Error(e))?;
+                            let state_scale_kilo_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_kilo_meter_1, main_access.inner_scale_kilo_meter_1).map_err(|e| Error::ScaleKiloMeter1Error(e))?;
+                            let state_scale_kilo_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_kilo_meter_10, main_access.inner_scale_kilo_meter_10).map_err(|e| Error::ScaleKiloMeter10Error(e))?;
+                            let state_scale_kilo_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_kilo_meter_100, main_access.inner_scale_kilo_meter_100).map_err(|e| Error::ScaleKiloMeter100Error(e))?;
+                            let state_scale_mega_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_mega_meter_1, main_access.inner_scale_mega_meter_1).map_err(|e| Error::ScaleMegaMeter1Error(e))?;
+                            let state_scale_mega_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_mega_meter_10, main_access.inner_scale_mega_meter_10).map_err(|e| Error::ScaleMegaMeter10Error(e))?;
+                            let state_scale_mega_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_mega_meter_100, main_access.inner_scale_mega_meter_100).map_err(|e| Error::ScaleMegaMeter100Error(e))?;
+                            let state_scale_giga_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_giga_meter_1, main_access.inner_scale_giga_meter_1).map_err(|e| Error::ScaleGigaMeter1Error(e))?;
+                            let state_scale_giga_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_giga_meter_10, main_access.inner_scale_giga_meter_10).map_err(|e| Error::ScaleGigaMeter10Error(e))?;
+                            let state_scale_giga_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_giga_meter_100, main_access.inner_scale_giga_meter_100).map_err(|e| Error::ScaleGigaMeter100Error(e))?;
+                            let state_scale_tera_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_tera_meter_1, main_access.inner_scale_tera_meter_1).map_err(|e| Error::ScaleTeraMeter1Error(e))?;
+                            let state_scale_tera_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_tera_meter_10, main_access.inner_scale_tera_meter_10).map_err(|e| Error::ScaleTeraMeter10Error(e))?;
+                            let state_scale_tera_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_tera_meter_100, main_access.inner_scale_tera_meter_100).map_err(|e| Error::ScaleTeraMeter100Error(e))?;
+                            let state_scale_peta_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_peta_meter_1, main_access.inner_scale_peta_meter_1).map_err(|e| Error::ScalePetaMeter1Error(e))?;
+                            let state_scale_peta_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_peta_meter_10, main_access.inner_scale_peta_meter_10).map_err(|e| Error::ScalePetaMeter10Error(e))?;
+                            let state_scale_peta_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_peta_meter_100, main_access.inner_scale_peta_meter_100).map_err(|e| Error::ScalePetaMeter100Error(e))?;
+                            let state_scale_exa_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_exa_meter_1, main_access.inner_scale_exa_meter_1).map_err(|e| Error::ScaleExaMeter1Error(e))?;
+                            let state_scale_exa_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_exa_meter_10, main_access.inner_scale_exa_meter_10).map_err(|e| Error::ScaleExaMeter10Error(e))?;
+                            let state_scale_exa_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_exa_meter_100, main_access.inner_scale_exa_meter_100).map_err(|e| Error::ScaleExaMeter100Error(e))?;
+                            let state_scale_zetta_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_zetta_meter_1, main_access.inner_scale_zetta_meter_1).map_err(|e| Error::ScaleZettaMeter1Error(e))?;
+                            let state_scale_zetta_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_zetta_meter_10, main_access.inner_scale_zetta_meter_10).map_err(|e| Error::ScaleZettaMeter10Error(e))?;
+                            let state_scale_zetta_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_zetta_meter_100, main_access.inner_scale_zetta_meter_100).map_err(|e| Error::ScaleZettaMeter100Error(e))?;
+                            let state_scale_yotta_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_yotta_meter_1, main_access.inner_scale_yotta_meter_1).map_err(|e| Error::ScaleYottaMeter1Error(e))?;
+                            let state_scale_yotta_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_yotta_meter_10, main_access.inner_scale_yotta_meter_10).map_err(|e| Error::ScaleYottaMeter10Error(e))?;
+                            let state_scale_yotta_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_yotta_meter_100, main_access.inner_scale_yotta_meter_100).map_err(|e| Error::ScaleYottaMeter100Error(e))?;
+                            let state_scale_ronna_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_ronna_meter_1, main_access.inner_scale_ronna_meter_1).map_err(|e| Error::ScaleRonnaMeter1Error(e))?;
+                            let state_scale_ronna_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_ronna_meter_10, main_access.inner_scale_ronna_meter_10).map_err(|e| Error::ScaleRonnaMeter10Error(e))?;
+                            let state_scale_ronna_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_ronna_meter_100, main_access.inner_scale_ronna_meter_100).map_err(|e| Error::ScaleRonnaMeter100Error(e))?;
+                            let state_scale_quetta_meter_1 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quetta_meter_1, main_access.inner_scale_quetta_meter_1).map_err(|e| Error::ScaleQuettaMeter1Error(e))?;
+                            let state_scale_quetta_meter_10 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quetta_meter_10, main_access.inner_scale_quetta_meter_10).map_err(|e| Error::ScaleQuettaMeter10Error(e))?;
+                            let state_scale_quetta_meter_100 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quetta_meter_100, main_access.inner_scale_quetta_meter_100).map_err(|e| Error::ScaleQuettaMeter100Error(e))?;
+                            let state_scale_quetta_meter_1000 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quetta_meter_1000, main_access.inner_scale_quetta_meter_1000).map_err(|e| Error::ScaleQuettaMeter1000Error(e))?;
+                            let state_scale_quetta_meter_10000 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quetta_meter_10000, main_access.inner_scale_quetta_meter_10000).map_err(|e| Error::ScaleQuettaMeter10000Error(e))?;
+                            let state_scale_quetta_meter_100000 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quetta_meter_100000, main_access.inner_scale_quetta_meter_100000).map_err(|e| Error::ScaleQuettaMeter100000Error(e))?;
+                            
+                            Ok(State {
+                                inner_scale_quecto_meter_000001: Progress::Unfinished(state_scale_quecto_meter_000001),
+                                inner_scale_quecto_meter_00001: Progress::Unfinished(state_scale_quecto_meter_00001),
+                                inner_scale_quecto_meter_0001: Progress::Unfinished(state_scale_quecto_meter_0001),
+                                inner_scale_quecto_meter_001: Progress::Unfinished(state_scale_quecto_meter_001),
+                                inner_scale_quecto_meter_01: Progress::Unfinished(state_scale_quecto_meter_01),
+                                inner_scale_quecto_meter_1: Progress::Unfinished(state_scale_quecto_meter_1),
+                                inner_scale_quecto_meter_10: Progress::Unfinished(state_scale_quecto_meter_10),
+                                inner_scale_quecto_meter_100: Progress::Unfinished(state_scale_quecto_meter_100),
+                                inner_scale_ronto_meter_1: Progress::Unfinished(state_scale_ronto_meter_1),
+                                inner_scale_ronto_meter_10: Progress::Unfinished(state_scale_ronto_meter_10),
+                                inner_scale_ronto_meter_100: Progress::Unfinished(state_scale_ronto_meter_100),
+                                inner_scale_yocto_meter_1: Progress::Unfinished(state_scale_yocto_meter_1),
+                                inner_scale_yocto_meter_10: Progress::Unfinished(state_scale_yocto_meter_10),
+                                inner_scale_yocto_meter_100: Progress::Unfinished(state_scale_yocto_meter_100),
+                                inner_scale_zepto_meter_1: Progress::Unfinished(state_scale_zepto_meter_1),
+                                inner_scale_zepto_meter_10: Progress::Unfinished(state_scale_zepto_meter_10),
+                                inner_scale_zepto_meter_100: Progress::Unfinished(state_scale_zepto_meter_100),
+                                inner_scale_atto_meter_1: Progress::Unfinished(state_scale_atto_meter_1),
+                                inner_scale_atto_meter_10: Progress::Unfinished(state_scale_atto_meter_10),
+                                inner_scale_atto_meter_100: Progress::Unfinished(state_scale_atto_meter_100),
+                                inner_scale_femto_meter_1: Progress::Unfinished(state_scale_femto_meter_1),
+                                inner_scale_femto_meter_10: Progress::Unfinished(state_scale_femto_meter_10),
+                                inner_scale_femto_meter_100: Progress::Unfinished(state_scale_femto_meter_100),
+                                inner_scale_pico_meter_1: Progress::Unfinished(state_scale_pico_meter_1),
+                                inner_scale_pico_meter_10: Progress::Unfinished(state_scale_pico_meter_10),
+                                inner_scale_pico_meter_100: Progress::Unfinished(state_scale_pico_meter_100),
+                                inner_scale_nano_meter_1: Progress::Unfinished(state_scale_nano_meter_1),
+                                inner_scale_nano_meter_10: Progress::Unfinished(state_scale_nano_meter_10),
+                                inner_scale_nano_meter_100: Progress::Unfinished(state_scale_nano_meter_100),
+                                inner_scale_micro_meter_1: Progress::Unfinished(state_scale_micro_meter_1),
+                                inner_scale_micro_meter_10: Progress::Unfinished(state_scale_micro_meter_10),
+                                inner_scale_micro_meter_100: Progress::Unfinished(state_scale_micro_meter_100),
+                                inner_scale_milli_meter_1: Progress::Unfinished(state_scale_milli_meter_1),
+                                inner_scale_milli_meter_10: Progress::Unfinished(state_scale_milli_meter_10),
+                                inner_scale_milli_meter_100: Progress::Unfinished(state_scale_milli_meter_100),
+                                inner_scale_meter_1: Progress::Unfinished(state_scale_meter_1),
+                                inner_scale_meter_10: Progress::Unfinished(state_scale_meter_10),
+                                inner_scale_meter_100: Progress::Unfinished(state_scale_meter_100),
+                                inner_scale_kilo_meter_1: Progress::Unfinished(state_scale_kilo_meter_1),
+                                inner_scale_kilo_meter_10: Progress::Unfinished(state_scale_kilo_meter_10),
+                                inner_scale_kilo_meter_100: Progress::Unfinished(state_scale_kilo_meter_100),
+                                inner_scale_mega_meter_1: Progress::Unfinished(state_scale_mega_meter_1),
+                                inner_scale_mega_meter_10: Progress::Unfinished(state_scale_mega_meter_10),
+                                inner_scale_mega_meter_100: Progress::Unfinished(state_scale_mega_meter_100),
+                                inner_scale_giga_meter_1: Progress::Unfinished(state_scale_giga_meter_1),
+                                inner_scale_giga_meter_10: Progress::Unfinished(state_scale_giga_meter_10),
+                                inner_scale_giga_meter_100: Progress::Unfinished(state_scale_giga_meter_100),
+                                inner_scale_tera_meter_1: Progress::Unfinished(state_scale_tera_meter_1),
+                                inner_scale_tera_meter_10: Progress::Unfinished(state_scale_tera_meter_10),
+                                inner_scale_tera_meter_100: Progress::Unfinished(state_scale_tera_meter_100),
+                                inner_scale_peta_meter_1: Progress::Unfinished(state_scale_peta_meter_1),
+                                inner_scale_peta_meter_10: Progress::Unfinished(state_scale_peta_meter_10),
+                                inner_scale_peta_meter_100: Progress::Unfinished(state_scale_peta_meter_100),
+                                inner_scale_exa_meter_1: Progress::Unfinished(state_scale_exa_meter_1),
+                                inner_scale_exa_meter_10: Progress::Unfinished(state_scale_exa_meter_10),
+                                inner_scale_exa_meter_100: Progress::Unfinished(state_scale_exa_meter_100),
+                                inner_scale_zetta_meter_1: Progress::Unfinished(state_scale_zetta_meter_1),
+                                inner_scale_zetta_meter_10: Progress::Unfinished(state_scale_zetta_meter_10),
+                                inner_scale_zetta_meter_100: Progress::Unfinished(state_scale_zetta_meter_100),
+                                inner_scale_yotta_meter_1: Progress::Unfinished(state_scale_yotta_meter_1),
+                                inner_scale_yotta_meter_10: Progress::Unfinished(state_scale_yotta_meter_10),
+                                inner_scale_yotta_meter_100: Progress::Unfinished(state_scale_yotta_meter_100),
+                                inner_scale_ronna_meter_1: Progress::Unfinished(state_scale_ronna_meter_1),
+                                inner_scale_ronna_meter_10: Progress::Unfinished(state_scale_ronna_meter_10),
+                                inner_scale_ronna_meter_100: Progress::Unfinished(state_scale_ronna_meter_100),
+                                inner_scale_quetta_meter_1: Progress::Unfinished(state_scale_quetta_meter_1),
+                                inner_scale_quetta_meter_10: Progress::Unfinished(state_scale_quetta_meter_10),
+                                inner_scale_quetta_meter_100: Progress::Unfinished(state_scale_quetta_meter_100),
+                                inner_scale_quetta_meter_1000: Progress::Unfinished(state_scale_quetta_meter_1000),
+                                inner_scale_quetta_meter_10000: Progress::Unfinished(state_scale_quetta_meter_10000),
+                                inner_scale_quetta_meter_100000: Progress::Unfinished(state_scale_quetta_meter_100000),
+                            })
                         }
 
                         fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
+                            let progress_scale_quecto_meter_000001 = match state.inner_scale_quecto_meter_000001 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_000001).map_err(|e| Error::ScaleQuectoMeter000001Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_00001 = match state.inner_scale_quecto_meter_00001 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_00001).map_err(|e| Error::ScaleQuectoMeter00001Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_0001 = match state.inner_scale_quecto_meter_0001 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_0001).map_err(|e| Error::ScaleQuectoMeter0001Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_001 = match state.inner_scale_quecto_meter_001 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_001).map_err(|e| Error::ScaleQuectoMeter001Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_01 = match state.inner_scale_quecto_meter_01 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_01).map_err(|e| Error::ScaleQuectoMeter01Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_1 = match state.inner_scale_quecto_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_1).map_err(|e| Error::ScaleQuectoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_10 = match state.inner_scale_quecto_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_10).map_err(|e| Error::ScaleQuectoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quecto_meter_100 = match state.inner_scale_quecto_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_100).map_err(|e| Error::ScaleQuectoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_ronto_meter_1 = match state.inner_scale_ronto_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_ronto_meter_1).map_err(|e| Error::ScaleRontoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_ronto_meter_10 = match state.inner_scale_ronto_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_ronto_meter_10).map_err(|e| Error::ScaleRontoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_ronto_meter_100 = match state.inner_scale_ronto_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_ronto_meter_100).map_err(|e| Error::ScaleRontoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_yocto_meter_1 = match state.inner_scale_yocto_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_yocto_meter_1).map_err(|e| Error::ScaleYoctoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_yocto_meter_10 = match state.inner_scale_yocto_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_yocto_meter_10).map_err(|e| Error::ScaleYoctoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_yocto_meter_100 = match state.inner_scale_yocto_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_yocto_meter_100).map_err(|e| Error::ScaleYoctoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_zepto_meter_1 = match state.inner_scale_zepto_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_zepto_meter_1).map_err(|e| Error::ScaleZeptoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_zepto_meter_10 = match state.inner_scale_zepto_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_zepto_meter_10).map_err(|e| Error::ScaleZeptoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_zepto_meter_100 = match state.inner_scale_zepto_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_zepto_meter_100).map_err(|e| Error::ScaleZeptoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_atto_meter_1 = match state.inner_scale_atto_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_atto_meter_1).map_err(|e| Error::ScaleAttoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_atto_meter_10 = match state.inner_scale_atto_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_atto_meter_10).map_err(|e| Error::ScaleAttoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_atto_meter_100 = match state.inner_scale_atto_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_atto_meter_100).map_err(|e| Error::ScaleAttoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_femto_meter_1 = match state.inner_scale_femto_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_femto_meter_1).map_err(|e| Error::ScaleFemtoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_femto_meter_10 = match state.inner_scale_femto_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_femto_meter_10).map_err(|e| Error::ScaleFemtoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_femto_meter_100 = match state.inner_scale_femto_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_femto_meter_100).map_err(|e| Error::ScaleFemtoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_pico_meter_1 = match state.inner_scale_pico_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_pico_meter_1).map_err(|e| Error::ScalePicoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_pico_meter_10 = match state.inner_scale_pico_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_pico_meter_10).map_err(|e| Error::ScalePicoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_pico_meter_100 = match state.inner_scale_pico_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_pico_meter_100).map_err(|e| Error::ScalePicoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_nano_meter_1 = match state.inner_scale_nano_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_nano_meter_1).map_err(|e| Error::ScaleNanoMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_nano_meter_10 = match state.inner_scale_nano_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_nano_meter_10).map_err(|e| Error::ScaleNanoMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_nano_meter_100 = match state.inner_scale_nano_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_nano_meter_100).map_err(|e| Error::ScaleNanoMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_micro_meter_1 = match state.inner_scale_micro_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_micro_meter_1).map_err(|e| Error::ScaleMicroMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_micro_meter_10 = match state.inner_scale_micro_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_micro_meter_10).map_err(|e| Error::ScaleMicroMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_micro_meter_100 = match state.inner_scale_micro_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_micro_meter_100).map_err(|e| Error::ScaleMicroMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_milli_meter_1 = match state.inner_scale_milli_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_milli_meter_1).map_err(|e| Error::ScaleMilliMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_milli_meter_10 = match state.inner_scale_milli_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_milli_meter_10).map_err(|e| Error::ScaleMilliMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_milli_meter_100 = match state.inner_scale_milli_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_milli_meter_100).map_err(|e| Error::ScaleMilliMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_meter_1 = match state.inner_scale_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_meter_1).map_err(|e| Error::ScaleMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_meter_10 = match state.inner_scale_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_meter_10).map_err(|e| Error::ScaleMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_meter_100 = match state.inner_scale_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_meter_100).map_err(|e| Error::ScaleMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_kilo_meter_1 = match state.inner_scale_kilo_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_kilo_meter_1).map_err(|e| Error::ScaleKiloMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_kilo_meter_10 = match state.inner_scale_kilo_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_kilo_meter_10).map_err(|e| Error::ScaleKiloMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_kilo_meter_100 = match state.inner_scale_kilo_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_kilo_meter_100).map_err(|e| Error::ScaleKiloMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_mega_meter_1 = match state.inner_scale_mega_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_mega_meter_1).map_err(|e| Error::ScaleMegaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_mega_meter_10 = match state.inner_scale_mega_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_mega_meter_10).map_err(|e| Error::ScaleMegaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_mega_meter_100 = match state.inner_scale_mega_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_mega_meter_100).map_err(|e| Error::ScaleMegaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_giga_meter_1 = match state.inner_scale_giga_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_giga_meter_1).map_err(|e| Error::ScaleGigaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_giga_meter_10 = match state.inner_scale_giga_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_giga_meter_10).map_err(|e| Error::ScaleGigaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_giga_meter_100 = match state.inner_scale_giga_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_giga_meter_100).map_err(|e| Error::ScaleGigaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_tera_meter_1 = match state.inner_scale_tera_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_tera_meter_1).map_err(|e| Error::ScaleTeraMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_tera_meter_10 = match state.inner_scale_tera_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_tera_meter_10).map_err(|e| Error::ScaleTeraMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_tera_meter_100 = match state.inner_scale_tera_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_tera_meter_100).map_err(|e| Error::ScaleTeraMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_peta_meter_1 = match state.inner_scale_peta_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_peta_meter_1).map_err(|e| Error::ScalePetaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_peta_meter_10 = match state.inner_scale_peta_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_peta_meter_10).map_err(|e| Error::ScalePetaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_peta_meter_100 = match state.inner_scale_peta_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_peta_meter_100).map_err(|e| Error::ScalePetaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_exa_meter_1 = match state.inner_scale_exa_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_exa_meter_1).map_err(|e| Error::ScaleExaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_exa_meter_10 = match state.inner_scale_exa_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_exa_meter_10).map_err(|e| Error::ScaleExaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_exa_meter_100 = match state.inner_scale_exa_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_exa_meter_100).map_err(|e| Error::ScaleExaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_zetta_meter_1 = match state.inner_scale_zetta_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_zetta_meter_1).map_err(|e| Error::ScaleZettaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_zetta_meter_10 = match state.inner_scale_zetta_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_zetta_meter_10).map_err(|e| Error::ScaleZettaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_zetta_meter_100 = match state.inner_scale_zetta_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_zetta_meter_100).map_err(|e| Error::ScaleZettaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_yotta_meter_1 = match state.inner_scale_yotta_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_yotta_meter_1).map_err(|e| Error::ScaleYottaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_yotta_meter_10 = match state.inner_scale_yotta_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_yotta_meter_10).map_err(|e| Error::ScaleYottaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_yotta_meter_100 = match state.inner_scale_yotta_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_yotta_meter_100).map_err(|e| Error::ScaleYottaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_ronna_meter_1 = match state.inner_scale_ronna_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_ronna_meter_1).map_err(|e| Error::ScaleRonnaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_ronna_meter_10 = match state.inner_scale_ronna_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_ronna_meter_10).map_err(|e| Error::ScaleRonnaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_ronna_meter_100 = match state.inner_scale_ronna_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_ronna_meter_100).map_err(|e| Error::ScaleRonnaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quetta_meter_1 = match state.inner_scale_quetta_meter_1 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quetta_meter_1).map_err(|e| Error::ScaleQuettaMeter1Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quetta_meter_10 = match state.inner_scale_quetta_meter_10 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quetta_meter_10).map_err(|e| Error::ScaleQuettaMeter10Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quetta_meter_100 = match state.inner_scale_quetta_meter_100 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quetta_meter_100).map_err(|e| Error::ScaleQuettaMeter100Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quetta_meter_1000 = match state.inner_scale_quetta_meter_1000 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quetta_meter_1000).map_err(|e| Error::ScaleQuettaMeter1000Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quetta_meter_10000 = match state.inner_scale_quetta_meter_10000 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quetta_meter_10000).map_err(|e| Error::ScaleQuettaMeter10000Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            let progress_scale_quetta_meter_100000 = match state.inner_scale_quetta_meter_100000 {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quetta_meter_100000).map_err(|e| Error::ScaleQuettaMeter100000Error(e))?.into_progress(),
+                                Progress::Finished(output) => Progress::Finished(output)
+                            };
+                            
+                            if progress_scale_quecto_meter_000001.is_finished()
+                                && progress_scale_quecto_meter_00001.is_finished()
+                                && progress_scale_quecto_meter_0001.is_finished()
+                                && progress_scale_quecto_meter_001.is_finished()
+                                && progress_scale_quecto_meter_01.is_finished()
+                                && progress_scale_quecto_meter_1.is_finished()
+                                && progress_scale_quecto_meter_10.is_finished()
+                                && progress_scale_quecto_meter_100.is_finished()
+                                && progress_scale_ronto_meter_1.is_finished()
+                                && progress_scale_ronto_meter_10.is_finished()
+                                && progress_scale_ronto_meter_100.is_finished()
+                                && progress_scale_yocto_meter_1.is_finished()
+                                && progress_scale_yocto_meter_10.is_finished()
+                                && progress_scale_yocto_meter_100.is_finished()
+                                && progress_scale_zepto_meter_1.is_finished()
+                                && progress_scale_zepto_meter_10.is_finished()
+                                && progress_scale_zepto_meter_100.is_finished()
+                                && progress_scale_atto_meter_1.is_finished()
+                                && progress_scale_atto_meter_10.is_finished()
+                                && progress_scale_atto_meter_100.is_finished()
+                                && progress_scale_femto_meter_1.is_finished()
+                                && progress_scale_femto_meter_10.is_finished()
+                                && progress_scale_femto_meter_100.is_finished()
+                                && progress_scale_pico_meter_1.is_finished()
+                                && progress_scale_pico_meter_10.is_finished()
+                                && progress_scale_pico_meter_100.is_finished()
+                                && progress_scale_nano_meter_1.is_finished()
+                                && progress_scale_nano_meter_10.is_finished()
+                                && progress_scale_nano_meter_100.is_finished()
+                                && progress_scale_micro_meter_1.is_finished()
+                                && progress_scale_micro_meter_10.is_finished()
+                                && progress_scale_micro_meter_100.is_finished()
+                                && progress_scale_milli_meter_1.is_finished()
+                                && progress_scale_milli_meter_10.is_finished()
+                                && progress_scale_milli_meter_100.is_finished()
+                                && progress_scale_meter_1.is_finished()
+                                && progress_scale_meter_10.is_finished()
+                                && progress_scale_meter_100.is_finished()
+                                && progress_scale_kilo_meter_1.is_finished()
+                                && progress_scale_kilo_meter_10.is_finished()
+                                && progress_scale_kilo_meter_100.is_finished()
+                                && progress_scale_mega_meter_1.is_finished()
+                                && progress_scale_mega_meter_10.is_finished()
+                                && progress_scale_mega_meter_100.is_finished()
+                                && progress_scale_giga_meter_1.is_finished()
+                                && progress_scale_giga_meter_10.is_finished()
+                                && progress_scale_giga_meter_100.is_finished()
+                                && progress_scale_tera_meter_1.is_finished()
+                                && progress_scale_tera_meter_10.is_finished()
+                                && progress_scale_tera_meter_100.is_finished()
+                                && progress_scale_peta_meter_1.is_finished()
+                                && progress_scale_peta_meter_10.is_finished()
+                                && progress_scale_peta_meter_100.is_finished()
+                                && progress_scale_exa_meter_1.is_finished()
+                                && progress_scale_exa_meter_10.is_finished()
+                                && progress_scale_exa_meter_100.is_finished()
+                                && progress_scale_zetta_meter_1.is_finished()
+                                && progress_scale_zetta_meter_10.is_finished()
+                                && progress_scale_zetta_meter_100.is_finished()
+                                && progress_scale_yotta_meter_1.is_finished()
+                                && progress_scale_yotta_meter_10.is_finished()
+                                && progress_scale_yotta_meter_100.is_finished()
+                                && progress_scale_ronna_meter_1.is_finished()
+                                && progress_scale_ronna_meter_10.is_finished()
+                                && progress_scale_ronna_meter_100.is_finished()
+                                && progress_scale_quetta_meter_1.is_finished()
+                                && progress_scale_quetta_meter_10.is_finished()
+                                && progress_scale_quetta_meter_100.is_finished()
+                                && progress_scale_quetta_meter_1000.is_finished()
+                                && progress_scale_quetta_meter_10000.is_finished()
+                                && progress_scale_quetta_meter_100000.is_finished()
+                            {
+                                return Ok(Done(Output {
+                                    inner_scale_quecto_meter_000001: progress_scale_quecto_meter_000001.unwrap_finished(),
+                                    inner_scale_quecto_meter_00001: progress_scale_quecto_meter_00001.unwrap_finished(),
+                                    inner_scale_quecto_meter_0001: progress_scale_quecto_meter_0001.unwrap_finished(),
+                                    inner_scale_quecto_meter_001: progress_scale_quecto_meter_001.unwrap_finished(),
+                                    inner_scale_quecto_meter_01: progress_scale_quecto_meter_01.unwrap_finished(),
+                                    inner_scale_quecto_meter_1: progress_scale_quecto_meter_1.unwrap_finished(),
+                                    inner_scale_quecto_meter_10: progress_scale_quecto_meter_10.unwrap_finished(),
+                                    inner_scale_quecto_meter_100: progress_scale_quecto_meter_100.unwrap_finished(),
+                                    inner_scale_ronto_meter_1: progress_scale_ronto_meter_1.unwrap_finished(),
+                                    inner_scale_ronto_meter_10: progress_scale_ronto_meter_10.unwrap_finished(),
+                                    inner_scale_ronto_meter_100: progress_scale_ronto_meter_100.unwrap_finished(),
+                                    inner_scale_yocto_meter_1: progress_scale_yocto_meter_1.unwrap_finished(),
+                                    inner_scale_yocto_meter_10: progress_scale_yocto_meter_10.unwrap_finished(),
+                                    inner_scale_yocto_meter_100: progress_scale_yocto_meter_100.unwrap_finished(),
+                                    inner_scale_zepto_meter_1: progress_scale_zepto_meter_1.unwrap_finished(),
+                                    inner_scale_zepto_meter_10: progress_scale_zepto_meter_10.unwrap_finished(),
+                                    inner_scale_zepto_meter_100: progress_scale_zepto_meter_100.unwrap_finished(),
+                                    inner_scale_atto_meter_1: progress_scale_atto_meter_1.unwrap_finished(),
+                                    inner_scale_atto_meter_10: progress_scale_atto_meter_10.unwrap_finished(),
+                                    inner_scale_atto_meter_100: progress_scale_atto_meter_100.unwrap_finished(),
+                                    inner_scale_femto_meter_1: progress_scale_femto_meter_1.unwrap_finished(),
+                                    inner_scale_femto_meter_10: progress_scale_femto_meter_10.unwrap_finished(),
+                                    inner_scale_femto_meter_100: progress_scale_femto_meter_100.unwrap_finished(),
+                                    inner_scale_pico_meter_1: progress_scale_pico_meter_1.unwrap_finished(),
+                                    inner_scale_pico_meter_10: progress_scale_pico_meter_10.unwrap_finished(),
+                                    inner_scale_pico_meter_100: progress_scale_pico_meter_100.unwrap_finished(),
+                                    inner_scale_nano_meter_1: progress_scale_nano_meter_1.unwrap_finished(),
+                                    inner_scale_nano_meter_10: progress_scale_nano_meter_10.unwrap_finished(),
+                                    inner_scale_nano_meter_100: progress_scale_nano_meter_100.unwrap_finished(),
+                                    inner_scale_micro_meter_1: progress_scale_micro_meter_1.unwrap_finished(),
+                                    inner_scale_micro_meter_10: progress_scale_micro_meter_10.unwrap_finished(),
+                                    inner_scale_micro_meter_100: progress_scale_micro_meter_100.unwrap_finished(),
+                                    inner_scale_milli_meter_1: progress_scale_milli_meter_1.unwrap_finished(),
+                                    inner_scale_milli_meter_10: progress_scale_milli_meter_10.unwrap_finished(),
+                                    inner_scale_milli_meter_100: progress_scale_milli_meter_100.unwrap_finished(),
+                                    inner_scale_meter_1: progress_scale_meter_1.unwrap_finished(),
+                                    inner_scale_meter_10: progress_scale_meter_10.unwrap_finished(),
+                                    inner_scale_meter_100: progress_scale_meter_100.unwrap_finished(),
+                                    inner_scale_kilo_meter_1: progress_scale_kilo_meter_1.unwrap_finished(),
+                                    inner_scale_kilo_meter_10: progress_scale_kilo_meter_10.unwrap_finished(),
+                                    inner_scale_kilo_meter_100: progress_scale_kilo_meter_100.unwrap_finished(),
+                                    inner_scale_mega_meter_1: progress_scale_mega_meter_1.unwrap_finished(),
+                                    inner_scale_mega_meter_10: progress_scale_mega_meter_10.unwrap_finished(),
+                                    inner_scale_mega_meter_100: progress_scale_mega_meter_100.unwrap_finished(),
+                                    inner_scale_giga_meter_1: progress_scale_giga_meter_1.unwrap_finished(),
+                                    inner_scale_giga_meter_10: progress_scale_giga_meter_10.unwrap_finished(),
+                                    inner_scale_giga_meter_100: progress_scale_giga_meter_100.unwrap_finished(),
+                                    inner_scale_tera_meter_1: progress_scale_tera_meter_1.unwrap_finished(),
+                                    inner_scale_tera_meter_10: progress_scale_tera_meter_10.unwrap_finished(),
+                                    inner_scale_tera_meter_100: progress_scale_tera_meter_100.unwrap_finished(),
+                                    inner_scale_peta_meter_1: progress_scale_peta_meter_1.unwrap_finished(),
+                                    inner_scale_peta_meter_10: progress_scale_peta_meter_10.unwrap_finished(),
+                                    inner_scale_peta_meter_100: progress_scale_peta_meter_100.unwrap_finished(),
+                                    inner_scale_exa_meter_1: progress_scale_exa_meter_1.unwrap_finished(),
+                                    inner_scale_exa_meter_10: progress_scale_exa_meter_10.unwrap_finished(),
+                                    inner_scale_exa_meter_100: progress_scale_exa_meter_100.unwrap_finished(),
+                                    inner_scale_zetta_meter_1: progress_scale_zetta_meter_1.unwrap_finished(),
+                                    inner_scale_zetta_meter_10: progress_scale_zetta_meter_10.unwrap_finished(),
+                                    inner_scale_zetta_meter_100: progress_scale_zetta_meter_100.unwrap_finished(),
+                                    inner_scale_yotta_meter_1: progress_scale_yotta_meter_1.unwrap_finished(),
+                                    inner_scale_yotta_meter_10: progress_scale_yotta_meter_10.unwrap_finished(),
+                                    inner_scale_yotta_meter_100: progress_scale_yotta_meter_100.unwrap_finished(),
+                                    inner_scale_ronna_meter_1: progress_scale_ronna_meter_1.unwrap_finished(),
+                                    inner_scale_ronna_meter_10: progress_scale_ronna_meter_10.unwrap_finished(),
+                                    inner_scale_ronna_meter_100: progress_scale_ronna_meter_100.unwrap_finished(),
+                                    inner_scale_quetta_meter_1: progress_scale_quetta_meter_1.unwrap_finished(),
+                                    inner_scale_quetta_meter_10: progress_scale_quetta_meter_10.unwrap_finished(),
+                                    inner_scale_quetta_meter_100: progress_scale_quetta_meter_100.unwrap_finished(),
+                                    inner_scale_quetta_meter_1000: progress_scale_quetta_meter_1000.unwrap_finished(),
+                                    inner_scale_quetta_meter_10000: progress_scale_quetta_meter_10000.unwrap_finished(),
+                                    inner_scale_quetta_meter_100000: progress_scale_quetta_meter_100000.unwrap_finished(),
+                                }));
+                            }
+
+                            Ok(Wait(State {
+                                inner_scale_quecto_meter_000001: progress_scale_quecto_meter_000001,
+                                inner_scale_quecto_meter_00001: progress_scale_quecto_meter_00001,
+                                inner_scale_quecto_meter_0001: progress_scale_quecto_meter_0001,
+                                inner_scale_quecto_meter_001: progress_scale_quecto_meter_001,
+                                inner_scale_quecto_meter_01: progress_scale_quecto_meter_01,
+                                inner_scale_quecto_meter_1: progress_scale_quecto_meter_1,
+                                inner_scale_quecto_meter_10: progress_scale_quecto_meter_10,
+                                inner_scale_quecto_meter_100: progress_scale_quecto_meter_100,
+                                inner_scale_ronto_meter_1: progress_scale_ronto_meter_1,
+                                inner_scale_ronto_meter_10: progress_scale_ronto_meter_10,
+                                inner_scale_ronto_meter_100: progress_scale_ronto_meter_100,
+                                inner_scale_yocto_meter_1: progress_scale_yocto_meter_1,
+                                inner_scale_yocto_meter_10: progress_scale_yocto_meter_10,
+                                inner_scale_yocto_meter_100: progress_scale_yocto_meter_100,
+                                inner_scale_zepto_meter_1: progress_scale_zepto_meter_1,
+                                inner_scale_zepto_meter_10: progress_scale_zepto_meter_10,
+                                inner_scale_zepto_meter_100: progress_scale_zepto_meter_100,
+                                inner_scale_atto_meter_1: progress_scale_atto_meter_1,
+                                inner_scale_atto_meter_10: progress_scale_atto_meter_10,
+                                inner_scale_atto_meter_100: progress_scale_atto_meter_100,
+                                inner_scale_femto_meter_1: progress_scale_femto_meter_1,
+                                inner_scale_femto_meter_10: progress_scale_femto_meter_10,
+                                inner_scale_femto_meter_100: progress_scale_femto_meter_100,
+                                inner_scale_pico_meter_1: progress_scale_pico_meter_1,
+                                inner_scale_pico_meter_10: progress_scale_pico_meter_10,
+                                inner_scale_pico_meter_100: progress_scale_pico_meter_100,
+                                inner_scale_nano_meter_1: progress_scale_nano_meter_1,
+                                inner_scale_nano_meter_10: progress_scale_nano_meter_10,
+                                inner_scale_nano_meter_100: progress_scale_nano_meter_100,
+                                inner_scale_micro_meter_1: progress_scale_micro_meter_1,
+                                inner_scale_micro_meter_10: progress_scale_micro_meter_10,
+                                inner_scale_micro_meter_100: progress_scale_micro_meter_100,
+                                inner_scale_milli_meter_1: progress_scale_milli_meter_1,
+                                inner_scale_milli_meter_10: progress_scale_milli_meter_10,
+                                inner_scale_milli_meter_100: progress_scale_milli_meter_100,
+                                inner_scale_meter_1: progress_scale_meter_1,
+                                inner_scale_meter_10: progress_scale_meter_10,
+                                inner_scale_meter_100: progress_scale_meter_100,
+                                inner_scale_kilo_meter_1: progress_scale_kilo_meter_1,
+                                inner_scale_kilo_meter_10: progress_scale_kilo_meter_10,
+                                inner_scale_kilo_meter_100: progress_scale_kilo_meter_100,
+                                inner_scale_mega_meter_1: progress_scale_mega_meter_1,
+                                inner_scale_mega_meter_10: progress_scale_mega_meter_10,
+                                inner_scale_mega_meter_100: progress_scale_mega_meter_100,
+                                inner_scale_giga_meter_1: progress_scale_giga_meter_1,
+                                inner_scale_giga_meter_10: progress_scale_giga_meter_10,
+                                inner_scale_giga_meter_100: progress_scale_giga_meter_100,
+                                inner_scale_tera_meter_1: progress_scale_tera_meter_1,
+                                inner_scale_tera_meter_10: progress_scale_tera_meter_10,
+                                inner_scale_tera_meter_100: progress_scale_tera_meter_100,
+                                inner_scale_peta_meter_1: progress_scale_peta_meter_1,
+                                inner_scale_peta_meter_10: progress_scale_peta_meter_10,
+                                inner_scale_peta_meter_100: progress_scale_peta_meter_100,
+                                inner_scale_exa_meter_1: progress_scale_exa_meter_1,
+                                inner_scale_exa_meter_10: progress_scale_exa_meter_10,
+                                inner_scale_exa_meter_100: progress_scale_exa_meter_100,
+                                inner_scale_zetta_meter_1: progress_scale_zetta_meter_1,
+                                inner_scale_zetta_meter_10: progress_scale_zetta_meter_10,
+                                inner_scale_zetta_meter_100: progress_scale_zetta_meter_100,
+                                inner_scale_yotta_meter_1: progress_scale_yotta_meter_1,
+                                inner_scale_yotta_meter_10: progress_scale_yotta_meter_10,
+                                inner_scale_yotta_meter_100: progress_scale_yotta_meter_100,
+                                inner_scale_ronna_meter_1: progress_scale_ronna_meter_1,
+                                inner_scale_ronna_meter_10: progress_scale_ronna_meter_10,
+                                inner_scale_ronna_meter_100: progress_scale_ronna_meter_100,
+                                inner_scale_quetta_meter_1: progress_scale_quetta_meter_1,
+                                inner_scale_quetta_meter_10: progress_scale_quetta_meter_10,
+                                inner_scale_quetta_meter_100: progress_scale_quetta_meter_100,
+                                inner_scale_quetta_meter_1000: progress_scale_quetta_meter_1000,
+                                inner_scale_quetta_meter_10000: progress_scale_quetta_meter_10000,
+                                inner_scale_quetta_meter_100000: progress_scale_quetta_meter_100000,
+                            }))
                         }
                     ]
                 }
@@ -741,6 +2115,7 @@ define_workflow_mod_OLD! {
                     run_ecs as find_and_transfer_ownership_run_ecs,
                 };
                 use crate::usf::scale::*;
+                use crate::utils::progress::Progress;
             },
             user_items: {
             },
@@ -894,7 +2269,77 @@ define_workflow_mod_OLD! {
                             inner_scale_quetta_meter_100000: FindAndTransferOwnershipInput<ScaleQuettaMeter100000>,
                         }
                         struct Output {
-                            ownership_transfered_chunk_entities: Vec<Entity>
+                            inner_scale_quecto_meter_000001: FindAndTransferOwnershipOutput,
+                            inner_scale_quecto_meter_00001: FindAndTransferOwnershipOutput,
+                            inner_scale_quecto_meter_0001: FindAndTransferOwnershipOutput,
+                            inner_scale_quecto_meter_001: FindAndTransferOwnershipOutput,
+                            inner_scale_quecto_meter_01: FindAndTransferOwnershipOutput,
+                            inner_scale_quecto_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_quecto_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_quecto_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_ronto_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_ronto_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_ronto_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_yocto_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_yocto_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_yocto_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_zepto_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_zepto_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_zepto_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_atto_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_atto_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_atto_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_femto_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_femto_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_femto_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_pico_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_pico_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_pico_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_nano_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_nano_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_nano_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_micro_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_micro_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_micro_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_milli_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_milli_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_milli_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_kilo_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_kilo_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_kilo_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_mega_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_mega_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_mega_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_giga_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_giga_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_giga_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_tera_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_tera_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_tera_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_peta_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_peta_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_peta_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_exa_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_exa_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_exa_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_zetta_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_zetta_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_zetta_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_yotta_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_yotta_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_yotta_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_ronna_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_ronna_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_ronna_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_quetta_meter_1: FindAndTransferOwnershipOutput,
+                            inner_scale_quetta_meter_10: FindAndTransferOwnershipOutput,
+                            inner_scale_quetta_meter_100: FindAndTransferOwnershipOutput,
+                            inner_scale_quetta_meter_1000: FindAndTransferOwnershipOutput,
+                            inner_scale_quetta_meter_10000: FindAndTransferOwnershipOutput,
+                            inner_scale_quetta_meter_100000: FindAndTransferOwnershipOutput,
                         }
                         enum Error {
                             ScaleQuectoMeter000001Error(FindAndTransferOwnershipError),
@@ -972,6 +2417,151 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn RunEcs |input, main_access| -> Result<Output, Error> {
+                            let output_scale_quecto_meter_000001 = find_and_transfer_ownership_run_ecs(input.inner_scale_quecto_meter_000001, main_access.inner_scale_quecto_meter_000001).map_err(|e| Error::ScaleQuectoMeter000001Error(e))?;
+                            let output_scale_quecto_meter_00001 = find_and_transfer_ownership_run_ecs(input.inner_scale_quecto_meter_00001, main_access.inner_scale_quecto_meter_00001).map_err(|e| Error::ScaleQuectoMeter00001Error(e))?;
+                            let output_scale_quecto_meter_0001 = find_and_transfer_ownership_run_ecs(input.inner_scale_quecto_meter_0001, main_access.inner_scale_quecto_meter_0001).map_err(|e| Error::ScaleQuectoMeter0001Error(e))?;
+                            let output_scale_quecto_meter_001 = find_and_transfer_ownership_run_ecs(input.inner_scale_quecto_meter_001, main_access.inner_scale_quecto_meter_001).map_err(|e| Error::ScaleQuectoMeter001Error(e))?;
+                            let output_scale_quecto_meter_01 = find_and_transfer_ownership_run_ecs(input.inner_scale_quecto_meter_01, main_access.inner_scale_quecto_meter_01).map_err(|e| Error::ScaleQuectoMeter01Error(e))?;
+                            let output_scale_quecto_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_quecto_meter_1, main_access.inner_scale_quecto_meter_1).map_err(|e| Error::ScaleQuectoMeter1Error(e))?;
+                            let output_scale_quecto_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_quecto_meter_10, main_access.inner_scale_quecto_meter_10).map_err(|e| Error::ScaleQuectoMeter10Error(e))?;
+                            let output_scale_quecto_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_quecto_meter_100, main_access.inner_scale_quecto_meter_100).map_err(|e| Error::ScaleQuectoMeter100Error(e))?;
+                            let output_scale_ronto_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_ronto_meter_1, main_access.inner_scale_ronto_meter_1).map_err(|e| Error::ScaleRontoMeter1Error(e))?;
+                            let output_scale_ronto_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_ronto_meter_10, main_access.inner_scale_ronto_meter_10).map_err(|e| Error::ScaleRontoMeter10Error(e))?;
+                            let output_scale_ronto_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_ronto_meter_100, main_access.inner_scale_ronto_meter_100).map_err(|e| Error::ScaleRontoMeter100Error(e))?;
+                            let output_scale_yocto_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_yocto_meter_1, main_access.inner_scale_yocto_meter_1).map_err(|e| Error::ScaleYoctoMeter1Error(e))?;
+                            let output_scale_yocto_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_yocto_meter_10, main_access.inner_scale_yocto_meter_10).map_err(|e| Error::ScaleYoctoMeter10Error(e))?;
+                            let output_scale_yocto_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_yocto_meter_100, main_access.inner_scale_yocto_meter_100).map_err(|e| Error::ScaleYoctoMeter100Error(e))?;
+                            let output_scale_zepto_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_zepto_meter_1, main_access.inner_scale_zepto_meter_1).map_err(|e| Error::ScaleZeptoMeter1Error(e))?;
+                            let output_scale_zepto_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_zepto_meter_10, main_access.inner_scale_zepto_meter_10).map_err(|e| Error::ScaleZeptoMeter10Error(e))?;
+                            let output_scale_zepto_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_zepto_meter_100, main_access.inner_scale_zepto_meter_100).map_err(|e| Error::ScaleZeptoMeter100Error(e))?;
+                            let output_scale_atto_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_atto_meter_1, main_access.inner_scale_atto_meter_1).map_err(|e| Error::ScaleAttoMeter1Error(e))?;
+                            let output_scale_atto_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_atto_meter_10, main_access.inner_scale_atto_meter_10).map_err(|e| Error::ScaleAttoMeter10Error(e))?;
+                            let output_scale_atto_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_atto_meter_100, main_access.inner_scale_atto_meter_100).map_err(|e| Error::ScaleAttoMeter100Error(e))?;
+                            let output_scale_femto_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_femto_meter_1, main_access.inner_scale_femto_meter_1).map_err(|e| Error::ScaleFemtoMeter1Error(e))?;
+                            let output_scale_femto_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_femto_meter_10, main_access.inner_scale_femto_meter_10).map_err(|e| Error::ScaleFemtoMeter10Error(e))?;
+                            let output_scale_femto_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_femto_meter_100, main_access.inner_scale_femto_meter_100).map_err(|e| Error::ScaleFemtoMeter100Error(e))?;
+                            let output_scale_pico_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_pico_meter_1, main_access.inner_scale_pico_meter_1).map_err(|e| Error::ScalePicoMeter1Error(e))?;
+                            let output_scale_pico_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_pico_meter_10, main_access.inner_scale_pico_meter_10).map_err(|e| Error::ScalePicoMeter10Error(e))?;
+                            let output_scale_pico_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_pico_meter_100, main_access.inner_scale_pico_meter_100).map_err(|e| Error::ScalePicoMeter100Error(e))?;
+                            let output_scale_nano_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_nano_meter_1, main_access.inner_scale_nano_meter_1).map_err(|e| Error::ScaleNanoMeter1Error(e))?;
+                            let output_scale_nano_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_nano_meter_10, main_access.inner_scale_nano_meter_10).map_err(|e| Error::ScaleNanoMeter10Error(e))?;
+                            let output_scale_nano_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_nano_meter_100, main_access.inner_scale_nano_meter_100).map_err(|e| Error::ScaleNanoMeter100Error(e))?;
+                            let output_scale_micro_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_micro_meter_1, main_access.inner_scale_micro_meter_1).map_err(|e| Error::ScaleMicroMeter1Error(e))?;
+                            let output_scale_micro_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_micro_meter_10, main_access.inner_scale_micro_meter_10).map_err(|e| Error::ScaleMicroMeter10Error(e))?;
+                            let output_scale_micro_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_micro_meter_100, main_access.inner_scale_micro_meter_100).map_err(|e| Error::ScaleMicroMeter100Error(e))?;
+                            let output_scale_milli_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_milli_meter_1, main_access.inner_scale_milli_meter_1).map_err(|e| Error::ScaleMilliMeter1Error(e))?;
+                            let output_scale_milli_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_milli_meter_10, main_access.inner_scale_milli_meter_10).map_err(|e| Error::ScaleMilliMeter10Error(e))?;
+                            let output_scale_milli_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_milli_meter_100, main_access.inner_scale_milli_meter_100).map_err(|e| Error::ScaleMilliMeter100Error(e))?;
+                            let output_scale_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_meter_1, main_access.inner_scale_meter_1).map_err(|e| Error::ScaleMeter1Error(e))?;
+                            let output_scale_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_meter_10, main_access.inner_scale_meter_10).map_err(|e| Error::ScaleMeter10Error(e))?;
+                            let output_scale_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_meter_100, main_access.inner_scale_meter_100).map_err(|e| Error::ScaleMeter100Error(e))?;
+                            let output_scale_kilo_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_kilo_meter_1, main_access.inner_scale_kilo_meter_1).map_err(|e| Error::ScaleKiloMeter1Error(e))?;
+                            let output_scale_kilo_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_kilo_meter_10, main_access.inner_scale_kilo_meter_10).map_err(|e| Error::ScaleKiloMeter10Error(e))?;
+                            let output_scale_kilo_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_kilo_meter_100, main_access.inner_scale_kilo_meter_100).map_err(|e| Error::ScaleKiloMeter100Error(e))?;
+                            let output_scale_mega_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_mega_meter_1, main_access.inner_scale_mega_meter_1).map_err(|e| Error::ScaleMegaMeter1Error(e))?;
+                            let output_scale_mega_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_mega_meter_10, main_access.inner_scale_mega_meter_10).map_err(|e| Error::ScaleMegaMeter10Error(e))?;
+                            let output_scale_mega_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_mega_meter_100, main_access.inner_scale_mega_meter_100).map_err(|e| Error::ScaleMegaMeter100Error(e))?;
+                            let output_scale_giga_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_giga_meter_1, main_access.inner_scale_giga_meter_1).map_err(|e| Error::ScaleGigaMeter1Error(e))?;
+                            let output_scale_giga_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_giga_meter_10, main_access.inner_scale_giga_meter_10).map_err(|e| Error::ScaleGigaMeter10Error(e))?;
+                            let output_scale_giga_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_giga_meter_100, main_access.inner_scale_giga_meter_100).map_err(|e| Error::ScaleGigaMeter100Error(e))?;
+                            let output_scale_tera_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_tera_meter_1, main_access.inner_scale_tera_meter_1).map_err(|e| Error::ScaleTeraMeter1Error(e))?;
+                            let output_scale_tera_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_tera_meter_10, main_access.inner_scale_tera_meter_10).map_err(|e| Error::ScaleTeraMeter10Error(e))?;
+                            let output_scale_tera_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_tera_meter_100, main_access.inner_scale_tera_meter_100).map_err(|e| Error::ScaleTeraMeter100Error(e))?;
+                            let output_scale_peta_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_peta_meter_1, main_access.inner_scale_peta_meter_1).map_err(|e| Error::ScalePetaMeter1Error(e))?;
+                            let output_scale_peta_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_peta_meter_10, main_access.inner_scale_peta_meter_10).map_err(|e| Error::ScalePetaMeter10Error(e))?;
+                            let output_scale_peta_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_peta_meter_100, main_access.inner_scale_peta_meter_100).map_err(|e| Error::ScalePetaMeter100Error(e))?;
+                            let output_scale_exa_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_exa_meter_1, main_access.inner_scale_exa_meter_1).map_err(|e| Error::ScaleExaMeter1Error(e))?;
+                            let output_scale_exa_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_exa_meter_10, main_access.inner_scale_exa_meter_10).map_err(|e| Error::ScaleExaMeter10Error(e))?;
+                            let output_scale_exa_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_exa_meter_100, main_access.inner_scale_exa_meter_100).map_err(|e| Error::ScaleExaMeter100Error(e))?;
+                            let output_scale_zetta_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_zetta_meter_1, main_access.inner_scale_zetta_meter_1).map_err(|e| Error::ScaleZettaMeter1Error(e))?;
+                            let output_scale_zetta_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_zetta_meter_10, main_access.inner_scale_zetta_meter_10).map_err(|e| Error::ScaleZettaMeter10Error(e))?;
+                            let output_scale_zetta_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_zetta_meter_100, main_access.inner_scale_zetta_meter_100).map_err(|e| Error::ScaleZettaMeter100Error(e))?;
+                            let output_scale_yotta_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_yotta_meter_1, main_access.inner_scale_yotta_meter_1).map_err(|e| Error::ScaleYottaMeter1Error(e))?;
+                            let output_scale_yotta_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_yotta_meter_10, main_access.inner_scale_yotta_meter_10).map_err(|e| Error::ScaleYottaMeter10Error(e))?;
+                            let output_scale_yotta_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_yotta_meter_100, main_access.inner_scale_yotta_meter_100).map_err(|e| Error::ScaleYottaMeter100Error(e))?;
+                            let output_scale_ronna_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_ronna_meter_1, main_access.inner_scale_ronna_meter_1).map_err(|e| Error::ScaleRonnaMeter1Error(e))?;
+                            let output_scale_ronna_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_ronna_meter_10, main_access.inner_scale_ronna_meter_10).map_err(|e| Error::ScaleRonnaMeter10Error(e))?;
+                            let output_scale_ronna_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_ronna_meter_100, main_access.inner_scale_ronna_meter_100).map_err(|e| Error::ScaleRonnaMeter100Error(e))?;
+                            let output_scale_quetta_meter_1 = find_and_transfer_ownership_run_ecs(input.inner_scale_quetta_meter_1, main_access.inner_scale_quetta_meter_1).map_err(|e| Error::ScaleQuettaMeter1Error(e))?;
+                            let output_scale_quetta_meter_10 = find_and_transfer_ownership_run_ecs(input.inner_scale_quetta_meter_10, main_access.inner_scale_quetta_meter_10).map_err(|e| Error::ScaleQuettaMeter10Error(e))?;
+                            let output_scale_quetta_meter_100 = find_and_transfer_ownership_run_ecs(input.inner_scale_quetta_meter_100, main_access.inner_scale_quetta_meter_100).map_err(|e| Error::ScaleQuettaMeter100Error(e))?;
+                            let output_scale_quetta_meter_1000 = find_and_transfer_ownership_run_ecs(input.inner_scale_quetta_meter_1000, main_access.inner_scale_quetta_meter_1000).map_err(|e| Error::ScaleQuettaMeter1000Error(e))?;
+                            let output_scale_quetta_meter_10000 = find_and_transfer_ownership_run_ecs(input.inner_scale_quetta_meter_10000, main_access.inner_scale_quetta_meter_10000).map_err(|e| Error::ScaleQuettaMeter10000Error(e))?;
+                            let output_scale_quetta_meter_100000 = find_and_transfer_ownership_run_ecs(input.inner_scale_quetta_meter_100000, main_access.inner_scale_quetta_meter_100000).map_err(|e| Error::ScaleQuettaMeter100000Error(e))?;
+
+                            Ok(Output {
+                                inner_scale_quecto_meter_000001: output_scale_quecto_meter_000001,
+                                inner_scale_quecto_meter_00001: output_scale_quecto_meter_00001,
+                                inner_scale_quecto_meter_0001: output_scale_quecto_meter_0001,
+                                inner_scale_quecto_meter_001: output_scale_quecto_meter_001,
+                                inner_scale_quecto_meter_01: output_scale_quecto_meter_01,
+                                inner_scale_quecto_meter_1: output_scale_quecto_meter_1,
+                                inner_scale_quecto_meter_10: output_scale_quecto_meter_10,
+                                inner_scale_quecto_meter_100: output_scale_quecto_meter_100,
+                                inner_scale_ronto_meter_1: output_scale_ronto_meter_1,
+                                inner_scale_ronto_meter_10: output_scale_ronto_meter_10,
+                                inner_scale_ronto_meter_100: output_scale_ronto_meter_100,
+                                inner_scale_yocto_meter_1: output_scale_yocto_meter_1,
+                                inner_scale_yocto_meter_10: output_scale_yocto_meter_10,
+                                inner_scale_yocto_meter_100: output_scale_yocto_meter_100,
+                                inner_scale_zepto_meter_1: output_scale_zepto_meter_1,
+                                inner_scale_zepto_meter_10: output_scale_zepto_meter_10,
+                                inner_scale_zepto_meter_100: output_scale_zepto_meter_100,
+                                inner_scale_atto_meter_1: output_scale_atto_meter_1,
+                                inner_scale_atto_meter_10: output_scale_atto_meter_10,
+                                inner_scale_atto_meter_100: output_scale_atto_meter_100,
+                                inner_scale_femto_meter_1: output_scale_femto_meter_1,
+                                inner_scale_femto_meter_10: output_scale_femto_meter_10,
+                                inner_scale_femto_meter_100: output_scale_femto_meter_100,
+                                inner_scale_pico_meter_1: output_scale_pico_meter_1,
+                                inner_scale_pico_meter_10: output_scale_pico_meter_10,
+                                inner_scale_pico_meter_100: output_scale_pico_meter_100,
+                                inner_scale_nano_meter_1: output_scale_nano_meter_1,
+                                inner_scale_nano_meter_10: output_scale_nano_meter_10,
+                                inner_scale_nano_meter_100: output_scale_nano_meter_100,
+                                inner_scale_micro_meter_1: output_scale_micro_meter_1,
+                                inner_scale_micro_meter_10: output_scale_micro_meter_10,
+                                inner_scale_micro_meter_100: output_scale_micro_meter_100,
+                                inner_scale_milli_meter_1: output_scale_milli_meter_1,
+                                inner_scale_milli_meter_10: output_scale_milli_meter_10,
+                                inner_scale_milli_meter_100: output_scale_milli_meter_100,
+                                inner_scale_meter_1: output_scale_meter_1,
+                                inner_scale_meter_10: output_scale_meter_10,
+                                inner_scale_meter_100: output_scale_meter_100,
+                                inner_scale_kilo_meter_1: output_scale_kilo_meter_1,
+                                inner_scale_kilo_meter_10: output_scale_kilo_meter_10,
+                                inner_scale_kilo_meter_100: output_scale_kilo_meter_100,
+                                inner_scale_mega_meter_1: output_scale_mega_meter_1,
+                                inner_scale_mega_meter_10: output_scale_mega_meter_10,
+                                inner_scale_mega_meter_100: output_scale_mega_meter_100,
+                                inner_scale_giga_meter_1: output_scale_giga_meter_1,
+                                inner_scale_giga_meter_10: output_scale_giga_meter_10,
+                                inner_scale_giga_meter_100: output_scale_giga_meter_100,
+                                inner_scale_tera_meter_1: output_scale_tera_meter_1,
+                                inner_scale_tera_meter_10: output_scale_tera_meter_10,
+                                inner_scale_tera_meter_100: output_scale_tera_meter_100,
+                                inner_scale_peta_meter_1: output_scale_peta_meter_1,
+                                inner_scale_peta_meter_10: output_scale_peta_meter_10,
+                                inner_scale_peta_meter_100: output_scale_peta_meter_100,
+                                inner_scale_exa_meter_1: output_scale_exa_meter_1,
+                                inner_scale_exa_meter_10: output_scale_exa_meter_10,
+                                inner_scale_exa_meter_100: output_scale_exa_meter_100,
+                                inner_scale_zetta_meter_1: output_scale_zetta_meter_1,
+                                inner_scale_zetta_meter_10: output_scale_zetta_meter_10,
+                                inner_scale_zetta_meter_100: output_scale_zetta_meter_100,
+                                inner_scale_yotta_meter_1: output_scale_yotta_meter_1,
+                                inner_scale_yotta_meter_10: output_scale_yotta_meter_10,
+                                inner_scale_yotta_meter_100: output_scale_yotta_meter_100,
+                                inner_scale_ronna_meter_1: output_scale_ronna_meter_1,
+                                inner_scale_ronna_meter_10: output_scale_ronna_meter_10,
+                                inner_scale_ronna_meter_100: output_scale_ronna_meter_100,
+                                inner_scale_quetta_meter_1: output_scale_quetta_meter_1,
+                                inner_scale_quetta_meter_10: output_scale_quetta_meter_10,
+                                inner_scale_quetta_meter_100: output_scale_quetta_meter_100,
+                                inner_scale_quetta_meter_1000: output_scale_quetta_meter_1000,
+                                inner_scale_quetta_meter_10000: output_scale_quetta_meter_10000,
+                                inner_scale_quetta_meter_100000: output_scale_quetta_meter_100000,
+                            })
                         }
                     ]
                 }

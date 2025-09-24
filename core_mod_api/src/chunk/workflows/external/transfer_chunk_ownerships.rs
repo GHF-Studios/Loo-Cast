@@ -1,12 +1,11 @@
 // Imports
-use bevy::prelude::{Res, ResMut, Entity, Query};
+use bevy::prelude::{ResMut, Entity, Query};
 
 use crate::chunk::{components::Chunk, resources::ChunkManager, types::ChunkOwnerId};
 use crate::usf::scale::Scale;
-use crate::workflow::types::Outcome;
 
 // Items
-pub struct TransferChunkOwnershipInput {
+pub struct TransferChunkOwnershipInput<S: Scale> {
     pub new_chunk_owner_id: ChunkOwnerId<S>,
     pub chunk_coord: (i32, i32),
 }
@@ -26,12 +25,13 @@ pub struct Output {
     ownership_transfered_chunk_entities: Vec<Entity>
 }
 
+#[derive(Debug)]
 pub enum Error {
     ChunkNotLoaded { chunk_coord: (i32, i32) },
 }
 
 // Core Functions
-pub fn run_ecs<S: Scale>(input: Input<S>, main_access: MainAccess<S>) -> Result<Output<S>, Error<S>> {
+pub fn run_ecs<S: Scale>(input: Input<S>, main_access: MainAccess<S>) -> Result<Output, Error> {
     let mut chunk_query = main_access.chunk_query;
     let mut chunk_manager = main_access.chunk_manager;
 

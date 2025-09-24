@@ -2,9 +2,9 @@ use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
 use crate::chunk::types::ChunkOwnerId;
-use crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInput;
-use crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput;
-use crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput;
+use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
+use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
+use crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::resources::RemovedChunkLoaders;
 use crate::config::statics::CONFIG;
@@ -149,24 +149,21 @@ pub(crate) fn process_chunk_actions_system<S: Scale>(
             match action_intent {
                 ActionIntent::Spawn { owner_id, coord, .. } => {
                     spawn_coords.push(coord);
-                    spawn_inputs.push(crate::chunk::workflows::chunk::spawn_chunks::user_items::SpawnChunkInput {
+                    spawn_inputs.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
                         chunk_coord: coord,
                         chunk_owner_id: owner_id.clone(),
-                        // Placeholder handle cause I can't be bothered to create a whole separate thing just to not have to use this placeholder.
-                        // I mean look at it, is it really gonna hurt anyone?
-                        // TODO: Probably fix this, it's scuffed, no matter what I said 10 seconds ago
                         metric_texture: Handle::default(),
                     });
                     processed_coords.push(coord);
                     chunk_loaders_performing_chunk_loads.push(owner_id);
                 }
                 ActionIntent::Despawn { coord, .. } => {
-                    despawn_inputs.push(crate::chunk::workflows::chunk::despawn_chunks::user_items::DespawnChunkInput { chunk_coord: coord });
+                    despawn_inputs.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
                     processed_coords.push(coord);
                 }
                 ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
                     transfer_inputs.push(
-                        crate::chunk::workflows::chunk::transfer_chunk_ownerships::user_items::TransferChunkOwnershipInput {
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
                             new_chunk_owner_id: new_owner_id.clone(),
                             chunk_coord: coord,
                         },

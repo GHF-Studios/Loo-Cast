@@ -1,5 +1,5 @@
 // Imports
-use bevy::prelude::{Res, ResMut, Commands, Query, Entity};
+use bevy::prelude::{ResMut, Commands, Query, Entity};
 
 use crate::chunk::{components::Chunk, resources::ChunkManager};
 use crate::usf::scale::Scale;
@@ -35,12 +35,13 @@ pub struct Output {
     despawned_chunk_entities: Vec<Entity>,
 }
 
+#[derive(Debug)]
 pub enum Error {
     ChunkNotLoaded { chunk_coord: (i32, i32) },
 }
 
 // Core Functions
-pub fn setup_ecs_while<S: Scale>(input: Input<S>, main_access: MainAccess<S>) -> Result<State<S>, Error<S>> {
+pub fn setup_ecs_while<S: Scale>(input: Input, main_access: MainAccess<S>) -> Result<State, Error> {
     let mut commands = main_access.commands;
     let chunk_query = main_access.chunk_query;
     let mut chunk_manager = main_access.chunk_manager;
@@ -70,7 +71,7 @@ pub fn setup_ecs_while<S: Scale>(input: Input<S>, main_access: MainAccess<S>) ->
     })
 }
 
-pub fn run_ecs_while<S: Scale>(state: State<S>, main_access: MainAccess<S>) -> Result<Outcome<State<S>, Output<S>>, Error<S>> {
+pub fn run_ecs_while<S: Scale>(state: State, main_access: MainAccess<S>) -> Result<Outcome<State, Output>, Error> {
     let mut commands = main_access.commands;
 
     let despawn_chunk_states = state.despawn_chunk_states.into_iter().map(|mut despawn_chunk_state| {

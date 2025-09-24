@@ -1,4 +1,5 @@
 pub mod components;
+pub mod progress;
 pub mod functions;
 pub mod premium_box;
 
