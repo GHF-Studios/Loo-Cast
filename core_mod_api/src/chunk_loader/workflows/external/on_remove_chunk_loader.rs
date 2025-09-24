@@ -2,12 +2,9 @@
 use bevy::prelude::*;
 use std::marker::PhantomData;
 
-use crate::chunk::components::Chunk;
 use crate::chunk::functions::*;
-use crate::chunk::intent::ActionIntent;
-use crate::chunk::resources::{ActionIntentCommitBuffer, ChunkManager};
+use crate::chunk::resources::ChunkManager;
 use crate::chunk::types::ChunkOwnerId;
-use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::workflows::external::unload_chunks::UnloadChunkInput;
 use crate::usf::scale::Scale;
 

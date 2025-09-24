@@ -1,5 +1,5 @@
 // Imports
-use bevy::prelude::{debug, warn, Entity, Query, Res, ResMut};
+use bevy::prelude::{warn, Query, Res, ResMut};
 use std::collections::HashSet;
 
 use crate::chunk::{
@@ -8,10 +8,7 @@ use crate::chunk::{
     resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager},
     types::ChunkOwnerId,
 };
-use crate::chunk_loader::components::ChunkLoader;
-use crate::config::statics::CONFIG;
 use crate::usf::scale::Scale;
-use crate::utils::components::InitHook;
 use crate::workflow::types::Outcome;
 
 // Items
