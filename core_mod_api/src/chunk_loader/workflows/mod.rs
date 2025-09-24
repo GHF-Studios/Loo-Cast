@@ -1769,9 +1769,9 @@ define_workflow_mod_OLD! {
                                 && is_done_outcome_scale_quetta_meter_10000
                                 && is_done_outcome_scale_quetta_meter_100000
                             {
-                                Ok(Done(()))
+                                Done(())
                             } else {
-                                Ok(Wait(State {
+                                Wait(State {
                                     inner_scale_quecto_meter_000001: (outcome_scale_quecto_meter_000001, is_done_outcome_scale_quecto_meter_000001),
                                     inner_scale_quecto_meter_00001: (outcome_scale_quecto_meter_00001, is_done_outcome_scale_quecto_meter_00001),
                                     inner_scale_quecto_meter_0001: (outcome_scale_quecto_meter_0001, is_done_outcome_scale_quecto_meter_0001),
@@ -1843,7 +1843,7 @@ define_workflow_mod_OLD! {
                                     inner_scale_quetta_meter_1000: (outcome_scale_quetta_meter_1000, is_done_outcome_scale_quetta_meter_1000),
                                     inner_scale_quetta_meter_10000: (outcome_scale_quetta_meter_10000, is_done_outcome_scale_quetta_meter_10000),
                                     inner_scale_quetta_meter_100000: (outcome_scale_quetta_meter_100000, is_done_outcome_scale_quetta_meter_100000),
-                                }))
+                                })
                             }
                         }
                     ]
@@ -2668,9 +2668,9 @@ define_workflow_mod_OLD! {
                                 && is_done_outcome_scale_quetta_meter_10000
                                 && is_done_outcome_scale_quetta_meter_100000
                             {
-                                Ok(Done(()))
+                                Done(())
                             } else {
-                                Ok(Wait(State {
+                                Wait(State {
                                     inner_scale_quecto_meter_000001: (outcome_scale_quecto_meter_000001, is_done_outcome_scale_quecto_meter_000001),
                                     inner_scale_quecto_meter_00001: (outcome_scale_quecto_meter_00001, is_done_outcome_scale_quecto_meter_00001),
                                     inner_scale_quecto_meter_0001: (outcome_scale_quecto_meter_0001, is_done_outcome_scale_quecto_meter_0001),
@@ -2742,7 +2742,7 @@ define_workflow_mod_OLD! {
                                     inner_scale_quetta_meter_1000: (outcome_scale_quetta_meter_1000, is_done_outcome_scale_quetta_meter_1000),
                                     inner_scale_quetta_meter_10000: (outcome_scale_quetta_meter_10000, is_done_outcome_scale_quetta_meter_10000),
                                     inner_scale_quetta_meter_100000: (outcome_scale_quetta_meter_100000, is_done_outcome_scale_quetta_meter_100000),
-                                }))
+                                })
                             }
                         }
                     ]

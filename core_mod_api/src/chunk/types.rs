@@ -1,7 +1,7 @@
 use bevy::ecs::entity::Entity;
 use bevy::prelude::Reflect;
-use tokio::task::JoinHandle;
 use std::marker::PhantomData;
+use tokio::task::JoinHandle;
 
 use crate::usf::scale::Scale;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
@@ -27,7 +27,11 @@ pub struct ChunkOwnerId<S: Scale> {
 }
 impl<S: Scale> ChunkOwnerId<S> {
     pub fn new(id: String, entity: Entity) -> Self {
-        Self { id, entity, phantom_scale: PhantomData }
+        Self {
+            id,
+            entity,
+            phantom_scale: PhantomData,
+        }
     }
 
     pub fn id(&self) -> &str {

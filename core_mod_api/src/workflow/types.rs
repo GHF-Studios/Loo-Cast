@@ -133,6 +133,20 @@ impl<S, O> Outcome<S, O> {
             Outcome::Done(o) => Outcome::Done(f(o)),
         }
     }
+
+    pub fn unwrap_wait(self) -> S {
+        match self {
+            Outcome::Wait(s) => s,
+            Outcome::Done(_) => panic!("Called unwrap_wait on Outcome::Done"),
+        }
+    }
+
+    pub fn unwrap_done(self) -> O {
+        match self {
+            Outcome::Wait(_) => panic!("Called unwrap_done on Outcome::Wait"),
+            Outcome::Done(o) => o,
+        }
+    }
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash)]

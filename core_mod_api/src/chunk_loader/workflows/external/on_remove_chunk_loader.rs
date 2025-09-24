@@ -17,7 +17,7 @@ use crate::usf::scale::Scale;
 #[derive(bevy::ecs::system::SystemParam)]
 pub struct MainAccess<'w, 's, S: Scale> {
     pub chunk_manager: Res<'w, ChunkManager<S>>,
-    pub phantom_data: PhantomData<&'s ()>
+    pub phantom_data: PhantomData<&'s ()>,
 }
 
 pub struct Input<S: Scale> {

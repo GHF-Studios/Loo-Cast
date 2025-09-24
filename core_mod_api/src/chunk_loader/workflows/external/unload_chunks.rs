@@ -145,7 +145,11 @@ pub fn setup_ecs_while<S: Scale>(input: Input<S>, main_access: MainAccess<S>) ->
             ResolvedActionIntent::PushCommit(action) => match action.clone() {
                 ActionIntent::Despawn { .. } => {
                     action_intent_commit_buffer.commit_intent(action);
-                    despawn_chunk_states.push(DespawnChunkState { coord, is_despawned: false, phantom_scale: PhantomData });
+                    despawn_chunk_states.push(DespawnChunkState {
+                        coord,
+                        is_despawned: false,
+                        phantom_scale: PhantomData,
+                    });
                 }
                 ActionIntent::TransferOwnership { new_owner_id, .. } => {
                     action_intent_commit_buffer.commit_intent(action);

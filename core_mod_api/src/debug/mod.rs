@@ -13,8 +13,7 @@ use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use components::DebugObjectComponent;
 use resources::{DebugSuiteUiDockState, DebugSuiteUiState};
 use systems::{
-    debug_object_movement_system, debug_suite_ui_system,
-    log_registry_debug_ui, perf_ui_startup, toggle_debug_suite_ui_system, toggle_perf_ui_system,
+    debug_object_movement_system, debug_suite_ui_system, log_registry_debug_ui, perf_ui_startup, toggle_debug_suite_ui_system, toggle_perf_ui_system,
 };
 use types::{DebugObjectMovement, StepConfig, StepMode};
 
