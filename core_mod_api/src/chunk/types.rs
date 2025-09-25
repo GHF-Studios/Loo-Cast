@@ -7,15 +7,13 @@ use crate::usf::scale::Scale;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 
 #[derive(Reflect)]
-pub struct ChunkActionWorkflowHandles<S: Scale> {
+pub struct ChunkActionWorkflowHandles {
     #[reflect(ignore)]
     pub spawn: Option<JoinHandle<ScopedCompositeWorkflowContext>>,
     #[reflect(ignore)]
     pub despawn: Option<JoinHandle<ScopedCompositeWorkflowContext>>,
     #[reflect(ignore)]
     pub transfer: Option<JoinHandle<ScopedCompositeWorkflowContext>>,
-    #[reflect(ignore)]
-    pub phantom_scale: std::marker::PhantomData<S>,
 }
 
 #[derive(Debug, Clone, Reflect)]

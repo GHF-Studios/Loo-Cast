@@ -1,5 +1,7 @@
 use bevy::prelude::*;
+use bevy::ecs::system::SystemParam;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
+use std::marker::PhantomData;
 
 use crate::chunk::types::ChunkOwnerId;
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
@@ -8,7 +10,7 @@ use crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkO
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::resources::RemovedChunkLoaders;
 use crate::config::statics::CONFIG;
-use crate::usf::scale::Scale;
+use crate::usf::scale::*;
 use crate::utils::components::InitHook;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
@@ -65,11 +67,162 @@ pub(crate) fn chunk_update_system<S: Scale>(
     }
 }
 
+#[derive(SystemParam)]
+struct ProcessingSystemChunkLoaderInitHookQueries<'w, 's> {
+    pub chunk_loader_init_hook_query_scale_quecto_meter_000001: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter000001>>>,
+    pub chunk_loader_init_hook_query_scale_quecto_meter_00001: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter00001>>>,
+    pub chunk_loader_init_hook_query_scale_quecto_meter_0001: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter0001>>>,
+    pub chunk_loader_init_hook_query_scale_quecto_meter_001: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter001>>>,
+    pub chunk_loader_init_hook_query_scale_quecto_meter_01: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter01>>>,
+    pub chunk_loader_init_hook_query_scale_quecto_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_quecto_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_quecto_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_ronto_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleRontoMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_ronto_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleRontoMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_ronto_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleRontoMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_yocto_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleYoctoMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_yocto_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleYoctoMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_yocto_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleYoctoMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_zepto_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleZeptoMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_zepto_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleZeptoMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_zepto_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleZeptoMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_atto_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleAttoMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_atto_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleAttoMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_atto_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleAttoMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_femto_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleFemtoMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_femto_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleFemtoMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_femto_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleFemtoMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_pico_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScalePicoMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_pico_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScalePicoMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_pico_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScalePicoMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_nano_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleNanoMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_nano_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleNanoMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_nano_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleNanoMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_micro_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMicroMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_micro_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMicroMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_micro_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMicroMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_milli_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMilliMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_milli_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMilliMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_milli_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMilliMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_kilo_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleKiloMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_kilo_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleKiloMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_kilo_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleKiloMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_mega_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMegaMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_mega_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMegaMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_mega_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMegaMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_giga_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleGigaMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_giga_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleGigaMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_giga_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleGigaMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_tera_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleTeraMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_tera_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleTeraMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_tera_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleTeraMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_peta_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScalePetaMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_peta_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScalePetaMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_peta_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScalePetaMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_exa_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleExaMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_exa_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleExaMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_exa_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleExaMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_zetta_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleZettaMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_zetta_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleZettaMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_zetta_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleZettaMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_yotta_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleYottaMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_yotta_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleYottaMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_yotta_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleYottaMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_ronna_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleRonnaMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_ronna_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleRonnaMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_ronna_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleRonnaMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_quetta_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuettaMeter1>>>,
+    pub chunk_loader_init_hook_query_scale_quetta_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuettaMeter10>>>,
+    pub chunk_loader_init_hook_query_scale_quetta_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuettaMeter100>>>,
+    pub chunk_loader_init_hook_query_scale_quetta_meter_1000: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuettaMeter1000>>>,
+    pub chunk_loader_init_hook_query_scale_quetta_meter_10000: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuettaMeter10000>>>,
+    pub chunk_loader_init_hook_query_scale_quetta_meter_100000: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuettaMeter100000>>>,
+}
+
+#[derive(SystemParam)]
+struct ProcessingSystemActionIntentCommitBuffers<'w, 's> {
+    pub action_intent_commit_buffer_scale_quecto_meter_000001: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter000001>>,
+    pub action_intent_commit_buffer_scale_quecto_meter_00001: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter00001>>,
+    pub action_intent_commit_buffer_scale_quecto_meter_0001: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter0001>>,
+    pub action_intent_commit_buffer_scale_quecto_meter_001: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter001>>,
+    pub action_intent_commit_buffer_scale_quecto_meter_01: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter01>>,
+    pub action_intent_commit_buffer_scale_quecto_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter1>>,
+    pub action_intent_commit_buffer_scale_quecto_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter10>>,
+    pub action_intent_commit_buffer_scale_quecto_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter100>>,
+    pub action_intent_commit_buffer_scale_ronto_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleRontoMeter1>>,
+    pub action_intent_commit_buffer_scale_ronto_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleRontoMeter10>>,
+    pub action_intent_commit_buffer_scale_ronto_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleRontoMeter100>>,
+    pub action_intent_commit_buffer_scale_yocto_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleYoctoMeter1>>,
+    pub action_intent_commit_buffer_scale_yocto_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleYoctoMeter10>>,
+    pub action_intent_commit_buffer_scale_yocto_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleYoctoMeter100>>,
+    pub action_intent_commit_buffer_scale_zepto_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleZeptoMeter1>>,
+    pub action_intent_commit_buffer_scale_zepto_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleZeptoMeter10>>,
+    pub action_intent_commit_buffer_scale_zepto_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleZeptoMeter100>>,
+    pub action_intent_commit_buffer_scale_atto_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleAttoMeter1>>,
+    pub action_intent_commit_buffer_scale_atto_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleAttoMeter10>>,
+    pub action_intent_commit_buffer_scale_atto_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleAttoMeter100>>,
+    pub action_intent_commit_buffer_scale_femto_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleFemtoMeter1>>,
+    pub action_intent_commit_buffer_scale_femto_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleFemtoMeter10>>,
+    pub action_intent_commit_buffer_scale_femto_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleFemtoMeter100>>,
+    pub action_intent_commit_buffer_scale_pico_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScalePicoMeter1>>,
+    pub action_intent_commit_buffer_scale_pico_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScalePicoMeter10>>,
+    pub action_intent_commit_buffer_scale_pico_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScalePicoMeter100>>,
+    pub action_intent_commit_buffer_scale_nano_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleNanoMeter1>>,
+    pub action_intent_commit_buffer_scale_nano_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleNanoMeter10>>,
+    pub action_intent_commit_buffer_scale_nano_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleNanoMeter100>>,
+    pub action_intent_commit_buffer_scale_micro_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleMicroMeter1>>,
+    pub action_intent_commit_buffer_scale_micro_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleMicroMeter10>>,
+    pub action_intent_commit_buffer_scale_micro_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleMicroMeter100>>,
+    pub action_intent_commit_buffer_scale_milli_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleMilliMeter1>>,
+    pub action_intent_commit_buffer_scale_milli_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleMilliMeter10>>,
+    pub action_intent_commit_buffer_scale_milli_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleMilliMeter100>>,
+    pub action_intent_commit_buffer_scale_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleMeter1>>,
+    pub action_intent_commit_buffer_scale_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleMeter10>>,
+    pub action_intent_commit_buffer_scale_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleMeter100>>,
+    pub action_intent_commit_buffer_scale_kilo_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleKiloMeter1>>,
+    pub action_intent_commit_buffer_scale_kilo_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleKiloMeter10>>,
+    pub action_intent_commit_buffer_scale_kilo_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleKiloMeter100>>,
+    pub action_intent_commit_buffer_scale_mega_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleMegaMeter1>>,
+    pub action_intent_commit_buffer_scale_mega_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleMegaMeter10>>,
+    pub action_intent_commit_buffer_scale_mega_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleMegaMeter100>>,
+    pub action_intent_commit_buffer_scale_giga_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleGigaMeter1>>,
+    pub action_intent_commit_buffer_scale_giga_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleGigaMeter10>>,
+    pub action_intent_commit_buffer_scale_giga_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleGigaMeter100>>,
+    pub action_intent_commit_buffer_scale_tera_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleTeraMeter1>>,
+    pub action_intent_commit_buffer_scale_tera_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleTeraMeter10>>,
+    pub action_intent_commit_buffer_scale_tera_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleTeraMeter100>>,
+    pub action_intent_commit_buffer_scale_peta_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScalePetaMeter1>>,
+    pub action_intent_commit_buffer_scale_peta_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScalePetaMeter10>>,
+    pub action_intent_commit_buffer_scale_peta_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScalePetaMeter100>>,
+    pub action_intent_commit_buffer_scale_exa_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleExaMeter1>>,
+    pub action_intent_commit_buffer_scale_exa_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleExaMeter10>>,
+    pub action_intent_commit_buffer_scale_exa_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleExaMeter100>>,
+    pub action_intent_commit_buffer_scale_zetta_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleZettaMeter1>>,
+    pub action_intent_commit_buffer_scale_zetta_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleZettaMeter10>>,
+    pub action_intent_commit_buffer_scale_zetta_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleZettaMeter100>>,
+    pub action_intent_commit_buffer_scale_yotta_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleYottaMeter1>>,
+    pub action_intent_commit_buffer_scale_yotta_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleYottaMeter10>>,
+    pub action_intent_commit_buffer_scale_yotta_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleYottaMeter100>>,
+    pub action_intent_commit_buffer_scale_ronna_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleRonnaMeter1>>,
+    pub action_intent_commit_buffer_scale_ronna_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleRonnaMeter10>>,
+    pub action_intent_commit_buffer_scale_ronna_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleRonnaMeter100>>,
+    pub action_intent_commit_buffer_scale_quetta_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleQuettaMeter1>>,
+    pub action_intent_commit_buffer_scale_quetta_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleQuettaMeter10>>,
+    pub action_intent_commit_buffer_scale_quetta_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleQuettaMeter100>>,
+    pub action_intent_commit_buffer_scale_quetta_meter_1000: ResMut<'w, ActionIntentCommitBuffer<ScaleQuettaMeter1000>>,
+    pub action_intent_commit_buffer_scale_quetta_meter_10000: ResMut<'w, ActionIntentCommitBuffer<ScaleQuettaMeter10000>>,
+    pub action_intent_commit_buffer_scale_quetta_meter_100000: ResMut<'w, ActionIntentCommitBuffer<ScaleQuettaMeter100000>>,
+    phantom_data: PhantomData<&'s ()>,
+}
+
 #[tracing::instrument(skip_all)]
-pub(crate) fn process_chunk_actions_system<S: Scale>(
-    mut chunk_loader_init_hook_query: Query<&mut InitHook<ChunkLoader<S>>>,
-    mut action_intent_commit_buffer: ResMut<ActionIntentCommitBuffer<S>>,
-    mut workflow_handles: Local<Option<ChunkActionWorkflowHandles<S>>>,
+pub(crate) fn process_chunk_actions_system(
+    mut chunk_loader_init_hook_queries: ProcessingSystemChunkLoaderInitHookQueries,
+    mut action_intent_commit_buffers: ProcessingSystemActionIntentCommitBuffers,
+    mut workflow_handles: Local<Option<ChunkActionWorkflowHandles>>,
 ) {
     // Step 1: If workflows are running, wait for all to complete
     if let Some(handles) = &mut *workflow_handles {
@@ -88,10 +241,432 @@ pub(crate) fn process_chunk_actions_system<S: Scale>(
         // Cleanup finished handles
         if let Some(handle) = handles.spawn.take() {
             handle_composite_workflow_return_now(handle, |ctx| {
-                composite_workflow_return!(new_chunk_loaders: Vec<Entity>);
+                composite_workflow_return!(
+                    new_chunk_loaders_scale_quecto_meter_000001: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_00001: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_0001: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_001: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_01: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_ronto_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_ronto_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_ronto_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_yocto_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_yocto_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_yocto_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_zepto_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_zepto_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_zepto_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_atto_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_atto_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_atto_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_femto_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_femto_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_femto_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_pico_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_pico_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_pico_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_nano_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_nano_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_nano_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_micro_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_micro_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_micro_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_milli_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_milli_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_milli_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_kilo_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_kilo_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_kilo_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_mega_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_mega_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_mega_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_giga_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_giga_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_giga_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_tera_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_tera_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_tera_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_peta_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_peta_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_peta_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_exa_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_exa_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_exa_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_zetta_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_zetta_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_zetta_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_yotta_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_yotta_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_yotta_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_ronna_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_ronna_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_ronna_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_quetta_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_quetta_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_quetta_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_quetta_meter_1000: Vec<Entity>,
+                    new_chunk_loaders_scale_quetta_meter_10000: Vec<Entity>,
+                    new_chunk_loaders_scale_quetta_meter_100000: Vec<Entity>,
+                );
 
-                for entity in new_chunk_loaders {
-                    if let Ok(mut init_hook) = chunk_loader_init_hook_query.get_mut(entity) {
+                for entity in new_chunk_loaders_scale_quecto_meter_000001 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_000001.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_00001 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_00001.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_0001 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_0001.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_001 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_001.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_01 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_01.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_ronto_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronto_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_ronto_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronto_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_ronto_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronto_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_yocto_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yocto_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_yocto_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yocto_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_yocto_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yocto_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_zepto_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zepto_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_zepto_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zepto_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_zepto_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zepto_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_atto_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_atto_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_atto_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_atto_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_atto_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_atto_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_femto_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_femto_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_femto_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_femto_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_femto_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_femto_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_pico_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_pico_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_pico_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_pico_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_pico_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_pico_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_nano_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_nano_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_nano_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_nano_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_nano_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_nano_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_micro_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_micro_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_micro_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_micro_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_micro_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_micro_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_milli_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_milli_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_milli_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_milli_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_milli_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_milli_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_kilo_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_kilo_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_kilo_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_kilo_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_kilo_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_kilo_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_mega_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_mega_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_mega_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_mega_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_mega_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_mega_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_giga_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_giga_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_giga_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_giga_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_giga_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_giga_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_tera_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_tera_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_tera_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_tera_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_tera_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_tera_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_peta_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_peta_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_peta_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_peta_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_peta_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_peta_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_exa_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_exa_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_exa_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_exa_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_exa_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_exa_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_zetta_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zetta_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_zetta_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zetta_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_zetta_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zetta_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_yotta_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yotta_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_yotta_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yotta_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_yotta_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yotta_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_ronna_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronna_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_ronna_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronna_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_ronna_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronna_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quetta_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quetta_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quetta_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quetta_meter_1000 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_1000.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quetta_meter_10000 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_10000.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quetta_meter_100000 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_100000.get_mut(entity) {
                         init_hook.fire();
                     }
                 }
@@ -108,10 +683,432 @@ pub(crate) fn process_chunk_actions_system<S: Scale>(
         }
         if let Some(handle) = handles.transfer.take() {
             handle_composite_workflow_return_now(handle, |ctx| {
-                composite_workflow_return!(new_chunk_loaders: Vec<Entity>);
+                composite_workflow_return!(
+                    new_chunk_loaders_scale_quecto_meter_000001: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_00001: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_0001: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_001: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_01: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_quecto_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_ronto_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_ronto_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_ronto_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_yocto_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_yocto_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_yocto_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_zepto_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_zepto_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_zepto_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_atto_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_atto_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_atto_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_femto_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_femto_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_femto_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_pico_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_pico_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_pico_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_nano_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_nano_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_nano_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_micro_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_micro_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_micro_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_milli_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_milli_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_milli_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_kilo_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_kilo_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_kilo_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_mega_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_mega_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_mega_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_giga_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_giga_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_giga_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_tera_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_tera_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_tera_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_peta_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_peta_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_peta_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_exa_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_exa_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_exa_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_zetta_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_zetta_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_zetta_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_yotta_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_yotta_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_yotta_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_ronna_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_ronna_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_ronna_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_quetta_meter_1: Vec<Entity>,
+                    new_chunk_loaders_scale_quetta_meter_10: Vec<Entity>,
+                    new_chunk_loaders_scale_quetta_meter_100: Vec<Entity>,
+                    new_chunk_loaders_scale_quetta_meter_1000: Vec<Entity>,
+                    new_chunk_loaders_scale_quetta_meter_10000: Vec<Entity>,
+                    new_chunk_loaders_scale_quetta_meter_100000: Vec<Entity>,
+                );
 
-                for entity in new_chunk_loaders {
-                    if let Ok(mut init_hook) = chunk_loader_init_hook_query.get_mut(entity) {
+                for entity in new_chunk_loaders_scale_quecto_meter_000001 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_000001.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_00001 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_00001.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_0001 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_0001.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_001 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_001.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_01 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_01.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quecto_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_ronto_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronto_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_ronto_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronto_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_ronto_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronto_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_yocto_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yocto_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_yocto_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yocto_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_yocto_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yocto_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_zepto_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zepto_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_zepto_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zepto_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_zepto_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zepto_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_atto_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_atto_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_atto_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_atto_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_atto_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_atto_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_femto_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_femto_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_femto_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_femto_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_femto_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_femto_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_pico_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_pico_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_pico_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_pico_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_pico_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_pico_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_nano_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_nano_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_nano_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_nano_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_nano_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_nano_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_micro_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_micro_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_micro_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_micro_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_micro_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_micro_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_milli_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_milli_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_milli_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_milli_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_milli_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_milli_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_kilo_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_kilo_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_kilo_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_kilo_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_kilo_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_kilo_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_mega_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_mega_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_mega_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_mega_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_mega_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_mega_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_giga_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_giga_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_giga_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_giga_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_giga_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_giga_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_tera_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_tera_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_tera_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_tera_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_tera_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_tera_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_peta_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_peta_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_peta_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_peta_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_peta_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_peta_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_exa_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_exa_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_exa_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_exa_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_exa_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_exa_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_zetta_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zetta_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_zetta_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zetta_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_zetta_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zetta_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_yotta_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yotta_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_yotta_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yotta_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_yotta_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yotta_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_ronna_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronna_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_ronna_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronna_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_ronna_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronna_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quetta_meter_1 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_1.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quetta_meter_10 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_10.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quetta_meter_100 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_100.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quetta_meter_1000 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_1000.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quetta_meter_10000 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_10000.get_mut(entity) {
+                        init_hook.fire();
+                    }
+                }
+                for entity in new_chunk_loaders_scale_quetta_meter_100000 {
+                    if let Ok(mut init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_100000.get_mut(entity) {
                         init_hook.fire();
                     }
                 }
@@ -124,52 +1121,2914 @@ pub(crate) fn process_chunk_actions_system<S: Scale>(
     }
 
     // Step 2: Drain the buffer
-    let mut processed_coords = vec![];
-    let mut spawn_inputs = vec![];
-    let mut spawn_coords = vec![];
-    let mut despawn_inputs = vec![];
-    let mut transfer_inputs = vec![];
+    let mut processed_coords_scale_quecto_meter_000001 = vec![];
+    let mut spawn_inputs_scale_quecto_meter_000001 = vec![];
+    let mut spawn_coords_scale_quecto_meter_000001 = vec![];
+    let mut despawn_inputs_scale_quecto_meter_000001 = vec![];
+    let mut transfer_inputs_scale_quecto_meter_000001 = vec![];
 
-    let mut chunk_loaders_performing_chunk_loads: Vec<ChunkOwnerId<S>> = Vec::new();
-    for (_, coords) in action_intent_commit_buffer.priority_buckets.iter() {
+    let mut processed_coords_scale_quecto_meter_00001 = vec![];
+    let mut spawn_inputs_scale_quecto_meter_00001 = vec![];
+    let mut spawn_coords_scale_quecto_meter_00001 = vec![];
+    let mut despawn_inputs_scale_quecto_meter_00001 = vec![];
+    let mut transfer_inputs_scale_quecto_meter_00001 = vec![];
+
+    let mut processed_coords_scale_quecto_meter_0001 = vec![];
+    let mut spawn_inputs_scale_quecto_meter_0001 = vec![];
+    let mut spawn_coords_scale_quecto_meter_0001 = vec![];
+    let mut despawn_inputs_scale_quecto_meter_0001 = vec![];
+    let mut transfer_inputs_scale_quecto_meter_0001 = vec![];
+
+    let mut processed_coords_scale_quecto_meter_001 = vec![];
+    let mut spawn_inputs_scale_quecto_meter_001 = vec![];
+    let mut spawn_coords_scale_quecto_meter_001 = vec![];
+    let mut despawn_inputs_scale_quecto_meter_001 = vec![];
+    let mut transfer_inputs_scale_quecto_meter_001 = vec![];
+
+    let mut processed_coords_scale_quecto_meter_01 = vec![];
+    let mut spawn_inputs_scale_quecto_meter_01 = vec![];
+    let mut spawn_coords_scale_quecto_meter_01 = vec![];
+    let mut despawn_inputs_scale_quecto_meter_01 = vec![];
+    let mut transfer_inputs_scale_quecto_meter_01 = vec![];
+
+    let mut processed_coords_scale_quecto_meter_1 = vec![];
+    let mut spawn_inputs_scale_quecto_meter_1 = vec![];
+    let mut spawn_coords_scale_quecto_meter_1 = vec![];
+    let mut despawn_inputs_scale_quecto_meter_1 = vec![];
+    let mut transfer_inputs_scale_quecto_meter_1 = vec![];
+
+    let mut processed_coords_scale_quecto_meter_10 = vec![];
+    let mut spawn_inputs_scale_quecto_meter_10 = vec![];
+    let mut spawn_coords_scale_quecto_meter_10 = vec![];
+    let mut despawn_inputs_scale_quecto_meter_10 = vec![];
+    let mut transfer_inputs_scale_quecto_meter_10 = vec![];
+
+    let mut processed_coords_scale_quecto_meter_100 = vec![];
+    let mut spawn_inputs_scale_quecto_meter_100 = vec![];
+    let mut spawn_coords_scale_quecto_meter_100 = vec![];
+    let mut despawn_inputs_scale_quecto_meter_100 = vec![];
+    let mut transfer_inputs_scale_quecto_meter_100 = vec![];
+
+    let mut processed_coords_scale_ronto_meter_1 = vec![];
+    let mut spawn_inputs_scale_ronto_meter_1 = vec![];
+    let mut spawn_coords_scale_ronto_meter_1 = vec![];
+    let mut despawn_inputs_scale_ronto_meter_1 = vec![];
+    let mut transfer_inputs_scale_ronto_meter_1 = vec![];
+
+    let mut processed_coords_scale_ronto_meter_10 = vec![];
+    let mut spawn_inputs_scale_ronto_meter_10 = vec![];
+    let mut spawn_coords_scale_ronto_meter_10 = vec![];
+    let mut despawn_inputs_scale_ronto_meter_10 = vec![];
+    let mut transfer_inputs_scale_ronto_meter_10 = vec![];
+
+    let mut processed_coords_scale_ronto_meter_100 = vec![];
+    let mut spawn_inputs_scale_ronto_meter_100 = vec![];
+    let mut spawn_coords_scale_ronto_meter_100 = vec![];
+    let mut despawn_inputs_scale_ronto_meter_100 = vec![];
+    let mut transfer_inputs_scale_ronto_meter_100 = vec![];
+
+    let mut processed_coords_scale_yocto_meter_1 = vec![];
+    let mut spawn_inputs_scale_yocto_meter_1 = vec![];
+    let mut spawn_coords_scale_yocto_meter_1 = vec![];
+    let mut despawn_inputs_scale_yocto_meter_1 = vec![];
+    let mut transfer_inputs_scale_yocto_meter_1 = vec![];
+
+    let mut processed_coords_scale_yocto_meter_10 = vec![];
+    let mut spawn_inputs_scale_yocto_meter_10 = vec![];
+    let mut spawn_coords_scale_yocto_meter_10 = vec![];
+    let mut despawn_inputs_scale_yocto_meter_10 = vec![];
+    let mut transfer_inputs_scale_yocto_meter_10 = vec![];
+
+    let mut processed_coords_scale_yocto_meter_100 = vec![];
+    let mut spawn_inputs_scale_yocto_meter_100 = vec![];
+    let mut spawn_coords_scale_yocto_meter_100 = vec![];
+    let mut despawn_inputs_scale_yocto_meter_100 = vec![];
+    let mut transfer_inputs_scale_yocto_meter_100 = vec![];
+
+    let mut processed_coords_scale_zepto_meter_1 = vec![];
+    let mut spawn_inputs_scale_zepto_meter_1 = vec![];
+    let mut spawn_coords_scale_zepto_meter_1 = vec![];
+    let mut despawn_inputs_scale_zepto_meter_1 = vec![];
+    let mut transfer_inputs_scale_zepto_meter_1 = vec![];
+
+    let mut processed_coords_scale_zepto_meter_10 = vec![];
+    let mut spawn_inputs_scale_zepto_meter_10 = vec![];
+    let mut spawn_coords_scale_zepto_meter_10 = vec![];
+    let mut despawn_inputs_scale_zepto_meter_10 = vec![];
+    let mut transfer_inputs_scale_zepto_meter_10 = vec![];
+
+    let mut processed_coords_scale_zepto_meter_100 = vec![];
+    let mut spawn_inputs_scale_zepto_meter_100 = vec![];
+    let mut spawn_coords_scale_zepto_meter_100 = vec![];
+    let mut despawn_inputs_scale_zepto_meter_100 = vec![];
+    let mut transfer_inputs_scale_zepto_meter_100 = vec![];
+
+    let mut processed_coords_scale_atto_meter_1 = vec![];
+    let mut spawn_inputs_scale_atto_meter_1 = vec![];
+    let mut spawn_coords_scale_atto_meter_1 = vec![];
+    let mut despawn_inputs_scale_atto_meter_1 = vec![];
+    let mut transfer_inputs_scale_atto_meter_1 = vec![];
+
+    let mut processed_coords_scale_atto_meter_10 = vec![];
+    let mut spawn_inputs_scale_atto_meter_10 = vec![];
+    let mut spawn_coords_scale_atto_meter_10 = vec![];
+    let mut despawn_inputs_scale_atto_meter_10 = vec![];
+    let mut transfer_inputs_scale_atto_meter_10 = vec![];
+
+    let mut processed_coords_scale_atto_meter_100 = vec![];
+    let mut spawn_inputs_scale_atto_meter_100 = vec![];
+    let mut spawn_coords_scale_atto_meter_100 = vec![];
+    let mut despawn_inputs_scale_atto_meter_100 = vec![];
+    let mut transfer_inputs_scale_atto_meter_100 = vec![];
+
+    let mut processed_coords_scale_femto_meter_1 = vec![];
+    let mut spawn_inputs_scale_femto_meter_1 = vec![];
+    let mut spawn_coords_scale_femto_meter_1 = vec![];
+    let mut despawn_inputs_scale_femto_meter_1 = vec![];
+    let mut transfer_inputs_scale_femto_meter_1 = vec![];
+
+    let mut processed_coords_scale_femto_meter_10 = vec![];
+    let mut spawn_inputs_scale_femto_meter_10 = vec![];
+    let mut spawn_coords_scale_femto_meter_10 = vec![];
+    let mut despawn_inputs_scale_femto_meter_10 = vec![];
+    let mut transfer_inputs_scale_femto_meter_10 = vec![];
+
+    let mut processed_coords_scale_femto_meter_100 = vec![];
+    let mut spawn_inputs_scale_femto_meter_100 = vec![];
+    let mut spawn_coords_scale_femto_meter_100 = vec![];
+    let mut despawn_inputs_scale_femto_meter_100 = vec![];
+    let mut transfer_inputs_scale_femto_meter_100 = vec![];
+
+    let mut processed_coords_scale_pico_meter_1 = vec![];
+    let mut spawn_inputs_scale_pico_meter_1 = vec![];
+    let mut spawn_coords_scale_pico_meter_1 = vec![];
+    let mut despawn_inputs_scale_pico_meter_1 = vec![];
+    let mut transfer_inputs_scale_pico_meter_1 = vec![];
+
+    let mut processed_coords_scale_pico_meter_10 = vec![];
+    let mut spawn_inputs_scale_pico_meter_10 = vec![];
+    let mut spawn_coords_scale_pico_meter_10 = vec![];
+    let mut despawn_inputs_scale_pico_meter_10 = vec![];
+    let mut transfer_inputs_scale_pico_meter_10 = vec![];
+
+    let mut processed_coords_scale_pico_meter_100 = vec![];
+    let mut spawn_inputs_scale_pico_meter_100 = vec![];
+    let mut spawn_coords_scale_pico_meter_100 = vec![];
+    let mut despawn_inputs_scale_pico_meter_100 = vec![];
+    let mut transfer_inputs_scale_pico_meter_100 = vec![];
+
+    let mut processed_coords_scale_nano_meter_1 = vec![];
+    let mut spawn_inputs_scale_nano_meter_1 = vec![];
+    let mut spawn_coords_scale_nano_meter_1 = vec![];
+    let mut despawn_inputs_scale_nano_meter_1 = vec![];
+    let mut transfer_inputs_scale_nano_meter_1 = vec![];
+
+    let mut processed_coords_scale_nano_meter_10 = vec![];
+    let mut spawn_inputs_scale_nano_meter_10 = vec![];
+    let mut spawn_coords_scale_nano_meter_10 = vec![];
+    let mut despawn_inputs_scale_nano_meter_10 = vec![];
+    let mut transfer_inputs_scale_nano_meter_10 = vec![];
+
+    let mut processed_coords_scale_nano_meter_100 = vec![];
+    let mut spawn_inputs_scale_nano_meter_100 = vec![];
+    let mut spawn_coords_scale_nano_meter_100 = vec![];
+    let mut despawn_inputs_scale_nano_meter_100 = vec![];
+    let mut transfer_inputs_scale_nano_meter_100 = vec![];
+
+    let mut processed_coords_scale_micro_meter_1 = vec![];
+    let mut spawn_inputs_scale_micro_meter_1 = vec![];
+    let mut spawn_coords_scale_micro_meter_1 = vec![];
+    let mut despawn_inputs_scale_micro_meter_1 = vec![];
+    let mut transfer_inputs_scale_micro_meter_1 = vec![];
+
+    let mut processed_coords_scale_micro_meter_10 = vec![];
+    let mut spawn_inputs_scale_micro_meter_10 = vec![];
+    let mut spawn_coords_scale_micro_meter_10 = vec![];
+    let mut despawn_inputs_scale_micro_meter_10 = vec![];
+    let mut transfer_inputs_scale_micro_meter_10 = vec![];
+
+    let mut processed_coords_scale_micro_meter_100 = vec![];
+    let mut spawn_inputs_scale_micro_meter_100 = vec![];
+    let mut spawn_coords_scale_micro_meter_100 = vec![];
+    let mut despawn_inputs_scale_micro_meter_100 = vec![];
+    let mut transfer_inputs_scale_micro_meter_100 = vec![];
+
+    let mut processed_coords_scale_milli_meter_1 = vec![];
+    let mut spawn_inputs_scale_milli_meter_1 = vec![];
+    let mut spawn_coords_scale_milli_meter_1 = vec![];
+    let mut despawn_inputs_scale_milli_meter_1 = vec![];
+    let mut transfer_inputs_scale_milli_meter_1 = vec![];
+
+    let mut processed_coords_scale_milli_meter_10 = vec![];
+    let mut spawn_inputs_scale_milli_meter_10 = vec![];
+    let mut spawn_coords_scale_milli_meter_10 = vec![];
+    let mut despawn_inputs_scale_milli_meter_10 = vec![];
+    let mut transfer_inputs_scale_milli_meter_10 = vec![];
+
+    let mut processed_coords_scale_milli_meter_100 = vec![];
+    let mut spawn_inputs_scale_milli_meter_100 = vec![];
+    let mut spawn_coords_scale_milli_meter_100 = vec![];
+    let mut despawn_inputs_scale_milli_meter_100 = vec![];
+    let mut transfer_inputs_scale_milli_meter_100 = vec![];
+
+    let mut processed_coords_scale_meter_1 = vec![];
+    let mut spawn_inputs_scale_meter_1 = vec![];
+    let mut spawn_coords_scale_meter_1 = vec![];
+    let mut despawn_inputs_scale_meter_1 = vec![];
+    let mut transfer_inputs_scale_meter_1 = vec![];
+
+    let mut processed_coords_scale_meter_10 = vec![];
+    let mut spawn_inputs_scale_meter_10 = vec![];
+    let mut spawn_coords_scale_meter_10 = vec![];
+    let mut despawn_inputs_scale_meter_10 = vec![];
+    let mut transfer_inputs_scale_meter_10 = vec![];
+
+    let mut processed_coords_scale_meter_100 = vec![];
+    let mut spawn_inputs_scale_meter_100 = vec![];
+    let mut spawn_coords_scale_meter_100 = vec![];
+    let mut despawn_inputs_scale_meter_100 = vec![];
+    let mut transfer_inputs_scale_meter_100 = vec![];
+
+    let mut processed_coords_scale_kilo_meter_1 = vec![];
+    let mut spawn_inputs_scale_kilo_meter_1 = vec![];
+    let mut spawn_coords_scale_kilo_meter_1 = vec![];
+    let mut despawn_inputs_scale_kilo_meter_1 = vec![];
+    let mut transfer_inputs_scale_kilo_meter_1 = vec![];
+
+    let mut processed_coords_scale_kilo_meter_10 = vec![];
+    let mut spawn_inputs_scale_kilo_meter_10 = vec![];
+    let mut spawn_coords_scale_kilo_meter_10 = vec![];
+    let mut despawn_inputs_scale_kilo_meter_10 = vec![];
+    let mut transfer_inputs_scale_kilo_meter_10 = vec![];
+
+    let mut processed_coords_scale_kilo_meter_100 = vec![];
+    let mut spawn_inputs_scale_kilo_meter_100 = vec![];
+    let mut spawn_coords_scale_kilo_meter_100 = vec![];
+    let mut despawn_inputs_scale_kilo_meter_100 = vec![];
+    let mut transfer_inputs_scale_kilo_meter_100 = vec![];
+
+    let mut processed_coords_scale_mega_meter_1 = vec![];
+    let mut spawn_inputs_scale_mega_meter_1 = vec![];
+    let mut spawn_coords_scale_mega_meter_1 = vec![];
+    let mut despawn_inputs_scale_mega_meter_1 = vec![];
+    let mut transfer_inputs_scale_mega_meter_1 = vec![];
+
+    let mut processed_coords_scale_mega_meter_10 = vec![];
+    let mut spawn_inputs_scale_mega_meter_10 = vec![];
+    let mut spawn_coords_scale_mega_meter_10 = vec![];
+    let mut despawn_inputs_scale_mega_meter_10 = vec![];
+    let mut transfer_inputs_scale_mega_meter_10 = vec![];
+
+    let mut processed_coords_scale_mega_meter_100 = vec![];
+    let mut spawn_inputs_scale_mega_meter_100 = vec![];
+    let mut spawn_coords_scale_mega_meter_100 = vec![];
+    let mut despawn_inputs_scale_mega_meter_100 = vec![];
+    let mut transfer_inputs_scale_mega_meter_100 = vec![];
+
+    let mut processed_coords_scale_giga_meter_1 = vec![];
+    let mut spawn_inputs_scale_giga_meter_1 = vec![];
+    let mut spawn_coords_scale_giga_meter_1 = vec![];
+    let mut despawn_inputs_scale_giga_meter_1 = vec![];
+    let mut transfer_inputs_scale_giga_meter_1 = vec![];
+
+    let mut processed_coords_scale_giga_meter_10 = vec![];
+    let mut spawn_inputs_scale_giga_meter_10 = vec![];
+    let mut spawn_coords_scale_giga_meter_10 = vec![];
+    let mut despawn_inputs_scale_giga_meter_10 = vec![];
+    let mut transfer_inputs_scale_giga_meter_10 = vec![];
+
+    let mut processed_coords_scale_giga_meter_100 = vec![];
+    let mut spawn_inputs_scale_giga_meter_100 = vec![];
+    let mut spawn_coords_scale_giga_meter_100 = vec![];
+    let mut despawn_inputs_scale_giga_meter_100 = vec![];
+    let mut transfer_inputs_scale_giga_meter_100 = vec![];
+
+    let mut processed_coords_scale_tera_meter_1 = vec![];
+    let mut spawn_inputs_scale_tera_meter_1 = vec![];
+    let mut spawn_coords_scale_tera_meter_1 = vec![];
+    let mut despawn_inputs_scale_tera_meter_1 = vec![];
+    let mut transfer_inputs_scale_tera_meter_1 = vec![];
+
+    let mut processed_coords_scale_tera_meter_10 = vec![];
+    let mut spawn_inputs_scale_tera_meter_10 = vec![];
+    let mut spawn_coords_scale_tera_meter_10 = vec![];
+    let mut despawn_inputs_scale_tera_meter_10 = vec![];
+    let mut transfer_inputs_scale_tera_meter_10 = vec![];
+
+    let mut processed_coords_scale_tera_meter_100 = vec![];
+    let mut spawn_inputs_scale_tera_meter_100 = vec![];
+    let mut spawn_coords_scale_tera_meter_100 = vec![];
+    let mut despawn_inputs_scale_tera_meter_100 = vec![];
+    let mut transfer_inputs_scale_tera_meter_100 = vec![];
+
+    let mut processed_coords_scale_peta_meter_1 = vec![];
+    let mut spawn_inputs_scale_peta_meter_1 = vec![];
+    let mut spawn_coords_scale_peta_meter_1 = vec![];
+    let mut despawn_inputs_scale_peta_meter_1 = vec![];
+    let mut transfer_inputs_scale_peta_meter_1 = vec![];
+
+    let mut processed_coords_scale_peta_meter_10 = vec![];
+    let mut spawn_inputs_scale_peta_meter_10 = vec![];
+    let mut spawn_coords_scale_peta_meter_10 = vec![];
+    let mut despawn_inputs_scale_peta_meter_10 = vec![];
+    let mut transfer_inputs_scale_peta_meter_10 = vec![];
+
+    let mut processed_coords_scale_peta_meter_100 = vec![];
+    let mut spawn_inputs_scale_peta_meter_100 = vec![];
+    let mut spawn_coords_scale_peta_meter_100 = vec![];
+    let mut despawn_inputs_scale_peta_meter_100 = vec![];
+    let mut transfer_inputs_scale_peta_meter_100 = vec![];
+
+    let mut processed_coords_scale_exa_meter_1 = vec![];
+    let mut spawn_inputs_scale_exa_meter_1 = vec![];
+    let mut spawn_coords_scale_exa_meter_1 = vec![];
+    let mut despawn_inputs_scale_exa_meter_1 = vec![];
+    let mut transfer_inputs_scale_exa_meter_1 = vec![];
+
+    let mut processed_coords_scale_exa_meter_10 = vec![];
+    let mut spawn_inputs_scale_exa_meter_10 = vec![];
+    let mut spawn_coords_scale_exa_meter_10 = vec![];
+    let mut despawn_inputs_scale_exa_meter_10 = vec![];
+    let mut transfer_inputs_scale_exa_meter_10 = vec![];
+
+    let mut processed_coords_scale_exa_meter_100 = vec![];
+    let mut spawn_inputs_scale_exa_meter_100 = vec![];
+    let mut spawn_coords_scale_exa_meter_100 = vec![];
+    let mut despawn_inputs_scale_exa_meter_100 = vec![];
+    let mut transfer_inputs_scale_exa_meter_100 = vec![];
+
+    let mut processed_coords_scale_zetta_meter_1 = vec![];
+    let mut spawn_inputs_scale_zetta_meter_1 = vec![];
+    let mut spawn_coords_scale_zetta_meter_1 = vec![];
+    let mut despawn_inputs_scale_zetta_meter_1 = vec![];
+    let mut transfer_inputs_scale_zetta_meter_1 = vec![];
+
+    let mut processed_coords_scale_zetta_meter_10 = vec![];
+    let mut spawn_inputs_scale_zetta_meter_10 = vec![];
+    let mut spawn_coords_scale_zetta_meter_10 = vec![];
+    let mut despawn_inputs_scale_zetta_meter_10 = vec![];
+    let mut transfer_inputs_scale_zetta_meter_10 = vec![];
+
+    let mut processed_coords_scale_zetta_meter_100 = vec![];
+    let mut spawn_inputs_scale_zetta_meter_100 = vec![];
+    let mut spawn_coords_scale_zetta_meter_100 = vec![];
+    let mut despawn_inputs_scale_zetta_meter_100 = vec![];
+    let mut transfer_inputs_scale_zetta_meter_100 = vec![];
+
+    let mut processed_coords_scale_yotta_meter_1 = vec![];
+    let mut spawn_inputs_scale_yotta_meter_1 = vec![];
+    let mut spawn_coords_scale_yotta_meter_1 = vec![];
+    let mut despawn_inputs_scale_yotta_meter_1 = vec![];
+    let mut transfer_inputs_scale_yotta_meter_1 = vec![];
+
+    let mut processed_coords_scale_yotta_meter_10 = vec![];
+    let mut spawn_inputs_scale_yotta_meter_10 = vec![];
+    let mut spawn_coords_scale_yotta_meter_10 = vec![];
+    let mut despawn_inputs_scale_yotta_meter_10 = vec![];
+    let mut transfer_inputs_scale_yotta_meter_10 = vec![];
+
+    let mut processed_coords_scale_yotta_meter_100 = vec![];
+    let mut spawn_inputs_scale_yotta_meter_100 = vec![];
+    let mut spawn_coords_scale_yotta_meter_100 = vec![];
+    let mut despawn_inputs_scale_yotta_meter_100 = vec![];
+    let mut transfer_inputs_scale_yotta_meter_100 = vec![];
+
+    let mut processed_coords_scale_ronna_meter_1 = vec![];
+    let mut spawn_inputs_scale_ronna_meter_1 = vec![];
+    let mut spawn_coords_scale_ronna_meter_1 = vec![];
+    let mut despawn_inputs_scale_ronna_meter_1 = vec![];
+    let mut transfer_inputs_scale_ronna_meter_1 = vec![];
+
+    let mut processed_coords_scale_ronna_meter_10 = vec![];
+    let mut spawn_inputs_scale_ronna_meter_10 = vec![];
+    let mut spawn_coords_scale_ronna_meter_10 = vec![];
+    let mut despawn_inputs_scale_ronna_meter_10 = vec![];
+    let mut transfer_inputs_scale_ronna_meter_10 = vec![];
+
+    let mut processed_coords_scale_ronna_meter_100 = vec![];
+    let mut spawn_inputs_scale_ronna_meter_100 = vec![];
+    let mut spawn_coords_scale_ronna_meter_100 = vec![];
+    let mut despawn_inputs_scale_ronna_meter_100 = vec![];
+    let mut transfer_inputs_scale_ronna_meter_100 = vec![];
+
+    let mut processed_coords_scale_quetta_meter_1 = vec![];
+    let mut spawn_inputs_scale_quetta_meter_1 = vec![];
+    let mut spawn_coords_scale_quetta_meter_1 = vec![];
+    let mut despawn_inputs_scale_quetta_meter_1 = vec![];
+    let mut transfer_inputs_scale_quetta_meter_1 = vec![];
+
+    let mut processed_coords_scale_quetta_meter_10 = vec![];
+    let mut spawn_inputs_scale_quetta_meter_10 = vec![];
+    let mut spawn_coords_scale_quetta_meter_10 = vec![];
+    let mut despawn_inputs_scale_quetta_meter_10 = vec![];
+    let mut transfer_inputs_scale_quetta_meter_10 = vec![];
+
+    let mut processed_coords_scale_quetta_meter_100 = vec![];
+    let mut spawn_inputs_scale_quetta_meter_100 = vec![];
+    let mut spawn_coords_scale_quetta_meter_100 = vec![];
+    let mut despawn_inputs_scale_quetta_meter_100 = vec![];
+    let mut transfer_inputs_scale_quetta_meter_100 = vec![];
+
+    let mut processed_coords_scale_quetta_meter_1000 = vec![];
+    let mut spawn_inputs_scale_quetta_meter_1000 = vec![];
+    let mut spawn_coords_scale_quetta_meter_1000 = vec![];
+    let mut despawn_inputs_scale_quetta_meter_1000 = vec![];
+    let mut transfer_inputs_scale_quetta_meter_1000 = vec![];
+
+    let mut processed_coords_scale_quetta_meter_10000 = vec![];
+    let mut spawn_inputs_scale_quetta_meter_10000 = vec![];
+    let mut spawn_coords_scale_quetta_meter_10000 = vec![];
+    let mut despawn_inputs_scale_quetta_meter_10000 = vec![];
+    let mut transfer_inputs_scale_quetta_meter_10000 = vec![];
+
+    let mut processed_coords_scale_quetta_meter_100000 = vec![];
+    let mut spawn_inputs_scale_quetta_meter_100000 = vec![];
+    let mut spawn_coords_scale_quetta_meter_100000 = vec![];
+    let mut despawn_inputs_scale_quetta_meter_100000 = vec![];
+    let mut transfer_inputs_scale_quetta_meter_100000 = vec![];
+
+    let mut chunk_loaders_performing_chunk_loads_scale_quecto_meter_000001: Vec<ChunkOwnerId<ScaleQuectoMeter000001>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_quecto_meter_00001: Vec<ChunkOwnerId<ScaleQuectoMeter00001>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_quecto_meter_0001: Vec<ChunkOwnerId<ScaleQuectoMeter0001>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_quecto_meter_001: Vec<ChunkOwnerId<ScaleQuectoMeter001>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_quecto_meter_01: Vec<ChunkOwnerId<ScaleQuectoMeter01>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_quecto_meter_1: Vec<ChunkOwnerId<ScaleQuectoMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_quecto_meter_10: Vec<ChunkOwnerId<ScaleQuectoMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_quecto_meter_100: Vec<ChunkOwnerId<ScaleQuectoMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_ronto_meter_1: Vec<ChunkOwnerId<ScaleRontoMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_ronto_meter_10: Vec<ChunkOwnerId<ScaleRontoMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_ronto_meter_100: Vec<ChunkOwnerId<ScaleRontoMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_yocto_meter_1: Vec<ChunkOwnerId<ScaleYoctoMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_yocto_meter_10: Vec<ChunkOwnerId<ScaleYoctoMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_yocto_meter_100: Vec<ChunkOwnerId<ScaleYoctoMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_zepto_meter_1: Vec<ChunkOwnerId<ScaleZeptoMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_zepto_meter_10: Vec<ChunkOwnerId<ScaleZeptoMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_zepto_meter_100: Vec<ChunkOwnerId<ScaleZeptoMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_atto_meter_1: Vec<ChunkOwnerId<ScaleAttoMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_atto_meter_10: Vec<ChunkOwnerId<ScaleAttoMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_atto_meter_100: Vec<ChunkOwnerId<ScaleAttoMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_femto_meter_1: Vec<ChunkOwnerId<ScaleFemtoMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_femto_meter_10: Vec<ChunkOwnerId<ScaleFemtoMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_femto_meter_100: Vec<ChunkOwnerId<ScaleFemtoMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_pico_meter_1: Vec<ChunkOwnerId<ScalePicoMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_pico_meter_10: Vec<ChunkOwnerId<ScalePicoMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_pico_meter_100: Vec<ChunkOwnerId<ScalePicoMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_nano_meter_1: Vec<ChunkOwnerId<ScaleNanoMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_nano_meter_10: Vec<ChunkOwnerId<ScaleNanoMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_nano_meter_100: Vec<ChunkOwnerId<ScaleNanoMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_micro_meter_1: Vec<ChunkOwnerId<ScaleMicroMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_micro_meter_10: Vec<ChunkOwnerId<ScaleMicroMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_micro_meter_100: Vec<ChunkOwnerId<ScaleMicroMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_milli_meter_1: Vec<ChunkOwnerId<ScaleMilliMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_milli_meter_10: Vec<ChunkOwnerId<ScaleMilliMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_milli_meter_100: Vec<ChunkOwnerId<ScaleMilliMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_meter_1: Vec<ChunkOwnerId<ScaleMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_meter_10: Vec<ChunkOwnerId<ScaleMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_meter_100: Vec<ChunkOwnerId<ScaleMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_kilo_meter_1: Vec<ChunkOwnerId<ScaleKiloMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_kilo_meter_10: Vec<ChunkOwnerId<ScaleKiloMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_kilo_meter_100: Vec<ChunkOwnerId<ScaleKiloMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_mega_meter_1: Vec<ChunkOwnerId<ScaleMegaMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_mega_meter_10: Vec<ChunkOwnerId<ScaleMegaMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_mega_meter_100: Vec<ChunkOwnerId<ScaleMegaMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_giga_meter_1: Vec<ChunkOwnerId<ScaleGigaMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_giga_meter_10: Vec<ChunkOwnerId<ScaleGigaMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_giga_meter_100: Vec<ChunkOwnerId<ScaleGigaMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_tera_meter_1: Vec<ChunkOwnerId<ScaleTeraMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_tera_meter_10: Vec<ChunkOwnerId<ScaleTeraMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_tera_meter_100: Vec<ChunkOwnerId<ScaleTeraMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_peta_meter_1: Vec<ChunkOwnerId<ScalePetaMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_peta_meter_10: Vec<ChunkOwnerId<ScalePetaMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_peta_meter_100: Vec<ChunkOwnerId<ScalePetaMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_exa_meter_1: Vec<ChunkOwnerId<ScaleExaMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_exa_meter_10: Vec<ChunkOwnerId<ScaleExaMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_exa_meter_100: Vec<ChunkOwnerId<ScaleExaMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_zetta_meter_1: Vec<ChunkOwnerId<ScaleZettaMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_zetta_meter_10: Vec<ChunkOwnerId<ScaleZettaMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_zetta_meter_100: Vec<ChunkOwnerId<ScaleZettaMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_yotta_meter_1: Vec<ChunkOwnerId<ScaleYottaMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_yotta_meter_10: Vec<ChunkOwnerId<ScaleYottaMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_yotta_meter_100: Vec<ChunkOwnerId<ScaleYottaMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_ronna_meter_1: Vec<ChunkOwnerId<ScaleRonnaMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_ronna_meter_10: Vec<ChunkOwnerId<ScaleRonnaMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_ronna_meter_100: Vec<ChunkOwnerId<ScaleRonnaMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_quetta_meter_1: Vec<ChunkOwnerId<ScaleQuettaMeter1>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_quetta_meter_10: Vec<ChunkOwnerId<ScaleQuettaMeter10>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_quetta_meter_100: Vec<ChunkOwnerId<ScaleQuettaMeter100>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_quetta_meter_1000: Vec<ChunkOwnerId<ScaleQuettaMeter1000>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_quetta_meter_10000: Vec<ChunkOwnerId<ScaleQuettaMeter10000>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads_scale_quetta_meter_100000: Vec<ChunkOwnerId<ScaleQuettaMeter100000>> = Vec::new();
+
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_000001.priority_buckets.iter() {
         for coord in coords {
-            let action_intent = action_intent_commit_buffer
-                .action_intent
-                .get(coord)
-                .unwrap_or_else(|| {
-                    panic!(
-                        "
-                    Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}",
-                        coord, action_intent_commit_buffer
-                    )
-                })
-                .clone();
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_000001.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_000001)).clone();
             // warn!("Processing chunk action intent: {:?}", action_intent);
 
             match action_intent {
                 ActionIntent::Spawn { owner_id, coord, .. } => {
-                    spawn_coords.push(coord);
-                    spawn_inputs.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                    spawn_coords_scale_quecto_meter_000001.push(coord);
+                    spawn_inputs_scale_quecto_meter_000001.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
                         chunk_coord: coord,
                         chunk_owner_id: owner_id.clone(),
                         metric_texture: Handle::default(),
                     });
-                    processed_coords.push(coord);
-                    chunk_loaders_performing_chunk_loads.push(owner_id);
+                    processed_coords_scale_quecto_meter_000001.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_000001.push(owner_id);
                 }
                 ActionIntent::Despawn { coord, .. } => {
-                    despawn_inputs.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
-                    processed_coords.push(coord);
+                    despawn_inputs_scale_quecto_meter_000001.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quecto_meter_000001.push(coord);
                 }
                 ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
-                    transfer_inputs.push(
+                    transfer_inputs_scale_quecto_meter_000001.push(
                         crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
                             new_chunk_owner_id: new_owner_id.clone(),
                             chunk_coord: coord,
                         },
                     );
-                    processed_coords.push(coord);
-                    chunk_loaders_performing_chunk_loads.push(new_owner_id);
+                    processed_coords_scale_quecto_meter_000001.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_000001.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_00001.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_00001.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_00001)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_quecto_meter_00001.push(coord);
+                    spawn_inputs_scale_quecto_meter_00001.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_quecto_meter_00001.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_00001.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_quecto_meter_00001.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quecto_meter_00001.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_quecto_meter_00001.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_quecto_meter_00001.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_00001.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_0001.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_0001.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_0001)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_quecto_meter_0001.push(coord);
+                    spawn_inputs_scale_quecto_meter_0001.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_quecto_meter_0001.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_0001.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_quecto_meter_0001.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quecto_meter_0001.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_quecto_meter_0001.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_quecto_meter_0001.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_0001.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_001.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_001.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_001)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_quecto_meter_001.push(coord);
+                    spawn_inputs_scale_quecto_meter_001.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_quecto_meter_001.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_001.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_quecto_meter_001.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quecto_meter_001.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_quecto_meter_001.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_quecto_meter_001.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_001.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_01.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_01.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_01)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_quecto_meter_01.push(coord);
+                    spawn_inputs_scale_quecto_meter_01.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_quecto_meter_01.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_01.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_quecto_meter_01.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quecto_meter_01.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_quecto_meter_01.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_quecto_meter_01.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_01.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_quecto_meter_1.push(coord);
+                    spawn_inputs_scale_quecto_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_quecto_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_quecto_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quecto_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_quecto_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_quecto_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_quecto_meter_10.push(coord);
+                    spawn_inputs_scale_quecto_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_quecto_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_quecto_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quecto_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_quecto_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_quecto_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_quecto_meter_100.push(coord);
+                    spawn_inputs_scale_quecto_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_quecto_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_quecto_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quecto_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_quecto_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_quecto_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quecto_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_ronto_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_ronto_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_ronto_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_ronto_meter_1.push(coord);
+                    spawn_inputs_scale_ronto_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_ronto_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_ronto_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_ronto_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_ronto_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_ronto_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_ronto_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_ronto_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_ronto_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_ronto_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_ronto_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_ronto_meter_10.push(coord);
+                    spawn_inputs_scale_ronto_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_ronto_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_ronto_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_ronto_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_ronto_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_ronto_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_ronto_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_ronto_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_ronto_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_ronto_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_ronto_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_ronto_meter_100.push(coord);
+                    spawn_inputs_scale_ronto_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_ronto_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_ronto_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_ronto_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_ronto_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_ronto_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_ronto_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_ronto_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_yocto_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_yocto_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_yocto_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_yocto_meter_1.push(coord);
+                    spawn_inputs_scale_yocto_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_yocto_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_yocto_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_yocto_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_yocto_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_yocto_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_yocto_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_yocto_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_yocto_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_yocto_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_yocto_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_yocto_meter_10.push(coord);
+                    spawn_inputs_scale_yocto_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_yocto_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_yocto_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_yocto_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_yocto_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_yocto_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_yocto_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_yocto_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_yocto_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_yocto_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_yocto_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_yocto_meter_100.push(coord);
+                    spawn_inputs_scale_yocto_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_yocto_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_yocto_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_yocto_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_yocto_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_yocto_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_yocto_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_yocto_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_zepto_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_zepto_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_zepto_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_zepto_meter_1.push(coord);
+                    spawn_inputs_scale_zepto_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_zepto_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_zepto_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_zepto_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_zepto_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_zepto_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_zepto_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_zepto_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_zepto_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_zepto_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_zepto_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_zepto_meter_10.push(coord);
+                    spawn_inputs_scale_zepto_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_zepto_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_zepto_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_zepto_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_zepto_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_zepto_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_zepto_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_zepto_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_zepto_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_zepto_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_zepto_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_zepto_meter_100.push(coord);
+                    spawn_inputs_scale_zepto_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_zepto_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_zepto_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_zepto_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_zepto_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_zepto_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_zepto_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_zepto_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_atto_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_atto_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_atto_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_atto_meter_1.push(coord);
+                    spawn_inputs_scale_atto_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_atto_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_atto_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_atto_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_atto_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_atto_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_atto_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_atto_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_atto_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_atto_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_atto_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_atto_meter_10.push(coord);
+                    spawn_inputs_scale_atto_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_atto_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_atto_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_atto_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_atto_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_atto_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_atto_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_atto_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_atto_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_atto_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_atto_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_atto_meter_100.push(coord);
+                    spawn_inputs_scale_atto_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_atto_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_atto_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_atto_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_atto_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_atto_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_atto_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_atto_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_femto_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_femto_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_femto_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_femto_meter_1.push(coord);
+                    spawn_inputs_scale_femto_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_femto_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_femto_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_femto_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_femto_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_femto_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_femto_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_femto_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_femto_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_femto_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_femto_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_femto_meter_10.push(coord);
+                    spawn_inputs_scale_femto_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_femto_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_femto_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_femto_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_femto_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_femto_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_femto_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_femto_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_femto_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_femto_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_femto_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_femto_meter_100.push(coord);
+                    spawn_inputs_scale_femto_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_femto_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_femto_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_femto_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_femto_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_femto_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_femto_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_femto_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_pico_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_pico_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_pico_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_pico_meter_1.push(coord);
+                    spawn_inputs_scale_pico_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_pico_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_pico_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_pico_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_pico_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_pico_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_pico_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_pico_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_pico_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_pico_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_pico_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_pico_meter_10.push(coord);
+                    spawn_inputs_scale_pico_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_pico_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_pico_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_pico_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_pico_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_pico_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_pico_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_pico_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_pico_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_pico_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_pico_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_pico_meter_100.push(coord);
+                    spawn_inputs_scale_pico_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_pico_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_pico_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_pico_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_pico_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_pico_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_pico_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_pico_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_nano_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_nano_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_nano_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_nano_meter_1.push(coord);
+                    spawn_inputs_scale_nano_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_nano_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_nano_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_nano_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_nano_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_nano_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_nano_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_nano_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_nano_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_nano_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_nano_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_nano_meter_10.push(coord);
+                    spawn_inputs_scale_nano_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_nano_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_nano_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_nano_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_nano_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_nano_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_nano_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_nano_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_nano_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_nano_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_nano_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_nano_meter_100.push(coord);
+                    spawn_inputs_scale_nano_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_nano_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_nano_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_nano_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_nano_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_nano_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_nano_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_nano_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_micro_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_micro_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_micro_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_micro_meter_1.push(coord);
+                    spawn_inputs_scale_micro_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_micro_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_micro_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_micro_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_micro_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_micro_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_micro_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_micro_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_micro_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_micro_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_micro_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_micro_meter_10.push(coord);
+                    spawn_inputs_scale_micro_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_micro_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_micro_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_micro_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_micro_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_micro_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_micro_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_micro_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_micro_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_micro_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_micro_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_micro_meter_100.push(coord);
+                    spawn_inputs_scale_micro_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_micro_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_micro_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_micro_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_micro_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_micro_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_micro_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_micro_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_milli_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_milli_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_milli_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_milli_meter_1.push(coord);
+                    spawn_inputs_scale_milli_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_milli_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_milli_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_milli_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_milli_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_milli_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_milli_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_milli_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_milli_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_milli_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_milli_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_milli_meter_10.push(coord);
+                    spawn_inputs_scale_milli_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_milli_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_milli_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_milli_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_milli_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_milli_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_milli_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_milli_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_milli_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_milli_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_milli_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_milli_meter_100.push(coord);
+                    spawn_inputs_scale_milli_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_milli_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_milli_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_milli_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_milli_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_milli_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_milli_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_milli_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_meter_1.push(coord);
+                    spawn_inputs_scale_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_meter_10.push(coord);
+                    spawn_inputs_scale_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_meter_100.push(coord);
+                    spawn_inputs_scale_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_kilo_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_kilo_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_kilo_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_kilo_meter_1.push(coord);
+                    spawn_inputs_scale_kilo_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_kilo_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_kilo_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_kilo_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_kilo_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_kilo_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_kilo_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_kilo_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_kilo_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_kilo_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_kilo_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_kilo_meter_10.push(coord);
+                    spawn_inputs_scale_kilo_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_kilo_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_kilo_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_kilo_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_kilo_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_kilo_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_kilo_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_kilo_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_kilo_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_kilo_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_kilo_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_kilo_meter_100.push(coord);
+                    spawn_inputs_scale_kilo_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_kilo_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_kilo_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_kilo_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_kilo_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_kilo_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_kilo_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_kilo_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_mega_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_mega_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_mega_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_mega_meter_1.push(coord);
+                    spawn_inputs_scale_mega_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_mega_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_mega_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_mega_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_mega_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_mega_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_mega_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_mega_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_mega_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_mega_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_mega_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_mega_meter_10.push(coord);
+                    spawn_inputs_scale_mega_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_mega_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_mega_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_mega_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_mega_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_mega_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_mega_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_mega_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_mega_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_mega_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_mega_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_mega_meter_100.push(coord);
+                    spawn_inputs_scale_mega_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_mega_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_mega_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_mega_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_mega_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_mega_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_mega_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_mega_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_giga_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_giga_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_giga_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_giga_meter_1.push(coord);
+                    spawn_inputs_scale_giga_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_giga_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_giga_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_giga_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_giga_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_giga_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_giga_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_giga_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_giga_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_giga_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_giga_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_giga_meter_10.push(coord);
+                    spawn_inputs_scale_giga_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_giga_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_giga_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_giga_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_giga_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_giga_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_giga_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_giga_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_giga_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_giga_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_giga_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_giga_meter_100.push(coord);
+                    spawn_inputs_scale_giga_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_giga_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_giga_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_giga_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_giga_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_giga_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_giga_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_giga_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_tera_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_tera_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_tera_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_tera_meter_1.push(coord);
+                    spawn_inputs_scale_tera_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_tera_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_tera_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_tera_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_tera_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_tera_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_tera_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_tera_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_tera_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_tera_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_tera_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_tera_meter_10.push(coord);
+                    spawn_inputs_scale_tera_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_tera_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_tera_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_tera_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_tera_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_tera_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_tera_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_tera_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_tera_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_tera_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_tera_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_tera_meter_100.push(coord);
+                    spawn_inputs_scale_tera_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_tera_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_tera_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_tera_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_tera_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_tera_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_tera_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_tera_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_peta_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_peta_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_peta_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_peta_meter_1.push(coord);
+                    spawn_inputs_scale_peta_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_peta_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_peta_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_peta_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_peta_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_peta_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_peta_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_peta_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_peta_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_peta_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_peta_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_peta_meter_10.push(coord);
+                    spawn_inputs_scale_peta_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_peta_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_peta_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_peta_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_peta_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_peta_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_peta_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_peta_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_peta_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_peta_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_peta_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_peta_meter_100.push(coord);
+                    spawn_inputs_scale_peta_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_peta_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_peta_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_peta_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_peta_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_peta_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_peta_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_peta_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_exa_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_exa_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_exa_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_exa_meter_1.push(coord);
+                    spawn_inputs_scale_exa_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_exa_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_exa_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_exa_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_exa_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_exa_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_exa_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_exa_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_exa_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_exa_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_exa_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_exa_meter_10.push(coord);
+                    spawn_inputs_scale_exa_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_exa_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_exa_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_exa_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_exa_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_exa_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_exa_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_exa_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_exa_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_exa_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_exa_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_exa_meter_100.push(coord);
+                    spawn_inputs_scale_exa_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_exa_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_exa_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_exa_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_exa_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_exa_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_exa_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_exa_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_zetta_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_zetta_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_zetta_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_zetta_meter_1.push(coord);
+                    spawn_inputs_scale_zetta_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_zetta_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_zetta_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_zetta_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_zetta_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_zetta_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_zetta_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_zetta_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_zetta_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_zetta_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_zetta_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_zetta_meter_10.push(coord);
+                    spawn_inputs_scale_zetta_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_zetta_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_zetta_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_zetta_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_zetta_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_zetta_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_zetta_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_zetta_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_zetta_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_zetta_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_zetta_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_zetta_meter_100.push(coord);
+                    spawn_inputs_scale_zetta_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_zetta_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_zetta_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_zetta_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_zetta_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_zetta_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_zetta_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_zetta_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_yotta_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_yotta_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_yotta_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_yotta_meter_1.push(coord);
+                    spawn_inputs_scale_yotta_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_yotta_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_yotta_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_yotta_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_yotta_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_yotta_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_yotta_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_yotta_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_yotta_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_yotta_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_yotta_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_yotta_meter_10.push(coord);
+                    spawn_inputs_scale_yotta_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_yotta_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_yotta_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_yotta_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_yotta_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_yotta_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_yotta_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_yotta_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_yotta_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_yotta_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_yotta_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_yotta_meter_100.push(coord);
+                    spawn_inputs_scale_yotta_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_yotta_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_yotta_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_yotta_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_yotta_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_yotta_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_yotta_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_yotta_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_ronna_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_ronna_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_ronna_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_ronna_meter_1.push(coord);
+                    spawn_inputs_scale_ronna_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_ronna_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_ronna_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_ronna_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_ronna_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_ronna_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_ronna_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_ronna_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_ronna_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_ronna_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_ronna_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_ronna_meter_10.push(coord);
+                    spawn_inputs_scale_ronna_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_ronna_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_ronna_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_ronna_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_ronna_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_ronna_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_ronna_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_ronna_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_ronna_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_ronna_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_ronna_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_ronna_meter_100.push(coord);
+                    spawn_inputs_scale_ronna_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_ronna_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_ronna_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_ronna_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_ronna_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_ronna_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_ronna_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_ronna_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_1.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_1.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_1)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_quetta_meter_1.push(coord);
+                    spawn_inputs_scale_quetta_meter_1.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_quetta_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quetta_meter_1.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_quetta_meter_1.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quetta_meter_1.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_quetta_meter_1.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_quetta_meter_1.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quetta_meter_1.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_10.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_10.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_10)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_quetta_meter_10.push(coord);
+                    spawn_inputs_scale_quetta_meter_10.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_quetta_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quetta_meter_10.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_quetta_meter_10.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quetta_meter_10.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_quetta_meter_10.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_quetta_meter_10.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quetta_meter_10.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_100.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_100.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_100)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_quetta_meter_100.push(coord);
+                    spawn_inputs_scale_quetta_meter_100.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_quetta_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quetta_meter_100.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_quetta_meter_100.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quetta_meter_100.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_quetta_meter_100.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_quetta_meter_100.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quetta_meter_100.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_1000.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_1000.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_1000)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_quetta_meter_1000.push(coord);
+                    spawn_inputs_scale_quetta_meter_1000.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_quetta_meter_1000.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quetta_meter_1000.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_quetta_meter_1000.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quetta_meter_1000.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_quetta_meter_1000.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_quetta_meter_1000.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quetta_meter_1000.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_10000.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_10000.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_10000)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_quetta_meter_10000.push(coord);
+                    spawn_inputs_scale_quetta_meter_10000.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_quetta_meter_10000.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quetta_meter_10000.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_quetta_meter_10000.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quetta_meter_10000.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_quetta_meter_10000.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_quetta_meter_10000.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quetta_meter_10000.push(new_owner_id);
+                }
+            }
+        }
+    }
+    for (_, coords) in action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_100000.priority_buckets.iter() {
+        for coord in coords {
+            let action_intent = action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_100000.action_intent.get(coord)
+                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_100000)).clone();
+            // warn!("Processing chunk action intent: {:?}", action_intent);
+
+            match action_intent {
+                ActionIntent::Spawn { owner_id, coord, .. } => {
+                    spawn_coords_scale_quetta_meter_100000.push(coord);
+                    spawn_inputs_scale_quetta_meter_100000.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
+                        chunk_coord: coord,
+                        chunk_owner_id: owner_id.clone(),
+                        metric_texture: Handle::default(),
+                    });
+                    processed_coords_scale_quetta_meter_100000.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quetta_meter_100000.push(owner_id);
+                }
+                ActionIntent::Despawn { coord, .. } => {
+                    despawn_inputs_scale_quetta_meter_100000.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    processed_coords_scale_quetta_meter_100000.push(coord);
+                }
+                ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
+                    transfer_inputs_scale_quetta_meter_100000.push(
+                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                            new_chunk_owner_id: new_owner_id.clone(),
+                            chunk_coord: coord,
+                        },
+                    );
+                    processed_coords_scale_quetta_meter_100000.push(coord);
+                    chunk_loaders_performing_chunk_loads_scale_quetta_meter_100000.push(new_owner_id);
                 }
             }
         }
@@ -279,7 +4138,6 @@ pub(crate) fn process_chunk_actions_system<S: Scale>(
         spawn: spawn_handle,
         despawn: despawn_handle,
         transfer: transfer_handle,
-        phantom_scale: std::marker::PhantomData::<S>,
     });
 
     // Step 4: Mark all these actions as in-progress (remove them from the commit buffer)

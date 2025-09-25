@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::ecs::system::SystemParam;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
 use crate::usf::scale::*;
@@ -16,7 +17,7 @@ pub(crate) fn observe_on_remove_chunk_loader<S: Scale>(
     queue.0.insert(RemovedChunkLoaderObservation { entity: loader_entity, scale: S::SCALE_FACTOR_EXPONENT });
 }
 
-#[derive(bevy::ecs::system::SystemParam)]
+#[derive(SystemParam)]
 struct ProcessingSystemChunkLoaderQueries<'w, 's> {
     pub chunk_loader_query_scale_quecto_meter_000001: Query<'w, 's, &'static ChunkLoader<ScaleQuectoMeter000001>>,
     pub chunk_loader_query_scale_quecto_meter_00001: Query<'w, 's, &'static ChunkLoader<ScaleQuectoMeter00001>>,
