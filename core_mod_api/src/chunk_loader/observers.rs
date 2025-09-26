@@ -18,7 +18,7 @@ pub(crate) fn observe_on_remove_chunk_loader<S: Scale>(
 }
 
 #[derive(SystemParam)]
-struct ProcessingSystemChunkLoaderQueries<'w, 's> {
+pub(super) struct ProcessingSystemChunkLoaderQueries<'w, 's> {
     pub chunk_loader_query_scale_quecto_meter_000001: Query<'w, 's, &'static ChunkLoader<ScaleQuectoMeter000001>>,
     pub chunk_loader_query_scale_quecto_meter_00001: Query<'w, 's, &'static ChunkLoader<ScaleQuectoMeter00001>>,
     pub chunk_loader_query_scale_quecto_meter_0001: Query<'w, 's, &'static ChunkLoader<ScaleQuectoMeter0001>>,

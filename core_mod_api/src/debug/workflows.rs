@@ -6,11 +6,13 @@ define_workflow_mod_OLD! {
         SpawnDebugObjects, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::{Commands, Entity, Sprite, Color, Rect, Transform, Quat, Vec2, Res, ResMut, Name};
+                use std::marker::PhantomData;
 
                 use crate::{
                     chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader,
                 };
                 use crate::debug::{components::DebugObjectComponent, types::DebugObjectMovement};
+                use crate::usf::scale::ScaleMeter1;
             },
             user_items: {
                 pub fn spawn_debug_object(
@@ -22,10 +24,10 @@ define_workflow_mod_OLD! {
                     movement: DebugObjectMovement,
                 ) -> Entity {
                     let chunk_loader_id = format!("{}_chunk_loader", name);
-                    let chunk_loader = ChunkLoader::new(chunk_loader_id);
+                    let chunk_loader = ChunkLoader::<ScaleMeter1>::new(chunk_loader_id);
 
                     commands.entity(chunk_loader.chunk_owner_id().entity()).insert((
-                        ChunkActor,
+                        ChunkActor::<ScaleMeter1>(PhantomData),
                         chunk_loader,
                         DebugObjectComponent { movement },
                         Sprite {

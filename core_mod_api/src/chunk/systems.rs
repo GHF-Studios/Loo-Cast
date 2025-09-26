@@ -68,7 +68,7 @@ pub(crate) fn chunk_update_system<S: Scale>(
 }
 
 #[derive(SystemParam)]
-struct ProcessingSystemChunkLoaderInitHookQueries<'w, 's> {
+pub(super) struct ProcessingSystemChunkLoaderInitHookQueries<'w, 's> {
     pub chunk_loader_init_hook_query_scale_quecto_meter_000001: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter000001>>>,
     pub chunk_loader_init_hook_query_scale_quecto_meter_00001: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter00001>>>,
     pub chunk_loader_init_hook_query_scale_quecto_meter_0001: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter0001>>>,
@@ -143,7 +143,7 @@ struct ProcessingSystemChunkLoaderInitHookQueries<'w, 's> {
 }
 
 #[derive(SystemParam)]
-struct ProcessingSystemActionIntentCommitBuffers<'w, 's> {
+pub(super) struct ProcessingSystemActionIntentCommitBuffers<'w, 's> {
     pub action_intent_commit_buffer_scale_quecto_meter_000001: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter000001>>,
     pub action_intent_commit_buffer_scale_quecto_meter_00001: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter00001>>,
     pub action_intent_commit_buffer_scale_quecto_meter_0001: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter0001>>,
