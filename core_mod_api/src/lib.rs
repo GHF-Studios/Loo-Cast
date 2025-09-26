@@ -187,7 +187,7 @@ register_workflow_mods!(
             DispatchBatch: Render,
             WaitForBatch: EcsWhile,
         },
-        GenerateRenderTextures {
+        GenerateChunkTextures {
             PrepareRenderExecutor: Ecs,
             GetTextureViews: RenderWhile,
             DispatchRenderTextures: Render,

@@ -516,7 +516,7 @@ define_workflow_mod_OLD! {
             ]
         }
 
-        GenerateRenderTextures, timeout_secs: 1.0, timeout_mode: VirtualTime {
+        GenerateChunkTextures, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::{Handle, Res, ResMut, Assets, Image};
                 use bevy::render::render_resource::{

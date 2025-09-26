@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::usf::scale::Scale;
-use crate::{chunk::types::ChunkOwnerId, gpu::workflows::gpu::generate_render_textures::user_items::ChunkRenderExecutor};
+use crate::{chunk::types::ChunkOwnerId, gpu::workflows::gpu::generate_chunk_textures::user_items::ChunkRenderExecutor};
 
 use super::intent::{ActionIntent, ActionPriority};
 

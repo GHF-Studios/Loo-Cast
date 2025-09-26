@@ -7,7 +7,6 @@ follow_smoothness = 0.15
 
 [chunk]
 size = 1024
-scale = 0
 default_z = -10.0
 texture_generator_shader = "texture_generators/example_dev"
 

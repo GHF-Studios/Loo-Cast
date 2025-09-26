@@ -4034,53 +4034,1875 @@ pub(crate) fn process_chunk_actions_system(
         }
     }
 
-    if spawn_inputs.is_empty() && despawn_inputs.is_empty() && transfer_inputs.is_empty() {
+    if spawn_inputs_scale_quecto_meter_000001.is_empty() && despawn_inputs_scale_quecto_meter_000001.is_empty() && transfer_inputs_scale_quecto_meter_000001.is_empty()
+        && spawn_inputs_scale_quecto_meter_00001.is_empty() && despawn_inputs_scale_quecto_meter_00001.is_empty() && transfer_inputs_scale_quecto_meter_00001.is_empty()
+        && spawn_inputs_scale_quecto_meter_0001.is_empty() && despawn_inputs_scale_quecto_meter_0001.is_empty() && transfer_inputs_scale_quecto_meter_0001.is_empty()
+        && spawn_inputs_scale_quecto_meter_001.is_empty() && despawn_inputs_scale_quecto_meter_001.is_empty() && transfer_inputs_scale_quecto_meter_001.is_empty()
+        && spawn_inputs_scale_quecto_meter_01.is_empty() && despawn_inputs_scale_quecto_meter_01.is_empty() && transfer_inputs_scale_quecto_meter_01.is_empty()
+        && spawn_inputs_scale_quecto_meter_1.is_empty() && despawn_inputs_scale_quecto_meter_1.is_empty() && transfer_inputs_scale_quecto_meter_1.is_empty()
+        && spawn_inputs_scale_quecto_meter_10.is_empty() && despawn_inputs_scale_quecto_meter_10.is_empty() && transfer_inputs_scale_quecto_meter_10.is_empty()
+        && spawn_inputs_scale_quecto_meter_100.is_empty() && despawn_inputs_scale_quecto_meter_100.is_empty() && transfer_inputs_scale_quecto_meter_100.is_empty()
+        && spawn_inputs_scale_ronto_meter_1.is_empty() && despawn_inputs_scale_ronto_meter_1.is_empty() && transfer_inputs_scale_ronto_meter_1.is_empty()
+        && spawn_inputs_scale_ronto_meter_10.is_empty() && despawn_inputs_scale_ronto_meter_10.is_empty() && transfer_inputs_scale_ronto_meter_10.is_empty()
+        && spawn_inputs_scale_ronto_meter_100.is_empty() && despawn_inputs_scale_ronto_meter_100.is_empty() && transfer_inputs_scale_ronto_meter_100.is_empty()
+        && spawn_inputs_scale_yocto_meter_1.is_empty() && despawn_inputs_scale_yocto_meter_1.is_empty() && transfer_inputs_scale_yocto_meter_1.is_empty()
+        && spawn_inputs_scale_yocto_meter_10.is_empty() && despawn_inputs_scale_yocto_meter_10.is_empty() && transfer_inputs_scale_yocto_meter_10.is_empty()
+        && spawn_inputs_scale_yocto_meter_100.is_empty() && despawn_inputs_scale_yocto_meter_100.is_empty() && transfer_inputs_scale_yocto_meter_100.is_empty()
+        && spawn_inputs_scale_zepto_meter_1.is_empty() && despawn_inputs_scale_zepto_meter_1.is_empty() && transfer_inputs_scale_zepto_meter_1.is_empty()
+        && spawn_inputs_scale_zepto_meter_10.is_empty() && despawn_inputs_scale_zepto_meter_10.is_empty() && transfer_inputs_scale_zepto_meter_10.is_empty()
+        && spawn_inputs_scale_zepto_meter_100.is_empty() && despawn_inputs_scale_zepto_meter_100.is_empty() && transfer_inputs_scale_zepto_meter_100.is_empty()
+        && spawn_inputs_scale_atto_meter_1.is_empty() && despawn_inputs_scale_atto_meter_1.is_empty() && transfer_inputs_scale_atto_meter_1.is_empty()
+        && spawn_inputs_scale_atto_meter_10.is_empty() && despawn_inputs_scale_atto_meter_10.is_empty() && transfer_inputs_scale_atto_meter_10.is_empty()
+        && spawn_inputs_scale_atto_meter_100.is_empty() && despawn_inputs_scale_atto_meter_100.is_empty() && transfer_inputs_scale_atto_meter_100.is_empty()
+        && spawn_inputs_scale_femto_meter_1.is_empty() && despawn_inputs_scale_femto_meter_1.is_empty() && transfer_inputs_scale_femto_meter_1.is_empty()
+        && spawn_inputs_scale_femto_meter_10.is_empty() && despawn_inputs_scale_femto_meter_10.is_empty() && transfer_inputs_scale_femto_meter_10.is_empty()
+        && spawn_inputs_scale_femto_meter_100.is_empty() && despawn_inputs_scale_femto_meter_100.is_empty() && transfer_inputs_scale_femto_meter_100.is_empty()
+        && spawn_inputs_scale_pico_meter_1.is_empty() && despawn_inputs_scale_pico_meter_1.is_empty() && transfer_inputs_scale_pico_meter_1.is_empty()
+        && spawn_inputs_scale_pico_meter_10.is_empty() && despawn_inputs_scale_pico_meter_10.is_empty() && transfer_inputs_scale_pico_meter_10.is_empty()
+        && spawn_inputs_scale_pico_meter_100.is_empty() && despawn_inputs_scale_pico_meter_100.is_empty() && transfer_inputs_scale_pico_meter_100.is_empty()
+        && spawn_inputs_scale_nano_meter_1.is_empty() && despawn_inputs_scale_nano_meter_1.is_empty() && transfer_inputs_scale_nano_meter_1.is_empty()
+        && spawn_inputs_scale_nano_meter_10.is_empty() && despawn_inputs_scale_nano_meter_10.is_empty() && transfer_inputs_scale_nano_meter_10.is_empty()
+        && spawn_inputs_scale_nano_meter_100.is_empty() && despawn_inputs_scale_nano_meter_100.is_empty() && transfer_inputs_scale_nano_meter_100.is_empty()
+        && spawn_inputs_scale_micro_meter_1.is_empty() && despawn_inputs_scale_micro_meter_1.is_empty() && transfer_inputs_scale_micro_meter_1.is_empty()
+        && spawn_inputs_scale_micro_meter_10.is_empty() && despawn_inputs_scale_micro_meter_10.is_empty() && transfer_inputs_scale_micro_meter_10.is_empty()
+        && spawn_inputs_scale_micro_meter_100.is_empty() && despawn_inputs_scale_micro_meter_100.is_empty() && transfer_inputs_scale_micro_meter_100.is_empty()
+        && spawn_inputs_scale_milli_meter_1.is_empty() && despawn_inputs_scale_milli_meter_1.is_empty() && transfer_inputs_scale_milli_meter_1.is_empty()
+        && spawn_inputs_scale_milli_meter_10.is_empty() && despawn_inputs_scale_milli_meter_10.is_empty() && transfer_inputs_scale_milli_meter_10.is_empty()
+        && spawn_inputs_scale_milli_meter_100.is_empty() && despawn_inputs_scale_milli_meter_100.is_empty() && transfer_inputs_scale_milli_meter_100.is_empty()
+        && spawn_inputs_scale_meter_1.is_empty() && despawn_inputs_scale_meter_1.is_empty() && transfer_inputs_scale_meter_1.is_empty()
+        && spawn_inputs_scale_meter_10.is_empty() && despawn_inputs_scale_meter_10.is_empty() && transfer_inputs_scale_meter_10.is_empty()
+        && spawn_inputs_scale_meter_100.is_empty() && despawn_inputs_scale_meter_100.is_empty() && transfer_inputs_scale_meter_100.is_empty()
+        && spawn_inputs_scale_kilo_meter_1.is_empty() && despawn_inputs_scale_kilo_meter_1.is_empty() && transfer_inputs_scale_kilo_meter_1.is_empty()
+        && spawn_inputs_scale_kilo_meter_10.is_empty() && despawn_inputs_scale_kilo_meter_10.is_empty() && transfer_inputs_scale_kilo_meter_10.is_empty()
+        && spawn_inputs_scale_kilo_meter_100.is_empty() && despawn_inputs_scale_kilo_meter_100.is_empty() && transfer_inputs_scale_kilo_meter_100.is_empty()
+        && spawn_inputs_scale_mega_meter_1.is_empty() && despawn_inputs_scale_mega_meter_1.is_empty() && transfer_inputs_scale_mega_meter_1.is_empty()
+        && spawn_inputs_scale_mega_meter_10.is_empty() && despawn_inputs_scale_mega_meter_10.is_empty() && transfer_inputs_scale_mega_meter_10.is_empty()
+        && spawn_inputs_scale_mega_meter_100.is_empty() && despawn_inputs_scale_mega_meter_100.is_empty() && transfer_inputs_scale_mega_meter_100.is_empty()
+        && spawn_inputs_scale_giga_meter_1.is_empty() && despawn_inputs_scale_giga_meter_1.is_empty() && transfer_inputs_scale_giga_meter_1.is_empty()
+        && spawn_inputs_scale_giga_meter_10.is_empty() && despawn_inputs_scale_giga_meter_10.is_empty() && transfer_inputs_scale_giga_meter_10.is_empty()
+        && spawn_inputs_scale_giga_meter_100.is_empty() && despawn_inputs_scale_giga_meter_100.is_empty() && transfer_inputs_scale_giga_meter_100.is_empty()
+        && spawn_inputs_scale_tera_meter_1.is_empty() && despawn_inputs_scale_tera_meter_1.is_empty() && transfer_inputs_scale_tera_meter_1.is_empty()
+        && spawn_inputs_scale_tera_meter_10.is_empty() && despawn_inputs_scale_tera_meter_10.is_empty() && transfer_inputs_scale_tera_meter_10.is_empty()
+        && spawn_inputs_scale_tera_meter_100.is_empty() && despawn_inputs_scale_tera_meter_100.is_empty() && transfer_inputs_scale_tera_meter_100.is_empty()
+        && spawn_inputs_scale_peta_meter_1.is_empty() && despawn_inputs_scale_peta_meter_1.is_empty() && transfer_inputs_scale_peta_meter_1.is_empty()
+        && spawn_inputs_scale_peta_meter_10.is_empty() && despawn_inputs_scale_peta_meter_10.is_empty() && transfer_inputs_scale_peta_meter_10.is_empty()
+        && spawn_inputs_scale_peta_meter_100.is_empty() && despawn_inputs_scale_peta_meter_100.is_empty() && transfer_inputs_scale_peta_meter_100.is_empty()
+        && spawn_inputs_scale_exa_meter_1.is_empty() && despawn_inputs_scale_exa_meter_1.is_empty() && transfer_inputs_scale_exa_meter_1.is_empty()
+        && spawn_inputs_scale_exa_meter_10.is_empty() && despawn_inputs_scale_exa_meter_10.is_empty() && transfer_inputs_scale_exa_meter_10.is_empty()
+        && spawn_inputs_scale_exa_meter_100.is_empty() && despawn_inputs_scale_exa_meter_100.is_empty() && transfer_inputs_scale_exa_meter_100.is_empty()
+        && spawn_inputs_scale_zetta_meter_1.is_empty() && despawn_inputs_scale_zetta_meter_1.is_empty() && transfer_inputs_scale_zetta_meter_1.is_empty()
+        && spawn_inputs_scale_zetta_meter_10.is_empty() && despawn_inputs_scale_zetta_meter_10.is_empty() && transfer_inputs_scale_zetta_meter_10.is_empty()
+        && spawn_inputs_scale_zetta_meter_100.is_empty() && despawn_inputs_scale_zetta_meter_100.is_empty() && transfer_inputs_scale_zetta_meter_100.is_empty()
+        && spawn_inputs_scale_yotta_meter_1.is_empty() && despawn_inputs_scale_yotta_meter_1.is_empty() && transfer_inputs_scale_yotta_meter_1.is_empty()
+        && spawn_inputs_scale_yotta_meter_10.is_empty() && despawn_inputs_scale_yotta_meter_10.is_empty() && transfer_inputs_scale_yotta_meter_10.is_empty()
+        && spawn_inputs_scale_yotta_meter_100.is_empty() && despawn_inputs_scale_yotta_meter_100.is_empty() && transfer_inputs_scale_yotta_meter_100.is_empty()
+        && spawn_inputs_scale_ronna_meter_1.is_empty() && despawn_inputs_scale_ronna_meter_1.is_empty() && transfer_inputs_scale_ronna_meter_1.is_empty()
+        && spawn_inputs_scale_ronna_meter_10.is_empty() && despawn_inputs_scale_ronna_meter_10.is_empty() && transfer_inputs_scale_ronna_meter_10.is_empty()
+        && spawn_inputs_scale_ronna_meter_100.is_empty() && despawn_inputs_scale_ronna_meter_100.is_empty() && transfer_inputs_scale_ronna_meter_100.is_empty()
+        && spawn_inputs_scale_quetta_meter_1.is_empty() && despawn_inputs_scale_quetta_meter_1.is_empty() && transfer_inputs_scale_quetta_meter_1.is_empty()
+        && spawn_inputs_scale_quetta_meter_10.is_empty() && despawn_inputs_scale_quetta_meter_10.is_empty() && transfer_inputs_scale_quetta_meter_10.is_empty()
+        && spawn_inputs_scale_quetta_meter_100.is_empty() && despawn_inputs_scale_quetta_meter_100.is_empty() && transfer_inputs_scale_quetta_meter_100.is_empty()
+        && spawn_inputs_scale_quetta_meter_1000.is_empty() && despawn_inputs_scale_quetta_meter_1000.is_empty() && transfer_inputs_scale_quetta_meter_1000.is_empty()
+        && spawn_inputs_scale_quetta_meter_10000.is_empty() && despawn_inputs_scale_quetta_meter_10000.is_empty() && transfer_inputs_scale_quetta_meter_10000.is_empty()
+        && spawn_inputs_scale_quetta_meter_100000.is_empty() && despawn_inputs_scale_quetta_meter_100000.is_empty() && transfer_inputs_scale_quetta_meter_100000.is_empty()
+    {
         // warn!("No chunk actions to process");
         return;
     }
 
-    let mut new_chunk_loaders = Vec::new();
-    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads {
+    let mut new_chunk_loaders_scale_quecto_meter_000001 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quecto_meter_000001 {
         let loader_entity = chunk_loader_performing_chunk_load.entity();
-        if let Ok(init_hook) = chunk_loader_init_hook_query.get(loader_entity) {
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_000001.get(loader_entity) {
             if !init_hook.has_fired() {
-                new_chunk_loaders.push(loader_entity);
+                new_chunk_loaders_scale_quecto_meter_000001.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_quecto_meter_00001 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quecto_meter_00001 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_00001.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_quecto_meter_00001.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_quecto_meter_0001 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quecto_meter_0001 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_0001.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_quecto_meter_0001.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_quecto_meter_001 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quecto_meter_001 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_001.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_quecto_meter_001.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_quecto_meter_01 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quecto_meter_01 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_01.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_quecto_meter_01.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_quecto_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quecto_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_quecto_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_quecto_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quecto_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_quecto_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_quecto_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quecto_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quecto_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_quecto_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_ronto_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_ronto_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronto_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_ronto_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_ronto_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_ronto_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronto_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_ronto_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_ronto_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_ronto_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronto_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_ronto_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_yocto_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_yocto_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yocto_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_yocto_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_yocto_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_yocto_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yocto_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_yocto_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_yocto_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_yocto_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yocto_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_yocto_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_zepto_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_zepto_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zepto_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_zepto_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_zepto_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_zepto_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zepto_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_zepto_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_zepto_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_zepto_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zepto_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_zepto_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_atto_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_atto_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_atto_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_atto_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_atto_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_atto_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_atto_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_atto_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_atto_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_atto_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_atto_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_atto_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_femto_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_femto_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_femto_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_femto_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_femto_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_femto_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_femto_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_femto_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_femto_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_femto_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_femto_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_femto_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_pico_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_pico_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_pico_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_pico_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_pico_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_pico_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_pico_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_pico_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_pico_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_pico_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_pico_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_pico_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_nano_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_nano_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_nano_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_nano_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_nano_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_nano_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_nano_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_nano_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_nano_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_nano_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_nano_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_nano_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_micro_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_micro_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_micro_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_micro_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_micro_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_micro_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_micro_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_micro_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_micro_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_micro_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_micro_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_micro_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_milli_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_milli_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_milli_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_milli_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_milli_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_milli_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_milli_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_milli_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_milli_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_milli_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_milli_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_milli_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_kilo_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_kilo_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_kilo_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_kilo_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_kilo_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_kilo_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_kilo_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_kilo_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_kilo_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_kilo_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_kilo_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_kilo_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_mega_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_mega_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_mega_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_mega_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_mega_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_mega_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_mega_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_mega_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_mega_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_mega_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_mega_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_mega_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_giga_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_giga_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_giga_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_giga_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_giga_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_giga_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_giga_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_giga_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_giga_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_giga_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_giga_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_giga_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_tera_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_tera_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_tera_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_tera_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_tera_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_tera_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_tera_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_tera_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_tera_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_tera_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_tera_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_tera_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_peta_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_peta_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_peta_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_peta_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_peta_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_peta_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_peta_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_peta_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_peta_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_peta_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_peta_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_peta_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_exa_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_exa_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_exa_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_exa_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_exa_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_exa_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_exa_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_exa_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_exa_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_exa_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_exa_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_exa_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_zetta_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_zetta_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zetta_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_zetta_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_zetta_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_zetta_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zetta_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_zetta_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_zetta_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_zetta_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_zetta_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_zetta_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_yotta_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_yotta_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yotta_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_yotta_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_yotta_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_yotta_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yotta_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_yotta_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_yotta_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_yotta_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_yotta_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_yotta_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_ronna_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_ronna_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronna_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_ronna_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_ronna_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_ronna_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronna_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_ronna_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_ronna_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_ronna_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_ronna_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_ronna_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_quetta_meter_1 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quetta_meter_1 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_1.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_quetta_meter_1.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_quetta_meter_10 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quetta_meter_10 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_10.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_quetta_meter_10.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_quetta_meter_100 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quetta_meter_100 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_100.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_quetta_meter_100.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_quetta_meter_1000 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quetta_meter_1000 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_1000.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_quetta_meter_1000.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_quetta_meter_10000 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quetta_meter_10000 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_10000.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_quetta_meter_10000.push(loader_entity);
+            }
+        }
+    }
+    let mut new_chunk_loaders_scale_quetta_meter_100000 = Vec::new();
+    for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads_scale_quetta_meter_100000 {
+        let loader_entity = chunk_loader_performing_chunk_load.entity();
+        if let Ok(init_hook) = chunk_loader_init_hook_queries.chunk_loader_init_hook_query_scale_quetta_meter_100000.get(loader_entity) {
+            if !init_hook.has_fired() {
+                new_chunk_loaders_scale_quetta_meter_100000.push(loader_entity);
             }
         }
     }
 
     // Step 3: Build & launch composite workflows
-    let spawn_handle = if !spawn_inputs.is_empty() {
+    let spawn_handle = if !spawn_inputs_scale_quecto_meter_000001.is_empty() 
+        || !spawn_inputs_scale_quecto_meter_00001.is_empty()
+        || !spawn_inputs_scale_quecto_meter_0001.is_empty()
+        || !spawn_inputs_scale_quecto_meter_001.is_empty()
+        || !spawn_inputs_scale_quecto_meter_01.is_empty()
+        || !spawn_inputs_scale_quecto_meter_1.is_empty()
+        || !spawn_inputs_scale_quecto_meter_10.is_empty()
+        || !spawn_inputs_scale_quecto_meter_100.is_empty()
+        || !spawn_inputs_scale_ronto_meter_1.is_empty()
+        || !spawn_inputs_scale_ronto_meter_10.is_empty()
+        || !spawn_inputs_scale_ronto_meter_100.is_empty()
+        || !spawn_inputs_scale_yocto_meter_1.is_empty()
+        || !spawn_inputs_scale_yocto_meter_10.is_empty()
+        || !spawn_inputs_scale_yocto_meter_100.is_empty()
+        || !spawn_inputs_scale_zepto_meter_1.is_empty()
+        || !spawn_inputs_scale_zepto_meter_10.is_empty()
+        || !spawn_inputs_scale_zepto_meter_100.is_empty()
+        || !spawn_inputs_scale_atto_meter_1.is_empty()
+        || !spawn_inputs_scale_atto_meter_10.is_empty()
+        || !spawn_inputs_scale_atto_meter_100.is_empty()
+        || !spawn_inputs_scale_femto_meter_1.is_empty()
+        || !spawn_inputs_scale_femto_meter_10.is_empty()
+        || !spawn_inputs_scale_femto_meter_100.is_empty()
+        || !spawn_inputs_scale_pico_meter_1.is_empty()
+        || !spawn_inputs_scale_pico_meter_10.is_empty()
+        || !spawn_inputs_scale_pico_meter_100.is_empty()
+        || !spawn_inputs_scale_nano_meter_1.is_empty()
+        || !spawn_inputs_scale_nano_meter_10.is_empty()
+        || !spawn_inputs_scale_nano_meter_100.is_empty()
+        || !spawn_inputs_scale_micro_meter_1.is_empty()
+        || !spawn_inputs_scale_micro_meter_10.is_empty()
+        || !spawn_inputs_scale_micro_meter_100.is_empty()
+        || !spawn_inputs_scale_milli_meter_1.is_empty()
+        || !spawn_inputs_scale_milli_meter_10.is_empty()
+        || !spawn_inputs_scale_milli_meter_100.is_empty()
+        || !spawn_inputs_scale_meter_1.is_empty()
+        || !spawn_inputs_scale_meter_10.is_empty()
+        || !spawn_inputs_scale_meter_100.is_empty()
+        || !spawn_inputs_scale_kilo_meter_1.is_empty()
+        || !spawn_inputs_scale_kilo_meter_10.is_empty()
+        || !spawn_inputs_scale_kilo_meter_100.is_empty()
+        || !spawn_inputs_scale_mega_meter_1.is_empty()
+        || !spawn_inputs_scale_mega_meter_10.is_empty()
+        || !spawn_inputs_scale_mega_meter_100.is_empty()
+        || !spawn_inputs_scale_giga_meter_1.is_empty()
+        || !spawn_inputs_scale_giga_meter_10.is_empty()
+        || !spawn_inputs_scale_giga_meter_100.is_empty()
+        || !spawn_inputs_scale_tera_meter_1.is_empty()
+        || !spawn_inputs_scale_tera_meter_10.is_empty()
+        || !spawn_inputs_scale_tera_meter_100.is_empty()
+        || !spawn_inputs_scale_peta_meter_1.is_empty()
+        || !spawn_inputs_scale_peta_meter_10.is_empty()
+        || !spawn_inputs_scale_peta_meter_100.is_empty()
+        || !spawn_inputs_scale_exa_meter_1.is_empty()
+        || !spawn_inputs_scale_exa_meter_10.is_empty()
+        || !spawn_inputs_scale_exa_meter_100.is_empty()
+        || !spawn_inputs_scale_zetta_meter_1.is_empty()
+        || !spawn_inputs_scale_zetta_meter_10.is_empty()
+        || !spawn_inputs_scale_zetta_meter_100.is_empty()
+        || !spawn_inputs_scale_yotta_meter_1.is_empty()
+        || !spawn_inputs_scale_yotta_meter_10.is_empty()
+        || !spawn_inputs_scale_yotta_meter_100.is_empty()
+        || !spawn_inputs_scale_ronna_meter_1.is_empty()
+        || !spawn_inputs_scale_ronna_meter_10.is_empty()
+        || !spawn_inputs_scale_ronna_meter_100.is_empty()
+        || !spawn_inputs_scale_quetta_meter_1.is_empty()
+        || !spawn_inputs_scale_quetta_meter_10.is_empty()
+        || !spawn_inputs_scale_quetta_meter_100.is_empty()
+        || !spawn_inputs_scale_quetta_meter_1000.is_empty()
+        || !spawn_inputs_scale_quetta_meter_10000.is_empty()
+        || !spawn_inputs_scale_quetta_meter_100000.is_empty()
+    {
         let texture_size = CONFIG().get::<u32>("chunk/size");
         let chunk_size = CONFIG().get::<u32>("chunk/size");
-        let chunk_scale = CONFIG().get::<i32>("chunk/scale");
         let current_view_scale = CONFIG().get::<i32>("chunk_loader/current_view_scale");
 
-        let param_data = spawn_coords
+        let param_data_scale_quecto_meter_000001 = spawn_coords_scale_quecto_meter_000001
             .iter()
             .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
                 chunk_pos: [x, y],
                 chunk_size,
-                chunk_scale,
+                chunk_scale: -35,
                 current_view_scale,
                 _padding0: 0,
                 _padding1: [0, 0, 0, 0],
             })
             .collect::<Vec<_>>();
-        let new_chunk_loaders = new_chunk_loaders.clone();
+        let param_data_scale_quecto_meter_00001 = spawn_coords_scale_quecto_meter_00001
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -34,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_quecto_meter_0001 = spawn_coords_scale_quecto_meter_0001
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -33,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_quecto_meter_001 = spawn_coords_scale_quecto_meter_001
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -32,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_quecto_meter_01 = spawn_coords_scale_quecto_meter_01
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -31,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_quecto_meter_1 = spawn_coords_scale_quecto_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -30,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_quecto_meter_10 = spawn_coords_scale_quecto_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -29,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_quecto_meter_100 = spawn_coords_scale_quecto_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -28,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_ronto_meter_1 = spawn_coords_scale_ronto_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -27,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_ronto_meter_10 = spawn_coords_scale_ronto_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -26,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_ronto_meter_100 = spawn_coords_scale_ronto_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -25,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_yocto_meter_1 = spawn_coords_scale_yocto_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -24,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_yocto_meter_10 = spawn_coords_scale_yocto_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -23,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_yocto_meter_100 = spawn_coords_scale_yocto_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -22,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_zepto_meter_1 = spawn_coords_scale_zepto_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -21,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_zepto_meter_10 = spawn_coords_scale_zepto_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -20,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_zepto_meter_100 = spawn_coords_scale_zepto_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -19,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_atto_meter_1 = spawn_coords_scale_atto_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -18,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_atto_meter_10 = spawn_coords_scale_atto_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -17,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_atto_meter_100 = spawn_coords_scale_atto_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -16,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_femto_meter_1 = spawn_coords_scale_femto_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -15,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_femto_meter_10 = spawn_coords_scale_femto_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -14,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_femto_meter_100 = spawn_coords_scale_femto_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -13,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_pico_meter_1 = spawn_coords_scale_pico_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -12,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_pico_meter_10 = spawn_coords_scale_pico_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -11,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_pico_meter_100 = spawn_coords_scale_pico_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -10,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_nano_meter_1 = spawn_coords_scale_nano_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -9,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_nano_meter_10 = spawn_coords_scale_nano_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -8,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_nano_meter_100 = spawn_coords_scale_nano_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -7,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_micro_meter_1 = spawn_coords_scale_micro_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -6,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_micro_meter_10 = spawn_coords_scale_micro_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -5,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_micro_meter_100 = spawn_coords_scale_micro_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -4,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_milli_meter_1 = spawn_coords_scale_milli_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -3,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_milli_meter_10 = spawn_coords_scale_milli_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -2,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_milli_meter_100 = spawn_coords_scale_milli_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: -1,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_meter_1 = spawn_coords_scale_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 0,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_meter_10 = spawn_coords_scale_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 1,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_meter_100 = spawn_coords_scale_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 2,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_kilo_meter_1 = spawn_coords_scale_kilo_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 3,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_kilo_meter_10 = spawn_coords_scale_kilo_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 4,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_kilo_meter_100 = spawn_coords_scale_kilo_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 5,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_mega_meter_1 = spawn_coords_scale_mega_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 6,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_mega_meter_10 = spawn_coords_scale_mega_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 7,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_mega_meter_100 = spawn_coords_scale_mega_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 8,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_giga_meter_1 = spawn_coords_scale_giga_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 9,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_giga_meter_10 = spawn_coords_scale_giga_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 10,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_giga_meter_100 = spawn_coords_scale_giga_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 11,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_tera_meter_1 = spawn_coords_scale_tera_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 12,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_tera_meter_10 = spawn_coords_scale_tera_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 13,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_tera_meter_100 = spawn_coords_scale_tera_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 14,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_peta_meter_1 = spawn_coords_scale_peta_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 15,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_peta_meter_10 = spawn_coords_scale_peta_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 16,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_peta_meter_100 = spawn_coords_scale_peta_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 17,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_exa_meter_1 = spawn_coords_scale_exa_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 18,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_exa_meter_10 = spawn_coords_scale_exa_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 19,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_exa_meter_100 = spawn_coords_scale_exa_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 20,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_zetta_meter_1 = spawn_coords_scale_zetta_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 21,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_zetta_meter_10 = spawn_coords_scale_zetta_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 22,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_zetta_meter_100 = spawn_coords_scale_zetta_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 23,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_yotta_meter_1 = spawn_coords_scale_yotta_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 24,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_yotta_meter_10 = spawn_coords_scale_yotta_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 25,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_yotta_meter_100 = spawn_coords_scale_yotta_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 26,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_ronna_meter_1 = spawn_coords_scale_ronna_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 27,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_ronna_meter_10 = spawn_coords_scale_ronna_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 28,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_ronna_meter_100 = spawn_coords_scale_ronna_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 29,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_quetta_meter_1 = spawn_coords_scale_quetta_meter_1
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 30,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_quetta_meter_10 = spawn_coords_scale_quetta_meter_10
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 31,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_quetta_meter_100 = spawn_coords_scale_quetta_meter_100
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 32,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_quetta_meter_1000 = spawn_coords_scale_quetta_meter_1000
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 33,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_quetta_meter_10000 = spawn_coords_scale_quetta_meter_10000
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 34,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+        let param_data_scale_quetta_meter_100000 = spawn_coords_scale_quetta_meter_100000
+            .iter()
+            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [x, y],
+                chunk_size,
+                chunk_scale: 35,
+                current_view_scale,
+                _padding0: 0,
+                _padding1: [0, 0, 0, 0],
+            })
+            .collect::<Vec<_>>();
+
+        let new_chunk_loaders_scale_quecto_meter_000001 = new_chunk_loaders_scale_quecto_meter_000001.clone();
+        let new_chunk_loaders_scale_quecto_meter_00001 = new_chunk_loaders_scale_quecto_meter_00001.clone();
+        let new_chunk_loaders_scale_quecto_meter_0001 = new_chunk_loaders_scale_quecto_meter_0001.clone();
+        let new_chunk_loaders_scale_quecto_meter_001 = new_chunk_loaders_scale_quecto_meter_001.clone();
+        let new_chunk_loaders_scale_quecto_meter_01 = new_chunk_loaders_scale_quecto_meter_01.clone();
+        let new_chunk_loaders_scale_quecto_meter_1 = new_chunk_loaders_scale_quecto_meter_1.clone();
+        let new_chunk_loaders_scale_quecto_meter_10 = new_chunk_loaders_scale_quecto_meter_10.clone();
+        let new_chunk_loaders_scale_quecto_meter_100 = new_chunk_loaders_scale_quecto_meter_100.clone();
+        let new_chunk_loaders_scale_ronto_meter_1 = new_chunk_loaders_scale_ronto_meter_1.clone();
+        let new_chunk_loaders_scale_ronto_meter_10 = new_chunk_loaders_scale_ronto_meter_10.clone();
+        let new_chunk_loaders_scale_ronto_meter_100 = new_chunk_loaders_scale_ronto_meter_100.clone();
+        let new_chunk_loaders_scale_yocto_meter_1 = new_chunk_loaders_scale_yocto_meter_1.clone();
+        let new_chunk_loaders_scale_yocto_meter_10 = new_chunk_loaders_scale_yocto_meter_10.clone();
+        let new_chunk_loaders_scale_yocto_meter_100 = new_chunk_loaders_scale_yocto_meter_100.clone();
+        let new_chunk_loaders_scale_zepto_meter_1 = new_chunk_loaders_scale_zepto_meter_1.clone();
+        let new_chunk_loaders_scale_zepto_meter_10 = new_chunk_loaders_scale_zepto_meter_10.clone();
+        let new_chunk_loaders_scale_zepto_meter_100 = new_chunk_loaders_scale_zepto_meter_100.clone();
+        let new_chunk_loaders_scale_atto_meter_1 = new_chunk_loaders_scale_atto_meter_1.clone();
+        let new_chunk_loaders_scale_atto_meter_10 = new_chunk_loaders_scale_atto_meter_10.clone();
+        let new_chunk_loaders_scale_atto_meter_100 = new_chunk_loaders_scale_atto_meter_100.clone();
+        let new_chunk_loaders_scale_femto_meter_1 = new_chunk_loaders_scale_femto_meter_1.clone();
+        let new_chunk_loaders_scale_femto_meter_10 = new_chunk_loaders_scale_femto_meter_10.clone();
+        let new_chunk_loaders_scale_femto_meter_100 = new_chunk_loaders_scale_femto_meter_100.clone();
+        let new_chunk_loaders_scale_pico_meter_1 = new_chunk_loaders_scale_pico_meter_1.clone();
+        let new_chunk_loaders_scale_pico_meter_10 = new_chunk_loaders_scale_pico_meter_10.clone();
+        let new_chunk_loaders_scale_pico_meter_100 = new_chunk_loaders_scale_pico_meter_100.clone();
+        let new_chunk_loaders_scale_nano_meter_1 = new_chunk_loaders_scale_nano_meter_1.clone();
+        let new_chunk_loaders_scale_nano_meter_10 = new_chunk_loaders_scale_nano_meter_10.clone();
+        let new_chunk_loaders_scale_nano_meter_100 = new_chunk_loaders_scale_nano_meter_100.clone();
+        let new_chunk_loaders_scale_micro_meter_1 = new_chunk_loaders_scale_micro_meter_1.clone();
+        let new_chunk_loaders_scale_micro_meter_10 = new_chunk_loaders_scale_micro_meter_10.clone();
+        let new_chunk_loaders_scale_micro_meter_100 = new_chunk_loaders_scale_micro_meter_100.clone();
+        let new_chunk_loaders_scale_milli_meter_1 = new_chunk_loaders_scale_milli_meter_1.clone();
+        let new_chunk_loaders_scale_milli_meter_10 = new_chunk_loaders_scale_milli_meter_10.clone();
+        let new_chunk_loaders_scale_milli_meter_100 = new_chunk_loaders_scale_milli_meter_100.clone();
+        let new_chunk_loaders_scale_meter_1 = new_chunk_loaders_scale_meter_1.clone();
+        let new_chunk_loaders_scale_meter_10 = new_chunk_loaders_scale_meter_10.clone();
+        let new_chunk_loaders_scale_meter_100 = new_chunk_loaders_scale_meter_100.clone();
+        let new_chunk_loaders_scale_kilo_meter_1 = new_chunk_loaders_scale_kilo_meter_1.clone();
+        let new_chunk_loaders_scale_kilo_meter_10 = new_chunk_loaders_scale_kilo_meter_10.clone();
+        let new_chunk_loaders_scale_kilo_meter_100 = new_chunk_loaders_scale_kilo_meter_100.clone();
+        let new_chunk_loaders_scale_mega_meter_1 = new_chunk_loaders_scale_mega_meter_1.clone();
+        let new_chunk_loaders_scale_mega_meter_10 = new_chunk_loaders_scale_mega_meter_10.clone();
+        let new_chunk_loaders_scale_mega_meter_100 = new_chunk_loaders_scale_mega_meter_100.clone();
+        let new_chunk_loaders_scale_giga_meter_1 = new_chunk_loaders_scale_giga_meter_1.clone();
+        let new_chunk_loaders_scale_giga_meter_10 = new_chunk_loaders_scale_giga_meter_10.clone();
+        let new_chunk_loaders_scale_giga_meter_100 = new_chunk_loaders_scale_giga_meter_100.clone();
+        let new_chunk_loaders_scale_tera_meter_1 = new_chunk_loaders_scale_tera_meter_1.clone();
+        let new_chunk_loaders_scale_tera_meter_10 = new_chunk_loaders_scale_tera_meter_10.clone();
+        let new_chunk_loaders_scale_tera_meter_100 = new_chunk_loaders_scale_tera_meter_100.clone();
+        let new_chunk_loaders_scale_peta_meter_1 = new_chunk_loaders_scale_peta_meter_1.clone();
+        let new_chunk_loaders_scale_peta_meter_10 = new_chunk_loaders_scale_peta_meter_10.clone();
+        let new_chunk_loaders_scale_peta_meter_100 = new_chunk_loaders_scale_peta_meter_100.clone();
+        let new_chunk_loaders_scale_exa_meter_1 = new_chunk_loaders_scale_exa_meter_1.clone();
+        let new_chunk_loaders_scale_exa_meter_10 = new_chunk_loaders_scale_exa_meter_10.clone();
+        let new_chunk_loaders_scale_exa_meter_100 = new_chunk_loaders_scale_exa_meter_100.clone();
+        let new_chunk_loaders_scale_zetta_meter_1 = new_chunk_loaders_scale_zetta_meter_1.clone();
+        let new_chunk_loaders_scale_zetta_meter_10 = new_chunk_loaders_scale_zetta_meter_10.clone();
+        let new_chunk_loaders_scale_zetta_meter_100 = new_chunk_loaders_scale_zetta_meter_100.clone();
+        let new_chunk_loaders_scale_yotta_meter_1 = new_chunk_loaders_scale_yotta_meter_1.clone();
+        let new_chunk_loaders_scale_yotta_meter_10 = new_chunk_loaders_scale_yotta_meter_10.clone();
+        let new_chunk_loaders_scale_yotta_meter_100 = new_chunk_loaders_scale_yotta_meter_100.clone();
+        let new_chunk_loaders_scale_ronna_meter_1 = new_chunk_loaders_scale_ronna_meter_1.clone();
+        let new_chunk_loaders_scale_ronna_meter_10 = new_chunk_loaders_scale_ronna_meter_10.clone();
+        let new_chunk_loaders_scale_ronna_meter_100 = new_chunk_loaders_scale_ronna_meter_100.clone();
+        let new_chunk_loaders_scale_quetta_meter_1 = new_chunk_loaders_scale_quetta_meter_1.clone();
+        let new_chunk_loaders_scale_quetta_meter_10 = new_chunk_loaders_scale_quetta_meter_10.clone();
+        let new_chunk_loaders_scale_quetta_meter_100 = new_chunk_loaders_scale_quetta_meter_100.clone();
+        let new_chunk_loaders_scale_quetta_meter_1000 = new_chunk_loaders_scale_quetta_meter_1000.clone();
+        let new_chunk_loaders_scale_quetta_meter_10000 = new_chunk_loaders_scale_quetta_meter_10000.clone();
+        let new_chunk_loaders_scale_quetta_meter_100000 = new_chunk_loaders_scale_quetta_meter_100000.clone();
 
         Some(composite_workflow!(
             SpawnChunks,
             move in texture_size: u32,
-            move in spawn_inputs: Vec<SpawnChunkInput>,
-            move in param_data: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
-            new_chunk_loaders: Vec<Entity>,
+            move in spawn_inputs_scale_quecto_meter_000001: Vec<SpawnChunkInput<ScaleQuectoMeter000001>>,
+            move in spawn_inputs_scale_quecto_meter_00001: Vec<SpawnChunkInput<ScaleQuectoMeter00001>>,
+            move in spawn_inputs_scale_quecto_meter_0001: Vec<SpawnChunkInput<ScaleQuectoMeter0001>>,
+            move in spawn_inputs_scale_quecto_meter_001: Vec<SpawnChunkInput<ScaleQuectoMeter001>>,
+            move in spawn_inputs_scale_quecto_meter_01: Vec<SpawnChunkInput<ScaleQuectoMeter01>>,
+            move in spawn_inputs_scale_quecto_meter_1: Vec<SpawnChunkInput<ScaleQuectoMeter1>>,
+            move in spawn_inputs_scale_quecto_meter_10: Vec<SpawnChunkInput<ScaleQuectoMeter10>>,
+            move in spawn_inputs_scale_quecto_meter_100: Vec<SpawnChunkInput<ScaleQuectoMeter100>>,
+            move in spawn_inputs_scale_ronto_meter_1: Vec<SpawnChunkInput<ScaleRontoMeter1>>,
+            move in spawn_inputs_scale_ronto_meter_10: Vec<SpawnChunkInput<ScaleRontoMeter10>>,
+            move in spawn_inputs_scale_ronto_meter_100: Vec<SpawnChunkInput<ScaleRontoMeter100>>,
+            move in spawn_inputs_scale_yocto_meter_1: Vec<SpawnChunkInput<ScaleYoctoMeter1>>,
+            move in spawn_inputs_scale_yocto_meter_10: Vec<SpawnChunkInput<ScaleYoctoMeter10>>,
+            move in spawn_inputs_scale_yocto_meter_100: Vec<SpawnChunkInput<ScaleYoctoMeter100>>,
+            move in spawn_inputs_scale_zepto_meter_1: Vec<SpawnChunkInput<ScaleZeptoMeter1>>,
+            move in spawn_inputs_scale_zepto_meter_10: Vec<SpawnChunkInput<ScaleZeptoMeter10>>,
+            move in spawn_inputs_scale_zepto_meter_100: Vec<SpawnChunkInput<ScaleZeptoMeter100>>,
+            move in spawn_inputs_scale_atto_meter_1: Vec<SpawnChunkInput<ScaleAttoMeter1>>,
+            move in spawn_inputs_scale_atto_meter_10: Vec<SpawnChunkInput<ScaleAttoMeter10>>,
+            move in spawn_inputs_scale_atto_meter_100: Vec<SpawnChunkInput<ScaleAttoMeter100>>,
+            move in spawn_inputs_scale_femto_meter_1: Vec<SpawnChunkInput<ScaleFemtoMeter1>>,
+            move in spawn_inputs_scale_femto_meter_10: Vec<SpawnChunkInput<ScaleFemtoMeter10>>,
+            move in spawn_inputs_scale_femto_meter_100: Vec<SpawnChunkInput<ScaleFemtoMeter100>>,
+            move in spawn_inputs_scale_pico_meter_1: Vec<SpawnChunkInput<ScalePicoMeter1>>,
+            move in spawn_inputs_scale_pico_meter_10: Vec<SpawnChunkInput<ScalePicoMeter10>>,
+            move in spawn_inputs_scale_pico_meter_100: Vec<SpawnChunkInput<ScalePicoMeter100>>,
+            move in spawn_inputs_scale_nano_meter_1: Vec<SpawnChunkInput<ScaleNanoMeter1>>,
+            move in spawn_inputs_scale_nano_meter_10: Vec<SpawnChunkInput<ScaleNanoMeter10>>,
+            move in spawn_inputs_scale_nano_meter_100: Vec<SpawnChunkInput<ScaleNanoMeter100>>,
+            move in spawn_inputs_scale_micro_meter_1: Vec<SpawnChunkInput<ScaleMicroMeter1>>,
+            move in spawn_inputs_scale_micro_meter_10: Vec<SpawnChunkInput<ScaleMicroMeter10>>,
+            move in spawn_inputs_scale_micro_meter_100: Vec<SpawnChunkInput<ScaleMicroMeter100>>,
+            move in spawn_inputs_scale_milli_meter_1: Vec<SpawnChunkInput<ScaleMilliMeter1>>,
+            move in spawn_inputs_scale_milli_meter_10: Vec<SpawnChunkInput<ScaleMilliMeter10>>,
+            move in spawn_inputs_scale_milli_meter_100: Vec<SpawnChunkInput<ScaleMilliMeter100>>,
+            move in spawn_inputs_scale_meter_1: Vec<SpawnChunkInput<ScaleMeter1>>,
+            move in spawn_inputs_scale_meter_10: Vec<SpawnChunkInput<ScaleMeter10>>,
+            move in spawn_inputs_scale_meter_100: Vec<SpawnChunkInput<ScaleMeter100>>,
+            move in spawn_inputs_scale_kilo_meter_1: Vec<SpawnChunkInput<ScaleKiloMeter1>>,
+            move in spawn_inputs_scale_kilo_meter_10: Vec<SpawnChunkInput<ScaleKiloMeter10>>,
+            move in spawn_inputs_scale_kilo_meter_100: Vec<SpawnChunkInput<ScaleKiloMeter100>>,
+            move in spawn_inputs_scale_mega_meter_1: Vec<SpawnChunkInput<ScaleMegaMeter1>>,
+            move in spawn_inputs_scale_mega_meter_10: Vec<SpawnChunkInput<ScaleMegaMeter10>>,
+            move in spawn_inputs_scale_mega_meter_100: Vec<SpawnChunkInput<ScaleMegaMeter100>>,
+            move in spawn_inputs_scale_giga_meter_1: Vec<SpawnChunkInput<ScaleGigaMeter1>>,
+            move in spawn_inputs_scale_giga_meter_10: Vec<SpawnChunkInput<ScaleGigaMeter10>>,
+            move in spawn_inputs_scale_giga_meter_100: Vec<SpawnChunkInput<ScaleGigaMeter100>>,
+            move in spawn_inputs_scale_tera_meter_1: Vec<SpawnChunkInput<ScaleTeraMeter1>>,
+            move in spawn_inputs_scale_tera_meter_10: Vec<SpawnChunkInput<ScaleTeraMeter10>>,
+            move in spawn_inputs_scale_tera_meter_100: Vec<SpawnChunkInput<ScaleTeraMeter100>>,
+            move in spawn_inputs_scale_peta_meter_1: Vec<SpawnChunkInput<ScalePetaMeter1>>,
+            move in spawn_inputs_scale_peta_meter_10: Vec<SpawnChunkInput<ScalePetaMeter10>>,
+            move in spawn_inputs_scale_peta_meter_100: Vec<SpawnChunkInput<ScalePetaMeter100>>,
+            move in spawn_inputs_scale_exa_meter_1: Vec<SpawnChunkInput<ScaleExaMeter1>>,
+            move in spawn_inputs_scale_exa_meter_10: Vec<SpawnChunkInput<ScaleExaMeter10>>,
+            move in spawn_inputs_scale_exa_meter_100: Vec<SpawnChunkInput<ScaleExaMeter100>>,
+            move in spawn_inputs_scale_zetta_meter_1: Vec<SpawnChunkInput<ScaleZettaMeter1>>,
+            move in spawn_inputs_scale_zetta_meter_10: Vec<SpawnChunkInput<ScaleZettaMeter10>>,
+            move in spawn_inputs_scale_zetta_meter_100: Vec<SpawnChunkInput<ScaleZettaMeter100>>,
+            move in spawn_inputs_scale_yotta_meter_1: Vec<SpawnChunkInput<ScaleYottaMeter1>>,
+            move in spawn_inputs_scale_yotta_meter_10: Vec<SpawnChunkInput<ScaleYottaMeter10>>,
+            move in spawn_inputs_scale_yotta_meter_100: Vec<SpawnChunkInput<ScaleYottaMeter100>>,
+            move in spawn_inputs_scale_ronna_meter_1: Vec<SpawnChunkInput<ScaleRonnaMeter1>>,
+            move in spawn_inputs_scale_ronna_meter_10: Vec<SpawnChunkInput<ScaleRonnaMeter10>>,
+            move in spawn_inputs_scale_ronna_meter_100: Vec<SpawnChunkInput<ScaleRonnaMeter100>>,
+            move in spawn_inputs_scale_quetta_meter_1: Vec<SpawnChunkInput<ScaleQuettaMeter1>>,
+            move in spawn_inputs_scale_quetta_meter_10: Vec<SpawnChunkInput<ScaleQuettaMeter10>>,
+            move in spawn_inputs_scale_quetta_meter_100: Vec<SpawnChunkInput<ScaleQuettaMeter100>>,
+            move in spawn_inputs_scale_quetta_meter_1000: Vec<SpawnChunkInput<ScaleQuettaMeter1000>>,
+            move in spawn_inputs_scale_quetta_meter_10000: Vec<SpawnChunkInput<ScaleQuettaMeter10000>>,
+            move in spawn_inputs_scale_quetta_meter_100000: Vec<SpawnChunkInput<ScaleQuettaMeter100000>>,
+            move in param_data_scale_quecto_meter_000001: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_quecto_meter_00001: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_quecto_meter_0001: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_quecto_meter_001: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_quecto_meter_01: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_quecto_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_quecto_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_quecto_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_ronto_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_ronto_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_ronto_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_yocto_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_yocto_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_yocto_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_zepto_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_zepto_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_zepto_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_atto_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_atto_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_atto_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_femto_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_femto_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_femto_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_pico_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_pico_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_pico_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_nano_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_nano_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_nano_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_micro_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_micro_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_micro_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_milli_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_milli_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_milli_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_kilo_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_kilo_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_kilo_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_mega_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_mega_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_mega_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_giga_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_giga_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_giga_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_tera_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_tera_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_tera_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_peta_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_peta_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_peta_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_exa_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_exa_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_exa_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_zetta_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_zetta_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_zetta_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_yotta_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_yotta_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_yotta_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_ronna_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_ronna_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_ronna_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_quetta_meter_1: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_quetta_meter_10: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_quetta_meter_100: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_quetta_meter_1000: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_quetta_meter_10000: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            move in param_data_scale_quetta_meter_100000: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
+            new_chunk_loaders_scale_quecto_meter_000001: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_00001: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_0001: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_001: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_01: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_ronto_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_ronto_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_ronto_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_yocto_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_yocto_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_yocto_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_zepto_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_zepto_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_zepto_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_atto_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_atto_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_atto_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_femto_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_femto_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_femto_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_pico_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_pico_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_pico_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_nano_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_nano_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_nano_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_micro_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_micro_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_micro_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_milli_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_milli_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_milli_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_kilo_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_kilo_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_kilo_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_mega_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_mega_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_mega_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_giga_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_giga_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_giga_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_tera_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_tera_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_tera_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_peta_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_peta_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_peta_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_exa_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_exa_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_exa_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_zetta_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_zetta_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_zetta_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_yotta_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_yotta_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_yotta_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_ronna_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_ronna_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_ronna_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_quetta_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_quetta_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_quetta_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_quetta_meter_1000: Vec<Entity>,
+            new_chunk_loaders_scale_quetta_meter_10000: Vec<Entity>,
+            new_chunk_loaders_scale_quetta_meter_100000: Vec<Entity>,
         {
             warn!("Running composite workflow 'SpawnChunks'");
 
             let shader_name = CONFIG().get::<&'static str>("chunk/texture_generator_shader");
 
-            let generate_output = workflow!(IO, Gpu::GenerateRenderTextures, Input {
+            let generate_output = workflow!(IO, Gpu::GenerateChunkTextures, Input {
                 shader_name,
                 texture_size,
                 param_data,
@@ -4134,7 +5956,7 @@ pub(crate) fn process_chunk_actions_system(
         None
     };
 
-    *workflow_handles = Some(ChunkActionWorkflowHandles::<S> {
+    *workflow_handles = Some(ChunkActionWorkflowHandles {
         spawn: spawn_handle,
         despawn: despawn_handle,
         transfer: transfer_handle,
