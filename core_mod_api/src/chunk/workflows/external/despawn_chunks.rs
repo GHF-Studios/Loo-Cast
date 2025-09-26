@@ -18,21 +18,21 @@ pub struct DespawnChunkState {
 // Core Types
 #[derive(bevy::ecs::system::SystemParam)]
 pub struct MainAccess<'w, 's, S: Scale> {
-    commands: Commands<'w, 's>,
-    chunk_query: Query<'w, 's, (Entity, &'static Chunk<S>)>,
-    chunk_manager: ResMut<'w, ChunkManager<S>>,
+    pub commands: Commands<'w, 's>,
+    pub chunk_query: Query<'w, 's, (Entity, &'static Chunk<S>)>,
+    pub chunk_manager: ResMut<'w, ChunkManager<S>>,
 }
 
 pub struct Input {
-    inputs: Vec<DespawnChunkInput>,
+    pub inputs: Vec<DespawnChunkInput>,
 }
 
 pub struct State {
-    despawn_chunk_states: Vec<DespawnChunkState>,
+    pub despawn_chunk_states: Vec<DespawnChunkState>,
 }
 
 pub struct Output {
-    despawned_chunk_entities: Vec<Entity>,
+    pub despawned_chunk_entities: Vec<Entity>,
 }
 
 #[derive(Debug)]

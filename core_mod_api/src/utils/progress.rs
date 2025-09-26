@@ -24,4 +24,46 @@ impl<U, F> Progress<U, F> {
             Progress::Unfinished(_) => panic!("called `Progress::unwrap_finished()` on an `Unfinished` value"),
         }
     }
+
+    pub fn as_ref(&self) -> Progress<&U, &F> {
+        match self {
+            Progress::Unfinished(u) => Progress::Unfinished(u),
+            Progress::Finished(f) => Progress::Finished(f),
+        }
+    }
+
+    pub fn as_mut(&mut self) -> Progress<&mut U, &mut F> {
+        match self {
+            Progress::Unfinished(u) => Progress::Unfinished(u),
+            Progress::Finished(f) => Progress::Finished(f),
+        }
+    }
+
+    pub fn unfinished_as_ref(&self) -> Option<&U> {
+        match self {
+            Progress::Unfinished(u) => Some(u),
+            Progress::Finished(_) => None,
+        }
+    }
+
+    pub fn unfinished_as_mut(&mut self) -> Option<&mut U> {
+        match self {
+            Progress::Unfinished(u) => Some(u),
+            Progress::Finished(_) => None,
+        }
+    }
+
+    pub fn finished_as_ref(&self) -> Option<&F> {
+        match self {
+            Progress::Finished(f) => Some(f),
+            Progress::Unfinished(_) => None,
+        }
+    }
+
+    pub fn finished_as_mut(&mut self) -> Option<&mut F> {
+        match self {
+            Progress::Finished(f) => Some(f),
+            Progress::Unfinished(_) => None,
+        }
+    }
 }

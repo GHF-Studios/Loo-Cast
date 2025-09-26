@@ -23,21 +23,21 @@ pub struct SpawnChunkState {
 // Core Types
 #[derive(bevy::ecs::system::SystemParam)]
 pub struct MainAccess<'w, 's, S: Scale> {
-    commands: Commands<'w, 's>,
-    chunk_query: Query<'w, 's, &'static Chunk<S>>,
-    chunk_manager: ResMut<'w, ChunkManager<S>>,
+    pub commands: Commands<'w, 's>,
+    pub chunk_query: Query<'w, 's, &'static Chunk<S>>,
+    pub chunk_manager: ResMut<'w, ChunkManager<S>>,
 }
 
 pub struct Input<S: Scale> {
-    inputs: Vec<SpawnChunkInput<S>>,
+    pub inputs: Vec<SpawnChunkInput<S>>,
 }
 
 pub struct State {
-    spawn_chunk_states: Vec<SpawnChunkState>,
+    pub spawn_chunk_states: Vec<SpawnChunkState>,
 }
 
 pub struct Output {
-    spawned_chunk_entities: Vec<Entity>,
+    pub spawned_chunk_entities: Vec<Entity>,
 }
 
 #[derive(Debug)]

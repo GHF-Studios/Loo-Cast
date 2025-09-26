@@ -13,16 +13,16 @@ pub struct TransferChunkOwnershipInput<S: Scale> {
 // Core Types
 #[derive(bevy::ecs::system::SystemParam)]
 pub struct MainAccess<'w, 's, S: Scale> {
-    chunk_query: Query<'w, 's, (Entity, &'static mut Chunk<S>)>,
-    chunk_manager: ResMut<'w, ChunkManager<S>>,
+    pub chunk_query: Query<'w, 's, (Entity, &'static mut Chunk<S>)>,
+    pub chunk_manager: ResMut<'w, ChunkManager<S>>,
 }
 
 pub struct Input<S: Scale> {
-    inputs: Vec<TransferChunkOwnershipInput<S>>,
+    pub inputs: Vec<TransferChunkOwnershipInput<S>>,
 }
 
 pub struct Output {
-    ownership_transfered_chunk_entities: Vec<Entity>
+    pub ownership_transfered_chunk_entities: Vec<Entity>
 }
 
 #[derive(Debug)]

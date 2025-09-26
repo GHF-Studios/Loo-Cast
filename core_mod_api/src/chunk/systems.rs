@@ -4751,77 +4751,77 @@ pub(crate) fn process_chunk_actions_system(
     }
 
     // Step 3: Build & launch composite workflows
-    let spawn_handle = if !spawn_inputs_scale_quecto_meter_000001.is_empty() 
-        || !spawn_inputs_scale_quecto_meter_00001.is_empty()
-        || !spawn_inputs_scale_quecto_meter_0001.is_empty()
-        || !spawn_inputs_scale_quecto_meter_001.is_empty()
-        || !spawn_inputs_scale_quecto_meter_01.is_empty()
-        || !spawn_inputs_scale_quecto_meter_1.is_empty()
-        || !spawn_inputs_scale_quecto_meter_10.is_empty()
-        || !spawn_inputs_scale_quecto_meter_100.is_empty()
-        || !spawn_inputs_scale_ronto_meter_1.is_empty()
-        || !spawn_inputs_scale_ronto_meter_10.is_empty()
-        || !spawn_inputs_scale_ronto_meter_100.is_empty()
-        || !spawn_inputs_scale_yocto_meter_1.is_empty()
-        || !spawn_inputs_scale_yocto_meter_10.is_empty()
-        || !spawn_inputs_scale_yocto_meter_100.is_empty()
-        || !spawn_inputs_scale_zepto_meter_1.is_empty()
-        || !spawn_inputs_scale_zepto_meter_10.is_empty()
-        || !spawn_inputs_scale_zepto_meter_100.is_empty()
-        || !spawn_inputs_scale_atto_meter_1.is_empty()
-        || !spawn_inputs_scale_atto_meter_10.is_empty()
-        || !spawn_inputs_scale_atto_meter_100.is_empty()
-        || !spawn_inputs_scale_femto_meter_1.is_empty()
-        || !spawn_inputs_scale_femto_meter_10.is_empty()
-        || !spawn_inputs_scale_femto_meter_100.is_empty()
-        || !spawn_inputs_scale_pico_meter_1.is_empty()
-        || !spawn_inputs_scale_pico_meter_10.is_empty()
-        || !spawn_inputs_scale_pico_meter_100.is_empty()
-        || !spawn_inputs_scale_nano_meter_1.is_empty()
-        || !spawn_inputs_scale_nano_meter_10.is_empty()
-        || !spawn_inputs_scale_nano_meter_100.is_empty()
-        || !spawn_inputs_scale_micro_meter_1.is_empty()
-        || !spawn_inputs_scale_micro_meter_10.is_empty()
-        || !spawn_inputs_scale_micro_meter_100.is_empty()
-        || !spawn_inputs_scale_milli_meter_1.is_empty()
-        || !spawn_inputs_scale_milli_meter_10.is_empty()
-        || !spawn_inputs_scale_milli_meter_100.is_empty()
-        || !spawn_inputs_scale_meter_1.is_empty()
-        || !spawn_inputs_scale_meter_10.is_empty()
-        || !spawn_inputs_scale_meter_100.is_empty()
-        || !spawn_inputs_scale_kilo_meter_1.is_empty()
-        || !spawn_inputs_scale_kilo_meter_10.is_empty()
-        || !spawn_inputs_scale_kilo_meter_100.is_empty()
-        || !spawn_inputs_scale_mega_meter_1.is_empty()
-        || !spawn_inputs_scale_mega_meter_10.is_empty()
-        || !spawn_inputs_scale_mega_meter_100.is_empty()
-        || !spawn_inputs_scale_giga_meter_1.is_empty()
-        || !spawn_inputs_scale_giga_meter_10.is_empty()
-        || !spawn_inputs_scale_giga_meter_100.is_empty()
-        || !spawn_inputs_scale_tera_meter_1.is_empty()
-        || !spawn_inputs_scale_tera_meter_10.is_empty()
-        || !spawn_inputs_scale_tera_meter_100.is_empty()
-        || !spawn_inputs_scale_peta_meter_1.is_empty()
-        || !spawn_inputs_scale_peta_meter_10.is_empty()
-        || !spawn_inputs_scale_peta_meter_100.is_empty()
-        || !spawn_inputs_scale_exa_meter_1.is_empty()
-        || !spawn_inputs_scale_exa_meter_10.is_empty()
-        || !spawn_inputs_scale_exa_meter_100.is_empty()
-        || !spawn_inputs_scale_zetta_meter_1.is_empty()
-        || !spawn_inputs_scale_zetta_meter_10.is_empty()
-        || !spawn_inputs_scale_zetta_meter_100.is_empty()
-        || !spawn_inputs_scale_yotta_meter_1.is_empty()
-        || !spawn_inputs_scale_yotta_meter_10.is_empty()
-        || !spawn_inputs_scale_yotta_meter_100.is_empty()
-        || !spawn_inputs_scale_ronna_meter_1.is_empty()
-        || !spawn_inputs_scale_ronna_meter_10.is_empty()
-        || !spawn_inputs_scale_ronna_meter_100.is_empty()
-        || !spawn_inputs_scale_quetta_meter_1.is_empty()
-        || !spawn_inputs_scale_quetta_meter_10.is_empty()
-        || !spawn_inputs_scale_quetta_meter_100.is_empty()
-        || !spawn_inputs_scale_quetta_meter_1000.is_empty()
+    let spawn_handle = if !spawn_inputs_scale_quetta_meter_100000.is_empty() 
         || !spawn_inputs_scale_quetta_meter_10000.is_empty()
-        || !spawn_inputs_scale_quetta_meter_100000.is_empty()
+        || !spawn_inputs_scale_quetta_meter_1000.is_empty()
+        || !spawn_inputs_scale_quetta_meter_100.is_empty()
+        || !spawn_inputs_scale_quetta_meter_10.is_empty()
+        || !spawn_inputs_scale_quetta_meter_1.is_empty()
+        || !spawn_inputs_scale_ronna_meter_100.is_empty()
+        || !spawn_inputs_scale_ronna_meter_10.is_empty()
+        || !spawn_inputs_scale_ronna_meter_1.is_empty()
+        || !spawn_inputs_scale_yotta_meter_100.is_empty()
+        || !spawn_inputs_scale_yotta_meter_10.is_empty()
+        || !spawn_inputs_scale_yotta_meter_1.is_empty()
+        || !spawn_inputs_scale_zetta_meter_100.is_empty()
+        || !spawn_inputs_scale_zetta_meter_10.is_empty()
+        || !spawn_inputs_scale_zetta_meter_1.is_empty()
+        || !spawn_inputs_scale_exa_meter_100.is_empty()
+        || !spawn_inputs_scale_exa_meter_10.is_empty()
+        || !spawn_inputs_scale_exa_meter_1.is_empty()
+        || !spawn_inputs_scale_peta_meter_100.is_empty()
+        || !spawn_inputs_scale_peta_meter_10.is_empty()
+        || !spawn_inputs_scale_peta_meter_1.is_empty()
+        || !spawn_inputs_scale_tera_meter_100.is_empty()
+        || !spawn_inputs_scale_tera_meter_10.is_empty()
+        || !spawn_inputs_scale_tera_meter_1.is_empty()
+        || !spawn_inputs_scale_giga_meter_100.is_empty()
+        || !spawn_inputs_scale_giga_meter_10.is_empty()
+        || !spawn_inputs_scale_giga_meter_1.is_empty()
+        || !spawn_inputs_scale_mega_meter_100.is_empty()
+        || !spawn_inputs_scale_mega_meter_10.is_empty()
+        || !spawn_inputs_scale_mega_meter_1.is_empty()
+        || !spawn_inputs_scale_kilo_meter_100.is_empty()
+        || !spawn_inputs_scale_kilo_meter_10.is_empty()
+        || !spawn_inputs_scale_kilo_meter_1.is_empty()
+        || !spawn_inputs_scale_meter_100.is_empty()
+        || !spawn_inputs_scale_meter_10.is_empty()
+        || !spawn_inputs_scale_meter_1.is_empty()
+        || !spawn_inputs_scale_milli_meter_100.is_empty()
+        || !spawn_inputs_scale_milli_meter_10.is_empty()
+        || !spawn_inputs_scale_milli_meter_1.is_empty()
+        || !spawn_inputs_scale_micro_meter_100.is_empty()
+        || !spawn_inputs_scale_micro_meter_10.is_empty()
+        || !spawn_inputs_scale_micro_meter_1.is_empty()
+        || !spawn_inputs_scale_nano_meter_100.is_empty()
+        || !spawn_inputs_scale_nano_meter_10.is_empty()
+        || !spawn_inputs_scale_nano_meter_1.is_empty()
+        || !spawn_inputs_scale_pico_meter_100.is_empty()
+        || !spawn_inputs_scale_pico_meter_10.is_empty()
+        || !spawn_inputs_scale_pico_meter_1.is_empty()
+        || !spawn_inputs_scale_femto_meter_100.is_empty()
+        || !spawn_inputs_scale_femto_meter_10.is_empty()
+        || !spawn_inputs_scale_femto_meter_1.is_empty()
+        || !spawn_inputs_scale_atto_meter_100.is_empty()
+        || !spawn_inputs_scale_atto_meter_10.is_empty()
+        || !spawn_inputs_scale_atto_meter_1.is_empty()
+        || !spawn_inputs_scale_zepto_meter_100.is_empty()
+        || !spawn_inputs_scale_zepto_meter_10.is_empty()
+        || !spawn_inputs_scale_zepto_meter_1.is_empty()
+        || !spawn_inputs_scale_yocto_meter_100.is_empty()
+        || !spawn_inputs_scale_yocto_meter_10.is_empty()
+        || !spawn_inputs_scale_yocto_meter_1.is_empty()
+        || !spawn_inputs_scale_ronto_meter_100.is_empty()
+        || !spawn_inputs_scale_ronto_meter_10.is_empty()
+        || !spawn_inputs_scale_ronto_meter_1.is_empty()
+        || !spawn_inputs_scale_quecto_meter_100.is_empty()
+        || !spawn_inputs_scale_quecto_meter_10.is_empty()
+        || !spawn_inputs_scale_quecto_meter_1.is_empty()
+        || !spawn_inputs_scale_quecto_meter_01.is_empty()
+        || !spawn_inputs_scale_quecto_meter_001.is_empty()
+        || !spawn_inputs_scale_quecto_meter_0001.is_empty()
+        || !spawn_inputs_scale_quecto_meter_00001.is_empty()
+        || !spawn_inputs_scale_quecto_meter_000001.is_empty()
     {
         let texture_size = CONFIG().get::<u32>("chunk/size");
         let chunk_size = CONFIG().get::<u32>("chunk/size");
@@ -5905,12 +5905,642 @@ pub(crate) fn process_chunk_actions_system(
             let generate_output = workflow!(IO, Gpu::GenerateChunkTextures, Input {
                 shader_name,
                 texture_size,
-                param_data,
+                param_data_scale_quecto_meter_000001,
+                param_data_scale_quecto_meter_00001,
+                param_data_scale_quecto_meter_0001,
+                param_data_scale_quecto_meter_001,
+                param_data_scale_quecto_meter_01,
+                param_data_scale_quecto_meter_1,
+                param_data_scale_quecto_meter_10,
+                param_data_scale_quecto_meter_100,
+                param_data_scale_ronto_meter_1,
+                param_data_scale_ronto_meter_10,
+                param_data_scale_ronto_meter_100,
+                param_data_scale_yocto_meter_1,
+                param_data_scale_yocto_meter_10,
+                param_data_scale_yocto_meter_100,
+                param_data_scale_zepto_meter_1,
+                param_data_scale_zepto_meter_10,
+                param_data_scale_zepto_meter_100,
+                param_data_scale_atto_meter_1,
+                param_data_scale_atto_meter_10,
+                param_data_scale_atto_meter_100,
+                param_data_scale_femto_meter_1,
+                param_data_scale_femto_meter_10,
+                param_data_scale_femto_meter_100,
+                param_data_scale_pico_meter_1,
+                param_data_scale_pico_meter_10,
+                param_data_scale_pico_meter_100,
+                param_data_scale_nano_meter_1,
+                param_data_scale_nano_meter_10,
+                param_data_scale_nano_meter_100,
+                param_data_scale_micro_meter_1,
+                param_data_scale_micro_meter_10,
+                param_data_scale_micro_meter_100,
+                param_data_scale_milli_meter_1,
+                param_data_scale_milli_meter_10,
+                param_data_scale_milli_meter_100,
+                param_data_scale_meter_1,
+                param_data_scale_meter_10,
+                param_data_scale_meter_100,
+                param_data_scale_kilo_meter_1,
+                param_data_scale_kilo_meter_10,
+                param_data_scale_kilo_meter_100,
+                param_data_scale_mega_meter_1,
+                param_data_scale_mega_meter_10,
+                param_data_scale_mega_meter_100,
+                param_data_scale_giga_meter_1,
+                param_data_scale_giga_meter_10,
+                param_data_scale_giga_meter_100,
+                param_data_scale_tera_meter_1,
+                param_data_scale_tera_meter_10,
+                param_data_scale_tera_meter_100,
+                param_data_scale_peta_meter_1,
+                param_data_scale_peta_meter_10,
+                param_data_scale_peta_meter_100,
+                param_data_scale_exa_meter_1,
+                param_data_scale_exa_meter_10,
+                param_data_scale_exa_meter_100,
+                param_data_scale_zetta_meter_1,
+                param_data_scale_zetta_meter_10,
+                param_data_scale_zetta_meter_100,
+                param_data_scale_yotta_meter_1,
+                param_data_scale_yotta_meter_10,
+                param_data_scale_yotta_meter_100,
+                param_data_scale_ronna_meter_1,
+                param_data_scale_ronna_meter_10,
+                param_data_scale_ronna_meter_100,
+                param_data_scale_quetta_meter_1,
+                param_data_scale_quetta_meter_10,
+                param_data_scale_quetta_meter_100,
+                param_data_scale_quetta_meter_1000,
+                param_data_scale_quetta_meter_10000,
+                param_data_scale_quetta_meter_100000,
             });
 
-            let spawn_inputs_with_textures = spawn_inputs
+            let spawn_inputs_with_textures_scale_quecto_meter_000001 = spawn_inputs_scale_quecto_meter_000001
                 .into_iter()
-                .zip(generate_output.executor.texture_handles.clone().into_iter())
+                .zip(generate_output.render_executor_scale_quecto_meter_000001.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_quecto_meter_00001 = spawn_inputs_scale_quecto_meter_00001
+                .into_iter()
+                .zip(generate_output.render_executor_scale_quecto_meter_00001.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_quecto_meter_0001 = spawn_inputs_scale_quecto_meter_0001
+                .into_iter()
+                .zip(generate_output.render_executor_scale_quecto_meter_0001.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_quecto_meter_001 = spawn_inputs_scale_quecto_meter_001
+                .into_iter()
+                .zip(generate_output.render_executor_scale_quecto_meter_001.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_quecto_meter_01 = spawn_inputs_scale_quecto_meter_01
+                .into_iter()
+                .zip(generate_output.render_executor_scale_quecto_meter_01.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_quecto_meter_1 = spawn_inputs_scale_quecto_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_quecto_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_quecto_meter_10 = spawn_inputs_scale_quecto_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_quecto_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_quecto_meter_100 = spawn_inputs_scale_quecto_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_quecto_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_ronto_meter_1 = spawn_inputs_scale_ronto_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_ronto_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_ronto_meter_10 = spawn_inputs_scale_ronto_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_ronto_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_ronto_meter_100 = spawn_inputs_scale_ronto_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_ronto_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_yocto_meter_1 = spawn_inputs_scale_yocto_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_yocto_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_yocto_meter_10 = spawn_inputs_scale_yocto_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_yocto_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_yocto_meter_100 = spawn_inputs_scale_yocto_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_yocto_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_zepto_meter_1 = spawn_inputs_scale_zepto_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_zepto_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_zepto_meter_10 = spawn_inputs_scale_zepto_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_zepto_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_zepto_meter_100 = spawn_inputs_scale_zepto_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_zepto_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_atto_meter_1 = spawn_inputs_scale_atto_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_atto_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_atto_meter_10 = spawn_inputs_scale_atto_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_atto_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_atto_meter_100 = spawn_inputs_scale_atto_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_atto_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_femto_meter_1 = spawn_inputs_scale_femto_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_femto_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_femto_meter_10 = spawn_inputs_scale_femto_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_femto_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_femto_meter_100 = spawn_inputs_scale_femto_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_femto_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_pico_meter_1 = spawn_inputs_scale_pico_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_pico_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_pico_meter_10 = spawn_inputs_scale_pico_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_pico_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_pico_meter_100 = spawn_inputs_scale_pico_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_pico_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_nano_meter_1 = spawn_inputs_scale_nano_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_nano_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_nano_meter_10 = spawn_inputs_scale_nano_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_nano_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_nano_meter_100 = spawn_inputs_scale_nano_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_nano_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_micro_meter_1 = spawn_inputs_scale_micro_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_micro_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_micro_meter_10 = spawn_inputs_scale_micro_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_micro_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_micro_meter_100 = spawn_inputs_scale_micro_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_micro_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_milli_meter_1 = spawn_inputs_scale_milli_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_milli_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_milli_meter_10 = spawn_inputs_scale_milli_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_milli_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_milli_meter_100 = spawn_inputs_scale_milli_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_milli_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_meter_1 = spawn_inputs_scale_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_meter_10 = spawn_inputs_scale_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_meter_100 = spawn_inputs_scale_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_kilo_meter_1 = spawn_inputs_scale_kilo_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_kilo_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_kilo_meter_10 = spawn_inputs_scale_kilo_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_kilo_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_kilo_meter_100 = spawn_inputs_scale_kilo_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_kilo_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_mega_meter_1 = spawn_inputs_scale_mega_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_mega_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_mega_meter_10 = spawn_inputs_scale_mega_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_mega_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_mega_meter_100 = spawn_inputs_scale_mega_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_mega_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_giga_meter_1 = spawn_inputs_scale_giga_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_giga_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_giga_meter_10 = spawn_inputs_scale_giga_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_giga_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_giga_meter_100 = spawn_inputs_scale_giga_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_giga_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_tera_meter_1 = spawn_inputs_scale_tera_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_tera_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_tera_meter_10 = spawn_inputs_scale_tera_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_tera_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_tera_meter_100 = spawn_inputs_scale_tera_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_tera_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_peta_meter_1 = spawn_inputs_scale_peta_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_peta_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_peta_meter_10 = spawn_inputs_scale_peta_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_peta_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_peta_meter_100 = spawn_inputs_scale_peta_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_peta_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_exa_meter_1 = spawn_inputs_scale_exa_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_exa_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_exa_meter_10 = spawn_inputs_scale_exa_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_exa_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_exa_meter_100 = spawn_inputs_scale_exa_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_exa_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_zetta_meter_1 = spawn_inputs_scale_zetta_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_zetta_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_zetta_meter_10 = spawn_inputs_scale_zetta_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_zetta_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_zetta_meter_100 = spawn_inputs_scale_zetta_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_zetta_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_yotta_meter_1 = spawn_inputs_scale_yotta_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_yotta_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_yotta_meter_10 = spawn_inputs_scale_yotta_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_yotta_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_yotta_meter_100 = spawn_inputs_scale_yotta_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_yotta_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_ronna_meter_1 = spawn_inputs_scale_ronna_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_ronna_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_ronna_meter_10 = spawn_inputs_scale_ronna_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_ronna_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_ronna_meter_100 = spawn_inputs_scale_ronna_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_ronna_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_quetta_meter_1 = spawn_inputs_scale_quetta_meter_1
+                .into_iter()
+                .zip(generate_output.render_executor_scale_quetta_meter_1.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_quetta_meter_10 = spawn_inputs_scale_quetta_meter_10
+                .into_iter()
+                .zip(generate_output.render_executor_scale_quetta_meter_10.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_quetta_meter_100 = spawn_inputs_scale_quetta_meter_100
+                .into_iter()
+                .zip(generate_output.render_executor_scale_quetta_meter_100.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_quetta_meter_1000 = spawn_inputs_scale_quetta_meter_1000
+                .into_iter()
+                .zip(generate_output.render_executor_scale_quetta_meter_1000.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_quetta_meter_10000 = spawn_inputs_scale_quetta_meter_10000
+                .into_iter()
+                .zip(generate_output.render_executor_scale_quetta_meter_10000.texture_handles.clone().into_iter())
+                .map(|(mut input, tex)| {
+                    input.metric_texture = tex; // Placeholder handle replaced
+                    input
+                })
+                .collect::<Vec<_>>();
+            let spawn_inputs_with_textures_scale_quetta_meter_100000 = spawn_inputs_scale_quetta_meter_100000
+                .into_iter()
+                .zip(generate_output.render_executor_scale_quetta_meter_100000.texture_handles.clone().into_iter())
                 .map(|(mut input, tex)| {
                     input.metric_texture = tex; // Placeholder handle replaced
                     input
@@ -5918,38 +6548,600 @@ pub(crate) fn process_chunk_actions_system(
                 .collect::<Vec<_>>();
 
             let _ = workflow!(IOE, Chunk::SpawnChunks, Input {
-                inputs: spawn_inputs_with_textures
+                inner_scale_quecto_meter_000001: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quecto_meter_000001 },
+                inner_scale_quecto_meter_00001: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quecto_meter_00001 },
+                inner_scale_quecto_meter_0001: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quecto_meter_0001 },
+                inner_scale_quecto_meter_001: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quecto_meter_001 },
+                inner_scale_quecto_meter_01: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quecto_meter_01 },
+                inner_scale_quecto_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quecto_meter_1 },
+                inner_scale_quecto_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quecto_meter_10 },
+                inner_scale_quecto_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quecto_meter_100 },
+                inner_scale_ronto_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_ronto_meter_1 },
+                inner_scale_ronto_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_ronto_meter_10 },
+                inner_scale_ronto_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_ronto_meter_100 },
+                inner_scale_yocto_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_yocto_meter_1 },
+                inner_scale_yocto_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_yocto_meter_10 },
+                inner_scale_yocto_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_yocto_meter_100 },
+                inner_scale_zepto_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_zepto_meter_1 },
+                inner_scale_zepto_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_zepto_meter_10 },
+                inner_scale_zepto_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_zepto_meter_100 },
+                inner_scale_atto_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_atto_meter_1 },
+                inner_scale_atto_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_atto_meter_10 },
+                inner_scale_atto_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_atto_meter_100 },
+                inner_scale_femto_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_femto_meter_1 },
+                inner_scale_femto_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_femto_meter_10 },
+                inner_scale_femto_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_femto_meter_100 },
+                inner_scale_pico_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_pico_meter_1 },
+                inner_scale_pico_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_pico_meter_10 },
+                inner_scale_pico_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_pico_meter_100 },
+                inner_scale_nano_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_nano_meter_1 },
+                inner_scale_nano_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_nano_meter_10 },
+                inner_scale_nano_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_nano_meter_100 },
+                inner_scale_micro_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_micro_meter_1 },
+                inner_scale_micro_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_micro_meter_10 },
+                inner_scale_micro_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_micro_meter_100 },
+                inner_scale_milli_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_milli_meter_1 },
+                inner_scale_milli_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_milli_meter_10 },
+                inner_scale_milli_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_milli_meter_100 },
+                inner_scale_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_meter_1 },
+                inner_scale_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_meter_10 },
+                inner_scale_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_meter_100 },
+                inner_scale_kilo_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_kilo_meter_1 },
+                inner_scale_kilo_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_kilo_meter_10 },
+                inner_scale_kilo_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_kilo_meter_100 },
+                inner_scale_mega_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_mega_meter_1 },
+                inner_scale_mega_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_mega_meter_10 },
+                inner_scale_mega_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_mega_meter_100 },
+                inner_scale_giga_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_giga_meter_1 },
+                inner_scale_giga_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_giga_meter_10 },
+                inner_scale_giga_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_giga_meter_100 },
+                inner_scale_tera_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_tera_meter_1 },
+                inner_scale_tera_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_tera_meter_10 },
+                inner_scale_tera_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_tera_meter_100 },
+                inner_scale_peta_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_peta_meter_1 },
+                inner_scale_peta_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_peta_meter_10 },
+                inner_scale_peta_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_peta_meter_100 },
+                inner_scale_exa_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_exa_meter_1 },
+                inner_scale_exa_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_exa_meter_10 },
+                inner_scale_exa_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_exa_meter_100 },
+                inner_scale_zetta_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_zetta_meter_1 },
+                inner_scale_zetta_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_zetta_meter_10 },
+                inner_scale_zetta_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_zetta_meter_100 },
+                inner_scale_yotta_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_yotta_meter_1 },
+                inner_scale_yotta_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_yotta_meter_10 },
+                inner_scale_yotta_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_yotta_meter_100 },
+                inner_scale_ronna_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_ronna_meter_1 },
+                inner_scale_ronna_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_ronna_meter_10 },
+                inner_scale_ronna_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_ronna_meter_100 },
+                inner_scale_quetta_meter_1: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quetta_meter_1 },
+                inner_scale_quetta_meter_10: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quetta_meter_10 },
+                inner_scale_quetta_meter_100: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quetta_meter_100 },
+                inner_scale_quetta_meter_1000: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quetta_meter_1000 },
+                inner_scale_quetta_meter_10000: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quetta_meter_10000 },
+                inner_scale_quetta_meter_100000: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures_scale_quetta_meter_100000 },
             });
         }))
     } else {
         None
     };
 
-    let despawn_handle = if !despawn_inputs.is_empty() {
+    let despawn_handle = if !despawn_inputs_scale_quetta_meter_100000.is_empty()
+        || !despawn_inputs_scale_quetta_meter_10000.is_empty()
+        || !despawn_inputs_scale_quetta_meter_1000.is_empty()
+        || !despawn_inputs_scale_quetta_meter_100.is_empty()
+        || !despawn_inputs_scale_quetta_meter_10.is_empty()
+        || !despawn_inputs_scale_quetta_meter_1.is_empty()
+        || !despawn_inputs_scale_ronna_meter_100.is_empty()
+        || !despawn_inputs_scale_ronna_meter_10.is_empty()
+        || !despawn_inputs_scale_ronna_meter_1.is_empty()
+        || !despawn_inputs_scale_yotta_meter_100.is_empty()
+        || !despawn_inputs_scale_yotta_meter_10.is_empty()
+        || !despawn_inputs_scale_yotta_meter_1.is_empty()
+        || !despawn_inputs_scale_zetta_meter_100.is_empty()
+        || !despawn_inputs_scale_zetta_meter_10.is_empty()
+        || !despawn_inputs_scale_zetta_meter_1.is_empty()
+        || !despawn_inputs_scale_exa_meter_100.is_empty()
+        || !despawn_inputs_scale_exa_meter_10.is_empty()
+        || !despawn_inputs_scale_exa_meter_1.is_empty()
+        || !despawn_inputs_scale_peta_meter_100.is_empty()
+        || !despawn_inputs_scale_peta_meter_10.is_empty()
+        || !despawn_inputs_scale_peta_meter_1.is_empty()
+        || !despawn_inputs_scale_tera_meter_100.is_empty()
+        || !despawn_inputs_scale_tera_meter_10.is_empty()
+        || !despawn_inputs_scale_tera_meter_1.is_empty()
+        || !despawn_inputs_scale_giga_meter_100.is_empty()
+        || !despawn_inputs_scale_giga_meter_10.is_empty()
+        || !despawn_inputs_scale_giga_meter_1.is_empty()
+        || !despawn_inputs_scale_mega_meter_100.is_empty()
+        || !despawn_inputs_scale_mega_meter_10.is_empty()
+        || !despawn_inputs_scale_mega_meter_1.is_empty()
+        || !despawn_inputs_scale_kilo_meter_100.is_empty()
+        || !despawn_inputs_scale_kilo_meter_10.is_empty()
+        || !despawn_inputs_scale_kilo_meter_1.is_empty()
+        || !despawn_inputs_scale_meter_100.is_empty()
+        || !despawn_inputs_scale_meter_10.is_empty()
+        || !despawn_inputs_scale_meter_1.is_empty()
+        || !despawn_inputs_scale_milli_meter_100.is_empty()
+        || !despawn_inputs_scale_milli_meter_10.is_empty()
+        || !despawn_inputs_scale_milli_meter_1.is_empty()
+        || !despawn_inputs_scale_micro_meter_100.is_empty()
+        || !despawn_inputs_scale_micro_meter_10.is_empty()
+        || !despawn_inputs_scale_micro_meter_1.is_empty()
+        || !despawn_inputs_scale_nano_meter_100.is_empty()
+        || !despawn_inputs_scale_nano_meter_10.is_empty()
+        || !despawn_inputs_scale_nano_meter_1.is_empty()
+        || !despawn_inputs_scale_pico_meter_100.is_empty()
+        || !despawn_inputs_scale_pico_meter_10.is_empty()
+        || !despawn_inputs_scale_pico_meter_1.is_empty()
+        || !despawn_inputs_scale_femto_meter_100.is_empty()
+        || !despawn_inputs_scale_femto_meter_10.is_empty()
+        || !despawn_inputs_scale_femto_meter_1.is_empty()
+        || !despawn_inputs_scale_atto_meter_100.is_empty()
+        || !despawn_inputs_scale_atto_meter_10.is_empty()
+        || !despawn_inputs_scale_atto_meter_1.is_empty()
+        || !despawn_inputs_scale_zepto_meter_100.is_empty()
+        || !despawn_inputs_scale_zepto_meter_10.is_empty()
+        || !despawn_inputs_scale_zepto_meter_1.is_empty()
+        || !despawn_inputs_scale_yocto_meter_100.is_empty()
+        || !despawn_inputs_scale_yocto_meter_10.is_empty()
+        || !despawn_inputs_scale_yocto_meter_1.is_empty()
+        || !despawn_inputs_scale_ronto_meter_100.is_empty()
+        || !despawn_inputs_scale_ronto_meter_10.is_empty()
+        || !despawn_inputs_scale_ronto_meter_1.is_empty()
+        || !despawn_inputs_scale_quecto_meter_100.is_empty()
+        || !despawn_inputs_scale_quecto_meter_10.is_empty()
+        || !despawn_inputs_scale_quecto_meter_1.is_empty()
+        || !despawn_inputs_scale_quecto_meter_01.is_empty()
+        || !despawn_inputs_scale_quecto_meter_001.is_empty()
+        || !despawn_inputs_scale_quecto_meter_0001.is_empty()
+        || !despawn_inputs_scale_quecto_meter_00001.is_empty()
+        || !despawn_inputs_scale_quecto_meter_000001.is_empty() 
+    {
         Some(composite_workflow!(
             DespawnChunks,
-            move in despawn_inputs: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quecto_meter_000001: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quecto_meter_00001: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quecto_meter_0001: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quecto_meter_001: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quecto_meter_01: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quecto_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quecto_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quecto_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_ronto_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_ronto_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_ronto_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_yocto_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_yocto_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_yocto_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_zepto_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_zepto_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_zepto_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_atto_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_atto_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_atto_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_femto_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_femto_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_femto_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_pico_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_pico_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_pico_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_nano_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_nano_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_nano_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_micro_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_micro_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_micro_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_milli_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_milli_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_milli_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_kilo_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_kilo_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_kilo_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_mega_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_mega_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_mega_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_giga_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_giga_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_giga_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_tera_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_tera_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_tera_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_peta_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_peta_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_peta_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_exa_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_exa_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_exa_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_zetta_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_zetta_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_zetta_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_yotta_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_yotta_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_yotta_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_ronna_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_ronna_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_ronna_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quetta_meter_1: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quetta_meter_10: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quetta_meter_100: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quetta_meter_1000: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quetta_meter_10000: Vec<DespawnChunkInput>,
+            move in despawn_inputs_scale_quetta_meter_100000: Vec<DespawnChunkInput>,
         {
             warn!("Running composite workflow 'DespawnChunks'");
 
             let _ = workflow!(IOE, Chunk::DespawnChunks, Input {
-                inputs: despawn_inputs
+                inner_scale_quecto_meter_000001: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quecto_meter_000001 },
+                inner_scale_quecto_meter_00001: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quecto_meter_00001 },
+                inner_scale_quecto_meter_0001: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quecto_meter_0001 },
+                inner_scale_quecto_meter_001: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quecto_meter_001 },
+                inner_scale_quecto_meter_01: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quecto_meter_01 },
+                inner_scale_quecto_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quecto_meter_1 },
+                inner_scale_quecto_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quecto_meter_10 },
+                inner_scale_quecto_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quecto_meter_100 },
+                inner_scale_ronto_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_ronto_meter_1 },
+                inner_scale_ronto_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_ronto_meter_10 },
+                inner_scale_ronto_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_ronto_meter_100 },
+                inner_scale_yocto_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_yocto_meter_1 },
+                inner_scale_yocto_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_yocto_meter_10 },
+                inner_scale_yocto_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_yocto_meter_100 },
+                inner_scale_zepto_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_zepto_meter_1 },
+                inner_scale_zepto_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_zepto_meter_10 },
+                inner_scale_zepto_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_zepto_meter_100 },
+                inner_scale_atto_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_atto_meter_1 },
+                inner_scale_atto_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_atto_meter_10 },
+                inner_scale_atto_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_atto_meter_100 },
+                inner_scale_femto_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_femto_meter_1 },
+                inner_scale_femto_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_femto_meter_10 },
+                inner_scale_femto_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_femto_meter_100 },
+                inner_scale_pico_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_pico_meter_1 },
+                inner_scale_pico_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_pico_meter_10 },
+                inner_scale_pico_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_pico_meter_100 },
+                inner_scale_nano_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_nano_meter_1 },
+                inner_scale_nano_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_nano_meter_10 },
+                inner_scale_nano_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_nano_meter_100 },
+                inner_scale_micro_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_micro_meter_1 },
+                inner_scale_micro_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_micro_meter_10 },
+                inner_scale_micro_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_micro_meter_100 },
+                inner_scale_milli_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_milli_meter_1 },
+                inner_scale_milli_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_milli_meter_10 },
+                inner_scale_milli_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_milli_meter_100 },
+                inner_scale_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_meter_1 },
+                inner_scale_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_meter_10 },
+                inner_scale_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_meter_100 },
+                inner_scale_kilo_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_kilo_meter_1 },
+                inner_scale_kilo_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_kilo_meter_10 },
+                inner_scale_kilo_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_kilo_meter_100 },
+                inner_scale_mega_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_mega_meter_1 },
+                inner_scale_mega_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_mega_meter_10 },
+                inner_scale_mega_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_mega_meter_100 },
+                inner_scale_giga_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_giga_meter_1 },
+                inner_scale_giga_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_giga_meter_10 },
+                inner_scale_giga_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_giga_meter_100 },
+                inner_scale_tera_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_tera_meter_1 },
+                inner_scale_tera_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_tera_meter_10 },
+                inner_scale_tera_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_tera_meter_100 },
+                inner_scale_peta_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_peta_meter_1 },
+                inner_scale_peta_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_peta_meter_10 },
+                inner_scale_peta_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_peta_meter_100 },
+                inner_scale_exa_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_exa_meter_1 },
+                inner_scale_exa_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_exa_meter_10 },
+                inner_scale_exa_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_exa_meter_100 },
+                inner_scale_zetta_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_zetta_meter_1 },
+                inner_scale_zetta_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_zetta_meter_10 },
+                inner_scale_zetta_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_zetta_meter_100 },
+                inner_scale_yotta_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_yotta_meter_1 },
+                inner_scale_yotta_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_yotta_meter_10 },
+                inner_scale_yotta_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_yotta_meter_100 },
+                inner_scale_ronna_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_ronna_meter_1 },
+                inner_scale_ronna_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_ronna_meter_10 },
+                inner_scale_ronna_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_ronna_meter_100 },
+                inner_scale_quetta_meter_1: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quetta_meter_1 },
+                inner_scale_quetta_meter_10: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quetta_meter_10 },
+                inner_scale_quetta_meter_100: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quetta_meter_100 },
+                inner_scale_quetta_meter_1000: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quetta_meter_1000 },
+                inner_scale_quetta_meter_10000: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quetta_meter_10000 },
+                inner_scale_quetta_meter_100000: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_inputs_scale_quetta_meter_100000 },
             });
         }))
     } else {
         None
     };
 
-    let transfer_handle = if !transfer_inputs.is_empty() {
+    let transfer_handle = if !transfer_inputs_scale_quetta_meter_10000.is_empty()
+        || !transfer_inputs_scale_quetta_meter_10000.is_empty()
+        || !transfer_inputs_scale_quetta_meter_1000.is_empty()
+        || !transfer_inputs_scale_quetta_meter_100.is_empty()
+        || !transfer_inputs_scale_quetta_meter_10.is_empty()
+        || !transfer_inputs_scale_quetta_meter_1.is_empty()
+        || !transfer_inputs_scale_ronna_meter_100.is_empty()
+        || !transfer_inputs_scale_ronna_meter_10.is_empty()
+        || !transfer_inputs_scale_ronna_meter_1.is_empty()
+        || !transfer_inputs_scale_yotta_meter_100.is_empty()
+        || !transfer_inputs_scale_yotta_meter_10.is_empty()
+        || !transfer_inputs_scale_yotta_meter_1.is_empty()
+        || !transfer_inputs_scale_zetta_meter_100.is_empty()
+        || !transfer_inputs_scale_zetta_meter_10.is_empty()
+        || !transfer_inputs_scale_zetta_meter_1.is_empty()
+        || !transfer_inputs_scale_exa_meter_100.is_empty()
+        || !transfer_inputs_scale_exa_meter_10.is_empty()
+        || !transfer_inputs_scale_exa_meter_1.is_empty()
+        || !transfer_inputs_scale_peta_meter_100.is_empty()
+        || !transfer_inputs_scale_peta_meter_10.is_empty()
+        || !transfer_inputs_scale_peta_meter_1.is_empty()
+        || !transfer_inputs_scale_tera_meter_100.is_empty()
+        || !transfer_inputs_scale_tera_meter_10.is_empty()
+        || !transfer_inputs_scale_tera_meter_1.is_empty()
+        || !transfer_inputs_scale_giga_meter_100.is_empty()
+        || !transfer_inputs_scale_giga_meter_10.is_empty()
+        || !transfer_inputs_scale_giga_meter_1.is_empty()
+        || !transfer_inputs_scale_mega_meter_100.is_empty()
+        || !transfer_inputs_scale_mega_meter_10.is_empty()
+        || !transfer_inputs_scale_mega_meter_1.is_empty()
+        || !transfer_inputs_scale_kilo_meter_100.is_empty()
+        || !transfer_inputs_scale_kilo_meter_10.is_empty()
+        || !transfer_inputs_scale_kilo_meter_1.is_empty()
+        || !transfer_inputs_scale_meter_100.is_empty()
+        || !transfer_inputs_scale_meter_10.is_empty()
+        || !transfer_inputs_scale_meter_1.is_empty()
+        || !transfer_inputs_scale_milli_meter_100.is_empty()
+        || !transfer_inputs_scale_milli_meter_10.is_empty()
+        || !transfer_inputs_scale_milli_meter_1.is_empty()
+        || !transfer_inputs_scale_micro_meter_100.is_empty()
+        || !transfer_inputs_scale_micro_meter_10.is_empty()
+        || !transfer_inputs_scale_micro_meter_1.is_empty()
+        || !transfer_inputs_scale_nano_meter_100.is_empty()
+        || !transfer_inputs_scale_nano_meter_10.is_empty()
+        || !transfer_inputs_scale_nano_meter_1.is_empty()
+        || !transfer_inputs_scale_pico_meter_100.is_empty()
+        || !transfer_inputs_scale_pico_meter_10.is_empty()
+        || !transfer_inputs_scale_pico_meter_1.is_empty()
+        || !transfer_inputs_scale_femto_meter_100.is_empty()
+        || !transfer_inputs_scale_femto_meter_10.is_empty()
+        || !transfer_inputs_scale_femto_meter_1.is_empty()
+        || !transfer_inputs_scale_atto_meter_100.is_empty()
+        || !transfer_inputs_scale_atto_meter_10.is_empty()
+        || !transfer_inputs_scale_atto_meter_1.is_empty()
+        || !transfer_inputs_scale_zepto_meter_100.is_empty()
+        || !transfer_inputs_scale_zepto_meter_10.is_empty()
+        || !transfer_inputs_scale_zepto_meter_1.is_empty()
+        || !transfer_inputs_scale_yocto_meter_100.is_empty()
+        || !transfer_inputs_scale_yocto_meter_10.is_empty()
+        || !transfer_inputs_scale_yocto_meter_1.is_empty()
+        || !transfer_inputs_scale_ronto_meter_100.is_empty()
+        || !transfer_inputs_scale_ronto_meter_10.is_empty()
+        || !transfer_inputs_scale_ronto_meter_1.is_empty()
+        || !transfer_inputs_scale_quecto_meter_100.is_empty()
+        || !transfer_inputs_scale_quecto_meter_10.is_empty()
+        || !transfer_inputs_scale_quecto_meter_1.is_empty()
+        || !transfer_inputs_scale_quecto_meter_01.is_empty()
+        || !transfer_inputs_scale_quecto_meter_001.is_empty()
+        || !transfer_inputs_scale_quecto_meter_0001.is_empty()
+        || !transfer_inputs_scale_quecto_meter_00001.is_empty()
+        || !transfer_inputs_scale_quecto_meter_000001.is_empty() 
+    {
         Some(composite_workflow!(
             TransferChunkOwnerships,
-            move in transfer_inputs: Vec<TransferChunkOwnershipInput>,
-            new_chunk_loaders: Vec<Entity>,
+            move in transfer_inputs_scale_quecto_meter_000001: Vec<TransferChunkOwnershipInput<ScaleQuectoMeter000001>>,
+            move in transfer_inputs_scale_quecto_meter_00001: Vec<TransferChunkOwnershipInput<ScaleQuectoMeter00001>>,
+            move in transfer_inputs_scale_quecto_meter_0001: Vec<TransferChunkOwnershipInput<ScaleQuectoMeter0001>>,
+            move in transfer_inputs_scale_quecto_meter_001: Vec<TransferChunkOwnershipInput<ScaleQuectoMeter001>>,
+            move in transfer_inputs_scale_quecto_meter_01: Vec<TransferChunkOwnershipInput<ScaleQuectoMeter01>>,
+            move in transfer_inputs_scale_quecto_meter_1: Vec<TransferChunkOwnershipInput<ScaleQuectoMeter1>>,
+            move in transfer_inputs_scale_quecto_meter_10: Vec<TransferChunkOwnershipInput<ScaleQuectoMeter10>>,
+            move in transfer_inputs_scale_quecto_meter_100: Vec<TransferChunkOwnershipInput<ScaleQuectoMeter100>>,
+            move in transfer_inputs_scale_ronto_meter_1: Vec<TransferChunkOwnershipInput<ScaleRontoMeter1>>,
+            move in transfer_inputs_scale_ronto_meter_10: Vec<TransferChunkOwnershipInput<ScaleRontoMeter10>>,
+            move in transfer_inputs_scale_ronto_meter_100: Vec<TransferChunkOwnershipInput<ScaleRontoMeter100>>,
+            move in transfer_inputs_scale_yocto_meter_1: Vec<TransferChunkOwnershipInput<ScaleYoctoMeter1>>,
+            move in transfer_inputs_scale_yocto_meter_10: Vec<TransferChunkOwnershipInput<ScaleYoctoMeter10>>,
+            move in transfer_inputs_scale_yocto_meter_100: Vec<TransferChunkOwnershipInput<ScaleYoctoMeter100>>,
+            move in transfer_inputs_scale_zepto_meter_1: Vec<TransferChunkOwnershipInput<ScaleZeptoMeter1>>,
+            move in transfer_inputs_scale_zepto_meter_10: Vec<TransferChunkOwnershipInput<ScaleZeptoMeter10>>,
+            move in transfer_inputs_scale_zepto_meter_100: Vec<TransferChunkOwnershipInput<ScaleZeptoMeter100>>,
+            move in transfer_inputs_scale_atto_meter_1: Vec<TransferChunkOwnershipInput<ScaleAttoMeter1>>,
+            move in transfer_inputs_scale_atto_meter_10: Vec<TransferChunkOwnershipInput<ScaleAttoMeter10>>,
+            move in transfer_inputs_scale_atto_meter_100: Vec<TransferChunkOwnershipInput<ScaleAttoMeter100>>,
+            move in transfer_inputs_scale_femto_meter_1: Vec<TransferChunkOwnershipInput<ScaleFemtoMeter1>>,
+            move in transfer_inputs_scale_femto_meter_10: Vec<TransferChunkOwnershipInput<ScaleFemtoMeter10>>,
+            move in transfer_inputs_scale_femto_meter_100: Vec<TransferChunkOwnershipInput<ScaleFemtoMeter100>>,
+            move in transfer_inputs_scale_pico_meter_1: Vec<TransferChunkOwnershipInput<ScalePicoMeter1>>,
+            move in transfer_inputs_scale_pico_meter_10: Vec<TransferChunkOwnershipInput<ScalePicoMeter10>>,
+            move in transfer_inputs_scale_pico_meter_100: Vec<TransferChunkOwnershipInput<ScalePicoMeter100>>,
+            move in transfer_inputs_scale_nano_meter_1: Vec<TransferChunkOwnershipInput<ScaleNanoMeter1>>,
+            move in transfer_inputs_scale_nano_meter_10: Vec<TransferChunkOwnershipInput<ScaleNanoMeter10>>,
+            move in transfer_inputs_scale_nano_meter_100: Vec<TransferChunkOwnershipInput<ScaleNanoMeter100>>,
+            move in transfer_inputs_scale_micro_meter_1: Vec<TransferChunkOwnershipInput<ScaleMicroMeter1>>,
+            move in transfer_inputs_scale_micro_meter_10: Vec<TransferChunkOwnershipInput<ScaleMicroMeter10>>,
+            move in transfer_inputs_scale_micro_meter_100: Vec<TransferChunkOwnershipInput<ScaleMicroMeter100>>,
+            move in transfer_inputs_scale_milli_meter_1: Vec<TransferChunkOwnershipInput<ScaleMilliMeter1>>,
+            move in transfer_inputs_scale_milli_meter_10: Vec<TransferChunkOwnershipInput<ScaleMilliMeter10>>,
+            move in transfer_inputs_scale_milli_meter_100: Vec<TransferChunkOwnershipInput<ScaleMilliMeter100>>,
+            move in transfer_inputs_scale_meter_1: Vec<TransferChunkOwnershipInput<ScaleMeter1>>,
+            move in transfer_inputs_scale_meter_10: Vec<TransferChunkOwnershipInput<ScaleMeter10>>,
+            move in transfer_inputs_scale_meter_100: Vec<TransferChunkOwnershipInput<ScaleMeter100>>,
+            move in transfer_inputs_scale_kilo_meter_1: Vec<TransferChunkOwnershipInput<ScaleKiloMeter1>>,
+            move in transfer_inputs_scale_kilo_meter_10: Vec<TransferChunkOwnershipInput<ScaleKiloMeter10>>,
+            move in transfer_inputs_scale_kilo_meter_100: Vec<TransferChunkOwnershipInput<ScaleKiloMeter100>>,
+            move in transfer_inputs_scale_mega_meter_1: Vec<TransferChunkOwnershipInput<ScaleMegaMeter1>>,
+            move in transfer_inputs_scale_mega_meter_10: Vec<TransferChunkOwnershipInput<ScaleMegaMeter10>>,
+            move in transfer_inputs_scale_mega_meter_100: Vec<TransferChunkOwnershipInput<ScaleMegaMeter100>>,
+            move in transfer_inputs_scale_giga_meter_1: Vec<TransferChunkOwnershipInput<ScaleGigaMeter1>>,
+            move in transfer_inputs_scale_giga_meter_10: Vec<TransferChunkOwnershipInput<ScaleGigaMeter10>>,
+            move in transfer_inputs_scale_giga_meter_100: Vec<TransferChunkOwnershipInput<ScaleGigaMeter100>>,
+            move in transfer_inputs_scale_tera_meter_1: Vec<TransferChunkOwnershipInput<ScaleTeraMeter1>>,
+            move in transfer_inputs_scale_tera_meter_10: Vec<TransferChunkOwnershipInput<ScaleTeraMeter10>>,
+            move in transfer_inputs_scale_tera_meter_100: Vec<TransferChunkOwnershipInput<ScaleTeraMeter100>>,
+            move in transfer_inputs_scale_peta_meter_1: Vec<TransferChunkOwnershipInput<ScalePetaMeter1>>,
+            move in transfer_inputs_scale_peta_meter_10: Vec<TransferChunkOwnershipInput<ScalePetaMeter10>>,
+            move in transfer_inputs_scale_peta_meter_100: Vec<TransferChunkOwnershipInput<ScalePetaMeter100>>,
+            move in transfer_inputs_scale_exa_meter_1: Vec<TransferChunkOwnershipInput<ScaleExaMeter1>>,
+            move in transfer_inputs_scale_exa_meter_10: Vec<TransferChunkOwnershipInput<ScaleExaMeter10>>,
+            move in transfer_inputs_scale_exa_meter_100: Vec<TransferChunkOwnershipInput<ScaleExaMeter100>>,
+            move in transfer_inputs_scale_zetta_meter_1: Vec<TransferChunkOwnershipInput<ScaleZettaMeter1>>,
+            move in transfer_inputs_scale_zetta_meter_10: Vec<TransferChunkOwnershipInput<ScaleZettaMeter10>>,
+            move in transfer_inputs_scale_zetta_meter_100: Vec<TransferChunkOwnershipInput<ScaleZettaMeter100>>,
+            move in transfer_inputs_scale_yotta_meter_1: Vec<TransferChunkOwnershipInput<ScaleYottaMeter1>>,
+            move in transfer_inputs_scale_yotta_meter_10: Vec<TransferChunkOwnershipInput<ScaleYottaMeter10>>,
+            move in transfer_inputs_scale_yotta_meter_100: Vec<TransferChunkOwnershipInput<ScaleYottaMeter100>>,
+            move in transfer_inputs_scale_ronna_meter_1: Vec<TransferChunkOwnershipInput<ScaleRonnaMeter1>>,
+            move in transfer_inputs_scale_ronna_meter_10: Vec<TransferChunkOwnershipInput<ScaleRonnaMeter10>>,
+            move in transfer_inputs_scale_ronna_meter_100: Vec<TransferChunkOwnershipInput<ScaleRonnaMeter100>>,
+            move in transfer_inputs_scale_quetta_meter_1: Vec<TransferChunkOwnershipInput<ScaleQuettaMeter1>>,
+            move in transfer_inputs_scale_quetta_meter_10: Vec<TransferChunkOwnershipInput<ScaleQuettaMeter10>>,
+            move in transfer_inputs_scale_quetta_meter_100: Vec<TransferChunkOwnershipInput<ScaleQuettaMeter100>>,
+            move in transfer_inputs_scale_quetta_meter_1000: Vec<TransferChunkOwnershipInput<ScaleQuettaMeter1000>>,
+            move in transfer_inputs_scale_quetta_meter_10000: Vec<TransferChunkOwnershipInput<ScaleQuettaMeter10000>>,
+            move in transfer_inputs_scale_quetta_meter_100000: Vec<TransferChunkOwnershipInput<ScaleQuettaMeter100000>>,
+            new_chunk_loaders_scale_quecto_meter_000001: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_00001: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_0001: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_001: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_01: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_quecto_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_ronto_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_ronto_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_ronto_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_yocto_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_yocto_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_yocto_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_zepto_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_zepto_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_zepto_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_atto_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_atto_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_atto_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_femto_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_femto_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_femto_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_pico_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_pico_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_pico_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_nano_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_nano_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_nano_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_micro_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_micro_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_micro_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_milli_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_milli_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_milli_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_kilo_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_kilo_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_kilo_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_mega_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_mega_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_mega_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_giga_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_giga_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_giga_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_tera_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_tera_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_tera_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_peta_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_peta_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_peta_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_exa_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_exa_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_exa_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_zetta_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_zetta_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_zetta_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_yotta_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_yotta_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_yotta_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_ronna_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_ronna_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_ronna_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_quetta_meter_1: Vec<Entity>,
+            new_chunk_loaders_scale_quetta_meter_10: Vec<Entity>,
+            new_chunk_loaders_scale_quetta_meter_100: Vec<Entity>,
+            new_chunk_loaders_scale_quetta_meter_1000: Vec<Entity>,
+            new_chunk_loaders_scale_quetta_meter_10000: Vec<Entity>,
+            new_chunk_loaders_scale_quetta_meter_100000: Vec<Entity>,
         {
             warn!("Running composite workflow 'TransferChunkOwnerships'");
 
             let _ = workflow!(IOE, Chunk::TransferChunkOwnerships, Input {
-                inputs: transfer_inputs
+                inner_scale_quecto_meter_000001: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quecto_meter_000001 },
+                inner_scale_quecto_meter_00001: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quecto_meter_00001 },
+                inner_scale_quecto_meter_0001: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quecto_meter_0001 },
+                inner_scale_quecto_meter_001: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quecto_meter_001 },
+                inner_scale_quecto_meter_01: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quecto_meter_01 },
+                inner_scale_quecto_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quecto_meter_1 },
+                inner_scale_quecto_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quecto_meter_10 },
+                inner_scale_quecto_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quecto_meter_100 },
+                inner_scale_ronto_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_ronto_meter_1 },
+                inner_scale_ronto_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_ronto_meter_10 },
+                inner_scale_ronto_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_ronto_meter_100 },
+                inner_scale_yocto_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_yocto_meter_1 },
+                inner_scale_yocto_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_yocto_meter_10 },
+                inner_scale_yocto_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_yocto_meter_100 },
+                inner_scale_zepto_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_zepto_meter_1 },
+                inner_scale_zepto_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_zepto_meter_10 },
+                inner_scale_zepto_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_zepto_meter_100 },
+                inner_scale_atto_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_atto_meter_1 },
+                inner_scale_atto_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_atto_meter_10 },
+                inner_scale_atto_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_atto_meter_100 },
+                inner_scale_femto_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_femto_meter_1 },
+                inner_scale_femto_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_femto_meter_10 },
+                inner_scale_femto_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_femto_meter_100 },
+                inner_scale_pico_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_pico_meter_1 },
+                inner_scale_pico_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_pico_meter_10 },
+                inner_scale_pico_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_pico_meter_100 },
+                inner_scale_nano_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_nano_meter_1 },
+                inner_scale_nano_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_nano_meter_10 },
+                inner_scale_nano_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_nano_meter_100 },
+                inner_scale_micro_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_micro_meter_1 },
+                inner_scale_micro_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_micro_meter_10 },
+                inner_scale_micro_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_micro_meter_100 },
+                inner_scale_milli_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_milli_meter_1 },
+                inner_scale_milli_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_milli_meter_10 },
+                inner_scale_milli_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_milli_meter_100 },
+                inner_scale_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_meter_1 },
+                inner_scale_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_meter_10 },
+                inner_scale_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_meter_100 },
+                inner_scale_kilo_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_kilo_meter_1 },
+                inner_scale_kilo_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_kilo_meter_10 },
+                inner_scale_kilo_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_kilo_meter_100 },
+                inner_scale_mega_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_mega_meter_1 },
+                inner_scale_mega_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_mega_meter_10 },
+                inner_scale_mega_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_mega_meter_100 },
+                inner_scale_giga_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_giga_meter_1 },
+                inner_scale_giga_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_giga_meter_10 },
+                inner_scale_giga_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_giga_meter_100 },
+                inner_scale_tera_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_tera_meter_1 },
+                inner_scale_tera_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_tera_meter_10 },
+                inner_scale_tera_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_tera_meter_100 },
+                inner_scale_peta_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_peta_meter_1 },
+                inner_scale_peta_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_peta_meter_10 },
+                inner_scale_peta_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_peta_meter_100 },
+                inner_scale_exa_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_exa_meter_1 },
+                inner_scale_exa_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_exa_meter_10 },
+                inner_scale_exa_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_exa_meter_100 },
+                inner_scale_zetta_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_zetta_meter_1 },
+                inner_scale_zetta_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_zetta_meter_10 },
+                inner_scale_zetta_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_zetta_meter_100 },
+                inner_scale_yotta_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_yotta_meter_1 },
+                inner_scale_yotta_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_yotta_meter_10 },
+                inner_scale_yotta_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_yotta_meter_100 },
+                inner_scale_ronna_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_ronna_meter_1 },
+                inner_scale_ronna_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_ronna_meter_10 },
+                inner_scale_ronna_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_ronna_meter_100 },
+                inner_scale_quetta_meter_1: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quetta_meter_1 },
+                inner_scale_quetta_meter_10: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quetta_meter_10 },
+                inner_scale_quetta_meter_100: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quetta_meter_100 },
+                inner_scale_quetta_meter_1000: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quetta_meter_1000 },
+                inner_scale_quetta_meter_10000: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quetta_meter_10000 },
+                inner_scale_quetta_meter_100000: crate::chunk::workflows::external::transfer_chunk_ownerships::Input { inputs: transfer_inputs_scale_quetta_meter_100000 },
             });
         }))
     } else {
@@ -5963,5 +7155,75 @@ pub(crate) fn process_chunk_actions_system(
     });
 
     // Step 4: Mark all these actions as in-progress (remove them from the commit buffer)
-    action_intent_commit_buffer.remove_intents(processed_coords);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_000001.remove_intents(processed_coords_scale_quecto_meter_000001);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_00001.remove_intents(processed_coords_scale_quecto_meter_00001);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_0001.remove_intents(processed_coords_scale_quecto_meter_0001);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_001.remove_intents(processed_coords_scale_quecto_meter_001);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_01.remove_intents(processed_coords_scale_quecto_meter_01);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_1.remove_intents(processed_coords_scale_quecto_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_10.remove_intents(processed_coords_scale_quecto_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quecto_meter_100.remove_intents(processed_coords_scale_quecto_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_ronto_meter_1.remove_intents(processed_coords_scale_ronto_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_ronto_meter_10.remove_intents(processed_coords_scale_ronto_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_ronto_meter_100.remove_intents(processed_coords_scale_ronto_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_yocto_meter_1.remove_intents(processed_coords_scale_yocto_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_yocto_meter_10.remove_intents(processed_coords_scale_yocto_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_yocto_meter_100.remove_intents(processed_coords_scale_yocto_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_zepto_meter_1.remove_intents(processed_coords_scale_zepto_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_zepto_meter_10.remove_intents(processed_coords_scale_zepto_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_zepto_meter_100.remove_intents(processed_coords_scale_zepto_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_atto_meter_1.remove_intents(processed_coords_scale_atto_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_atto_meter_10.remove_intents(processed_coords_scale_atto_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_atto_meter_100.remove_intents(processed_coords_scale_atto_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_femto_meter_1.remove_intents(processed_coords_scale_femto_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_femto_meter_10.remove_intents(processed_coords_scale_femto_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_femto_meter_100.remove_intents(processed_coords_scale_femto_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_pico_meter_1.remove_intents(processed_coords_scale_pico_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_pico_meter_10.remove_intents(processed_coords_scale_pico_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_pico_meter_100.remove_intents(processed_coords_scale_pico_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_nano_meter_1.remove_intents(processed_coords_scale_nano_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_nano_meter_10.remove_intents(processed_coords_scale_nano_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_nano_meter_100.remove_intents(processed_coords_scale_nano_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_micro_meter_1.remove_intents(processed_coords_scale_micro_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_micro_meter_10.remove_intents(processed_coords_scale_micro_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_micro_meter_100.remove_intents(processed_coords_scale_micro_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_milli_meter_1.remove_intents(processed_coords_scale_milli_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_milli_meter_10.remove_intents(processed_coords_scale_milli_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_milli_meter_100.remove_intents(processed_coords_scale_milli_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_meter_1.remove_intents(processed_coords_scale_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_meter_10.remove_intents(processed_coords_scale_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_meter_100.remove_intents(processed_coords_scale_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_kilo_meter_1.remove_intents(processed_coords_scale_kilo_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_kilo_meter_10.remove_intents(processed_coords_scale_kilo_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_kilo_meter_100.remove_intents(processed_coords_scale_kilo_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_mega_meter_1.remove_intents(processed_coords_scale_mega_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_mega_meter_10.remove_intents(processed_coords_scale_mega_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_mega_meter_100.remove_intents(processed_coords_scale_mega_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_giga_meter_1.remove_intents(processed_coords_scale_giga_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_giga_meter_10.remove_intents(processed_coords_scale_giga_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_giga_meter_100.remove_intents(processed_coords_scale_giga_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_tera_meter_1.remove_intents(processed_coords_scale_tera_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_tera_meter_10.remove_intents(processed_coords_scale_tera_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_tera_meter_100.remove_intents(processed_coords_scale_tera_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_peta_meter_1.remove_intents(processed_coords_scale_peta_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_peta_meter_10.remove_intents(processed_coords_scale_peta_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_peta_meter_100.remove_intents(processed_coords_scale_peta_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_exa_meter_1.remove_intents(processed_coords_scale_exa_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_exa_meter_10.remove_intents(processed_coords_scale_exa_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_exa_meter_100.remove_intents(processed_coords_scale_exa_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_zetta_meter_1.remove_intents(processed_coords_scale_zetta_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_zetta_meter_10.remove_intents(processed_coords_scale_zetta_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_zetta_meter_100.remove_intents(processed_coords_scale_zetta_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_yotta_meter_1.remove_intents(processed_coords_scale_yotta_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_yotta_meter_10.remove_intents(processed_coords_scale_yotta_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_yotta_meter_100.remove_intents(processed_coords_scale_yotta_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_ronna_meter_1.remove_intents(processed_coords_scale_ronna_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_ronna_meter_10.remove_intents(processed_coords_scale_ronna_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_ronna_meter_100.remove_intents(processed_coords_scale_ronna_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_1.remove_intents(processed_coords_scale_quetta_meter_1);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_10.remove_intents(processed_coords_scale_quetta_meter_10);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_100.remove_intents(processed_coords_scale_quetta_meter_100);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_1000.remove_intents(processed_coords_scale_quetta_meter_1000);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_10000.remove_intents(processed_coords_scale_quetta_meter_10000);
+    action_intent_commit_buffers.action_intent_commit_buffer_scale_quetta_meter_100000.remove_intents(processed_coords_scale_quetta_meter_100000);
 }
