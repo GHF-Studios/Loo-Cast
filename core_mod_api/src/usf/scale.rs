@@ -14,6 +14,14 @@ pub trait Scale: 'static + Send + Sync + Clone + Default + Debug + Reflect + Par
     }
 }
 
+pub trait DynScale: Send + Sync + Debug {
+    fn name(&self) -> &'static str;
+    fn scale_factor_exponent(&self) -> i8;
+    fn scale_factor(&self) -> f64;
+    fn up(&self) -> Option<Box<dyn DynScale>>;
+    fn down(&self) -> Option<Box<dyn DynScale>>;
+}
+
 pub trait ScaleRangeMarker {
     type Min: Scale;
     type Max: Scale;
@@ -45,6 +53,23 @@ impl std::fmt::Debug for NoLowerScale {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for NoLowerScale {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        None
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        None
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter000001;
@@ -58,6 +83,23 @@ impl Scale for ScaleQuectoMeter000001 {
 impl std::fmt::Debug for ScaleQuectoMeter000001 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleQuectoMeter000001 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter00001::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        None
     }
 }
 
@@ -75,6 +117,23 @@ impl std::fmt::Debug for ScaleQuectoMeter00001 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleQuectoMeter00001 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter0001::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter000001::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter0001;
@@ -88,6 +147,23 @@ impl Scale for ScaleQuectoMeter0001 {
 impl std::fmt::Debug for ScaleQuectoMeter0001 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleQuectoMeter0001 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter001::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter00001::default()))
     }
 }
 
@@ -105,6 +181,23 @@ impl std::fmt::Debug for ScaleQuectoMeter001 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleQuectoMeter001 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter01::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter0001::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter01;
@@ -118,6 +211,23 @@ impl Scale for ScaleQuectoMeter01 {
 impl std::fmt::Debug for ScaleQuectoMeter01 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleQuectoMeter01 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter001::default()))
     }
 }
 
@@ -135,6 +245,23 @@ impl std::fmt::Debug for ScaleQuectoMeter1 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleQuectoMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter01::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter10;
@@ -148,6 +275,23 @@ impl Scale for ScaleQuectoMeter10 {
 impl std::fmt::Debug for ScaleQuectoMeter10 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleQuectoMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter1::default()))
     }
 }
 
@@ -165,6 +309,23 @@ impl std::fmt::Debug for ScaleQuectoMeter100 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleQuectoMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleRontoMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter10::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRontoMeter1;
@@ -178,6 +339,23 @@ impl Scale for ScaleRontoMeter1 {
 impl std::fmt::Debug for ScaleRontoMeter1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleRontoMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleRontoMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuectoMeter100::default()))
     }
 }
 
@@ -195,6 +373,23 @@ impl std::fmt::Debug for ScaleRontoMeter10 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleRontoMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleRontoMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleRontoMeter1::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRontoMeter100;
@@ -208,6 +403,23 @@ impl Scale for ScaleRontoMeter100 {
 impl std::fmt::Debug for ScaleRontoMeter100 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleRontoMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleYoctoMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleRontoMeter10::default()))
     }
 }
 
@@ -225,6 +437,23 @@ impl std::fmt::Debug for ScaleYoctoMeter1 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleYoctoMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleYoctoMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleRontoMeter100::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYoctoMeter10;
@@ -238,6 +467,23 @@ impl Scale for ScaleYoctoMeter10 {
 impl std::fmt::Debug for ScaleYoctoMeter10 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleYoctoMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleYoctoMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleYoctoMeter1::default()))
     }
 }
 
@@ -255,6 +501,23 @@ impl std::fmt::Debug for ScaleYoctoMeter100 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleYoctoMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleZeptoMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleYoctoMeter10::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZeptoMeter1;
@@ -268,6 +531,23 @@ impl Scale for ScaleZeptoMeter1 {
 impl std::fmt::Debug for ScaleZeptoMeter1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleZeptoMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleZeptoMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleYoctoMeter100::default()))
     }
 }
 
@@ -285,6 +565,23 @@ impl std::fmt::Debug for ScaleZeptoMeter10 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleZeptoMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleZeptoMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleZeptoMeter1::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZeptoMeter100;
@@ -298,6 +595,23 @@ impl Scale for ScaleZeptoMeter100 {
 impl std::fmt::Debug for ScaleZeptoMeter100 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleZeptoMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleAttoMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleZeptoMeter10::default()))
     }
 }
 
@@ -315,6 +629,23 @@ impl std::fmt::Debug for ScaleAttoMeter1 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleAttoMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleAttoMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleZeptoMeter100::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleAttoMeter10;
@@ -328,6 +659,23 @@ impl Scale for ScaleAttoMeter10 {
 impl std::fmt::Debug for ScaleAttoMeter10 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleAttoMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleAttoMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleAttoMeter1::default()))
     }
 }
 
@@ -345,6 +693,23 @@ impl std::fmt::Debug for ScaleAttoMeter100 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleAttoMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleFemtoMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleAttoMeter10::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleFemtoMeter1;
@@ -358,6 +723,23 @@ impl Scale for ScaleFemtoMeter1 {
 impl std::fmt::Debug for ScaleFemtoMeter1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleFemtoMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleFemtoMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleAttoMeter100::default()))
     }
 }
 
@@ -375,6 +757,23 @@ impl std::fmt::Debug for ScaleFemtoMeter10 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleFemtoMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleFemtoMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleFemtoMeter1::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleFemtoMeter100;
@@ -388,6 +787,23 @@ impl Scale for ScaleFemtoMeter100 {
 impl std::fmt::Debug for ScaleFemtoMeter100 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleFemtoMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScalePicoMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleFemtoMeter10::default()))
     }
 }
 
@@ -405,6 +821,23 @@ impl std::fmt::Debug for ScalePicoMeter1 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScalePicoMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScalePicoMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleFemtoMeter100::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePicoMeter10;
@@ -418,6 +851,23 @@ impl Scale for ScalePicoMeter10 {
 impl std::fmt::Debug for ScalePicoMeter10 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScalePicoMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScalePicoMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScalePicoMeter1::default()))
     }
 }
 
@@ -435,6 +885,23 @@ impl std::fmt::Debug for ScalePicoMeter100 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScalePicoMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleNanoMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScalePicoMeter10::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleNanoMeter1;
@@ -448,6 +915,23 @@ impl Scale for ScaleNanoMeter1 {
 impl std::fmt::Debug for ScaleNanoMeter1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleNanoMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleNanoMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScalePicoMeter100::default()))
     }
 }
 
@@ -465,6 +949,23 @@ impl std::fmt::Debug for ScaleNanoMeter10 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleNanoMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleNanoMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleNanoMeter1::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleNanoMeter100;
@@ -478,6 +979,23 @@ impl Scale for ScaleNanoMeter100 {
 impl std::fmt::Debug for ScaleNanoMeter100 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleNanoMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMicroMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleNanoMeter10::default()))
     }
 }
 
@@ -495,6 +1013,23 @@ impl std::fmt::Debug for ScaleMicroMeter1 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleMicroMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMicroMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleNanoMeter100::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMicroMeter10;
@@ -508,6 +1043,23 @@ impl Scale for ScaleMicroMeter10 {
 impl std::fmt::Debug for ScaleMicroMeter10 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleMicroMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMicroMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMicroMeter1::default()))
     }
 }
 
@@ -525,6 +1077,23 @@ impl std::fmt::Debug for ScaleMicroMeter100 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleMicroMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMilliMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMicroMeter10::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMilliMeter1;
@@ -538,6 +1107,23 @@ impl Scale for ScaleMilliMeter1 {
 impl std::fmt::Debug for ScaleMilliMeter1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleMilliMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMilliMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMicroMeter100::default()))
     }
 }
 
@@ -555,6 +1141,23 @@ impl std::fmt::Debug for ScaleMilliMeter10 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleMilliMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMilliMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMilliMeter1::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMilliMeter100;
@@ -568,6 +1171,23 @@ impl Scale for ScaleMilliMeter100 {
 impl std::fmt::Debug for ScaleMilliMeter100 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleMilliMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMilliMeter10::default()))
     }
 }
 
@@ -585,6 +1205,23 @@ impl std::fmt::Debug for ScaleMeter1 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMilliMeter100::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMeter10;
@@ -598,6 +1235,23 @@ impl Scale for ScaleMeter10 {
 impl std::fmt::Debug for ScaleMeter10 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMeter1::default()))
     }
 }
 
@@ -615,6 +1269,23 @@ impl std::fmt::Debug for ScaleMeter100 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleKiloMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMeter10::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleKiloMeter1;
@@ -628,6 +1299,23 @@ impl Scale for ScaleKiloMeter1 {
 impl std::fmt::Debug for ScaleKiloMeter1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleKiloMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleKiloMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMeter100::default()))
     }
 }
 
@@ -645,6 +1333,23 @@ impl std::fmt::Debug for ScaleKiloMeter10 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleKiloMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleKiloMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleKiloMeter1::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleKiloMeter100;
@@ -658,6 +1363,23 @@ impl Scale for ScaleKiloMeter100 {
 impl std::fmt::Debug for ScaleKiloMeter100 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleKiloMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMegaMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleKiloMeter10::default()))
     }
 }
 
@@ -675,6 +1397,23 @@ impl std::fmt::Debug for ScaleMegaMeter1 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleMegaMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMegaMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleKiloMeter100::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMegaMeter10;
@@ -688,6 +1427,23 @@ impl Scale for ScaleMegaMeter10 {
 impl std::fmt::Debug for ScaleMegaMeter10 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleMegaMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMegaMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMegaMeter1::default()))
     }
 }
 
@@ -705,6 +1461,23 @@ impl std::fmt::Debug for ScaleMegaMeter100 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleMegaMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleGigaMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMegaMeter10::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleGigaMeter1;
@@ -718,6 +1491,23 @@ impl Scale for ScaleGigaMeter1 {
 impl std::fmt::Debug for ScaleGigaMeter1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleGigaMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleGigaMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleMegaMeter100::default()))
     }
 }
 
@@ -735,6 +1525,23 @@ impl std::fmt::Debug for ScaleGigaMeter10 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleGigaMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleGigaMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleGigaMeter1::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleGigaMeter100;
@@ -748,6 +1555,23 @@ impl Scale for ScaleGigaMeter100 {
 impl std::fmt::Debug for ScaleGigaMeter100 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleGigaMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleTeraMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleGigaMeter10::default()))
     }
 }
 
@@ -765,6 +1589,23 @@ impl std::fmt::Debug for ScaleTeraMeter1 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleTeraMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleTeraMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleGigaMeter100::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleTeraMeter10;
@@ -778,6 +1619,23 @@ impl Scale for ScaleTeraMeter10 {
 impl std::fmt::Debug for ScaleTeraMeter10 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleTeraMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleTeraMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleTeraMeter1::default()))
     }
 }
 
@@ -795,6 +1653,23 @@ impl std::fmt::Debug for ScaleTeraMeter100 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleTeraMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScalePetaMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleTeraMeter10::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePetaMeter1;
@@ -808,6 +1683,23 @@ impl Scale for ScalePetaMeter1 {
 impl std::fmt::Debug for ScalePetaMeter1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScalePetaMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScalePetaMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleTeraMeter100::default()))
     }
 }
 
@@ -825,6 +1717,23 @@ impl std::fmt::Debug for ScalePetaMeter10 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScalePetaMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScalePetaMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScalePetaMeter1::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePetaMeter100;
@@ -838,6 +1747,23 @@ impl Scale for ScalePetaMeter100 {
 impl std::fmt::Debug for ScalePetaMeter100 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScalePetaMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleExaMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScalePetaMeter10::default()))
     }
 }
 
@@ -855,6 +1781,23 @@ impl std::fmt::Debug for ScaleExaMeter1 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleExaMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleExaMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScalePetaMeter100::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleExaMeter10;
@@ -868,6 +1811,23 @@ impl Scale for ScaleExaMeter10 {
 impl std::fmt::Debug for ScaleExaMeter10 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleExaMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleExaMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleExaMeter1::default()))
     }
 }
 
@@ -885,6 +1845,23 @@ impl std::fmt::Debug for ScaleExaMeter100 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleExaMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleZettaMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleExaMeter10::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZettaMeter1;
@@ -898,6 +1875,23 @@ impl Scale for ScaleZettaMeter1 {
 impl std::fmt::Debug for ScaleZettaMeter1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleZettaMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleZettaMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleExaMeter100::default()))
     }
 }
 
@@ -915,6 +1909,23 @@ impl std::fmt::Debug for ScaleZettaMeter10 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleZettaMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleZettaMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleZettaMeter1::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZettaMeter100;
@@ -928,6 +1939,23 @@ impl Scale for ScaleZettaMeter100 {
 impl std::fmt::Debug for ScaleZettaMeter100 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleZettaMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleYottaMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleZettaMeter10::default()))
     }
 }
 
@@ -945,6 +1973,23 @@ impl std::fmt::Debug for ScaleYottaMeter1 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleYottaMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleYottaMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleZettaMeter100::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYottaMeter10;
@@ -958,6 +2003,23 @@ impl Scale for ScaleYottaMeter10 {
 impl std::fmt::Debug for ScaleYottaMeter10 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleYottaMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleYottaMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleYottaMeter1::default()))
     }
 }
 
@@ -975,6 +2037,23 @@ impl std::fmt::Debug for ScaleYottaMeter100 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleYottaMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleRonnaMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleYottaMeter10::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRonnaMeter1;
@@ -988,6 +2067,23 @@ impl Scale for ScaleRonnaMeter1 {
 impl std::fmt::Debug for ScaleRonnaMeter1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleRonnaMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleRonnaMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleYottaMeter100::default()))
     }
 }
 
@@ -1005,6 +2101,23 @@ impl std::fmt::Debug for ScaleRonnaMeter10 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleRonnaMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleRonnaMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleRonnaMeter1::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRonnaMeter100;
@@ -1018,6 +2131,23 @@ impl Scale for ScaleRonnaMeter100 {
 impl std::fmt::Debug for ScaleRonnaMeter100 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleRonnaMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuettaMeter1::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleRonnaMeter10::default()))
     }
 }
 
@@ -1035,6 +2165,23 @@ impl std::fmt::Debug for ScaleQuettaMeter1 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleQuettaMeter1 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuettaMeter10::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleRonnaMeter100::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter10;
@@ -1048,6 +2195,23 @@ impl Scale for ScaleQuettaMeter10 {
 impl std::fmt::Debug for ScaleQuettaMeter10 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleQuettaMeter10 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuettaMeter100::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuettaMeter1::default()))
     }
 }
 
@@ -1065,6 +2229,23 @@ impl std::fmt::Debug for ScaleQuettaMeter100 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleQuettaMeter100 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuettaMeter1000::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuettaMeter10::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter1000;
@@ -1078,6 +2259,23 @@ impl Scale for ScaleQuettaMeter1000 {
 impl std::fmt::Debug for ScaleQuettaMeter1000 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for ScaleQuettaMeter1000 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuettaMeter10000::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuettaMeter100::default()))
     }
 }
 
@@ -1095,6 +2293,23 @@ impl std::fmt::Debug for ScaleQuettaMeter10000 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleQuettaMeter10000 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuettaMeter100000::default()))
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuettaMeter1000::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter100000;
@@ -1110,6 +2325,23 @@ impl std::fmt::Debug for ScaleQuettaMeter100000 {
         write!(f, "{}", Self::NAME)
     }
 }
+impl DynScale for ScaleQuettaMeter100000 {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        None
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        Some(Box::new(ScaleQuettaMeter10000::default()))
+    }
+}
 
 #[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct NoHigherScale;
@@ -1123,5 +2355,22 @@ impl Scale for NoHigherScale {
 impl std::fmt::Debug for NoHigherScale {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::NAME)
+    }
+}
+impl DynScale for NoHigherScale {
+    fn name(&self) -> &'static str {
+        <Self as Scale>::NAME
+    }
+    fn scale_factor_exponent(&self) -> i8 {
+        <Self as Scale>::SCALE_FACTOR_EXPONENT
+    }
+    fn scale_factor(&self) -> f64 {
+        <Self as Scale>::scale_factor()
+    }
+    fn up(&self) -> Option<Box<dyn DynScale>> {
+        None
+    }
+    fn down(&self) -> Option<Box<dyn DynScale>> {
+        None
     }
 }
