@@ -2,22 +2,22 @@
 use bevy::prelude::{ResMut, Entity, Query};
 
 use crate::chunk::{components::Chunk, resources::ChunkManager, types::ChunkOwnerId};
-use crate::usf::scale::Scale;
+use crate::usf::scale::ConstScale;
 
 // Items
-pub struct TransferChunkOwnershipInput<S: Scale> {
+pub struct TransferChunkOwnershipInput<S: ConstScale> {
     pub new_chunk_owner_id: ChunkOwnerId<S>,
     pub chunk_coord: (i32, i32),
 }
 
 // Core Types
 #[derive(bevy::ecs::system::SystemParam)]
-pub struct MainAccess<'w, 's, S: Scale> {
+pub struct MainAccess<'w, 's, S: ConstScale> {
     pub chunk_query: Query<'w, 's, (Entity, &'static mut Chunk<S>)>,
     pub chunk_manager: ResMut<'w, ChunkManager<S>>,
 }
 
-pub struct Input<S: Scale> {
+pub struct Input<S: ConstScale> {
     pub inputs: Vec<TransferChunkOwnershipInput<S>>,
 }
 
@@ -31,7 +31,7 @@ pub enum Error {
 }
 
 // Core Functions
-pub fn run_ecs<S: Scale>(input: Input<S>, main_access: MainAccess<S>) -> Result<Output, Error> {
+pub fn run_ecs<S: ConstScale>(input: Input<S>, main_access: MainAccess<S>) -> Result<Output, Error> {
     let mut chunk_query = main_access.chunk_query;
     let mut chunk_manager = main_access.chunk_manager;
 

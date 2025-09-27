@@ -9,7 +9,7 @@ use super::types::RemovedChunkLoaderObservation;
 use super::resources::RemovedChunkLoaderObservationQueue;
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn observe_on_remove_chunk_loader<S: Scale>(
+pub(crate) fn observe_on_remove_chunk_loader<S: ConstScale>(
     trigger: Trigger<OnRemove, ChunkLoader<S>>,
     mut queue: ResMut<RemovedChunkLoaderObservationQueue>,
 ) {

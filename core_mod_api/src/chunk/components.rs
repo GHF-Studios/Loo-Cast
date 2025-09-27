@@ -10,24 +10,23 @@ use super::types::ChunkOwnerId;
 
 #[derive(Default, Debug, Reflect)]
 #[reflect(Component)]
-pub struct Chunk<S: Scale> {
+pub struct Chunk {
     pub coord: (i32, i32),
-    pub(crate) owner_id: Option<ChunkOwnerId<S>>,
-    #[reflect(ignore)]
-    pub phantom_scale: std::marker::PhantomData<S>,
+    pub(crate) owner_id: Option<ChunkOwnerId>,
+    pub scale: Scale,
 }
-impl<S: Scale> Chunk<S> {
-    pub fn owner_id(&self) -> &ChunkOwnerId<S> {
+impl Chunk {
+    pub fn owner_id(&self) -> &ChunkOwnerId {
         self.owner_id.as_ref().expect("Unreachable state: Chunk has no owner_id")
     }
 }
 
-impl<S: Scale> Component for Chunk<S> {
+impl Component for Chunk {
     const STORAGE_TYPE: StorageType = StorageType::Table;
 
     type Mutability = Mutable;
 
     fn on_add() -> Option<ComponentHook> {
-        Some(hook_on_add_chunk::<S>)
+        Some(hook_on_add_chunk)
     }
 }

@@ -1,20 +1,19 @@
 use bevy::ecs::{component::HookContext, world::DeferredWorld};
 
-use crate::usf::scale::Scale;
 use crate::{
     chunk::components::Chunk,
     chunk_loader::resources::RemovedChunkLoaders,
     chunk_loader::types::RemovedChunkLoader,
 };
 
-pub(crate) fn hook_on_add_chunk<S: Scale>(mut world: DeferredWorld<'_>, hook_context: HookContext) {
+pub(crate) fn hook_on_add_chunk(mut world: DeferredWorld<'_>, hook_context: HookContext) {
     let HookContext {
         entity,
         component_id: _,
         caller: _,
         relationship_hook_mode: _,
     } = hook_context;
-    let (chunk, chunk_coord) = match world.get::<Chunk<S>>(entity) {
+    let (chunk, chunk_coord) = match world.get::<Chunk>(entity) {
         Some(chunk) => (chunk, chunk.coord),
         None => return,
     };
@@ -24,8 +23,8 @@ pub(crate) fn hook_on_add_chunk<S: Scale>(mut world: DeferredWorld<'_>, hook_con
         None => return,
     };
 
-    let mut removed_chunk_loaders = world.resource_mut::<RemovedChunkLoaders<S>>();
-    let found_removal_event = removed_chunk_loaders.0.remove(&RemovedChunkLoader::<S> { id: chunk_owner_id.clone() });
+    let mut removed_chunk_loaders = world.resource_mut::<RemovedChunkLoaders>();
+    let found_removal_event = removed_chunk_loaders.0.remove(&RemovedChunkLoader { id: chunk_owner_id.clone() });
 
     if world.get_entity(chunk_owner_id.entity()).is_err() && !found_removal_event {
         panic!(

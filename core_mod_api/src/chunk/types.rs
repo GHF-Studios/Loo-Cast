@@ -1,6 +1,5 @@
 use bevy::ecs::entity::Entity;
 use bevy::prelude::Reflect;
-use std::marker::PhantomData;
 use tokio::task::JoinHandle;
 
 use crate::usf::scale::Scale;
@@ -17,18 +16,17 @@ pub struct ChunkActionWorkflowHandles {
 }
 
 #[derive(Debug, Clone, Reflect)]
-pub struct ChunkOwnerId<S: Scale> {
+pub struct ChunkOwnerId {
     id: String,
     entity: Entity,
-    #[reflect(ignore)]
-    phantom_scale: std::marker::PhantomData<S>,
+    scale: Scale,
 }
-impl<S: Scale> ChunkOwnerId<S> {
-    pub fn new(id: String, entity: Entity) -> Self {
+impl ChunkOwnerId {
+    pub fn new(id: String, entity: Entity, scale: Scale) -> Self {
         Self {
             id,
             entity,
-            phantom_scale: PhantomData,
+            scale,
         }
     }
 
@@ -40,32 +38,32 @@ impl<S: Scale> ChunkOwnerId<S> {
         self.entity
     }
 }
-impl<S: Scale> Default for ChunkOwnerId<S> {
+impl Default for ChunkOwnerId {
     fn default() -> Self {
         Self {
             id: "PLACEHOLDER".to_string(),
             entity: Entity::from_raw(0),
-            phantom_scale: PhantomData,
+            scale: Scale::default(),
         }
     }
 }
-impl<S: Scale> std::hash::Hash for ChunkOwnerId<S> {
+impl std::hash::Hash for ChunkOwnerId {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }
 }
-impl<S: Scale> PartialEq for ChunkOwnerId<S> {
+impl PartialEq for ChunkOwnerId {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
-impl<S: Scale> Eq for ChunkOwnerId<S> {}
-impl<S: Scale> PartialOrd for ChunkOwnerId<S> {
+impl Eq for ChunkOwnerId {}
+impl PartialOrd for ChunkOwnerId {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
-impl<S: Scale> Ord for ChunkOwnerId<S> {
+impl Ord for ChunkOwnerId {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.id.cmp(&other.id)
     }

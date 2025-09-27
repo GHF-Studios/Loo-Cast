@@ -11,24 +11,24 @@ use crate::chunk::{
     types::ChunkOwnerId,
 };
 use crate::chunk_loader::components::ChunkLoader;
-use crate::usf::scale::Scale;
+use crate::usf::scale::ConstScale;
 use crate::workflow::types::Outcome;
 
 // Items
-pub struct UnloadChunkInput<S: Scale> {
+pub struct UnloadChunkInput<S: ConstScale> {
     pub owner_id: ChunkOwnerId<S>,
     pub chunk_coord: (i32, i32),
     pub chunk_loader_distance_squared: u32,
     pub chunk_loader_radius_squared: u32,
 }
 
-pub struct DespawnChunkState<S: Scale> {
+pub struct DespawnChunkState<S: ConstScale> {
     pub coord: (i32, i32),
     pub is_despawned: bool,
     pub phantom_scale: std::marker::PhantomData<S>,
 }
 
-pub struct TransferChunkOwnershipState<S: Scale> {
+pub struct TransferChunkOwnershipState<S: ConstScale> {
     pub coord: (i32, i32),
     pub owner_id: ChunkOwnerId<S>,
     pub is_ownership_transfered: bool,
@@ -51,7 +51,7 @@ pub fn is_chunk_in_loader_range(chunk_coord: &(i32, i32), loader_position: Vec2,
 
 // Core Types
 #[derive(bevy::ecs::system::SystemParam)]
-pub struct MainAccess<'w, 's, S: Scale> {
+pub struct MainAccess<'w, 's, S: ConstScale> {
     pub chunk_manager: Res<'w, ChunkManager<S>>,
     pub action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer<S>>,
     pub action_intent_buffer: ResMut<'w, ActionIntentBuffer<S>>,
@@ -59,17 +59,17 @@ pub struct MainAccess<'w, 's, S: Scale> {
     pub chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader<S>)>,
 }
 
-pub struct Input<S: Scale> {
+pub struct Input<S: ConstScale> {
     pub inputs: Vec<UnloadChunkInput<S>>,
 }
 
-pub struct State<S: Scale> {
+pub struct State<S: ConstScale> {
     pub despawn_chunk_states: Vec<DespawnChunkState<S>>,
     pub transfer_chunk_ownership_states: Vec<TransferChunkOwnershipState<S>>,
 }
 
 // Core Functions
-pub fn setup_ecs_while<S: Scale>(input: Input<S>, main_access: MainAccess<S>) -> State<S> {
+pub fn setup_ecs_while<S: ConstScale>(input: Input<S>, main_access: MainAccess<S>) -> State<S> {
     // warn!("Setting up UnloadChunks");
     let chunk_manager = main_access.chunk_manager;
     let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
@@ -197,7 +197,7 @@ pub fn setup_ecs_while<S: Scale>(input: Input<S>, main_access: MainAccess<S>) ->
     }
 }
 
-pub fn run_ecs_while<S: Scale>(state: State<S>, main_access: MainAccess<S>) -> Outcome<State<S>, ()> {
+pub fn run_ecs_while<S: ConstScale>(state: State<S>, main_access: MainAccess<S>) -> Outcome<State<S>, ()> {
     // warn!("Running UnloadChunks");
     let chunk_query = main_access.chunk_query;
 

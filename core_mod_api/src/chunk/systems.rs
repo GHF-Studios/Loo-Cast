@@ -22,7 +22,7 @@ use super::types::ChunkActionWorkflowHandles;
 use super::ActionIntentCommitBuffer;
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn chunk_startup_system<S: Scale>(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
+pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
     let workgroup_size_x = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_x");
     let workgroup_size_y = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_y");
     let workgroup_size_total = workgroup_size_x * workgroup_size_y;
@@ -36,19 +36,18 @@ pub(crate) fn chunk_startup_system<S: Scale>(mut commands: Commands, mut meshes:
     let light_material: Handle<ColorMaterial> = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
     let dark_material = materials.add(ColorMaterial::from_color(Color::srgb(0.25, 0.25, 0.25)));
 
-    commands.insert_resource(ChunkRenderHandles::<S> {
+    commands.insert_resource(ChunkRenderHandles {
         quad,
         light_material,
         dark_material,
-        phantom_scale: std::marker::PhantomData,
     });
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn chunk_update_system<S: Scale>(
+pub(crate) fn chunk_update_system<S: ConstScale>(
     mut commands: Commands,
-    chunk_query: Query<(Entity, &Transform, &Chunk<S>)>,
-    removed_chunk_loaders: Res<RemovedChunkLoaders<S>>,
+    chunk_query: Query<(Entity, &Transform, &Chunk)>,
+    removed_chunk_loaders: Res<RemovedChunkLoaders>,
 ) {
     for (entity, transform, chunk) in chunk_query.iter() {
         let world_pos = transform.translation.truncate();
@@ -67,161 +66,10 @@ pub(crate) fn chunk_update_system<S: Scale>(
     }
 }
 
-#[derive(SystemParam)]
-pub(super) struct ProcessingSystemChunkLoaderInitHookQueries<'w, 's> {
-    pub chunk_loader_init_hook_query_scale_quecto_meter_000001: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter000001>>>,
-    pub chunk_loader_init_hook_query_scale_quecto_meter_00001: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter00001>>>,
-    pub chunk_loader_init_hook_query_scale_quecto_meter_0001: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter0001>>>,
-    pub chunk_loader_init_hook_query_scale_quecto_meter_001: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter001>>>,
-    pub chunk_loader_init_hook_query_scale_quecto_meter_01: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter01>>>,
-    pub chunk_loader_init_hook_query_scale_quecto_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_quecto_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_quecto_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuectoMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_ronto_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleRontoMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_ronto_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleRontoMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_ronto_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleRontoMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_yocto_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleYoctoMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_yocto_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleYoctoMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_yocto_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleYoctoMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_zepto_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleZeptoMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_zepto_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleZeptoMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_zepto_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleZeptoMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_atto_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleAttoMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_atto_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleAttoMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_atto_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleAttoMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_femto_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleFemtoMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_femto_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleFemtoMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_femto_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleFemtoMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_pico_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScalePicoMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_pico_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScalePicoMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_pico_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScalePicoMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_nano_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleNanoMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_nano_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleNanoMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_nano_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleNanoMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_micro_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMicroMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_micro_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMicroMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_micro_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMicroMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_milli_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMilliMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_milli_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMilliMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_milli_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMilliMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_kilo_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleKiloMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_kilo_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleKiloMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_kilo_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleKiloMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_mega_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMegaMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_mega_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMegaMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_mega_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleMegaMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_giga_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleGigaMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_giga_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleGigaMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_giga_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleGigaMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_tera_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleTeraMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_tera_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleTeraMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_tera_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleTeraMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_peta_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScalePetaMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_peta_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScalePetaMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_peta_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScalePetaMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_exa_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleExaMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_exa_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleExaMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_exa_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleExaMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_zetta_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleZettaMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_zetta_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleZettaMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_zetta_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleZettaMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_yotta_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleYottaMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_yotta_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleYottaMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_yotta_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleYottaMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_ronna_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleRonnaMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_ronna_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleRonnaMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_ronna_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleRonnaMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_quetta_meter_1: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuettaMeter1>>>,
-    pub chunk_loader_init_hook_query_scale_quetta_meter_10: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuettaMeter10>>>,
-    pub chunk_loader_init_hook_query_scale_quetta_meter_100: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuettaMeter100>>>,
-    pub chunk_loader_init_hook_query_scale_quetta_meter_1000: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuettaMeter1000>>>,
-    pub chunk_loader_init_hook_query_scale_quetta_meter_10000: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuettaMeter10000>>>,
-    pub chunk_loader_init_hook_query_scale_quetta_meter_100000: Query<'w, 's, &'static mut InitHook<ChunkLoader<ScaleQuettaMeter100000>>>,
-}
-
-#[derive(SystemParam)]
-pub(super) struct ProcessingSystemActionIntentCommitBuffers<'w, 's> {
-    pub action_intent_commit_buffer_scale_quecto_meter_000001: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter000001>>,
-    pub action_intent_commit_buffer_scale_quecto_meter_00001: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter00001>>,
-    pub action_intent_commit_buffer_scale_quecto_meter_0001: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter0001>>,
-    pub action_intent_commit_buffer_scale_quecto_meter_001: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter001>>,
-    pub action_intent_commit_buffer_scale_quecto_meter_01: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter01>>,
-    pub action_intent_commit_buffer_scale_quecto_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter1>>,
-    pub action_intent_commit_buffer_scale_quecto_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter10>>,
-    pub action_intent_commit_buffer_scale_quecto_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleQuectoMeter100>>,
-    pub action_intent_commit_buffer_scale_ronto_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleRontoMeter1>>,
-    pub action_intent_commit_buffer_scale_ronto_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleRontoMeter10>>,
-    pub action_intent_commit_buffer_scale_ronto_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleRontoMeter100>>,
-    pub action_intent_commit_buffer_scale_yocto_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleYoctoMeter1>>,
-    pub action_intent_commit_buffer_scale_yocto_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleYoctoMeter10>>,
-    pub action_intent_commit_buffer_scale_yocto_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleYoctoMeter100>>,
-    pub action_intent_commit_buffer_scale_zepto_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleZeptoMeter1>>,
-    pub action_intent_commit_buffer_scale_zepto_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleZeptoMeter10>>,
-    pub action_intent_commit_buffer_scale_zepto_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleZeptoMeter100>>,
-    pub action_intent_commit_buffer_scale_atto_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleAttoMeter1>>,
-    pub action_intent_commit_buffer_scale_atto_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleAttoMeter10>>,
-    pub action_intent_commit_buffer_scale_atto_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleAttoMeter100>>,
-    pub action_intent_commit_buffer_scale_femto_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleFemtoMeter1>>,
-    pub action_intent_commit_buffer_scale_femto_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleFemtoMeter10>>,
-    pub action_intent_commit_buffer_scale_femto_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleFemtoMeter100>>,
-    pub action_intent_commit_buffer_scale_pico_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScalePicoMeter1>>,
-    pub action_intent_commit_buffer_scale_pico_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScalePicoMeter10>>,
-    pub action_intent_commit_buffer_scale_pico_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScalePicoMeter100>>,
-    pub action_intent_commit_buffer_scale_nano_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleNanoMeter1>>,
-    pub action_intent_commit_buffer_scale_nano_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleNanoMeter10>>,
-    pub action_intent_commit_buffer_scale_nano_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleNanoMeter100>>,
-    pub action_intent_commit_buffer_scale_micro_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleMicroMeter1>>,
-    pub action_intent_commit_buffer_scale_micro_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleMicroMeter10>>,
-    pub action_intent_commit_buffer_scale_micro_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleMicroMeter100>>,
-    pub action_intent_commit_buffer_scale_milli_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleMilliMeter1>>,
-    pub action_intent_commit_buffer_scale_milli_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleMilliMeter10>>,
-    pub action_intent_commit_buffer_scale_milli_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleMilliMeter100>>,
-    pub action_intent_commit_buffer_scale_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleMeter1>>,
-    pub action_intent_commit_buffer_scale_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleMeter10>>,
-    pub action_intent_commit_buffer_scale_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleMeter100>>,
-    pub action_intent_commit_buffer_scale_kilo_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleKiloMeter1>>,
-    pub action_intent_commit_buffer_scale_kilo_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleKiloMeter10>>,
-    pub action_intent_commit_buffer_scale_kilo_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleKiloMeter100>>,
-    pub action_intent_commit_buffer_scale_mega_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleMegaMeter1>>,
-    pub action_intent_commit_buffer_scale_mega_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleMegaMeter10>>,
-    pub action_intent_commit_buffer_scale_mega_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleMegaMeter100>>,
-    pub action_intent_commit_buffer_scale_giga_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleGigaMeter1>>,
-    pub action_intent_commit_buffer_scale_giga_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleGigaMeter10>>,
-    pub action_intent_commit_buffer_scale_giga_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleGigaMeter100>>,
-    pub action_intent_commit_buffer_scale_tera_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleTeraMeter1>>,
-    pub action_intent_commit_buffer_scale_tera_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleTeraMeter10>>,
-    pub action_intent_commit_buffer_scale_tera_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleTeraMeter100>>,
-    pub action_intent_commit_buffer_scale_peta_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScalePetaMeter1>>,
-    pub action_intent_commit_buffer_scale_peta_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScalePetaMeter10>>,
-    pub action_intent_commit_buffer_scale_peta_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScalePetaMeter100>>,
-    pub action_intent_commit_buffer_scale_exa_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleExaMeter1>>,
-    pub action_intent_commit_buffer_scale_exa_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleExaMeter10>>,
-    pub action_intent_commit_buffer_scale_exa_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleExaMeter100>>,
-    pub action_intent_commit_buffer_scale_zetta_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleZettaMeter1>>,
-    pub action_intent_commit_buffer_scale_zetta_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleZettaMeter10>>,
-    pub action_intent_commit_buffer_scale_zetta_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleZettaMeter100>>,
-    pub action_intent_commit_buffer_scale_yotta_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleYottaMeter1>>,
-    pub action_intent_commit_buffer_scale_yotta_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleYottaMeter10>>,
-    pub action_intent_commit_buffer_scale_yotta_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleYottaMeter100>>,
-    pub action_intent_commit_buffer_scale_ronna_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleRonnaMeter1>>,
-    pub action_intent_commit_buffer_scale_ronna_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleRonnaMeter10>>,
-    pub action_intent_commit_buffer_scale_ronna_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleRonnaMeter100>>,
-    pub action_intent_commit_buffer_scale_quetta_meter_1: ResMut<'w, ActionIntentCommitBuffer<ScaleQuettaMeter1>>,
-    pub action_intent_commit_buffer_scale_quetta_meter_10: ResMut<'w, ActionIntentCommitBuffer<ScaleQuettaMeter10>>,
-    pub action_intent_commit_buffer_scale_quetta_meter_100: ResMut<'w, ActionIntentCommitBuffer<ScaleQuettaMeter100>>,
-    pub action_intent_commit_buffer_scale_quetta_meter_1000: ResMut<'w, ActionIntentCommitBuffer<ScaleQuettaMeter1000>>,
-    pub action_intent_commit_buffer_scale_quetta_meter_10000: ResMut<'w, ActionIntentCommitBuffer<ScaleQuettaMeter10000>>,
-    pub action_intent_commit_buffer_scale_quetta_meter_100000: ResMut<'w, ActionIntentCommitBuffer<ScaleQuettaMeter100000>>,
-    phantom_data: PhantomData<&'s ()>,
-}
-
 #[tracing::instrument(skip_all)]
 pub(crate) fn process_chunk_actions_system(
-    mut chunk_loader_init_hook_queries: ProcessingSystemChunkLoaderInitHookQueries,
-    mut action_intent_commit_buffers: ProcessingSystemActionIntentCommitBuffers,
+    mut chunk_loader_init_hook_query: Query<'w, 's, &'static mut InitHook<ChunkLoader>>,
+    mut action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer>,
     mut workflow_handles: Local<Option<ChunkActionWorkflowHandles>>,
 ) {
     // Step 1: If workflows are running, wait for all to complete

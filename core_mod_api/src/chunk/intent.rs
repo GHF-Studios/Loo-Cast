@@ -1,18 +1,16 @@
 use bevy::prelude::Reflect;
 use std::marker::PhantomData;
 
-use crate::usf::scale::Scale;
-
 use super::types::ChunkOwnerId;
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Reflect)]
-pub enum State<S: Scale> {
+pub enum State {
     #[default]
     Absent,
-    Owned(ChunkOwnerId<S>),
+    Owned(ChunkOwnerId),
 }
-impl<S: Scale> State<S> {
-    pub fn owner_id(&self) -> Option<ChunkOwnerId<S>> {
+impl State {
+    pub fn owner_id(&self) -> Option<ChunkOwnerId> {
         match self {
             State::Absent => None,
             State::Owned(owner_id) => Some(owner_id.clone()),
@@ -21,24 +19,24 @@ impl<S: Scale> State<S> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Reflect)]
-pub enum ActionIntent<S: Scale> {
+pub enum ActionIntent {
     Spawn {
-        owner_id: ChunkOwnerId<S>,
+        owner_id: ChunkOwnerId,
         coord: (i32, i32),
         priority: ActionPriority,
     },
     Despawn {
-        owner_id: ChunkOwnerId<S>,
+        owner_id: ChunkOwnerId,
         coord: (i32, i32),
         priority: ActionPriority,
     },
     TransferOwnership {
-        new_owner_id: ChunkOwnerId<S>,
+        new_owner_id: ChunkOwnerId,
         coord: (i32, i32),
         priority: ActionPriority,
     },
 }
-impl<S: Scale> ActionIntent<S> {
+impl ActionIntent {
     pub fn is_spawn(&self) -> bool {
         matches!(self, ActionIntent::Spawn { .. })
     }
@@ -51,7 +49,7 @@ impl<S: Scale> ActionIntent<S> {
         matches!(self, ActionIntent::TransferOwnership { .. })
     }
 
-    pub fn owner_id(&self) -> ChunkOwnerId<S> {
+    pub fn owner_id(&self) -> ChunkOwnerId {
         match self {
             ActionIntent::Spawn { owner_id, .. } | ActionIntent::Despawn { owner_id, .. } | ActionIntent::TransferOwnership { new_owner_id: owner_id, .. } => {
                 owner_id.clone()
@@ -101,38 +99,38 @@ impl Default for ActionPriority {
 }
 
 #[derive(Debug, Reflect)]
-pub enum ResolutionError<S: Scale> {
-    IntentBufferNotFlushed(#[reflect(ignore)] PhantomData<S>),
-    InvalidIntentCommitted(#[reflect(ignore)] PhantomData<S>),
-    CurrentOwnerNotFoundInQuery(#[reflect(ignore)] PhantomData<S>),
+pub enum ResolutionError {
+    IntentBufferNotFlushed,
+    InvalidIntentCommitted,
+    CurrentOwnerNotFoundInQuery,
 }
 
 #[derive(Debug, Reflect)]
-pub enum ResolutionWarning<S: Scale> {
-    RedundantIntent(#[reflect(ignore)] PhantomData<S>),
-    IntentWithoutOwnership(#[reflect(ignore)] PhantomData<S>),
-    IntentBufferUnavailable(#[reflect(ignore)] PhantomData<S>),
-    SpawnIntentAfterCommittingToOwnershipTransfer(#[reflect(ignore)] PhantomData<S>),
-    DespawnIntentAfterCommittingToOwnershipTransfer(#[reflect(ignore)] PhantomData<S>),
-    OwnershipTransferIntentOfNonexistentChunk(#[reflect(ignore)] PhantomData<S>),
-    OwnershipTransferItentOfDespawningChunk(#[reflect(ignore)] PhantomData<S>),
+pub enum ResolutionWarning {
+    RedundantIntent,
+    IntentWithoutOwnership,
+    IntentBufferUnavailable,
+    SpawnIntentAfterCommittingToOwnershipTransfer,
+    DespawnIntentAfterCommittingToOwnershipTransfer,
+    OwnershipTransferIntentOfNonexistentChunk,
+    OwnershipTransferItentOfDespawningChunk,
 }
 
 #[derive(Debug, Reflect)]
-pub enum ResolvedActionIntent<S: Scale> {
-    PushCommit(ActionIntent<S>),
-    PushBuffer(ActionIntent<S>),
+pub enum ResolvedActionIntent {
+    PushCommit(ActionIntent),
+    PushBuffer(ActionIntent),
     CancelIntent,
-    DiscardIncoming(ResolutionWarning<S>),
-    Error(ResolutionError<S>),
+    DiscardIncoming(ResolutionWarning),
+    Error(ResolutionError),
 }
 
-pub fn resolve_intent<S: Scale>(
-    chunk_state: &State<S>,
-    committed: Option<&ActionIntent<S>>,
-    buffered: Option<&ActionIntent<S>>,
-    incoming: ActionIntent<S>,
-) -> ResolvedActionIntent<S> {
+pub fn resolve_intent(
+    chunk_state: &State,
+    committed: Option<&ActionIntent>,
+    buffered: Option<&ActionIntent>,
+    incoming: ActionIntent,
+) -> ResolvedActionIntent {
     use ActionIntent::*;
     use ResolutionError::*;
     use ResolutionWarning::*;
@@ -140,18 +138,18 @@ pub fn resolve_intent<S: Scale>(
     use State::*;
 
     match (chunk_state, committed, buffered, incoming.clone()) {
-        (_, None, Some(_), _) => Error(IntentBufferNotFlushed(PhantomData)),
-        (Absent, Some(TransferOwnership { .. }), _, _) => Error(InvalidIntentCommitted(PhantomData)),
+        (_, None, Some(_), _) => Error(IntentBufferNotFlushed),
+        (Absent, Some(TransferOwnership { .. }), _, _) => Error(InvalidIntentCommitted),
 
         (Absent, None, None, Spawn { .. }) => PushCommit(incoming.clone()),
-        (Absent, None, None, Despawn { .. }) => DiscardIncoming(RedundantIntent(PhantomData)),
-        (Absent, None, None, TransferOwnership { .. }) => DiscardIncoming(OwnershipTransferIntentOfNonexistentChunk(PhantomData)),
+        (Absent, None, None, Despawn { .. }) => DiscardIncoming(RedundantIntent),
+        (Absent, None, None, TransferOwnership { .. }) => DiscardIncoming(OwnershipTransferIntentOfNonexistentChunk),
 
-        (Owned(_), None, None, Spawn { .. }) => DiscardIncoming(RedundantIntent(PhantomData)),
+        (Owned(_), None, None, Spawn { .. }) => DiscardIncoming(RedundantIntent),
         (Owned(_), None, None, Despawn { .. }) => PushCommit(incoming.clone()),
         (Owned(current_owner), None, None, TransferOwnership { new_owner_id: new_owner, .. }) => {
             if *current_owner == new_owner {
-                DiscardIncoming(RedundantIntent(PhantomData))
+                DiscardIncoming(RedundantIntent)
             } else {
                 PushCommit(incoming.clone())
             }
@@ -160,23 +158,23 @@ pub fn resolve_intent<S: Scale>(
         (_, Some(Spawn { owner_id: committed_owner, .. }), None, incoming) => match incoming.clone() {
             Spawn { owner_id: incoming_owner, .. } => {
                 if incoming_owner == *committed_owner {
-                    DiscardIncoming(RedundantIntent(PhantomData))
+                    DiscardIncoming(RedundantIntent)
                 } else {
-                    DiscardIncoming(IntentWithoutOwnership(PhantomData))
+                    DiscardIncoming(IntentWithoutOwnership)
                 }
             }
             Despawn { owner_id: incoming_owner, .. } => {
                 if incoming_owner == *committed_owner {
                     PushBuffer(incoming)
                 } else {
-                    DiscardIncoming(IntentWithoutOwnership(PhantomData))
+                    DiscardIncoming(IntentWithoutOwnership)
                 }
             }
             TransferOwnership {
                 new_owner_id: incoming_owner, ..
             } => {
                 if incoming_owner == *committed_owner {
-                    DiscardIncoming(RedundantIntent(PhantomData))
+                    DiscardIncoming(RedundantIntent)
                 } else {
                     PushBuffer(incoming)
                 }
@@ -187,23 +185,23 @@ pub fn resolve_intent<S: Scale>(
                 if incoming_owner == *committed_owner {
                     PushBuffer(incoming)
                 } else {
-                    DiscardIncoming(IntentWithoutOwnership(PhantomData))
+                    DiscardIncoming(IntentWithoutOwnership)
                 }
             }
             Despawn { owner_id: incoming_owner, .. } => {
                 if incoming_owner == *committed_owner {
-                    DiscardIncoming(RedundantIntent(PhantomData))
+                    DiscardIncoming(RedundantIntent)
                 } else {
-                    DiscardIncoming(IntentWithoutOwnership(PhantomData))
+                    DiscardIncoming(IntentWithoutOwnership)
                 }
             }
             TransferOwnership {
                 new_owner_id: incoming_owner, ..
             } => {
                 if incoming_owner == *committed_owner {
-                    DiscardIncoming(RedundantIntent(PhantomData))
+                    DiscardIncoming(RedundantIntent)
                 } else {
-                    DiscardIncoming(OwnershipTransferItentOfDespawningChunk(PhantomData))
+                    DiscardIncoming(OwnershipTransferItentOfDespawningChunk)
                 }
             }
         },
@@ -215,11 +213,11 @@ pub fn resolve_intent<S: Scale>(
             None,
             incoming,
         ) => match incoming.clone() {
-            Spawn { .. } => DiscardIncoming(SpawnIntentAfterCommittingToOwnershipTransfer(PhantomData)),
-            Despawn { .. } => DiscardIncoming(DespawnIntentAfterCommittingToOwnershipTransfer(PhantomData)),
+            Spawn { .. } => DiscardIncoming(SpawnIntentAfterCommittingToOwnershipTransfer),
+            Despawn { .. } => DiscardIncoming(DespawnIntentAfterCommittingToOwnershipTransfer),
             TransferOwnership { .. } => {
                 if incoming.owner_id() == *committed_owner {
-                    return DiscardIncoming(RedundantIntent(PhantomData));
+                    return DiscardIncoming(RedundantIntent);
                 }
 
                 PushBuffer(incoming)
@@ -273,6 +271,6 @@ pub fn resolve_intent<S: Scale>(
             },
         ) if buffered_owner == current_owner && incoming_owner == *committed_owner => CancelIntent,
 
-        (_, Some(_), Some(_), _) => DiscardIncoming(IntentBufferUnavailable(PhantomData)),
+        (_, Some(_), Some(_), _) => DiscardIncoming(IntentBufferUnavailable),
     }
 }

@@ -8,24 +8,24 @@ use crate::chunk::{
     resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager},
     types::ChunkOwnerId,
 };
-use crate::usf::scale::Scale;
+use crate::usf::scale::ConstScale;
 use crate::workflow::types::Outcome;
 
 // Items
-pub struct LoadChunkInput<S: Scale> {
+pub struct LoadChunkInput<S: ConstScale> {
     pub owner_id: ChunkOwnerId<S>,
     pub chunk_coord: (i32, i32),
     pub chunk_loader_distance_squared: u32,
     pub chunk_loader_radius_squared: u32,
 }
 
-pub struct SpawnChunkState<S: Scale> {
+pub struct SpawnChunkState<S: ConstScale> {
     pub coord: (i32, i32),
     pub owner_id: ChunkOwnerId<S>,
     pub is_spawned: bool,
 }
 
-pub struct TransferChunkOwnershipState<S: Scale> {
+pub struct TransferChunkOwnershipState<S: ConstScale> {
     pub coord: (i32, i32),
     pub owner_id: ChunkOwnerId<S>,
     pub is_ownership_transfered: bool,
@@ -40,24 +40,24 @@ pub fn calculate_spawn_priority(distance_squared: u32, radius_squared: u32) -> A
 
 // Core Types
 #[derive(bevy::ecs::system::SystemParam)]
-pub struct MainAccess<'w, 's, S: Scale> {
+pub struct MainAccess<'w, 's, S: ConstScale> {
     pub chunk_query: Query<'w, 's, &'static Chunk<S>>,
     pub chunk_manager: Res<'w, ChunkManager<S>>,
     pub action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer<S>>,
     pub action_intent_buffer: ResMut<'w, ActionIntentBuffer<S>>,
 }
 
-pub struct Input<S: Scale> {
+pub struct Input<S: ConstScale> {
     pub inputs: Vec<LoadChunkInput<S>>,
 }
 
-pub struct State<S: Scale> {
+pub struct State<S: ConstScale> {
     pub spawn_chunk_states: Vec<SpawnChunkState<S>>,
     pub transfer_chunk_ownership_states: Vec<TransferChunkOwnershipState<S>>,
 }
 
 // Core Functions
-pub fn setup_ecs_while<S: Scale>(input: Input<S>, main_access: MainAccess<S>) -> State<S> {
+pub fn setup_ecs_while<S: ConstScale>(input: Input<S>, main_access: MainAccess<S>) -> State<S> {
     let chunk_manager = main_access.chunk_manager;
     let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
     let mut action_intent_buffer = main_access.action_intent_buffer;
@@ -161,7 +161,7 @@ pub fn setup_ecs_while<S: Scale>(input: Input<S>, main_access: MainAccess<S>) ->
     }
 }
 
-pub fn run_ecs_while<S: Scale>(state: State<S>, main_access: MainAccess<S>) -> Outcome<State<S>, ()> {
+pub fn run_ecs_while<S: ConstScale>(state: State<S>, main_access: MainAccess<S>) -> Outcome<State<S>, ()> {
     let chunk_query = main_access.chunk_query;
 
     let spawn_chunk_states = state

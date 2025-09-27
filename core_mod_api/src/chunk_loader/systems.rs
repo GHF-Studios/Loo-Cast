@@ -1,4 +1,4 @@
-use crate::usf::scale::Scale;
+use crate::usf::scale::ConstScale;
 use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 use tokio::task::JoinHandle;
@@ -396,6 +396,6 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn post_update_chunk_loader_system<S: Scale>(mut removed_chunk_loaders: ResMut<RemovedChunkLoaders<S>>) {
+pub(crate) fn post_update_chunk_loader_system<S: ConstScale>(mut removed_chunk_loaders: ResMut<RemovedChunkLoaders<S>>) {
     removed_chunk_loaders.0.clear();
 }

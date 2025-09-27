@@ -6,29 +6,29 @@ use crate::chunk::functions::*;
 use crate::chunk::resources::ChunkManager;
 use crate::chunk::types::ChunkOwnerId;
 use crate::chunk_loader::workflows::external::unload_chunks::UnloadChunkInput;
-use crate::usf::scale::Scale;
+use crate::usf::scale::ConstScale;
 
 // Items
 
 // Core Types
 #[derive(bevy::ecs::system::SystemParam)]
-pub struct MainAccess<'w, 's, S: Scale> {
+pub struct MainAccess<'w, 's, S: ConstScale> {
     pub chunk_manager: Res<'w, ChunkManager<S>>,
     pub phantom_data: PhantomData<&'s ()>,
 }
 
-pub struct Input<S: Scale> {
+pub struct Input<S: ConstScale> {
     pub chunk_owner_id: ChunkOwnerId<S>,
     pub chunk_loader_position: Vec2,
     pub chunk_loader_radius: u32,
 }
 
-pub struct Output<S: Scale> {
+pub struct Output<S: ConstScale> {
     pub unload_chunk_inputs: Vec<UnloadChunkInput<S>>,
 }
 
 // Core Functions
-pub fn run_ecs<S: Scale>(input: Input<S>, main_access: MainAccess<S>) -> Output<S> {
+pub fn run_ecs<S: ConstScale>(input: Input<S>, main_access: MainAccess<S>) -> Output<S> {
     let chunk_manager = main_access.chunk_manager;
 
     let chunk_owner_id = input.chunk_owner_id;
