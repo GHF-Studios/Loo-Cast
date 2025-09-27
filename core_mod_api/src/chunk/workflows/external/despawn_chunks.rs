@@ -2,7 +2,6 @@
 use bevy::prelude::{ResMut, Commands, Query, Entity};
 
 use crate::chunk::{components::Chunk, resources::ChunkManager};
-use crate::usf::scale::ConstScale;
 use crate::workflow::types::Outcome;
 
 // Items
@@ -17,10 +16,10 @@ pub struct DespawnChunkState {
 
 // Core Types
 #[derive(bevy::ecs::system::SystemParam)]
-pub struct MainAccess<'w, 's, S: ConstScale> {
+pub struct MainAccess<'w, 's> {
     pub commands: Commands<'w, 's>,
-    pub chunk_query: Query<'w, 's, (Entity, &'static Chunk<S>)>,
-    pub chunk_manager: ResMut<'w, ChunkManager<S>>,
+    pub chunk_query: Query<'w, 's, (Entity, &'static Chunk)>,
+    pub chunk_manager: ResMut<'w, ChunkManager>,
 }
 
 pub struct Input {
@@ -41,7 +40,7 @@ pub enum Error {
 }
 
 // Core Functions
-pub fn setup_ecs_while<S: ConstScale>(input: Input, main_access: MainAccess<S>) -> Result<State, Error> {
+pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, Error> {
     let mut commands = main_access.commands;
     let chunk_query = main_access.chunk_query;
     let mut chunk_manager = main_access.chunk_manager;
@@ -71,7 +70,7 @@ pub fn setup_ecs_while<S: ConstScale>(input: Input, main_access: MainAccess<S>) 
     })
 }
 
-pub fn run_ecs_while<S: ConstScale>(state: State, main_access: MainAccess<S>) -> Result<Outcome<State, Output>, Error> {
+pub fn run_ecs_while(state: State, main_access: MainAccess) -> Result<Outcome<State, Output>, Error> {
     let mut commands = main_access.commands;
 
     let despawn_chunk_states = state.despawn_chunk_states.into_iter().map(|mut despawn_chunk_state| {

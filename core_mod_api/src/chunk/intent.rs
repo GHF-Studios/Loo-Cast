@@ -1,5 +1,4 @@
 use bevy::prelude::Reflect;
-use std::marker::PhantomData;
 
 use super::types::ChunkOwnerId;
 

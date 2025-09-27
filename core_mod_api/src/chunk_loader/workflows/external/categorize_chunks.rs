@@ -6,24 +6,23 @@ use crate::chunk::functions::{calculate_chunk_distance_from_owner, calculate_chu
 use crate::chunk::resources::ChunkManager;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::workflows::external::{load_chunks::LoadChunkInput, unload_chunks::UnloadChunkInput};
-use crate::usf::scale::ConstScale;
 use crate::utils::components::DropHook;
 
 // Items
 
 // Core Types
 #[derive(bevy::ecs::system::SystemParam)]
-pub struct MainAccess<'w, 's, S: ConstScale> {
-    pub chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader<S>, Option<&'static DropHook<ChunkLoader<S>>>)>,
-    pub chunk_manager: Res<'w, ChunkManager<S>>,
+pub struct MainAccess<'w, 's> {
+    pub chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader, Option<&'static DropHook<ChunkLoader>>)>,
+    pub chunk_manager: Res<'w, ChunkManager>,
 }
-pub struct Output<S: ConstScale> {
-    pub load_chunk_inputs: Vec<LoadChunkInput<S>>,
-    pub unload_chunk_inputs: Vec<UnloadChunkInput<S>>,
+pub struct Output {
+    pub load_chunk_inputs: Vec<LoadChunkInput>,
+    pub unload_chunk_inputs: Vec<UnloadChunkInput>,
 }
 
 // Core Functions
-pub fn run_ecs<S: ConstScale>(main_access: MainAccess<S>) -> Output<S> {
+pub fn run_ecs(main_access: MainAccess) -> Output {
     let chunk_loader_query = &main_access.chunk_loader_query;
     let chunk_manager = &main_access.chunk_manager;
 

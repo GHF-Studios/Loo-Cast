@@ -8,9 +8,9 @@ use crate::usf::scale::ConstScale;
 use crate::workflow::types::Outcome;
 
 // Items
-pub struct SpawnChunkInput<S: ConstScale> {
+pub struct SpawnChunkInput {
     pub chunk_coord: (i32, i32),
-    pub chunk_owner_id: ChunkOwnerId<S>,
+    pub chunk_owner_id: ChunkOwnerId,
     pub metric_texture: Handle<Image>
 }
 
@@ -22,14 +22,14 @@ pub struct SpawnChunkState {
 
 // Core Types
 #[derive(bevy::ecs::system::SystemParam)]
-pub struct MainAccess<'w, 's, S: ConstScale> {
+pub struct MainAccess<'w, 's> {
     pub commands: Commands<'w, 's>,
-    pub chunk_query: Query<'w, 's, &'static Chunk<S>>,
-    pub chunk_manager: ResMut<'w, ChunkManager<S>>,
+    pub chunk_query: Query<'w, 's, &'static Chunk>,
+    pub chunk_manager: ResMut<'w, ChunkManager>,
 }
 
-pub struct Input<S: ConstScale> {
-    pub inputs: Vec<SpawnChunkInput<S>>,
+pub struct Input {
+    pub inputs: Vec<SpawnChunkInput>,
 }
 
 pub struct State {
@@ -46,7 +46,7 @@ pub enum Error {
 }
 
 // Core Functions
-pub fn setup_ecs_while<S: ConstScale>(input: Input<S>, main_access: MainAccess<S>) -> Result<State, Error> {
+pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, Error> {
     let mut commands = main_access.commands;
     let chunk_query = main_access.chunk_query;
     let mut chunk_manager = main_access.chunk_manager;
@@ -80,7 +80,7 @@ pub fn setup_ecs_while<S: ConstScale>(input: Input<S>, main_access: MainAccess<S
             Chunk {
                 coord: chunk_coord,
                 owner_id: Some(chunk_owner_id.clone()),
-                phantom_scale: std::marker::PhantomData,
+                scale: chunk_coord.scale,
             },
             chunk_name
         )).observe(on_click_select).id();
@@ -103,7 +103,7 @@ pub fn setup_ecs_while<S: ConstScale>(input: Input<S>, main_access: MainAccess<S
     })
 }
 
-pub fn run_ecs_while<S: ConstScale>(state: State, main_access: MainAccess<S>) -> Result<Outcome<State, Output>, Error> {
+pub fn run_ecs_while(state: State, main_access: MainAccess) -> Result<Outcome<State, Output>, Error> {
     let mut commands = main_access.commands;
 
     let spawn_chunk_states = state.spawn_chunk_states.into_iter().map(|mut spawn_chunk_state| {

@@ -1,7 +1,6 @@
 // Imports
 use bevy::prelude::{warn, Query, Res, ResMut, Transform, Vec2};
 use std::collections::HashSet;
-use std::marker::PhantomData;
 
 use crate::chunk::{
     components::Chunk,
@@ -11,26 +10,24 @@ use crate::chunk::{
     types::ChunkOwnerId,
 };
 use crate::chunk_loader::components::ChunkLoader;
-use crate::usf::scale::ConstScale;
 use crate::workflow::types::Outcome;
 
 // Items
-pub struct UnloadChunkInput<S: ConstScale> {
-    pub owner_id: ChunkOwnerId<S>,
+pub struct UnloadChunkInput {
+    pub owner_id: ChunkOwnerId,
     pub chunk_coord: (i32, i32),
     pub chunk_loader_distance_squared: u32,
     pub chunk_loader_radius_squared: u32,
 }
 
-pub struct DespawnChunkState<S: ConstScale> {
+pub struct DespawnChunkState {
     pub coord: (i32, i32),
     pub is_despawned: bool,
-    pub phantom_scale: std::marker::PhantomData<S>,
 }
 
-pub struct TransferChunkOwnershipState<S: ConstScale> {
+pub struct TransferChunkOwnershipState {
     pub coord: (i32, i32),
-    pub owner_id: ChunkOwnerId<S>,
+    pub owner_id: ChunkOwnerId,
     pub is_ownership_transfered: bool,
 }
 
@@ -51,25 +48,25 @@ pub fn is_chunk_in_loader_range(chunk_coord: &(i32, i32), loader_position: Vec2,
 
 // Core Types
 #[derive(bevy::ecs::system::SystemParam)]
-pub struct MainAccess<'w, 's, S: ConstScale> {
-    pub chunk_manager: Res<'w, ChunkManager<S>>,
-    pub action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer<S>>,
-    pub action_intent_buffer: ResMut<'w, ActionIntentBuffer<S>>,
-    pub chunk_query: Query<'w, 's, &'static Chunk<S>>,
-    pub chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader<S>)>,
+pub struct MainAccess<'w, 's> {
+    pub chunk_manager: Res<'w, ChunkManager>,
+    pub action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer>,
+    pub action_intent_buffer: ResMut<'w, ActionIntentBuffer>,
+    pub chunk_query: Query<'w, 's, &'static Chunk>,
+    pub chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader)>,
 }
 
-pub struct Input<S: ConstScale> {
-    pub inputs: Vec<UnloadChunkInput<S>>,
+pub struct Input {
+    pub inputs: Vec<UnloadChunkInput>,
 }
 
-pub struct State<S: ConstScale> {
-    pub despawn_chunk_states: Vec<DespawnChunkState<S>>,
-    pub transfer_chunk_ownership_states: Vec<TransferChunkOwnershipState<S>>,
+pub struct State {
+    pub despawn_chunk_states: Vec<DespawnChunkState>,
+    pub transfer_chunk_ownership_states: Vec<TransferChunkOwnershipState>,
 }
 
 // Core Functions
-pub fn setup_ecs_while<S: ConstScale>(input: Input<S>, main_access: MainAccess<S>) -> State<S> {
+pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
     // warn!("Setting up UnloadChunks");
     let chunk_manager = main_access.chunk_manager;
     let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
@@ -138,7 +135,7 @@ pub fn setup_ecs_while<S: ConstScale>(input: Input<S>, main_access: MainAccess<S
 
         let resolution = match proposed_intent {
             Some(proposed_intent) => resolve_intent(&chunk_state, committed, buffered, proposed_intent.clone()),
-            None => ResolvedActionIntent::DiscardIncoming(ResolutionWarning::RedundantIntent(PhantomData)),
+            None => ResolvedActionIntent::DiscardIncoming(ResolutionWarning::RedundantIntent),
         };
 
         match resolution {
@@ -148,7 +145,6 @@ pub fn setup_ecs_while<S: ConstScale>(input: Input<S>, main_access: MainAccess<S
                     despawn_chunk_states.push(DespawnChunkState {
                         coord,
                         is_despawned: false,
-                        phantom_scale: PhantomData,
                     });
                 }
                 ActionIntent::TransferOwnership { new_owner_id, .. } => {
@@ -197,7 +193,7 @@ pub fn setup_ecs_while<S: ConstScale>(input: Input<S>, main_access: MainAccess<S
     }
 }
 
-pub fn run_ecs_while<S: ConstScale>(state: State<S>, main_access: MainAccess<S>) -> Outcome<State<S>, ()> {
+pub fn run_ecs_while(state: State, main_access: MainAccess) -> Outcome<State, ()> {
     // warn!("Running UnloadChunks");
     let chunk_query = main_access.chunk_query;
 

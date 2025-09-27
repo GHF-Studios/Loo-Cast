@@ -12,13 +12,11 @@ lazy_static! {
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-pub struct ChunkLoader<S: ConstScale> {
+pub struct ChunkLoader {
     pub radius: u32,
-    chunk_owner_id: ChunkOwnerId<S>,
-    #[reflect(ignore)]
-    phantom_scale: std::marker::PhantomData<S>,
+    chunk_owner_id: ChunkOwnerId,
 }
-impl<S: ConstScale> ChunkLoader<S> {
+impl ChunkLoader {
     pub fn new(owner_id: String) -> Self {
         let owner_id_registry = OWNER_ID_REGISTRY.lock().unwrap();
         if owner_id_registry.contains(&owner_id) {
@@ -28,11 +26,10 @@ impl<S: ConstScale> ChunkLoader<S> {
         ChunkLoader {
             radius: CONFIG().get::<u32>("chunk_loader/default_radius"),
             chunk_owner_id: ChunkOwnerId::new(owner_id, get_reserved_entity()),
-            phantom_scale: std::marker::PhantomData,
         }
     }
 
-    pub fn chunk_owner_id(&self) -> &ChunkOwnerId<S> {
+    pub fn chunk_owner_id(&self) -> &ChunkOwnerId {
         &self.chunk_owner_id
     }
 }
