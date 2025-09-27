@@ -73,6 +73,7 @@ impl Config {
     // Maybe we can perform some build.rs/macro trickery.
 
     /// Generic getter with caching
+    #[track_caller]
     pub fn get<T>(&self, path: &str) -> T
     where
         T: TryFrom<ConfigValue, Error = String> + Clone + Send + Sync + 'static,

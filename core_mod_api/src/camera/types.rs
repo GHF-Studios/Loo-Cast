@@ -1,8 +1,9 @@
-use bevy::prelude::Reflect;
+use bevy::prelude::{Resource, Reflect, ReflectResource};
 
 use crate::config::statics::CONFIG;
 
-#[derive(Reflect)]
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
 pub(crate) struct ZoomFactor(pub f32);
 impl Default for ZoomFactor {
     fn default() -> Self {

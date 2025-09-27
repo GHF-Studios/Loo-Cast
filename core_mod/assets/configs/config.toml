@@ -1,5 +1,5 @@
 [camera]
-default_zoom = 3.5
+default_zoom = 1
 min_zoom = 0.03125
 max_zoom = 32.0
 base_zoom_speed = 5.0
@@ -28,7 +28,7 @@ workgroup_size_y = 16
 enabled = true
 
 [player]
-size = 1.0
+base_size = 64.0
 movement_speed = 5.0
 sprint_multiplier = 2.5
 

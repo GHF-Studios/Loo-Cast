@@ -22,7 +22,7 @@ impl PlayerBundle {
 }
 impl Default for PlayerBundle {
     fn default() -> Self {
-        let player_size = CONFIG().get::<f32>("player/size");
+        let player_size = CONFIG().get::<f32>("player/base_size");
         let half_player_size = player_size / 2.0;
 
         PlayerBundle {

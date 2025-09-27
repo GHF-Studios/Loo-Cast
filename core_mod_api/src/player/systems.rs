@@ -2,12 +2,7 @@ use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
 use crate::{
-    chunk_loader::components::ChunkLoader,
-    config::statics::CONFIG,
-    input::states::InputMode,
-    player::resources::PlayerLifecycle,
-    utils::components::{DropHook, InitHook},
-    workflow::functions::handle_composite_workflow_return_now,
+    camera::types::ZoomFactor, chunk_loader::components::ChunkLoader, config::statics::CONFIG, input::states::InputMode, player::resources::PlayerLifecycle, utils::components::{DropHook, InitHook}, workflow::functions::handle_composite_workflow_return_now
 };
 use crate::usf::scale::ScaleMeter1;
 
@@ -20,6 +15,7 @@ pub(super) fn update_player_system(
     keys: Res<ButtonInput<KeyCode>>,
     input_mode: Res<State<InputMode>>,
     time: Res<Time<Virtual>>,
+    mut zoom_factor: ResMut<ZoomFactor>,
 ) {
     let is_player_update_allowed = {
         let condition_1 = if let Some((_, init_hook)) = chunk_loader_init_hook_query.iter().find(|(l, _)| l.chunk_owner_id().id() == "player") {
@@ -115,8 +111,8 @@ pub(super) fn update_player_system(
                 *player_state_resource = PlayerLifecycle::Despawning(Some(handle));
                 return;
             }
-            let _movement_span = info_span!("movement").entered();
 
+            let _transformation_span = info_span!("transformation").entered();
             if let Ok(mut transform) = transform_query.get_mut(entity) {
                 let mut direction = Vec3::ZERO;
 
@@ -141,7 +137,8 @@ pub(super) fn update_player_system(
                     } else {
                         1.0
                     };
-                    transform.translation += direction * movement_speed * sprint_multiplier * time.delta_secs();
+                    transform.translation += direction * zoom_factor.0 * movement_speed * sprint_multiplier * time.delta_secs();
+                    transform.scale = Vec3::splat(zoom_factor.0);
                 }
 
                 *player_state_resource = PlayerLifecycle::Active(entity);

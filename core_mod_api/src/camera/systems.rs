@@ -55,7 +55,7 @@ pub(crate) fn main_camera_zoom_system(
     input_mode: Res<State<InputMode>>,
     time: Res<Time<Real>>,
     virtual_paused: Res<VirtualPaused>,
-    mut zoom_factor: Local<ZoomFactor>,
+    mut zoom_factor: ResMut<ZoomFactor>,
 ) {
     let min_zoom = CONFIG().get::<f32>("camera/min_zoom");
     let max_zoom = CONFIG().get::<f32>("camera/max_zoom");
