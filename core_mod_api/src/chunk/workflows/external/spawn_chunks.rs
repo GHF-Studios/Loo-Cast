@@ -96,7 +96,7 @@ pub fn setup_ecs_while<S: Scale>(input: Input<S>, main_access: MainAccess<S>) ->
         });
     }
 
-    warn!("Spawning {} chunks", spawn_chunk_states.len());
+    // warn!("Spawning {} chunks", spawn_chunk_states.len());
 
     Ok(State {
         spawn_chunk_states
@@ -118,14 +118,14 @@ pub fn run_ecs_while<S: Scale>(state: State, main_access: MainAccess<S>) -> Resu
     if is_done {
         let spawned_chunk_entities = spawn_chunk_states.into_iter().map(|spawn_chunk_state| spawn_chunk_state.chunk_entity).collect();
 
-        warn!("All chunks spawned.");
+        // warn!("All chunks spawned.");
 
         Ok(Outcome::Done(Output {
             spawned_chunk_entities
         }))
     } else {
         let done_count = spawn_chunk_states.iter().filter(|spawn_chunk_state| spawn_chunk_state.is_spawned).count();
-        warn!("Waiting for chunks to spawn... {}/{}", done_count, spawn_chunk_states.len());
+        // warn!("Waiting for chunks to spawn... {}/{}", done_count, spawn_chunk_states.len());
 
         Ok(Outcome::Wait(State {
             spawn_chunk_states
