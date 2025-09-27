@@ -15,7 +15,7 @@ pub(super) fn update_player_system(
     keys: Res<ButtonInput<KeyCode>>,
     input_mode: Res<State<InputMode>>,
     time: Res<Time<Virtual>>,
-    mut zoom_factor: ResMut<ZoomFactor>,
+    zoom_factor: Res<ZoomFactor>,
 ) {
     let is_player_update_allowed = {
         let condition_1 = if let Some((_, init_hook)) = chunk_loader_init_hook_query.iter().find(|(l, _)| l.chunk_owner_id().id() == "player") {
@@ -114,6 +114,8 @@ pub(super) fn update_player_system(
 
             let _transformation_span = info_span!("transformation").entered();
             if let Ok(mut transform) = transform_query.get_mut(entity) {
+                transform.scale = Vec3::splat(zoom_factor.0);
+
                 let mut direction = Vec3::ZERO;
 
                 if keys.pressed(KeyCode::KeyW) && input_mode.is_game() {
@@ -131,21 +133,20 @@ pub(super) fn update_player_system(
 
                 if direction.length_squared() > 0.0 {
                     direction = direction.normalize();
-                    let movement_speed = CONFIG().get::<f32>("player/movement_speed");
+                    let base_movement_speed = CONFIG().get::<f32>("player/base_movement_speed");
                     let sprint_multiplier = if keys.pressed(KeyCode::ShiftLeft) {
                         CONFIG().get::<f32>("player/sprint_multiplier")
                     } else {
                         1.0
                     };
-                    transform.translation += direction * zoom_factor.0 * movement_speed * sprint_multiplier * time.delta_secs();
-                    transform.scale = Vec3::splat(zoom_factor.0);
+                    transform.translation += direction * zoom_factor.0 * base_movement_speed * sprint_multiplier * time.delta_secs();
                 }
 
                 *player_state_resource = PlayerLifecycle::Active(entity);
             } else {
                 // Entity not found? Maybe it was deleted outside this system.
                 *player_state_resource = PlayerLifecycle::None;
-                warn!("Player entity not found in update_player_system. The player entity should not be manually despawned! Resetting player lifecycle...",);
+                warn!("Player entity not found in update_player_system. The player entity should not be manually despawned! Resetting player lifecycle...");
             }
         }
     };

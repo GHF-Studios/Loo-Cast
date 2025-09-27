@@ -28,8 +28,8 @@ workgroup_size_y = 16
 enabled = true
 
 [player]
-base_size = 64.0
-movement_speed = 5.0
+base_size = 32.0
+base_movement_speed = 32.0
 sprint_multiplier = 2.5
 
 [time]
