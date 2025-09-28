@@ -37,7 +37,7 @@ pub(crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<(i3
     chunks
 }
 
-pub(crate) fn calculate_chunk_distance_from_owner(coord1: &(i32, i32), coord2: &(i32, i32)) -> u32 {
+pub(crate) fn calculate_chunk_distance(coord1: &(i32, i32), coord2: &(i32, i32)) -> u32 {
     let dx = coord1.0 - coord2.0;
     let dy = coord1.1 - coord2.1;
     (dx * dx + dy * dy).try_into().unwrap()
