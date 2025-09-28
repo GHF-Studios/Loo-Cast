@@ -133,7 +133,7 @@ pub(crate) fn process_chunk_actions_system(
     let mut despawn_inputs = vec![];
     let mut transfer_inputs = vec![];
 
-    let mut chunk_loaders_performing_chunk_loads: Vec<ChunkOwnerId<ScaleQuectoMeter000001>> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads: Vec<ChunkOwnerId> = Vec::new();
 
     for (_, coords) in action_intent_commit_buffer.priority_buckets.iter() {
         for coord in coords {
@@ -212,7 +212,7 @@ pub(crate) fn process_chunk_actions_system(
         Some(composite_workflow!(
             SpawnChunks,
             move in texture_size: u32,
-            move in spawn_inputs: Vec<SpawnChunkInput<ScaleQuectoMeter000001>>,
+            move in spawn_inputs: Vec<SpawnChunkInput>,
             move in param_data: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
             new_chunk_loaders: Vec<Entity>,
         {

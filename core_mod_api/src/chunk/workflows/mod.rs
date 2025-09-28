@@ -27,45 +27,45 @@ define_workflow_mod_OLD! {
                 ValidateAndSpawnAndWait: EcsWhile, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
-                            inner_scale_quecto_meter_000001: ValidateAndSpawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter000001>,
+                            inner: ValidateAndSpawnAndWaitMainAccess<'w, 's>,
                         }
 
                         struct Input {
-                            inner_scale_quecto_meter_000001: ValidateAndSpawnAndWaitInput<ScaleQuectoMeter000001>,
+                            inner: ValidateAndSpawnAndWaitInput,
                         }
                         struct State {
-                            inner_scale_quecto_meter_000001: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
+                            inner: Progress<ValidateAndSpawnAndWaitState, ValidateAndSpawnAndWaitOutput>,
                         }
                         struct Output {
-                            inner_scale_quecto_meter_000001: ValidateAndSpawnAndWaitOutput,
+                            inner: ValidateAndSpawnAndWaitOutput,
                         }
                         enum Error {
-                            ScaleQuectoMeter000001Error(ValidateAndSpawnAndWaitError),
+                            Inner(ValidateAndSpawnAndWaitError),
                         }
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
-                            let state_scale_quecto_meter_000001 = validate_and_spawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_000001, main_access.inner_scale_quecto_meter_000001).map_err(|e| Error::ScaleQuectoMeter000001Error(e))?;
+                            let state = validate_and_spawn_and_wait_setup_ecs_while(input.inner, main_access.inner).map_err(|e| Error::Inner(e))?;
                             
                             Ok(State {
-                                inner_scale_quecto_meter_000001: Progress::Unfinished(state_scale_quecto_meter_000001),
+                                inner: Progress::Unfinished(state),
                             })
                         }
 
                         fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
-                            let progress_scale_quecto_meter_000001 = match state.inner_scale_quecto_meter_000001 {
-                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_000001).map_err(|e| Error::ScaleQuectoMeter000001Error(e))?.into_progress(),
+                            let progress = match state.inner {
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner).map_err(|e| Error::Inner(e))?.into_progress(),
                                 Progress::Finished(output) => Progress::Finished(output)
                             };
                             
-                            if progress_scale_quecto_meter_000001.is_finished() {
+                            if progress.is_finished() {
                                 return Ok(Done(Output {
-                                    inner_scale_quecto_meter_000001: progress_scale_quecto_meter_000001.unwrap_finished(),
+                                    inner: progress.unwrap_finished(),
                                 }));
                             }
                             
                             Ok(Wait(State {
-                                inner_scale_quecto_meter_000001: progress_scale_quecto_meter_000001,
+                                inner: progress,
                             }))
                         }
                     ]
@@ -95,45 +95,45 @@ define_workflow_mod_OLD! {
                 FindAndDespawnAndWait: EcsWhile, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
-                            inner_scale_quecto_meter_000001: FindAndDespawnAndWaitMainAccess<'w, 's, ScaleQuectoMeter000001>,
+                            inner: FindAndDespawnAndWaitMainAccess<'w, 's>,
                         }
                         struct Input {
-                            inner_scale_quecto_meter_000001: FindAndDespawnAndWaitInput,
+                            inner: FindAndDespawnAndWaitInput,
                         }
                         struct State {
-                            inner_scale_quecto_meter_000001: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
+                            inner: Progress<FindAndDespawnAndWaitState, FindAndDespawnAndWaitOutput>,
                         }
                         struct Output {
-                            inner_scale_quecto_meter_000001: FindAndDespawnAndWaitOutput,
+                            inner: FindAndDespawnAndWaitOutput,
                         }
 
                         enum Error {
-                            ScaleQuectoMeter000001Error(FindAndDespawnAndWaitError),
+                            Inner(FindAndDespawnAndWaitError),
                         }
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
-                            let state_scale_quecto_meter_000001 = find_and_despawn_and_wait_setup_ecs_while(input.inner_scale_quecto_meter_000001, main_access.inner_scale_quecto_meter_000001).map_err(|e| Error::ScaleQuectoMeter000001Error(e))?;
+                            let state = find_and_despawn_and_wait_setup_ecs_while(input.inner, main_access.inner).map_err(|e| Error::Inner(e))?;
                             
                             Ok(State {
-                                inner_scale_quecto_meter_000001: Progress::Unfinished(state_scale_quecto_meter_000001),
+                                inner: Progress::Unfinished(state),
                             })
                         }
 
                         fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
-                            let progress_scale_quecto_meter_000001 = match state.inner_scale_quecto_meter_000001 {
-                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner_scale_quecto_meter_000001).map_err(|e| Error::ScaleQuectoMeter000001Error(e))?.into_progress(),
+                            let progress = match state.inner {
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner).map_err(|e| Error::Inner(e))?.into_progress(),
                                 Progress::Finished(output) => Progress::Finished(output)
                             };
                             
-                            if progress_scale_quecto_meter_000001.is_finished() {
+                            if progress.is_finished() {
                                 return Ok(Done(Output {
-                                    inner_scale_quecto_meter_000001: progress_scale_quecto_meter_000001.unwrap_finished(),
+                                    inner: progress.unwrap_finished(),
                                 }));
                             }
 
                             Ok(Wait(State {
-                                inner_scale_quecto_meter_000001: progress_scale_quecto_meter_000001,
+                                inner: progress,
                             }))
                         }
                     ]
@@ -161,24 +161,24 @@ define_workflow_mod_OLD! {
                 FindAndTransferOwnership: Ecs, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
-                            inner_scale_quecto_meter_000001: FindAndTransferOwnershipMainAccess<'w, 's, ScaleQuectoMeter000001>,
+                            inner: FindAndTransferOwnershipMainAccess<'w, 's>,
                         }
                         struct Input {
-                            inner_scale_quecto_meter_000001: FindAndTransferOwnershipInput<ScaleQuectoMeter000001>,
+                            inner: FindAndTransferOwnershipInput,
                         }
                         struct Output {
-                            inner_scale_quecto_meter_000001: FindAndTransferOwnershipOutput,
+                            inner: FindAndTransferOwnershipOutput,
                         }
                         enum Error {
-                            ScaleQuectoMeter000001Error(FindAndTransferOwnershipError),
+                            Inner(FindAndTransferOwnershipError),
                         }
                     ],
                     core_functions: [
                         fn RunEcs |input, main_access| -> Result<Output, Error> {
-                            let output_scale_quecto_meter_000001 = find_and_transfer_ownership_run_ecs(input.inner_scale_quecto_meter_000001, main_access.inner_scale_quecto_meter_000001).map_err(|e| Error::ScaleQuectoMeter000001Error(e))?;
+                            let output = find_and_transfer_ownership_run_ecs(input.inner, main_access.inner).map_err(|e| Error::Inner(e))?;
 
                             Ok(Output {
-                                inner_scale_quecto_meter_000001: output_scale_quecto_meter_000001,
+                                inner: output,
                             })
                         }
                     ]

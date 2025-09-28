@@ -89,8 +89,8 @@ define_workflow_mod_OLD! {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>,
-                            chunk_loader_with_drop_hook_query: Query<'w, 's, Entity, (With<Player>, Without<DropHook<ChunkLoader<ScaleMeter1>>>)>,
-                            chunk_loader_without_drop_hook_query: Query<'w, 's, Entity, (With<Player>, With<DropHook<ChunkLoader<ScaleMeter1>>>)>,
+                            chunk_loader_with_drop_hook_query: Query<'w, 's, Entity, (With<Player>, Without<DropHook<ChunkLoader>>)>,
+                            chunk_loader_without_drop_hook_query: Query<'w, 's, Entity, (With<Player>, With<DropHook<ChunkLoader>>)>,
                         }
                         struct State {}
                         enum Error {

@@ -1,22 +1,22 @@
 use bevy::prelude::*;
 
 use crate::{chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader, config::statics::CONFIG, utils::components::InitHook};
-use crate::usf::scale::ScaleMeter1;
+use crate::usf::scale::Scale;
 
 use super::components::Player;
 
 #[derive(Bundle, Reflect)]
 pub struct PlayerBundle {
-    chunk_actor: ChunkActor<ScaleMeter1>,
-    chunk_loader: ChunkLoader<ScaleMeter1>,
-    chunk_loader_init_hook: InitHook<ChunkLoader<ScaleMeter1>>,
+    chunk_actor: ChunkActor,
+    chunk_loader: ChunkLoader,
+    chunk_loader_init_hook: InitHook<ChunkLoader>,
     player: Player,
     sprite: Sprite,
     transform: Transform,
     name: Name,
 }
 impl PlayerBundle {
-    pub fn chunk_loader(&self) -> &ChunkLoader<ScaleMeter1> {
+    pub fn chunk_loader(&self) -> &ChunkLoader {
         &self.chunk_loader
     }
 }
@@ -27,8 +27,8 @@ impl Default for PlayerBundle {
 
         PlayerBundle {
             chunk_actor: Default::default(),
-            chunk_loader: ChunkLoader::<ScaleMeter1>::new("player_entity_chunk_loader".to_string()),
-            chunk_loader_init_hook: InitHook::<ChunkLoader<ScaleMeter1>>::default(),
+            chunk_loader: ChunkLoader::new("player_entity_chunk_loader".to_string(), Scale::default()),
+            chunk_loader_init_hook: InitHook::<ChunkLoader>::default(),
             player: Default::default(),
             sprite: Sprite {
                 color: Color::srgb(0.0, 1.0, 0.0),

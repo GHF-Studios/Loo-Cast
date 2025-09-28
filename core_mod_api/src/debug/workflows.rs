@@ -12,7 +12,7 @@ define_workflow_mod_OLD! {
                     chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader,
                 };
                 use crate::debug::{components::DebugObjectComponent, types::DebugObjectMovement};
-                use crate::usf::scale::ScaleMeter1;
+                use crate::usf::scale::Scale;
             },
             user_items: {
                 pub fn spawn_debug_object(
@@ -24,10 +24,10 @@ define_workflow_mod_OLD! {
                     movement: DebugObjectMovement,
                 ) -> Entity {
                     let chunk_loader_id = format!("{}_chunk_loader", name);
-                    let chunk_loader = ChunkLoader::<ScaleMeter1>::new(chunk_loader_id);
+                    let chunk_loader = ChunkLoader::new(chunk_loader_id, Scale::default());
 
                     commands.entity(chunk_loader.chunk_owner_id().entity()).insert((
-                        ChunkActor::<ScaleMeter1>(PhantomData),
+                        ChunkActor,
                         chunk_loader,
                         DebugObjectComponent { movement },
                         Sprite {

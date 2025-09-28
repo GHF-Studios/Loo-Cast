@@ -18,15 +18,15 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
         let handle = composite_workflow!(UpdateChunkLoaders, {
             let categorize_chunks_output = workflow!(O, ChunkLoader::CategorizeChunks);
 
-            let load_chunk_inputs_scale_quecto_meter_000001 = categorize_chunks_output.inner_scale_quecto_meter_000001.load_chunk_inputs;
-            let unload_chunk_inputs_scale_quecto_meter_000001 = categorize_chunks_output.inner_scale_quecto_meter_000001.unload_chunk_inputs;
+            let load_chunk_inputs = categorize_chunks_output.inner.load_chunk_inputs;
+            let unload_chunk_inputs = categorize_chunks_output.inner.unload_chunk_inputs;
 
             workflow!(I, ChunkLoader::LoadChunks, Input {
-                inner_scale_quecto_meter_000001: crate::chunk_loader::workflows::external::load_chunks::Input { inputs: load_chunk_inputs_scale_quecto_meter_000001 },
+                inner: crate::chunk_loader::workflows::external::load_chunks::Input { inputs: load_chunk_inputs },
             });
 
             workflow!(I, ChunkLoader::UnloadChunks, Input {
-                inner_scale_quecto_meter_000001: crate::chunk_loader::workflows::external::unload_chunks::Input { inputs: unload_chunk_inputs_scale_quecto_meter_000001 },
+                inner: crate::chunk_loader::workflows::external::unload_chunks::Input { inputs: unload_chunk_inputs },
             });
         });
 

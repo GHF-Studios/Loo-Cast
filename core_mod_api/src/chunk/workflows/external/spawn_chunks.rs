@@ -4,7 +4,6 @@ use bevy::prelude::{Commands, Entity, Query, ResMut, Handle, Image, Transform, S
 use crate::chunk::{components::Chunk, resources::ChunkManager, functions::chunk_pos_to_world, types::ChunkOwnerId};
 use crate::config::statics::CONFIG;
 use crate::debug::observers::on_click_select;
-use crate::usf::scale::ConstScale;
 use crate::workflow::types::Outcome;
 
 // Items

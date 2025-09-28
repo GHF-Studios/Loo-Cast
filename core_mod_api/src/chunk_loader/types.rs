@@ -10,5 +10,4 @@ pub struct RemovedChunkLoader {
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect)]
 pub struct RemovedChunkLoaderObservation {
     pub entity: Entity,
-    pub scale: i8,
 }
