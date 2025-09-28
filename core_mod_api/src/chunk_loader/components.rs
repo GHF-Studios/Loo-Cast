@@ -6,6 +6,8 @@ use lazy_static::lazy_static;
 use crate::{chunk::types::ChunkOwnerId, config::statics::CONFIG, entity::functions::get_reserved_entity};
 use crate::usf::scale::Scale;
 
+use super::enums::ZoomState;
+
 lazy_static! {
     static ref OWNER_ID_REGISTRY: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
 }
@@ -15,6 +17,7 @@ lazy_static! {
 pub struct ChunkLoader {
     pub radius: u32,
     chunk_owner_id: ChunkOwnerId,
+    pub(crate) zoom_state: ZoomState,
 }
 impl ChunkLoader {
     pub fn new(owner_id: String, owner_scale: Scale) -> Self {
@@ -26,10 +29,25 @@ impl ChunkLoader {
         ChunkLoader {
             radius: CONFIG().get::<u32>("chunk_loader/default_radius"),
             chunk_owner_id: ChunkOwnerId::new(owner_id, get_reserved_entity(), owner_scale),
+            zoom_state: ZoomState::default(),
         }
     }
 
     pub fn chunk_owner_id(&self) -> &ChunkOwnerId {
         &self.chunk_owner_id
+    }
+
+    pub fn suggest_zoom_in(&mut self) {
+        if self.zoom_state == ZoomState::None {
+            self.zoom_state = ZoomState::ZoomIn;
+            self.chunk_owner_id.scale_mut().zoom_in();
+        }
+    }
+
+    pub fn suggest_zoom_out(&mut self) {
+        if self.zoom_state == ZoomState::None {
+            self.zoom_state = ZoomState::ZoomOut;
+            self.chunk_owner_id.scale_mut().zoom_out();
+        }
     }
 }

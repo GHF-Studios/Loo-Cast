@@ -182,9 +182,9 @@ pub(crate) fn process_chunk_actions_system(
     let mut new_chunk_loaders = Vec::new();
     for chunk_loader_performing_chunk_load in chunk_loaders_performing_chunk_loads {
         let loader_entity = chunk_loader_performing_chunk_load.entity();
-        if let Ok(init_hook) = chunk_loader_init_hook_query.get(loader_entity) {
+        if let Ok(init_hook) = chunk_loader_init_hook_query.get(*loader_entity) {
             if !init_hook.has_fired() {
-                new_chunk_loaders.push(loader_entity);
+                new_chunk_loaders.push(*loader_entity);
             }
         }
     }

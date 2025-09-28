@@ -26,7 +26,7 @@ pub(crate) fn hook_on_add_chunk(mut world: DeferredWorld<'_>, hook_context: Hook
     let mut removed_chunk_loaders = world.resource_mut::<RemovedChunkLoaders>();
     let found_removal_event = removed_chunk_loaders.0.remove(&RemovedChunkLoader { id: chunk_owner_id.clone() });
 
-    if world.get_entity(chunk_owner_id.entity()).is_err() && !found_removal_event {
+    if world.get_entity(*chunk_owner_id.entity()).is_err() && !found_removal_event {
         panic!(
             "Spawned chunk {:?} with non-existent owner_id {:?}. 
             The chunk cannot be safely despawned, due to no respective removal event being found.

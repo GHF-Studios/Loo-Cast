@@ -34,12 +34,16 @@ impl ChunkOwnerId {
         &self.id
     }
 
-    pub fn entity(&self) -> Entity {
-        self.entity
+    pub fn entity(&self) -> &Entity {
+        &self.entity
     }
 
-    pub fn scale(&self) -> Scale {
-        self.scale
+    pub fn scale(&self) -> &Scale {
+        &self.scale
+    }
+
+    pub fn scale_mut(&mut self) -> &mut Scale {
+        &mut self.scale
     }
 }
 impl Default for ChunkOwnerId {

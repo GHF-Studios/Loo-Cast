@@ -9,6 +9,7 @@ use crate::{
 pub(super) fn update_player_system(
     chunk_loader_init_hook_query: Query<(&ChunkLoader, &InitHook<ChunkLoader>)>,
     chunk_loader_drop_hook_query: Query<(&ChunkLoader, &DropHook<ChunkLoader>)>,
+    mut chunk_loader_query: Query<&mut ChunkLoader, (Without<InitHook<ChunkLoader>>, Without<DropHook<ChunkLoader>>)>,
     mut transform_query: Query<&mut Transform>,
     mut player_state_resource: ResMut<PlayerLifecycle>,
     keys: Res<ButtonInput<KeyCode>>,
@@ -117,17 +118,19 @@ pub(super) fn update_player_system(
 
                 let mut direction = Vec3::ZERO;
 
-                if keys.pressed(KeyCode::KeyW) && input_mode.is_game() {
-                    direction.y += 1.0;
-                }
-                if keys.pressed(KeyCode::KeyS) && input_mode.is_game() {
-                    direction.y -= 1.0;
-                }
-                if keys.pressed(KeyCode::KeyA) && input_mode.is_game() {
-                    direction.x -= 1.0;
-                }
-                if keys.pressed(KeyCode::KeyD) && input_mode.is_game() {
-                    direction.x += 1.0;
+                if input_mode.is_game() {
+                    if keys.pressed(KeyCode::KeyW) {
+                        direction.y += 1.0;
+                    }
+                    if keys.pressed(KeyCode::KeyS) {
+                        direction.y -= 1.0;
+                    }
+                    if keys.pressed(KeyCode::KeyA) {
+                        direction.x -= 1.0;
+                    }
+                    if keys.pressed(KeyCode::KeyD) {
+                        direction.x += 1.0;
+                    }
                 }
 
                 if direction.length_squared() > 0.0 {
@@ -146,6 +149,17 @@ pub(super) fn update_player_system(
                 // Entity not found? Maybe it was deleted outside this system.
                 *player_state_resource = PlayerLifecycle::None;
                 warn!("Player entity not found in update_player_system. The player entity should not be manually despawned! Resetting player lifecycle...");
+            }
+
+            let _scale_zoom_span = info_span!("scale_zoom").entered();
+            if let Ok(mut chunk_loader) = chunk_loader_query.get_mut(entity) {
+                if input_mode.is_game() {
+                    if keys.just_pressed(KeyCode::NumpadAdd) {
+                        chunk_loader.suggest_zoom_in();
+                    } else if keys.just_pressed(KeyCode::NumpadSubtract) {
+                        chunk_loader.suggest_zoom_out();
+                    }
+                }
             }
         }
     };

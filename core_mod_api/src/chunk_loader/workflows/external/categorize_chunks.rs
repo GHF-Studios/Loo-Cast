@@ -40,7 +40,7 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
         let target_chunks = if drop_hook.is_some() {
             HashSet::new()
         } else {
-            calculate_chunks_in_radius(position, radius).into_iter().map(|coord| coord.scaled(chunk_loader.chunk_owner_id().scale())).collect::<HashSet<ChunkCoord>>()
+            calculate_chunks_in_radius(position, radius).into_iter().map(|coord| coord.scaled(*chunk_loader.chunk_owner_id().scale())).collect::<HashSet<ChunkCoord>>()
         };
 
         let current_chunks: HashSet<ChunkCoord> = chunk_manager
