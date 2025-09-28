@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 
 use crate::chunk::functions::*;
 use crate::chunk::resources::ChunkManager;
-use crate::chunk::types::ChunkOwnerId;
+use crate::chunk::types::{ChunkCoord, ChunkOwnerId};
 use crate::chunk_loader::workflows::external::unload_chunks::UnloadChunkInput;
 
 // Items
@@ -36,14 +36,14 @@ pub fn run_ecs(input: Input, main_access: MainAccess) -> Output {
 
     let mut unload_chunk_inputs = Vec::new();
 
-    let chunks_to_despawn: Vec<&(i32, i32)> = chunk_manager
+    let chunks_to_despawn: Vec<&ChunkCoord> = chunk_manager
         .owned_chunks
         .iter()
         .filter_map(|(chunk, owner_id)| if owner_id == &chunk_owner_id { Some(chunk) } else { None })
         .collect();
 
     for chunk_coord in chunks_to_despawn {
-        let chunk_loader_distance_squared = calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
+        let chunk_loader_distance_squared = calculate_chunk_distance_from_owner(&chunk_coord.unscaled(), &world_pos_to_chunk(position));
         let chunk_loader_radius_squared = radius * radius;
 
         unload_chunk_inputs.push(UnloadChunkInput {

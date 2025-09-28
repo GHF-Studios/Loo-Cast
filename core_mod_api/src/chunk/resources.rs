@@ -2,14 +2,15 @@ use bevy::prelude::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::{chunk::types::ChunkOwnerId, gpu::workflows::gpu::generate_chunk_textures::user_items::ChunkRenderExecutor};
+use crate::chunk::types::ChunkCoord;
 
 use super::intent::{ActionIntent, ActionPriority};
 
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
 pub struct ActionIntentCommitBuffer {
-    pub action_intent: HashMap<(i32, i32), ActionIntent>,
-    pub priority_buckets: BTreeMap<ActionPriority, HashSet<(i32, i32)>>,
+    pub action_intent: HashMap<ChunkCoord, ActionIntent>,
+    pub priority_buckets: BTreeMap<ActionPriority, HashSet<ChunkCoord>>,
 }
 impl ActionIntentCommitBuffer {
     pub fn commit_intent(&mut self, action_intent: ActionIntent) {
@@ -26,7 +27,7 @@ impl ActionIntentCommitBuffer {
         }
     }
 
-    pub fn remove_intent(&mut self, coord: &(i32, i32)) {
+    pub fn remove_intent(&mut self, coord: &ChunkCoord) {
         if let Some(action_intent) = self.action_intent.remove(coord) {
             let priority = action_intent.priority();
 
@@ -39,20 +40,20 @@ impl ActionIntentCommitBuffer {
         }
     }
 
-    pub fn remove_intents(&mut self, coords: impl IntoIterator<Item = (i32, i32)>) {
+    pub fn remove_intents(&mut self, coords: impl IntoIterator<Item = ChunkCoord>) {
         for coord in coords {
             self.remove_intent(&coord);
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&(i32, i32), &ActionIntent)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&ChunkCoord, &ActionIntent)> {
         self.priority_buckets
             .iter()
             .flat_map(|(_, coords)| coords.iter())
             .filter_map(|coord| self.action_intent.get_key_value(coord))
     }
 
-    pub fn get(&self, coord: &(i32, i32)) -> Option<&ActionIntent> {
+    pub fn get(&self, coord: &ChunkCoord) -> Option<&ActionIntent> {
         self.action_intent.get(coord)
     }
 }
@@ -60,8 +61,8 @@ impl ActionIntentCommitBuffer {
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
 pub struct ActionIntentBuffer {
-    pub action_intents: HashMap<(i32, i32), ActionIntent>,
-    pub priority_buckets: BTreeMap<ActionPriority, HashSet<(i32, i32)>>,
+    pub action_intents: HashMap<ChunkCoord, ActionIntent>,
+    pub priority_buckets: BTreeMap<ActionPriority, HashSet<ChunkCoord>>,
 }
 impl ActionIntentBuffer {
     pub fn buffer_intent(&mut self, action_intent: ActionIntent) {
@@ -72,7 +73,7 @@ impl ActionIntentBuffer {
         self.priority_buckets.entry(priority).or_default().insert(coord);
     }
 
-    pub fn cancel_intent(&mut self, coord: &(i32, i32)) {
+    pub fn cancel_intent(&mut self, coord: &ChunkCoord) {
         if let Some(committed_action_intent) = self.action_intents.remove(coord) {
             let priority = committed_action_intent.priority();
 
@@ -85,7 +86,7 @@ impl ActionIntentBuffer {
         }
     }
 
-    pub fn get(&self, coord: &(i32, i32)) -> Option<&ActionIntent> {
+    pub fn get(&self, coord: &ChunkCoord) -> Option<&ActionIntent> {
         self.action_intents.get(coord)
     }
 }
@@ -93,19 +94,19 @@ impl ActionIntentBuffer {
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
 pub struct ChunkManager {
-    pub loaded_chunks: HashSet<(i32, i32)>,
-    pub owned_chunks: HashMap<(i32, i32), ChunkOwnerId>,
+    pub loaded_chunks: HashSet<ChunkCoord>,
+    pub owned_chunks: HashMap<ChunkCoord, ChunkOwnerId>,
 }
 impl ChunkManager {
-    pub fn get_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool) {
+    pub fn get_states(&self, chunk_coord: &ChunkCoord) -> (bool, bool) {
         (self.loaded_chunks.contains(chunk_coord), self.owned_chunks.contains_key(chunk_coord))
     }
 
-    pub fn is_loaded(&self, chunk_coord: &(i32, i32)) -> bool {
+    pub fn is_loaded(&self, chunk_coord: &ChunkCoord) -> bool {
         self.loaded_chunks.contains(chunk_coord)
     }
 
-    pub fn is_owned(&self, chunk_coord: &(i32, i32)) -> bool {
+    pub fn is_owned(&self, chunk_coord: &ChunkCoord) -> bool {
         self.owned_chunks.contains_key(chunk_coord)
     }
 }
@@ -120,5 +121,5 @@ pub struct ChunkRenderHandles {
 
 #[derive(Default, Resource)]
 pub struct ChunkRenderExecutorRegistry {
-    pub executors: HashMap<(i32, i32), ChunkRenderExecutor>,
+    pub executors: HashMap<ChunkCoord, ChunkRenderExecutor>,
 }

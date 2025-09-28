@@ -1,5 +1,7 @@
 use bevy::prelude::Reflect;
 
+use crate::chunk::types::ChunkCoord;
+
 use super::types::ChunkOwnerId;
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Reflect)]
@@ -21,17 +23,17 @@ impl State {
 pub enum ActionIntent {
     Spawn {
         owner_id: ChunkOwnerId,
-        coord: (i32, i32),
+        coord: ChunkCoord,
         priority: ActionPriority,
     },
     Despawn {
         owner_id: ChunkOwnerId,
-        coord: (i32, i32),
+        coord: ChunkCoord,
         priority: ActionPriority,
     },
     TransferOwnership {
         new_owner_id: ChunkOwnerId,
-        coord: (i32, i32),
+        coord: ChunkCoord,
         priority: ActionPriority,
     },
 }
@@ -56,7 +58,7 @@ impl ActionIntent {
         }
     }
 
-    pub fn coord(&self) -> (i32, i32) {
+    pub fn coord(&self) -> ChunkCoord {
         match self {
             ActionIntent::Spawn { coord, .. } | ActionIntent::Despawn { coord, .. } | ActionIntent::TransferOwnership { coord, .. } => *coord,
         }

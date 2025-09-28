@@ -1,11 +1,13 @@
 use bevy::prelude::Reflect;
 
+use crate::chunk::types::ChunkCoord;
+
 #[derive(Debug, Reflect)]
 pub enum SpawnError {
-    AlreadySpawned { chunk_coord: (i32, i32) },
-    NotSpawning { chunk_coord: (i32, i32) },
-    AlreadyBeingDespawned { chunk_coord: (i32, i32) },
-    AlreadyTransferingOwnership { chunk_coord: (i32, i32) },
+    AlreadySpawned { chunk_coord: ChunkCoord },
+    NotSpawning { chunk_coord: ChunkCoord },
+    AlreadyBeingDespawned { chunk_coord: ChunkCoord },
+    AlreadyTransferingOwnership { chunk_coord: ChunkCoord },
 }
 impl std::fmt::Display for SpawnError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -29,10 +31,10 @@ impl std::error::Error for SpawnError {}
 
 #[derive(Debug, Reflect)]
 pub enum DespawnError {
-    AlreadyDespawned { chunk_coord: (i32, i32) },
-    AlreadyBeingSpawned { chunk_coord: (i32, i32) },
-    NotDespawning { chunk_coord: (i32, i32) },
-    AlreadyTransferingOwnership { chunk_coord: (i32, i32) },
+    AlreadyDespawned { chunk_coord: ChunkCoord },
+    AlreadyBeingSpawned { chunk_coord: ChunkCoord },
+    NotDespawning { chunk_coord: ChunkCoord },
+    AlreadyTransferingOwnership { chunk_coord: ChunkCoord },
 }
 impl std::fmt::Display for DespawnError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -56,11 +58,11 @@ impl std::error::Error for DespawnError {}
 
 #[derive(Debug, Reflect)]
 pub enum TransferOwnershipError {
-    AlreadyDespawned { chunk_coord: (i32, i32) },
-    AlreadyTransferedOwnership { chunk_coord: (i32, i32) },
-    AlreadyBeingDespawned { chunk_coord: (i32, i32) },
-    AlreadyBeingSpawned { chunk_coord: (i32, i32) },
-    NotTransferingOwnership { chunk_coord: (i32, i32) },
+    AlreadyDespawned { chunk_coord: ChunkCoord },
+    AlreadyTransferedOwnership { chunk_coord: ChunkCoord },
+    AlreadyBeingDespawned { chunk_coord: ChunkCoord },
+    AlreadyBeingSpawned { chunk_coord: ChunkCoord },
+    NotTransferingOwnership { chunk_coord: ChunkCoord },
 }
 impl std::fmt::Display for TransferOwnershipError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

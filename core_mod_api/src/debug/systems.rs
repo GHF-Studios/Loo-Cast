@@ -1,7 +1,5 @@
 use crate::{
     camera::{components::MainCamera, resources::GameViewRenderTarget},
-    chunk::{components::Chunk, functions::world_pos_to_chunk, resources::ChunkManager},
-    chunk_loader::components::ChunkLoader,
     debug::resources::{DebugSuiteUiDockState, DebugSuiteUiState},
     input::states::InputMode,
     logging::resources::LogRegistry,
@@ -11,7 +9,7 @@ use crate::{
 use bevy::{
     prelude::*,
     render::camera::RenderTarget,
-    window::{PrimaryWindow, WindowRef},
+    window::WindowRef,
 };
 use bevy_egui::{
     egui::{self, ScrollArea},

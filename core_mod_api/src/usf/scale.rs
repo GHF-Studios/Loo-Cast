@@ -2,7 +2,7 @@ use bevy::prelude::Reflect;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-pub trait ConstScale: 'static + Send + Sync + Clone + Default + Debug + Reflect + PartialOrd + Ord + PartialEq + Eq + Hash {
+pub trait ConstScale: 'static + Send + Sync + Clone + Copy + Default + Debug + Reflect + PartialOrd + Ord + PartialEq + Eq + Hash {
     type Up: ConstScale;
     type Down: ConstScale;
 
@@ -22,7 +22,7 @@ pub trait DynScale: Send + Sync + Debug {
     fn down(&self) -> Option<Box<dyn DynScale>>;
 }
 
-#[derive(Clone, Default, Debug, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub enum Scale {
     ScaleQuectoMeter000001,
     ScaleQuectoMeter00001,
@@ -474,6 +474,16 @@ impl DynScale for Scale {
         }
     }
 }
+impl std::fmt::Debug for Scale {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+impl std::fmt::Display for Scale {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.scale_factor_exponent())
+    }
+} 
 
 pub trait ScaleRangeMarker {
     type Min: ConstScale;
@@ -492,7 +502,7 @@ impl<Min: ConstScale, Max: ConstScale> ScaleRangeMarker for ScaleRange<Min, Max>
     type Max = Max;
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct NoLowerScale;
 impl ConstScale for NoLowerScale {
     type Up = NoLowerScale;
@@ -524,7 +534,7 @@ impl DynScale for NoLowerScale {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter000001;
 impl ConstScale for ScaleQuectoMeter000001 {
     type Up = ScaleQuectoMeter00001;
@@ -556,7 +566,7 @@ impl DynScale for ScaleQuectoMeter000001 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter00001;
 impl ConstScale for ScaleQuectoMeter00001 {
     type Up = ScaleQuectoMeter0001;
@@ -588,7 +598,7 @@ impl DynScale for ScaleQuectoMeter00001 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter0001;
 impl ConstScale for ScaleQuectoMeter0001 {
     type Up = ScaleQuectoMeter001;
@@ -620,7 +630,7 @@ impl DynScale for ScaleQuectoMeter0001 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter001;
 impl ConstScale for ScaleQuectoMeter001 {
     type Up = ScaleQuectoMeter01;
@@ -652,7 +662,7 @@ impl DynScale for ScaleQuectoMeter001 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter01;
 impl ConstScale for ScaleQuectoMeter01 {
     type Up = ScaleQuectoMeter1;
@@ -684,7 +694,7 @@ impl DynScale for ScaleQuectoMeter01 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter1;
 impl ConstScale for ScaleQuectoMeter1 {
     type Up = ScaleQuectoMeter10;
@@ -716,7 +726,7 @@ impl DynScale for ScaleQuectoMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter10;
 impl ConstScale for ScaleQuectoMeter10 {
     type Up = ScaleQuectoMeter100;
@@ -748,7 +758,7 @@ impl DynScale for ScaleQuectoMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuectoMeter100;
 impl ConstScale for ScaleQuectoMeter100 {
     type Up = ScaleRontoMeter1;
@@ -780,7 +790,7 @@ impl DynScale for ScaleQuectoMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRontoMeter1;
 impl ConstScale for ScaleRontoMeter1 {
     type Up = ScaleRontoMeter10;
@@ -812,7 +822,7 @@ impl DynScale for ScaleRontoMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRontoMeter10;
 impl ConstScale for ScaleRontoMeter10 {
     type Up = ScaleRontoMeter100;
@@ -844,7 +854,7 @@ impl DynScale for ScaleRontoMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRontoMeter100;
 impl ConstScale for ScaleRontoMeter100 {
     type Up = ScaleYoctoMeter1;
@@ -876,7 +886,7 @@ impl DynScale for ScaleRontoMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYoctoMeter1;
 impl ConstScale for ScaleYoctoMeter1 {
     type Up = ScaleYoctoMeter10;
@@ -908,7 +918,7 @@ impl DynScale for ScaleYoctoMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYoctoMeter10;
 impl ConstScale for ScaleYoctoMeter10 {
     type Up = ScaleYoctoMeter100;
@@ -940,7 +950,7 @@ impl DynScale for ScaleYoctoMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYoctoMeter100;
 impl ConstScale for ScaleYoctoMeter100 {
     type Up = ScaleZeptoMeter1;
@@ -972,7 +982,7 @@ impl DynScale for ScaleYoctoMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZeptoMeter1;
 impl ConstScale for ScaleZeptoMeter1 {
     type Up = ScaleZeptoMeter10;
@@ -1004,7 +1014,7 @@ impl DynScale for ScaleZeptoMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZeptoMeter10;
 impl ConstScale for ScaleZeptoMeter10 {
     type Up = ScaleZeptoMeter100;
@@ -1036,7 +1046,7 @@ impl DynScale for ScaleZeptoMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZeptoMeter100;
 impl ConstScale for ScaleZeptoMeter100 {
     type Up = ScaleAttoMeter1;
@@ -1068,7 +1078,7 @@ impl DynScale for ScaleZeptoMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleAttoMeter1;
 impl ConstScale for ScaleAttoMeter1 {
     type Up = ScaleAttoMeter10;
@@ -1100,7 +1110,7 @@ impl DynScale for ScaleAttoMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleAttoMeter10;
 impl ConstScale for ScaleAttoMeter10 {
     type Up = ScaleAttoMeter100;
@@ -1132,7 +1142,7 @@ impl DynScale for ScaleAttoMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleAttoMeter100;
 impl ConstScale for ScaleAttoMeter100 {
     type Up = ScaleFemtoMeter1;
@@ -1164,7 +1174,7 @@ impl DynScale for ScaleAttoMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleFemtoMeter1;
 impl ConstScale for ScaleFemtoMeter1 {
     type Up = ScaleFemtoMeter10;
@@ -1196,7 +1206,7 @@ impl DynScale for ScaleFemtoMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleFemtoMeter10;
 impl ConstScale for ScaleFemtoMeter10 {
     type Up = ScaleFemtoMeter100;
@@ -1228,7 +1238,7 @@ impl DynScale for ScaleFemtoMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleFemtoMeter100;
 impl ConstScale for ScaleFemtoMeter100 {
     type Up = ScalePicoMeter1;
@@ -1260,7 +1270,7 @@ impl DynScale for ScaleFemtoMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePicoMeter1;
 impl ConstScale for ScalePicoMeter1 {
     type Up = ScalePicoMeter10;
@@ -1292,7 +1302,7 @@ impl DynScale for ScalePicoMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePicoMeter10;
 impl ConstScale for ScalePicoMeter10 {
     type Up = ScalePicoMeter100;
@@ -1324,7 +1334,7 @@ impl DynScale for ScalePicoMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePicoMeter100;
 impl ConstScale for ScalePicoMeter100 {
     type Up = ScaleNanoMeter1;
@@ -1356,7 +1366,7 @@ impl DynScale for ScalePicoMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleNanoMeter1;
 impl ConstScale for ScaleNanoMeter1 {
     type Up = ScaleNanoMeter10;
@@ -1388,7 +1398,7 @@ impl DynScale for ScaleNanoMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleNanoMeter10;
 impl ConstScale for ScaleNanoMeter10 {
     type Up = ScaleNanoMeter100;
@@ -1420,7 +1430,7 @@ impl DynScale for ScaleNanoMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleNanoMeter100;
 impl ConstScale for ScaleNanoMeter100 {
     type Up = ScaleMicroMeter1;
@@ -1452,7 +1462,7 @@ impl DynScale for ScaleNanoMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMicroMeter1;
 impl ConstScale for ScaleMicroMeter1 {
     type Up = ScaleMicroMeter10;
@@ -1484,7 +1494,7 @@ impl DynScale for ScaleMicroMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMicroMeter10;
 impl ConstScale for ScaleMicroMeter10 {
     type Up = ScaleMicroMeter100;
@@ -1516,7 +1526,7 @@ impl DynScale for ScaleMicroMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMicroMeter100;
 impl ConstScale for ScaleMicroMeter100 {
     type Up = ScaleMilliMeter1;
@@ -1548,7 +1558,7 @@ impl DynScale for ScaleMicroMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMilliMeter1;
 impl ConstScale for ScaleMilliMeter1 {
     type Up = ScaleMilliMeter10;
@@ -1580,7 +1590,7 @@ impl DynScale for ScaleMilliMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMilliMeter10;
 impl ConstScale for ScaleMilliMeter10 {
     type Up = ScaleMilliMeter100;
@@ -1612,7 +1622,7 @@ impl DynScale for ScaleMilliMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMilliMeter100;
 impl ConstScale for ScaleMilliMeter100 {
     type Up = ScaleMilliMeter10;
@@ -1644,7 +1654,7 @@ impl DynScale for ScaleMilliMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMeter1;
 impl ConstScale for ScaleMeter1 {
     type Up = ScaleMeter10;
@@ -1676,7 +1686,7 @@ impl DynScale for ScaleMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMeter10;
 impl ConstScale for ScaleMeter10 {
     type Up = ScaleMeter100;
@@ -1708,7 +1718,7 @@ impl DynScale for ScaleMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMeter100;
 impl ConstScale for ScaleMeter100 {
     type Up = ScaleKiloMeter1;
@@ -1740,7 +1750,7 @@ impl DynScale for ScaleMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleKiloMeter1;
 impl ConstScale for ScaleKiloMeter1 {
     type Up = ScaleKiloMeter10;
@@ -1772,7 +1782,7 @@ impl DynScale for ScaleKiloMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleKiloMeter10;
 impl ConstScale for ScaleKiloMeter10 {
     type Up = ScaleKiloMeter100;
@@ -1804,7 +1814,7 @@ impl DynScale for ScaleKiloMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleKiloMeter100;
 impl ConstScale for ScaleKiloMeter100 {
     type Up = ScaleMegaMeter1;
@@ -1836,7 +1846,7 @@ impl DynScale for ScaleKiloMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMegaMeter1;
 impl ConstScale for ScaleMegaMeter1 {
     type Up = ScaleMegaMeter10;
@@ -1868,7 +1878,7 @@ impl DynScale for ScaleMegaMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMegaMeter10;
 impl ConstScale for ScaleMegaMeter10 {
     type Up = ScaleMegaMeter100;
@@ -1900,7 +1910,7 @@ impl DynScale for ScaleMegaMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleMegaMeter100;
 impl ConstScale for ScaleMegaMeter100 {
     type Up = ScaleGigaMeter1;
@@ -1932,7 +1942,7 @@ impl DynScale for ScaleMegaMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleGigaMeter1;
 impl ConstScale for ScaleGigaMeter1 {
     type Up = ScaleGigaMeter10;
@@ -1964,7 +1974,7 @@ impl DynScale for ScaleGigaMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleGigaMeter10;
 impl ConstScale for ScaleGigaMeter10 {
     type Up = ScaleGigaMeter100;
@@ -1996,7 +2006,7 @@ impl DynScale for ScaleGigaMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleGigaMeter100;
 impl ConstScale for ScaleGigaMeter100 {
     type Up = ScaleTeraMeter1;
@@ -2028,7 +2038,7 @@ impl DynScale for ScaleGigaMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleTeraMeter1;
 impl ConstScale for ScaleTeraMeter1 {
     type Up = ScaleTeraMeter10;
@@ -2060,7 +2070,7 @@ impl DynScale for ScaleTeraMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleTeraMeter10;
 impl ConstScale for ScaleTeraMeter10 {
     type Up = ScaleTeraMeter100;
@@ -2092,7 +2102,7 @@ impl DynScale for ScaleTeraMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleTeraMeter100;
 impl ConstScale for ScaleTeraMeter100 {
     type Up = ScalePetaMeter1;
@@ -2124,7 +2134,7 @@ impl DynScale for ScaleTeraMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePetaMeter1;
 impl ConstScale for ScalePetaMeter1 {
     type Up = ScalePetaMeter10;
@@ -2156,7 +2166,7 @@ impl DynScale for ScalePetaMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePetaMeter10;
 impl ConstScale for ScalePetaMeter10 {
     type Up = ScalePetaMeter100;
@@ -2188,7 +2198,7 @@ impl DynScale for ScalePetaMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScalePetaMeter100;
 impl ConstScale for ScalePetaMeter100 {
     type Up = ScaleExaMeter1;
@@ -2220,7 +2230,7 @@ impl DynScale for ScalePetaMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleExaMeter1;
 impl ConstScale for ScaleExaMeter1 {
     type Up = ScaleExaMeter10;
@@ -2252,7 +2262,7 @@ impl DynScale for ScaleExaMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleExaMeter10;
 impl ConstScale for ScaleExaMeter10 {
     type Up = ScaleExaMeter100;
@@ -2284,7 +2294,7 @@ impl DynScale for ScaleExaMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleExaMeter100;
 impl ConstScale for ScaleExaMeter100 {
     type Up = ScaleZettaMeter1;
@@ -2316,7 +2326,7 @@ impl DynScale for ScaleExaMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZettaMeter1;
 impl ConstScale for ScaleZettaMeter1 {
     type Up = ScaleZettaMeter10;
@@ -2348,7 +2358,7 @@ impl DynScale for ScaleZettaMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZettaMeter10;
 impl ConstScale for ScaleZettaMeter10 {
     type Up = ScaleZettaMeter100;
@@ -2380,7 +2390,7 @@ impl DynScale for ScaleZettaMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleZettaMeter100;
 impl ConstScale for ScaleZettaMeter100 {
     type Up = ScaleYottaMeter1;
@@ -2412,7 +2422,7 @@ impl DynScale for ScaleZettaMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYottaMeter1;
 impl ConstScale for ScaleYottaMeter1 {
     type Up = ScaleYottaMeter10;
@@ -2444,7 +2454,7 @@ impl DynScale for ScaleYottaMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYottaMeter10;
 impl ConstScale for ScaleYottaMeter10 {
     type Up = ScaleYottaMeter100;
@@ -2476,7 +2486,7 @@ impl DynScale for ScaleYottaMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleYottaMeter100;
 impl ConstScale for ScaleYottaMeter100 {
     type Up = ScaleRonnaMeter1;
@@ -2508,7 +2518,7 @@ impl DynScale for ScaleYottaMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRonnaMeter1;
 impl ConstScale for ScaleRonnaMeter1 {
     type Up = ScaleRonnaMeter10;
@@ -2540,7 +2550,7 @@ impl DynScale for ScaleRonnaMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRonnaMeter10;
 impl ConstScale for ScaleRonnaMeter10 {
     type Up = ScaleRonnaMeter100;
@@ -2572,7 +2582,7 @@ impl DynScale for ScaleRonnaMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleRonnaMeter100;
 impl ConstScale for ScaleRonnaMeter100 {
     type Up = ScaleQuettaMeter1;
@@ -2604,7 +2614,7 @@ impl DynScale for ScaleRonnaMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter1;
 impl ConstScale for ScaleQuettaMeter1 {
     type Up = ScaleQuettaMeter10;
@@ -2636,7 +2646,7 @@ impl DynScale for ScaleQuettaMeter1 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter10;
 impl ConstScale for ScaleQuettaMeter10 {
     type Up = ScaleQuettaMeter100;
@@ -2668,7 +2678,7 @@ impl DynScale for ScaleQuettaMeter10 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter100;
 impl ConstScale for ScaleQuettaMeter100 {
     type Up = ScaleQuettaMeter1000;
@@ -2700,7 +2710,7 @@ impl DynScale for ScaleQuettaMeter100 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter1000;
 impl ConstScale for ScaleQuettaMeter1000 {
     type Up = ScaleQuettaMeter10000;
@@ -2732,7 +2742,7 @@ impl DynScale for ScaleQuettaMeter1000 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter10000;
 impl ConstScale for ScaleQuettaMeter10000 {
     type Up = ScaleQuettaMeter100000;
@@ -2764,7 +2774,7 @@ impl DynScale for ScaleQuettaMeter10000 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct ScaleQuettaMeter100000;
 impl ConstScale for ScaleQuettaMeter100000 {
     type Up = NoHigherScale;
@@ -2796,7 +2806,7 @@ impl DynScale for ScaleQuettaMeter100000 {
     }
 }
 
-#[derive(Clone, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct NoHigherScale;
 impl ConstScale for NoHigherScale {
     type Up = NoHigherScale;

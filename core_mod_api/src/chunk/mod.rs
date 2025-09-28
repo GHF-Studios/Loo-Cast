@@ -4,6 +4,7 @@ pub mod functions;
 pub mod hooks;
 pub mod resources;
 pub mod systems;
+pub mod traits;
 pub mod types;
 
 pub mod intent;
@@ -15,7 +16,7 @@ use errors::{DespawnError, SpawnError, TransferOwnershipError};
 use intent::{ActionIntent, ActionPriority, ResolutionError, ResolutionWarning, ResolvedActionIntent, State};
 use resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, ChunkRenderExecutorRegistry, ChunkRenderHandles};
 use systems::{chunk_startup_system, chunk_update_system, process_chunk_actions_system};
-use types::{ChunkActionWorkflowHandles, ChunkOwnerId};
+use types::{ChunkActionWorkflowHandles, ChunkCoord, ChunkOwnerId};
 
 use crate::{core::run_conditions::run_after_startup_finished, time::run_conditions::run_if_not_paused};
 
@@ -43,6 +44,7 @@ impl Plugin for ChunkPlugin {
             .register_type::<ResolutionWarning>()
             .register_type::<ResolvedActionIntent>()
             .register_type::<ChunkOwnerId>()
+            .register_type::<ChunkCoord>()
             .register_type::<SpawnError>()
             .register_type::<DespawnError>()
             .register_type::<TransferOwnershipError>()

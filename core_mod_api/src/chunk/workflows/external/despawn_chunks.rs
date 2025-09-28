@@ -1,12 +1,12 @@
 // Imports
 use bevy::prelude::{ResMut, Commands, Query, Entity};
 
-use crate::chunk::{components::Chunk, resources::ChunkManager};
+use crate::chunk::{components::Chunk, resources::ChunkManager, types::ChunkCoord};
 use crate::workflow::types::Outcome;
 
 // Items
 pub struct DespawnChunkInput {
-    pub chunk_coord: (i32, i32)
+    pub chunk_coord: ChunkCoord
 }
 #[derive(Clone)]
 pub struct DespawnChunkState {
@@ -36,7 +36,7 @@ pub struct Output {
 
 #[derive(Debug)]
 pub enum Error {
-    ChunkNotLoaded { chunk_coord: (i32, i32) },
+    ChunkNotLoaded { chunk_coord: ChunkCoord },
 }
 
 // Core Functions

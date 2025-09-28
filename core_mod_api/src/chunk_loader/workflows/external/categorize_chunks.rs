@@ -4,6 +4,8 @@ use std::collections::HashSet;
 
 use crate::chunk::functions::{calculate_chunk_distance_from_owner, calculate_chunks_in_radius, world_pos_to_chunk};
 use crate::chunk::resources::ChunkManager;
+use crate::chunk::traits::ChunkCoordTupleExt;
+use crate::chunk::types::ChunkCoord;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::workflows::external::{load_chunks::LoadChunkInput, unload_chunks::UnloadChunkInput};
 use crate::utils::components::DropHook;
@@ -38,10 +40,10 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
         let target_chunks = if drop_hook.is_some() {
             HashSet::new()
         } else {
-            calculate_chunks_in_radius(position, radius).into_iter().collect::<HashSet<(i32, i32)>>()
+            calculate_chunks_in_radius(position, radius).into_iter().map(|coord| coord.scaled(chunk_loader.chunk_owner_id().scale())).collect::<HashSet<ChunkCoord>>()
         };
 
-        let current_chunks: HashSet<(i32, i32)> = chunk_manager
+        let current_chunks: HashSet<ChunkCoord> = chunk_manager
             .owned_chunks
             .iter()
             .filter_map(|(chunk, owner_id)| if owner_id == chunk_owner_id { Some(*chunk) } else { None })
@@ -51,7 +53,7 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
         let chunks_to_unload: Vec<_> = current_chunks.difference(&target_chunks).cloned().collect();
 
         for chunk_coord in chunks_to_load {
-            let chunk_loader_distance_squared = calculate_chunk_distance_from_owner(&chunk_coord, &world_pos_to_chunk(position));
+            let chunk_loader_distance_squared = calculate_chunk_distance_from_owner(&chunk_coord.unscaled(), &world_pos_to_chunk(position));
             let chunk_loader_radius_squared = radius * radius;
 
             load_chunk_inputs.push(LoadChunkInput {
@@ -63,7 +65,7 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
         }
 
         for chunk_coord in chunks_to_unload {
-            let chunk_loader_distance_squared = calculate_chunk_distance_from_owner(&chunk_coord, &world_pos_to_chunk(position));
+            let chunk_loader_distance_squared = calculate_chunk_distance_from_owner(&chunk_coord.unscaled(), &world_pos_to_chunk(position));
             let chunk_loader_radius_squared = radius * radius;
 
             unload_chunk_inputs.push(UnloadChunkInput {

@@ -37,6 +37,10 @@ impl ChunkOwnerId {
     pub fn entity(&self) -> Entity {
         self.entity
     }
+
+    pub fn scale(&self) -> Scale {
+        self.scale
+    }
 }
 impl Default for ChunkOwnerId {
     fn default() -> Self {
@@ -66,5 +70,28 @@ impl PartialOrd for ChunkOwnerId {
 impl Ord for ChunkOwnerId {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.id.cmp(&other.id)
+    }
+}
+
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+pub struct ChunkCoord {
+    pub x: i32,
+    pub y: i32,
+    pub scale: Scale,
+}
+
+impl std::fmt::Debug for ChunkCoord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "ChunkCoord {{ x: {}, y: {}, scale: {} }}",
+            self.x, self.y, self.scale
+        )
+    }
+}
+
+impl ChunkCoord {
+    pub fn unscaled(&self) -> (i32, i32) {
+        (self.x, self.y)
     }
 }

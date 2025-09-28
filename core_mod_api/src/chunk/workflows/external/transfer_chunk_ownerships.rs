@@ -1,12 +1,12 @@
 // Imports
 use bevy::prelude::{ResMut, Entity, Query};
 
-use crate::chunk::{components::Chunk, resources::ChunkManager, types::ChunkOwnerId};
+use crate::chunk::{components::Chunk, resources::ChunkManager, types::{ChunkCoord, ChunkOwnerId}};
 
 // Items
 pub struct TransferChunkOwnershipInput {
     pub new_chunk_owner_id: ChunkOwnerId,
-    pub chunk_coord: (i32, i32),
+    pub chunk_coord: ChunkCoord,
 }
 
 // Core Types
@@ -26,7 +26,7 @@ pub struct Output {
 
 #[derive(Debug)]
 pub enum Error {
-    ChunkNotLoaded { chunk_coord: (i32, i32) },
+    ChunkNotLoaded { chunk_coord: ChunkCoord },
 }
 
 // Core Functions

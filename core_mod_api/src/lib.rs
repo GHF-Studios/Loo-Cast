@@ -84,7 +84,7 @@ pub mod window;
 pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
-use core_mod_macros::{api_initializer, register_workflow_mods};
+use core_mod_macros::register_workflow_mods;
 
 use camera::CameraPlugin;
 use chunk::ChunkPlugin;

@@ -7,7 +7,7 @@ use crate::chunk::{
     functions::world_pos_to_chunk,
     intent::{resolve_intent, ActionIntent, ActionPriority, ResolutionWarning, ResolvedActionIntent, State as ChunkState},
     resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager},
-    types::ChunkOwnerId,
+    types::{ChunkCoord, ChunkOwnerId},
 };
 use crate::chunk_loader::components::ChunkLoader;
 use crate::workflow::types::Outcome;
@@ -15,18 +15,18 @@ use crate::workflow::types::Outcome;
 // Items
 pub struct UnloadChunkInput {
     pub owner_id: ChunkOwnerId,
-    pub chunk_coord: (i32, i32),
+    pub chunk_coord: ChunkCoord,
     pub chunk_loader_distance_squared: u32,
     pub chunk_loader_radius_squared: u32,
 }
 
 pub struct DespawnChunkState {
-    pub coord: (i32, i32),
+    pub coord: ChunkCoord,
     pub is_despawned: bool,
 }
 
 pub struct TransferChunkOwnershipState {
-    pub coord: (i32, i32),
+    pub coord: ChunkCoord,
     pub owner_id: ChunkOwnerId,
     pub is_ownership_transfered: bool,
 }
@@ -37,10 +37,10 @@ pub fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) ->
     ActionPriority::Deferred(priority_value)
 }
 
-pub fn is_chunk_in_loader_range(chunk_coord: &(i32, i32), loader_position: Vec2, loader_radius: u32) -> bool {
-    let (loader_chunk_x, loader_chunk_y) = world_pos_to_chunk(loader_position);
-    let dx = chunk_coord.0 - loader_chunk_x;
-    let dy = chunk_coord.1 - loader_chunk_y;
+pub fn is_chunk_in_loader_range(chunk_coord: &ChunkCoord, loader_position: Vec2, loader_radius: u32) -> bool {
+    let loader_chunk_coord = world_pos_to_chunk(loader_position);
+    let dx = chunk_coord.x - loader_chunk_coord.0;
+    let dy = chunk_coord.y - loader_chunk_coord.1;
     let distance_squared = dx * dx + dy * dy;
     let radius_squared = (loader_radius as i32) * (loader_radius as i32);
     distance_squared <= radius_squared

@@ -4,12 +4,11 @@ use core_mod_macros::{composite_workflow, composite_workflow_return};
 use crate::{
     camera::types::ZoomFactor, chunk_loader::components::ChunkLoader, config::statics::CONFIG, input::states::InputMode, player::resources::PlayerLifecycle, utils::components::{DropHook, InitHook}, workflow::functions::handle_composite_workflow_return_now
 };
-use crate::usf::scale::ScaleMeter1;
 
 #[tracing::instrument(skip_all)]
 pub(super) fn update_player_system(
-    chunk_loader_init_hook_query: Query<(&ChunkLoader<ScaleMeter1>, &InitHook<ChunkLoader<ScaleMeter1>>)>,
-    chunk_loader_drop_hook_query: Query<(&ChunkLoader<ScaleMeter1>, &DropHook<ChunkLoader<ScaleMeter1>>)>,
+    chunk_loader_init_hook_query: Query<(&ChunkLoader, &InitHook<ChunkLoader>)>,
+    chunk_loader_drop_hook_query: Query<(&ChunkLoader, &DropHook<ChunkLoader>)>,
     mut transform_query: Query<&mut Transform>,
     mut player_state_resource: ResMut<PlayerLifecycle>,
     keys: Res<ButtonInput<KeyCode>>,

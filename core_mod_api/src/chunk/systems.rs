@@ -1,14 +1,14 @@
 use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
-use crate::chunk::types::ChunkOwnerId;
+use crate::chunk::traits::ChunkCoordTupleExt;
+use crate::chunk::types::{ChunkCoord, ChunkOwnerId};
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
 use crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::resources::RemovedChunkLoaders;
 use crate::config::statics::CONFIG;
-use crate::usf::scale::*;
 use crate::utils::components::InitHook;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
@@ -49,10 +49,11 @@ pub(crate) fn chunk_update_system(
 ) {
     for (entity, transform, chunk) in chunk_query.iter() {
         let world_pos = transform.translation.truncate();
-        let chunk_pos = world_pos_to_chunk(world_pos);
+        let chunk_coord = world_pos_to_chunk(world_pos);
+        let chunk_coord = chunk_coord.scaled(chunk.scale);
 
-        assert_eq!(chunk.coord, chunk_pos, "Attempted to move chunk entity");
-        assert_eq!(chunk_pos_to_world(chunk.coord), world_pos, "Attempted to move chunk entity");
+        assert_eq!(chunk.coord, chunk_coord, "Attempted to move chunk entity");
+        assert_eq!(chunk_pos_to_world(chunk.coord.unscaled()), world_pos, "Attempted to move chunk entity");
 
         if let Some(chunk_owner_id) = chunk.owner_id.clone() {
             if removed_chunk_loaders.0.iter().any(|rcl| rcl.id == chunk_owner_id) {
@@ -197,8 +198,8 @@ pub(crate) fn process_chunk_actions_system(
 
         let param_data = spawn_coords
             .iter()
-            .map(|&(x, y)| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
-                chunk_pos: [x, y],
+            .map(|coord| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
+                chunk_pos: [coord.x, coord.y],
                 chunk_size,
                 chunk_scale: -35,
                 current_view_scale,

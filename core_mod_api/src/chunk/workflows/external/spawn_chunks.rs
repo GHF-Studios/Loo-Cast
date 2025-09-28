@@ -1,14 +1,14 @@
 // Imports
 use bevy::prelude::{Commands, Entity, Query, ResMut, Handle, Image, Transform, Sprite, Name, warn};
 
-use crate::chunk::{components::Chunk, resources::ChunkManager, functions::chunk_pos_to_world, types::ChunkOwnerId};
+use crate::chunk::{components::Chunk, resources::ChunkManager, functions::chunk_pos_to_world, types::{ChunkCoord, ChunkOwnerId}};
 use crate::config::statics::CONFIG;
 use crate::debug::observers::on_click_select;
 use crate::workflow::types::Outcome;
 
 // Items
 pub struct SpawnChunkInput {
-    pub chunk_coord: (i32, i32),
+    pub chunk_coord: ChunkCoord,
     pub chunk_owner_id: ChunkOwnerId,
     pub metric_texture: Handle<Image>
 }
@@ -41,7 +41,7 @@ pub struct Output {
 
 #[derive(Debug)]
 pub enum Error {
-    ChunkAlreadyLoaded { chunk_coord: (i32, i32) },
+    ChunkAlreadyLoaded { chunk_coord: ChunkCoord },
 }
 
 // Core Functions
@@ -64,11 +64,11 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         let default_chunk_z = CONFIG().get::<f32>("chunk/default_z");
 
         let chunk_transform = Transform {
-            translation: chunk_pos_to_world(chunk_coord).extend(default_chunk_z),
+            translation: chunk_pos_to_world(chunk_coord.unscaled()).extend(default_chunk_z),
             ..Default::default()
         };
 
-        let chunk_name = Name::new(format!("chunk_entity({}, {})", chunk_coord.0, chunk_coord.1));
+        let chunk_name = Name::new(format!("chunk_entity({chunk_coord:?})"));
 
         let chunk_entity = commands.spawn((
             chunk_transform,

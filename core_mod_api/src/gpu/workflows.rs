@@ -796,7 +796,7 @@ define_workflow_mod_OLD! {
                         }
 
                         fn RunEcsWhile |state, main_access| -> Outcome<State, Output> {
-                            let progress = match state.render_executor.unfinished_as_ref().unwrap().receiver.as_ref().unwrap().try_recv() {
+                            let progress = match state.render_executor.receiver.as_ref().unwrap().try_recv() {
                                 Ok(_) => Progress::Finished(state),
                                 Err(crossbeam_channel::TryRecvError::Empty) => Progress::Unfinished(state),
                                 Err(e) => panic!("Render texture GPU dispatch failed: {}", e),
