@@ -26,7 +26,7 @@ define_workflow_mod_OLD! {
                     let chunk_loader_id = format!("{}_chunk_loader", name);
                     let chunk_loader = ChunkLoader::new(chunk_loader_id, Scale::default());
 
-                    commands.entity(*chunk_loader.chunk_owner_id().entity()).insert((
+                    commands.entity(*chunk_loader.id().entity()).insert((
                         ChunkActor,
                         chunk_loader,
                         DebugObjectComponent { movement },

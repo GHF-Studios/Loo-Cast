@@ -18,12 +18,12 @@ pub(super) fn update_player_system(
     zoom_factor: Res<ZoomFactor>,
 ) {
     let is_player_update_allowed = {
-        let condition_1 = if let Some((_, init_hook)) = chunk_loader_init_hook_query.iter().find(|(l, _)| l.chunk_owner_id().id() == "player") {
+        let condition_1 = if let Some((_, init_hook)) = chunk_loader_init_hook_query.iter().find(|(l, _)| l.id().id() == "player") {
             init_hook.has_fired()
         } else {
             true
         };
-        let condition_2 = !chunk_loader_drop_hook_query.iter().any(|(l, _)| l.chunk_owner_id().id() == "player");
+        let condition_2 = !chunk_loader_drop_hook_query.iter().any(|(l, _)| l.id().id() == "player");
 
         condition_1 && condition_2
     };

@@ -30,7 +30,7 @@ pub(crate) fn on_remove_chunk_loader_observation_queue_processing_system(
             Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
         };
 
-        removed_owner_id = Some(loader.chunk_owner_id().clone());
+        removed_owner_id = Some(loader.id().clone());
     }
 
     if removed_owner_id.is_none() {

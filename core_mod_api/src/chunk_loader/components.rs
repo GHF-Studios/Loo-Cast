@@ -33,7 +33,7 @@ impl ChunkLoader {
         }
     }
 
-    pub fn chunk_owner_id(&self) -> &ChunkOwnerId {
+    pub fn id(&self) -> &ChunkOwnerId {
         &self.chunk_owner_id
     }
 

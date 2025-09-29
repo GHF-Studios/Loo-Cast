@@ -3,11 +3,7 @@ use bevy::prelude::{warn, Query, Res, ResMut, Transform, Vec2};
 use std::collections::HashSet;
 
 use crate::chunk::{
-    components::Chunk,
-    functions::world_pos_to_chunk,
-    intent::{resolve_intent, ActionIntent, ActionPriority, ResolutionWarning, ResolvedActionIntent, State as ChunkState},
-    resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager},
-    types::{ChunkCoord, ChunkOwnerId},
+    components::Chunk, intent::{ActionIntent, ActionPriority, ResolutionWarning, ResolvedActionIntent, State as ChunkState, resolve_intent}, resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager}, traits::Vec2Ext, types::{ChunkCoord, ChunkOwnerId}
 };
 use crate::chunk_loader::components::ChunkLoader;
 use crate::workflow::types::Outcome;
@@ -38,9 +34,9 @@ pub fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) ->
 }
 
 pub fn is_chunk_in_loader_range(chunk_coord: &ChunkCoord, loader_position: Vec2, loader_radius: u32) -> bool {
-    let loader_chunk_coord = world_pos_to_chunk(loader_position);
-    let dx = chunk_coord.x - loader_chunk_coord.0;
-    let dy = chunk_coord.y - loader_chunk_coord.1;
+    let loader_chunk_coord = loader_position.world_coord_to_chunk_coord();
+    let dx = chunk_coord.xy.x - loader_chunk_coord.x;
+    let dy = chunk_coord.xy.y - loader_chunk_coord.y;
     let distance_squared = dx * dx + dy * dy;
     let radius_squared = (loader_radius as i32) * (loader_radius as i32);
     distance_squared <= radius_squared
@@ -104,10 +100,10 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
         let (transfer_candidate, is_chunk_existing) = match chunk_query.iter().find(|chunk| chunk.coord == coord) {
             Some(chunk) => {
                 let tc = chunk_loader_query.iter().find_map(|(transform, loader)| {
-                    if loader.chunk_owner_id() == chunk.owner_id() {
+                    if loader.id() == chunk.owner_id() {
                         None
                     } else if is_chunk_in_loader_range(&coord, transform.translation.truncate(), loader.radius) {
-                        Some(loader.chunk_owner_id())
+                        Some(loader.id())
                     } else {
                         None
                     }

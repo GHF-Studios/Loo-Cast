@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
-use crate::chunk::traits::IVec2Ext;
-use crate::chunk::types::{ChunkCoord, ChunkOwnerId};
+use crate::chunk::traits::{Vec2Ext, IVec2Ext};
+use crate::chunk::types::{WorldCoord, ChunkCoord, ChunkOwnerId};
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
 use crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput;
@@ -13,7 +13,6 @@ use crate::utils::components::InitHook;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
 use super::components::Chunk;
-use super::functions::{chunk_pos_to_world, world_pos_to_chunk};
 use super::intent::ActionIntent;
 use super::resources::ChunkRenderHandles;
 use super::types::ChunkActionWorkflowHandles;
@@ -49,11 +48,11 @@ pub(crate) fn chunk_update_system(
 ) {
     for (entity, transform, chunk) in chunk_query.iter() {
         let world_pos = transform.translation.truncate();
-        let chunk_coord = world_pos_to_chunk(world_pos);
-        let chunk_coord = chunk_coord.scaled(chunk.scale);
+        let chunk_coord_from_transform: ChunkCoord = world_pos.scaled(chunk.scale).into();
+        let chunk_coord_from_chunk: WorldCoord = chunk.coord.into();
 
-        assert_eq!(chunk.coord, chunk_coord, "Attempted to move chunk entity");
-        assert_eq!(chunk_pos_to_world(chunk.coord.unscaled()), world_pos, "Attempted to move chunk entity");
+        assert_eq!(chunk.coord, chunk_coord_from_transform, "Attempted to move chunk entity");
+        assert_eq!(chunk_coord_from_chunk.unscaled(), world_pos, "Attempted to move chunk entity");
 
         if let Some(chunk_owner_id) = chunk.owner_id.clone() {
             if removed_chunk_loaders.0.iter().any(|rcl| rcl.id == chunk_owner_id) {
@@ -199,9 +198,9 @@ pub(crate) fn process_chunk_actions_system(
         let param_data = spawn_coords
             .iter()
             .map(|coord| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
-                chunk_pos: [coord.x, coord.y],
+                chunk_pos: [coord.xy.x, coord.xy.y],
                 chunk_size,
-                chunk_scale: -35,
+                chunk_scale: coord.scale as i32,
                 current_view_scale,
                 _padding0: 0,
                 _padding1: [0, 0, 0, 0],

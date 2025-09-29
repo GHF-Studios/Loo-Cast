@@ -2,8 +2,8 @@
 use bevy::prelude::*;
 use std::marker::PhantomData;
 
-use crate::chunk::functions::*;
 use crate::chunk::resources::ChunkManager;
+use crate::chunk::traits::Vec2Ext;
 use crate::chunk::types::{ChunkCoord, ChunkOwnerId};
 use crate::chunk_loader::workflows::external::unload_chunks::UnloadChunkInput;
 
@@ -31,7 +31,8 @@ pub fn run_ecs(input: Input, main_access: MainAccess) -> Output {
     let chunk_manager = main_access.chunk_manager;
 
     let chunk_owner_id = input.chunk_owner_id;
-    let position = input.chunk_loader_position;
+    let world_position = input.chunk_loader_position;
+    let chunk_position = world_position.world_coord_to_chunk_coord();
     let radius = input.chunk_loader_radius;
 
     let mut unload_chunk_inputs = Vec::new();
@@ -43,7 +44,7 @@ pub fn run_ecs(input: Input, main_access: MainAccess) -> Output {
         .collect();
 
     for chunk_coord in chunks_to_despawn {
-        let chunk_loader_distance_squared = chunk_distance_squared(&chunk_coord.unscaled(), &world_pos_to_chunk(position));
+        let chunk_loader_distance_squared = chunk_coord.xy.distance_squared(chunk_position).try_into().unwrap();
         let chunk_loader_radius_squared = radius * radius;
 
         unload_chunk_inputs.push(UnloadChunkInput {

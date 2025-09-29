@@ -1,7 +1,7 @@
 // Imports
 use bevy::prelude::{Commands, Entity, Query, ResMut, Handle, Image, Transform, Sprite, Name, warn};
 
-use crate::chunk::{components::Chunk, resources::ChunkManager, functions::chunk_pos_to_world, types::{ChunkCoord, ChunkOwnerId}};
+use crate::chunk::{components::Chunk, resources::ChunkManager, types::{WorldCoord, ChunkCoord, ChunkOwnerId}};
 use crate::config::statics::CONFIG;
 use crate::debug::observers::on_click_select;
 use crate::workflow::types::Outcome;
@@ -54,6 +54,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
 
     for input in input.inputs {
         let chunk_coord = input.chunk_coord;
+        let world_coord: WorldCoord = chunk_coord.into();
         let chunk_owner_id = input.chunk_owner_id;
         let metric_texture = input.metric_texture.clone();
 
@@ -64,7 +65,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         let default_chunk_z = CONFIG().get::<f32>("chunk/default_z");
 
         let chunk_transform = Transform {
-            translation: chunk_pos_to_world(chunk_coord.unscaled()).extend(default_chunk_z),
+            translation: world_coord.unscaled().extend(default_chunk_z),
             ..Default::default()
         };
 
