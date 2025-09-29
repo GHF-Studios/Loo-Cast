@@ -9,4 +9,4 @@ pub struct RemovedChunkLoaders(pub HashSet<RemovedChunkLoader>);
 
 #[derive(Resource, Default, Debug, Reflect)]
 #[reflect(Resource)]
-pub(super) struct RemovedChunkLoaderObservationQueue(pub HashSet<RemovedChunkLoaderObservation>);
+pub struct RemovedChunkLoaderObservationQueue(pub HashSet<RemovedChunkLoaderObservation>);

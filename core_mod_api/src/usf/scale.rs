@@ -1,3 +1,5 @@
+#![allow(clippy::default_constructed_unit_structs)]
+
 use bevy::prelude::Reflect;
 use std::fmt::Debug;
 use std::hash::Hash;

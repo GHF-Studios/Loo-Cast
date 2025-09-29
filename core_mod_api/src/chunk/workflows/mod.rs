@@ -45,7 +45,7 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
-                            let state = validate_and_spawn_and_wait_setup_ecs_while(input.inner, main_access.inner).map_err(|e| Error::Inner(e))?;
+                            let state = validate_and_spawn_and_wait_setup_ecs_while(input.inner, main_access.inner).map_err(Error::Inner)?;
                             
                             Ok(State {
                                 inner: Progress::Unfinished(state),
@@ -54,7 +54,7 @@ define_workflow_mod_OLD! {
 
                         fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
                             let progress = match state.inner {
-                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner).map_err(|e| Error::Inner(e))?.into_progress(),
+                                Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner).map_err(Error::Inner)?.into_progress(),
                                 Progress::Finished(output) => Progress::Finished(output)
                             };
                             
@@ -113,7 +113,7 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
-                            let state = find_and_despawn_and_wait_setup_ecs_while(input.inner, main_access.inner).map_err(|e| Error::Inner(e))?;
+                            let state = find_and_despawn_and_wait_setup_ecs_while(input.inner, main_access.inner).map_err(Error::Inner)?;
                             
                             Ok(State {
                                 inner: Progress::Unfinished(state),
@@ -122,7 +122,7 @@ define_workflow_mod_OLD! {
 
                         fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
                             let progress = match state.inner {
-                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner).map_err(|e| Error::Inner(e))?.into_progress(),
+                                Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner).map_err(Error::Inner)?.into_progress(),
                                 Progress::Finished(output) => Progress::Finished(output)
                             };
                             
@@ -175,7 +175,7 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn RunEcs |input, main_access| -> Result<Output, Error> {
-                            let output = find_and_transfer_ownership_run_ecs(input.inner, main_access.inner).map_err(|e| Error::Inner(e))?;
+                            let output = find_and_transfer_ownership_run_ecs(input.inner, main_access.inner).map_err(Error::Inner)?;
 
                             Ok(Output {
                                 inner: output,

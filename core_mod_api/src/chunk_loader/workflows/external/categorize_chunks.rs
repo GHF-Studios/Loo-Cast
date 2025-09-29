@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use std::collections::HashSet;
 
 use crate::chunk::resources::ChunkManager;
-use crate::chunk::traits::{Vec2Ext, IVec2Ext};
+use crate::chunk::traits::Vec2Ext;
 use crate::chunk::types::{WorldCoord, ChunkCoord};
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::workflows::external::{load_chunks::LoadChunkInput, unload_chunks::UnloadChunkInput};

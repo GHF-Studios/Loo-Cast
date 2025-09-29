@@ -124,7 +124,7 @@ pub fn run_ecs_while(state: State, main_access: MainAccess) -> Result<Outcome<St
             spawned_chunk_entities
         }))
     } else {
-        let done_count = spawn_chunk_states.iter().filter(|spawn_chunk_state| spawn_chunk_state.is_spawned).count();
+        // let done_count = spawn_chunk_states.iter().filter(|spawn_chunk_state| spawn_chunk_state.is_spawned).count();
         // warn!("Waiting for chunks to spawn... {}/{}", done_count, spawn_chunk_states.len());
 
         Ok(Outcome::Wait(State {
