@@ -1,5 +1,5 @@
 use bevy::ecs::entity::Entity;
-use bevy::prelude::Reflect;
+use bevy::prelude::*;
 use tokio::task::JoinHandle;
 
 use crate::usf::scale::Scale;
@@ -77,25 +77,68 @@ impl Ord for ChunkOwnerId {
     }
 }
 
-#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
-pub struct ChunkCoord {
-    pub x: i32,
-    pub y: i32,
+#[derive(Clone, Copy, Default, Reflect, PartialEq)]
+pub struct WorldCoord {
+    pub xy: Vec2,
     pub scale: Scale,
 }
+impl std::fmt::Debug for WorldCoord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "WorldCoord {{ x: {}, y: {}, scale: {} }}",
+            self.xy.x, self.xy.y, self.scale
+        )
+    }
+}
+impl WorldCoord {
+    pub fn new(x: f32, y: f32, scale: Scale) -> Self {
+        Self {
+            xy: Vec2::new(x, y),
+            scale
+        }
+    }
 
+    pub fn unscaled(&self) -> Vec2 {
+        Vec2::new(self.xy.x, self.xy.y)
+    }
+}
+
+#[derive(Clone, Copy, Default, Reflect, PartialEq, Eq, Hash)]
+pub struct ChunkCoord {
+    pub xy: IVec2,
+    pub scale: Scale,
+}
 impl std::fmt::Debug for ChunkCoord {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "ChunkCoord {{ x: {}, y: {}, scale: {} }}",
-            self.x, self.y, self.scale
+            self.xy.x, self.xy.y, self.scale
         )
     }
 }
-
 impl ChunkCoord {
-    pub fn unscaled(&self) -> (i32, i32) {
-        (self.x, self.y)
+    pub fn new(x: i32, y: i32, scale: Scale) -> Self {
+        Self {
+            xy: IVec2::new(x, y),
+            scale
+        }
     }
+
+    pub fn unscaled(&self) -> IVec2 {
+        IVec2::new(self.xy.x, self.xy.y)
+    }
+}
+
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+pub struct SquaredChunkDist {
+    pub squared_grid_dist: i32,
+    pub scale_dist: i8,
+}
+
+#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+pub struct ChunkDist {
+    pub grid_dist: i32,
+    pub scale_dist: i8,
 }

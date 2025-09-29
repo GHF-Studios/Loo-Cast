@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
-use crate::chunk::traits::ChunkCoordTupleExt;
+use crate::chunk::traits::IVec2Ext;
 use crate::chunk::types::{ChunkCoord, ChunkOwnerId};
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;

@@ -43,7 +43,7 @@ pub fn run_ecs(input: Input, main_access: MainAccess) -> Output {
         .collect();
 
     for chunk_coord in chunks_to_despawn {
-        let chunk_loader_distance_squared = calculate_chunk_distance(&chunk_coord.unscaled(), &world_pos_to_chunk(position));
+        let chunk_loader_distance_squared = chunk_distance_squared(&chunk_coord.unscaled(), &world_pos_to_chunk(position));
         let chunk_loader_radius_squared = radius * radius;
 
         unload_chunk_inputs.push(UnloadChunkInput {

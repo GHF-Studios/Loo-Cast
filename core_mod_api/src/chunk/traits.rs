@@ -1,13 +1,25 @@
+use bevy::math::{Vec2, IVec2};
+
 use crate::usf::scale::Scale;
 
-use super::types::ChunkCoord;
+use super::types::{WorldCoord, ChunkCoord};
 
-pub trait ChunkCoordTupleExt {
+pub trait Vec2Ext {
+    fn scaled(self, scale: Scale) -> WorldCoord;
+}
+
+impl Vec2Ext for Vec2 {
+    fn scaled(self, scale: Scale) -> WorldCoord {
+        WorldCoord { xy: Vec2::new(self.x, self.y), scale }
+    }
+}
+
+pub trait IVec2Ext {
     fn scaled(self, scale: Scale) -> ChunkCoord;
 }
 
-impl ChunkCoordTupleExt for (i32, i32) {
+impl IVec2Ext for IVec2 {
     fn scaled(self, scale: Scale) -> ChunkCoord {
-        ChunkCoord { x: self.0, y: self.1, scale }
+        ChunkCoord { xy: IVec2::new(self.x, self.y), scale }
     }
 }

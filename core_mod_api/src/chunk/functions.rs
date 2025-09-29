@@ -1,9 +1,11 @@
 use bevy::prelude::*;
 
+use crate::chunk::traits::{Vec2Ext, IVec2Ext};
+use crate::chunk::types::{WorldCoord, ChunkCoord, SquaredChunkDist};
 use crate::config::statics::CONFIG;
+use crate::usf::scale::{Scale, DynScale};
 
-pub(crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<(i32, i32)> {
-    let (center_chunk_x, center_chunk_y) = world_pos_to_chunk(position);
+pub(crate) fn chunks_in_radius(coord: ChunkCoord, radius: u32) -> Vec<ChunkCoord> {
     let mut chunks = Vec::new();
 
     let radius = radius as i32;
@@ -15,12 +17,12 @@ pub(crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<(i3
     while x <= y {
         // Add filled lines between symmetrical points
         for dx in -x..=x {
-            chunks.push((center_chunk_x + dx, center_chunk_y + y));
-            chunks.push((center_chunk_x + dx, center_chunk_y - y));
+            chunks.push(IVec2::new(coord.xy.x + dx, coord.xy.y + y).scaled(coord.scale));
+            chunks.push(IVec2::new(coord.xy.x + dx, coord.xy.y - y).scaled(coord.scale));
         }
         for dx in -y..=y {
-            chunks.push((center_chunk_x + dx, center_chunk_y + x));
-            chunks.push((center_chunk_x + dx, center_chunk_y - x));
+            chunks.push(IVec2::new(coord.xy.x + dx, coord.xy.y + x).scaled(coord.scale));
+            chunks.push(IVec2::new(coord.xy.x + dx, coord.xy.y - x).scaled(coord.scale));
         }
 
         if d < 0 {
@@ -37,22 +39,25 @@ pub(crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<(i3
     chunks
 }
 
-pub(crate) fn calculate_chunk_distance(coord1: &(i32, i32), coord2: &(i32, i32)) -> u32 {
-    let dx = coord1.0 - coord2.0;
-    let dy = coord1.1 - coord2.1;
-    (dx * dx + dy * dy).try_into().unwrap()
+pub(crate) fn chunk_distance_squared(coord1: ChunkCoord, coord2: ChunkCoord) -> SquaredChunkDist {
+    let dx = coord1.xy.x - coord2.xy.x;
+    let dy = coord1.xy.y - coord2.xy.y;
+    let scale_dist = coord1.scale.scale_factor_exponent() - coord2.scale.scale_factor_exponent();
+    let squared_chunk_dist = dx * dx + dy * dy;
+    
+    SquaredChunkDist { squared_grid_dist: squared_chunk_dist, scale_dist }
 }
 
-pub(crate) fn world_pos_to_chunk(position: Vec2) -> (i32, i32) {
+pub(crate) fn world_pos_to_chunk(position: Vec2, scale: Scale) -> ChunkCoord {
     let chunk_size = CONFIG().get::<u32>("chunk/size") as f32;
     let chunk_x = ((position.x + chunk_size / 2.0) / chunk_size).floor() as i32;
     let chunk_y = ((position.y + chunk_size / 2.0) / chunk_size).floor() as i32;
-    (chunk_x, chunk_y)
+    IVec2::new(chunk_x, chunk_y).scaled(scale)
 }
 
-pub(crate) fn chunk_pos_to_world(grid_coord: (i32, i32)) -> Vec2 {
-    let chunk_size = CONFIG().get::<u32>("chunk/size");
-    let chunk_x = grid_coord.0 as f32 * chunk_size as f32;
-    let chunk_y = grid_coord.1 as f32 * chunk_size as f32;
-    Vec2::new(chunk_x, chunk_y)
+pub(crate) fn chunk_pos_to_world(grid_coord: ChunkCoord) -> WorldCoord {
+    let chunk_size = CONFIG().get::<u32>("chunk/size") as f32;
+    let chunk_x = grid_coord.xy.x as f32 * chunk_size;
+    let chunk_y = grid_coord.xy.y as f32 * chunk_size;
+    Vec2::new(chunk_x, chunk_y).scaled(grid_coord.scale)
 }
