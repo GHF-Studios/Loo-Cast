@@ -190,7 +190,7 @@ register_workflow_mods!(
         GenerateChunkTextures {
             PrepareRenderExecutor: Ecs,
             GetTextureViews: RenderWhile,
-            DispatchRenderTextures: Render,
+            DispatchChunkTextures: Render,
             WaitForTexturesReady: EcsWhile,
         }
     },

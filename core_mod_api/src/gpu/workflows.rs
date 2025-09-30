@@ -452,11 +452,11 @@ define_workflow_mod_OLD! {
 
                                 let texture_size = prepared.texture_size;
                                 let (width, height) = (texture_size, texture_size);
-                                let workgroup_size_x = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_x");
-                                let workgroup_size_y = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_y");
+                                let workgroups_x = CONFIG().get::<u32>("gpu/texture_generator/workgroups_x");
+                                let workgroups_y = CONFIG().get::<u32>("gpu/texture_generator/workgroups_y");
 
-                                let dispatch_x = width.div_ceil(workgroup_size_x);
-                                let dispatch_y = height.div_ceil(workgroup_size_y);
+                                let dispatch_x = width.div_ceil(workgroups_x);
+                                let dispatch_y = height.div_ceil(workgroups_y);
 
                                 let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor { label: None, timestamp_writes: None });
                                 compute_pass.set_pipeline(pipeline);
@@ -544,7 +544,6 @@ define_workflow_mod_OLD! {
                     pub shader_name: &'static str,
                     pub pipeline_id: CachedComputePipelineId,
                     pub bind_group_layout: BindGroupLayout,
-                    pub texture_size: u32,
                     pub texture_handles: Vec<Handle<Image>>,
                     pub param_buffers: Vec<Buffer>,
                 }
@@ -554,7 +553,6 @@ define_workflow_mod_OLD! {
                     pub shader_name: &'static str,
                     pub pipeline_id: CachedComputePipelineId,
                     pub bind_group_layout: BindGroupLayout,
-                    pub texture_size: u32,
                     pub texture_handles: Vec<Handle<Image>>,
                     pub param_buffers: Vec<Buffer>,
                     pub texture_views: Vec<TextureView>,
@@ -596,7 +594,6 @@ define_workflow_mod_OLD! {
                         }
                         struct Input {
                             shader_name: &'static str,
-                            texture_size: u32,
                             param_data: Vec<ShaderParams>,
                         }
                         struct Output {
@@ -606,7 +603,6 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn RunEcs |input, main_access| -> Output {
                             let shader_name = input.shader_name;
-                            let texture_size = input.texture_size;
                             let render_device = main_access.render_device;
                             let mut images = main_access.images;
                             let shader_registry = main_access.shader_registry;
@@ -620,7 +616,7 @@ define_workflow_mod_OLD! {
                             let mut texture_handles = Vec::new();
                             let mut param_buffers = Vec::new();
                             for param in &input.param_data {
-                                texture_handles.push(images.add(new_chunk_texture(texture_size)));
+                                texture_handles.push(images.add(new_chunk_texture(1000)));
 
                                 let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
                                     label: Some("RenderTextureParamBuffer"),
@@ -635,7 +631,6 @@ define_workflow_mod_OLD! {
                                     shader_name,
                                     pipeline_id,
                                     bind_group_layout: bind_group_layout.clone(),
-                                    texture_size,
                                     texture_handles,
                                     param_buffers,
                                 },
@@ -684,7 +679,6 @@ define_workflow_mod_OLD! {
                                     shader_name: state.params.shader_name,
                                     pipeline_id: state.params.pipeline_id,
                                     bind_group_layout: state.params.bind_group_layout,
-                                    texture_size: state.params.texture_size,
                                     texture_handles: state.params.texture_handles,
                                     param_buffers: state.params.param_buffers,
                                     texture_views,
@@ -695,7 +689,7 @@ define_workflow_mod_OLD! {
                     ]
                 }
 
-                DispatchRenderTextures: Render, run_if_paused: false, run_after_startup_finished: false {
+                DispatchChunkTextures: Render, run_if_paused: false, run_after_startup_finished: false {
                     core_types: [
                         struct RenderAccess<'w> {
                             render_device: Res<'w, RenderDevice>,
@@ -718,7 +712,7 @@ define_workflow_mod_OLD! {
                                 .expect("Pipeline not ready");
 
                             let mut encoder = render_access.render_device.create_command_encoder(&CommandEncoderDescriptor {
-                                label: Some("DispatchRenderTextures Encoder"),
+                                label: Some("DispatchChunkTextures Encoder"),
                             });
 
                             let big_loop_iter = render_executor.texture_views.iter().zip(&render_executor.param_buffers).zip(&render_executor.texture_handles);
@@ -738,13 +732,11 @@ define_workflow_mod_OLD! {
                                     ],
                                 );
 
-                                let size = render_executor.texture_size;
-                                let (width, height) = (size, size);
-                                let workgroup_x = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_x");
-                                let workgroup_y = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_y");
+                                let workgroup_x = CONFIG().get::<u32>("gpu/texture_generator/workgroups_x");
+                                let workgroup_y = CONFIG().get::<u32>("gpu/texture_generator/workgroups_y");
 
-                                let dispatch_x = width.div_ceil(workgroup_x);
-                                let dispatch_y = height.div_ceil(workgroup_y);
+                                let dispatch_x = (1024 / workgroup_x).max(1);
+                                let dispatch_y = (1024 / workgroup_y).max(1);
 
                                 let mut pass = encoder.begin_compute_pass(&ComputePassDescriptor {
                                     label: Some("ChunkRender ComputePass"),

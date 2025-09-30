@@ -32,6 +32,10 @@ fn hsv_to_rgb(h: f32, s: f32, v: f32) -> vec3<f32> {
 
 @compute @workgroup_size(16, 16)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    if (global_id.x >= 1000 || global_id.y >= 1000) {
+        return;
+    }
+
     let normalized_scale = clamp((f32(params.chunk_scale) + 35.0) / 70.0, 0.0, 1.0);
     let base_color = hsv_to_rgb(normalized_scale, 1.0, 1.0);
 
@@ -47,7 +51,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     for (var i = 0u; i < 5u; i = i + 1u) {
         let div = divisions[i];
-        let section_size = params.chunk_size / div;
+        let section_size = 1000 / div;
         let thickness = thicknesses[i];
         let opacity = opacities[i];
 

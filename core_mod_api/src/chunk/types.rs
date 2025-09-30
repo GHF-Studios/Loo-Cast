@@ -3,7 +3,6 @@ use bevy::prelude::*;
 use tokio::task::JoinHandle;
 
 use crate::chunk::traits::{Vec2Ext, IVec2Ext};
-use crate::config::statics::CONFIG;
 use crate::usf::scale::Scale;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 
@@ -95,7 +94,7 @@ impl std::fmt::Debug for WorldCoord {
 }
 impl From<ChunkCoord> for WorldCoord {
     fn from(value: ChunkCoord) -> Self {
-        let chunk_size = CONFIG().get::<u32>("chunk/size") as f32;
+        let chunk_size = 1000.0;
         let chunk_x = value.xy.x as f32 * chunk_size;
         let chunk_y = value.xy.y as f32 * chunk_size;
         Vec2::new(chunk_x, chunk_y).scaled(value.scale)
@@ -138,7 +137,7 @@ impl std::fmt::Debug for ChunkCoord {
 }
 impl From<WorldCoord> for ChunkCoord {
     fn from(value: WorldCoord) -> Self {
-        let chunk_size = CONFIG().get::<u32>("chunk/size") as f32;
+        let chunk_size = 1000.0;
         let chunk_x = ((value.xy.x + chunk_size / 2.0) / chunk_size).floor() as i32;
         let chunk_y = ((value.xy.y + chunk_size / 2.0) / chunk_size).floor() as i32;
         IVec2::new(chunk_x, chunk_y).scaled(value.scale)

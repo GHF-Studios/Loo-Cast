@@ -20,15 +20,6 @@ use super::ActionIntentCommitBuffer;
 
 #[tracing::instrument(skip_all)]
 pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
-    let workgroup_size_x = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_x");
-    let workgroup_size_y = CONFIG().get::<u32>("gpu/texture_generator/workgroup_size_y");
-    let workgroup_size_total = workgroup_size_x * workgroup_size_y;
-    let chunk_size = CONFIG().get::<u32>("chunk/size");
-
-    if chunk_size % workgroup_size_total != 0 {
-        panic!("Chunk size {} is not divisible by {workgroup_size_x}x{workgroup_size_y}={workgroup_size_total}(the configured texture generator shader workgroup size)", chunk_size);
-    }
-
     let quad = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
     let light_material: Handle<ColorMaterial> = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
     let dark_material = materials.add(ColorMaterial::from_color(Color::srgb(0.25, 0.25, 0.25)));
@@ -191,15 +182,13 @@ pub(crate) fn process_chunk_actions_system(
     // Step 3: Build & launch composite workflows
     let spawn_handle = if !spawn_inputs.is_empty()
     {
-        let texture_size = CONFIG().get::<u32>("chunk/size");
-        let chunk_size = CONFIG().get::<u32>("chunk/size");
         let current_view_scale = CONFIG().get::<i32>("chunk_loader/current_view_scale");
 
         let param_data = spawn_coords
             .iter()
             .map(|coord| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
                 chunk_pos: [coord.xy.x, coord.xy.y],
-                chunk_size,
+                chunk_size: 1000,
                 chunk_scale: coord.scale as i32,
                 current_view_scale,
                 _padding0: 0,
@@ -211,7 +200,6 @@ pub(crate) fn process_chunk_actions_system(
 
         Some(composite_workflow!(
             SpawnChunks,
-            move in texture_size: u32,
             move in spawn_inputs: Vec<SpawnChunkInput>,
             move in param_data: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
             new_chunk_loaders: Vec<Entity>,
@@ -222,7 +210,6 @@ pub(crate) fn process_chunk_actions_system(
 
             let generate_output = workflow!(IO, Gpu::GenerateChunkTextures, Input {
                 shader_name,
-                texture_size,
                 param_data,
             });
 

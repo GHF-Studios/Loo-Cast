@@ -87,6 +87,10 @@ fn fbm(p: vec2<f32>, octaves: i32, lacunarity: f32, gain: f32) -> f32 {
 
 @compute @workgroup_size(16, 16)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    if (global_id.x >= 1000 || global_id.y >= 1000) {
+        return;
+    }
+    
     let tex_size = vec2<f32>(textureDimensions(output_texture));
     let uv = vec2<f32>(global_id.xy) / tex_size;
     let flipped_uv = vec2<f32>(uv.x, 1.0 - uv.y);

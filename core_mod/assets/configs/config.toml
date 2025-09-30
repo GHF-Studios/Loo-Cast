@@ -6,7 +6,6 @@ base_zoom_speed = 5.0
 follow_smoothness = 0.15
 
 [chunk]
-size = 1024
 default_z = -10.0
 texture_generator_shader = "texture_generators/example_dev"
 
@@ -22,8 +21,8 @@ spawn_debug_objects = false
 reservation_buffer_size = 8
 
 [gpu.texture_generator]
-workgroup_size_x = 16
-workgroup_size_y = 16
+workgroups_x = 16
+workgroups_y = 16
 
 [log.tracing]
 enabled = true
