@@ -20,7 +20,6 @@ egui = "0.32.1"
 egui_dock = "0.17.0"
 transform-gizmo-bevy = "0.6.0"
 iyes_perf_ui = "0.5"
-mlua = { version = "0.6.1", features = ["vendored", "lua54"] }
 rand = "0.8.5"
 noise = "0.9"
 image = "0.25.1"

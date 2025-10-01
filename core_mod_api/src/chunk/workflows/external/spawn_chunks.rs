@@ -2,7 +2,7 @@
 use bevy::prelude::{Commands, Entity, Single, Query, With, Res, ResMut, Handle, Image, Transform, Sprite, Name, warn, Vec2, Vec3};
 
 use crate::camera::components::MainCamera;
-use crate::chunk::{components::Chunk, resources::{ChunkManager, GridOriginOffset}, types::{GridCoord, ChunkOwnerId, WorldCoord}};
+use crate::chunk::{components::Chunk, resources::{ChunkManager, GridOriginOffset}, traits::Vec2Ext, types::{GridCoord, ChunkOwnerId, WorldCoord}};
 use crate::config::statics::CONFIG;
 use crate::debug::observers::on_click_select;
 use crate::usf::scale::{Scale, DynScale};
@@ -28,7 +28,7 @@ pub struct MainAccess<'w, 's> {
     pub chunk_query: Query<'w, 's, &'static Chunk>,
     pub chunk_manager: ResMut<'w, ChunkManager>,
     pub grid_xy: Res<'w, GridOriginOffset>,
-    pub camera_transform_single: Single<'w, &'static Transform, With<MainCamera>>,
+    pub camera_transform: Single<'w, &'static Transform, With<MainCamera>>,
 }
 
 pub struct Input {
@@ -54,7 +54,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     let chunk_query = main_access.chunk_query;
     let mut chunk_manager = main_access.chunk_manager;
     let grid_xy = main_access.grid_xy;
-    let camera_transform_single = main_access.camera_transform_single;
+    let camera_transform = main_access.camera_transform;
 
     let mut spawn_chunk_states = Vec::new();
 
@@ -73,9 +73,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         let chunk_z_offset = CONFIG().get::<i8>("chunk/z_offset");
         let chunk_z = (-(Scale::MAX as i8 - scale as i8) + chunk_z_offset) as f32;
 
-        let camera_transform = camera_transform_single.single();
-
-        let camera_world_coord = camera_transform.translation.trim().to_world_coord(scale, grid_coord.xy);
+        let camera_world_coord = camera_transform.translation.truncate().to_world_coord(scale, grid_coord.xy);
         let camera_local_offset = camera_world_coord.local_offset;
 
         let relative_offset = world_coord.local_offset - camera_local_offset;

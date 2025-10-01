@@ -23,7 +23,6 @@ pub use image;
 pub use iyes_perf_ui;
 pub use lazy_static;
 pub use log;
-pub use mlua;
 pub use noise;
 pub use num_bigint;
 pub use num_traits;
