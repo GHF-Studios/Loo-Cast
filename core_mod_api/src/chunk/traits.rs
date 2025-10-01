@@ -1,6 +1,7 @@
 use bevy::math::{Vec2, IVec2};
 
 use crate::usf::scale::Scale;
+use crate::utils::types::I128Vec2;
 
 use super::types::{WorldCoord, ChunkCoord};
 
@@ -11,7 +12,7 @@ pub trait Vec2Ext {
 
 impl Vec2Ext for Vec2 {
     fn scaled(self, scale: Scale) -> WorldCoord {
-        WorldCoord { xy: Vec2::new(self.x, self.y), scale }
+        WorldCoord { scale, local: Vec2::new(self.x, self.y) }
     }
 
     fn world_coord_to_chunk_coord(self) -> IVec2 {

@@ -1,8 +1,14 @@
 #![allow(clippy::default_constructed_unit_structs)]
 
-use bevy::prelude::Reflect;
+use bevy::prelude::{Reflect, Resource, ReflectResource};
 use std::fmt::Debug;
 use std::hash::Hash;
+
+#[derive(Resource, Default, Reflect)]
+#[reflect(Resource)]
+pub struct CurrentViewScale {
+    scale: u32
+}
 
 pub trait ConstScale: 'static + Send + Sync + Clone + Copy + Default + Debug + Reflect + PartialOrd + Ord + PartialEq + Eq + Hash {
     type Up: ConstScale;

@@ -4,6 +4,7 @@ use tokio::task::JoinHandle;
 
 use crate::chunk::traits::{Vec2Ext, IVec2Ext};
 use crate::usf::scale::Scale;
+use crate::utils::types::I128Vec2;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 
 #[derive(Reflect)]
@@ -80,15 +81,16 @@ impl Ord for ChunkOwnerId {
 
 #[derive(Clone, Copy, Default, Reflect, PartialEq)]
 pub struct WorldCoord {
-    pub xy: Vec2,
     pub scale: Scale,
+    pub global: I128Vec2,
+    pub local: Vec2,
 }
 impl std::fmt::Debug for WorldCoord {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "WorldCoord {{ x: {}, y: {}, scale: {} }}",
-            self.xy.x, self.xy.y, self.scale
+            self.local.x, self.local.y, self.scale
         )
     }
 }
@@ -101,19 +103,20 @@ impl From<ChunkCoord> for WorldCoord {
     }
 }
 impl WorldCoord {
-    pub fn new(x: f32, y: f32, scale: Scale) -> Self {
+    pub fn new(scale: Scale, global_x: i128, global_y: i128, local_x: f32, local_y: f32) -> Self {
         Self {
-            xy: Vec2::new(x, y),
-            scale
+            scale,
+            global: I128Vec2::new(global_x, global_y),
+            local: Vec2::new(local_x, local_y),
         }
     }
 
     pub fn unscaled(&self) -> Vec2 {
-        Vec2::new(self.xy.x, self.xy.y)
+        Vec2::new(self.local.x, self.local.y)
     }
 
     pub fn distance_squared(&self, rhs: &Self) -> f32 {
-        self.xy.distance_squared(rhs.xy)
+        self.local.distance_squared(rhs.local)
     }
 
     pub fn scale_distance(&self, rhs: &Self) -> i8 {
@@ -138,8 +141,8 @@ impl std::fmt::Debug for ChunkCoord {
 impl From<WorldCoord> for ChunkCoord {
     fn from(value: WorldCoord) -> Self {
         let chunk_size = 1000.0;
-        let chunk_x = ((value.xy.x + chunk_size / 2.0) / chunk_size).floor() as i32;
-        let chunk_y = ((value.xy.y + chunk_size / 2.0) / chunk_size).floor() as i32;
+        let chunk_x = ((value.local.x + chunk_size / 2.0) / chunk_size).floor() as i32;
+        let chunk_y = ((value.local.y + chunk_size / 2.0) / chunk_size).floor() as i32;
         IVec2::new(chunk_x, chunk_y).scaled(value.scale)
     }
 }

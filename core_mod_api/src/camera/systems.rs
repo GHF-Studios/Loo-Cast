@@ -6,8 +6,7 @@ use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
 use crate::time::resources::VirtualPaused;
 
-use super::resources::GameViewRenderTarget;
-use super::types::ZoomFactor;
+use super::resources::{GameViewRenderTarget, ZoomFactor, ViewScale};
 
 pub(crate) fn setup_main_render_target(
     mut commands: Commands,
@@ -83,3 +82,14 @@ pub(crate) fn main_camera_zoom_system(
         }
     }
 }
+
+pub fn update_view_scale_from_zoom(
+    zoom_factor: Res<ZoomFactor>,
+    mut view_scale: ResMut<ViewScale>,
+) {
+    let zoom = zoom_factor.0;
+    let scale = -zoom.log10(); // Since zooming in decreases ortho scale
+    view_scale.discrete = scale.floor() as i32;
+    view_scale.offset = scale.fract();
+}
+

@@ -1,7 +1,8 @@
 pub mod components;
-pub mod progress;
 pub mod functions;
 pub mod premium_box;
+pub mod progress;
+pub mod types;
 
 use bevy::prelude::*;
 
