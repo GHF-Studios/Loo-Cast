@@ -13,7 +13,7 @@ pub(crate) fn hook_on_add_chunk(mut world: DeferredWorld<'_>, hook_context: Hook
         caller: _,
         relationship_hook_mode: _,
     } = hook_context;
-    let (chunk, chunk_coord) = match world.get::<Chunk>(entity) {
+    let (chunk, grid_coord) = match world.get::<Chunk>(entity) {
         Some(chunk) => (chunk, chunk.coord),
         None => return,
     };
@@ -31,7 +31,7 @@ pub(crate) fn hook_on_add_chunk(mut world: DeferredWorld<'_>, hook_context: Hook
             "Spawned chunk {:?} with non-existent owner_id {:?}. 
             The chunk cannot be safely despawned, due to no respective removal event being found.
             In other words: The chunk references a non-existent owner at creation, which is an invariant violation in combination with no removal event being found!", 
-            chunk_coord, chunk_owner_id
+            grid_coord, chunk_owner_id
         );
     }
 }

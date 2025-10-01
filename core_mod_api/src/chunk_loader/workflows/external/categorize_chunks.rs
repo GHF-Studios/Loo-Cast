@@ -2,9 +2,9 @@
 use bevy::prelude::*;
 use std::collections::HashSet;
 
-use crate::chunk::resources::ChunkManager;
-use crate::chunk::traits::Vec2Ext;
-use crate::chunk::types::{WorldCoord, ChunkCoord};
+use crate::chunk::resources::{ChunkManager, GridOriginOffset};
+use crate::chunk::traits::{I128Vec2Ext, Vec2Ext};
+use crate::chunk::types::GridCoord;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::workflows::external::{load_chunks::LoadChunkInput, unload_chunks::UnloadChunkInput};
 use crate::utils::components::DropHook;
@@ -16,6 +16,7 @@ use crate::utils::components::DropHook;
 pub struct MainAccess<'w, 's> {
     pub chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader, Option<&'static DropHook<ChunkLoader>>)>,
     pub chunk_manager: Res<'w, ChunkManager>,
+    pub grid_xy: Res<'w, GridOriginOffset>,
 }
 pub struct Output {
     pub load_chunk_inputs: Vec<LoadChunkInput>,
@@ -26,14 +27,13 @@ pub struct Output {
 pub fn run_ecs(main_access: MainAccess) -> Output {
     let chunk_loader_query = &main_access.chunk_loader_query;
     let chunk_manager = &main_access.chunk_manager;
+    let grid_xy = main_access.grid_xy;
 
     let mut load_chunk_inputs = Vec::new();
     let mut unload_chunk_inputs = Vec::new();
 
     for (transform, chunk_loader, drop_hook) in chunk_loader_query.iter() {
-        let position = transform.translation.truncate();
-        let scaled_position: WorldCoord = position.scaled(*chunk_loader.id().scale());
-        let scaled_grid_position: ChunkCoord = scaled_position.into();
+        let chunk_loader_position = transform.translation.truncate().to_grid_coord(grid_xy.0).to_grid_coord(*chunk_loader.id().scale());
         let radius = chunk_loader.radius;
 
         let chunk_owner_id = chunk_loader.id();
@@ -41,10 +41,10 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
         let target_chunks = if drop_hook.is_some() {
             HashSet::new()
         } else {
-            scaled_grid_position.coords_in_radius(radius).into_iter().collect::<HashSet<ChunkCoord>>()
+            chunk_loader_position.coords_in_radius(radius).into_iter().collect::<HashSet<GridCoord>>()
         };
 
-        let current_chunks: HashSet<ChunkCoord> = chunk_manager
+        let current_chunks: HashSet<GridCoord> = chunk_manager
             .owned_chunks
             .iter()
             .filter_map(|(chunk, owner_id)| if owner_id == chunk_owner_id { Some(*chunk) } else { None })
@@ -53,25 +53,25 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
         let chunks_to_load: Vec<_> = target_chunks.difference(&current_chunks).cloned().collect();
         let chunks_to_unload: Vec<_> = current_chunks.difference(&target_chunks).cloned().collect();
 
-        for chunk_coord in chunks_to_load {
-            let chunk_loader_distance_squared = chunk_coord.distance_squared(&scaled_grid_position);
+        for chunk_to_load in chunks_to_load {
+            let chunk_loader_distance_squared = chunk_to_load.distance_squared(&chunk_loader_position);
             let chunk_loader_radius_squared = radius * radius;
 
             load_chunk_inputs.push(LoadChunkInput {
                 owner_id: chunk_owner_id.clone(),
-                chunk_coord,
+                grid_coord: chunk_to_load,
                 chunk_loader_distance_squared: chunk_loader_distance_squared.try_into().unwrap(),
                 chunk_loader_radius_squared,
             });
         }
 
-        for chunk_coord in chunks_to_unload {
-            let chunk_loader_distance_squared = chunk_coord.distance_squared(&scaled_grid_position);
+        for chunk_to_unload in chunks_to_unload {
+            let chunk_loader_distance_squared = chunk_to_unload.distance_squared(&chunk_loader_position);
             let chunk_loader_radius_squared = radius * radius;
 
             unload_chunk_inputs.push(UnloadChunkInput {
                 owner_id: chunk_owner_id.clone(),
-                chunk_coord,
+                grid_coord: chunk_to_unload,
                 chunk_loader_distance_squared: chunk_loader_distance_squared.try_into().unwrap(),
                 chunk_loader_radius_squared,
             });

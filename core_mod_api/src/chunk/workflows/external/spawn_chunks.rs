@@ -1,14 +1,16 @@
 // Imports
-use bevy::prelude::{Commands, Entity, Query, ResMut, Handle, Image, Transform, Sprite, Name, warn};
+use bevy::prelude::{Commands, Entity, Single, Query, With, Res, ResMut, Handle, Image, Transform, Sprite, Name, warn, Vec2, Vec3};
 
-use crate::chunk::{components::Chunk, resources::ChunkManager, types::{WorldCoord, ChunkCoord, ChunkOwnerId}};
+use crate::camera::components::MainCamera;
+use crate::chunk::{components::Chunk, resources::{ChunkManager, GridOriginOffset}, types::{GridCoord, ChunkOwnerId, WorldCoord}};
 use crate::config::statics::CONFIG;
 use crate::debug::observers::on_click_select;
+use crate::usf::scale::{Scale, DynScale};
 use crate::workflow::types::Outcome;
 
 // Items
 pub struct SpawnChunkInput {
-    pub chunk_coord: ChunkCoord,
+    pub grid_coord: GridCoord,
     pub chunk_owner_id: ChunkOwnerId,
     pub metric_texture: Handle<Image>
 }
@@ -25,6 +27,8 @@ pub struct MainAccess<'w, 's> {
     pub commands: Commands<'w, 's>,
     pub chunk_query: Query<'w, 's, &'static Chunk>,
     pub chunk_manager: ResMut<'w, ChunkManager>,
+    pub grid_xy: Res<'w, GridOriginOffset>,
+    pub camera_transform_single: Single<'w, &'static Transform, With<MainCamera>>,
 }
 
 pub struct Input {
@@ -41,7 +45,7 @@ pub struct Output {
 
 #[derive(Debug)]
 pub enum Error {
-    ChunkAlreadyLoaded { chunk_coord: ChunkCoord },
+    ChunkAlreadyLoaded { grid_coord: GridCoord },
 }
 
 // Core Functions
@@ -49,27 +53,40 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     let mut commands = main_access.commands;
     let chunk_query = main_access.chunk_query;
     let mut chunk_manager = main_access.chunk_manager;
+    let grid_xy = main_access.grid_xy;
+    let camera_transform_single = main_access.camera_transform_single;
 
     let mut spawn_chunk_states = Vec::new();
 
     for input in input.inputs {
-        let chunk_coord = input.chunk_coord;
-        let world_coord: WorldCoord = chunk_coord.into();
+        let scale = input.grid_coord.scale;
+        let scale_factor = scale.scale_factor() as f32;
+        let grid_coord = input.grid_coord;
+        let world_coord = grid_coord.to_world_coord(grid_xy.0, Vec2::ZERO);
         let chunk_owner_id = input.chunk_owner_id;
         let metric_texture = input.metric_texture.clone();
 
-        if chunk_query.iter().any(|chunk| chunk.coord == chunk_coord) {
-            return Err(Error::ChunkAlreadyLoaded { chunk_coord });
+        if chunk_query.iter().any(|chunk| chunk.coord == grid_coord) {
+            return Err(Error::ChunkAlreadyLoaded { grid_coord });
         }
 
-        let default_chunk_z = CONFIG().get::<f32>("chunk/default_z");
+        let chunk_z_offset = CONFIG().get::<i8>("chunk/z_offset");
+        let chunk_z = (-(Scale::MAX as i8 - scale as i8) + chunk_z_offset) as f32;
+
+        let camera_transform = camera_transform_single.single();
+
+        let camera_world_coord = camera_transform.translation.trim().to_world_coord(scale, grid_coord.xy);
+        let camera_local_offset = camera_world_coord.local_offset;
+
+        let relative_offset = world_coord.local_offset - camera_local_offset;
 
         let chunk_transform = Transform {
-            translation: world_coord.unscaled().extend(default_chunk_z),
+            translation: (relative_offset * scale_factor).extend(chunk_z),
+            scale: Vec3::new(scale_factor, scale_factor, 1.0),
             ..Default::default()
         };
 
-        let chunk_name = Name::new(format!("chunk_entity({chunk_coord:?})"));
+        let chunk_name = Name::new(format!("chunk_entity({grid_coord:?})"));
 
         let chunk_entity = commands.spawn((
             chunk_transform,
@@ -78,17 +95,17 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
                 ..Default::default()
             },
             Chunk {
-                coord: chunk_coord,
+                coord: grid_coord,
                 owner_id: Some(chunk_owner_id.clone()),
-                scale: chunk_coord.scale,
+                scale: grid_coord.scale,
             },
             chunk_name
         )).observe(on_click_select).id();
 
-        // warn!("Spawning chunk at coord ({}, {})", chunk_coord.0, chunk_coord.1);
+        // warn!("Spawning chunk at coord ({}, {})", grid_coord.0, grid_coord.1);
 
-        chunk_manager.loaded_chunks.insert(chunk_coord);
-        chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner_id.clone());
+        chunk_manager.loaded_chunks.insert(grid_coord);
+        chunk_manager.owned_chunks.insert(grid_coord, chunk_owner_id.clone());
 
         spawn_chunk_states.push(SpawnChunkState {
             chunk_entity,

@@ -2,8 +2,8 @@ use bevy::ecs::entity::Entity;
 use bevy::prelude::*;
 use tokio::task::JoinHandle;
 
-use crate::chunk::traits::{Vec2Ext, IVec2Ext};
-use crate::usf::scale::Scale;
+use crate::chunk::traits::{Vec2Ext, I128Vec2Ext};
+use crate::usf::scale::{Scale, DynScale};
 use crate::utils::types::I128Vec2;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 
@@ -81,95 +81,78 @@ impl Ord for ChunkOwnerId {
 
 #[derive(Clone, Copy, Default, Reflect, PartialEq)]
 pub struct WorldCoord {
-    pub scale: Scale,
-    pub global: I128Vec2,
-    pub local: Vec2,
+    pub grid_coord: GridCoord,
+    pub local_offset: Vec2,
 }
 impl std::fmt::Debug for WorldCoord {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "WorldCoord {{ x: {}, y: {}, scale: {} }}",
-            self.local.x, self.local.y, self.scale
+            "WorldCoord {{ x: {}, y: {}, grid: {:?} }}",
+            self.local_offset.x, self.local_offset.y, self.grid_coord
         )
     }
 }
-impl From<ChunkCoord> for WorldCoord {
-    fn from(value: ChunkCoord) -> Self {
-        let chunk_size = 1000.0;
-        let chunk_x = value.xy.x as f32 * chunk_size;
-        let chunk_y = value.xy.y as f32 * chunk_size;
-        Vec2::new(chunk_x, chunk_y).scaled(value.scale)
-    }
-}
 impl WorldCoord {
-    pub fn new(scale: Scale, global_x: i128, global_y: i128, local_x: f32, local_y: f32) -> Self {
+    pub fn new(scale: Scale, grid_x: i128, grid_y: i128, local_x: f32, local_y: f32) -> Self {
         Self {
-            scale,
-            global: I128Vec2::new(global_x, global_y),
-            local: Vec2::new(local_x, local_y),
+            grid_coord: GridCoord::new(scale, grid_x, grid_y),
+            local_offset: Vec2::new(local_x, local_y),
         }
     }
 
-    pub fn unscaled(&self) -> Vec2 {
-        Vec2::new(self.local.x, self.local.y)
-    }
-
     pub fn distance_squared(&self, rhs: &Self) -> f32 {
-        self.local.distance_squared(rhs.local)
+        self.local_offset.distance_squared(rhs.local_offset)
     }
 
     pub fn scale_distance(&self, rhs: &Self) -> i8 {
-        self.scale as i8 - rhs.scale as i8
+        self.grid_coord.scale as i8 - rhs.grid_coord.scale as i8
+    }
+
+    pub fn to_grid_coord(&self) -> GridCoord {
+        self.grid_coord
     }
 }
 
 #[derive(Clone, Copy, Default, Reflect, PartialEq, Eq, Hash)]
-pub struct ChunkCoord {
-    pub xy: IVec2,
+pub struct GridCoord {
     pub scale: Scale,
+    pub xy: I128Vec2,
 }
-impl std::fmt::Debug for ChunkCoord {
+impl std::fmt::Debug for GridCoord {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "ChunkCoord {{ x: {}, y: {}, scale: {} }}",
+            "GridCoord {{ x: {}, y: {}, scale: {} }}",
             self.xy.x, self.xy.y, self.scale
         )
     }
 }
-impl From<WorldCoord> for ChunkCoord {
-    fn from(value: WorldCoord) -> Self {
-        let chunk_size = 1000.0;
-        let chunk_x = ((value.local.x + chunk_size / 2.0) / chunk_size).floor() as i32;
-        let chunk_y = ((value.local.y + chunk_size / 2.0) / chunk_size).floor() as i32;
-        IVec2::new(chunk_x, chunk_y).scaled(value.scale)
+impl std::fmt::Display for GridCoord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "GridCoord({}, {}, {})", self.scale, self.xy.x, self.xy.y)
     }
 }
-impl ChunkCoord {
-    pub fn new(x: i32, y: i32, scale: Scale) -> Self {
+impl GridCoord {
+    pub fn new(scale: Scale, x: i128, y: i128) -> Self {
         Self {
-            xy: IVec2::new(x, y),
+            xy: I128Vec2::new(x, y),
             scale
         }
     }
 
-    pub fn unscaled(&self) -> IVec2 {
-        IVec2::new(self.xy.x, self.xy.y)
-    }
-
-    pub fn distance_squared(&self, rhs: &Self) -> i32 {
-        self.xy.distance_squared(rhs.xy)
+    pub fn distance_squared(&self, rhs: &Self) -> i128 {
+        self.xy.distance_squared(&rhs.xy)
     }
 
     pub fn scale_distance(&self, rhs: &Self) -> i8 {
         self.scale as i8 - rhs.scale as i8
     }
     
-    pub fn coords_in_radius(&self, radius: u32) -> Vec<ChunkCoord> {
+    pub fn coords_in_radius(&self, radius: u32) -> Vec<GridCoord> {
         let mut chunks = Vec::new();
 
-        let radius = radius as i32;
+        let radius = radius as i128;
 
         let mut x = 0;
         let mut y = radius;
@@ -178,12 +161,12 @@ impl ChunkCoord {
         while x <= y {
             // Add filled lines between symmetrical points
             for dx in -x..=x {
-                chunks.push(IVec2::new(self.xy.x + dx, self.xy.y + y).scaled(self.scale));
-                chunks.push(IVec2::new(self.xy.x + dx, self.xy.y - y).scaled(self.scale));
+                chunks.push(GridCoord::new(self.scale, self.xy.x + dx, self.xy.y + y));
+                chunks.push(GridCoord::new(self.scale, self.xy.x + dx, self.xy.y - y));
             }
             for dx in -y..=y {
-                chunks.push(IVec2::new(self.xy.x + dx, self.xy.y + x).scaled(self.scale));
-                chunks.push(IVec2::new(self.xy.x + dx, self.xy.y - x).scaled(self.scale));
+                chunks.push(GridCoord::new(self.scale, self.xy.x + dx, self.xy.y + x));
+                chunks.push(GridCoord::new(self.scale, self.xy.x + dx, self.xy.y - x));
             }
 
             if d < 0 {
@@ -198,5 +181,19 @@ impl ChunkCoord {
         }
 
         chunks
+    }
+
+    pub fn to_world_coord(&self, grid_xy: I128Vec2, local_offset: Vec2) -> WorldCoord {
+        const GRID_SIZE: f32 = 1000.0;
+        
+        let chunk_diff = self.xy - grid_xy;
+        
+        WorldCoord {
+            grid_coord: *self,
+            local_offset: Vec2::new(
+                (chunk_diff.x as f32 * GRID_SIZE) + local_offset.x,
+                (chunk_diff.y as f32 * GRID_SIZE) + local_offset.y,
+            ),
+        }
     }
 }

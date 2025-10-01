@@ -1,42 +1,44 @@
-use bevy::math::{Vec2, IVec2};
+use bevy::math::Vec2;
 
 use crate::usf::scale::Scale;
 use crate::utils::types::I128Vec2;
 
-use super::types::{WorldCoord, ChunkCoord};
+use super::types::{WorldCoord, GridCoord};
 
 pub trait Vec2Ext {
-    fn scaled(self, scale: Scale) -> WorldCoord;
-    fn world_coord_to_chunk_coord(self) -> IVec2;
+    fn to_world_coord(self, scale: Scale, effective_grid_xy: I128Vec2) -> WorldCoord;
+    fn to_grid_coord(self, grid_xy: I128Vec2) -> I128Vec2;
 }
 
 impl Vec2Ext for Vec2 {
-    fn scaled(self, scale: Scale) -> WorldCoord {
-        WorldCoord { scale, local: Vec2::new(self.x, self.y) }
+    fn to_world_coord(self, scale: Scale, effective_grid_xy: I128Vec2) -> WorldCoord {
+        WorldCoord { grid_coord: GridCoord::new(scale, effective_grid_xy.x, effective_grid_xy.y), local_offset: Vec2::new(self.x, self.y) }
     }
 
-    fn world_coord_to_chunk_coord(self) -> IVec2 {
+    fn to_grid_coord(self, grid_xy: I128Vec2) -> I128Vec2 {
         let chunk_size = 1000.0;
-        let chunk_x = ((self.x + chunk_size / 2.0) / chunk_size).floor() as i32;
-        let chunk_y = ((self.y + chunk_size / 2.0) / chunk_size).floor() as i32;
-        IVec2::new(chunk_x, chunk_y)
+        let chunk_x = ((self.x + chunk_size / 2.0) / chunk_size).floor() as i128 + grid_xy.x;
+        let chunk_y = ((self.y + chunk_size / 2.0) / chunk_size).floor() as i128 + grid_xy.y;
+        I128Vec2::new(chunk_x, chunk_y)
     }
 }
 
-pub trait IVec2Ext {
-    fn scaled(self, scale: Scale) -> ChunkCoord;
-    fn chunk_coord_to_world_coord(self) -> Vec2;
+pub trait I128Vec2Ext {
+    fn to_grid_coord(self, scale: Scale) -> GridCoord;
+    fn to_world_coord(self, grid_xy: I128Vec2) -> Vec2;
 }
 
-impl IVec2Ext for IVec2 {
-    fn scaled(self, scale: Scale) -> ChunkCoord {
-        ChunkCoord { xy: IVec2::new(self.x, self.y), scale }
+impl I128Vec2Ext for I128Vec2 {
+    fn to_grid_coord(self, scale: Scale) -> GridCoord {
+        GridCoord { scale, xy: self }
     }
 
-    fn chunk_coord_to_world_coord(self) -> Vec2 {
+    fn to_world_coord(self, grid_xy: I128Vec2) -> Vec2 {
         let chunk_size = 1000.0;
-        let chunk_x = self.x as f32 * chunk_size;
-        let chunk_y = self.y as f32 * chunk_size;
-        Vec2::new(chunk_x, chunk_y)
+        let chunk_diff = self - grid_xy;
+        Vec2::new(
+            chunk_diff.x as f32 * chunk_size,
+            chunk_diff.y as f32 * chunk_size,
+        )
     }
 }

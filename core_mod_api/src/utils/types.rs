@@ -10,6 +10,12 @@ impl I128Vec2 {
     pub fn new(x: i128, y: i128) -> Self {
         Self { x, y }
     }
+
+    pub fn distance_squared(&self, rhs: &Self) -> i128 {
+        let dx = self.x - rhs.x;
+        let dy = self.y - rhs.y;
+        dx * dx + dy * dy
+    }
 }
 impl std::fmt::Debug for I128Vec2 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

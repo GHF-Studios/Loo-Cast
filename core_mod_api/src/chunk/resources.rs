@@ -2,15 +2,16 @@ use bevy::prelude::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::{chunk::types::ChunkOwnerId, gpu::workflows::gpu::generate_chunk_textures::user_items::ChunkRenderExecutor};
-use crate::chunk::types::ChunkCoord;
+use crate::chunk::types::GridCoord;
+use crate::utils::types::I128Vec2;
 
 use super::intent::{ActionIntent, ActionPriority};
 
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
 pub struct ActionIntentCommitBuffer {
-    pub action_intent: HashMap<ChunkCoord, ActionIntent>,
-    pub priority_buckets: BTreeMap<ActionPriority, HashSet<ChunkCoord>>,
+    pub action_intent: HashMap<GridCoord, ActionIntent>,
+    pub priority_buckets: BTreeMap<ActionPriority, HashSet<GridCoord>>,
 }
 impl ActionIntentCommitBuffer {
     pub fn commit_intent(&mut self, action_intent: ActionIntent) {
@@ -27,7 +28,7 @@ impl ActionIntentCommitBuffer {
         }
     }
 
-    pub fn remove_intent(&mut self, coord: &ChunkCoord) {
+    pub fn remove_intent(&mut self, coord: &GridCoord) {
         if let Some(action_intent) = self.action_intent.remove(coord) {
             let priority = action_intent.priority();
 
@@ -40,20 +41,20 @@ impl ActionIntentCommitBuffer {
         }
     }
 
-    pub fn remove_intents(&mut self, coords: impl IntoIterator<Item = ChunkCoord>) {
+    pub fn remove_intents(&mut self, coords: impl IntoIterator<Item = GridCoord>) {
         for coord in coords {
             self.remove_intent(&coord);
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&ChunkCoord, &ActionIntent)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&GridCoord, &ActionIntent)> {
         self.priority_buckets
             .iter()
             .flat_map(|(_, coords)| coords.iter())
             .filter_map(|coord| self.action_intent.get_key_value(coord))
     }
 
-    pub fn get(&self, coord: &ChunkCoord) -> Option<&ActionIntent> {
+    pub fn get(&self, coord: &GridCoord) -> Option<&ActionIntent> {
         self.action_intent.get(coord)
     }
 }
@@ -61,8 +62,8 @@ impl ActionIntentCommitBuffer {
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
 pub struct ActionIntentBuffer {
-    pub action_intents: HashMap<ChunkCoord, ActionIntent>,
-    pub priority_buckets: BTreeMap<ActionPriority, HashSet<ChunkCoord>>,
+    pub action_intents: HashMap<GridCoord, ActionIntent>,
+    pub priority_buckets: BTreeMap<ActionPriority, HashSet<GridCoord>>,
 }
 impl ActionIntentBuffer {
     pub fn buffer_intent(&mut self, action_intent: ActionIntent) {
@@ -73,7 +74,7 @@ impl ActionIntentBuffer {
         self.priority_buckets.entry(priority).or_default().insert(coord);
     }
 
-    pub fn cancel_intent(&mut self, coord: &ChunkCoord) {
+    pub fn cancel_intent(&mut self, coord: &GridCoord) {
         if let Some(committed_action_intent) = self.action_intents.remove(coord) {
             let priority = committed_action_intent.priority();
 
@@ -86,7 +87,7 @@ impl ActionIntentBuffer {
         }
     }
 
-    pub fn get(&self, coord: &ChunkCoord) -> Option<&ActionIntent> {
+    pub fn get(&self, coord: &GridCoord) -> Option<&ActionIntent> {
         self.action_intents.get(coord)
     }
 }
@@ -94,20 +95,20 @@ impl ActionIntentBuffer {
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
 pub struct ChunkManager {
-    pub loaded_chunks: HashSet<ChunkCoord>,
-    pub owned_chunks: HashMap<ChunkCoord, ChunkOwnerId>,
+    pub loaded_chunks: HashSet<GridCoord>,
+    pub owned_chunks: HashMap<GridCoord, ChunkOwnerId>,
 }
 impl ChunkManager {
-    pub fn get_states(&self, chunk_coord: &ChunkCoord) -> (bool, bool) {
-        (self.loaded_chunks.contains(chunk_coord), self.owned_chunks.contains_key(chunk_coord))
+    pub fn get_states(&self, grid_coord: &GridCoord) -> (bool, bool) {
+        (self.loaded_chunks.contains(grid_coord), self.owned_chunks.contains_key(grid_coord))
     }
 
-    pub fn is_loaded(&self, chunk_coord: &ChunkCoord) -> bool {
-        self.loaded_chunks.contains(chunk_coord)
+    pub fn is_loaded(&self, grid_coord: &GridCoord) -> bool {
+        self.loaded_chunks.contains(grid_coord)
     }
 
-    pub fn is_owned(&self, chunk_coord: &ChunkCoord) -> bool {
-        self.owned_chunks.contains_key(chunk_coord)
+    pub fn is_owned(&self, grid_coord: &GridCoord) -> bool {
+        self.owned_chunks.contains_key(grid_coord)
     }
 }
 
@@ -121,5 +122,9 @@ pub struct ChunkRenderHandles {
 
 #[derive(Default, Resource)]
 pub struct ChunkRenderExecutorRegistry {
-    pub executors: HashMap<ChunkCoord, ChunkRenderExecutor>,
+    pub executors: HashMap<GridCoord, ChunkRenderExecutor>,
 }
+
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
+pub struct GridOriginOffset(pub I128Vec2);

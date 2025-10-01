@@ -1,6 +1,6 @@
 use bevy::prelude::Reflect;
 
-use crate::chunk::types::ChunkCoord;
+use crate::chunk::types::GridCoord;
 
 use super::types::ChunkOwnerId;
 
@@ -23,17 +23,17 @@ impl State {
 pub enum ActionIntent {
     Spawn {
         owner_id: ChunkOwnerId,
-        coord: ChunkCoord,
+        coord: GridCoord,
         priority: ActionPriority,
     },
     Despawn {
         owner_id: ChunkOwnerId,
-        coord: ChunkCoord,
+        coord: GridCoord,
         priority: ActionPriority,
     },
     TransferOwnership {
         new_owner_id: ChunkOwnerId,
-        coord: ChunkCoord,
+        coord: GridCoord,
         priority: ActionPriority,
     },
 }
@@ -58,7 +58,7 @@ impl ActionIntent {
         }
     }
 
-    pub fn coord(&self) -> ChunkCoord {
+    pub fn coord(&self) -> GridCoord {
         match self {
             ActionIntent::Spawn { coord, .. } | ActionIntent::Despawn { coord, .. } | ActionIntent::TransferOwnership { coord, .. } => *coord,
         }

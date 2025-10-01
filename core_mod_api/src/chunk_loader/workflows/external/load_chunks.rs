@@ -6,26 +6,26 @@ use crate::chunk::{
     components::Chunk,
     intent::{resolve_intent, ActionIntent, ActionPriority, ResolvedActionIntent},
     resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager},
-    types::{ChunkCoord, ChunkOwnerId},
+    types::{GridCoord, ChunkOwnerId},
 };
 use crate::workflow::types::Outcome;
 
 // Items
 pub struct LoadChunkInput {
     pub owner_id: ChunkOwnerId,
-    pub chunk_coord: ChunkCoord,
+    pub grid_coord: GridCoord,
     pub chunk_loader_distance_squared: u32,
     pub chunk_loader_radius_squared: u32,
 }
 
 pub struct SpawnChunkState {
-    pub coord: ChunkCoord,
+    pub coord: GridCoord,
     pub owner_id: ChunkOwnerId,
     pub is_spawned: bool,
 }
 
 pub struct TransferChunkOwnershipState {
-    pub coord: ChunkCoord,
+    pub coord: GridCoord,
     pub owner_id: ChunkOwnerId,
     pub is_ownership_transfered: bool,
 }
@@ -67,7 +67,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
 
     for input in input.inputs {
         let owner_id = input.owner_id;
-        let coord = input.chunk_coord;
+        let coord = input.grid_coord;
 
         affected_owners.insert(owner_id.clone());
 

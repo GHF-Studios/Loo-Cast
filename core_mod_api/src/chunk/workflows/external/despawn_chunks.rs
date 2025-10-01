@@ -1,12 +1,12 @@
 // Imports
 use bevy::prelude::{ResMut, Commands, Query, Entity};
 
-use crate::chunk::{components::Chunk, resources::ChunkManager, types::ChunkCoord};
+use crate::chunk::{components::Chunk, resources::ChunkManager, types::GridCoord};
 use crate::workflow::types::Outcome;
 
 // Items
 pub struct DespawnChunkInput {
-    pub chunk_coord: ChunkCoord
+    pub grid_coord: GridCoord
 }
 #[derive(Clone)]
 pub struct DespawnChunkState {
@@ -36,7 +36,7 @@ pub struct Output {
 
 #[derive(Debug)]
 pub enum Error {
-    ChunkNotLoaded { chunk_coord: ChunkCoord },
+    ChunkNotLoaded { grid_coord: GridCoord },
 }
 
 // Core Functions
@@ -48,11 +48,11 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     let mut despawn_chunk_states = Vec::new();
 
     for input in input.inputs {
-        let chunk_coord = input.chunk_coord;
+        let grid_coord = input.grid_coord;
 
-        if let Some((entity, _)) = chunk_query.iter().find(|(_, chunk)| chunk.coord == chunk_coord) {
-            chunk_manager.loaded_chunks.remove(&chunk_coord);
-            chunk_manager.owned_chunks.remove(&chunk_coord);
+        if let Some((entity, _)) = chunk_query.iter().find(|(_, chunk)| chunk.coord == grid_coord) {
+            chunk_manager.loaded_chunks.remove(&grid_coord);
+            chunk_manager.owned_chunks.remove(&grid_coord);
 
             let mut chunk_entity_commands = commands.entity(entity);
             despawn_chunk_states.push(DespawnChunkState {
@@ -61,7 +61,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             });
             chunk_entity_commands.despawn();
         } else {
-            return Err(Error::ChunkNotLoaded { chunk_coord });
+            return Err(Error::ChunkNotLoaded { grid_coord });
         }
     }
 

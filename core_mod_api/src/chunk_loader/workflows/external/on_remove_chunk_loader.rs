@@ -2,9 +2,9 @@
 use bevy::prelude::*;
 use std::marker::PhantomData;
 
-use crate::chunk::resources::ChunkManager;
+use crate::chunk::resources::{ChunkManager, GridOriginOffset};
 use crate::chunk::traits::Vec2Ext;
-use crate::chunk::types::{ChunkCoord, ChunkOwnerId};
+use crate::chunk::types::{GridCoord, ChunkOwnerId};
 use crate::chunk_loader::workflows::external::unload_chunks::UnloadChunkInput;
 
 // Items
@@ -13,6 +13,7 @@ use crate::chunk_loader::workflows::external::unload_chunks::UnloadChunkInput;
 #[derive(bevy::ecs::system::SystemParam)]
 pub struct MainAccess<'w, 's> {
     pub chunk_manager: Res<'w, ChunkManager>,
+    pub grid_xy: Res<'w, GridOriginOffset>,
     pub phantom_data: PhantomData<&'s ()>,
 }
 
@@ -29,27 +30,28 @@ pub struct Output {
 // Core Functions
 pub fn run_ecs(input: Input, main_access: MainAccess) -> Output {
     let chunk_manager = main_access.chunk_manager;
+    let grid_xy = main_access.grid_xy;
 
     let chunk_owner_id = input.chunk_owner_id;
-    let world_position = input.chunk_loader_position;
-    let chunk_position = world_position.world_coord_to_chunk_coord();
+    let position = input.chunk_loader_position;
+    let chunk_loader_grid_position = position.to_grid_coord(grid_xy.0);
     let radius = input.chunk_loader_radius;
 
     let mut unload_chunk_inputs = Vec::new();
 
-    let chunks_to_despawn: Vec<&ChunkCoord> = chunk_manager
+    let chunks_to_despawn: Vec<&GridCoord> = chunk_manager
         .owned_chunks
         .iter()
         .filter_map(|(chunk, owner_id)| if owner_id == &chunk_owner_id { Some(chunk) } else { None })
         .collect();
 
-    for chunk_coord in chunks_to_despawn {
-        let chunk_loader_distance_squared = chunk_coord.xy.distance_squared(chunk_position).try_into().unwrap();
+    for chunk_to_despawn in chunks_to_despawn {
+        let chunk_loader_distance_squared = chunk_to_despawn.xy.distance_squared(&chunk_loader_grid_position).try_into().unwrap();
         let chunk_loader_radius_squared = radius * radius;
 
         unload_chunk_inputs.push(UnloadChunkInput {
             owner_id: chunk_owner_id.clone(),
-            chunk_coord: *chunk_coord,
+            grid_coord: *chunk_to_despawn,
             chunk_loader_distance_squared,
             chunk_loader_radius_squared,
         });

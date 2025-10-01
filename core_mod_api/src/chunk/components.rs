@@ -3,7 +3,7 @@ use bevy::{
     prelude::*,
 };
 
-use crate::chunk::types::ChunkCoord;
+use crate::chunk::types::GridCoord;
 use crate::chunk::hooks::hook_on_add_chunk;
 use crate::usf::scale::Scale;
 
@@ -12,7 +12,7 @@ use super::types::ChunkOwnerId;
 #[derive(Default, Debug, Reflect)]
 #[reflect(Component)]
 pub struct Chunk {
-    pub coord: ChunkCoord,
+    pub coord: GridCoord,
     pub(crate) owner_id: Option<ChunkOwnerId>,
     pub scale: Scale,
 }

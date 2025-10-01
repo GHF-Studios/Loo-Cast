@@ -1,12 +1,12 @@
 // Imports
 use bevy::prelude::{ResMut, Entity, Query};
 
-use crate::chunk::{components::Chunk, resources::ChunkManager, types::{ChunkCoord, ChunkOwnerId}};
+use crate::chunk::{components::Chunk, resources::ChunkManager, types::{GridCoord, ChunkOwnerId}};
 
 // Items
 pub struct TransferChunkOwnershipInput {
     pub new_chunk_owner_id: ChunkOwnerId,
-    pub chunk_coord: ChunkCoord,
+    pub grid_coord: GridCoord,
 }
 
 // Core Types
@@ -26,7 +26,7 @@ pub struct Output {
 
 #[derive(Debug)]
 pub enum Error {
-    ChunkNotLoaded { chunk_coord: ChunkCoord },
+    ChunkNotLoaded { grid_coord: GridCoord },
 }
 
 // Core Functions
@@ -38,18 +38,18 @@ pub fn run_ecs(input: Input, main_access: MainAccess) -> Result<Output, Error> {
 
     for input in input.inputs {
         let new_chunk_owner_id = input.new_chunk_owner_id;
-        let chunk_coord = input.chunk_coord;
+        let grid_coord = input.grid_coord;
 
-        if let Some((entity, mut chunk)) = chunk_query.iter_mut().find(|(_, chunk)| chunk.coord == chunk_coord) {
+        if let Some((entity, mut chunk)) = chunk_query.iter_mut().find(|(_, chunk)| chunk.coord == grid_coord) {
             if chunk.owner_id.is_some() {
-                chunk_manager.owned_chunks.remove(&chunk_coord);
+                chunk_manager.owned_chunks.remove(&grid_coord);
             }
             chunk.owner_id = Some(new_chunk_owner_id.clone());
-            chunk_manager.owned_chunks.insert(chunk_coord, new_chunk_owner_id);
+            chunk_manager.owned_chunks.insert(grid_coord, new_chunk_owner_id);
 
             chunk_entities.push(entity);
         } else {
-            return Err(Error::ChunkNotLoaded { chunk_coord });
+            return Err(Error::ChunkNotLoaded { grid_coord });
         }
     }
 

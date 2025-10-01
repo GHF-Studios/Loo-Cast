@@ -2,27 +2,27 @@
 use bevy::prelude::{warn, Query, Res, ResMut, Transform, Vec2};
 use std::collections::HashSet;
 
-use crate::chunk::{
-    components::Chunk, intent::{ActionIntent, ActionPriority, ResolutionWarning, ResolvedActionIntent, State as ChunkState, resolve_intent}, resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager}, traits::Vec2Ext, types::{ChunkCoord, ChunkOwnerId}
-};
+use crate::{chunk::{
+    components::Chunk, intent::{ActionIntent, ActionPriority, ResolutionWarning, ResolvedActionIntent, State as ChunkState, resolve_intent}, resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, GridOriginOffset}, traits::Vec2Ext, types::{ChunkOwnerId, GridCoord}
+}, utils::types::I128Vec2};
 use crate::chunk_loader::components::ChunkLoader;
 use crate::workflow::types::Outcome;
 
 // Items
 pub struct UnloadChunkInput {
     pub owner_id: ChunkOwnerId,
-    pub chunk_coord: ChunkCoord,
+    pub grid_coord: GridCoord,
     pub chunk_loader_distance_squared: u32,
     pub chunk_loader_radius_squared: u32,
 }
 
 pub struct DespawnChunkState {
-    pub coord: ChunkCoord,
+    pub coord: GridCoord,
     pub is_despawned: bool,
 }
 
 pub struct TransferChunkOwnershipState {
-    pub coord: ChunkCoord,
+    pub coord: GridCoord,
     pub owner_id: ChunkOwnerId,
     pub is_ownership_transfered: bool,
 }
@@ -33,12 +33,12 @@ pub fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) ->
     ActionPriority::Deferred(priority_value)
 }
 
-pub fn is_chunk_in_loader_range(chunk_coord: &ChunkCoord, loader_position: Vec2, loader_radius: u32) -> bool {
-    let loader_chunk_coord = loader_position.world_coord_to_chunk_coord();
-    let dx = chunk_coord.xy.x - loader_chunk_coord.x;
-    let dy = chunk_coord.xy.y - loader_chunk_coord.y;
+pub fn is_chunk_in_loader_range(grid_xy: I128Vec2, grid_coord: &GridCoord, loader_position: Vec2, loader_radius: u32) -> bool {
+    let loader_grid_coord = loader_position.to_grid_coord(grid_xy);
+    let dx = grid_coord.xy.x - loader_grid_coord.x;
+    let dy = grid_coord.xy.y - loader_grid_coord.y;
     let distance_squared = dx * dx + dy * dy;
-    let radius_squared = (loader_radius as i32) * (loader_radius as i32);
+    let radius_squared = ((loader_radius as i32) * (loader_radius as i32)) as i128;
     distance_squared <= radius_squared
 }
 
@@ -50,6 +50,7 @@ pub struct MainAccess<'w, 's> {
     pub action_intent_buffer: ResMut<'w, ActionIntentBuffer>,
     pub chunk_query: Query<'w, 's, &'static Chunk>,
     pub chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader)>,
+    pub grid_xy: Res<'w, GridOriginOffset>,
 }
 
 pub struct Input {
@@ -69,6 +70,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
     let mut action_intent_buffer = main_access.action_intent_buffer;
     let chunk_query = main_access.chunk_query;
     let chunk_loader_query = main_access.chunk_loader_query;
+    let grid_xy = main_access.grid_xy;
 
     let mut despawn_chunk_states = Vec::new();
     let mut transfer_chunk_ownership_states = Vec::new();
@@ -76,7 +78,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
 
     for input in input.inputs {
         let owner_id = input.owner_id;
-        let coord = input.chunk_coord;
+        let coord = input.grid_coord;
         let distance_squared = input.chunk_loader_distance_squared;
         let radius_squared = input.chunk_loader_radius_squared;
 
@@ -102,7 +104,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
                 let tc = chunk_loader_query.iter().find_map(|(transform, loader)| {
                     if loader.id() == chunk.owner_id() {
                         None
-                    } else if is_chunk_in_loader_range(&coord, transform.translation.truncate(), loader.radius) {
+                    } else if is_chunk_in_loader_range(grid_xy.0, &coord, transform.translation.truncate(), loader.radius) {
                         Some(loader.id())
                     } else {
                         None

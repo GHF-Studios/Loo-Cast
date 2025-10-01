@@ -5,8 +5,11 @@ members = [
   "core_mod_macros",
   "base_mod",
   "base_mod_macros",
-  "bevy_consumable_event"
-, "core_mod", "base_mod_api"]
+  "bevy_consumable_event",
+  "core_mod",
+  "base_mod_api"
+]
+workspace.resolver = "1"
 
 [profile.dev]
 opt-level = 3

@@ -423,6 +423,10 @@ impl std::fmt::Display for Scale {
 }
 
 impl Scale {
+    pub const MIN: Scale = Scale::ScaleQuectoMeter000001;
+    pub const MID: Scale = Scale::ScaleMeter1;
+    pub const MAX: Scale = Scale::ScaleQuettaMeter100000;
+
     pub fn from_scale_factor_exponent(scale_factor_exponent: i8) -> Option<Self> {
         match scale_factor_exponent {
             i8::MIN..=-36_i8 => None,

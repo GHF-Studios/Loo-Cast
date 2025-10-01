@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
 use crate::chunk::traits::Vec2Ext;
-use crate::chunk::types::{WorldCoord, ChunkCoord, ChunkOwnerId};
+use crate::chunk::types::{WorldCoord, GridCoord, ChunkOwnerId};
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
 use crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput;
@@ -34,17 +34,10 @@ pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<As
 #[tracing::instrument(skip_all)]
 pub(crate) fn chunk_update_system(
     mut commands: Commands,
-    chunk_query: Query<(Entity, &Transform, &Chunk)>,
+    chunk_query: Query<(Entity, &Chunk)>,
     removed_chunk_loaders: Res<RemovedChunkLoaders>,
 ) {
-    for (entity, transform, chunk) in chunk_query.iter() {
-        let world_pos = transform.translation.truncate();
-        let chunk_coord_from_transform: ChunkCoord = world_pos.scaled(chunk.scale).into();
-        let chunk_coord_from_chunk: WorldCoord = chunk.coord.into();
-
-        assert_eq!(chunk.coord, chunk_coord_from_transform, "Attempted to move chunk entity");
-        assert_eq!(chunk_coord_from_chunk.unscaled(), world_pos, "Attempted to move chunk entity");
-
+    for (entity, chunk) in chunk_query.iter() {
         if let Some(chunk_owner_id) = chunk.owner_id.clone() {
             if removed_chunk_loaders.0.iter().any(|rcl| rcl.id == chunk_owner_id) {
                 commands.entity(entity).despawn();
@@ -136,7 +129,7 @@ pub(crate) fn process_chunk_actions_system(
                 ActionIntent::Spawn { owner_id, coord, .. } => {
                     spawn_coords.push(coord);
                     spawn_inputs.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
-                        chunk_coord: coord,
+                        grid_coord: coord,
                         chunk_owner_id: owner_id.clone(),
                         metric_texture: Handle::default(),
                     });
@@ -144,14 +137,14 @@ pub(crate) fn process_chunk_actions_system(
                     chunk_loaders_performing_chunk_loads.push(owner_id);
                 }
                 ActionIntent::Despawn { coord, .. } => {
-                    despawn_inputs.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { chunk_coord: coord });
+                    despawn_inputs.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { grid_coord: coord });
                     processed_coords.push(coord);
                 }
                 ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
                     transfer_inputs.push(
                         crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
                             new_chunk_owner_id: new_owner_id.clone(),
-                            chunk_coord: coord,
+                            grid_coord: coord,
                         },
                     );
                     processed_coords.push(coord);
@@ -187,7 +180,7 @@ pub(crate) fn process_chunk_actions_system(
         let param_data = spawn_coords
             .iter()
             .map(|coord| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
-                chunk_pos: [coord.xy.x, coord.xy.y],
+                chunk_pos: [coord.xy.x.try_into().unwrap(), coord.xy.y.try_into().unwrap()],
                 chunk_size: 1000,
                 chunk_scale: coord.scale as i32,
                 current_view_scale,
