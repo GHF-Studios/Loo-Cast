@@ -29,6 +29,7 @@ pub struct MainAccess<'w, 's> {
     pub chunk_manager: ResMut<'w, ChunkManager>,
     pub grid_xy: Res<'w, GridOriginOffset>,
     pub camera_transform: Single<'w, &'static Transform, With<MainCamera>>,
+    pub grid_origin_offset: Res<'w, GridOriginOffset>,
 }
 
 pub struct Input {
@@ -55,14 +56,16 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     let mut chunk_manager = main_access.chunk_manager;
     let grid_xy = main_access.grid_xy;
     let camera_transform = main_access.camera_transform;
+    let grid_origin_offset = main_access.grid_origin_offset;
 
     let mut spawn_chunk_states = Vec::new();
 
     for input in input.inputs {
         let scale = input.grid_coord.scale;
         let scale_factor = scale.scale_factor() as f32;
+        println!("scale_factor: {:?}", scale_factor);
         let grid_coord = input.grid_coord;
-        let world_coord = grid_coord.to_world_coord(grid_xy.0, Vec2::ZERO);
+        let world_coord = grid_coord.to_world_coord(grid_origin_offset.0, Vec2::ZERO);
         let chunk_owner_id = input.chunk_owner_id;
         let metric_texture = input.metric_texture.clone();
 
@@ -73,13 +76,13 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         let chunk_z_offset = CONFIG().get::<i8>("chunk/z_offset");
         let chunk_z = (-(Scale::MAX as i8 - scale as i8) + chunk_z_offset) as f32;
 
-        let camera_world_coord = camera_transform.translation.truncate().to_world_coord(scale, grid_coord.xy);
-        let camera_local_offset = camera_world_coord.local_offset;
-
-        let relative_offset = world_coord.local_offset - camera_local_offset;
+        // let camera_pos = camera_transform.translation.truncate();
+        // let camera_grid_pos = camera_pos.to_grid_coord(grid_origin_offset.0);
+        // let camera_world_coord = camera_pos.to_world_coord(scale, camera_grid_pos);
+        // println!("camera_world_coord: {:?}", camera_world_coord);
 
         let chunk_transform = Transform {
-            translation: (relative_offset * scale_factor).extend(chunk_z),
+            translation: (world_coord.local_offset * scale_factor).extend(chunk_z),
             scale: Vec3::new(scale_factor, scale_factor, 1.0),
             ..Default::default()
         };

@@ -15,10 +15,10 @@ impl Vec2Ext for Vec2 {
         WorldCoord { grid_coord: GridCoord::new(scale, effective_grid_xy.x, effective_grid_xy.y), local_offset: Vec2::new(self.x, self.y) }
     }
 
-    fn to_grid_coord(self, grid_xy: I128Vec2) -> I128Vec2 {
+    fn to_grid_coord(self, grid_origin_offset: I128Vec2) -> I128Vec2 {
         let chunk_size = 1000.0;
-        let chunk_x = ((self.x + chunk_size / 2.0) / chunk_size).floor() as i128 + grid_xy.x;
-        let chunk_y = ((self.y + chunk_size / 2.0) / chunk_size).floor() as i128 + grid_xy.y;
+        let chunk_x = ((self.x + chunk_size / 2.0) / chunk_size).floor() as i128 + grid_origin_offset.x;
+        let chunk_y = ((self.y + chunk_size / 2.0) / chunk_size).floor() as i128 + grid_origin_offset.y;
         I128Vec2::new(chunk_x, chunk_y)
     }
 }
