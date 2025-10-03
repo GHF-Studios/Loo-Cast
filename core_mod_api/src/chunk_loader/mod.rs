@@ -12,7 +12,7 @@ use components::ChunkLoader;
 use enums::ZoomState;
 use observers::{observe_on_remove_chunk_loader, on_remove_chunk_loader_observation_queue_processing_system};
 use resources::{RemovedChunkLoaders, RemovedChunkLoaderObservationQueue};
-use systems::{post_update_chunk_loader_system, update_chunk_loader_system, zoom_cooldown_system};
+use systems::{post_update_chunk_loader_system, update_chunk_loader_system};
 use types::{RemovedChunkLoader, RemovedChunkLoaderObservation};
 
 use crate::{
@@ -39,7 +39,6 @@ impl Plugin for ChunkLoaderPlugin {
             .add_systems(Update, (
                 update_chunk_loader_system, 
                 on_remove_chunk_loader_observation_queue_processing_system,
-                zoom_cooldown_system,
             ).run_if(run_after_startup_finished.and(run_if_not_paused)))
             .add_systems(
                 PostUpdate,

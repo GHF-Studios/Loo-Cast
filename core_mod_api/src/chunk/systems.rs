@@ -1,12 +1,14 @@
 use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
+use crate::camera::resources::ZoomFactor;
 use crate::chunk::traits::Vec2Ext;
 use crate::chunk::types::{WorldCoord, GridCoord, ChunkOwnerId};
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
 use crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput;
 use crate::chunk_loader::components::ChunkLoader;
+use crate::chunk_loader::enums::ZoomState;
 use crate::chunk_loader::resources::RemovedChunkLoaders;
 use crate::config::statics::CONFIG;
 use crate::utils::components::InitHook;
@@ -51,7 +53,9 @@ pub(crate) fn chunk_update_system(
 #[tracing::instrument(skip_all)]
 pub(crate) fn process_chunk_actions_system(
     mut chunk_loader_init_hook_query: Query<&mut InitHook<ChunkLoader>>,
+    mut chunk_loader: Single<&mut ChunkLoader>,
     mut action_intent_commit_buffer: ResMut<ActionIntentCommitBuffer>,
+    mut zoom_factor: ResMut<ZoomFactor>,
     mut workflow_handles: Local<Option<ChunkActionWorkflowHandles>>,
 ) {
     // Step 1: If workflows are running, wait for all to complete
@@ -68,6 +72,21 @@ pub(crate) fn process_chunk_actions_system(
             return;
         }
 
+        match chunk_loader.zoom_state {
+            ZoomState::ZoomIn => {
+                zoom_factor.0 += 1.0;
+                println!("Zoomed in");
+            }
+            ZoomState::ZoomOut => {
+                zoom_factor.0 -= 1.0;
+                println!("Zoomed out");
+            }
+            ZoomState::None => {
+                println!("No zoom change");
+            }
+        }
+        chunk_loader.zoom_state = ZoomState::None;
+
         // Cleanup finished handles
         if let Some(handle) = handles.spawn.take() {
             handle_composite_workflow_return_now(handle, |ctx| {
@@ -81,14 +100,14 @@ pub(crate) fn process_chunk_actions_system(
                     }
                 }
 
-                warn!("Finished composite workflow 'SpawnChunks'");
+                // warn!("Finished composite workflow 'SpawnChunks'");
             });
         }
         if let Some(handle) = handles.despawn.take() {
             handle_composite_workflow_return_now(handle, |_ctx| {
                 composite_workflow_return!();
 
-                warn!("Finished composite workflow 'DespawnChunks'");
+                // warn!("Finished composite workflow 'DespawnChunks'");
             });
         }
         if let Some(handle) = handles.transfer.take() {
@@ -103,7 +122,7 @@ pub(crate) fn process_chunk_actions_system(
                     }
                 }
 
-                warn!("Finished composite workflow 'TransferChunkOwnerships'");
+                // warn!("Finished composite workflow 'TransferChunkOwnerships'");
             });
         }
 
@@ -184,8 +203,7 @@ pub(crate) fn process_chunk_actions_system(
                 chunk_size: 1000,
                 chunk_scale: coord.scale as i32,
                 current_view_scale,
-                _padding0: 0,
-                _padding1: [0, 0, 0, 0],
+                zoom_factor: 1.0,
             })
             .collect::<Vec<_>>();
 

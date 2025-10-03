@@ -1,7 +1,8 @@
 [camera]
-default_zoom = 0.15
+default_zoom = 1
 min_zoom = 0.00000000000000000000000000000000001
 max_zoom = 100000000000000000000000000000000000.0
+base_zoom = 50.0
 base_zoom_speed = 10.0
 follow_smoothness = 0.15
 
@@ -12,7 +13,6 @@ texture_generator_shader = "texture_generators/example_dev"
 [chunk_loader]
 default_radius = 4
 current_view_scale = 0
-zoom_cooldown_secs = 1.0
 
 [debug]
 spawn_debug_objects = false
@@ -42,4 +42,4 @@ success_logging_enabled = false
 [workflow]
 timeout_frames_per_stage = 30
 max_retries = 5
-runner_logging_blacklist = "Chunk::*, ChunkLoader::*"
+runner_logging_blacklist = "ChunkLoader::*"

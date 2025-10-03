@@ -9,26 +9,6 @@ use crate::config::statics::CONFIG;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
-pub(crate) fn zoom_cooldown_system(
-    time: Res<Time<Virtual>>,
-    mut timer: Local<f32>,
-    mut query: Query<&mut ChunkLoader>,
-) {
-    if *timer > 0.0 {
-        *timer -= time.delta_secs();
-        if *timer < 0.0 {
-            *timer = 0.0;
-        }
-    }
-
-    for mut chunk_loader in query.iter_mut() {
-        if chunk_loader.zoom_state != ZoomState::None && *timer == 0.0 {
-            chunk_loader.zoom_state = ZoomState::None;
-            *timer = CONFIG().get::<f32>("chunk_loader/zoom_cooldown_secs");
-        }
-    }
-}
-
 #[tracing::instrument(skip_all)]
 pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>) {
     let handle_is_some = (*composite_workflow_handle).is_some();

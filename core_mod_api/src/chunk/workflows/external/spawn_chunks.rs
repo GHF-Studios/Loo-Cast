@@ -61,11 +61,11 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     for input in input.inputs {
         let scale = input.grid_coord.scale;
         let scale_factor = scale.scale_factor() as f32;
-        println!("scale_factor: {:?}", scale_factor);
+        // println!("scale_factor: {:?}", scale_factor);
         let grid_coord = input.grid_coord;
-        println!("grid_coord: {:?}", grid_coord);
+        // println!("grid_coord: {:?}", grid_coord);
         let world_coord = grid_coord.to_world_coord(grid_origin_offset.0, Vec2::ZERO);
-        println!("world_coord: {:?}", world_coord);
+        // println!("world_coord: {:?}", world_coord);
         let chunk_owner_id = input.chunk_owner_id;
         let metric_texture = input.metric_texture.clone();
 

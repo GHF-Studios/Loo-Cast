@@ -37,7 +37,7 @@ impl ChunkLoader {
         &self.chunk_owner_id
     }
 
-    pub fn id_mut(&mut self) -> &mut ChunkOwnerId {
+    pub(crate) fn id_mut(&mut self) -> &mut ChunkOwnerId {
         &mut self.chunk_owner_id
     }
 
