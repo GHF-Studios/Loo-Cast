@@ -107,6 +107,15 @@ pub(crate) fn main_camera_zoom_system(
         let new_scale_factor = 10f32.powi(clamped_exp as i32);
         let new_zoom_factor = (global_zoom / new_scale_factor).clamp(min_zoom, max_zoom);
 
+        println!(
+            "zoom_state: {:?}, scale_exp: {}, clamped_exp: {}, raw_exp: {}, zoom_factor: {}",
+            chunk_loader.zoom_state,
+            *chunk_loader.id().scale() as i8,
+            clamped_exp,
+            raw_scale_exp,
+            zoom_factor.0,
+        );
+
         // Trigger scale change if needed (but don't apply scale yet)
         if chunk_loader.zoom_state == ZoomState::None {
             if clamped_exp < scale_exp {
