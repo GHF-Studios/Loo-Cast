@@ -41,17 +41,17 @@ impl ChunkLoader {
         &mut self.chunk_owner_id
     }
 
-    pub fn suggest_zoom_in(&mut self) {
-        if self.zoom_state == ZoomState::None {
-            self.zoom_state = ZoomState::ZoomIn;
-            self.chunk_owner_id.scale_mut().zoom_in();
-        }
-    }
-
     pub fn suggest_zoom_out(&mut self) {
         if self.zoom_state == ZoomState::None {
             self.zoom_state = ZoomState::ZoomOut;
-            self.chunk_owner_id.scale_mut().zoom_out();
+            println!("Suggesting zoom OUT, deferring scale change to workflow finalization");
+        }
+    }
+    
+    pub fn suggest_zoom_in(&mut self) {
+        if self.zoom_state == ZoomState::None {
+            self.zoom_state = ZoomState::ZoomIn;
+            println!("Suggesting zoom IN, deferring scale change to workflow finalization");
         }
     }
 }
