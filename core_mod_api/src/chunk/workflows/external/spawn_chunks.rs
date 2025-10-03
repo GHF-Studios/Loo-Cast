@@ -27,9 +27,8 @@ pub struct MainAccess<'w, 's> {
     pub commands: Commands<'w, 's>,
     pub chunk_query: Query<'w, 's, &'static Chunk>,
     pub chunk_manager: ResMut<'w, ChunkManager>,
-    pub grid_xy: Res<'w, GridOriginOffset>,
-    pub camera_transform: Single<'w, &'static Transform, With<MainCamera>>,
     pub grid_origin_offset: Res<'w, GridOriginOffset>,
+    pub camera_transform: Single<'w, &'static Transform, With<MainCamera>>,
 }
 
 pub struct Input {
@@ -54,9 +53,8 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     let mut commands = main_access.commands;
     let chunk_query = main_access.chunk_query;
     let mut chunk_manager = main_access.chunk_manager;
-    let grid_xy = main_access.grid_xy;
-    let camera_transform = main_access.camera_transform;
     let grid_origin_offset = main_access.grid_origin_offset;
+    let camera_transform = main_access.camera_transform;
 
     let mut spawn_chunk_states = Vec::new();
 
@@ -65,7 +63,9 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         let scale_factor = scale.scale_factor() as f32;
         println!("scale_factor: {:?}", scale_factor);
         let grid_coord = input.grid_coord;
+        println!("grid_coord: {:?}", grid_coord);
         let world_coord = grid_coord.to_world_coord(grid_origin_offset.0, Vec2::ZERO);
+        println!("world_coord: {:?}", world_coord);
         let chunk_owner_id = input.chunk_owner_id;
         let metric_texture = input.metric_texture.clone();
 
@@ -82,7 +82,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         // println!("camera_world_coord: {:?}", camera_world_coord);
 
         let chunk_transform = Transform {
-            translation: (world_coord.local_offset * scale_factor).extend(chunk_z),
+            translation: (world_coord.local_offset).extend(chunk_z),
             scale: Vec3::new(scale_factor, scale_factor, 1.0),
             ..Default::default()
         };

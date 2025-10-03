@@ -153,6 +153,8 @@ impl GridCoord {
         let mut chunks = Vec::new();
 
         let radius = radius as i128;
+        // Power of ten to scale chunk coordinates 
+        let scale = self.scale as i8 as i128;
 
         let mut x = 0;
         let mut y = radius;
@@ -183,16 +185,17 @@ impl GridCoord {
         chunks
     }
 
-    pub fn to_world_coord(&self, grid_xy: I128Vec2, local_offset: Vec2) -> WorldCoord {
+    pub fn to_world_coord(&self, grid_origin_offset: I128Vec2, local_offset: Vec2) -> WorldCoord {
         const GRID_SIZE: f32 = 1000.0;
         
-        let chunk_diff = self.xy - grid_xy;
+        let scale_factor = self.scale.scale_factor() as f32;
+        let chunk_diff = self.xy - grid_origin_offset;
         
         WorldCoord {
             grid_coord: *self,
             local_offset: Vec2::new(
-                (chunk_diff.x as f32 * GRID_SIZE) + local_offset.x,
-                (chunk_diff.y as f32 * GRID_SIZE) + local_offset.y,
+                (chunk_diff.x as f32 * scale_factor * GRID_SIZE) + (local_offset.x * scale_factor),
+                (chunk_diff.y as f32 * scale_factor * GRID_SIZE) + (local_offset.y * scale_factor),
             ),
         }
     }

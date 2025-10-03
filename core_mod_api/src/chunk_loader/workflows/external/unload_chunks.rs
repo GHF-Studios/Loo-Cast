@@ -33,10 +33,10 @@ pub fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) ->
     ActionPriority::Deferred(priority_value)
 }
 
-pub fn is_chunk_in_loader_range(grid_xy: I128Vec2, grid_coord: &GridCoord, loader_position: Vec2, loader_radius: u32) -> bool {
-    let loader_grid_coord = loader_position.to_grid_coord(grid_xy);
-    let dx = grid_coord.xy.x - loader_grid_coord.x;
-    let dy = grid_coord.xy.y - loader_grid_coord.y;
+pub fn is_chunk_in_loader_range(grid_origin_offset: I128Vec2, grid_coord: &GridCoord, loader_position: Vec2, loader_radius: u32) -> bool {
+    let loader_grid_coord = loader_position.to_grid_coord(grid_coord.scale, grid_origin_offset);
+    let dx = grid_coord.xy.x - loader_grid_coord.xy.x;
+    let dy = grid_coord.xy.y - loader_grid_coord.xy.y;
     let distance_squared = dx * dx + dy * dy;
     let radius_squared = ((loader_radius as i32) * (loader_radius as i32)) as i128;
     distance_squared <= radius_squared
@@ -50,7 +50,7 @@ pub struct MainAccess<'w, 's> {
     pub action_intent_buffer: ResMut<'w, ActionIntentBuffer>,
     pub chunk_query: Query<'w, 's, &'static Chunk>,
     pub chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader)>,
-    pub grid_xy: Res<'w, GridOriginOffset>,
+    pub grid_origin_offset: Res<'w, GridOriginOffset>,
 }
 
 pub struct Input {
@@ -70,7 +70,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
     let mut action_intent_buffer = main_access.action_intent_buffer;
     let chunk_query = main_access.chunk_query;
     let chunk_loader_query = main_access.chunk_loader_query;
-    let grid_xy = main_access.grid_xy;
+    let grid_origin_offset = main_access.grid_origin_offset;
 
     let mut despawn_chunk_states = Vec::new();
     let mut transfer_chunk_ownership_states = Vec::new();
@@ -104,7 +104,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
                 let tc = chunk_loader_query.iter().find_map(|(transform, loader)| {
                     if loader.id() == chunk.owner_id() {
                         None
-                    } else if is_chunk_in_loader_range(grid_xy.0, &coord, transform.translation.truncate(), loader.radius) {
+                    } else if is_chunk_in_loader_range(grid_origin_offset.0, &coord, transform.translation.truncate(), loader.radius) {
                         Some(loader.id())
                     } else {
                         None
