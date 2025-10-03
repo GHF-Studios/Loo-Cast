@@ -1,7 +1,7 @@
 [camera]
 default_zoom = 0.15
-min_zoom = 0.000001
-max_zoom = 1000000.0
+min_zoom = 0.00000000000000000000000000000000001
+max_zoom = 100000000000000000000000000000000000.0
 base_zoom_speed = 10.0
 follow_smoothness = 0.15
 

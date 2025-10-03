@@ -5,6 +5,7 @@ use bevy::{input::mouse::MouseWheel, prelude::*};
 use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
 use crate::time::resources::VirtualPaused;
+use crate::chunk_loader::components::ChunkLoader;
 
 use super::resources::{GameViewRenderTarget, ZoomFactor, ViewScale};
 
@@ -55,6 +56,7 @@ pub(crate) fn main_camera_zoom_system(
     time: Res<Time<Real>>,
     virtual_paused: Res<VirtualPaused>,
     mut zoom_factor: ResMut<ZoomFactor>,
+    mut chunk_loader: Single<'_, &mut ChunkLoader>,
 ) {
     let min_zoom = CONFIG().get::<f32>("camera/min_zoom");
     let max_zoom = CONFIG().get::<f32>("camera/max_zoom");
@@ -72,6 +74,14 @@ pub(crate) fn main_camera_zoom_system(
         };
         let zoom_speed = base_zoom_speed * zoom_factor.0;
         zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_secs()).clamp(min_zoom, max_zoom);
+
+        if zoom_factor.0 <= 0.1 {
+            zoom_factor.0 += 0.9;
+            chunk_loader.id_mut().scale_mut().zoom_in();
+        } else if zoom_factor.0 >= 10.0 {
+            zoom_factor.0 -= 9.0;
+            chunk_loader.id_mut().scale_mut().zoom_out();
+        }
     }
     for mut projection in projection_query.iter_mut() {
         match projection.as_mut() {
