@@ -86,8 +86,13 @@ pub(crate) fn main_camera_zoom_system(
     }
 
     if total_scroll_delta != 0.0 {
-        let current_scale = chunk_loader.id().scale();
-        let scale_factor = current_scale.scale_factor() as f32;
+        // Simulate the scale *after* zoom transition (if pending)
+        let pending_exp = match chunk_loader.zoom_state {
+            ZoomState::ZoomIn => *chunk_loader.id().scale() as i8 + 1,
+            ZoomState::ZoomOut => *chunk_loader.id().scale() as i8 - 1,
+            ZoomState::None => *chunk_loader.id().scale() as i8,
+        };
+        let scale_factor = 10f32.powi(pending_exp as i32);
 
         // Global zoom = normalized zoom within scale * actual scale factor
         let mut global_zoom = zoom_factor.0 * scale_factor;
@@ -104,11 +109,15 @@ pub(crate) fn main_camera_zoom_system(
         let new_scale_factor = 10f32.powi(clamped_exp as i32);
         let new_zoom_factor = (global_zoom / new_scale_factor).clamp(min_zoom, max_zoom);
 
-        // Compare to current scale AFTER scale may have updated previously
-        let current_exp = *current_scale as i8;
+        // Compare to current scale *before* transition is finished applying/fully applied
+        let current_exp = match chunk_loader.zoom_state {
+            ZoomState::ZoomIn => *chunk_loader.id().scale() as i8 + 1,
+            ZoomState::ZoomOut => *chunk_loader.id().scale() as i8 - 1,
+            ZoomState::None => *chunk_loader.id().scale() as i8,
+        };
 
         if clamped_exp < current_exp && zoom_factor.0 < ZOOM_IN_THRESHOLD && chunk_loader.zoom_state == ZoomState::None {
-            chunk_loader.suggest_zoom_in(); // This mutates scale internally
+            chunk_loader.suggest_zoom_in();
             println!("Zooming in: {} → {}", current_exp, clamped_exp);
         } else if clamped_exp > current_exp && zoom_factor.0 > ZOOM_OUT_THRESHOLD && chunk_loader.zoom_state == ZoomState::None {
             chunk_loader.suggest_zoom_out();
@@ -119,7 +128,11 @@ pub(crate) fn main_camera_zoom_system(
 
         println!(
             "global_zoom: {:.6}, zoom_factor: {:.6}, raw_exp: {}, clamped_exp: {}, scale_exp: {}",
-            global_zoom, zoom_factor.0, raw_scale_exp, clamped_exp, *chunk_loader.id().scale() as i8
+            global_zoom,
+            zoom_factor.0,
+            raw_scale_exp,
+            clamped_exp,
+            *chunk_loader.id().scale() as i8
         );
     }
 

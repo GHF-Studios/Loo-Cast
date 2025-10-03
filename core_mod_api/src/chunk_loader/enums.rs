@@ -1,6 +1,6 @@
 use bevy::prelude::Reflect;
 
-#[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub enum ZoomState {
     #[default]
     None,

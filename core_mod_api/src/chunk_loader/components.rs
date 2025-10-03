@@ -45,6 +45,9 @@ impl ChunkLoader {
         if self.zoom_state == ZoomState::None {
             self.zoom_state = ZoomState::ZoomIn;
             self.chunk_owner_id.scale_mut().zoom_in();
+            println!("Zooming in from scale: {:?}", self.chunk_owner_id.scale());
+        } else {
+            println!("Cannot zoom in while zoom state is: {:?}", self.zoom_state);
         }
     }
 
@@ -52,6 +55,9 @@ impl ChunkLoader {
         if self.zoom_state == ZoomState::None {
             self.zoom_state = ZoomState::ZoomOut;
             self.chunk_owner_id.scale_mut().zoom_out();
+            println!("Zooming out from scale: {:?}", self.chunk_owner_id.scale());
+        } else {
+            println!("Cannot zoom out while zoom state is: {:?}", self.zoom_state);
         }
     }
 }
