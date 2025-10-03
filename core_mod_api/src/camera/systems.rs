@@ -86,6 +86,11 @@ pub(crate) fn main_camera_zoom_system(
     }
 
     let scale_exp = *chunk_loader.id().scale() as i8;
+    let scale_exp = match chunk_loader.zoom_state {
+        ZoomState::None => scale_exp,
+        ZoomState::ZoomIn => scale_exp - 1,
+        ZoomState::ZoomOut => scale_exp + 1,
+    };
     let scale_factor = chunk_loader.id().scale().scale_factor() as f32;
 
     // Get global zoom as continuous value
