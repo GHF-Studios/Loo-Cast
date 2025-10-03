@@ -74,18 +74,19 @@ pub(crate) fn process_chunk_actions_system(
 
         match chunk_loader.zoom_state {
             ZoomState::ZoomIn => {
-                zoom_factor.0 += 1.0;
-                println!("Zoomed in");
+                chunk_loader.id_mut().scale_mut().zoom_in();
+                println!("Scale changed: Zoom In → {}", chunk_loader.id().scale());
             }
             ZoomState::ZoomOut => {
-                zoom_factor.0 -= 1.0;
-                println!("Zoomed out");
+                chunk_loader.id_mut().scale_mut().zoom_out();
+                println!("Scale changed: Zoom Out → {}", chunk_loader.id().scale());
             }
-            ZoomState::None => {
-                println!("No zoom change");
-            }
+            ZoomState::None => {}
         }
-        chunk_loader.zoom_state = ZoomState::None;
+        
+        if chunk_loader.zoom_state != ZoomState::None {
+            chunk_loader.zoom_state = ZoomState::None;
+        }
 
         // Cleanup finished handles
         if let Some(handle) = handles.spawn.take() {
