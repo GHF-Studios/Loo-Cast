@@ -104,23 +104,20 @@ pub(crate) fn main_camera_zoom_system(
         let new_scale_factor = 10f32.powi(clamped_exp as i32);
         let new_zoom_factor = (global_zoom / new_scale_factor).clamp(min_zoom, max_zoom);
 
-        // Trigger scale change if needed (but don't apply scale yet)
+        // Check if scale change needed
         if clamped_exp < scale_exp && zoom_factor.0 < ZOOM_IN_THRESHOLD && chunk_loader.zoom_state == ZoomState::None {
-            chunk_loader.suggest_zoom_in(); 
+            chunk_loader.suggest_zoom_in(); // must also update scale() internally
             println!("Zooming in: scale_exp {} → {}", scale_exp, clamped_exp);
         } else if clamped_exp > scale_exp && zoom_factor.0 > ZOOM_OUT_THRESHOLD && chunk_loader.zoom_state == ZoomState::None {
-            chunk_loader.suggest_zoom_out(); 
+            chunk_loader.suggest_zoom_out(); // same here
             println!("Zooming out: scale_exp {} → {}", scale_exp, clamped_exp);
         }
 
-        // Only update zoom_factor if no scale transition is currently pending
-        if chunk_loader.zoom_state == ZoomState::None {
-            zoom_factor.0 = new_zoom_factor;
-        }
+        zoom_factor.0 = new_zoom_factor;
 
         println!(
-            "global_zoom: {:.6}, zoom_factor: {:.6}, raw_exp: {}, clamped_exp: {}, scale_exp: {}",
-            global_zoom, zoom_factor.0, raw_scale_exp, clamped_exp, scale_exp
+            "global_zoom: {:.6}, zoom_factor: {:.6}, raw_exp: {}, clamped_exp: {}",
+            global_zoom, zoom_factor.0, raw_scale_exp, clamped_exp
         );
     }
 
