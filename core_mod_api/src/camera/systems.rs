@@ -67,6 +67,8 @@ pub(crate) fn main_camera_zoom_system(
 
     const MIN_SCALE_EXP: i8 = -35;
     const MAX_SCALE_EXP: i8 = 35;
+    const ZOOM_IN_THRESHOLD: f32 = 0.095;
+    const ZOOM_OUT_THRESHOLD: f32 = 10.5;
 
     if !input_mode.is_game() || virtual_paused.0 {
         scroll_event_reader.clear();
@@ -108,14 +110,12 @@ pub(crate) fn main_camera_zoom_system(
         let new_zoom_factor = (global_zoom / new_scale_factor).clamp(min_zoom, max_zoom);
 
         // Trigger scale change if needed (but don't apply scale yet)
-        if chunk_loader.zoom_state == ZoomState::None {
-            if clamped_exp < scale_exp {
-                println!("Suggesting Zoom In → {} → {}", scale_exp, clamped_exp);
-                chunk_loader.suggest_zoom_in();
-            } else if clamped_exp > scale_exp {
-                println!("Suggesting Zoom Out → {} → {}", scale_exp, clamped_exp);
-                chunk_loader.suggest_zoom_out();
-            }
+        if clamped_exp < scale_exp && zoom_factor.0 < ZOOM_IN_THRESHOLD && chunk_loader.zoom_state == ZoomState::None {
+            chunk_loader.suggest_zoom_in(); 
+            println!("Zooming in: scale_exp {} → {}", scale_exp, clamped_exp);
+        } else if clamped_exp > scale_exp && zoom_factor.0 > ZOOM_OUT_THRESHOLD && chunk_loader.zoom_state == ZoomState::None {
+            chunk_loader.suggest_zoom_out(); 
+            println!("Zooming out: scale_exp {} → {}", scale_exp, clamped_exp);
         }
 
         // Only update zoom_factor if no scale transition is currently pending
