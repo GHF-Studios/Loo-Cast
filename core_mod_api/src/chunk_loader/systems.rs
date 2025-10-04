@@ -9,7 +9,6 @@ use crate::config::statics::CONFIG;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
-#[deprecated]
 pub(crate) fn zoom_cooldown_system(
     time: Res<Time<Virtual>>,
     mut timer: Local<f32>,
