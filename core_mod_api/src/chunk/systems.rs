@@ -74,14 +74,16 @@ pub(crate) fn process_chunk_actions_system(
 
         match chunk_loader.zoom_state {
             ZoomState::ZoomIn => {
-                chunk_loader.id_mut().scale_mut().zoom_in();
+                // chunk_loader.id_mut().scale_mut().zoom_in();
                 println!("Scale changed: Zoom In → {}", chunk_loader.id().scale());
             }
             ZoomState::ZoomOut => {
-                chunk_loader.id_mut().scale_mut().zoom_out();
+                // chunk_loader.id_mut().scale_mut().zoom_out();
                 println!("Scale changed: Zoom Out → {}", chunk_loader.id().scale());
             }
-            ZoomState::None => {}
+            ZoomState::None => {
+                println!("Scale not changed");
+            }
         }
         
         if chunk_loader.zoom_state != ZoomState::None {
