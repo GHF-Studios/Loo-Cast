@@ -59,20 +59,51 @@ pub(crate) fn process_chunk_actions_system(
     mut workflow_handles: Local<Option<ChunkActionWorkflowHandles>>,
 ) {
     // Step 1: If workflows are running, wait for all to complete
-    if workflow_handles.is_none() && chunk_loader.zoom_state != ZoomState::None {
-        // No workflows to wait on, but zoom is pending
-        match chunk_loader.zoom_state {
-            ZoomState::ZoomIn => {
-                chunk_loader.id_mut().scale_mut().zoom_in();
-                println!("[ZOOM APPLY] No workflows needed. Applied Zoom In");
+    if chunk_loader.zoom_state != ZoomState::None {
+        // Actively block workflow spawning until zoom is applied
+        if let Some(handles) = &*workflow_handles {
+            let spawn_done = handles.spawn.as_ref().is_none_or(|h| h.is_finished());
+            let despawn_done = handles.despawn.as_ref().is_none_or(|h| h.is_finished());
+            let transfer_done = handles.transfer.as_ref().is_none_or(|h| h.is_finished());
+        
+            if spawn_done && despawn_done && transfer_done {
+                let min_zoom = CONFIG().get::<f32>("camera/min_zoom"); // e.g. 0.1
+                let max_zoom = CONFIG().get::<f32>("camera/max_zoom"); // e.g. 10.0
+
+                match chunk_loader.zoom_state {
+                    ZoomState::ZoomIn => {
+                        chunk_loader.id_mut().scale_mut().zoom_in();
+                        zoom_factor.0 = max_zoom;
+                        println!("[ZOOM APPLY] Applied Zoom In");
+                    }
+                    ZoomState::ZoomOut => {
+                        chunk_loader.id_mut().scale_mut().zoom_out();
+                        zoom_factor.0 = min_zoom;
+                        println!("[ZOOM APPLY] Applied Zoom Out");
+                    }
+                    _ => {}
+                }
+                chunk_loader.zoom_state = ZoomState::None;
+                *workflow_handles = None; // Clear so new workflows can start next frame
+            } else {
+                // Still waiting for workflows to finish — skip rest of system
+                return;
             }
-            ZoomState::ZoomOut => {
-                chunk_loader.id_mut().scale_mut().zoom_out();
-                println!("[ZOOM APPLY] No workflows needed. Applied Zoom Out");
+        } else {
+            // No workflows left → safe to apply zoom
+            match chunk_loader.zoom_state {
+                ZoomState::ZoomIn => {
+                    chunk_loader.id_mut().scale_mut().zoom_in();
+                    println!("[ZOOM APPLY] Applied Zoom In (no workflows)");
+                }
+                ZoomState::ZoomOut => {
+                    chunk_loader.id_mut().scale_mut().zoom_out();
+                    println!("[ZOOM APPLY] Applied Zoom Out (no workflows)");
+                }
+                _ => {}
             }
-            _ => {}
+            chunk_loader.zoom_state = ZoomState::None;
         }
-        chunk_loader.zoom_state = ZoomState::None;
     }
 
     if let Some(handles) = &mut *workflow_handles {

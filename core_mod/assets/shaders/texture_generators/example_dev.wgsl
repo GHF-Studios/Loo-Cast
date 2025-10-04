@@ -45,16 +45,16 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     var final_color = vec4<f32>(base_color, 0.05 * opacity_multiplier);
     
-    // === Border Levels ===
-    let divisions = array<u32, 5u>(1u, 2u, 8u, 32u, 128u);
-    let thicknesses = array<u32, 5u>(16u, 8u, 4u, 2u, 1u);
-    let opacities = array<f32, 5u>(1.0, 0.5, 0.25, 0.125, 0.0625);
+    // === Border Levels: full, tenth, hundredth ===
+    let divisions = array<u32, 3u>(1u, 10u, 100u);
+    let opacities = array<f32, 3u>(1.0, 0.5, 0.25);
+    let thicknesses = array<u32, 3u>(10u, 5u, 1u);
 
-    for (var i = 0u; i < 5u; i = i + 1u) {
+    for (var i = 0u; i < 3u; i = i + 1u) {
         let div = divisions[i];
-        let section_size = 1000 / div;
+        let section_size = 1000u / div;
+
         let thickness = thicknesses[i];
-        let opacity = opacities[i];
 
         let section_x = global_id.x % section_size;
         let section_y = global_id.y % section_size;
@@ -64,7 +64,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         let is_border = is_border_x || is_border_y;
 
         if (is_border) {
-            final_color += vec4<f32>(1.0, 1.0, 1.0, opacity);
+            final_color += vec4<f32>(1.0, 1.0, 1.0, opacities[i]);
         }
     }
 

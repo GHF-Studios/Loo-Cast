@@ -1,7 +1,7 @@
 [camera]
 default_zoom = 1
-min_zoom = 0.00000000000000000000000000000000001
-max_zoom = 100000000000000000000000000000000000.0
+min_zoom = 1.0
+max_zoom = 10.0
 base_zoom = 10.0
 base_zoom_speed = 2.5
 follow_smoothness = 0.15
@@ -43,4 +43,4 @@ success_logging_enabled = false
 [workflow]
 timeout_frames_per_stage = 30
 max_retries = 5
-runner_logging_blacklist = "ChunkLoader::*"
+runner_logging_blacklist = ""

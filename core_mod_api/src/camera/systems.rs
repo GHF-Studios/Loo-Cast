@@ -91,50 +91,42 @@ pub(crate) fn main_camera_zoom_system(
     };
     let scale_factor = chunk_loader.id().scale().scale_factor() as f32;
 
-    // Get global zoom as continuous value
-    let mut global_zoom = zoom_factor.0 * scale_factor;
-
     if total_scroll_delta != 0.0 {
-        // Apply zoom delta in global space
-        let zoom_speed = base_zoom_speed * global_zoom;
+        let zoom_speed = base_zoom_speed * zoom_factor.0;
         let zoom_delta = total_scroll_delta * zoom_speed * time.delta_secs();
-        global_zoom = (global_zoom + zoom_delta)
-            .clamp(min_zoom * 10f32.powi(MIN_SCALE_EXP as i32), max_zoom * 10f32.powi(MAX_SCALE_EXP as i32));
-
-        // Decompose new global zoom
-        let raw_scale_exp = global_zoom.log10().floor() as i8;
-        let clamped_exp = raw_scale_exp.clamp(MIN_SCALE_EXP, MAX_SCALE_EXP);
-        let new_scale_factor = 10f32.powi(clamped_exp as i32);
-        let new_zoom_factor = (global_zoom / new_scale_factor).clamp(min_zoom, max_zoom);
-
+        
         println!(
-            "zoom_state: {:?}, scale_exp: {}, clamped_exp: {}, raw_exp: {}, zoom_factor: {}",
+            "zoom_state: {:?}, scale_exp: {}, zoom_factor: {:.3}",
             chunk_loader.zoom_state,
             *chunk_loader.id().scale() as i8,
-            clamped_exp,
-            raw_scale_exp,
             zoom_factor.0,
         );
 
-        // Trigger scale change if needed (but don't apply scale yet)
+        let new_zoom = zoom_factor.0 + zoom_delta;
+
+        // Only trigger transition *before* clamping — the zoom tries to escape
         if chunk_loader.zoom_state == ZoomState::None {
-            if clamped_exp < scale_exp {
-                println!("Suggesting Zoom In → {} → {}", scale_exp, clamped_exp);
-                chunk_loader.suggest_zoom_in();
-            } else if clamped_exp > scale_exp {
-                println!("Suggesting Zoom Out → {} → {}", scale_exp, clamped_exp);
+            if new_zoom >= max_zoom && scale_exp < MAX_SCALE_EXP {
                 chunk_loader.suggest_zoom_out();
+                println!("→ zoom_state is now: {:?}", chunk_loader.zoom_state);
+                zoom_factor.0 = max_zoom; // freeze at edge
+                return;
+            } else if new_zoom <= min_zoom && scale_exp > MIN_SCALE_EXP {
+                chunk_loader.suggest_zoom_in();
+                println!("→ zoom_state is now: {:?}", chunk_loader.zoom_state);
+                zoom_factor.0 = min_zoom;
+                return;
             }
         }
 
-        // Only update zoom_factor if no scale transition is currently pending
-        if chunk_loader.zoom_state == ZoomState::None {
-            zoom_factor.0 = new_zoom_factor;
-        }
+        // Otherwise, just clamp normally
+        zoom_factor.0 = new_zoom.clamp(min_zoom, max_zoom);
 
         println!(
-            "global_zoom: {:.6}, zoom_factor: {:.6}, raw_exp: {}, clamped_exp: {}, scale_exp: {}",
-            global_zoom, zoom_factor.0, raw_scale_exp, clamped_exp, scale_exp
+            "[Zoom Debug] scale_exp: {}, zoom_factor: {:.3}, zoom_state: {:?}",
+            scale_exp,
+            zoom_factor.0,
+            chunk_loader.zoom_state,
         );
     }
 
@@ -155,9 +147,7 @@ pub fn update_view_scale_from_zoom(
     mut view_scale: ResMut<ViewScale>,
 ) {
     let scale_exp = *chunk_loader.id().scale() as i8;
-    let scale_factor = 10f32.powi(scale_exp as i32);
-    let global_zoom = zoom_factor.0 * scale_factor;
-    let offset = (global_zoom / scale_factor).log10();
+    let offset = zoom_factor.0.log10();
 
     view_scale.discrete = scale_exp as i32;
     view_scale.offset = offset;
