@@ -37,10 +37,6 @@ impl ChunkLoader {
         &self.chunk_owner_id
     }
 
-    pub fn id_mut(&mut self) -> &mut ChunkOwnerId {
-        &mut self.chunk_owner_id
-    }
-
     pub fn suggest_zoom_in(&mut self) {
         if self.zoom_state == ZoomState::None {
             self.zoom_state = ZoomState::ZoomIn;

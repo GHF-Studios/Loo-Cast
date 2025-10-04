@@ -20,7 +20,7 @@ pub struct GameViewRenderTarget {
 
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
-pub struct ZoomFactor(pub f32);
+pub(crate) struct ZoomFactor(pub f32);
 impl Default for ZoomFactor {
     fn default() -> Self {
         Self(CONFIG().get::<f32>("camera/default_zoom"))
