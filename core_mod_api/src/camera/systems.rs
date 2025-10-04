@@ -63,10 +63,7 @@ pub(crate) fn main_camera_zoom_system(
     let min_zoom = CONFIG().get::<f32>("camera/min_zoom"); // e.g. 0.1
     let max_zoom = CONFIG().get::<f32>("camera/max_zoom"); // e.g. 10.0
     let base_zoom_speed = CONFIG().get::<f32>("camera/base_zoom_speed");
-    let base_zoom = CONFIG().get::<f32>("camera/base_zoom");
-
-    const MIN_SCALE_EXP: i8 = -35;
-    const MAX_SCALE_EXP: i8 = 35;
+    let base_zoom_multiplier = CONFIG().get::<f32>("camera/base_zoom_multiplier");
 
     if !input_mode.is_game() || virtual_paused.0 {
         scroll_event_reader.clear();
@@ -82,59 +79,44 @@ pub(crate) fn main_camera_zoom_system(
         };
         total_scroll_delta += scroll_delta;
     }
-
-    let scale_exp = *chunk_loader.id().scale() as i8;
-    let scale_exp = match chunk_loader.zoom_state {
-        ZoomState::None => scale_exp,
-        ZoomState::ZoomIn => scale_exp - 1,
-        ZoomState::ZoomOut => scale_exp + 1,
-    };
-    let scale_factor = chunk_loader.id().scale().scale_factor() as f32;
+    total_scroll_delta = -total_scroll_delta;
 
     if total_scroll_delta != 0.0 {
         let zoom_speed = base_zoom_speed * zoom_factor.0;
         let zoom_delta = total_scroll_delta * zoom_speed * time.delta_secs();
-        
-        println!(
-            "zoom_state: {:?}, scale_exp: {}, zoom_factor: {:.3}",
-            chunk_loader.zoom_state,
-            *chunk_loader.id().scale() as i8,
-            zoom_factor.0,
-        );
 
         let new_zoom = zoom_factor.0 + zoom_delta;
 
-        // Only trigger transition *before* clamping — the zoom tries to escape
-        if chunk_loader.zoom_state == ZoomState::None {
-            if new_zoom >= max_zoom && scale_exp < MAX_SCALE_EXP {
-                chunk_loader.suggest_zoom_out();
-                println!("→ zoom_state is now: {:?}", chunk_loader.zoom_state);
-                zoom_factor.0 = max_zoom; // freeze at edge
-                return;
-            } else if new_zoom <= min_zoom && scale_exp > MIN_SCALE_EXP {
-                chunk_loader.suggest_zoom_in();
-                println!("→ zoom_state is now: {:?}", chunk_loader.zoom_state);
+        match chunk_loader.zoom_state {
+            ZoomState::None => {
+                if new_zoom >= max_zoom {
+                    chunk_loader.suggest_zoom_out();
+                    println!("→ zoom_state is now: {:?}", chunk_loader.zoom_state);
+                    zoom_factor.0 = max_zoom;
+                    return;
+                } else if new_zoom <= min_zoom {
+                    chunk_loader.suggest_zoom_in();
+                    println!("→ zoom_state is now: {:?}", chunk_loader.zoom_state);
+                    zoom_factor.0 = min_zoom;
+                    return;
+                } else {
+                    zoom_factor.0 = new_zoom.clamp(min_zoom, max_zoom);
+                }
+            },
+            ZoomState::ZoomIn => {
                 zoom_factor.0 = min_zoom;
-                return;
-            }
+            },
+            ZoomState::ZoomOut => {
+                zoom_factor.0 = min_zoom;
+            },
         }
-
-        // Otherwise, just clamp normally
-        zoom_factor.0 = new_zoom.clamp(min_zoom, max_zoom);
-
-        println!(
-            "[Zoom Debug] scale_exp: {}, zoom_factor: {:.3}, zoom_state: {:?}",
-            scale_exp,
-            zoom_factor.0,
-            chunk_loader.zoom_state,
-        );
     }
 
     // Apply zoom to camera
     for mut projection in projection_query.iter_mut() {
         match projection.as_mut() {
             Projection::Orthographic(ortho) => {
-                ortho.scale = zoom_factor.0 * base_zoom;
+                ortho.scale = zoom_factor.0 * base_zoom_multiplier;
             }
             _ => panic!("Main camera is not orthographic/2d!"),
         }
