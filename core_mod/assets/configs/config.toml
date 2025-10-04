@@ -1,8 +1,8 @@
 [camera]
-default_zoom = 5.0
+default_zoom = 1
 min_zoom = 1.0
 max_zoom = 10.0
-base_zoom_multiplier = 1.0
+base_zoom = 10.0
 base_zoom_speed = 2.5
 follow_smoothness = 0.15
 
@@ -11,7 +11,7 @@ z_offset = -10
 texture_generator_shader = "texture_generators/example_dev"
 
 [chunk_loader]
-default_radius = 5
+default_radius = 4
 current_view_scale = 0
 zoom_cooldown_secs = 1.0
 
