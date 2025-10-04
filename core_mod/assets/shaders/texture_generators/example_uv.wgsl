@@ -1,10 +1,9 @@
 struct ShaderParams {
     chunk_pos: vec2<i32>,
     chunk_size: u32,
-    chunk_scale: i32,
-    _current_view_scale: i32,
-    zoom_factor: f32,
-    _padding: vec2<u32>,
+    chunk_scale: i32,        // Scale of *this* chunk
+    _current_view_scale: i32, // Scale currently being viewed
+    _padding: vec3<u32>, // Padding for 16-byte alignment
 };
 
 @group(0) @binding(0) var output_texture: texture_storage_2d<rgba8unorm, write>;

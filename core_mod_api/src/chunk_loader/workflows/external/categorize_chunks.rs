@@ -33,11 +33,11 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
     let mut unload_chunk_inputs = Vec::new();
 
     for (transform, chunk_loader, drop_hook) in chunk_loader_query.iter() {
-        // println!("scale: {:?}", chunk_loader.id().scale());
+        println!("scale: {:?}", chunk_loader.id().scale());
         let chunk_loader_position = transform.translation.truncate();
-        // println!("chunk_loader_position: {:?}", chunk_loader_position);
+        println!("chunk_loader_position: {:?}", chunk_loader_position);
         let chunk_loader_grid_position = chunk_loader_position.to_grid_coord(*chunk_loader.id().scale(), grid_origin_offset.0);
-        // println!("chunk_loader_grid_position: {:?}", chunk_loader_grid_position);
+        println!("chunk_loader_grid_position: {:?}", chunk_loader_grid_position);
         let radius = chunk_loader.radius;
 
         let chunk_owner_id = chunk_loader.id();

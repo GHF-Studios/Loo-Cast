@@ -2,12 +2,10 @@ use bevy::input::mouse::MouseScrollUnit;
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 use bevy::{input::mouse::MouseWheel, prelude::*};
 
-use crate::chunk_loader::enums::ZoomState;
 use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
 use crate::time::resources::VirtualPaused;
 use crate::chunk_loader::components::ChunkLoader;
-use crate::usf::scale::DynScale;
 
 use super::resources::{GameViewRenderTarget, ZoomFactor, ViewScale};
 
@@ -60,72 +58,35 @@ pub(crate) fn main_camera_zoom_system(
     mut zoom_factor: ResMut<ZoomFactor>,
     mut chunk_loader: Single<'_, &mut ChunkLoader>,
 ) {
-    let min_zoom = CONFIG().get::<f32>("camera/min_zoom"); // e.g. 0.1
-    let max_zoom = CONFIG().get::<f32>("camera/max_zoom"); // e.g. 10.0
+    let min_zoom = CONFIG().get::<f32>("camera/min_zoom");
+    let max_zoom = CONFIG().get::<f32>("camera/max_zoom");
     let base_zoom_speed = CONFIG().get::<f32>("camera/base_zoom_speed");
-    let base_zoom = CONFIG().get::<f32>("camera/base_zoom");
-
-    const MIN_SCALE_EXP: i8 = -35;
-    const MAX_SCALE_EXP: i8 = 35;
-    const ZOOM_IN_THRESHOLD: f32 = 0.095;
-    const ZOOM_OUT_THRESHOLD: f32 = 10.5;
 
     if !input_mode.is_game() || virtual_paused.0 {
         scroll_event_reader.clear();
         return;
     }
 
-    // Aggregate scroll input
-    let mut total_scroll_delta = 0.0;
     for event in scroll_event_reader.read() {
         let scroll_delta = match event.unit {
             MouseScrollUnit::Line => -event.y,
             MouseScrollUnit::Pixel => event.y * -0.01,
         };
-        total_scroll_delta += scroll_delta;
-    }
+        let zoom_speed = base_zoom_speed * zoom_factor.0;
+        zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_secs()).clamp(min_zoom, max_zoom);
 
-    let scale_exp = *chunk_loader.id().scale() as i8;
-    let scale_factor = chunk_loader.id().scale().scale_factor() as f32;
-
-    // Get global zoom as continuous value
-    let mut global_zoom = zoom_factor.0 * scale_factor;
-
-    if total_scroll_delta != 0.0 {
-        // Apply zoom delta in global space
-        let zoom_speed = base_zoom_speed * global_zoom;
-        let zoom_delta = total_scroll_delta * zoom_speed * time.delta_secs();
-        global_zoom = (global_zoom + zoom_delta)
-            .clamp(min_zoom * 10f32.powi(MIN_SCALE_EXP as i32), max_zoom * 10f32.powi(MAX_SCALE_EXP as i32));
-
-        // Decompose new global zoom
-        let raw_scale_exp = global_zoom.log10().floor() as i8;
-        let clamped_exp = raw_scale_exp.clamp(MIN_SCALE_EXP, MAX_SCALE_EXP);
-        let new_scale_factor = 10f32.powi(clamped_exp as i32);
-        let new_zoom_factor = (global_zoom / new_scale_factor).clamp(min_zoom, max_zoom);
-
-        // Check if scale change needed
-        if clamped_exp < scale_exp && zoom_factor.0 < ZOOM_IN_THRESHOLD && chunk_loader.zoom_state == ZoomState::None {
-            chunk_loader.suggest_zoom_in(); // must also update scale() internally
-            println!("Zooming in: scale_exp {} → {}", scale_exp, clamped_exp);
-        } else if clamped_exp > scale_exp && zoom_factor.0 > ZOOM_OUT_THRESHOLD && chunk_loader.zoom_state == ZoomState::None {
-            chunk_loader.suggest_zoom_out(); // same here
-            println!("Zooming out: scale_exp {} → {}", scale_exp, clamped_exp);
+        if zoom_factor.0 <= 0.1 {
+            zoom_factor.0 += 0.9;
+            chunk_loader.id_mut().scale_mut().zoom_in();
+        } else if zoom_factor.0 >= 10.0 {
+            zoom_factor.0 -= 9.0;
+            chunk_loader.id_mut().scale_mut().zoom_out();
         }
-
-        zoom_factor.0 = new_zoom_factor;
-
-        println!(
-            "global_zoom: {:.6}, zoom_factor: {:.6}, raw_exp: {}, clamped_exp: {}",
-            global_zoom, zoom_factor.0, raw_scale_exp, clamped_exp
-        );
     }
-
-    // Apply zoom to camera
     for mut projection in projection_query.iter_mut() {
         match projection.as_mut() {
             Projection::Orthographic(ortho) => {
-                ortho.scale = zoom_factor.0 * base_zoom;
+                ortho.scale = zoom_factor.0;
             }
             _ => panic!("Main camera is not orthographic/2d!"),
         }
@@ -133,18 +94,12 @@ pub(crate) fn main_camera_zoom_system(
 }
 
 pub fn update_view_scale_from_zoom(
-    chunk_loader: Single<&ChunkLoader>,
     zoom_factor: Res<ZoomFactor>,
     mut view_scale: ResMut<ViewScale>,
 ) {
-    let scale_exp = *chunk_loader.id().scale() as i8;
-    let scale_factor = 10f32.powi(scale_exp as i32);
-    let global_zoom = zoom_factor.0 * scale_factor;
-    let offset = (global_zoom / scale_factor).log10();
-
-    view_scale.discrete = scale_exp as i32;
-    view_scale.offset = offset;
-
-    // Optional log
-    // println!("View scale updated → level {}, offset {:.2}", scale_exp, offset);
+    let zoom = zoom_factor.0;
+    let scale = -zoom.log10(); // Since zooming in decreases ortho scale
+    view_scale.discrete = scale.floor() as i32;
+    view_scale.offset = scale.fract();
 }
+

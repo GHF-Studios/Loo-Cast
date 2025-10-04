@@ -259,7 +259,8 @@ define_workflow_mod_OLD! {
                     pub chunk_size: u32,               // 4 bytes
                     pub chunk_scale: i32,              // 4 bytes
                     pub current_view_scale: i32,       // 4 bytes
-                    pub zoom_factor: f32,              // 4 bytes
+                    pub _padding0: u32,                // Pad to next 16-byte boundary
+                    pub _padding1: [u32; 4],           // Add 16 more to reach 48
                 }
                 unsafe impl bytemuck::Pod for ShaderParams {}
                 unsafe impl bytemuck::Zeroable for ShaderParams {}
