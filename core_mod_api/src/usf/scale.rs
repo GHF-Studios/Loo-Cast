@@ -24,6 +24,10 @@ pub trait ConstScale: 'static + Send + Sync + Clone + Copy + Default + Debug + R
 
 pub trait DynScale: Send + Sync + Debug {
     fn name(&self) -> &'static str;
+    /// Scale factor exponent, mapped from -35 - 35 to 0 - 70 range where 0 == raw scale factor exponent of 35 (0.00001 quectoMeter)
+    fn index_from_top(&self) -> u8 { (self.scale_factor_exponent() + 35) as u8 }
+    /// Scale factor exponent, mapped from -35 - 35 to 70 - 0 range where 0 == raw scale factor exponent of -35 (100000 quettaMeter)
+    fn index_from_bottom(&self) -> u8 { 70 - (self.scale_factor_exponent() + 35) as u8 }
     fn scale_factor_exponent(&self) -> i8;
     fn scale_factor(&self) -> f64;
     fn up(&self) -> Option<Box<dyn DynScale>>;
@@ -421,7 +425,6 @@ impl std::fmt::Display for Scale {
         write!(f, "{}", self.scale_factor_exponent())
     }
 }
-
 impl Scale {
     pub const MIN: Scale = Scale::ScaleQuectoMeter000001;
     pub const MID: Scale = Scale::ScaleMeter1;

@@ -153,8 +153,6 @@ impl GridCoord {
         let mut chunks = Vec::new();
 
         let radius = radius as i128;
-        // Power of ten to scale chunk coordinates 
-        let scale = self.scale as i8 as i128;
 
         let mut x = 0;
         let mut y = radius;
