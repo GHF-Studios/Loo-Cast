@@ -43,6 +43,11 @@ pub struct ChunkPos {
     scale_origin: GridPos,
     offset: GridPos,
 }
+impl ChunkPos {
+    pub fn from_raw(scale_origin: GridPos, raw_offset: Vec3) -> Self {
+        
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FloatPos {
@@ -53,7 +58,7 @@ impl FloatPos {
     fn new(chunk_origin: ChunkPos, offset: Vec3) -> Self {
         Self { chunk_origin, offset }
     }
-
+    
     pub fn from_raw(scale_origin: GridPos, raw_offset: Vec3) -> Self {
         
     }
