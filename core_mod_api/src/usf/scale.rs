@@ -30,8 +30,8 @@ pub trait DynScale: Send + Sync + Debug {
     fn index_from_bottom(&self) -> u8 { 70 - (self.scale_factor_exponent() + 35) as u8 }
     fn scale_factor_exponent(&self) -> i8;
     fn scale_factor(&self) -> f64;
-    fn up(&self) -> Option<Box<dyn DynScale>>;
-    fn down(&self) -> Option<Box<dyn DynScale>>;
+    fn up(&self) -> Option<Scale>;
+    fn down(&self) -> Option<Scale>;
 }
 
 #[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]
@@ -264,154 +264,154 @@ impl DynScale for Scale {
             Self::ScaleQuettaMeter100000 => <ScaleQuettaMeter100000 as ConstScale>::scale_factor(),
         }
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
+    fn up(&self) -> Option<Scale> {
         match self {
-            Self::ScaleQuectoMeter000001 => Some(Box::new(ScaleQuectoMeter00001::default())),
-            Self::ScaleQuectoMeter00001 => Some(Box::new(ScaleQuectoMeter0001::default())),
-            Self::ScaleQuectoMeter0001 => Some(Box::new(ScaleQuectoMeter001::default())),
-            Self::ScaleQuectoMeter001 => Some(Box::new(ScaleQuectoMeter01::default())),
-            Self::ScaleQuectoMeter01 => Some(Box::new(ScaleQuectoMeter1::default())),
-            Self::ScaleQuectoMeter1 => Some(Box::new(ScaleQuectoMeter10::default())),
-            Self::ScaleQuectoMeter10 => Some(Box::new(ScaleQuectoMeter100::default())),
-            Self::ScaleQuectoMeter100 => Some(Box::new(ScaleRontoMeter1::default())),
-            Self::ScaleRontoMeter1 => Some(Box::new(ScaleRontoMeter10::default())),
-            Self::ScaleRontoMeter10 => Some(Box::new(ScaleRontoMeter100::default())),
-            Self::ScaleRontoMeter100 => Some(Box::new(ScaleYoctoMeter1::default())),
-            Self::ScaleYoctoMeter1 => Some(Box::new(ScaleYoctoMeter10::default())),
-            Self::ScaleYoctoMeter10 => Some(Box::new(ScaleYoctoMeter100::default())),
-            Self::ScaleYoctoMeter100 => Some(Box::new(ScaleZeptoMeter1::default())),
-            Self::ScaleZeptoMeter1 => Some(Box::new(ScaleZeptoMeter10::default())),
-            Self::ScaleZeptoMeter10 => Some(Box::new(ScaleZeptoMeter100::default())),
-            Self::ScaleZeptoMeter100 => Some(Box::new(ScaleAttoMeter1::default())),
-            Self::ScaleAttoMeter1 => Some(Box::new(ScaleAttoMeter10::default())),
-            Self::ScaleAttoMeter10 => Some(Box::new(ScaleAttoMeter100::default())),
-            Self::ScaleAttoMeter100 => Some(Box::new(ScaleFemtoMeter1::default())),
-            Self::ScaleFemtoMeter1 => Some(Box::new(ScaleFemtoMeter10::default())),
-            Self::ScaleFemtoMeter10 => Some(Box::new(ScaleFemtoMeter100::default())),
-            Self::ScaleFemtoMeter100 => Some(Box::new(ScalePicoMeter1::default())),
-            Self::ScalePicoMeter1 => Some(Box::new(ScalePicoMeter10::default())),
-            Self::ScalePicoMeter10 => Some(Box::new(ScalePicoMeter100::default())),
-            Self::ScalePicoMeter100 => Some(Box::new(ScaleNanoMeter1::default())),
-            Self::ScaleNanoMeter1 => Some(Box::new(ScaleNanoMeter10::default())),
-            Self::ScaleNanoMeter10 => Some(Box::new(ScaleNanoMeter100::default())),
-            Self::ScaleNanoMeter100 => Some(Box::new(ScaleMicroMeter1::default())),
-            Self::ScaleMicroMeter1 => Some(Box::new(ScaleMicroMeter10::default())),
-            Self::ScaleMicroMeter10 => Some(Box::new(ScaleMicroMeter100::default())),
-            Self::ScaleMicroMeter100 => Some(Box::new(ScaleMilliMeter1::default())),
-            Self::ScaleMilliMeter1 => Some(Box::new(ScaleMilliMeter10::default())),
-            Self::ScaleMilliMeter10 => Some(Box::new(ScaleMilliMeter100::default())),
-            Self::ScaleMilliMeter100 => Some(Box::new(ScaleMeter1::default())),
-            Self::ScaleMeter1 => Some(Box::new(ScaleMeter10::default())),
-            Self::ScaleMeter10 => Some(Box::new(ScaleMeter100::default())),
-            Self::ScaleMeter100 => Some(Box::new(ScaleKiloMeter1::default())),
-            Self::ScaleKiloMeter1 => Some(Box::new(ScaleKiloMeter10::default())),
-            Self::ScaleKiloMeter10 => Some(Box::new(ScaleKiloMeter100::default())),
-            Self::ScaleKiloMeter100 => Some(Box::new(ScaleMegaMeter1::default())),
-            Self::ScaleMegaMeter1 => Some(Box::new(ScaleMegaMeter10::default())),
-            Self::ScaleMegaMeter10 => Some(Box::new(ScaleMegaMeter100::default())),
-            Self::ScaleMegaMeter100 => Some(Box::new(ScaleGigaMeter1::default())),
-            Self::ScaleGigaMeter1 => Some(Box::new(ScaleGigaMeter10::default())),
-            Self::ScaleGigaMeter10 => Some(Box::new(ScaleGigaMeter100::default())),
-            Self::ScaleGigaMeter100 => Some(Box::new(ScaleTeraMeter1::default())),
-            Self::ScaleTeraMeter1 => Some(Box::new(ScaleTeraMeter10::default())),
-            Self::ScaleTeraMeter10 => Some(Box::new(ScaleTeraMeter100::default())),
-            Self::ScaleTeraMeter100 => Some(Box::new(ScalePetaMeter1::default())),
-            Self::ScalePetaMeter1 => Some(Box::new(ScalePetaMeter10::default())),
-            Self::ScalePetaMeter10 => Some(Box::new(ScalePetaMeter100::default())),
-            Self::ScalePetaMeter100 => Some(Box::new(ScaleExaMeter1::default())),
-            Self::ScaleExaMeter1 => Some(Box::new(ScaleExaMeter10::default())),
-            Self::ScaleExaMeter10 => Some(Box::new(ScaleExaMeter100::default())),
-            Self::ScaleExaMeter100 => Some(Box::new(ScaleZettaMeter1::default())),
-            Self::ScaleZettaMeter1 => Some(Box::new(ScaleZettaMeter10::default())),
-            Self::ScaleZettaMeter10 => Some(Box::new(ScaleZettaMeter100::default())),
-            Self::ScaleZettaMeter100 => Some(Box::new(ScaleYottaMeter1::default())),
-            Self::ScaleYottaMeter1 => Some(Box::new(ScaleYottaMeter10::default())),
-            Self::ScaleYottaMeter10 => Some(Box::new(ScaleYottaMeter100::default())),
-            Self::ScaleYottaMeter100 => Some(Box::new(ScaleRonnaMeter1::default())),
-            Self::ScaleRonnaMeter1 => Some(Box::new(ScaleRonnaMeter10::default())),
-            Self::ScaleRonnaMeter10 => Some(Box::new(ScaleRonnaMeter100::default())),
-            Self::ScaleRonnaMeter100 => Some(Box::new(ScaleQuettaMeter1::default())),
-            Self::ScaleQuettaMeter1 => Some(Box::new(ScaleQuettaMeter10::default())),
-            Self::ScaleQuettaMeter10 => Some(Box::new(ScaleQuettaMeter100::default())),
-            Self::ScaleQuettaMeter100 => Some(Box::new(ScaleQuettaMeter1000::default())),
-            Self::ScaleQuettaMeter1000 => Some(Box::new(ScaleQuettaMeter10000::default())),
-            Self::ScaleQuettaMeter10000 => Some(Box::new(ScaleQuettaMeter100000::default())),
-            Self::ScaleQuettaMeter100000 => Some(Box::new(NoHigherScale::default())),
+            Self::ScaleQuectoMeter000001 => Some(Self::ScaleQuectoMeter00001),
+            Self::ScaleQuectoMeter00001 => Some(Self::ScaleQuectoMeter0001),
+            Self::ScaleQuectoMeter0001 => Some(Self::ScaleQuectoMeter001),
+            Self::ScaleQuectoMeter001 => Some(Self::ScaleQuectoMeter01),
+            Self::ScaleQuectoMeter01 => Some(Self::ScaleQuectoMeter1),
+            Self::ScaleQuectoMeter1 => Some(Self::ScaleQuectoMeter10),
+            Self::ScaleQuectoMeter10 => Some(Self::ScaleQuectoMeter100),
+            Self::ScaleQuectoMeter100 => Some(Self::ScaleRontoMeter1),
+            Self::ScaleRontoMeter1 => Some(Self::ScaleRontoMeter10),
+            Self::ScaleRontoMeter10 => Some(Self::ScaleRontoMeter100),
+            Self::ScaleRontoMeter100 => Some(Self::ScaleYoctoMeter1),
+            Self::ScaleYoctoMeter1 => Some(Self::ScaleYoctoMeter10),
+            Self::ScaleYoctoMeter10 => Some(Self::ScaleYoctoMeter100),
+            Self::ScaleYoctoMeter100 => Some(Self::ScaleZeptoMeter1),
+            Self::ScaleZeptoMeter1 => Some(Self::ScaleZeptoMeter10),
+            Self::ScaleZeptoMeter10 => Some(Self::ScaleZeptoMeter100),
+            Self::ScaleZeptoMeter100 => Some(Self::ScaleAttoMeter1),
+            Self::ScaleAttoMeter1 => Some(Self::ScaleAttoMeter10),
+            Self::ScaleAttoMeter10 => Some(Self::ScaleAttoMeter100),
+            Self::ScaleAttoMeter100 => Some(Self::ScaleFemtoMeter1),
+            Self::ScaleFemtoMeter1 => Some(Self::ScaleFemtoMeter10),
+            Self::ScaleFemtoMeter10 => Some(Self::ScaleFemtoMeter100),
+            Self::ScaleFemtoMeter100 => Some(Self::ScalePicoMeter1),
+            Self::ScalePicoMeter1 => Some(Self::ScalePicoMeter10),
+            Self::ScalePicoMeter10 => Some(Self::ScalePicoMeter100),
+            Self::ScalePicoMeter100 => Some(Self::ScaleNanoMeter1),
+            Self::ScaleNanoMeter1 => Some(Self::ScaleNanoMeter10),
+            Self::ScaleNanoMeter10 => Some(Self::ScaleNanoMeter100),
+            Self::ScaleNanoMeter100 => Some(Self::ScaleMicroMeter1),
+            Self::ScaleMicroMeter1 => Some(Self::ScaleMicroMeter10),
+            Self::ScaleMicroMeter10 => Some(Self::ScaleMicroMeter100),
+            Self::ScaleMicroMeter100 => Some(Self::ScaleMilliMeter1),
+            Self::ScaleMilliMeter1 => Some(Self::ScaleMilliMeter10),
+            Self::ScaleMilliMeter10 => Some(Self::ScaleMilliMeter100),
+            Self::ScaleMilliMeter100 => Some(Self::ScaleMeter1),
+            Self::ScaleMeter1 => Some(Self::ScaleMeter10),
+            Self::ScaleMeter10 => Some(Self::ScaleMeter100),
+            Self::ScaleMeter100 => Some(Self::ScaleKiloMeter1),
+            Self::ScaleKiloMeter1 => Some(Self::ScaleKiloMeter10),
+            Self::ScaleKiloMeter10 => Some(Self::ScaleKiloMeter100),
+            Self::ScaleKiloMeter100 => Some(Self::ScaleMegaMeter1),
+            Self::ScaleMegaMeter1 => Some(Self::ScaleMegaMeter10),
+            Self::ScaleMegaMeter10 => Some(Self::ScaleMegaMeter100),
+            Self::ScaleMegaMeter100 => Some(Self::ScaleGigaMeter1),
+            Self::ScaleGigaMeter1 => Some(Self::ScaleGigaMeter10),
+            Self::ScaleGigaMeter10 => Some(Self::ScaleGigaMeter100),
+            Self::ScaleGigaMeter100 => Some(Self::ScaleTeraMeter1),
+            Self::ScaleTeraMeter1 => Some(Self::ScaleTeraMeter10),
+            Self::ScaleTeraMeter10 => Some(Self::ScaleTeraMeter100),
+            Self::ScaleTeraMeter100 => Some(Self::ScalePetaMeter1),
+            Self::ScalePetaMeter1 => Some(Self::ScalePetaMeter10),
+            Self::ScalePetaMeter10 => Some(Self::ScalePetaMeter100),
+            Self::ScalePetaMeter100 => Some(Self::ScaleExaMeter1),
+            Self::ScaleExaMeter1 => Some(Self::ScaleExaMeter10),
+            Self::ScaleExaMeter10 => Some(Self::ScaleExaMeter100),
+            Self::ScaleExaMeter100 => Some(Self::ScaleZettaMeter1),
+            Self::ScaleZettaMeter1 => Some(Self::ScaleZettaMeter10),
+            Self::ScaleZettaMeter10 => Some(Self::ScaleZettaMeter100),
+            Self::ScaleZettaMeter100 => Some(Self::ScaleYottaMeter1),
+            Self::ScaleYottaMeter1 => Some(Self::ScaleYottaMeter10),
+            Self::ScaleYottaMeter10 => Some(Self::ScaleYottaMeter100),
+            Self::ScaleYottaMeter100 => Some(Self::ScaleRonnaMeter1),
+            Self::ScaleRonnaMeter1 => Some(Self::ScaleRonnaMeter10),
+            Self::ScaleRonnaMeter10 => Some(Self::ScaleRonnaMeter100),
+            Self::ScaleRonnaMeter100 => Some(Self::ScaleQuettaMeter1),
+            Self::ScaleQuettaMeter1 => Some(Self::ScaleQuettaMeter10),
+            Self::ScaleQuettaMeter10 => Some(Self::ScaleQuettaMeter100),
+            Self::ScaleQuettaMeter100 => Some(Self::ScaleQuettaMeter1000),
+            Self::ScaleQuettaMeter1000 => Some(Self::ScaleQuettaMeter10000),
+            Self::ScaleQuettaMeter10000 => Some(Self::ScaleQuettaMeter100000),
+            Self::ScaleQuettaMeter100000 => None,
         }
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
+    fn down(&self) -> Option<Scale> {
         match self {
-            Self::ScaleQuectoMeter000001 => Some(Box::new(NoLowerScale::default())),
-            Self::ScaleQuectoMeter00001 => Some(Box::new(ScaleQuectoMeter000001::default())),
-            Self::ScaleQuectoMeter0001 => Some(Box::new(ScaleQuectoMeter00001::default())),
-            Self::ScaleQuectoMeter001 => Some(Box::new(ScaleQuectoMeter0001::default())),
-            Self::ScaleQuectoMeter01 => Some(Box::new(ScaleQuectoMeter001::default())),
-            Self::ScaleQuectoMeter1 => Some(Box::new(ScaleQuectoMeter01::default())),
-            Self::ScaleQuectoMeter10 => Some(Box::new(ScaleQuectoMeter1::default())),
-            Self::ScaleQuectoMeter100 => Some(Box::new(ScaleQuectoMeter10::default())),
-            Self::ScaleRontoMeter1 => Some(Box::new(ScaleQuectoMeter100::default())),
-            Self::ScaleRontoMeter10 => Some(Box::new(ScaleRontoMeter1::default())),
-            Self::ScaleRontoMeter100 => Some(Box::new(ScaleRontoMeter10::default())),
-            Self::ScaleYoctoMeter1 => Some(Box::new(ScaleRontoMeter100::default())),
-            Self::ScaleYoctoMeter10 => Some(Box::new(ScaleYoctoMeter1::default())),
-            Self::ScaleYoctoMeter100 => Some(Box::new(ScaleYoctoMeter10::default())),
-            Self::ScaleZeptoMeter1 => Some(Box::new(ScaleYoctoMeter100::default())),
-            Self::ScaleZeptoMeter10 => Some(Box::new(ScaleZeptoMeter1::default())),
-            Self::ScaleZeptoMeter100 => Some(Box::new(ScaleZeptoMeter10::default())),
-            Self::ScaleAttoMeter1 => Some(Box::new(ScaleZeptoMeter100::default())),
-            Self::ScaleAttoMeter10 => Some(Box::new(ScaleAttoMeter1::default())),
-            Self::ScaleAttoMeter100 => Some(Box::new(ScaleAttoMeter10::default())),
-            Self::ScaleFemtoMeter1 => Some(Box::new(ScaleAttoMeter100::default())),
-            Self::ScaleFemtoMeter10 => Some(Box::new(ScaleFemtoMeter1::default())),
-            Self::ScaleFemtoMeter100 => Some(Box::new(ScaleFemtoMeter10::default())),
-            Self::ScalePicoMeter1 => Some(Box::new(ScaleFemtoMeter100::default())),
-            Self::ScalePicoMeter10 => Some(Box::new(ScalePicoMeter1::default())),
-            Self::ScalePicoMeter100 => Some(Box::new(ScalePicoMeter10::default())),
-            Self::ScaleNanoMeter1 => Some(Box::new(ScalePicoMeter100::default())),
-            Self::ScaleNanoMeter10 => Some(Box::new(ScaleNanoMeter1::default())),
-            Self::ScaleNanoMeter100 => Some(Box::new(ScaleNanoMeter10::default())),
-            Self::ScaleMicroMeter1 => Some(Box::new(ScaleNanoMeter100::default())),
-            Self::ScaleMicroMeter10 => Some(Box::new(ScaleMicroMeter1::default())),
-            Self::ScaleMicroMeter100 => Some(Box::new(ScaleMicroMeter10::default())),
-            Self::ScaleMilliMeter1 => Some(Box::new(ScaleMicroMeter100::default())),
-            Self::ScaleMilliMeter10 => Some(Box::new(ScaleMilliMeter1::default())),
-            Self::ScaleMilliMeter100 => Some(Box::new(ScaleMilliMeter10::default())),
-            Self::ScaleMeter1 => Some(Box::new(ScaleMilliMeter100::default())),
-            Self::ScaleMeter10 => Some(Box::new(ScaleMeter1::default())),
-            Self::ScaleMeter100 => Some(Box::new(ScaleMeter10::default())),
-            Self::ScaleKiloMeter1 => Some(Box::new(ScaleMeter100::default())),
-            Self::ScaleKiloMeter10 => Some(Box::new(ScaleKiloMeter1::default())),
-            Self::ScaleKiloMeter100 => Some(Box::new(ScaleKiloMeter10::default())),
-            Self::ScaleMegaMeter1 => Some(Box::new(ScaleKiloMeter100::default())),
-            Self::ScaleMegaMeter10 => Some(Box::new(ScaleMegaMeter1::default())),
-            Self::ScaleMegaMeter100 => Some(Box::new(ScaleMegaMeter10::default())),
-            Self::ScaleGigaMeter1 => Some(Box::new(ScaleMegaMeter100::default())),
-            Self::ScaleGigaMeter10 => Some(Box::new(ScaleGigaMeter1::default())),
-            Self::ScaleGigaMeter100 => Some(Box::new(ScaleGigaMeter10::default())),
-            Self::ScaleTeraMeter1 => Some(Box::new(ScaleGigaMeter100::default())),
-            Self::ScaleTeraMeter10 => Some(Box::new(ScaleTeraMeter1::default())),
-            Self::ScaleTeraMeter100 => Some(Box::new(ScaleTeraMeter10::default())),
-            Self::ScalePetaMeter1 => Some(Box::new(ScaleTeraMeter100::default())),
-            Self::ScalePetaMeter10 => Some(Box::new(ScalePetaMeter1::default())),
-            Self::ScalePetaMeter100 => Some(Box::new(ScalePetaMeter10::default())),
-            Self::ScaleExaMeter1 => Some(Box::new(ScalePetaMeter100::default())),
-            Self::ScaleExaMeter10 => Some(Box::new(ScaleExaMeter1::default())),
-            Self::ScaleExaMeter100 => Some(Box::new(ScaleExaMeter10::default())),
-            Self::ScaleZettaMeter1 => Some(Box::new(ScaleExaMeter100::default())),
-            Self::ScaleZettaMeter10 => Some(Box::new(ScaleZettaMeter1::default())),
-            Self::ScaleZettaMeter100 => Some(Box::new(ScaleZettaMeter10::default())),
-            Self::ScaleYottaMeter1 => Some(Box::new(ScaleZettaMeter100::default())),
-            Self::ScaleYottaMeter10 => Some(Box::new(ScaleYottaMeter1::default())),
-            Self::ScaleYottaMeter100 => Some(Box::new(ScaleYottaMeter10::default())),
-            Self::ScaleRonnaMeter1 => Some(Box::new(ScaleYottaMeter100::default())),
-            Self::ScaleRonnaMeter10 => Some(Box::new(ScaleRonnaMeter1::default())),
-            Self::ScaleRonnaMeter100 => Some(Box::new(ScaleRonnaMeter10::default())),
-            Self::ScaleQuettaMeter1 => Some(Box::new(ScaleRonnaMeter100::default())),
-            Self::ScaleQuettaMeter10 => Some(Box::new(ScaleQuettaMeter1::default())),
-            Self::ScaleQuettaMeter100 => Some(Box::new(ScaleQuettaMeter10::default())),
-            Self::ScaleQuettaMeter1000 => Some(Box::new(ScaleQuettaMeter100::default())),
-            Self::ScaleQuettaMeter10000 => Some(Box::new(ScaleQuettaMeter1000::default())),
-            Self::ScaleQuettaMeter100000 => Some(Box::new(ScaleQuettaMeter10000::default())),
+            Self::ScaleQuectoMeter000001 => None,
+            Self::ScaleQuectoMeter00001 => Some(Self::ScaleQuectoMeter000001),
+            Self::ScaleQuectoMeter0001 => Some(Self::ScaleQuectoMeter00001),
+            Self::ScaleQuectoMeter001 => Some(Self::ScaleQuectoMeter0001),
+            Self::ScaleQuectoMeter01 => Some(Self::ScaleQuectoMeter001),
+            Self::ScaleQuectoMeter1 => Some(Self::ScaleQuectoMeter01),
+            Self::ScaleQuectoMeter10 => Some(Self::ScaleQuectoMeter1),
+            Self::ScaleQuectoMeter100 => Some(Self::ScaleQuectoMeter10),
+            Self::ScaleRontoMeter1 => Some(Self::ScaleQuectoMeter100),
+            Self::ScaleRontoMeter10 => Some(Self::ScaleRontoMeter1),
+            Self::ScaleRontoMeter100 => Some(Self::ScaleRontoMeter10),
+            Self::ScaleYoctoMeter1 => Some(Self::ScaleRontoMeter100),
+            Self::ScaleYoctoMeter10 => Some(Self::ScaleYoctoMeter1),
+            Self::ScaleYoctoMeter100 => Some(Self::ScaleYoctoMeter10),
+            Self::ScaleZeptoMeter1 => Some(Self::ScaleYoctoMeter100),
+            Self::ScaleZeptoMeter10 => Some(Self::ScaleZeptoMeter1),
+            Self::ScaleZeptoMeter100 => Some(Self::ScaleZeptoMeter10),
+            Self::ScaleAttoMeter1 => Some(Self::ScaleZeptoMeter100),
+            Self::ScaleAttoMeter10 => Some(Self::ScaleAttoMeter1),
+            Self::ScaleAttoMeter100 => Some(Self::ScaleAttoMeter10),
+            Self::ScaleFemtoMeter1 => Some(Self::ScaleAttoMeter100),
+            Self::ScaleFemtoMeter10 => Some(Self::ScaleFemtoMeter1),
+            Self::ScaleFemtoMeter100 => Some(Self::ScaleFemtoMeter10),
+            Self::ScalePicoMeter1 => Some(Self::ScaleFemtoMeter100),
+            Self::ScalePicoMeter10 => Some(Self::ScalePicoMeter1),
+            Self::ScalePicoMeter100 => Some(Self::ScalePicoMeter10),
+            Self::ScaleNanoMeter1 => Some(Self::ScalePicoMeter100),
+            Self::ScaleNanoMeter10 => Some(Self::ScaleNanoMeter1),
+            Self::ScaleNanoMeter100 => Some(Self::ScaleNanoMeter10),
+            Self::ScaleMicroMeter1 => Some(Self::ScaleNanoMeter100),
+            Self::ScaleMicroMeter10 => Some(Self::ScaleMicroMeter1),
+            Self::ScaleMicroMeter100 => Some(Self::ScaleMicroMeter10),
+            Self::ScaleMilliMeter1 => Some(Self::ScaleMicroMeter100),
+            Self::ScaleMilliMeter10 => Some(Self::ScaleMilliMeter1),
+            Self::ScaleMilliMeter100 => Some(Self::ScaleMilliMeter10),
+            Self::ScaleMeter1 => Some(Self::ScaleMilliMeter100),
+            Self::ScaleMeter10 => Some(Self::ScaleMeter1),
+            Self::ScaleMeter100 => Some(Self::ScaleMeter10),
+            Self::ScaleKiloMeter1 => Some(Self::ScaleMeter100),
+            Self::ScaleKiloMeter10 => Some(Self::ScaleKiloMeter1),
+            Self::ScaleKiloMeter100 => Some(Self::ScaleKiloMeter10),
+            Self::ScaleMegaMeter1 => Some(Self::ScaleKiloMeter100),
+            Self::ScaleMegaMeter10 => Some(Self::ScaleMegaMeter1),
+            Self::ScaleMegaMeter100 => Some(Self::ScaleMegaMeter10),
+            Self::ScaleGigaMeter1 => Some(Self::ScaleMegaMeter100),
+            Self::ScaleGigaMeter10 => Some(Self::ScaleGigaMeter1),
+            Self::ScaleGigaMeter100 => Some(Self::ScaleGigaMeter10),
+            Self::ScaleTeraMeter1 => Some(Self::ScaleGigaMeter100),
+            Self::ScaleTeraMeter10 => Some(Self::ScaleTeraMeter1),
+            Self::ScaleTeraMeter100 => Some(Self::ScaleTeraMeter10),
+            Self::ScalePetaMeter1 => Some(Self::ScaleTeraMeter100),
+            Self::ScalePetaMeter10 => Some(Self::ScalePetaMeter1),
+            Self::ScalePetaMeter100 => Some(Self::ScalePetaMeter10),
+            Self::ScaleExaMeter1 => Some(Self::ScalePetaMeter100),
+            Self::ScaleExaMeter10 => Some(Self::ScaleExaMeter1),
+            Self::ScaleExaMeter100 => Some(Self::ScaleExaMeter10),
+            Self::ScaleZettaMeter1 => Some(Self::ScaleExaMeter100),
+            Self::ScaleZettaMeter10 => Some(Self::ScaleZettaMeter1),
+            Self::ScaleZettaMeter100 => Some(Self::ScaleZettaMeter10),
+            Self::ScaleYottaMeter1 => Some(Self::ScaleZettaMeter100),
+            Self::ScaleYottaMeter10 => Some(Self::ScaleYottaMeter1),
+            Self::ScaleYottaMeter100 => Some(Self::ScaleYottaMeter10),
+            Self::ScaleRonnaMeter1 => Some(Self::ScaleYottaMeter100),
+            Self::ScaleRonnaMeter10 => Some(Self::ScaleRonnaMeter1),
+            Self::ScaleRonnaMeter100 => Some(Self::ScaleRonnaMeter10),
+            Self::ScaleQuettaMeter1 => Some(Self::ScaleRonnaMeter100),
+            Self::ScaleQuettaMeter10 => Some(Self::ScaleQuettaMeter1),
+            Self::ScaleQuettaMeter100 => Some(Self::ScaleQuettaMeter10),
+            Self::ScaleQuettaMeter1000 => Some(Self::ScaleQuettaMeter100),
+            Self::ScaleQuettaMeter10000 => Some(Self::ScaleQuettaMeter1000),
+            Self::ScaleQuettaMeter100000 => Some(Self::ScaleQuettaMeter10000),
         }
     }
 }
@@ -429,6 +429,20 @@ impl Scale {
     pub const MIN: Scale = Scale::ScaleQuectoMeter000001;
     pub const MID: Scale = Scale::ScaleMeter1;
     pub const MAX: Scale = Scale::ScaleQuettaMeter100000;
+
+    /// Create a Scale from an index from the top (0..70)
+    pub fn from_index_from_top(index_from_top: u8) -> Option<Self> {
+        assert!(index_from_top <= 70);
+        let scale_factor_exponent = 35_i8 - (index_from_top as i8);
+        Self::from_scale_factor_exponent(scale_factor_exponent)
+    }
+
+    /// Create a Scale from an index from the bottom (70..0)
+    pub fn from_index_from_bottom(index_from_bottom: u8) -> Option<Self> {
+        assert!(index_from_bottom <= 70);
+        let scale_factor_exponent = -35_i8 + (index_from_bottom as i8);
+        Self::from_scale_factor_exponent(scale_factor_exponent)
+    }
 
     pub fn from_scale_factor_exponent(scale_factor_exponent: i8) -> Option<Self> {
         match scale_factor_exponent {
@@ -702,10 +716,10 @@ impl DynScale for NoLowerScale {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
+    fn up(&self) -> Option<Scale> {
         None
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
+    fn down(&self) -> Option<Scale> {
         None
     }
 }
@@ -734,10 +748,10 @@ impl DynScale for ScaleQuectoMeter000001 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter00001::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter00001)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
+    fn down(&self) -> Option<Scale> {
         None
     }
 }
@@ -766,11 +780,11 @@ impl DynScale for ScaleQuectoMeter00001 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter0001::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter0001)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter000001::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter000001)
     }
 }
 
@@ -798,11 +812,11 @@ impl DynScale for ScaleQuectoMeter0001 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter001::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter001)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter00001::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter00001)
     }
 }
 
@@ -830,11 +844,11 @@ impl DynScale for ScaleQuectoMeter001 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter01::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter01)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter0001::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter0001)
     }
 }
 
@@ -862,11 +876,11 @@ impl DynScale for ScaleQuectoMeter01 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter001::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter001)
     }
 }
 
@@ -894,11 +908,11 @@ impl DynScale for ScaleQuectoMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter01::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter01)
     }
 }
 
@@ -926,11 +940,11 @@ impl DynScale for ScaleQuectoMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter1)
     }
 }
 
@@ -958,11 +972,11 @@ impl DynScale for ScaleQuectoMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleRontoMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleRontoMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter10)
     }
 }
 
@@ -990,11 +1004,11 @@ impl DynScale for ScaleRontoMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleRontoMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleRontoMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuectoMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuectoMeter100)
     }
 }
 
@@ -1022,11 +1036,11 @@ impl DynScale for ScaleRontoMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleRontoMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleRontoMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleRontoMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleRontoMeter1)
     }
 }
 
@@ -1054,11 +1068,11 @@ impl DynScale for ScaleRontoMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleYoctoMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleYoctoMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleRontoMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleRontoMeter10)
     }
 }
 
@@ -1086,11 +1100,11 @@ impl DynScale for ScaleYoctoMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleYoctoMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleYoctoMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleRontoMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleRontoMeter100)
     }
 }
 
@@ -1118,11 +1132,11 @@ impl DynScale for ScaleYoctoMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleYoctoMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleYoctoMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleYoctoMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleYoctoMeter1)
     }
 }
 
@@ -1150,11 +1164,11 @@ impl DynScale for ScaleYoctoMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleZeptoMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleZeptoMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleYoctoMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleYoctoMeter10)
     }
 }
 
@@ -1182,11 +1196,11 @@ impl DynScale for ScaleZeptoMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleZeptoMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleZeptoMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleYoctoMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleYoctoMeter100)
     }
 }
 
@@ -1214,11 +1228,11 @@ impl DynScale for ScaleZeptoMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleZeptoMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleZeptoMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleZeptoMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleZeptoMeter1)
     }
 }
 
@@ -1246,11 +1260,11 @@ impl DynScale for ScaleZeptoMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleAttoMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleAttoMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleZeptoMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleZeptoMeter10)
     }
 }
 
@@ -1278,11 +1292,11 @@ impl DynScale for ScaleAttoMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleAttoMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleAttoMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleZeptoMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleZeptoMeter100)
     }
 }
 
@@ -1310,11 +1324,11 @@ impl DynScale for ScaleAttoMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleAttoMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleAttoMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleAttoMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleAttoMeter1)
     }
 }
 
@@ -1342,11 +1356,11 @@ impl DynScale for ScaleAttoMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleFemtoMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleFemtoMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleAttoMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleAttoMeter10)
     }
 }
 
@@ -1374,11 +1388,11 @@ impl DynScale for ScaleFemtoMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleFemtoMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleFemtoMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleAttoMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleAttoMeter100)
     }
 }
 
@@ -1406,11 +1420,11 @@ impl DynScale for ScaleFemtoMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleFemtoMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleFemtoMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleFemtoMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleFemtoMeter1)
     }
 }
 
@@ -1438,11 +1452,11 @@ impl DynScale for ScaleFemtoMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScalePicoMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScalePicoMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleFemtoMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleFemtoMeter10)
     }
 }
 
@@ -1470,11 +1484,11 @@ impl DynScale for ScalePicoMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScalePicoMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScalePicoMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleFemtoMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleFemtoMeter100)
     }
 }
 
@@ -1502,11 +1516,11 @@ impl DynScale for ScalePicoMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScalePicoMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScalePicoMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScalePicoMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScalePicoMeter1)
     }
 }
 
@@ -1534,11 +1548,11 @@ impl DynScale for ScalePicoMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleNanoMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleNanoMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScalePicoMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScalePicoMeter10)
     }
 }
 
@@ -1566,11 +1580,11 @@ impl DynScale for ScaleNanoMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleNanoMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleNanoMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScalePicoMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScalePicoMeter100)
     }
 }
 
@@ -1598,11 +1612,11 @@ impl DynScale for ScaleNanoMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleNanoMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleNanoMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleNanoMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleNanoMeter1)
     }
 }
 
@@ -1630,11 +1644,11 @@ impl DynScale for ScaleNanoMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMicroMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleMicroMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleNanoMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleNanoMeter10)
     }
 }
 
@@ -1662,11 +1676,11 @@ impl DynScale for ScaleMicroMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMicroMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleMicroMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleNanoMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleNanoMeter100)
     }
 }
 
@@ -1694,11 +1708,11 @@ impl DynScale for ScaleMicroMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMicroMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleMicroMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMicroMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleMicroMeter1)
     }
 }
 
@@ -1726,11 +1740,11 @@ impl DynScale for ScaleMicroMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMilliMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleMilliMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMicroMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleMicroMeter10)
     }
 }
 
@@ -1758,11 +1772,11 @@ impl DynScale for ScaleMilliMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMilliMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleMilliMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMicroMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleMicroMeter100)
     }
 }
 
@@ -1790,11 +1804,11 @@ impl DynScale for ScaleMilliMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMilliMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleMilliMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMilliMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleMilliMeter1)
     }
 }
 
@@ -1822,11 +1836,11 @@ impl DynScale for ScaleMilliMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMilliMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleMilliMeter10)
     }
 }
 
@@ -1854,11 +1868,11 @@ impl DynScale for ScaleMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMilliMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleMilliMeter100)
     }
 }
 
@@ -1886,11 +1900,11 @@ impl DynScale for ScaleMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleMeter1)
     }
 }
 
@@ -1918,11 +1932,11 @@ impl DynScale for ScaleMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleKiloMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleKiloMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleMeter10)
     }
 }
 
@@ -1950,11 +1964,11 @@ impl DynScale for ScaleKiloMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleKiloMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleKiloMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleMeter100)
     }
 }
 
@@ -1982,11 +1996,11 @@ impl DynScale for ScaleKiloMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleKiloMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleKiloMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleKiloMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleKiloMeter1)
     }
 }
 
@@ -2014,11 +2028,11 @@ impl DynScale for ScaleKiloMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMegaMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleMegaMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleKiloMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleKiloMeter10)
     }
 }
 
@@ -2046,11 +2060,11 @@ impl DynScale for ScaleMegaMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMegaMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleMegaMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleKiloMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleKiloMeter100)
     }
 }
 
@@ -2078,11 +2092,11 @@ impl DynScale for ScaleMegaMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMegaMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleMegaMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMegaMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleMegaMeter1)
     }
 }
 
@@ -2110,11 +2124,11 @@ impl DynScale for ScaleMegaMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleGigaMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleGigaMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMegaMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleMegaMeter10)
     }
 }
 
@@ -2142,11 +2156,11 @@ impl DynScale for ScaleGigaMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleGigaMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleGigaMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleMegaMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleMegaMeter100)
     }
 }
 
@@ -2174,11 +2188,11 @@ impl DynScale for ScaleGigaMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleGigaMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleGigaMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleGigaMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleGigaMeter1)
     }
 }
 
@@ -2206,11 +2220,11 @@ impl DynScale for ScaleGigaMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleTeraMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleTeraMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleGigaMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleGigaMeter10)
     }
 }
 
@@ -2238,11 +2252,11 @@ impl DynScale for ScaleTeraMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleTeraMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleTeraMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleGigaMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleGigaMeter100)
     }
 }
 
@@ -2270,11 +2284,11 @@ impl DynScale for ScaleTeraMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleTeraMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleTeraMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleTeraMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleTeraMeter1)
     }
 }
 
@@ -2302,11 +2316,11 @@ impl DynScale for ScaleTeraMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScalePetaMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScalePetaMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleTeraMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleTeraMeter10)
     }
 }
 
@@ -2334,11 +2348,11 @@ impl DynScale for ScalePetaMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScalePetaMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScalePetaMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleTeraMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleTeraMeter100)
     }
 }
 
@@ -2366,11 +2380,11 @@ impl DynScale for ScalePetaMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScalePetaMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScalePetaMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScalePetaMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScalePetaMeter1)
     }
 }
 
@@ -2398,11 +2412,11 @@ impl DynScale for ScalePetaMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleExaMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleExaMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScalePetaMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScalePetaMeter10)
     }
 }
 
@@ -2430,11 +2444,11 @@ impl DynScale for ScaleExaMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleExaMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleExaMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScalePetaMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScalePetaMeter100)
     }
 }
 
@@ -2462,11 +2476,11 @@ impl DynScale for ScaleExaMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleExaMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleExaMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleExaMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleExaMeter1)
     }
 }
 
@@ -2494,11 +2508,11 @@ impl DynScale for ScaleExaMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleZettaMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleZettaMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleExaMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleExaMeter10)
     }
 }
 
@@ -2526,11 +2540,11 @@ impl DynScale for ScaleZettaMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleZettaMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleZettaMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleExaMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleExaMeter100)
     }
 }
 
@@ -2558,11 +2572,11 @@ impl DynScale for ScaleZettaMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleZettaMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleZettaMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleZettaMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleZettaMeter1)
     }
 }
 
@@ -2590,11 +2604,11 @@ impl DynScale for ScaleZettaMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleYottaMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleYottaMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleZettaMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleZettaMeter10)
     }
 }
 
@@ -2622,11 +2636,11 @@ impl DynScale for ScaleYottaMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleYottaMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleYottaMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleZettaMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleZettaMeter100)
     }
 }
 
@@ -2654,11 +2668,11 @@ impl DynScale for ScaleYottaMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleYottaMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleYottaMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleYottaMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleYottaMeter1)
     }
 }
 
@@ -2686,11 +2700,11 @@ impl DynScale for ScaleYottaMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleRonnaMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleRonnaMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleYottaMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleYottaMeter10)
     }
 }
 
@@ -2718,11 +2732,11 @@ impl DynScale for ScaleRonnaMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleRonnaMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleRonnaMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleYottaMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleYottaMeter100)
     }
 }
 
@@ -2750,11 +2764,11 @@ impl DynScale for ScaleRonnaMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleRonnaMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleRonnaMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleRonnaMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleRonnaMeter1)
     }
 }
 
@@ -2782,11 +2796,11 @@ impl DynScale for ScaleRonnaMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuettaMeter1::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuettaMeter1)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleRonnaMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleRonnaMeter10)
     }
 }
 
@@ -2814,11 +2828,11 @@ impl DynScale for ScaleQuettaMeter1 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuettaMeter10::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuettaMeter10)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleRonnaMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleRonnaMeter100)
     }
 }
 
@@ -2846,11 +2860,11 @@ impl DynScale for ScaleQuettaMeter10 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuettaMeter100::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuettaMeter100)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuettaMeter1::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuettaMeter1)
     }
 }
 
@@ -2878,11 +2892,11 @@ impl DynScale for ScaleQuettaMeter100 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuettaMeter1000::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuettaMeter1000)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuettaMeter10::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuettaMeter10)
     }
 }
 
@@ -2910,11 +2924,11 @@ impl DynScale for ScaleQuettaMeter1000 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuettaMeter10000::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuettaMeter10000)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuettaMeter100::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuettaMeter100)
     }
 }
 
@@ -2942,11 +2956,11 @@ impl DynScale for ScaleQuettaMeter10000 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuettaMeter100000::default()))
+    fn up(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuettaMeter100000)
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuettaMeter1000::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuettaMeter1000)
     }
 }
 
@@ -2974,11 +2988,11 @@ impl DynScale for ScaleQuettaMeter100000 {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
+    fn up(&self) -> Option<Scale> {
         None
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
-        Some(Box::new(ScaleQuettaMeter10000::default()))
+    fn down(&self) -> Option<Scale> {
+        Some(Scale::ScaleQuettaMeter10000)
     }
 }
 
@@ -3006,10 +3020,10 @@ impl DynScale for NoHigherScale {
     fn scale_factor(&self) -> f64 {
         <Self as ConstScale>::scale_factor()
     }
-    fn up(&self) -> Option<Box<dyn DynScale>> {
+    fn up(&self) -> Option<Scale> {
         None
     }
-    fn down(&self) -> Option<Box<dyn DynScale>> {
+    fn down(&self) -> Option<Scale> {
         None
     }
 }

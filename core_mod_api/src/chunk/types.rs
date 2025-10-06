@@ -2,7 +2,6 @@ use bevy::ecs::entity::Entity;
 use bevy::prelude::*;
 use tokio::task::JoinHandle;
 
-use crate::chunk::traits::{Vec2Ext, I128Vec2Ext};
 use crate::usf::scale::{Scale, DynScale};
 use crate::utils::types::I128Vec2;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
