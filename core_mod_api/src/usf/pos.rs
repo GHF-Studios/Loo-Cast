@@ -14,6 +14,21 @@ pub struct GridOffset {
     xy: I128Vec2,
 }
 impl GridOffset {
+    pub fn new_origin(parent: Option<Box<GridOffset>>, scale: Scale) -> Self {
+        let parent = match parent {
+            Some(parent) => {
+                assert!(parent.scale > scale, "Parent scale must be greater than child scale");
+                Some(parent)
+            },
+            None => {
+                assert!(scale == Scale::MAX, "Root GridPos must have MAX scale");
+                None
+            }
+        };
+
+        Self { parent, scale, xy: I128Vec2::ZERO }
+    }
+
     pub fn new(parent: Option<Box<GridOffset>>, scale: Scale, xy: I128Vec2) -> Self {
         let parent = match parent {
             Some(parent) => {
@@ -35,21 +50,6 @@ impl GridOffset {
 
         Self { parent, scale, xy }
     }
-
-    pub fn new_origin(parent: Option<Box<GridOffset>>, scale: Scale) -> Self {
-        let parent = match parent {
-            Some(parent) => {
-                assert!(parent.scale > scale, "Parent scale must be greater than child scale");
-                Some(parent)
-            },
-            None => {
-                assert!(scale == Scale::MAX, "Root GridPos must have MAX scale");
-                None
-            }
-        };
-
-        Self { parent, scale, xy: I128Vec2::ZERO }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -58,7 +58,11 @@ pub struct GridPos {
     grid_offset: GridOffset,
 }
 impl GridPos {
-    pub fn new(scale_origin: Scale, grid_offset: GridOffset, local_offset: Vec2) -> Self {
+    pub fn new_origin(scale_origin: Scale, grid_offset: GridOffset) -> Self {
+        Self { scale_origin, grid_offset }
+    }
+
+    pub fn new(scale_origin: Scale, grid_offset: GridOffset, subgrid_offset: Vec2) -> Self {
         let delta_scale_factor_exponent = (grid_offset.scale.scale_factor_exponent() - scale_origin.scale_factor_exponent()) - Scale::MAX.scale_factor_exponent();
 
         assert!(
@@ -70,28 +74,30 @@ impl GridPos {
         let delta_scale = Scale::from_scale_factor_exponent(delta_scale_factor_exponent).unwrap();
         let grid_size = delta_scale.scale_factor() * GRID_SIZE as f64;
         let half_grid_size = grid_size / 2.0;
-        let grid_offset_x = ((local_offset.x as f64 + half_grid_size) / grid_size).floor() as i128;
-        let grid_offset_y = ((local_offset.y as f64 + half_grid_size) / grid_size).floor() as i128;
+        let grid_offset_x = ((subgrid_offset.x as f64 + half_grid_size) / grid_size).floor() as i128;
+        let grid_offset_y = ((subgrid_offset.y as f64 + half_grid_size) / grid_size).floor() as i128;
         let grid_offset_xy = I128Vec2::new(grid_offset_x, grid_offset_y);
         let grid_offset = GridOffset::new(grid_offset.parent, grid_offset.scale, grid_offset_xy);
 
         Self { scale_origin, grid_offset }
     }
-
-    pub fn new_origin(scale_origin: Scale, grid_offset: GridOffset) -> Self {
-        Self { scale_origin, grid_offset }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct LocalPos {
+pub struct SubgridPos {
     grid_origin: GridPos,
-    local_offset: Vec3,
+    subgrid_offset: Vec3,
 }
-impl LocalPos {
-    pub fn from_raw(scale_origin: Scale, grid_offset: GridOffset, local_offset: Vec3) -> Self {
-        let grid_origin = GridPos::new(scale_origin, grid_offset, local_offset.truncate());
+impl SubgridPos {
+    pub fn new_origin(scale_origin: Scale, grid_offset: GridOffset) -> Self {
+        let grid_origin = GridPos::new(scale_origin, grid_offset, Vec2::ZERO);
 
-        Self { grid_origin, local_offset }
+        Self { grid_origin, subgrid_offset }
+    }
+
+    pub fn new(scale_origin: Scale, grid_offset: GridOffset, subgrid_offset: Vec3) -> Self {
+        let grid_origin = GridPos::new(scale_origin, grid_offset, subgrid_offset.truncate());
+
+        Self { grid_origin, subgrid_offset }
     }
 }
