@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::prelude::{Vec2, Vec3};
 
 use crate::utils::types::I128Vec2;
 
@@ -8,13 +8,13 @@ const GRID_SIZE: i128 = 1000_i128;
 const MAX_SCALE_DISTANCE: i8 = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GridPos {
-    parent: Option<Box<GridPos>>,
+pub struct GridOffset {
+    parent: Option<Box<GridOffset>>,
     scale: Scale,
     xy: I128Vec2,
 }
-impl GridPos {
-    pub fn new(parent: Option<Box<GridPos>>, scale: Scale, xy: I128Vec2) -> Self {
+impl GridOffset {
+    pub fn new(parent: Option<Box<GridOffset>>, scale: Scale, xy: I128Vec2) -> Self {
         let parent = match parent {
             Some(parent) => {
                 assert!(parent.scale > scale, "Parent scale must be greater than child scale");
@@ -35,40 +35,63 @@ impl GridPos {
 
         Self { parent, scale, xy }
     }
+
+    pub fn new_origin(parent: Option<Box<GridOffset>>, scale: Scale) -> Self {
+        let parent = match parent {
+            Some(parent) => {
+                assert!(parent.scale > scale, "Parent scale must be greater than child scale");
+                Some(parent)
+            },
+            None => {
+                assert!(scale == Scale::MAX, "Root GridPos must have MAX scale");
+                None
+            }
+        };
+
+        Self { parent, scale, xy: I128Vec2::ZERO }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ChunkPos {
+pub struct GridPos {
     scale_origin: Scale,
-    grid_offset: GridPos,
+    grid_offset: GridOffset,
 }
-impl ChunkPos {
-    pub fn from_raw(scale_origin: Scale, grid_origin: GridPos, local_offset: Vec2) -> Self {
-        let delta_scale_factor_exponent = (grid_origin.scale.scale_factor_exponent() - scale_origin.scale_factor_exponent()) - 35;
+impl GridPos {
+    pub fn new(scale_origin: Scale, grid_offset: GridOffset, local_offset: Vec2) -> Self {
+        let delta_scale_factor_exponent = (grid_offset.scale.scale_factor_exponent() - scale_origin.scale_factor_exponent()) - Scale::MAX.scale_factor_exponent();
+
         assert!(
             delta_scale_factor_exponent <= MAX_SCALE_DISTANCE,
-            "Scale difference '{}' between scale_origin and grid_origin is larger than MAX '{}'",
+            "Scale difference '{}' between scale_origin and grid_offset is larger than MAX '{}'",
             delta_scale_factor_exponent, MAX_SCALE_DISTANCE
         );
+
         let delta_scale = Scale::from_scale_factor_exponent(delta_scale_factor_exponent).unwrap();
         let grid_size = delta_scale.scale_factor() * GRID_SIZE as f64;
         let half_grid_size = grid_size / 2.0;
         let grid_offset_x = ((local_offset.x as f64 + half_grid_size) / grid_size).floor() as i128;
         let grid_offset_y = ((local_offset.y as f64 + half_grid_size) / grid_size).floor() as i128;
         let grid_offset_xy = I128Vec2::new(grid_offset_x, grid_offset_y);
-        let grid_offset = GridPos::new(grid_origin.parent, grid_origin.scale, grid_offset_xy);
+        let grid_offset = GridOffset::new(grid_offset.parent, grid_offset.scale, grid_offset_xy);
 
+        Self { scale_origin, grid_offset }
+    }
+
+    pub fn new_origin(scale_origin: Scale, grid_offset: GridOffset) -> Self {
         Self { scale_origin, grid_offset }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct FloatPos {
-    chunk_origin: ChunkPos,
-    offset: Vec3,
+pub struct LocalPos {
+    grid_origin: GridPos,
+    local_offset: Vec3,
 }
-impl FloatPos {
-    pub fn from_raw(scale_origin: Scale, grid_origin: GridPos, local_offset: Vec3) -> Self {
-        todo!()
+impl LocalPos {
+    pub fn from_raw(scale_origin: Scale, grid_offset: GridOffset, local_offset: Vec3) -> Self {
+        let grid_origin = GridPos::new(scale_origin, grid_offset, local_offset.truncate());
+
+        Self { grid_origin, local_offset }
     }
 }

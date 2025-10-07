@@ -7,6 +7,11 @@ pub struct I128Vec2 {
 }
 // All the utility trait impls and methods and whatnot
 impl I128Vec2 {
+    pub const ZERO: Self = Self { x: 0, y: 0 };
+    pub const ONE: Self = Self { x: 1, y: 1 };
+    pub const UNIT_X: Self = Self { x: 1, y: 0 };
+    pub const UNIT_Y: Self = Self { x: 0, y: 1 };
+    
     pub fn new(x: i128, y: i128) -> Self {
         Self { x, y }
     }
