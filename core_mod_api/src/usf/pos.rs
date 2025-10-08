@@ -92,7 +92,7 @@ impl SubgridPos {
     pub fn new_origin(scale_origin: Scale, grid_offset: GridOffset) -> Self {
         let grid_origin = GridPos::new(scale_origin, grid_offset, Vec2::ZERO);
 
-        Self { grid_origin, subgrid_offset }
+        Self { grid_origin, subgrid_offset: Vec3::ZERO }
     }
 
     pub fn new(scale_origin: Scale, grid_offset: GridOffset, subgrid_offset: Vec3) -> Self {
