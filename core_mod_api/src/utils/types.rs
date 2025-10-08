@@ -5,7 +5,6 @@ pub struct I128Vec2 {
     pub x: i128,
     pub y: i128,
 }
-// All the utility trait impls and methods and whatnot
 impl I128Vec2 {
     pub const ZERO: Self = Self { x: 0, y: 0 };
     pub const ONE: Self = Self { x: 1, y: 1 };

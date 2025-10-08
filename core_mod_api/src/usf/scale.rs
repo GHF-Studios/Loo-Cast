@@ -430,6 +430,9 @@ impl Scale {
     pub const MID: Scale = Scale::ScaleMeter1;
     pub const MAX: Scale = Scale::ScaleQuettaMeter100000;
 
+    /// Somewhat arbitrary, but also not in the sense that 32 is a lot of breathing room, yet should still make all calculations fit inside an i128
+    const MAX_DIFF_SCALE_EXP: i8 = 32;
+
     /// Create a Scale from an index from the top (0..70)
     pub fn from_index_from_top(index_from_top: u8) -> Option<Self> {
         assert!(index_from_top <= 70);
@@ -672,6 +675,19 @@ impl Scale {
             Self::ScaleQuettaMeter10000 => { *self = Self::ScaleQuettaMeter100000 }
             Self::ScaleQuettaMeter100000 => { *self = Self::ScaleQuettaMeter100000 }
         }
+    }
+
+    pub fn difference_scale_factor(&self, scale_origin: &Self) -> f64 {
+        let diff_scale_exp = self.scale_factor_exponent() - scale_origin.scale_factor_exponent();
+
+        assert!(
+            (-Scale::MAX_DIFF_SCALE_EXP..=Scale::MAX_DIFF_SCALE_EXP).contains(&diff_scale_exp),
+            "Difference in scale factor exponent too large: {}. Max allowed difference is +/- {}",
+            diff_scale_exp, Scale::MAX_DIFF_SCALE_EXP
+            
+        );
+
+        10_f64.powi(diff_scale_exp as i32)
     }
 }
 

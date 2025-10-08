@@ -163,9 +163,9 @@ impl GridCoord {
                 chunks.push(GridCoord::new(self.scale, self.xy.x + dx, self.xy.y + y));
                 chunks.push(GridCoord::new(self.scale, self.xy.x + dx, self.xy.y - y));
             }
-            for dx in -y..=y {
-                chunks.push(GridCoord::new(self.scale, self.xy.x + dx, self.xy.y + x));
-                chunks.push(GridCoord::new(self.scale, self.xy.x + dx, self.xy.y - x));
+            for dy in -y..=y {
+                chunks.push(GridCoord::new(self.scale, self.xy.x + dy, self.xy.y + x));
+                chunks.push(GridCoord::new(self.scale, self.xy.x + dy, self.xy.y - x));
             }
 
             if d < 0 {
