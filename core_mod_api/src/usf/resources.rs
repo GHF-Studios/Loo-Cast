@@ -23,6 +23,8 @@ impl Default for ScaleOrigins {
             inner[scale_index as usize] = Some(current_origin.clone());
         }
 
-        Self { inner: inner.map(|o| o.unwrap()) }
+        let inner = inner.map(|o| o.unwrap());
+        
+        Self { inner }
     }
 }
