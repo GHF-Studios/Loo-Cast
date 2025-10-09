@@ -6,7 +6,6 @@ use super::scale::{Scale, DynScale};
 
 const GRID_SIZE: i128 = 1000_i128;
 
-/// A position, in the grid at a specific scale, relative to a parent GridOffset (or None if at MAX scale)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GridOffset {
     parent: Option<Box<GridOffset>>,
@@ -14,15 +13,6 @@ pub struct GridOffset {
     xy: I128Vec2,
 }
 impl GridOffset {
-    /// Create a new GridOffset at the origin (0,0) of the given scale
-    /// # Arguments
-    /// * `parent` - The parent GridOffset, or None if this is the root (MAX scale)
-    /// * `scale` - The scale of this GridOffset
-    /// # Panics
-    /// * If the parent scale is not greater than the child scale
-    /// * If the scale is not MAX and parent is None
-    /// # Returns
-    /// A new GridOffset at the given `scalescale_origin`'s true `grid_origin` at (0,0)
     pub fn new_origin(parent: Option<Box<GridOffset>>, scale: Scale) -> Self {
         let parent = match parent {
             Some(parent) => {
@@ -38,17 +28,6 @@ impl GridOffset {
         Self { parent, scale, xy: I128Vec2::ZERO }
     }
 
-    /// Create a new GridOffset at the given coordinates of the given scale
-    /// # Arguments
-    /// * `parent` - The parent GridOffset, or None if this is the root (MAX scale)
-    /// * `scale` - The scale of this GridOffset
-    /// * `xy` - The coordinates of this GridOffset
-    /// # Panics
-    /// * If the parent scale is not greater than the child scale
-    /// * If the scale is not MAX and parent is None
-    /// * If the coordinates are out of bounds for the given scale
-    /// # Returns
-    /// A new GridOffset at the given `xy`, from the given `scale`'s true `grid_origin` at (0,0)
     pub fn new(parent: Option<Box<GridOffset>>, scale: Scale, xy: I128Vec2) -> Self {
         let parent = match parent {
             Some(parent) => {
@@ -104,25 +83,10 @@ pub struct GridPos {
     grid_offset: GridOffset,
 }
 impl GridPos {
-    /// Create a new GridPos from a scale origin and a grid offset
-    /// # Arguments
-    /// * `scale` - The currently active scale that this position is relative to
-    /// * `grid_offset` - The grid offset from the `scale`'s true `grid_origin` at (0,0)
-    /// # Returns
-    /// A new GridPos, at the given `grid_offset`, from the given `scale`'s true `grid_origin` at (0,0)
     pub fn new_origin(scale: Scale, grid_offset: GridOffset) -> Self {
         Self { scale, grid_offset }
     }
 
-    /// Create a new GridPos from a scale origin, a grid offset, and a subgrid offset within that grid
-    /// # Arguments
-    /// * `scale` - The currently active scale that this position is relative to
-    /// * `grid_offset` - The grid offset from the `scale`'s true `grid_origin` at (0,0)
-    /// * `subgrid_offset` - The subgrid offset within the grid chunk described by `grid_offset` (in world units)
-    /// # Panics
-    /// * If the difference in scale factor exponent between the `scale` and the `grid_offset`'s `scale` is greater than +/- `Scale::MAX_DIFF_SCALE_EXP`
-    /// # Returns
-    /// A new GridPos, at the given `subgrid_offset`, from the given `grid_offset`, from the given `scale`'s true `grid_origin` at (0,0)
     pub fn new(scale: Scale, grid_offset: GridOffset, subgrid_offset: Vec2) -> Self {
         let diff_scale_factor = grid_offset.scale.difference_scale_factor(&scale);
         let grid_size = diff_scale_factor * GRID_SIZE as f64;
@@ -135,9 +99,6 @@ impl GridPos {
         Self { scale, grid_offset }
     }
     
-    /// Get all grid positions in a radius around this position
-    /// # Returns
-    /// A vector of I128Vec2 raw `grid_offset.xy`s from this position
     pub fn query_radius(&self, radius: u32) -> Vec<I128Vec2> {
         let mut chunks = Vec::new();
 
