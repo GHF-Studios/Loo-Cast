@@ -34,6 +34,14 @@ impl GridPos {
 
         Self { parent, scale, xy }
     }
+
+    pub fn zoom_in(&mut self) {
+        todo!()
+    }
+
+    pub fn zoom_out(&mut self) {
+        todo!()
+    }
     
     pub fn query_radius(&self, radius: u32) -> Vec<IVec2> {
         let mut raw_offsets = Vec::new();
@@ -120,6 +128,14 @@ impl SubgridPos {
         if subgrid_offset.y > HALF_GRID_SIZE_F32 { panic!("Y coordinate {} is too large. Range is -{} to {}", subgrid_offset.y, HALF_GRID_SIZE_F32, HALF_GRID_SIZE_F32); }
 
         Self { grid_offset, subgrid_offset }
+    }
+
+    pub fn zoom_in(&mut self) {
+        todo!()
+    }
+
+    pub fn zoom_out(&mut self) {
+        todo!()
     }
 }
 impl std::ops::Add<Vec3> for SubgridPos {

@@ -430,8 +430,8 @@ impl Scale {
     pub const MID: Scale = Scale::ScaleMeter1;
     pub const MAX: Scale = Scale::ScaleQuettaMeter100000;
 
-    /// Somewhat arbitrary, but also not in the sense that 32 is a lot of breathing room, yet should still make all calculations fit inside an i128
-    const MAX_DIFF_SCALE_EXP: i8 = 2;
+    /// So the max difference in scale can be 3 orders of magnitude
+    pub const MAX_DIFF_SCALE_EXP: i8 = 3;
 
     /// Create a Scale from an index from the top (0..70)
     pub fn from_index_from_top(index_from_top: u8) -> Option<Self> {
@@ -526,78 +526,9 @@ impl Scale {
     }
 
     pub fn zoom_in(&mut self) {
-        match self {
-            Self::ScaleQuectoMeter000001 => { *self = Self::ScaleQuectoMeter000001 }
-            Self::ScaleQuectoMeter00001 => { *self = Self::ScaleQuectoMeter000001 }
-            Self::ScaleQuectoMeter0001 => { *self = Self::ScaleQuectoMeter00001 }
-            Self::ScaleQuectoMeter001 => { *self = Self::ScaleQuectoMeter0001 }
-            Self::ScaleQuectoMeter01 => { *self = Self::ScaleQuectoMeter001 }
-            Self::ScaleQuectoMeter1 => { *self = Self::ScaleQuectoMeter01 }
-            Self::ScaleQuectoMeter10 => { *self = Self::ScaleQuectoMeter1 }
-            Self::ScaleQuectoMeter100 => { *self = Self::ScaleQuectoMeter10 }
-            Self::ScaleRontoMeter1 => { *self = Self::ScaleQuectoMeter100 }
-            Self::ScaleRontoMeter10 => { *self = Self::ScaleRontoMeter1 }
-            Self::ScaleRontoMeter100 => { *self = Self::ScaleRontoMeter10 }
-            Self::ScaleYoctoMeter1 => { *self = Self::ScaleRontoMeter100 }
-            Self::ScaleYoctoMeter10 => { *self = Self::ScaleYoctoMeter1 }
-            Self::ScaleYoctoMeter100 => { *self = Self::ScaleYoctoMeter10 }
-            Self::ScaleZeptoMeter1 => { *self = Self::ScaleYoctoMeter100 }
-            Self::ScaleZeptoMeter10 => { *self = Self::ScaleZeptoMeter1 }
-            Self::ScaleZeptoMeter100 => { *self = Self::ScaleZeptoMeter10 }
-            Self::ScaleAttoMeter1 => { *self = Self::ScaleZeptoMeter100 }
-            Self::ScaleAttoMeter10 => { *self = Self::ScaleAttoMeter1 }
-            Self::ScaleAttoMeter100 => { *self = Self::ScaleAttoMeter10 }
-            Self::ScaleFemtoMeter1 => { *self = Self::ScaleAttoMeter100 }
-            Self::ScaleFemtoMeter10 => { *self = Self::ScaleFemtoMeter1 }
-            Self::ScaleFemtoMeter100 => { *self = Self::ScaleFemtoMeter10 }
-            Self::ScalePicoMeter1 => { *self = Self::ScaleFemtoMeter100 }
-            Self::ScalePicoMeter10 => { *self = Self::ScalePicoMeter1 }
-            Self::ScalePicoMeter100 => { *self = Self::ScalePicoMeter10 }
-            Self::ScaleNanoMeter1 => { *self = Self::ScalePicoMeter100 }
-            Self::ScaleNanoMeter10 => { *self = Self::ScaleNanoMeter1 }
-            Self::ScaleNanoMeter100 => { *self = Self::ScaleNanoMeter10 }
-            Self::ScaleMicroMeter1 => { *self = Self::ScaleNanoMeter100 }
-            Self::ScaleMicroMeter10 => { *self = Self::ScaleMicroMeter1 }
-            Self::ScaleMicroMeter100 => { *self = Self::ScaleMicroMeter10 }
-            Self::ScaleMilliMeter1 => { *self = Self::ScaleMicroMeter100 }
-            Self::ScaleMilliMeter10 => { *self = Self::ScaleMilliMeter1 }
-            Self::ScaleMilliMeter100 => { *self = Self::ScaleMilliMeter10 }
-            Self::ScaleMeter1 => { *self = Self::ScaleMilliMeter100 }
-            Self::ScaleMeter10 => { *self = Self::ScaleMeter1 }
-            Self::ScaleMeter100 => { *self = Self::ScaleMeter10 }
-            Self::ScaleKiloMeter1 => { *self = Self::ScaleMeter100 }
-            Self::ScaleKiloMeter10 => { *self = Self::ScaleKiloMeter1 }
-            Self::ScaleKiloMeter100 => { *self = Self::ScaleKiloMeter10 }
-            Self::ScaleMegaMeter1 => { *self = Self::ScaleKiloMeter100 }
-            Self::ScaleMegaMeter10 => { *self = Self::ScaleMegaMeter1 }
-            Self::ScaleMegaMeter100 => { *self = Self::ScaleMegaMeter10 }
-            Self::ScaleGigaMeter1 => { *self = Self::ScaleMegaMeter100 }
-            Self::ScaleGigaMeter10 => { *self = Self::ScaleGigaMeter1 }
-            Self::ScaleGigaMeter100 => { *self = Self::ScaleGigaMeter10 }
-            Self::ScaleTeraMeter1 => { *self = Self::ScaleGigaMeter100 }
-            Self::ScaleTeraMeter10 => { *self = Self::ScaleTeraMeter1 }
-            Self::ScaleTeraMeter100 => { *self = Self::ScaleTeraMeter10 }
-            Self::ScalePetaMeter1 => { *self = Self::ScaleTeraMeter100 }
-            Self::ScalePetaMeter10 => { *self = Self::ScalePetaMeter1 }
-            Self::ScalePetaMeter100 => { *self = Self::ScalePetaMeter10 }
-            Self::ScaleExaMeter1 => { *self = Self::ScalePetaMeter100 }
-            Self::ScaleExaMeter10 => { *self = Self::ScaleExaMeter1 }
-            Self::ScaleExaMeter100 => { *self = Self::ScaleExaMeter10 }
-            Self::ScaleZettaMeter1 => { *self = Self::ScaleExaMeter100 }
-            Self::ScaleZettaMeter10 => { *self = Self::ScaleZettaMeter1 }
-            Self::ScaleZettaMeter100 => { *self = Self::ScaleZettaMeter10 }
-            Self::ScaleYottaMeter1 => { *self = Self::ScaleZettaMeter100 }
-            Self::ScaleYottaMeter10 => { *self = Self::ScaleYottaMeter1 }
-            Self::ScaleYottaMeter100 => { *self = Self::ScaleYottaMeter10 }
-            Self::ScaleRonnaMeter1 => { *self = Self::ScaleYottaMeter100 }
-            Self::ScaleRonnaMeter10 => { *self = Self::ScaleRonnaMeter1 }
-            Self::ScaleRonnaMeter100 => { *self = Self::ScaleRonnaMeter10 }
-            Self::ScaleQuettaMeter1 => { *self = Self::ScaleRonnaMeter100 }
-            Self::ScaleQuettaMeter10 => { *self = Self::ScaleQuettaMeter1 }
-            Self::ScaleQuettaMeter100 => { *self = Self::ScaleQuettaMeter10 }
-            Self::ScaleQuettaMeter1000 => { *self = Self::ScaleQuettaMeter100 }
-            Self::ScaleQuettaMeter10000 => { *self = Self::ScaleQuettaMeter1000 }
-            Self::ScaleQuettaMeter100000 => { *self = Self::ScaleQuettaMeter10000 }
+        let self_scale_factor_exp = self.scale_factor_exponent();
+        if self_scale_factor_exp > Self::MIN.scale_factor_exponent() {
+            *self = self.down().unwrap();
         }
     }
 
@@ -607,78 +538,9 @@ impl Scale {
     }
 
     pub fn zoom_out(&mut self) {
-        match self {
-            Self::ScaleQuectoMeter000001 => { *self = Self::ScaleQuectoMeter00001 }
-            Self::ScaleQuectoMeter00001 => { *self = Self::ScaleQuectoMeter0001 }
-            Self::ScaleQuectoMeter0001 => { *self = Self::ScaleQuectoMeter001 }
-            Self::ScaleQuectoMeter001 => { *self = Self::ScaleQuectoMeter01 }
-            Self::ScaleQuectoMeter01 => { *self = Self::ScaleQuectoMeter1 }
-            Self::ScaleQuectoMeter1 => { *self = Self::ScaleQuectoMeter10 }
-            Self::ScaleQuectoMeter10 => { *self = Self::ScaleQuectoMeter100 }
-            Self::ScaleQuectoMeter100 => { *self = Self::ScaleRontoMeter1 }
-            Self::ScaleRontoMeter1 => { *self = Self::ScaleRontoMeter10 }
-            Self::ScaleRontoMeter10 => { *self = Self::ScaleRontoMeter100 }
-            Self::ScaleRontoMeter100 => { *self = Self::ScaleYoctoMeter1 }
-            Self::ScaleYoctoMeter1 => { *self = Self::ScaleYoctoMeter10 }
-            Self::ScaleYoctoMeter10 => { *self = Self::ScaleYoctoMeter100 }
-            Self::ScaleYoctoMeter100 => { *self = Self::ScaleZeptoMeter1 }
-            Self::ScaleZeptoMeter1 => { *self = Self::ScaleZeptoMeter10 }
-            Self::ScaleZeptoMeter10 => { *self = Self::ScaleZeptoMeter100 }
-            Self::ScaleZeptoMeter100 => { *self = Self::ScaleAttoMeter1 }
-            Self::ScaleAttoMeter1 => { *self = Self::ScaleAttoMeter10 }
-            Self::ScaleAttoMeter10 => { *self = Self::ScaleAttoMeter100 }
-            Self::ScaleAttoMeter100 => { *self = Self::ScaleFemtoMeter1 }
-            Self::ScaleFemtoMeter1 => { *self = Self::ScaleFemtoMeter10 }
-            Self::ScaleFemtoMeter10 => { *self = Self::ScaleFemtoMeter100 }
-            Self::ScaleFemtoMeter100 => { *self = Self::ScalePicoMeter1 }
-            Self::ScalePicoMeter1 => { *self = Self::ScalePicoMeter10 }
-            Self::ScalePicoMeter10 => { *self = Self::ScalePicoMeter100 }
-            Self::ScalePicoMeter100 => { *self = Self::ScaleNanoMeter1 }
-            Self::ScaleNanoMeter1 => { *self = Self::ScaleNanoMeter10 }
-            Self::ScaleNanoMeter10 => { *self = Self::ScaleNanoMeter100 }
-            Self::ScaleNanoMeter100 => { *self = Self::ScaleMicroMeter1 }
-            Self::ScaleMicroMeter1 => { *self = Self::ScaleMicroMeter10 }
-            Self::ScaleMicroMeter10 => { *self = Self::ScaleMicroMeter100 }
-            Self::ScaleMicroMeter100 => { *self = Self::ScaleMilliMeter1 }
-            Self::ScaleMilliMeter1 => { *self = Self::ScaleMilliMeter10 }
-            Self::ScaleMilliMeter10 => { *self = Self::ScaleMilliMeter100 }
-            Self::ScaleMilliMeter100 => { *self = Self::ScaleMeter1 }
-            Self::ScaleMeter1 => { *self = Self::ScaleMeter10 }
-            Self::ScaleMeter10 => { *self = Self::ScaleMeter100 }
-            Self::ScaleMeter100 => { *self = Self::ScaleKiloMeter1 }
-            Self::ScaleKiloMeter1 => { *self = Self::ScaleKiloMeter10 }
-            Self::ScaleKiloMeter10 => { *self = Self::ScaleKiloMeter100 }
-            Self::ScaleKiloMeter100 => { *self = Self::ScaleMegaMeter1 }
-            Self::ScaleMegaMeter1 => { *self = Self::ScaleMegaMeter10 }
-            Self::ScaleMegaMeter10 => { *self = Self::ScaleMegaMeter100 }
-            Self::ScaleMegaMeter100 => { *self = Self::ScaleGigaMeter1 }
-            Self::ScaleGigaMeter1 => { *self = Self::ScaleGigaMeter10 }
-            Self::ScaleGigaMeter10 => { *self = Self::ScaleGigaMeter100 }
-            Self::ScaleGigaMeter100 => { *self = Self::ScaleTeraMeter1 }
-            Self::ScaleTeraMeter1 => { *self = Self::ScaleTeraMeter10 }
-            Self::ScaleTeraMeter10 => { *self = Self::ScaleTeraMeter100 }
-            Self::ScaleTeraMeter100 => { *self = Self::ScalePetaMeter1 }
-            Self::ScalePetaMeter1 => { *self = Self::ScalePetaMeter10 }
-            Self::ScalePetaMeter10 => { *self = Self::ScalePetaMeter100 }
-            Self::ScalePetaMeter100 => { *self = Self::ScaleExaMeter1 }
-            Self::ScaleExaMeter1 => { *self = Self::ScaleExaMeter10 }
-            Self::ScaleExaMeter10 => { *self = Self::ScaleExaMeter100 }
-            Self::ScaleExaMeter100 => { *self = Self::ScaleZettaMeter1 }
-            Self::ScaleZettaMeter1 => { *self = Self::ScaleZettaMeter10 }
-            Self::ScaleZettaMeter10 => { *self = Self::ScaleZettaMeter100 }
-            Self::ScaleZettaMeter100 => { *self = Self::ScaleYottaMeter1 }
-            Self::ScaleYottaMeter1 => { *self = Self::ScaleYottaMeter10 }
-            Self::ScaleYottaMeter10 => { *self = Self::ScaleYottaMeter100 }
-            Self::ScaleYottaMeter100 => { *self = Self::ScaleRonnaMeter1 }
-            Self::ScaleRonnaMeter1 => { *self = Self::ScaleRonnaMeter10 }
-            Self::ScaleRonnaMeter10 => { *self = Self::ScaleRonnaMeter100 }
-            Self::ScaleRonnaMeter100 => { *self = Self::ScaleQuettaMeter1 }
-            Self::ScaleQuettaMeter1 => { *self = Self::ScaleQuettaMeter10 }
-            Self::ScaleQuettaMeter10 => { *self = Self::ScaleQuettaMeter100 }
-            Self::ScaleQuettaMeter100 => { *self = Self::ScaleQuettaMeter1000 }
-            Self::ScaleQuettaMeter1000 => { *self = Self::ScaleQuettaMeter10000 }
-            Self::ScaleQuettaMeter10000 => { *self = Self::ScaleQuettaMeter100000 }
-            Self::ScaleQuettaMeter100000 => { *self = Self::ScaleQuettaMeter100000 }
+        let self_scale_factor_exp = self.scale_factor_exponent();
+        if self_scale_factor_exp < Self::MAX.scale_factor_exponent() {
+            *self = self.up().unwrap();
         }
     }
 

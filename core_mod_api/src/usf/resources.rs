@@ -1,8 +1,6 @@
 use bevy::prelude::*;
-use std::sync::Arc;
 
 use super::pos::GridPos;
-use super::scale::Scale;
 
 #[derive(Resource)]
 pub struct ScaleOrigins {
@@ -15,11 +13,9 @@ impl Default for ScaleOrigins {
         let mut current_origin = GridPos::new_root(IVec2::ZERO);
         inner[0] = Some(current_origin.clone());
 
-        for scale_index in 1..=70 {
-            let scale = Scale::from_index_from_top(scale_index).unwrap();
-
+        for inner in inner.iter_mut().skip(1) {
             current_origin = GridPos::new(current_origin, IVec2::ZERO);
-            inner[scale_index as usize] = Some(current_origin.clone());
+            *inner = Some(current_origin.clone());
         }
 
         let inner = inner.map(|o| o.unwrap());
