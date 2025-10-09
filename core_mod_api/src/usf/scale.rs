@@ -431,7 +431,7 @@ impl Scale {
     pub const MAX: Scale = Scale::ScaleQuettaMeter100000;
 
     /// Somewhat arbitrary, but also not in the sense that 32 is a lot of breathing room, yet should still make all calculations fit inside an i128
-    const MAX_DIFF_SCALE_EXP: i8 = 32;
+    const MAX_DIFF_SCALE_EXP: i8 = 2;
 
     /// Create a Scale from an index from the top (0..70)
     pub fn from_index_from_top(index_from_top: u8) -> Option<Self> {
@@ -601,6 +601,11 @@ impl Scale {
         }
     }
 
+    pub fn zoomed_in(mut self) -> Self {
+        self.zoom_in();
+        self
+    }
+
     pub fn zoom_out(&mut self) {
         match self {
             Self::ScaleQuectoMeter000001 => { *self = Self::ScaleQuectoMeter00001 }
@@ -675,6 +680,11 @@ impl Scale {
             Self::ScaleQuettaMeter10000 => { *self = Self::ScaleQuettaMeter100000 }
             Self::ScaleQuettaMeter100000 => { *self = Self::ScaleQuettaMeter100000 }
         }
+    }
+
+    pub fn zoomed_out(mut self) -> Self {
+        self.zoom_out();
+        self
     }
 
     pub fn difference_scale_factor(&self, scale_origin: &Self) -> f64 {

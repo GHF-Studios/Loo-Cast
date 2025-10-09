@@ -1,108 +1,44 @@
-use bevy::prelude::{Vec2, Vec3};
-
-use crate::utils::types::I128Vec2;
+use bevy::prelude::{IVec2, Vec3};
+use std::sync::Arc;
 
 use super::scale::{Scale, DynScale};
 
-const GRID_SIZE: i128 = 1000_i128;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GridOffset {
-    parent: Option<Box<GridOffset>>,
-    scale: Scale,
-    xy: I128Vec2,
-}
-impl GridOffset {
-    pub fn new_origin(parent: Option<Box<GridOffset>>, scale: Scale) -> Self {
-        let parent = match parent {
-            Some(parent) => {
-                assert!(parent.scale > scale, "The parent's scale must be greater than child's scale");
-                Some(parent)
-            },
-            None => {
-                assert!(scale == Scale::MAX, "Root GridPos must have MAX scale");
-                None
-            }
-        };
-
-        Self { parent, scale, xy: I128Vec2::ZERO }
-    }
-
-    pub fn new(parent: Option<Box<GridOffset>>, scale: Scale, xy: I128Vec2) -> Self {
-        let parent = match parent {
-            Some(parent) => {
-                assert!(parent.scale > scale, "Parent scale must be greater than child scale");
-                Some(parent)
-            },
-            None => {
-                assert!(scale == Scale::MAX, "Root GridPos must have MAX scale");
-                None
-            }
-        };
-        let scale_extent = GRID_SIZE * 10_i128.pow(scale.index_from_top() as u32);
-        let half_scale_extent = scale_extent / 2;
-
-        if xy.x < -half_scale_extent { panic!("X coordinate {} is too small for scale {:?}. Range is -{} to {}", xy.x, scale, half_scale_extent, half_scale_extent); }
-        if xy.x > half_scale_extent { panic!("X coordinate {} is too large for scale {:?}. Range is -{} to {}", xy.x, scale, half_scale_extent, half_scale_extent); }
-        if xy.y < -half_scale_extent { panic!("Y coordinate {} is too small for scale {:?}. Range is -{} to {}", xy.y, scale, half_scale_extent, half_scale_extent); }
-        if xy.y > half_scale_extent { panic!("Y coordinate {} is too large for scale {:?}. Range is -{} to {}", xy.y, scale, half_scale_extent, half_scale_extent); }
-
-        Self { parent, scale, xy }
-    }
-}
-impl std::ops::Add<I128Vec2> for GridOffset {
-    type Output = Self;
-
-    fn add(mut self, rhs: I128Vec2) -> Self::Output {
-        self.xy += rhs;
-        self
-    }
-}
-impl std::ops::AddAssign<I128Vec2> for GridOffset {
-    fn add_assign(&mut self, rhs: I128Vec2) {
-        self.xy += rhs;
-    }
-}
-impl std::ops::Sub<I128Vec2> for GridOffset {
-    type Output = Self;
-
-    fn sub(mut self, rhs: I128Vec2) -> Self::Output {
-        self.xy -= rhs;
-        self
-    }
-}
-impl std::ops::SubAssign<I128Vec2> for GridOffset {
-    fn sub_assign(&mut self, rhs: I128Vec2) {
-        self.xy -= rhs;
-    }
-}
+const GRID_SIZE: i32 = 1000;
+const HALF_GRID_SIZE: i32 = 500;
+const HALF_GRID_SIZE_F32: f32 = 500.0;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GridPos {
+    parent: Option<Arc<GridPos>>,
     scale: Scale,
-    grid_offset: GridOffset,
+    xy: IVec2,
 }
 impl GridPos {
-    pub fn new_origin(scale: Scale, grid_offset: GridOffset) -> Self {
-        Self { scale, grid_offset }
+    pub fn new_root(xy: IVec2) -> Self {
+        if xy.x < -HALF_GRID_SIZE { panic!("X coordinate {} is too small. Range is -{} to {}", xy.x, HALF_GRID_SIZE, HALF_GRID_SIZE); }
+        if xy.x > HALF_GRID_SIZE { panic!("X coordinate {} is too large. Range is -{} to {}", xy.x, HALF_GRID_SIZE, HALF_GRID_SIZE); }
+        if xy.y < -HALF_GRID_SIZE { panic!("Y coordinate {} is too small. Range is -{} to {}", xy.y, HALF_GRID_SIZE, HALF_GRID_SIZE); }
+        if xy.y > HALF_GRID_SIZE { panic!("Y coordinate {} is too large. Range is -{} to {}", xy.y, HALF_GRID_SIZE, HALF_GRID_SIZE); }
+
+        Self { parent: None, scale: Scale::MAX, xy }
     }
 
-    pub fn new(scale: Scale, grid_offset: GridOffset, subgrid_offset: Vec2) -> Self {
-        let diff_scale_factor = grid_offset.scale.difference_scale_factor(&scale);
-        let grid_size = diff_scale_factor * GRID_SIZE as f64;
-        let half_grid_size = grid_size / 2.0;
-        let grid_offset_x = ((subgrid_offset.x as f64 + half_grid_size) / grid_size).floor() as i128;
-        let grid_offset_y = ((subgrid_offset.y as f64 + half_grid_size) / grid_size).floor() as i128;
-        let grid_offset_xy = I128Vec2::new(grid_offset_x, grid_offset_y);
-        let grid_offset = GridOffset::new(grid_offset.parent, grid_offset.scale, grid_offset_xy);
+    pub fn new(parent: GridPos, xy: IVec2) -> Self {
+        if xy.x < -HALF_GRID_SIZE { panic!("X coordinate {} is too small. Range is -{} to {}", xy.x, HALF_GRID_SIZE, HALF_GRID_SIZE); }
+        if xy.x > HALF_GRID_SIZE { panic!("X coordinate {} is too large. Range is -{} to {}", xy.x, HALF_GRID_SIZE, HALF_GRID_SIZE); }
+        if xy.y < -HALF_GRID_SIZE { panic!("Y coordinate {} is too small. Range is -{} to {}", xy.y, HALF_GRID_SIZE, HALF_GRID_SIZE); }
+        if xy.y > HALF_GRID_SIZE { panic!("Y coordinate {} is too large. Range is -{} to {}", xy.y, HALF_GRID_SIZE, HALF_GRID_SIZE); }
 
-        Self { scale, grid_offset }
+        let scale = parent.scale.zoomed_in();
+        let parent = Some(Arc::new(parent));
+
+        Self { parent, scale, xy }
     }
     
-    pub fn query_radius(&self, radius: u32) -> Vec<I128Vec2> {
-        let mut chunks = Vec::new();
+    pub fn query_radius(&self, radius: u32) -> Vec<IVec2> {
+        let mut raw_offsets = Vec::new();
 
-        let radius = radius as i128;
+        let radius = radius as i32;
 
         let mut x = 0;
         let mut y = radius;
@@ -111,18 +47,18 @@ impl GridPos {
         while x <= y {
             // Add filled lines between symmetrical points
             for dx in -x..=x {
-                let offset1 = I128Vec2::new(dx, y);
-                let offset2 = I128Vec2::new(dx, -y);
+                let offset1 = IVec2::new(dx, y);
+                let offset2 = IVec2::new(dx, -y);
 
-                chunks.push(offset1);
-                chunks.push(offset2);
+                raw_offsets.push(offset1);
+                raw_offsets.push(offset2);
             }
             for dy in -y..=y {
-                let offset1 = I128Vec2::new(dy, x);
-                let offset2 = I128Vec2::new(dy, -x);
+                let offset1 = IVec2::new(dy, x);
+                let offset2 = IVec2::new(dy, -x);
 
-                chunks.push(offset1);
-                chunks.push(offset2);
+                raw_offsets.push(offset1);
+                raw_offsets.push(offset2);
             }
 
             if d < 0 {
@@ -136,63 +72,54 @@ impl GridPos {
             x += 1;
         }
 
-        chunks
+        raw_offsets
     }
 
     /// Convert this GridPos to a SubgridPos with zero subgrid offset
     pub fn to_subgrid(&self) -> SubgridPos {
-        SubgridPos { grid_origin: self.clone(), subgrid_offset: Vec3::ZERO }
+        SubgridPos { grid_offset: self.clone(), subgrid_offset: Vec3::ZERO }
     }
 }
-impl std::ops::Add<I128Vec2> for GridPos {
+impl std::ops::Add<IVec2> for GridPos {
     type Output = Self;
 
-    fn add(mut self, rhs: I128Vec2) -> Self::Output {
-        self.grid_offset.xy += rhs;
+    fn add(mut self, rhs: IVec2) -> Self::Output {
+        self.xy += rhs;
         self
     }
 }
-impl std::ops::AddAssign<I128Vec2> for GridPos {
-    fn add_assign(&mut self, rhs: I128Vec2) {
-        self.grid_offset.xy += rhs;
+impl std::ops::AddAssign<IVec2> for GridPos {
+    fn add_assign(&mut self, rhs: IVec2) {
+        self.xy += rhs;
     }
 }
-impl std::ops::Sub<I128Vec2> for GridPos {
+impl std::ops::Sub<IVec2> for GridPos {
     type Output = Self;
 
-    fn sub(mut self, rhs: I128Vec2) -> Self::Output {
-        self.grid_offset.xy -= rhs;
+    fn sub(mut self, rhs: IVec2) -> Self::Output {
+        self.xy -= rhs;
         self
     }
 }
-impl std::ops::SubAssign<I128Vec2> for GridPos {
-    fn sub_assign(&mut self, rhs: I128Vec2) {
-        self.grid_offset.xy -= rhs;
+impl std::ops::SubAssign<IVec2> for GridPos {
+    fn sub_assign(&mut self, rhs: IVec2) {
+        self.xy -= rhs;
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SubgridPos {
-    grid_origin: GridPos,
+    grid_offset: GridPos,
     subgrid_offset: Vec3,
 }
 impl SubgridPos {
-    /// Create a new SubgridPos from a grid offset
-    /// # Returns
-    /// A new SubgridPos, at the `subgrid_origin` (0,0,0) of the given `grid_offset`
-    pub fn new_origin(grid_offset: GridOffset) -> Self {
-        let grid_origin = GridPos::new(grid_offset.scale, grid_offset, Vec2::ZERO);
+    pub fn new(grid_offset: GridPos, subgrid_offset: Vec3) -> Self {
+        if subgrid_offset.x < -HALF_GRID_SIZE_F32 { panic!("X coordinate {} is too small. Range is -{} to {}", subgrid_offset.x, HALF_GRID_SIZE_F32, HALF_GRID_SIZE_F32); }
+        if subgrid_offset.x > HALF_GRID_SIZE_F32 { panic!("X coordinate {} is too large. Range is -{} to {}", subgrid_offset.x, HALF_GRID_SIZE_F32, HALF_GRID_SIZE_F32); }
+        if subgrid_offset.y < -HALF_GRID_SIZE_F32 { panic!("Y coordinate {} is too small. Range is -{} to {}", subgrid_offset.y, HALF_GRID_SIZE_F32, HALF_GRID_SIZE_F32); }
+        if subgrid_offset.y > HALF_GRID_SIZE_F32 { panic!("Y coordinate {} is too large. Range is -{} to {}", subgrid_offset.y, HALF_GRID_SIZE_F32, HALF_GRID_SIZE_F32); }
 
-        Self { grid_origin, subgrid_offset: Vec3::ZERO }
-    }
-
-    /// Create a new SubgridPos from a grid offset, and a subgrid offset
-    /// # Returns
-    /// A new SubgridPos, at the given `subgrid_offset` from the given `grid_offset`
-    pub fn new(grid_offset: GridOffset, subgrid_offset: Vec3) -> Self {
-        let grid_origin = GridPos::new(grid_offset.scale, grid_offset, subgrid_offset.truncate());
-
-        Self { grid_origin, subgrid_offset }
+        Self { grid_offset, subgrid_offset }
     }
 }
 impl std::ops::Add<Vec3> for SubgridPos {
