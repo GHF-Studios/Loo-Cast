@@ -1,8 +1,8 @@
 use bevy::math::Vec2;
 
 use crate::usf::scale::{Scale, DynScale};
-use crate::utils::types::I128Vec2;
-
+// use crate::utils::types::I128Vec2;
+// 
 // use super::types::{WorldCoord, GridCoord};
 // 
 // pub trait Vec2Ext {
