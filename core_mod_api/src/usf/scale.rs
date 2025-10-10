@@ -548,19 +548,6 @@ impl Scale {
         self.zoom_out();
         self
     }
-
-    pub fn difference_scale_factor(&self, scale_origin: &Self) -> f32 {
-        let diff_scale_exp = self.scale_factor_exponent() - scale_origin.scale_factor_exponent();
-
-        assert!(
-            (-Scale::MAX_DIFF_SCALE_EXP..=Scale::MAX_DIFF_SCALE_EXP).contains(&diff_scale_exp),
-            "Difference in scale factor exponent too large: {}. Max allowed difference is +/- {}",
-            diff_scale_exp, Scale::MAX_DIFF_SCALE_EXP
-            
-        );
-
-        10_f32.powi(diff_scale_exp as i32)
-    }
 }
 
 pub trait ScaleRangeMarker {
