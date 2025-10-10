@@ -549,7 +549,7 @@ impl Scale {
         self
     }
 
-    pub fn difference_scale_factor(&self, scale_origin: &Self) -> f64 {
+    pub fn difference_scale_factor(&self, scale_origin: &Self) -> f32 {
         let diff_scale_exp = self.scale_factor_exponent() - scale_origin.scale_factor_exponent();
 
         assert!(
@@ -559,7 +559,7 @@ impl Scale {
             
         );
 
-        10_f64.powi(diff_scale_exp as i32)
+        10_f32.powi(diff_scale_exp as i32)
     }
 }
 
