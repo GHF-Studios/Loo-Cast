@@ -1,4 +1,4 @@
-use bevy::prelude::{IVec2, Vec2, Vec3};
+use bevy::prelude::{IVec2, Vec3};
 use std::sync::Arc;
 
 use super::scale::{Scale, DynScale};
@@ -31,7 +31,14 @@ impl GridPos {
     }
 
     pub fn zoom_out(&mut self) {
-        todo!()
+        let mut unit_pos = UnitPos {
+            grid_offset: self.clone(),
+            unit_offset: Vec3::ZERO,
+        };
+        unit_pos.zoom_out();
+        self.parent = unit_pos.grid_offset.parent;
+        self.scale = unit_pos.grid_offset.scale;
+        self.xy = unit_pos.grid_offset.xy;
     }
     
     pub fn query_grid_radius(&self, radius: u32) -> Vec<IVec2> {
@@ -124,7 +131,13 @@ impl SubgridPos {
     }
 
     pub fn zoom_out(&mut self) {
-        todo!()
+        let mut unit_pos = UnitPos {
+            grid_offset: self.grid_offset.clone(),
+            unit_offset: Vec3::ZERO,
+        };
+        unit_pos.zoom_out();
+        self.grid_offset = unit_pos.grid_offset;
+        self.subgrid_offset = IVec2::ZERO;
     }
 }
 impl std::ops::Add<IVec2> for SubgridPos {
@@ -160,8 +173,8 @@ impl std::ops::SubAssign<IVec2> for SubgridPos {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnitPos {
-    pub grid_offset: GridPos,
-    pub unit_offset: Vec3, // Bevy units inside the chunk (e.g., [-500.0..500.0])
+    grid_offset: GridPos,
+    unit_offset: Vec3, // Bevy units inside the chunk (e.g., [-500.0..500.0])
 }
 impl UnitPos {
     fn validate_unit_offset(unit_offset: &Vec3) {
@@ -178,40 +191,79 @@ impl UnitPos {
 
     pub fn zoom_in(&mut self) {
         let parent = self.grid_offset.clone();
-        let child_scale = parent.scale.zoomed_in();
-        let factor = parent.scale.difference_scale_factor(&child_scale); // e.g. 10.0
-        let chunk_size = 1000.0; // always fixed in world units
-
-        // Step 1: normalize to [0.0, 1.0] space within parent chunk
-        let normalized = (self.unit_offset.truncate() + Vec2::splat(500.0)) / chunk_size;
-
-        // Step 2: scale up to subgrid index space [0.0, 10.0)
-        let scaled = normalized * factor;
+        let Some(child_scale) = parent.scale.down() else { return };
+        
+        let chunk_size = 1000.0;
+        let child_factor = 10.0;
+        let child_size = chunk_size / child_factor; // = 100.0
+        
+        // Step 1: Determine which subchunk we're in
+        let scaled = self.unit_offset.truncate() / child_size;
         let child_xy = scaled.floor().as_ivec2();
-
-        // Step 3: get origin of the new child chunk in parent chunk-local unit space
-        let child_origin_offset = (child_xy.as_vec2() * (chunk_size / factor)) - Vec2::splat(500.0);
-
-        // Step 4: get local offset relative to child origin
-        let raw_local_offset = self.unit_offset.truncate() - child_origin_offset;
-
-        // Step 5: center it inside the child chunk’s space (i.e., re-center from corner to center)
-        let child_half_size = (chunk_size / factor) / 2.0;
-        let recentered_offset = raw_local_offset - Vec2::splat(child_half_size);
-
-        // Assign new state
+        
+        // Step 2: Get the origin of that child chunk in current space
+        let child_origin = child_xy.as_vec2() * child_size;
+        
+        // Step 3: Recompute offset relative to new subchunk center
+        let local_offset = self.unit_offset.truncate() - child_origin;
+        
+        // Step 4: Update context
         self.grid_offset = GridPos {
             parent: Some(Arc::new(parent)),
             scale: child_scale,
             xy: child_xy,
         };
-
-        self.unit_offset = Vec3::new(recentered_offset.x, recentered_offset.y, self.unit_offset.z);
+        self.unit_offset = Vec3::new(local_offset.x, local_offset.y, self.unit_offset.z - 10.0);
         Self::validate_unit_offset(&self.unit_offset);
     }
 
     pub fn zoom_out(&mut self) {
-        todo!()
+        let child = self.grid_offset.clone();
+        let parent = match &child.parent {
+            Some(p) => p.clone(),
+            None => return,
+        };
+
+        let chunk_size = 1000.0;
+        let child_factor = 10.0;
+        let child_size = chunk_size / child_factor;
+
+        // Step 1: Get child's center in parent chunk space
+        let child_origin = child.xy.as_vec2() * child_size;
+
+        // Step 2: Shift up into parent space
+        let offset_in_parent = self.unit_offset.truncate() + child_origin;
+
+        // Step 3: Update context
+        self.grid_offset = (*parent).clone();
+        self.unit_offset = Vec3::new(offset_in_parent.x, offset_in_parent.y, self.unit_offset.z + 10.0);
+        Self::validate_unit_offset(&self.unit_offset);
+    }
+}
+impl std::ops::Add<IVec2> for UnitPos {
+    type Output = Self;
+
+    fn add(mut self, rhs: IVec2) -> Self::Output {
+        self.grid_offset += rhs;
+        self
+    }
+}
+impl std::ops::AddAssign<IVec2> for UnitPos {
+    fn add_assign(&mut self, rhs: IVec2) {
+        self.grid_offset += rhs;
+    }
+}
+impl std::ops::Sub<IVec2> for UnitPos {
+    type Output = Self;
+
+    fn sub(mut self, rhs: IVec2) -> Self::Output {
+        self.grid_offset -= rhs;
+        self
+    }
+}
+impl std::ops::SubAssign<IVec2> for UnitPos {
+    fn sub_assign(&mut self, rhs: IVec2) {
+        self.grid_offset -= rhs;
     }
 }
 impl std::ops::Add<Vec3> for UnitPos {
