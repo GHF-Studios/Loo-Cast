@@ -11,10 +11,10 @@ pub struct GridPos {
 }
 impl GridPos {
     fn validate_xy(xy: &IVec2) {
-        if xy.x < 0 { panic!("X coordinate {} is too small. Range is (0..10)", xy.x); }
-        if xy.x >= 10 { panic!("X coordinate {} is too large. Range is (0..10)", xy.x); }
-        if xy.y < 0 { panic!("Y coordinate {} is too small. Range is (0..10)", xy.y); }
-        if xy.y >= 10 { panic!("Y coordinate {} is too large. Range is (0..10)", xy.y); }
+        if xy.x < -5 { panic!("X coordinate {} is too small. Range is (-5..5)", xy.x); }
+        if xy.x >= 5 { panic!("X coordinate {} is too large. Range is (-5..5)", xy.x); }
+        if xy.y < -5 { panic!("Y coordinate {} is too small. Range is (-5..5)", xy.y); }
+        if xy.y >= 5 { panic!("Y coordinate {} is too large. Range is (-5..5)", xy.y); }
     }
 
     pub fn new_root(xy: IVec2) -> Self {
@@ -111,6 +111,106 @@ impl std::ops::SubAssign<IVec2> for GridPos {
         Self::validate_xy(&self.xy);
     }
 }
+impl std::ops::Add<GridPos> for GridPos {
+    type Output = GridPos;
+
+    fn add(self, rhs: GridPos) -> Self::Output {
+        let mut a_stack = vec![self.clone()];
+        let mut b_stack = vec![rhs.clone()];
+        
+        let mut a_cursor = &self;
+        while let Some(p) = &a_cursor.parent {
+            a_stack.push((**p).clone());
+            a_cursor = p;
+        }
+
+        let mut b_cursor = &rhs;
+        while let Some(p) = &b_cursor.parent {
+            b_stack.push((**p).clone());
+            b_cursor = p;
+        }
+
+        a_stack.reverse();
+        b_stack.reverse();
+
+        let mut result_stack = Vec::new();
+        let mut carry = IVec2::ZERO;
+        let max_depth = a_stack.len().max(b_stack.len());
+
+        for i in 0..max_depth {
+            let a = a_stack.get(i).cloned();
+            let b = b_stack.get(i).cloned();
+
+            let scale = a.as_ref().or(b.as_ref()).expect("At least one branch must have a scale").scale;
+            let a_xy = a.as_ref().map(|g| g.xy).unwrap_or(IVec2::ZERO);
+            let b_xy = b.as_ref().map(|g| g.xy).unwrap_or(IVec2::ZERO);
+
+            let sum = a_xy + b_xy + carry;
+            let wrapped_x = ((sum.x + 5).rem_euclid(10)) - 5;
+            let wrapped_y = ((sum.y + 5).rem_euclid(10)) - 5;
+            let carry_x = (sum.x - wrapped_x).div_euclid(10);
+            let carry_y = (sum.y - wrapped_y).div_euclid(10);
+
+            carry = IVec2::new(carry_x, carry_y);
+            result_stack.push((scale, IVec2::new(wrapped_x, wrapped_y)));
+        }
+
+        // Now rebuild GridPos from root down
+        let mut result: Option<GridPos> = None;
+        for (scale, xy) in result_stack.into_iter() {
+            result = Some(GridPos {
+                parent: result.map(|p| Arc::new(p)),
+                scale,
+                xy,
+            });
+        }
+
+        // Final carry pass upward
+        if carry != IVec2::ZERO {
+            let mut current = result.as_mut().unwrap();
+            loop {
+                current.xy += carry;
+
+                if current.xy.x < -5 || current.xy.x >= 5 || current.xy.y < -5 || current.xy.y >= 5 {
+                    let wrapped_x = ((current.xy.x + 5).rem_euclid(10)) - 5;
+                    let wrapped_y = ((current.xy.y + 5).rem_euclid(10)) - 5;
+                    let carry_x = (current.xy.x - wrapped_x).div_euclid(10);
+                    let carry_y = (current.xy.y - wrapped_y).div_euclid(10);
+
+                    current.xy = IVec2::new(wrapped_x, wrapped_y);
+                    carry = IVec2::new(carry_x, carry_y);
+
+                    if let Some(parent) = current.parent.as_mut() {
+                        current = Arc::make_mut(parent);
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+
+        result.expect("Resulting GridPos should not be None")
+    }
+}
+impl std::ops::AddAssign<GridPos> for GridPos {
+    fn add_assign(&mut self, rhs: GridPos) {
+        *self = self.clone() + rhs;
+    }
+}
+impl std::ops::Sub<GridPos> for GridPos {
+    type Output = Self;
+
+    fn sub(self, rhs: GridPos) -> Self::Output {
+        todo!()
+    }
+}
+impl std::ops::SubAssign<GridPos> for GridPos {
+    fn sub_assign(&mut self, rhs: GridPos) {
+        todo!()
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SubgridPos {
@@ -119,10 +219,10 @@ pub struct SubgridPos {
 }
 impl SubgridPos {
     fn validate_subgrid_offset(subgrid_offset: &IVec2) {
-        if subgrid_offset.x < 0 { panic!("X coordinate {} is too small. Range is (0..10)", subgrid_offset.x); }
-        if subgrid_offset.x >= 10 { panic!("X coordinate {} is too large. Range is (0..10)", subgrid_offset.x); }
-        if subgrid_offset.y < 0 { panic!("Y coordinate {} is too small. Range is (0..10)", subgrid_offset.y); }
-        if subgrid_offset.y >= 10 { panic!("Y coordinate {} is too large. Range is (0..10)", subgrid_offset.y); }
+        if subgrid_offset.x < -5 { panic!("X coordinate {} is too small. Range is (-5..5)", subgrid_offset.x); }
+        if subgrid_offset.x >= 5 { panic!("X coordinate {} is too large. Range is (-5..5)", subgrid_offset.x); }
+        if subgrid_offset.y < -5 { panic!("Y coordinate {} is too small. Range is (-5..5)", subgrid_offset.y); }
+        if subgrid_offset.y >= 5 { panic!("Y coordinate {} is too large. Range is (-5..5)", subgrid_offset.y); }
     }
 
     pub fn new(grid_offset: GridPos, subgrid_offset: IVec2) -> Self {
@@ -173,7 +273,7 @@ impl std::ops::SubAssign<IVec2> for SubgridPos {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnitPos {
-    grid_offset: GridPos,
+    grid_offset: GridPos, // Recursive chunk position
     unit_offset: Vec3, // Bevy units inside the chunk (e.g., [-500.0..500.0])
 }
 impl UnitPos {
