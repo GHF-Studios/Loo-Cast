@@ -155,7 +155,6 @@ impl std::ops::Add<GridPos> for GridPos {
             result_stack.push((scale, IVec2::new(wrapped_x, wrapped_y)));
         }
 
-        // Now rebuild GridPos from root down
         let mut result: Option<GridPos> = None;
         for (scale, xy) in result_stack.into_iter() {
             result = Some(GridPos {
@@ -165,7 +164,6 @@ impl std::ops::Add<GridPos> for GridPos {
             });
         }
 
-        // Final carry pass upward
         if carry != IVec2::ZERO {
             let mut current = result.as_mut().unwrap();
             loop {
@@ -203,12 +201,87 @@ impl std::ops::Sub<GridPos> for GridPos {
     type Output = Self;
 
     fn sub(self, rhs: GridPos) -> Self::Output {
-        todo!()
+        let mut a_stack = vec![self.clone()];
+        let mut b_stack = vec![rhs.clone()];
+        
+        let mut a_cursor = &self;
+        while let Some(p) = &a_cursor.parent {
+            a_stack.push((**p).clone());
+            a_cursor = p;
+        }
+
+        let mut b_cursor = &rhs;
+        while let Some(p) = &b_cursor.parent {
+            b_stack.push((**p).clone());
+            b_cursor = p;
+        }
+
+        a_stack.reverse();
+        b_stack.reverse();
+
+        let mut result_stack = Vec::new();
+        let mut carry = IVec2::ZERO;
+        let max_depth = a_stack.len().max(b_stack.len());
+        
+        for i in 0..max_depth {
+            let a = a_stack.get(i).cloned();
+            let b = b_stack.get(i).cloned();
+
+            let scale = a.as_ref().or(b.as_ref()).expect("At least one branch must have a scale").scale;
+            let a_xy = a.as_ref().map(|g| g.xy).unwrap_or(IVec2::ZERO);
+            let b_xy = b.as_ref().map(|g| g.xy).unwrap_or(IVec2::ZERO);
+
+            let diff = a_xy - b_xy + carry;
+            let wrapped_x = ((diff.x + 5).rem_euclid(10)) - 5;
+            let wrapped_y = ((diff.y + 5).rem_euclid(10)) - 5;
+            let carry_x = (diff.x - wrapped_x).div_euclid(10);
+            let carry_y = (diff.y - wrapped_y).div_euclid(10);
+
+            carry = IVec2::new(carry_x, carry_y);
+            result_stack.push((scale, IVec2::new(wrapped_x, wrapped_y)));
+        }
+
+        let mut result: Option<GridPos> = None;
+        for (scale, xy) in result_stack.into_iter() {
+            result = Some(GridPos {
+                parent: result.map(|p| Arc::new(p)),
+                scale,
+                xy,
+            });
+        }
+
+        if carry != IVec2::ZERO {
+            let mut current = result.as_mut().unwrap();
+            loop {
+                current.xy += carry;
+
+                if current.xy.x < -5 || current.xy.x >= 5 || current.xy.y < -5 || current.xy.y >= 5 {
+                    let wrapped_x = ((current.xy.x + 5).rem_euclid(10)) - 5;
+                    let wrapped_y = ((current.xy.y + 5).rem_euclid(10)) - 5;
+                    let carry_x = (current.xy.x - wrapped_x).div_euclid(10);
+                    let carry_y = (current.xy.y - wrapped_y).div_euclid(10);
+
+                    current.xy = IVec2::new(wrapped_x, wrapped_y);
+                    carry = IVec2::new(carry_x, carry_y);
+
+                    if let Some(parent) = current.parent.as_mut() {
+                        current = Arc::make_mut(parent);
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+
+        result.expect("Resulting GridPos should not be None")
+
     }
 }
 impl std::ops::SubAssign<GridPos> for GridPos {
     fn sub_assign(&mut self, rhs: GridPos) {
-        todo!()
+        *self = self.clone() - rhs;
     }
 }
 
@@ -268,6 +341,44 @@ impl std::ops::SubAssign<IVec2> for SubgridPos {
     fn sub_assign(&mut self, rhs: IVec2) {
         self.subgrid_offset -= rhs;
         Self::validate_subgrid_offset(&self.subgrid_offset);
+    }
+}
+impl std::ops::Add<SubgridPos> for SubgridPos {
+    type Output = Self;
+
+    fn add(self, rhs: SubgridPos) -> Self::Output {
+        let sum_grid = self.grid_offset + rhs.grid_offset;
+        let sum_subgrid = self.subgrid_offset + rhs.subgrid_offset;
+
+        // Handle overflow from subgrid to grid
+        let mut final_grid = sum_grid;
+        let mut final_subgrid = sum_subgrid;
+        if final_subgrid.x < -5 || final_subgrid.x >= 5 || final_subgrid.y < -5 || final_subgrid.y >= 5 {
+            let wrapped_x = ((final_subgrid.x + 5).rem_euclid(10)) - 5;
+            let wrapped_y = ((final_subgrid.y + 5).rem_euclid(10)) - 5;
+            let carry_x = (final_subgrid.x - wrapped_x).div_euclid(10);
+            let carry_y = (final_subgrid.y - wrapped_y).div_euclid(10);
+
+            final_subgrid = IVec2::new(wrapped_x, wrapped_y);
+            final_grid += IVec2::new(carry_x, carry_y);
+        }
+    }
+}
+impl std::ops::AddAssign<SubgridPos> for SubgridPos {
+    fn add_assign(&mut self, rhs: SubgridPos) {
+        todo!()
+    }
+}
+impl std::ops::Sub<SubgridPos> for SubgridPos {
+    type Output = Self;
+
+    fn sub(self, rhs: SubgridPos) -> Self::Output {
+        todo!()
+    }
+}
+impl std::ops::SubAssign<SubgridPos> for SubgridPos {
+    fn sub_assign(&mut self, rhs: SubgridPos) {
+        todo!()
     }
 }
 
