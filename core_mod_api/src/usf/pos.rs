@@ -291,6 +291,12 @@ pub struct SubgridPos {
     subgrid_offset: IVec2,
 }
 impl SubgridPos {
+    fn validate_grid_offset(grid_offset: &GridPos) {
+        if grid_offset.scale == Scale::MIN {
+            panic!("SubgridPos must be based on a scale no smaller than MIN+1, so there is room to represent the subgrid level as a virtual GridPos leaf");
+        }
+    }
+
     fn validate_subgrid_offset(subgrid_offset: &IVec2) {
         if subgrid_offset.x < -5 { panic!("X coordinate {} is too small. Range is (-5..5)", subgrid_offset.x); }
         if subgrid_offset.x >= 5 { panic!("X coordinate {} is too large. Range is (-5..5)", subgrid_offset.x); }
@@ -303,14 +309,16 @@ impl SubgridPos {
         Self { grid_offset, subgrid_offset }
     }
 
+    // TODO: Fix this to handle subgrid_offset properly
     pub fn zoom_out(&mut self) {
-        let mut unit_pos = UnitPos {
-            grid_offset: self.grid_offset.clone(),
-            unit_offset: Vec3::ZERO,
-        };
-        unit_pos.zoom_out();
-        self.grid_offset = unit_pos.grid_offset;
-        self.subgrid_offset = IVec2::ZERO;
+        todo!()
+        // let mut unit_pos = UnitPos {
+        //     grid_offset: self.grid_offset.clone(),
+        //     unit_offset: Vec3::ZERO,
+        // };
+        // unit_pos.zoom_out();
+        // self.grid_offset = unit_pos.grid_offset;
+        // self.subgrid_offset = IVec2::ZERO;
     }
 }
 impl std::ops::Add<IVec2> for SubgridPos {
@@ -347,26 +355,112 @@ impl std::ops::Add<SubgridPos> for SubgridPos {
     type Output = Self;
 
     fn add(self, rhs: SubgridPos) -> Self::Output {
-        let sum_grid = self.grid_offset + rhs.grid_offset;
-        let sum_subgrid = self.subgrid_offset + rhs.subgrid_offset;
+        let mut a_stack = vec![self.grid_offset.clone()];
+        let mut b_stack = vec![rhs.grid_offset.clone()];
 
-        // Handle overflow from subgrid to grid
-        let mut final_grid = sum_grid;
-        let mut final_subgrid = sum_subgrid;
-        if final_subgrid.x < -5 || final_subgrid.x >= 5 || final_subgrid.y < -5 || final_subgrid.y >= 5 {
-            let wrapped_x = ((final_subgrid.x + 5).rem_euclid(10)) - 5;
-            let wrapped_y = ((final_subgrid.y + 5).rem_euclid(10)) - 5;
-            let carry_x = (final_subgrid.x - wrapped_x).div_euclid(10);
-            let carry_y = (final_subgrid.y - wrapped_y).div_euclid(10);
+        let mut a_cursor = &self.grid_offset;
+        while let Some(p) = &a_cursor.parent {
+            a_stack.push((**p).clone());
+            a_cursor = p;
+        }
 
-            final_subgrid = IVec2::new(wrapped_x, wrapped_y);
-            final_grid += IVec2::new(carry_x, carry_y);
+        let mut b_cursor = &rhs.grid_offset;
+        while let Some(p) = &b_cursor.parent {
+            b_stack.push((**p).clone());
+            b_cursor = p;
+        }
+
+        a_stack.reverse();
+        b_stack.reverse();
+
+        // Add the subgrid_offset as a final level
+        let subgrid_scale_a = self.grid_offset.scale.down().unwrap();
+        let subgrid_scale_b = rhs.grid_offset.scale.down().unwrap();
+
+        a_stack.push(GridPos {
+            parent: None,
+            scale: subgrid_scale_a,
+            xy: self.subgrid_offset,
+        });
+        b_stack.push(GridPos {
+            parent: None,
+            scale: subgrid_scale_b,
+            xy: rhs.subgrid_offset,
+        });
+
+        let max_depth = a_stack.len().max(b_stack.len());
+        let mut result_stack = Vec::new();
+        let mut carry = IVec2::ZERO;
+
+        for i in 0..max_depth {
+            let a = a_stack.get(i).cloned();
+            let b = b_stack.get(i).cloned();
+
+            let scale = a.as_ref().or(b.as_ref()).unwrap().scale;
+            let a_xy = a.map(|g| g.xy).unwrap_or(IVec2::ZERO);
+            let b_xy = b.map(|g| g.xy).unwrap_or(IVec2::ZERO);
+
+            let sum = a_xy + b_xy + carry;
+            let wrapped_x = ((sum.x + 5).rem_euclid(10)) - 5;
+            let wrapped_y = ((sum.y + 5).rem_euclid(10)) - 5;
+            let carry_x = (sum.x - wrapped_x).div_euclid(10);
+            let carry_y = (sum.y - wrapped_y).div_euclid(10);
+
+            carry = IVec2::new(carry_x, carry_y);
+            result_stack.push((scale, IVec2::new(wrapped_x, wrapped_y)));
+        }
+
+        let mut result: Option<GridPos> = None;
+        for (scale, xy) in result_stack[..result_stack.len()-1].iter().cloned() {
+            result = Some(GridPos {
+                parent: result.map(|p| Arc::new(p)),
+                scale,
+                xy,
+            });
+        }
+
+        // Last level is the subgrid_offset
+        let (_subgrid_scale, subgrid_xy) = result_stack.last().unwrap().clone();
+
+        let grid_offset = result.expect("Resulting GridPos should not be None");
+
+        let subgrid_offset = subgrid_xy;
+        let mut grid_offset = grid_offset;
+
+        if carry != IVec2::ZERO {
+            let mut current = &mut grid_offset;
+            loop {
+                current.xy += carry;
+
+                if current.xy.x < -5 || current.xy.x >= 5 || current.xy.y < -5 || current.xy.y >= 5 {
+                    let wrapped_x = ((current.xy.x + 5).rem_euclid(10)) - 5;
+                    let wrapped_y = ((current.xy.y + 5).rem_euclid(10)) - 5;
+                    let carry_x = (current.xy.x - wrapped_x).div_euclid(10);
+                    let carry_y = (current.xy.y - wrapped_y).div_euclid(10);
+
+                    current.xy = IVec2::new(wrapped_x, wrapped_y);
+                    carry = IVec2::new(carry_x, carry_y);
+
+                    if let Some(parent) = current.parent.as_mut() {
+                        current = Arc::make_mut(parent);
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+
+        SubgridPos {
+            grid_offset,
+            subgrid_offset,
         }
     }
 }
 impl std::ops::AddAssign<SubgridPos> for SubgridPos {
     fn add_assign(&mut self, rhs: SubgridPos) {
-        todo!()
+        *self = self.clone() + rhs;
     }
 }
 impl std::ops::Sub<SubgridPos> for SubgridPos {
