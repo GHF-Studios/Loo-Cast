@@ -217,10 +217,6 @@ impl std::ops::Add<GridPos> for GridPos {
             });
         }
 
-        if carry != IVec2::ZERO {
-            // panic!("Overflowed top-level GridPos during addition: unexpected world boundary wrap")
-        }
-
         result.expect("GridPos addition should yield a result")
     }
 }
@@ -234,7 +230,68 @@ impl std::ops::Sub<GridPos> for GridPos {
 
     // TODO: Impl
     fn sub(self, rhs: GridPos) -> Self::Output {
-        todo!()
+        // === Phase 1: Collect full stack from root to leaf ===
+        fn stack_up(mut cursor: &GridPos) -> Vec<(Scale, IVec2)> {
+            let mut stack = Vec::new();
+            loop {
+                stack.push((cursor.scale, cursor.xy));
+                if let Some(p) = &cursor.parent {
+                    cursor = p;
+                } else {
+                    break;
+                }
+            }
+            stack.reverse();
+            stack
+        }
+
+        let mut a_stack = stack_up(&self);
+        let mut b_stack = stack_up(&rhs);
+
+        let max_depth = a_stack.len().max(b_stack.len());
+
+        // Pad shorter stack with (scale, ZERO)
+        while a_stack.len() < max_depth {
+            let (s, _) = b_stack[a_stack.len()];
+            a_stack.push((s, IVec2::ZERO));
+        }
+        while b_stack.len() < max_depth {
+            let (s, _) = a_stack[b_stack.len()];
+            b_stack.push((s, IVec2::ZERO));
+        }
+
+        // === Phase 2: Accumulate raw diffs top-down ===
+        let mut raw_stack = Vec::with_capacity(max_depth);
+        for i in 0..max_depth {
+            let scale = a_stack[i].0; // should match in both stacks
+            let diff = a_stack[i].1 - b_stack[i].1;
+            raw_stack.push((scale, diff));
+        }
+
+        // === Phase 3: Normalize bottom-up with wrapping + carry ===
+        let mut carry = IVec2::ZERO;
+        for i in (0..raw_stack.len()).rev() {
+            let (scale, diff) = raw_stack[i];
+            let wrapped_x = ((diff.x + carry.x + 5).rem_euclid(10)) - 5;
+            let wrapped_y = ((diff.y + carry.y + 5).rem_euclid(10)) - 5;
+            let carry_x = (diff.x + carry.x - wrapped_x).div_euclid(10);
+            let carry_y = (diff.y + carry.y - wrapped_y).div_euclid(10);
+
+            raw_stack[i].1 = IVec2::new(wrapped_x, wrapped_y);
+            carry = IVec2::new(carry_x, carry_y);
+        }
+
+        // === Phase 4: Build final GridPos tree ===
+        let mut result: Option<GridPos> = None;
+        for (scale, xy) in raw_stack {
+            result = Some(GridPos {
+                parent: result.map(Arc::new),
+                scale,
+                xy,
+            });
+        }
+
+        result.expect("GridPos subtraction should yield a result")
     }
 }
 impl std::ops::SubAssign<GridPos> for GridPos {
@@ -568,10 +625,9 @@ fn grid_pos_add_test_1() {
 
 #[test]
 fn grid_pos_add_test_2() {
-    let a = GridPos::new_root(IVec2::new(0, 0));
-    let a = GridPos::new(a, IVec2::new(4, 4));
-    let b = GridPos::new_root(IVec2::new(0, 0));
-    let b = GridPos::new(b, IVec2::new(3, 3));
+    let scale = Scale::MAX.zoomed_in();
+    let a = GridPos::new_at_scale(scale, IVec2::new(4, 4));
+    let b = GridPos::new_at_scale(scale, IVec2::new(3, 3));
     let c = a + b;
     let expected = GridPos::new_root(IVec2::new(1, 1));
     let expected = GridPos::new(expected, IVec2::new(-3, -3));
@@ -584,5 +640,33 @@ fn grid_pos_add_test_3() {
     let b = GridPos::new_at_scale(Scale::MIN, IVec2::new(1, 1));
     let c = a + b;
     let expected = GridPos::new_splat(Scale::MIN, IVec2::new(-5, -5));
+    assert_eq!(c, expected);
+}
+
+#[test]
+fn grid_pos_sub_test_1() {
+    let a = GridPos::new_root(IVec2::new(3, 3));
+    let b = GridPos::new_root(IVec2::new(4, 4));
+    let c = a - b;
+    assert_eq!(c, GridPos::new_root(IVec2::new(-1, -1)));
+}
+
+#[test]
+fn grid_pos_sub_test_2() {
+    let scale = Scale::MAX.zoomed_in();
+    let a = GridPos::new_at_scale(scale, IVec2::new(-5, -5));
+    let b = GridPos::new_at_scale(scale, IVec2::new(3, 3));
+    let c = a - b;
+    let expected = GridPos::new_root(IVec2::new(-1, -1));
+    let expected = GridPos::new(expected, IVec2::new(2, 2));
+    assert_eq!(c, expected);
+}
+
+#[test]
+fn grid_pos_sub_test_3() {
+    let a = GridPos::new_splat(Scale::MIN, IVec2::new(-5, -5));
+    let b = GridPos::new_at_scale(Scale::MIN, IVec2::new(1, 1));
+    let c = a - b;
+    let expected = GridPos::new_splat(Scale::MIN, IVec2::new(4, 4));
     assert_eq!(c, expected);
 }
