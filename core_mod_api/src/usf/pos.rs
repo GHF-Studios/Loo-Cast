@@ -17,6 +17,16 @@ impl GridPos {
         if xy.y >= 5 { panic!("Y coordinate {} is too large. Range is (-5..5)", xy.y); }
     }
 
+    /// Create a GridPos with random (yet valid) coordinates, from the root down to and including the specified scale, with the same random coords at each scale.
+    pub fn new_random_homo(scale: Scale) -> Self {
+        todo!()
+    }
+    
+    /// Create a GridPos with random (yet valid) coordinates, from the root down to and including the specified scale, with different random coords at each scale.
+    pub fn new_random_hetero(scale: Scale) -> Self {
+        todo!()
+    }
+
     /// Create a GridPos at the absolute root (Scale::MAX) with no parent.
     pub fn new_root(xy: IVec2) -> Self {
         Self::validate_xy(&xy);
@@ -197,7 +207,7 @@ impl std::ops::Add<GridPos> for GridPos {
         // === Phase 3: Normalize bottom-up with wrapping + carry ===
         let mut carry = IVec2::ZERO;
         for i in (0..raw_stack.len()).rev() {
-            let (scale, sum) = raw_stack[i];
+            let (_scale, sum) = raw_stack[i];
             let wrapped_x = ((sum.x + carry.x + 5).rem_euclid(10)) - 5;
             let wrapped_y = ((sum.y + carry.y + 5).rem_euclid(10)) - 5;
             let carry_x = (sum.x + carry.x - wrapped_x).div_euclid(10);
@@ -228,7 +238,6 @@ impl std::ops::AddAssign<GridPos> for GridPos {
 impl std::ops::Sub<GridPos> for GridPos {
     type Output = Self;
 
-    // TODO: Impl
     fn sub(self, rhs: GridPos) -> Self::Output {
         // === Phase 1: Collect full stack from root to leaf ===
         fn stack_up(mut cursor: &GridPos) -> Vec<(Scale, IVec2)> {
@@ -271,7 +280,7 @@ impl std::ops::Sub<GridPos> for GridPos {
         // === Phase 3: Normalize bottom-up with wrapping + carry ===
         let mut carry = IVec2::ZERO;
         for i in (0..raw_stack.len()).rev() {
-            let (scale, diff) = raw_stack[i];
+            let (_scale, diff) = raw_stack[i];
             let wrapped_x = ((diff.x + carry.x + 5).rem_euclid(10)) - 5;
             let wrapped_y = ((diff.y + carry.y + 5).rem_euclid(10)) - 5;
             let carry_x = (diff.x + carry.x - wrapped_x).div_euclid(10);
@@ -327,14 +336,21 @@ impl SubgridPos {
 
     // TODO: Fix this to handle subgrid_offset properly
     pub fn zoom_out(&mut self) {
-        todo!()
-        // let mut unit_pos = UnitPos {
-        //     grid_offset: self.grid_offset.clone(),
-        //     unit_offset: Vec3::ZERO,
-        // };
-        // unit_pos.zoom_out();
-        // self.grid_offset = unit_pos.grid_offset;
-        // self.subgrid_offset = IVec2::ZERO;
+        let grid_pos = GridPos {
+            parent: Some(Arc::new(self.grid_offset.clone())),
+            scale: self.grid_offset.scale.zoomed_in(),
+            xy: self.subgrid_offset,
+        };
+
+        let mut unit_pos = UnitPos {
+            grid_offset: grid_pos,
+            unit_offset: Vec3::ZERO,
+        };
+
+        unit_pos.zoom_out();
+
+        self.grid_offset = (*unit_pos.grid_offset.parent.unwrap()).clone();
+        self.subgrid_offset = unit_pos.grid_offset.xy;
     }
 }
 impl std::ops::Add<IVec2> for SubgridPos {
@@ -370,104 +386,78 @@ impl std::ops::SubAssign<IVec2> for SubgridPos {
 impl std::ops::Add<SubgridPos> for SubgridPos {
     type Output = Self;
 
-    // TODO: Impl properly
     fn add(self, rhs: SubgridPos) -> Self::Output {
-        let mut a_stack = vec![self.grid_offset.clone()];
-        let mut b_stack = vec![rhs.grid_offset.clone()];
-
-        let mut a_cursor = &self.grid_offset;
-        while let Some(p) = &a_cursor.parent {
-            a_stack.push((**p).clone());
-            a_cursor = p;
-        }
-
-        let mut b_cursor = &rhs.grid_offset;
-        while let Some(p) = &b_cursor.parent {
-            b_stack.push((**p).clone());
-            b_cursor = p;
-        }
-
-        a_stack.reverse();
-        b_stack.reverse();
-
-        // Add the subgrid_offset as a final level
-        let subgrid_scale_a = self.grid_offset.scale.down().unwrap();
-        let subgrid_scale_b = rhs.grid_offset.scale.down().unwrap();
-
-        a_stack.push(GridPos {
-            parent: None,
-            scale: subgrid_scale_a,
-            xy: self.subgrid_offset,
-        });
-        b_stack.push(GridPos {
-            parent: None,
-            scale: subgrid_scale_b,
-            xy: rhs.subgrid_offset,
-        });
-
-        let max_depth = a_stack.len().max(b_stack.len());
-        let mut carry = IVec2::ZERO;
-        let mut result: Option<GridPos> = None;
-
-        for i in 0..max_depth {
-            let a = a_stack.get(i).cloned();
-            let b = b_stack.get(i).cloned();
-
-            let scale = a.as_ref().or(b.as_ref()).unwrap().scale;
-            let a_xy = a.map(|g| g.xy).unwrap_or(IVec2::ZERO);
-            let b_xy = b.map(|g| g.xy).unwrap_or(IVec2::ZERO);
-
-            let sum = a_xy + b_xy + carry;
-            let wrapped_x = ((sum.x + 5).rem_euclid(10)) - 5;
-            let wrapped_y = ((sum.y + 5).rem_euclid(10)) - 5;
-            let carry_x = (sum.x - wrapped_x).div_euclid(10);
-            let carry_y = (sum.y - wrapped_y).div_euclid(10);
-
-            carry = IVec2::new(carry_x, carry_y);
-
-            result = Some(GridPos {
-                parent: result.map(|p| Arc::new(p)),
-                scale,
-                xy: IVec2::new(wrapped_x, wrapped_y),
-            });
-        }
-
-        // Final carry must be discarded if root is reached
-        if carry != IVec2::ZERO {
-            let mut root = result.as_mut().unwrap();
+        // === Phase 1: Build extended GridPos stacks from root to leaf ===
+        fn build_stack(subgrid: &SubgridPos) -> Vec<(Scale, IVec2)> {
+            let mut stack = Vec::new();
+            let mut cursor = &subgrid.grid_offset;
             loop {
-                let wrapped_x = ((root.xy.x + 5).rem_euclid(10)) - 5;
-                let wrapped_y = ((root.xy.y + 5).rem_euclid(10)) - 5;
-                let carry_x = (root.xy.x - wrapped_x).div_euclid(10);
-                let carry_y = (root.xy.y - wrapped_y).div_euclid(10);
-                root.xy = IVec2::new(wrapped_x, wrapped_y);
-                carry = IVec2::new(carry_x, carry_y);
-
-                if carry == IVec2::ZERO {
-                    break;
-                }
-
-                if let Some(parent) = root.parent.as_mut() {
-                    root = Arc::make_mut(parent);
-                    root.xy += carry;
-                    carry = IVec2::ZERO;
+                stack.push((cursor.scale, cursor.xy));
+                if let Some(p) = &cursor.parent {
+                    cursor = p;
                 } else {
-                    // Discard excess carry at root
                     break;
                 }
             }
+            stack.reverse();
+
+            // Append the phantom subgrid level (one scale down)
+            let subgrid_scale = subgrid.grid_offset.scale.down().expect("No lower scale for subgrid");
+            stack.push((subgrid_scale, subgrid.subgrid_offset));
+
+            stack
         }
 
-        let final_result = result.expect("Resulting GridPos should not be None");
-        let subgrid_offset = match final_result.scale.down() {
-            Some(_) => final_result.xy,
-            None => IVec2::ZERO, // Shouldn't happen unless invalid input
-        };
+        let mut a_stack = build_stack(&self);
+        let mut b_stack = build_stack(&rhs);
+        let max_depth = a_stack.len().max(b_stack.len());
 
-        SubgridPos {
-            grid_offset: final_result,
-            subgrid_offset,
+        // Pad shorter stack with (scale, ZERO)
+        while a_stack.len() < max_depth {
+            let (s, _) = b_stack[a_stack.len()];
+            a_stack.push((s, IVec2::ZERO));
         }
+        while b_stack.len() < max_depth {
+            let (s, _) = a_stack[b_stack.len()];
+            b_stack.push((s, IVec2::ZERO));
+        }
+
+        // === Phase 2: Raw sum top-down ===
+        let mut raw_stack = Vec::with_capacity(max_depth);
+        for i in 0..max_depth {
+            let scale = a_stack[i].0;
+            let sum = a_stack[i].1 + b_stack[i].1;
+            raw_stack.push((scale, sum));
+        }
+
+        // === Phase 3: Normalize with wrapping + carry ===
+        let mut carry = IVec2::ZERO;
+        for i in (0..raw_stack.len()).rev() {
+            let (_scale, sum) = raw_stack[i];
+            let wrapped_x = ((sum.x + carry.x + 5).rem_euclid(10)) - 5;
+            let wrapped_y = ((sum.y + carry.y + 5).rem_euclid(10)) - 5;
+            let carry_x = (sum.x + carry.x - wrapped_x).div_euclid(10);
+            let carry_y = (sum.y + carry.y - wrapped_y).div_euclid(10);
+
+            raw_stack[i].1 = IVec2::new(wrapped_x, wrapped_y);
+            carry = IVec2::new(carry_x, carry_y);
+        }
+
+        // === Phase 4: Build GridPos tree and extract SubgridPos ===
+        let mut result: Option<GridPos> = None;
+        for (scale, xy) in raw_stack {
+            result = Some(GridPos {
+                parent: result.map(Arc::new),
+                scale,
+                xy,
+            });
+        }
+
+        let final_leaf = result.unwrap();
+        let subgrid_offset = final_leaf.xy;
+        let grid_offset = (*final_leaf.parent.unwrap()).clone();
+
+        SubgridPos { grid_offset, subgrid_offset }
     }
 }
 impl std::ops::AddAssign<SubgridPos> for SubgridPos {
@@ -480,7 +470,77 @@ impl std::ops::Sub<SubgridPos> for SubgridPos {
 
     // TODO: Impl
     fn sub(self, rhs: SubgridPos) -> Self::Output {
-        todo!()
+        // === Phase 1: Build extended GridPos stacks from root to leaf ===
+        fn build_stack(subgrid: &SubgridPos) -> Vec<(Scale, IVec2)> {
+            let mut stack = Vec::new();
+            let mut cursor = &subgrid.grid_offset;
+            loop {
+                stack.push((cursor.scale, cursor.xy));
+                if let Some(p) = &cursor.parent {
+                    cursor = p;
+                } else {
+                    break;
+                }
+            }
+            stack.reverse();
+
+            // Append the phantom subgrid level (one scale down)
+            let subgrid_scale = subgrid.grid_offset.scale.down().expect("No lower scale for subgrid");
+            stack.push((subgrid_scale, subgrid.subgrid_offset));
+
+            stack
+        }
+
+        let mut a_stack = build_stack(&self);
+        let mut b_stack = build_stack(&rhs);
+        let max_depth = a_stack.len().max(b_stack.len());
+
+        // Pad shorter stack with (scale, ZERO)
+        while a_stack.len() < max_depth {
+            let (s, _) = b_stack[a_stack.len()];
+            a_stack.push((s, IVec2::ZERO));
+        }
+        while b_stack.len() < max_depth {
+            let (s, _) = a_stack[b_stack.len()];
+            b_stack.push((s, IVec2::ZERO));
+        }
+
+        // === Phase 2: Raw diff top-down ===
+        let mut raw_stack = Vec::with_capacity(max_depth);
+        for i in 0..max_depth {
+            let scale = a_stack[i].0;
+            let diff = a_stack[i].1 - b_stack[i].1;
+            raw_stack.push((scale, diff));
+        }
+
+        // === Phase 3: Normalize with wrapping + carry ===
+        let mut carry = IVec2::ZERO;
+        for i in (0..raw_stack.len()).rev() {
+            let (_scale, diff) = raw_stack[i];
+            let wrapped_x = ((diff.x + carry.x + 5).rem_euclid(10)) - 5;
+            let wrapped_y = ((diff.y + carry.y + 5).rem_euclid(10)) - 5;
+            let carry_x = (diff.x + carry.x - wrapped_x).div_euclid(10);
+            let carry_y = (diff.y + carry.y - wrapped_y).div_euclid(10);
+
+            raw_stack[i].1 = IVec2::new(wrapped_x, wrapped_y);
+            carry = IVec2::new(carry_x, carry_y);
+        }
+
+        // === Phase 4: Build GridPos tree and extract SubgridPos ===
+        let mut result: Option<GridPos> = None;
+        for (scale, xy) in raw_stack {
+            result = Some(GridPos {
+                parent: result.map(Arc::new),
+                scale,
+                xy,
+            });
+        }
+
+        let final_leaf = result.unwrap();
+        let subgrid_offset = final_leaf.xy;
+        let grid_offset = (*final_leaf.parent.unwrap()).clone();
+
+        SubgridPos { grid_offset, subgrid_offset }
     }
 }
 impl std::ops::SubAssign<SubgridPos> for SubgridPos {
@@ -669,4 +729,120 @@ fn grid_pos_sub_test_3() {
     let c = a - b;
     let expected = GridPos::new_splat(Scale::MIN, IVec2::new(4, 4));
     assert_eq!(c, expected);
+}
+
+#[test]
+fn grid_pos_zoom_out_test_1() {
+    let a = GridPos::new_root(IVec2::new(0, 0));
+    let mut a = GridPos::new(a, IVec2::new(4, 4));
+    a.zoom_out();
+    let expected = GridPos::new_root(IVec2::new(0, 0));
+    assert_eq!(a, expected);
+}
+
+#[test]
+fn grid_pos_zoom_out_test_2() {
+    let a = GridPos::new_root(IVec2::new(0, 0));
+    let a = GridPos::new(a, IVec2::new(4, 4));
+    let mut a = GridPos::new(a, IVec2::new(3, 3));
+    a.zoom_out();
+    let expected = GridPos::new_root(IVec2::new(0, 0));
+    let expected = GridPos::new(expected, IVec2::new(4, 4));
+    assert_eq!(a, expected);
+}
+
+#[test]
+fn grid_pos_zoom_out_test_3() {
+    let a = GridPos::new_root(IVec2::new(0, 0));
+    let a = GridPos::new(a, IVec2::new(4, 4));
+    let a = GridPos::new(a, IVec2::new(3, 3));
+    let mut a = GridPos::new(a, IVec2::new(2, 2));
+    a.zoom_out();
+    let expected = GridPos::new_root(IVec2::new(0, 0));
+    let expected = GridPos::new(expected, IVec2::new(4, 4));
+    let expected = GridPos::new(expected, IVec2::new(3, 3));
+    assert_eq!(a, expected);
+}
+
+#[test]
+fn subgrid_pos_add_test_1() {
+    let a = GridPos::new_root(IVec2::new(0, 0));
+    let a = SubgridPos::new(a, IVec2::new(4, 4));
+    let b = GridPos::new_root(IVec2::new(0, 0));
+    let b = SubgridPos::new(b, IVec2::new(3, 3));
+    let c = a + b;
+    let expected_grid = GridPos::new_root(IVec2::new(1, 1));
+    let expected = SubgridPos::new(expected_grid, IVec2::new(-3, -3));
+    assert_eq!(c, expected);
+}
+
+#[test]
+fn subgrid_pos_add_test_2() {
+    let a = GridPos::new_root(IVec2::new(0, 0));
+    let a = GridPos::new(a, IVec2::new(4, 4));
+    let a = GridPos::new(a, IVec2::new(3, 3));
+    let a = SubgridPos::new(a, IVec2::new(2, 2));
+    let b = GridPos::new_root(IVec2::new(0, 0));
+    let b = SubgridPos::new(b, IVec2::new(1, 1));
+    let c = a + b;
+    let expected_grid = GridPos::new_root(IVec2::new(1, 1));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(-5, -5));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(3, 3));
+    let expected = SubgridPos::new(expected_grid, IVec2::new(2, 2));
+    assert_eq!(c, expected);
+}
+
+#[test]
+fn subgrid_pos_add_test_3() {
+    let a = GridPos::new_root(IVec2::new(0, 0));
+    let a = SubgridPos::new(a, IVec2::new(1, 1));
+    let b = GridPos::new_root(IVec2::new(0, 0));
+    let b = GridPos::new(b, IVec2::new(4, 4));
+    let b = GridPos::new(b, IVec2::new(3, 3));
+    let b = SubgridPos::new(b, IVec2::new(2, 2));
+    let c = a + b;
+    let expected_grid = GridPos::new_root(IVec2::new(1, 1));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(-5, -5));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(3, 3));
+    let expected = SubgridPos::new(expected_grid, IVec2::new(2, 2));
+    assert_eq!(c, expected);
+}
+
+#[test]
+fn subgrid_pos_zoom_out_test_1() {
+    let a = GridPos::new_root(IVec2::new(0, 0));
+    let a = SubgridPos::new(a, IVec2::new(4, 4));
+    let mut a = a;
+    a.zoom_out();
+    let expected = GridPos::new_root(IVec2::new(0, 0));
+    assert_eq!(a.grid_offset, expected);
+    assert_eq!(a.subgrid_offset, IVec2::new(0, 0));
+}
+
+#[test]
+fn subgrid_pos_zoom_out_test_2() {
+    let a = GridPos::new_root(IVec2::new(0, 0));
+    let a = GridPos::new(a, IVec2::new(4, 4));
+    let a = SubgridPos::new(a, IVec2::new(3, 3));
+    let mut a = a;
+    a.zoom_out();
+    let expected_grid = GridPos::new_root(IVec2::new(0, 0));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(4, 4));
+    assert_eq!(a.grid_offset, expected_grid);
+    assert_eq!(a.subgrid_offset, IVec2::new(0, 0));
+}
+
+#[test]
+fn subgrid_pos_zoom_out_test_3() {
+    let a = GridPos::new_root(IVec2::new(0, 0));
+    let a = GridPos::new(a, IVec2::new(4, 4));
+    let a = GridPos::new(a, IVec2::new(3, 3));
+    let a = SubgridPos::new(a, IVec2::new(2, 2));
+    let mut a = a;
+    a.zoom_out();
+    let expected_grid = GridPos::new_root(IVec2::new(0, 0));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(4, 4));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(3, 3));
+    assert_eq!(a.grid_offset, expected_grid);
+    assert_eq!(a.subgrid_offset, IVec2::new(0, 0));
 }
