@@ -680,8 +680,79 @@ impl std::ops::SubAssign<Vec3> for UnitPos {
 impl std::ops::Add<UnitPos> for UnitPos {
     type Output = Self;
 
+    // TODO: Impl properly
     fn add(self, rhs: UnitPos) -> Self::Output {
-        todo!()
+        // === Phase 1: Build extended GridPos stacks from root to leaf ===
+        fn build_stack(subgrid: &SubgridPos) -> Vec<(Scale, IVec2)> {
+            let mut stack = Vec::new();
+            let mut cursor = &subgrid.grid_offset;
+            loop {
+                stack.push((cursor.scale, cursor.xy));
+                if let Some(p) = &cursor.parent {
+                    cursor = p;
+                } else {
+                    break;
+                }
+            }
+            stack.reverse();
+
+            // Append the phantom subgrid level (one scale down)
+            let subgrid_scale = subgrid.grid_offset.scale.down().expect("No lower scale for subgrid");
+            stack.push((subgrid_scale, subgrid.subgrid_offset));
+
+            stack
+        }
+
+        let mut a_stack = build_stack(&self);
+        let mut b_stack = build_stack(&rhs);
+        let max_depth = a_stack.len().max(b_stack.len());
+
+        // Pad shorter stack with (scale, ZERO)
+        while a_stack.len() < max_depth {
+            let (s, _) = b_stack[a_stack.len()];
+            a_stack.push((s, IVec2::ZERO));
+        }
+        while b_stack.len() < max_depth {
+            let (s, _) = a_stack[b_stack.len()];
+            b_stack.push((s, IVec2::ZERO));
+        }
+
+        // === Phase 2: Raw sum top-down ===
+        let mut raw_stack = Vec::with_capacity(max_depth);
+        for i in 0..max_depth {
+            let scale = a_stack[i].0;
+            let sum = a_stack[i].1 + b_stack[i].1;
+            raw_stack.push((scale, sum));
+        }
+
+        // === Phase 3: Normalize with wrapping + carry ===
+        let mut carry = IVec2::ZERO;
+        for i in (0..raw_stack.len()).rev() {
+            let (_scale, sum) = raw_stack[i];
+            let wrapped_x = ((sum.x + carry.x + 5).rem_euclid(10)) - 5;
+            let wrapped_y = ((sum.y + carry.y + 5).rem_euclid(10)) - 5;
+            let carry_x = (sum.x + carry.x - wrapped_x).div_euclid(10);
+            let carry_y = (sum.y + carry.y - wrapped_y).div_euclid(10);
+
+            raw_stack[i].1 = IVec2::new(wrapped_x, wrapped_y);
+            carry = IVec2::new(carry_x, carry_y);
+        }
+
+        // === Phase 4: Build GridPos tree and extract SubgridPos ===
+        let mut result: Option<GridPos> = None;
+        for (scale, xy) in raw_stack {
+            result = Some(GridPos {
+                parent: result.map(Arc::new),
+                scale,
+                xy,
+            });
+        }
+
+        let final_leaf = result.unwrap();
+        let subgrid_offset = final_leaf.xy;
+        let grid_offset = (*final_leaf.parent.unwrap()).clone();
+
+        UnitPos { grid_offset, subgrid_offset }
     }
 }
 impl std::ops::AddAssign<UnitPos> for UnitPos {
@@ -930,37 +1001,72 @@ fn subgrid_pos_zoom_out_test_3() {
 #[test]
 fn unit_pos_add_test_1() {
     let a_grid = GridPos::new_root(IVec2::new(0, 0));
-    let a = UnitPos::new(a_grid, Vec3::new(100.0, 100.0, 0.0));
+    let a = UnitPos::new(a_grid, Vec3::new(0.0, 0.0, 0.0));
     let b_grid = GridPos::new_root(IVec2::new(0, 0));
+    let b_grid = GridPos::new(b_grid, IVec2::new(0, 0));
     let b = UnitPos::new(b_grid, Vec3::new(200.0, 200.0, 0.0));
     let c = a + b;
     let expected_grid = GridPos::new_root(IVec2::new(0, 0));
-    let expected = UnitPos::new(expected_grid, Vec3::new(300.0, 300.0, 0.0));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(0, 0));
+    let expected = UnitPos::new(expected_grid, Vec3::new(200.0, 200.0, 0.0));
     assert_eq!(c, expected);
 }
 
-// TODO: Impl properly
 #[test]
 fn unit_pos_add_test_2() {
     let a_grid = GridPos::new_root(IVec2::new(0, 0));
-    let a_grid = GridPos::new(a_grid, IVec2::new(4, 4));
-    let a_grid = GridPos::new(a_grid, IVec2::new(3, 3));
     let a = UnitPos::new(a_grid, Vec3::new(400.0, 400.0, 0.0));
     let b_grid = GridPos::new_root(IVec2::new(0, 0));
     let b = UnitPos::new(b_grid, Vec3::new(200.0, 200.0, 0.0));
     let c = a + b;
-    let expected_grid = GridPos::new_root(IVec2::ZERO);
-    let expected = UnitPos::new(expected_grid, Vec3::ZERO);
+    let expected_grid = GridPos::new_root(IVec2::new(1, 1));
+    let expected = UnitPos::new(expected_grid, Vec3::new(-400.0, -400.0, 0.0));
+    assert_eq!(c, expected);
+}
+
+#[test]
+fn unit_pos_add_test_3() {
+    let a_grid = GridPos::new_root(IVec2::new(1, 1));
+    let a = UnitPos::new(a_grid, Vec3::new(437.0, 437.0, 0.0));
+    let b_grid = GridPos::new_root(IVec2::new(1, 1));
+    let b_grid = GridPos::new(b_grid, IVec2::new(1, 1));
+    let b_grid = GridPos::new(b_grid, IVec2::new(1, 1));
+    let b = UnitPos::new(b_grid, Vec3::new(200.0, 200.0, 0.0));
+    let c = a + b;
+    let expected_grid = GridPos::new_root(IVec2::new(4, 4));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(1, 1));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(1, 1));
+    let expected = UnitPos::new(expected_grid, Vec3::new(200.07, 200.07, 0.0));
+    assert_eq!(c, expected);
+
+    // Notice how the 7 from 437 wandered down two scales to be represented at the deepest provided level of scale/precision, and thus became 0.07
+    // Notice also how the 30 from 437 has overflowed and been carried up to the next scale (which is already our last stop, as this is the root) where it has been applied with a relative scale factor of 0.1.
+}
+
+#[test]
+fn unit_pos_add_test_4() {
+    // Three-level deep grid
+    let grid = GridPos::new_root(IVec2::new(1, 1));
+    let grid = GridPos::new(grid, IVec2::new(1, 1));
+    let grid = GridPos::new(grid, IVec2::new(1, 1));
+
+    // Two UnitPos, their Vec3 adds up to cause a wrap on one level
+    let a = UnitPos::new(grid.clone(), Vec3::new(499.99, 499.99, 0.0));
+    let b = UnitPos::new(grid.clone(), Vec3::new(0.02, 0.02, 0.0));
+
+    let c = a + b;
+
+    // Carry of (1,1) applied to the lowest grid level
+    let expected_grid = GridPos::new_root(IVec2::new(1, 1));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(1, 1));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(2, 2)); // 1 + 1 = 2
+
+    let expected = UnitPos::new(expected_grid, Vec3::new(-499.99, -499.99, 0.0));
+
     assert_eq!(c, expected);
 }
 
 /*
-
-// TODO: Impl
-#[test]
-fn unit_pos_add_test_3() {
-    todo!()
-}
 
 // TODO: Impl
 #[test]
