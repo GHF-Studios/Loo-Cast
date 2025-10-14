@@ -682,10 +682,11 @@ impl std::ops::Add<UnitPos> for UnitPos {
 
     // TODO: Impl properly
     fn add(self, rhs: UnitPos) -> Self::Output {
-        // === Phase 1: Build extended GridPos stacks from root to leaf ===
-        fn build_stack(subgrid: &SubgridPos) -> Vec<(Scale, IVec2)> {
+        const MAX_DEPTH_DIFF: u8 = 4;
+
+        // === Phase 1: Collect full stack from root to leaf ===
+        fn stack_up(mut cursor: &GridPos) -> Vec<(Scale, IVec2)> {
             let mut stack = Vec::new();
-            let mut cursor = &subgrid.grid_offset;
             loop {
                 stack.push((cursor.scale, cursor.xy));
                 if let Some(p) = &cursor.parent {
@@ -695,16 +696,24 @@ impl std::ops::Add<UnitPos> for UnitPos {
                 }
             }
             stack.reverse();
-
-            // Append the phantom subgrid level (one scale down)
-            let subgrid_scale = subgrid.grid_offset.scale.down().expect("No lower scale for subgrid");
-            stack.push((subgrid_scale, subgrid.subgrid_offset));
-
             stack
         }
 
-        let mut a_stack = build_stack(&self);
-        let mut b_stack = build_stack(&rhs);
+        if (self.grid_offset.scale as i8 - rhs.grid_offset.scale as i8).abs() > MAX_DEPTH_DIFF as i8 {
+            panic!("Cannot add UnitPos with grid offsets differing in scale by more than {} levels", MAX_DEPTH_DIFF);
+        }
+        
+        // Compute a scale diff so that we can correctly compute an f32 scale_factor that makes the unit_offset of rhs 10x as large if it is one scale 
+        let scale_diff = rhs.grid_offset.scale as i8 - self.grid_offset.scale as i8;
+        let scale_diff_factor = if scale_diff == 0 {
+            1.0
+        } else {
+            10.0_f32.powi(scale_diff as i32)
+        };
+
+        let mut a_stack = stack_up(&self.grid_offset);
+        let mut b_stack = stack_up(&rhs.grid_offset);
+
         let max_depth = a_stack.len().max(b_stack.len());
 
         // Pad shorter stack with (scale, ZERO)
@@ -717,15 +726,15 @@ impl std::ops::Add<UnitPos> for UnitPos {
             b_stack.push((s, IVec2::ZERO));
         }
 
-        // === Phase 2: Raw sum top-down ===
+        // === Phase 2: Accumulate raw sums top-down ===
         let mut raw_stack = Vec::with_capacity(max_depth);
         for i in 0..max_depth {
-            let scale = a_stack[i].0;
+            let scale = a_stack[i].0; // should match in both stacks
             let sum = a_stack[i].1 + b_stack[i].1;
             raw_stack.push((scale, sum));
         }
 
-        // === Phase 3: Normalize with wrapping + carry ===
+        // === Phase 3: Normalize bottom-up with wrapping + carry ===
         let mut carry = IVec2::ZERO;
         for i in (0..raw_stack.len()).rev() {
             let (_scale, sum) = raw_stack[i];
@@ -738,7 +747,7 @@ impl std::ops::Add<UnitPos> for UnitPos {
             carry = IVec2::new(carry_x, carry_y);
         }
 
-        // === Phase 4: Build GridPos tree and extract SubgridPos ===
+        // === Phase 4: Build final GridPos tree ===
         let mut result: Option<GridPos> = None;
         for (scale, xy) in raw_stack {
             result = Some(GridPos {
@@ -748,11 +757,10 @@ impl std::ops::Add<UnitPos> for UnitPos {
             });
         }
 
-        let final_leaf = result.unwrap();
-        let subgrid_offset = final_leaf.xy;
-        let grid_offset = (*final_leaf.parent.unwrap()).clone();
+        let grid_offset = result.unwrap();
+        let unit_offset = self.unit_offset + (rhs.unit_offset * scale_diff_factor);
 
-        UnitPos { grid_offset, subgrid_offset }
+        UnitPos { grid_offset, unit_offset }
     }
 }
 impl std::ops::AddAssign<UnitPos> for UnitPos {
