@@ -17,12 +17,12 @@ impl GridPos {
         if xy.y >= 5 { panic!("Y coordinate {} is too large. Range is (-5..5)", xy.y); }
     }
 
-    /// Create a GridPos with random (yet valid) coordinates, from the root down to and including the specified scale, with the same random coords at each scale.
+    /// Create a GridPos with random (yet valid) coordinates, from the root, down to and including the specified scale, with the same random coords at each scale.
     pub fn new_random_homo(scale: Scale) -> Self {
         todo!()
     }
     
-    /// Create a GridPos with random (yet valid) coordinates, from the root down to and including the specified scale, with different random coords at each scale.
+    /// Create a GridPos with random (yet valid) coordinates, from the root, down to and including the specified scale, with different random coords at each scale.
     pub fn new_random_hetero(scale: Scale) -> Self {
         todo!()
     }
@@ -334,7 +334,6 @@ impl SubgridPos {
         Self { grid_offset, subgrid_offset }
     }
 
-    // TODO: Fix this to handle subgrid_offset properly
     pub fn zoom_out(&mut self) {
         if self.grid_offset.parent.as_ref().unwrap().parent.is_none() {
             panic!("Cannot zoom out SubgridPos beyond the root GridPos");
@@ -678,6 +677,30 @@ impl std::ops::SubAssign<Vec3> for UnitPos {
         Self::validate_unit_offset(&self.unit_offset);
     }
 }
+impl std::ops::Add<UnitPos> for UnitPos {
+    type Output = Self;
+
+    fn add(self, rhs: UnitPos) -> Self::Output {
+        todo!()
+    }
+}
+impl std::ops::AddAssign<UnitPos> for UnitPos {
+    fn add_assign(&mut self, rhs: UnitPos) {
+        *self = self.clone() + rhs;
+    }
+}
+impl std::ops::Sub<UnitPos> for UnitPos {
+    type Output = Self;
+
+    fn sub(self, rhs: UnitPos) -> Self::Output {
+        todo!()
+    }
+}
+impl std::ops::SubAssign<UnitPos> for UnitPos {
+    fn sub_assign(&mut self, rhs: UnitPos) {
+        *self = self.clone() - rhs;
+    }
+}
 
 #[test]
 fn grid_pos_add_test_1() {
@@ -903,3 +926,94 @@ fn subgrid_pos_zoom_out_test_3() {
     let expected = SubgridPos::new(expected_grid, IVec2::new(1, 1));
     assert_eq!(a, expected);
 }
+
+#[test]
+fn unit_pos_add_test_1() {
+    let a_grid = GridPos::new_root(IVec2::new(0, 0));
+    let a = UnitPos::new(a_grid, Vec3::new(100.0, 100.0, 0.0));
+    let b_grid = GridPos::new_root(IVec2::new(0, 0));
+    let b = UnitPos::new(b_grid, Vec3::new(200.0, 200.0, 0.0));
+    let c = a + b;
+    let expected_grid = GridPos::new_root(IVec2::new(0, 0));
+    let expected = UnitPos::new(expected_grid, Vec3::new(300.0, 300.0, 0.0));
+    assert_eq!(c, expected);
+}
+
+// TODO: Impl properly
+#[test]
+fn unit_pos_add_test_2() {
+    let a_grid = GridPos::new_root(IVec2::new(0, 0));
+    let a_grid = GridPos::new(a_grid, IVec2::new(4, 4));
+    let a_grid = GridPos::new(a_grid, IVec2::new(3, 3));
+    let a = UnitPos::new(a_grid, Vec3::new(400.0, 400.0, 0.0));
+    let b_grid = GridPos::new_root(IVec2::new(0, 0));
+    let b = UnitPos::new(b_grid, Vec3::new(200.0, 200.0, 0.0));
+    let c = a + b;
+    let expected_grid = GridPos::new_root(IVec2::ZERO);
+    let expected = UnitPos::new(expected_grid, Vec3::ZERO);
+    assert_eq!(c, expected);
+}
+
+/*
+
+// TODO: Impl
+#[test]
+fn unit_pos_add_test_3() {
+    todo!()
+}
+
+// TODO: Impl
+#[test]
+fn unit_pos_sub_test_1() {
+    todo!()
+}
+
+// TODO: Impl
+#[test]
+fn unit_pos_sub_test_2() {
+    todo!()
+}
+
+// TODO: Impl
+#[test]
+fn unit_pos_sub_test_3() {
+    todo!()
+}
+
+// TODO: Impl
+#[test]
+fn unit_pos_zoom_in_test_1() {
+    todo!()
+}
+
+// TODO: Impl
+#[test]
+fn unit_pos_zoom_in_test_2() {
+    todo!()
+}
+
+// TODO: Impl
+#[test]
+fn unit_pos_zoom_in_test_3() {
+    todo!()
+}
+
+// TODO: Impl
+#[test]
+fn unit_pos_zoom_out_test_1() {
+    todo!()
+}
+
+// TODO: Impl
+#[test]
+fn unit_pos_zoom_out_test_2() {
+    todo!()
+}
+
+// TODO: Impl
+#[test]
+fn unit_pos_zoom_out_test_3() {
+    todo!()
+}
+
+*/
