@@ -1074,9 +1074,9 @@ fn unit_pos_add_test_4() {
     let c = a + b;
 
     // Carry of (1,1) applied to the lowest grid level
-    let expected_grid = GridPos::new_root(IVec2::new(1, 1));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(1, 1));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(2, 2)); // 1 + 1 = 2
+    let expected_grid = GridPos::new_root(IVec2::new(2, 2));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(2, 2));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(3, 3));
 
     let expected = UnitPos::new(expected_grid, Vec3::new(-499.99, -499.99, 0.0));
 
