@@ -1054,8 +1054,8 @@ fn unit_pos_add_test_3() {
     let b = UnitPos::new(b_grid, Vec3::new(200.0, 200.0, 0.0));
     let c = a + b;
     let expected_grid = GridPos::new_root(IVec2::new(3, 3));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(-3, -3));
     let expected_grid = GridPos::new(expected_grid, IVec2::new(-4, -4));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(-5, -5));
     let expected = UnitPos::new(expected_grid, Vec3::new(-100.0, -100.0, 0.0));
     assert_eq!(c, expected);
 }
