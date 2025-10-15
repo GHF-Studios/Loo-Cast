@@ -578,33 +578,56 @@ impl UnitPos {
         Self::validate_unit_offset(&unit_offset);
         Self { grid_offset, unit_offset }
     }
+    
+    fn zoom_in_multi(&mut self, target_scale: Scale) -> Result<(), &'static str> {
+        if target_scale >= self.grid_offset.scale {
+            return Err("Target scale must be smaller than current scale")
+        }
+
+        let cursor = &mut self.grid_offset;
+        let mut unit_offset = self.unit_offset;
+
+        while cursor.scale > target_scale {
+            let next_scale = cursor.scale.down().unwrap();
+            let scale_factor = 10.0;
+
+            // Push unit_offset into grid
+            let grid_delta = IVec2::new(
+                (unit_offset.x / 1000.0).floor() as i32,
+                (unit_offset.y / 1000.0).floor() as i32,
+            );
+
+            unit_offset -= Vec3::new(
+                grid_delta.x as f32 * 1000.0,
+                grid_delta.y as f32 * 1000.0,
+                Self::compute_z(cursor.scale)
+            );
+
+            // Multiply unit_offset by 10 to rebase to finer scale
+            unit_offset *= scale_factor;
+
+            // Step down
+            *cursor = GridPos {
+                parent: Some(Arc::new(std::mem::replace(cursor, GridPos {
+                    parent: None, // temporarily invalid; replaced in next iteration
+                    scale: next_scale,
+                    xy: grid_delta,
+                }))),
+                scale: next_scale,
+                xy: grid_delta,
+            };
+        }
+
+        self.unit_offset = unit_offset;
+        Self::validate_unit_offset(&self.unit_offset);
+
+        Ok(())
+    }
 
     pub fn zoom_in(&mut self) {
-        let parent = self.grid_offset.clone();
-        let Some(child_scale) = parent.scale.down() else { return };
-        
-        let chunk_size = 1000.0;
-        let child_factor = 10.0;
-        let child_size = chunk_size / child_factor; // = 100.0
-        
-        // Step 1: Determine which subchunk we're in
-        let scaled = self.unit_offset.truncate() / child_size;
-        let child_xy = scaled.floor().as_ivec2();
-        
-        // Step 2: Get the origin of that child chunk in current space
-        let child_origin = child_xy.as_vec2() * child_size;
-        
-        // Step 3: Recompute offset relative to new subchunk center
-        let local_offset = self.unit_offset.truncate() - child_origin;
-        
-        // Step 4: Update context
-        self.grid_offset = GridPos {
-            parent: Some(Arc::new(parent)),
-            scale: child_scale,
-            xy: child_xy,
-        };
-        self.unit_offset = Vec3::new(local_offset.x, local_offset.y, self.unit_offset.z - 10.0);
-        Self::validate_unit_offset(&self.unit_offset);
+        if let Some(target) = self.grid_offset.scale.down() {
+            let _ = self.zoom_in_multi(target);
+        }
     }
 
     pub fn zoom_out(&mut self) {
@@ -626,7 +649,7 @@ impl UnitPos {
 
         // Step 3: Update context
         self.grid_offset = (*parent).clone();
-        self.unit_offset = Vec3::new(offset_in_parent.x, offset_in_parent.y, self.unit_offset.z + 10.0);
+        self.unit_offset = Vec3::new(offset_in_parent.x, offset_in_parent.y, Self::compute_z(child.scale));
         Self::validate_unit_offset(&self.unit_offset);
     }
 }
@@ -790,8 +813,14 @@ impl std::ops::AddAssign<UnitPos> for UnitPos {
 impl std::ops::Sub<UnitPos> for UnitPos {
     type Output = Self;
 
-    fn sub(self, rhs: UnitPos) -> Self::Output {
+    fn sub(mut self, mut rhs: UnitPos) -> Self::Output {
         const MAX_DEPTH_DIFF: u8 = 4;
+
+        match self.grid_offset.scale.cmp(&rhs.grid_offset.scale) {
+            std::cmp::Ordering::Equal => {},
+            std::cmp::Ordering::Greater => self.zoom_in_multi(rhs.grid_offset.scale).unwrap(),
+            std::cmp::Ordering::Less => rhs.zoom_in_multi(self.grid_offset.scale).unwrap(),
+        }
 
         fn stack_up(mut cursor: &GridPos) -> Vec<(Scale, IVec2)> {
             let mut stack = Vec::new();
@@ -1230,10 +1259,10 @@ fn unit_pos_sub_test_4() {
     let b_grid = GridPos::new(b_grid, IVec2::new(1, 1));
     let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
     let c = a - b;
-    let expected_grid = GridPos::new_root(IVec2::new(0, 0));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(0, 0));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(0, 0));
-    let expected = UnitPos::new(expected_grid, Vec2::new(0.0, 0.0));
+    let expected_grid = GridPos::new_root(IVec2::new(-4, -4));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(-1, -1));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(-1, -1));
+    let expected = UnitPos::new(expected_grid, Vec2::new(-500.0, -500.0));
     assert_eq!(c, expected);
 }
 
