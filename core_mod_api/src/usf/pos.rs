@@ -1187,22 +1187,54 @@ fn unit_pos_sub_test_1() {
     let b_grid = GridPos::new(b_grid, IVec2::new(0, 0));
     let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
     let c = a - b;
-    let expected_grid = GridPos::new_root(IVec2::new(0, 0));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(-1, -1));
+    let expected_grid = GridPos::new_root(IVec2::new(1, 1));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(0, 0));
     let expected = UnitPos::new(expected_grid, Vec2::new(-200.0, -200.0));
     assert_eq!(c, expected);
 }
 
-// TODO: Impl
 #[test]
 fn unit_pos_sub_test_2() {
-    todo!()
+    let a_grid = GridPos::new_root(IVec2::new(0, 0));
+    let a = UnitPos::new(a_grid, Vec2::new(-200.0, -200.0));
+    let b_grid = GridPos::new_root(IVec2::new(0, 0));
+    let b = UnitPos::new(b_grid, Vec2::new(400.0, 400.0));
+    let c = a - b;
+    let expected_grid = GridPos::new_root(IVec2::new(-1, -1));
+    let expected = UnitPos::new(expected_grid, Vec2::new(400.0, 400.0));
+    assert_eq!(c, expected);
 }
 
-// TODO: Impl
 #[test]
 fn unit_pos_sub_test_3() {
-    todo!()
+    let a_grid = GridPos::new_root(IVec2::new(1, 1));
+    let a = UnitPos::new(a_grid, Vec2::new(100.0, 100.0));
+    let b_grid = GridPos::new_root(IVec2::new(1, 1));
+    let b_grid = GridPos::new(b_grid, IVec2::new(0, 0));
+    let b_grid = GridPos::new(b_grid, IVec2::new(0, 0));
+    let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
+    let c = a - b;
+    let expected_grid = GridPos::new_root(IVec2::new(0, 0));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(1, 1));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(0, 0));
+    let expected = UnitPos::new(expected_grid, Vec2::new(-200.0, -200.0));
+    assert_eq!(c, expected);
+}
+
+#[test]
+fn unit_pos_sub_test_4() {
+    let a_grid = GridPos::new_root(IVec2::new(1, 1));
+    let a = UnitPos::new(a_grid, Vec2::new(437.0, 437.0));
+    let b_grid = GridPos::new_root(IVec2::new(1, 1));
+    let b_grid = GridPos::new(b_grid, IVec2::new(1, 1));
+    let b_grid = GridPos::new(b_grid, IVec2::new(1, 1));
+    let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
+    let c = a - b;
+    let expected_grid = GridPos::new_root(IVec2::new(0, 0));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(0, 0));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(0, 0));
+    let expected = UnitPos::new(expected_grid, Vec2::new(0.0, 0.0));
+    assert_eq!(c, expected);
 }
 
 /*
