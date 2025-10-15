@@ -433,14 +433,28 @@ impl Scale {
     /// So the max difference in scale can be 3 orders of magnitude
     pub const MAX_DIFF_SCALE_EXP: i8 = 3;
 
-    /// Create a Scale from an index from the top (0..70)
+    /// Create a Scale from an index from the top (0..=70)
     pub fn from_index_from_top(index_from_top: u8) -> Option<Self> {
         assert!(index_from_top <= 70);
         let scale_factor_exponent = 35_i8 - (index_from_top as i8);
         Self::from_scale_factor_exponent(scale_factor_exponent)
     }
 
-    /// Create a Scale from an index from the bottom (70..0)
+    /// Get the index from the top (0..=70)
+    pub fn to_index_from_top(&self) -> u8 {
+        let scale_factor_exponent = self.scale_factor_exponent();
+        assert!(scale_factor_exponent >= -35_i8 && scale_factor_exponent <= 35_i8);
+        (35_i8 - scale_factor_exponent) as u8
+    }
+
+    /// Get the index from the bottom (70..=0)
+    pub fn to_index_from_bottom(&self) -> u8 {
+        let scale_factor_exponent = self.scale_factor_exponent();
+        assert!(scale_factor_exponent >= -35_i8 && scale_factor_exponent <= 35_i8);
+        (scale_factor_exponent + 35_i8) as u8
+    }
+
+    /// Create a Scale from an index from the bottom (70..=0)
     pub fn from_index_from_bottom(index_from_bottom: u8) -> Option<Self> {
         assert!(index_from_bottom <= 70);
         let scale_factor_exponent = -35_i8 + (index_from_bottom as i8);

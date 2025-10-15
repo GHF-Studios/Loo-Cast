@@ -1,4 +1,4 @@
-use bevy::prelude::{IVec2, Vec3};
+use bevy::prelude::{IVec2, Vec2, Vec3};
 use std::sync::Arc;
 
 use super::scale::{Scale, DynScale};
@@ -565,7 +565,16 @@ impl UnitPos {
         if unit_offset.y > 500.0 { panic!("Y = {} is too large. Range is (-500.0..500.0)", unit_offset.y); }
     }
 
-    pub fn new(grid_offset: GridPos, unit_offset: Vec3) -> Self {
+    /// Compute the one and only valid Z coordinate for any given scale level.
+    /// - Scale::MIN corresponds to Z = -10.0
+    /// - Each subsequent smaller scale decreases Z by an additional 10.0 units.
+    #[inline]
+    fn compute_z(scale: Scale) -> f32 {
+        scale.to_index_from_bottom() as f32 * -10.0
+    }
+
+    pub fn new(grid_offset: GridPos, unit_offset: Vec2) -> Self {
+        let unit_offset = unit_offset.extend(Self::compute_z(grid_offset.scale));
         Self::validate_unit_offset(&unit_offset);
         Self { grid_offset, unit_offset }
     }
@@ -680,7 +689,6 @@ impl std::ops::SubAssign<Vec3> for UnitPos {
 impl std::ops::Add<UnitPos> for UnitPos {
     type Output = Self;
 
-    // TODO: Impl properly
     fn add(self, rhs: UnitPos) -> Self::Output {
         const MAX_DEPTH_DIFF: u8 = 4;
 
@@ -727,16 +735,16 @@ impl std::ops::Add<UnitPos> for UnitPos {
 
         // === Phase 2: Rescale and add unit offsets ===
         let unit_offset_sum = match self.grid_offset.scale.cmp(&rhs.grid_offset.scale) {
-            std::cmp::Ordering::Equal => self.unit_offset + rhs.unit_offset,
+            std::cmp::Ordering::Equal => self.unit_offset.truncate() + rhs.unit_offset.truncate(),
             std::cmp::Ordering::Greater => {
                 // self is deeper → scale *up* self
                 let factor = 10.0_f32.powi((self.grid_offset.scale as i8 - rhs.grid_offset.scale as i8) as i32);
-                rhs.unit_offset + (self.unit_offset * factor)
+                rhs.unit_offset.truncate() + (self.unit_offset.truncate() * factor)
             },
             std::cmp::Ordering::Less => {
                 // rhs is deeper → scale *up* rhs
                 let factor = 10.0_f32.powi((rhs.grid_offset.scale as i8 - self.grid_offset.scale as i8) as i32);
-                self.unit_offset + (rhs.unit_offset * factor)
+                self.unit_offset.truncate() + (rhs.unit_offset.truncate() * factor)
             },
         };
 
@@ -746,8 +754,7 @@ impl std::ops::Add<UnitPos> for UnitPos {
         let carry_x = ((unit_offset_sum.x - wrapped_x) / 1000.0).floor() as i32;
         let carry_y = ((unit_offset_sum.y - wrapped_y) / 1000.0).floor() as i32;
 
-        let unit_offset = Vec3::new(wrapped_x, wrapped_y, unit_offset_sum.z);
-        Self::validate_unit_offset(&unit_offset); // Remove if no longer needed
+        let unit_offset = Vec2::new(wrapped_x, wrapped_y);
         let mut carry = IVec2::new(carry_x, carry_y);
 
         // === Phase 4: Normalize bottom-up with wrapping + carry + unit_carry ===
@@ -784,7 +791,96 @@ impl std::ops::Sub<UnitPos> for UnitPos {
     type Output = Self;
 
     fn sub(self, rhs: UnitPos) -> Self::Output {
-        todo!()
+        const MAX_DEPTH_DIFF: u8 = 4;
+
+        fn stack_up(mut cursor: &GridPos) -> Vec<(Scale, IVec2)> {
+            let mut stack = Vec::new();
+            loop {
+                stack.push((cursor.scale, cursor.xy));
+                if let Some(p) = &cursor.parent {
+                    cursor = p;
+                } else {
+                    break;
+                }
+            }
+            stack.reverse();
+            stack
+        }
+
+        if (self.grid_offset.scale as i8 - rhs.grid_offset.scale as i8).abs() > MAX_DEPTH_DIFF as i8 {
+            panic!("Cannot subtract UnitPos with grid offsets differing in scale by more than {} levels", MAX_DEPTH_DIFF);
+        }
+
+        let mut a_stack = stack_up(&self.grid_offset);
+        let mut b_stack = stack_up(&rhs.grid_offset);
+
+        let max_depth = a_stack.len().max(b_stack.len());
+
+        // Pad shorter stack with (scale, ZERO)
+        while a_stack.len() < max_depth {
+            let (s, _) = b_stack[a_stack.len()];
+            a_stack.push((s, IVec2::ZERO));
+        }
+        while b_stack.len() < max_depth {
+            let (s, _) = a_stack[b_stack.len()];
+            b_stack.push((s, IVec2::ZERO));
+        }
+
+        // === Phase 1: Accumulate raw diffs top-down ===
+        let mut raw_stack = Vec::with_capacity(max_depth);
+        for i in 0..max_depth {
+            let scale = a_stack[i].0; // should match in both stacks
+            let diff = a_stack[i].1 - b_stack[i].1;
+            raw_stack.push((scale, diff));
+        }
+
+        // === Phase 2: Rescale and add unit offsets ===
+        let unit_offset_diff = match self.grid_offset.scale.cmp(&rhs.grid_offset.scale) {
+            std::cmp::Ordering::Equal => self.unit_offset.truncate() - rhs.unit_offset.truncate(),
+            std::cmp::Ordering::Greater => {
+                // self is deeper → scale *up* self
+                let factor = 10.0_f32.powi((self.grid_offset.scale as i8 - rhs.grid_offset.scale as i8) as i32);
+                (self.unit_offset.truncate() * factor) - rhs.unit_offset.truncate()
+            },
+            std::cmp::Ordering::Less => {
+                // rhs is deeper → scale *up* rhs
+                let factor = 10.0_f32.powi((rhs.grid_offset.scale as i8 - self.grid_offset.scale as i8) as i32);
+                self.unit_offset.truncate() - (rhs.unit_offset.truncate() * factor)
+            },
+        };
+
+        // === Phase 3: Extract unit_carry from summed unit_offset ===
+        let wrapped_x = ((unit_offset_diff.x + 500.0).rem_euclid(1000.0)) - 500.0;
+        let wrapped_y = ((unit_offset_diff.y + 500.0).rem_euclid(1000.0)) - 500.0;
+        let carry_x = ((unit_offset_diff.x - wrapped_x) / 1000.0).floor() as i32;
+        let carry_y = ((unit_offset_diff.y - wrapped_y) / 1000.0).floor() as i32;
+
+        let unit_offset = Vec2::new(wrapped_x, wrapped_y);
+        let mut carry = IVec2::new(carry_x, carry_y);
+
+        // === Phase 4: Normalize bottom-up with wrapping + carry + unit_carry ===
+        for i in (0..raw_stack.len()).rev() {
+            let (_scale, diff) = raw_stack[i];
+            let wrapped_x = ((diff.x + carry.x + 5).rem_euclid(10)) - 5;
+            let wrapped_y = ((diff.y + carry.y + 5).rem_euclid(10)) - 5;
+            let carry_x = (diff.x + carry.x - wrapped_x).div_euclid(10);
+            let carry_y = (diff.y + carry.y - wrapped_y).div_euclid(10);
+
+            raw_stack[i].1 = IVec2::new(wrapped_x, wrapped_y);
+            carry = IVec2::new(carry_x, carry_y);
+        }
+
+        // === Phase 5: Build final GridPos tree ===
+        let mut result: Option<GridPos> = None;
+        for (scale, xy) in raw_stack {
+            result = Some(GridPos {
+                parent: result.map(Arc::new),
+                scale,
+                xy,
+            });
+        }
+
+        UnitPos::new(result.unwrap(), unit_offset)
     }
 }
 impl std::ops::SubAssign<UnitPos> for UnitPos {
@@ -1021,42 +1117,42 @@ fn subgrid_pos_zoom_out_test_3() {
 #[test]
 fn unit_pos_add_test_1() {
     let a_grid = GridPos::new_root(IVec2::new(0, 0));
-    let a = UnitPos::new(a_grid, Vec3::new(0.0, 0.0, 0.0));
+    let a = UnitPos::new(a_grid, Vec2::new(0.0, 0.0));
     let b_grid = GridPos::new_root(IVec2::new(0, 0));
     let b_grid = GridPos::new(b_grid, IVec2::new(0, 0));
-    let b = UnitPos::new(b_grid, Vec3::new(200.0, 200.0, 0.0));
+    let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
     let c = a + b;
     let expected_grid = GridPos::new_root(IVec2::new(0, 0));
     let expected_grid = GridPos::new(expected_grid, IVec2::new(0, 0));
-    let expected = UnitPos::new(expected_grid, Vec3::new(200.0, 200.0, 0.0));
+    let expected = UnitPos::new(expected_grid, Vec2::new(200.0, 200.0));
     assert_eq!(c, expected);
 }
 
 #[test]
 fn unit_pos_add_test_2() {
     let a_grid = GridPos::new_root(IVec2::new(0, 0));
-    let a = UnitPos::new(a_grid, Vec3::new(400.0, 400.0, 0.0));
+    let a = UnitPos::new(a_grid, Vec2::new(400.0, 400.0));
     let b_grid = GridPos::new_root(IVec2::new(0, 0));
-    let b = UnitPos::new(b_grid, Vec3::new(200.0, 200.0, 0.0));
+    let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
     let c = a + b;
     let expected_grid = GridPos::new_root(IVec2::new(1, 1));
-    let expected = UnitPos::new(expected_grid, Vec3::new(-400.0, -400.0, 0.0));
+    let expected = UnitPos::new(expected_grid, Vec2::new(-400.0, -400.0));
     assert_eq!(c, expected);
 }
 
 #[test]
 fn unit_pos_add_test_3() {
     let a_grid = GridPos::new_root(IVec2::new(1, 1));
-    let a = UnitPos::new(a_grid, Vec3::new(437.0, 437.0, 0.0));
+    let a = UnitPos::new(a_grid, Vec2::new(437.0, 437.0));
     let b_grid = GridPos::new_root(IVec2::new(1, 1));
     let b_grid = GridPos::new(b_grid, IVec2::new(1, 1));
     let b_grid = GridPos::new(b_grid, IVec2::new(1, 1));
-    let b = UnitPos::new(b_grid, Vec3::new(200.0, 200.0, 0.0));
+    let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
     let c = a + b;
     let expected_grid = GridPos::new_root(IVec2::new(3, 3));
     let expected_grid = GridPos::new(expected_grid, IVec2::new(-4, -4));
     let expected_grid = GridPos::new(expected_grid, IVec2::new(-5, -5));
-    let expected = UnitPos::new(expected_grid, Vec3::new(-100.0, -100.0, 0.0));
+    let expected = UnitPos::new(expected_grid, Vec2::new(-100.0, -100.0));
     assert_eq!(c, expected);
 }
 
@@ -1068,8 +1164,8 @@ fn unit_pos_add_test_4() {
     let grid = GridPos::new(grid, IVec2::new(1, 1));
 
     // Two UnitPos, their Vec3 adds up to cause a wrap on one level
-    let a = UnitPos::new(grid.clone(), Vec3::new(499.99, 499.99, 0.0));
-    let b = UnitPos::new(grid.clone(), Vec3::new(0.02, 0.02, 0.0));
+    let a = UnitPos::new(grid.clone(), Vec2::new(499.99, 499.99));
+    let b = UnitPos::new(grid.clone(), Vec2::new(0.02, 0.02));
 
     let c = a + b;
 
@@ -1078,17 +1174,23 @@ fn unit_pos_add_test_4() {
     let expected_grid = GridPos::new(expected_grid, IVec2::new(2, 2));
     let expected_grid = GridPos::new(expected_grid, IVec2::new(3, 3));
 
-    let expected = UnitPos::new(expected_grid, Vec3::new(-499.99, -499.99, 0.0));
+    let expected = UnitPos::new(expected_grid, Vec2::new(-499.99, -499.99));
 
     assert_eq!(c, expected);
 }
 
-/*
-
-// TODO: Impl
 #[test]
 fn unit_pos_sub_test_1() {
-    todo!()
+    let a_grid = GridPos::new_root(IVec2::new(1, 1));
+    let a = UnitPos::new(a_grid, Vec2::new(0.0, 0.0));
+    let b_grid = GridPos::new_root(IVec2::new(0, 0));
+    let b_grid = GridPos::new(b_grid, IVec2::new(0, 0));
+    let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
+    let c = a - b;
+    let expected_grid = GridPos::new_root(IVec2::new(0, 0));
+    let expected_grid = GridPos::new(expected_grid, IVec2::new(-1, -1));
+    let expected = UnitPos::new(expected_grid, Vec2::new(-200.0, -200.0));
+    assert_eq!(c, expected);
 }
 
 // TODO: Impl
@@ -1102,6 +1204,8 @@ fn unit_pos_sub_test_2() {
 fn unit_pos_sub_test_3() {
     todo!()
 }
+
+/*
 
 // TODO: Impl
 #[test]
