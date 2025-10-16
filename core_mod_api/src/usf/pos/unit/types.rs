@@ -98,15 +98,15 @@ impl UnitPos {
         let child_factor = 10.0;
         let child_size = chunk_size / child_factor;
 
-        // Step 1: Get child's center in parent chunk space
+        // Step 1: Get child's origin in parent space
         let child_origin = child.xy.as_vec2() * child_size;
 
-        // Step 2: Shift up into parent space
-        let offset_in_parent = self.unit_offset.truncate() + child_origin;
+        // Step 2: Shift up into parent space, then rescale
+        let offset_in_parent = (self.unit_offset.truncate() + child_origin) / child_factor;
 
         // Step 3: Update context
         self.grid_offset = (*parent).clone();
-        self.unit_offset = Vec3::new(offset_in_parent.x, offset_in_parent.y, Self::compute_z(child.scale));
+        self.unit_offset = Vec3::new(offset_in_parent.x, offset_in_parent.y, Self::compute_z(parent.scale));
         Self::validate_unit_offset(&self.unit_offset);
     }
 }

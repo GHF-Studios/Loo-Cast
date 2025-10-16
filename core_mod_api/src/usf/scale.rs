@@ -10,18 +10,6 @@ pub struct CurrentViewScale {
     scale: u32
 }
 
-pub trait ConstScale: 'static + Send + Sync + Clone + Copy + Default + Debug + Reflect + PartialOrd + Ord + PartialEq + Eq + Hash {
-    type Up: ConstScale;
-    type Down: ConstScale;
-
-    const SCALE_FACTOR_EXPONENT: i8;
-    const NAME: &'static str;
-
-    fn scale_factor() -> f64 {
-        10f64.powi(Self::SCALE_FACTOR_EXPONENT as i32)
-    }
-}
-
 pub trait DynScale: Send + Sync + Debug {
     fn name(&self) -> &'static str;
     /// Scale factor exponent, mapped from -35 - 35 to 0 - 70 range where 0 == raw scale factor exponent of 35 (0.00001 quectoMeter)
@@ -561,6 +549,18 @@ impl Scale {
     pub fn zoomed_out(mut self) -> Self {
         self.zoom_out();
         self
+    }
+}
+
+pub trait ConstScale: 'static + Send + Sync + Clone + Copy + Default + Debug + Reflect + PartialOrd + Ord + PartialEq + Eq + Hash {
+    type Up: ConstScale;
+    type Down: ConstScale;
+
+    const SCALE_FACTOR_EXPONENT: i8;
+    const NAME: &'static str;
+
+    fn scale_factor() -> f64 {
+        10f64.powi(Self::SCALE_FACTOR_EXPONENT as i32)
     }
 }
 
