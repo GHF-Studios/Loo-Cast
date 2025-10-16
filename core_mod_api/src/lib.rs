@@ -100,6 +100,7 @@ use logging::LogPlugin;
 use player::PlayerPlugin;
 use time::TimePlugin;
 use ui::UiPlugin;
+use usf::UsfPlugin;
 use utils::UtilsPlugin;
 use window::WindowPlugin;
 use workflow::WorkflowPlugin;
@@ -124,6 +125,7 @@ impl PluginGroup for CoreApiPluginGroup {
             .add(PlayerPlugin)
             .add(TimePlugin)
             .add(UiPlugin)
+            .add(UsfPlugin)
             .add(UtilsPlugin)
             .add(WindowPlugin)
             .add(WorkflowPlugin)

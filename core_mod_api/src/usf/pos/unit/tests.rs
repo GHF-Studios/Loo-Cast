@@ -2,21 +2,15 @@ use bevy::prelude::{IVec2, Vec2};
 
 use crate::usf::scale::Scale;
 use crate::usf::pos::grid::types::GridPos;
+use crate::unit_pos;
 
 use super::types::UnitPos;
 
-// TODO: Impl properly
 #[test]
 fn unit_pos_zoom_out_test_1() {
-    let a = GridPos::new_root(IVec2::new(0, 0));
-    let a = GridPos::new(a, IVec2::new(0, 0));
-    let a = GridPos::new(a, IVec2::new(0, 0));
-    let a = UnitPos::new(a, Vec2::new(200.0, 200.0));
-    let mut a = a;
+    let mut a = unit_pos!([(0, 0), (0, 0), (0, 0)]: (200.0, 200.0));
     a.zoom_out();
-    let expected_grid = GridPos::new_root(IVec2::new(0, 0));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(0, 0));
-    let expected = UnitPos::new(expected_grid, Vec2::new(20.0, 20.0));
+    let expected = unit_pos!([(0, 0), (0, 0)]: (20.0, 20.0));
     assert_eq!(a, expected);
 }
 
@@ -30,9 +24,12 @@ fn unit_pos_zoom_out_test_2() {
 fn unit_pos_zoom_out_test_3() {
 }
 
-// TODO: Impl properly
 #[test]
 fn unit_pos_zoom_in_test_1() {
+    let mut a = unit_pos!([(0, 0), (0, 0)]: (20.0, 20.0));
+    a.zoom_in();
+    let expected = unit_pos!([(0, 0), (0, 0), (0, 0)]: (200.0, 200.0));
+    assert_eq!(a, expected);
 }
 
 // TODO: Impl properly

@@ -4,12 +4,47 @@ use crate::usf::scale::{Scale, DynScale};
 use crate::usf::pos::grid::types::GridPos;
 use crate::usf::pos::unit::types::UnitPos;
 
+pub struct SubgridPosBuilder {
+    chain: Vec<IVec2>,
+}
+
+impl SubgridPosBuilder {
+    pub fn from_root(root: IVec2) -> Self {
+        Self {
+            chain: vec![root],
+        }
+    }
+
+    pub fn push(mut self, next: IVec2) -> Self {
+        self.chain.push(next);
+        self
+    }
+
+    pub fn push_many<I: IntoIterator<Item = IVec2>>(mut self, items: I) -> Self {
+        self.chain.extend(items);
+        self
+    }
+
+    pub fn repeat(mut self, xy: IVec2, count: usize) -> Self {
+        self.chain.extend(std::iter::repeat_n(xy, count));
+        self
+    }
+
+    pub fn finish(self, subgrid_offset: IVec2) -> SubgridPos {
+        SubgridPos::try_from((self.chain, subgrid_offset)).unwrap()
+    }
+}
+
 #[derive(Clone, PartialEq)]
 pub struct SubgridPos {
     pub(in super::super) grid_offset: GridPos,
     pub(in super::super) subgrid_offset: IVec2,
 }
 impl SubgridPos {
+    pub fn build(root: IVec2) -> SubgridPosBuilder {
+        SubgridPosBuilder::from_root(root)
+    }
+
     fn validate_grid_offset(grid_offset: &GridPos) {
         if grid_offset.scale == Scale::MIN {
             panic!("SubgridPos must be based on a scale no smaller than MIN+1, so there is room to represent the subgrid level as a virtual GridPos leaf");
@@ -245,5 +280,13 @@ impl std::ops::Sub<SubgridPos> for SubgridPos {
 impl std::ops::SubAssign<SubgridPos> for SubgridPos {
     fn sub_assign(&mut self, rhs: SubgridPos) {
         *self = self.clone() - rhs;
+    }
+}
+impl std::convert::TryFrom<(Vec<IVec2>, IVec2)> for SubgridPos {
+    type Error = &'static str;
+
+    fn try_from((stack, subgrid_offset): (Vec<IVec2>, IVec2)) -> Result<Self, Self::Error> {
+        let grid_offset = GridPos::try_from(stack)?;
+        Ok(SubgridPos::new(grid_offset, subgrid_offset))
     }
 }

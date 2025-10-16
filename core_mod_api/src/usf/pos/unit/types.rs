@@ -4,12 +4,47 @@ use crate::usf::scale::{Scale, DynScale};
 use crate::utils::logic_safety::Checked;
 use crate::usf::pos::grid::types::GridPos;
 
+pub struct UnitPosBuilder {
+    chain: Vec<IVec2>,
+}
+
+impl UnitPosBuilder {
+    pub fn from_root(root: IVec2) -> Self {
+        Self {
+            chain: vec![root],
+        }
+    }
+
+    pub fn push(mut self, next: IVec2) -> Self {
+        self.chain.push(next);
+        self
+    }
+
+    pub fn push_many<I: IntoIterator<Item = IVec2>>(mut self, items: I) -> Self {
+        self.chain.extend(items);
+        self
+    }
+
+    pub fn repeat(mut self, xy: IVec2, count: usize) -> Self {
+        self.chain.extend(std::iter::repeat_n(xy, count));
+        self
+    }
+
+    pub fn finish(self, unit_offset: Vec2) -> UnitPos {
+        UnitPos::try_from((self.chain, unit_offset)).unwrap()
+    }
+}
+
 #[derive(Clone, PartialEq)]
 pub struct UnitPos {
     pub(in super::super) grid_offset: GridPos, // Recursive chunk position
     pub(in super::super) unit_offset: Vec3, // Bevy units inside the chunk (e.g., [-500.0..500.0])
 }
 impl UnitPos {
+    pub fn build(root: IVec2) -> UnitPosBuilder {
+        UnitPosBuilder::from_root(root)
+    }
+
     fn validate_unit_offset(unit_offset: &Vec3) {
         if unit_offset.x < -500.0 { panic!("X = {} is too small. Range is (-500.0..500.0)", unit_offset.x); }
         if unit_offset.x > 500.0 { panic!("X = {} is too large. Range is (-500.0..500.0)", unit_offset.x); }
@@ -33,7 +68,6 @@ impl UnitPos {
 
     pub fn new_unchecked(grid_offset: GridPos, unit_offset: Vec2) -> Self {
         let unit_offset = unit_offset.extend(Self::compute_z(grid_offset.scale));
-        Self::validate_unit_offset(&unit_offset);
         Self { grid_offset, unit_offset }
     }
     
@@ -43,7 +77,7 @@ impl UnitPos {
         }
 
         let cursor = &mut self.grid_offset;
-        let mut unit_offset = self.unit_offset;
+        let mut unit_offset = self.unit_offset.truncate();
         let mut placeholder_grid_pos: Option<GridPos<Checked>> = Some(GridPos::default().into());
 
         while cursor.scale > target_scale {
@@ -55,10 +89,9 @@ impl UnitPos {
                 (unit_offset.y / 1000.0).floor() as i32,
             );
 
-            unit_offset -= Vec3::new(
+            unit_offset -= Vec2::new(
                 grid_delta.x as f32 * 1000.0,
                 grid_delta.y as f32 * 1000.0,
-                Self::compute_z(cursor.scale)
             );
 
             // Multiply unit_offset by 10 to rebase to finer scale
@@ -75,7 +108,7 @@ impl UnitPos {
             }
         }
 
-        self.unit_offset = unit_offset;
+        self.unit_offset = unit_offset.extend(Self::compute_z(cursor.scale));
         Self::validate_unit_offset(&self.unit_offset);
 
         Ok(())
@@ -369,5 +402,13 @@ impl std::ops::Sub<UnitPos> for UnitPos {
 impl std::ops::SubAssign<UnitPos> for UnitPos {
     fn sub_assign(&mut self, rhs: UnitPos) {
         *self = self.clone() - rhs;
+    }
+}
+impl std::convert::TryFrom<(Vec<IVec2>, Vec2)> for UnitPos {
+    type Error = &'static str;
+
+    fn try_from((stack, unit_offset): (Vec<IVec2>, Vec2)) -> Result<Self, Self::Error> {
+        let grid_offset = GridPos::try_from(stack)?;
+        Ok(UnitPos::new(grid_offset, unit_offset))
     }
 }

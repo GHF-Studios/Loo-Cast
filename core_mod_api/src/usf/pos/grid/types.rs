@@ -5,6 +5,37 @@ use crate::usf::scale::Scale;
 use crate::utils::logic_safety::{LogicSafety, Checked, Unchecked};
 use crate::usf::pos::unit::types::UnitPos;
 
+pub struct GridPosBuilder {
+    chain: Vec<IVec2>,
+}
+
+impl GridPosBuilder {
+    pub fn from_root(root: IVec2) -> Self {
+        Self {
+            chain: vec![root],
+        }
+    }
+
+    pub fn push(mut self, next: IVec2) -> Self {
+        self.chain.push(next);
+        self
+    }
+
+    pub fn push_many<I: IntoIterator<Item = IVec2>>(mut self, items: I) -> Self {
+        self.chain.extend(items);
+        self
+    }
+
+    pub fn repeat(mut self, xy: IVec2, count: usize) -> Self {
+        self.chain.extend(std::iter::repeat_n(xy, count));
+        self
+    }
+
+    pub fn finish(self) -> GridPos {
+        GridPos::try_from(self.chain).unwrap()
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct GridPos<LS: LogicSafety = Checked> {
     pub(in super::super) parent: Option<Arc<GridPos>>,
@@ -13,6 +44,10 @@ pub struct GridPos<LS: LogicSafety = Checked> {
     pub(in super::super) phantom_safety: PhantomData<LS>,
 }
 impl GridPos {
+    pub fn build(root: IVec2) -> GridPosBuilder {
+        GridPosBuilder::from_root(root)
+    }
+
     fn validate_xy(xy: &IVec2) {
         if xy.x < -5 { panic!("X coordinate {} is too small. Range is (-5..5)", xy.x); }
         if xy.x >= 5 { panic!("X coordinate {} is too large. Range is (-5..5)", xy.x); }
@@ -347,5 +382,23 @@ impl std::ops::Sub<GridPos> for GridPos {
 impl std::ops::SubAssign<GridPos> for GridPos {
     fn sub_assign(&mut self, rhs: GridPos) {
         *self = self.clone() - rhs;
+    }
+}
+impl std::convert::TryFrom<Vec<IVec2>> for GridPos {
+    type Error = &'static str;
+
+    fn try_from(stack: Vec<IVec2>) -> Result<Self, Self::Error> {
+        if stack.is_empty() {
+            return Err("GridPos stack must contain at least one element");
+        }
+
+        let mut iter = stack.into_iter();
+        let mut current = GridPos::new_root(iter.next().unwrap());
+
+        for xy in iter {
+            current = GridPos::new(current, xy);
+        }
+
+        Ok(current)
     }
 }
