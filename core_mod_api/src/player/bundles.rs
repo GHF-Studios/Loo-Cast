@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader, config::statics::CONFIG, utils::components::InitHook};
+use crate::{chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader, config::statics::CONFIG, utils::lifecycle_hook::InitHook};
 use crate::usf::scale::Scale;
 
 use super::components::Player;

@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 use crate::{chunk::{
     components::Chunk, intent::{ActionIntent, ActionPriority, ResolutionWarning, ResolvedActionIntent, State as ChunkState, resolve_intent}, resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, GridOriginOffset}, traits::Vec2Ext, types::{ChunkOwnerId, GridCoord}
-}, utils::types::I128Vec2};
+}, utils::i128vec2::I128Vec2};
 use crate::chunk_loader::components::ChunkLoader;
 use crate::workflow::types::Outcome;
 

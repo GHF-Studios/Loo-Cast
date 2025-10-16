@@ -2,7 +2,7 @@
 use bevy::prelude::{Commands, Entity, Single, Query, With, Res, ResMut, Handle, Image, Transform, Sprite, Name, warn, Vec2, Vec3};
 
 use crate::camera::components::MainCamera;
-use crate::chunk::{components::Chunk, resources::{ChunkManager, GridOriginOffset}, traits::Vec2Ext, types::{GridCoord, ChunkOwnerId, WorldCoord}};
+use crate::chunk::{components::Chunk, resources::{ChunkManager, GridOriginOffset}, types::{GridCoord, ChunkOwnerId}};
 use crate::config::statics::CONFIG;
 use crate::debug::observers::on_click_select;
 use crate::usf::scale::{Scale, DynScale};
@@ -54,7 +54,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     let chunk_query = main_access.chunk_query;
     let mut chunk_manager = main_access.chunk_manager;
     let grid_origin_offset = main_access.grid_origin_offset;
-    let camera_transform = main_access.camera_transform;
+    let _camera_transform = main_access.camera_transform;
 
     let mut spawn_chunk_states = Vec::new();
 

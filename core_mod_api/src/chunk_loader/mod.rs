@@ -18,10 +18,7 @@ use types::{RemovedChunkLoader, RemovedChunkLoaderObservation};
 use crate::{
     core::run_conditions::run_after_startup_finished,
     time::run_conditions::run_if_not_paused,
-    utils::{
-        components::{DropHook, InitHook},
-        functions::{cleanup_drop_hooks_system, cleanup_init_hooks_system, observe_on_remove_drop_hook, observe_on_remove_init_hook},
-    },
+    utils::lifecycle_hook::{DropHook, InitHook, cleanup_drop_hooks_system, cleanup_init_hooks_system, observe_on_remove_drop_hook, observe_on_remove_init_hook},
 };
 
 pub(crate) struct ChunkLoaderPlugin;

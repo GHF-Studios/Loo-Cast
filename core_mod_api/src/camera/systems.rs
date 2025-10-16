@@ -8,7 +8,7 @@ use crate::time::resources::VirtualPaused;
 
 use super::resources::{GameViewRenderTarget, ZoomFactor, ViewScale};
 
-pub(crate) fn setup_main_render_target(
+pub(super) fn setup_main_render_target(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
     mut egui_textures: ResMut<bevy_egui::EguiUserTextures>,
@@ -48,7 +48,7 @@ pub(crate) fn setup_main_render_target(
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn main_camera_zoom_system(
+pub(super) fn main_camera_zoom_system(
     mut projection_query: Query<&mut Projection, With<Camera>>,
     mut scroll_event_reader: EventReader<MouseWheel>,
     input_mode: Res<State<InputMode>>,
@@ -83,7 +83,7 @@ pub(crate) fn main_camera_zoom_system(
     }
 }
 
-pub fn update_view_scale_from_zoom(
+pub(super) fn update_view_scale_from_zoom(
     zoom_factor: Res<ZoomFactor>,
     mut view_scale: ResMut<ViewScale>,
 ) {

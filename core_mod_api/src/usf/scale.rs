@@ -443,14 +443,14 @@ impl Scale {
     /// Get the index from the top (0..=70)
     pub fn to_index_from_top(&self) -> u8 {
         let scale_factor_exponent = self.scale_factor_exponent();
-        assert!(scale_factor_exponent >= -35_i8 && scale_factor_exponent <= 35_i8);
+        assert!((-35_i8..=35_i8).contains(&scale_factor_exponent));
         (35_i8 - scale_factor_exponent) as u8
     }
 
     /// Get the index from the bottom (70..=0)
     pub fn to_index_from_bottom(&self) -> u8 {
         let scale_factor_exponent = self.scale_factor_exponent();
-        assert!(scale_factor_exponent >= -35_i8 && scale_factor_exponent <= 35_i8);
+        assert!((-35_i8..=35_i8).contains(&scale_factor_exponent));
         (scale_factor_exponent + 35_i8) as u8
     }
 

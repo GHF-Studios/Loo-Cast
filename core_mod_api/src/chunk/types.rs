@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use tokio::task::JoinHandle;
 
 use crate::usf::scale::{Scale, DynScale};
-use crate::utils::types::I128Vec2;
+use crate::utils::i128vec2::I128Vec2;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 
 #[derive(Reflect)]

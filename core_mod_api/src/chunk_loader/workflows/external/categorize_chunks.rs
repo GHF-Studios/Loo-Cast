@@ -3,11 +3,11 @@ use bevy::prelude::*;
 use std::collections::HashSet;
 
 use crate::chunk::resources::{ChunkManager, GridOriginOffset};
-use crate::chunk::traits::{I128Vec2Ext, Vec2Ext};
+use crate::chunk::traits::Vec2Ext;
 use crate::chunk::types::GridCoord;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::workflows::external::{load_chunks::LoadChunkInput, unload_chunks::UnloadChunkInput};
-use crate::utils::components::DropHook;
+use crate::utils::lifecycle_hook::DropHook;
 
 // Items
 

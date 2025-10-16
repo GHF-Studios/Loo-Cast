@@ -80,7 +80,7 @@ define_workflow_mod_OLD! {
                     player::components::Player,
                     follower::components::FollowerTarget,
                     usf::scale::ScaleMeter1,
-                    utils::components::DropHook,
+                    utils::lifecycle_hook::DropHook,
                 };
             },
             user_items: {},

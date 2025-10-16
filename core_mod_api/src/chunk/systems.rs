@@ -9,7 +9,7 @@ use crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkO
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::resources::RemovedChunkLoaders;
 use crate::config::statics::CONFIG;
-use crate::utils::components::InitHook;
+use crate::utils::lifecycle_hook::InitHook;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
 use super::components::Chunk;

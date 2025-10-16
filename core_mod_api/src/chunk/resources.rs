@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::{chunk::types::ChunkOwnerId, gpu::workflows::gpu::generate_chunk_textures::user_items::ChunkRenderExecutor};
 use crate::chunk::types::GridCoord;
-use crate::utils::types::I128Vec2;
+use crate::utils::i128vec2::I128Vec2;
 
 use super::intent::{ActionIntent, ActionPriority};
 
