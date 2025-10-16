@@ -1,13 +1,24 @@
 use bevy::prelude::{IVec2, Vec2, Vec3};
-use std::sync::Arc;
+use std::{marker::PhantomData, sync::Arc};
 
 use super::scale::{Scale, DynScale};
 
+pub trait PosSafety {}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GridPos {
+pub struct Checked;
+impl PosSafety for Checked {}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Unchecked;
+impl PosSafety for Unchecked {}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct GridPos<PS: PosSafety = Checked> {
     parent: Option<Arc<GridPos>>,
     scale: Scale,
     xy: IVec2,
+    phantom_safety: PhantomData<PS>,
 }
 impl GridPos {
     fn validate_xy(xy: &IVec2) {
@@ -30,7 +41,12 @@ impl GridPos {
     /// Create a GridPos at the absolute root (Scale::MAX) with no parent.
     pub fn new_root(xy: IVec2) -> Self {
         Self::validate_xy(&xy);
-        Self { parent: None, scale: Scale::MAX, xy }
+        Self { parent: None, scale: Scale::MAX, xy, phantom_safety: PhantomData }
+    }
+
+    /// Create a GridPos at the absolute root (Scale::MAX) with no parent.
+    pub fn new_root_unchecked(xy: IVec2) -> GridPos<Unchecked> {
+        GridPos::<Unchecked> { parent: None, scale: Scale::MAX, xy, phantom_safety: PhantomData }
     }
 
     /// Create a GridPos with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
@@ -42,7 +58,15 @@ impl GridPos {
         let scale = parent.scale.zoomed_in();
         let parent = Some(Arc::new(parent));
 
-        Self { parent, scale, xy }
+        Self { parent, scale, xy, phantom_safety: PhantomData }
+    }
+
+    /// Create a GridPos with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
+    pub fn new_unchecked(parent: GridPos, xy: IVec2) -> GridPos<Unchecked> {
+        let scale = parent.scale.zoomed_in();
+        let parent = Some(Arc::new(parent));
+
+        GridPos::<Unchecked> { parent, scale, xy, phantom_safety: PhantomData }
     }
 
     /// Create a GridPos with all ancestors up, from the specified scale to the root at Scale::MAX, pre-filled with IVec2::ZERO, except for the leaf at the specified scale, which is set to the specified xy.
@@ -60,7 +84,7 @@ impl GridPos {
             current = Self::new(current, IVec2::ZERO);
         }
 
-        Self { parent: current.parent, scale, xy }
+        Self { parent: current.parent, scale, xy, phantom_safety: PhantomData }
     }
 
     /// Create a GridPos with all ancestors, from the specified scale up to the root at Scale::MAX, pre-filled with the specified xy.
@@ -78,7 +102,7 @@ impl GridPos {
             current = Self::new(current, xy);
         }
 
-        Self { parent: current.parent, scale, xy }
+        Self { parent: current.parent, scale, xy, phantom_safety: PhantomData }
     }
 
     pub fn zoom_out(&mut self) {
@@ -130,6 +154,33 @@ impl GridPos {
         }
 
         raw_offsets
+    }
+}
+impl From<GridPos<Unchecked>> for GridPos<Checked> {
+    fn from(value: GridPos<Unchecked>) -> Self {
+        GridPos::<Checked> { parent: value.parent, scale: value.scale, xy: value.xy, phantom_safety: PhantomData }
+    }
+}
+impl Default for GridPos<Unchecked> {
+    fn default() -> Self {
+        GridPos::<Unchecked> { parent: None, scale: Scale::default(), xy: IVec2::ZERO, phantom_safety: PhantomData }
+    }
+}
+impl std::fmt::Debug for GridPos {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut msg = String::new();
+        let mut cursor = self;
+        loop {
+            let suffix = if msg.is_empty() { String::new() } else { format!(", {}", msg) };
+            msg = format!("({}, {}){}", cursor.xy.x, cursor.xy.y, suffix);
+            if let Some(p) = &cursor.parent {
+                cursor = p;
+            } else {
+                break;
+            }
+        }
+
+        write!(f, "[{}] @ scale {}", msg, self.scale as i8)
     }
 }
 impl std::ops::Add<IVec2> for GridPos {
@@ -219,11 +270,10 @@ impl std::ops::Add<GridPos> for GridPos {
 
         // === Phase 4: Build final GridPos tree ===
         let mut result: Option<GridPos> = None;
-        for (scale, xy) in raw_stack {
-            result = Some(GridPos {
-                parent: result.map(Arc::new),
-                scale,
-                xy,
+        for (_scale, xy) in raw_stack {
+            result = Some(match result {
+                Some(parent) => GridPos::new(parent, xy),
+                None => GridPos::new_root(xy),
             });
         }
 
@@ -292,11 +342,10 @@ impl std::ops::Sub<GridPos> for GridPos {
 
         // === Phase 4: Build final GridPos tree ===
         let mut result: Option<GridPos> = None;
-        for (scale, xy) in raw_stack {
-            result = Some(GridPos {
-                parent: result.map(Arc::new),
-                scale,
-                xy,
+        for (_scale, xy) in raw_stack {
+            result = Some(match result {
+                Some(parent) => GridPos::new(parent, xy),
+                None => GridPos::new_root(xy),
             });
         }
 
@@ -309,7 +358,7 @@ impl std::ops::SubAssign<GridPos> for GridPos {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct SubgridPos {
     grid_offset: GridPos,
     subgrid_offset: IVec2,
@@ -339,11 +388,10 @@ impl SubgridPos {
             panic!("Cannot zoom out SubgridPos beyond the root GridPos");
         }
 
-        let grid_pos = GridPos {
-            parent: Some(Arc::new(self.grid_offset.clone())),
-            scale: self.grid_offset.scale.zoomed_in(),
-            xy: self.subgrid_offset,
-        };
+        let grid_pos = GridPos::new(
+            self.grid_offset.clone(),
+            self.subgrid_offset,
+        );
 
         let mut unit_pos = UnitPos {
             grid_offset: grid_pos,
@@ -354,6 +402,11 @@ impl SubgridPos {
 
         self.grid_offset = (*unit_pos.grid_offset.parent.unwrap()).clone();
         self.subgrid_offset = unit_pos.grid_offset.xy;
+    }
+}
+impl std::fmt::Debug for SubgridPos {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({:?}: {})", self.grid_offset, self.subgrid_offset)
     }
 }
 impl std::ops::Add<IVec2> for SubgridPos {
@@ -448,11 +501,10 @@ impl std::ops::Add<SubgridPos> for SubgridPos {
 
         // === Phase 4: Build GridPos tree and extract SubgridPos ===
         let mut result: Option<GridPos> = None;
-        for (scale, xy) in raw_stack {
-            result = Some(GridPos {
-                parent: result.map(Arc::new),
-                scale,
-                xy,
+        for (_scale, xy) in raw_stack {
+            result = Some(match result {
+                Some(parent) => GridPos::new(parent, xy),
+                None => GridPos::new_root(xy),
             });
         }
 
@@ -471,7 +523,6 @@ impl std::ops::AddAssign<SubgridPos> for SubgridPos {
 impl std::ops::Sub<SubgridPos> for SubgridPos {
     type Output = Self;
 
-    // TODO: Impl
     fn sub(self, rhs: SubgridPos) -> Self::Output {
         // === Phase 1: Build extended GridPos stacks from root to leaf ===
         fn build_stack(subgrid: &SubgridPos) -> Vec<(Scale, IVec2)> {
@@ -531,11 +582,10 @@ impl std::ops::Sub<SubgridPos> for SubgridPos {
 
         // === Phase 4: Build GridPos tree and extract SubgridPos ===
         let mut result: Option<GridPos> = None;
-        for (scale, xy) in raw_stack {
-            result = Some(GridPos {
-                parent: result.map(Arc::new),
-                scale,
-                xy,
+        for (_scale, xy) in raw_stack {
+            result = Some(match result {
+                Some(parent) => GridPos::new(parent, xy),
+                None => GridPos::new_root(xy),
             });
         }
 
@@ -552,7 +602,7 @@ impl std::ops::SubAssign<SubgridPos> for SubgridPos {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct UnitPos {
     grid_offset: GridPos, // Recursive chunk position
     unit_offset: Vec3, // Bevy units inside the chunk (e.g., [-500.0..500.0])
@@ -578,6 +628,12 @@ impl UnitPos {
         Self::validate_unit_offset(&unit_offset);
         Self { grid_offset, unit_offset }
     }
+
+    pub fn new_unchecked(grid_offset: GridPos, unit_offset: Vec2) -> Self {
+        let unit_offset = unit_offset.extend(Self::compute_z(grid_offset.scale));
+        Self::validate_unit_offset(&unit_offset);
+        Self { grid_offset, unit_offset }
+    }
     
     fn zoom_in_multi(&mut self, target_scale: Scale) -> Result<(), &'static str> {
         if target_scale >= self.grid_offset.scale {
@@ -586,9 +642,9 @@ impl UnitPos {
 
         let cursor = &mut self.grid_offset;
         let mut unit_offset = self.unit_offset;
+        let mut placeholder_grid_pos: Option<GridPos<Checked>> = Some(GridPos::default().into());
 
         while cursor.scale > target_scale {
-            let next_scale = cursor.scale.down().unwrap();
             let scale_factor = 10.0;
 
             // Push unit_offset into grid
@@ -607,15 +663,14 @@ impl UnitPos {
             unit_offset *= scale_factor;
 
             // Step down
-            *cursor = GridPos {
-                parent: Some(Arc::new(std::mem::replace(cursor, GridPos {
-                    parent: None, // temporarily invalid; replaced in next iteration
-                    scale: next_scale,
-                    xy: grid_delta,
-                }))),
-                scale: next_scale,
-                xy: grid_delta,
-            };
+            unsafe {
+                let placeholder = std::mem::take(&mut placeholder_grid_pos).unwrap_unchecked();
+                let parent = std::mem::replace(cursor, placeholder);
+                placeholder_grid_pos = Some(std::mem::replace(cursor, GridPos::new(
+                    parent,
+                    grid_delta,
+                )));
+            }
         }
 
         self.unit_offset = unit_offset;
@@ -651,6 +706,11 @@ impl UnitPos {
         self.grid_offset = (*parent).clone();
         self.unit_offset = Vec3::new(offset_in_parent.x, offset_in_parent.y, Self::compute_z(child.scale));
         Self::validate_unit_offset(&self.unit_offset);
+    }
+}
+impl std::fmt::Debug for UnitPos {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({:?}: {})", self.grid_offset, self.unit_offset)
     }
 }
 impl std::ops::Add<IVec2> for UnitPos {
@@ -715,10 +775,10 @@ impl std::ops::Add<UnitPos> for UnitPos {
     fn add(self, rhs: UnitPos) -> Self::Output {
         const MAX_DEPTH_DIFF: u8 = 4;
 
-        fn stack_up(mut cursor: &GridPos) -> Vec<(Scale, IVec2)> {
+        fn stack_up(mut cursor: &GridPos) -> Vec<IVec2> {
             let mut stack = Vec::new();
             loop {
-                stack.push((cursor.scale, cursor.xy));
+                stack.push(cursor.xy);
                 if let Some(p) = &cursor.parent {
                     cursor = p;
                 } else {
@@ -740,20 +800,17 @@ impl std::ops::Add<UnitPos> for UnitPos {
 
         // Pad shorter stack with (scale, ZERO)
         while a_stack.len() < max_depth {
-            let (s, _) = b_stack[a_stack.len()];
-            a_stack.push((s, IVec2::ZERO));
+            a_stack.push(IVec2::ZERO);
         }
         while b_stack.len() < max_depth {
-            let (s, _) = a_stack[b_stack.len()];
-            b_stack.push((s, IVec2::ZERO));
+            b_stack.push(IVec2::ZERO);
         }
 
         // === Phase 1: Accumulate raw sums top-down ===
         let mut raw_stack = Vec::with_capacity(max_depth);
         for i in 0..max_depth {
-            let scale = a_stack[i].0; // should match in both stacks
-            let sum = a_stack[i].1 + b_stack[i].1;
-            raw_stack.push((scale, sum));
+            let sum = a_stack[i] + b_stack[i];
+            raw_stack.push(sum);
         }
 
         // === Phase 2: Rescale and add unit offsets ===
@@ -782,23 +839,22 @@ impl std::ops::Add<UnitPos> for UnitPos {
 
         // === Phase 4: Normalize bottom-up with wrapping + carry + unit_carry ===
         for i in (0..raw_stack.len()).rev() {
-            let (_scale, sum) = raw_stack[i];
+            let sum = raw_stack[i];
             let wrapped_x = ((sum.x + carry.x + 5).rem_euclid(10)) - 5;
             let wrapped_y = ((sum.y + carry.y + 5).rem_euclid(10)) - 5;
             let carry_x = (sum.x + carry.x - wrapped_x).div_euclid(10);
             let carry_y = (sum.y + carry.y - wrapped_y).div_euclid(10);
 
-            raw_stack[i].1 = IVec2::new(wrapped_x, wrapped_y);
+            raw_stack[i] = IVec2::new(wrapped_x, wrapped_y);
             carry = IVec2::new(carry_x, carry_y);
         }
 
         // === Phase 5: Build final GridPos tree ===
         let mut result: Option<GridPos> = None;
-        for (scale, xy) in raw_stack {
-            result = Some(GridPos {
-                parent: result.map(Arc::new),
-                scale,
-                xy,
+        for xy in raw_stack {
+            result = Some(match result {
+                Some(parent) => GridPos::new(parent, xy),
+                None => GridPos::new_root(xy),
             });
         }
 
@@ -822,10 +878,10 @@ impl std::ops::Sub<UnitPos> for UnitPos {
             std::cmp::Ordering::Less => rhs.zoom_in_multi(self.grid_offset.scale).unwrap(),
         }
 
-        fn stack_up(mut cursor: &GridPos) -> Vec<(Scale, IVec2)> {
+        fn stack_up(mut cursor: &GridPos) -> Vec<IVec2> {
             let mut stack = Vec::new();
             loop {
-                stack.push((cursor.scale, cursor.xy));
+                stack.push(cursor.xy);
                 if let Some(p) = &cursor.parent {
                     cursor = p;
                 } else {
@@ -847,20 +903,17 @@ impl std::ops::Sub<UnitPos> for UnitPos {
 
         // Pad shorter stack with (scale, ZERO)
         while a_stack.len() < max_depth {
-            let (s, _) = b_stack[a_stack.len()];
-            a_stack.push((s, IVec2::ZERO));
+            a_stack.push(IVec2::ZERO);
         }
         while b_stack.len() < max_depth {
-            let (s, _) = a_stack[b_stack.len()];
-            b_stack.push((s, IVec2::ZERO));
+            b_stack.push(IVec2::ZERO);
         }
 
         // === Phase 1: Accumulate raw diffs top-down ===
         let mut raw_stack = Vec::with_capacity(max_depth);
         for i in 0..max_depth {
-            let scale = a_stack[i].0; // should match in both stacks
-            let diff = a_stack[i].1 - b_stack[i].1;
-            raw_stack.push((scale, diff));
+            let diff = a_stack[i] - b_stack[i];
+            raw_stack.push(diff);
         }
 
         // === Phase 2: Rescale and add unit offsets ===
@@ -889,23 +942,22 @@ impl std::ops::Sub<UnitPos> for UnitPos {
 
         // === Phase 4: Normalize bottom-up with wrapping + carry + unit_carry ===
         for i in (0..raw_stack.len()).rev() {
-            let (_scale, diff) = raw_stack[i];
+            let diff = raw_stack[i];
             let wrapped_x = ((diff.x + carry.x + 5).rem_euclid(10)) - 5;
             let wrapped_y = ((diff.y + carry.y + 5).rem_euclid(10)) - 5;
             let carry_x = (diff.x + carry.x - wrapped_x).div_euclid(10);
             let carry_y = (diff.y + carry.y - wrapped_y).div_euclid(10);
 
-            raw_stack[i].1 = IVec2::new(wrapped_x, wrapped_y);
+            raw_stack[i] = IVec2::new(wrapped_x, wrapped_y);
             carry = IVec2::new(carry_x, carry_y);
         }
 
         // === Phase 5: Build final GridPos tree ===
         let mut result: Option<GridPos> = None;
-        for (scale, xy) in raw_stack {
-            result = Some(GridPos {
-                parent: result.map(Arc::new),
-                scale,
-                xy,
+        for xy in raw_stack {
+            result = Some(match result {
+                Some(parent) => GridPos::new(parent, xy),
+                None => GridPos::new_root(xy),
             });
         }
 
@@ -1250,6 +1302,7 @@ fn unit_pos_sub_test_3() {
     assert_eq!(c, expected);
 }
 
+// TODO: Impl properly
 #[test]
 fn unit_pos_sub_test_4() {
     let a_grid = GridPos::new_root(IVec2::new(1, 1));
