@@ -96,10 +96,12 @@ impl UnitPos {
                 ((unit_offset.y + 50.0) / 100.0).floor() as i32,
             );
 
+            let chunk_size = 1000.0 / 10f32.powi((scale as i8 - next_scale as i8) as i32);
+
             // Centered offset adjustment
             unit_offset -= Vec2::new(
-                grid_delta.x as f32 * 1000.0,
-                grid_delta.y as f32 * 1000.0,
+                grid_delta.x as f32 * chunk_size,
+                grid_delta.y as f32 * chunk_size,
             );
 
             // Prepare for next deeper scale
@@ -170,7 +172,7 @@ impl UnitPos {
         let child_origin = child.xy.as_vec2() * child_size;
 
         // Step 2: Shift up into parent space, then rescale
-        let offset_in_parent = (self.unit_offset.truncate() + child_origin) / child_factor;
+        let offset_in_parent = child_origin + (self.unit_offset.truncate() / child_factor);
 
         // Step 3: Update context
         self.grid_offset = (*parent).clone();
