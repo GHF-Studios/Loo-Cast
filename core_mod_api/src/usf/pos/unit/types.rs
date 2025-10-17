@@ -92,14 +92,14 @@ impl UnitPos {
 
             // Compute delta for this scale step
             let grid_delta = IVec2::new(
-                ((unit_offset.x + 500.0).div_euclid(1000.0)) as i32,
-                ((unit_offset.y + 500.0).div_euclid(1000.0)) as i32,
+                ((unit_offset.x + 50.0) / 100.0).floor() as i32,
+                ((unit_offset.y + 50.0) / 100.0).floor() as i32,
             );
 
             // Centered offset adjustment
             unit_offset -= Vec2::new(
-                (grid_delta.x as f32 * 1000.0) - 500.0,
-                (grid_delta.y as f32 * 1000.0) - 500.0,
+                grid_delta.x as f32 * 1000.0,
+                grid_delta.y as f32 * 1000.0,
             );
 
             // Prepare for next deeper scale

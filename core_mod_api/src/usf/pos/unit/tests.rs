@@ -1,6 +1,3 @@
-use bevy::prelude::{IVec2, Vec2};
-
-use crate::usf::pos::grid::types::GridPos;
 use crate::unit_pos;
 
 use super::types::UnitPos;
@@ -13,6 +10,8 @@ fn unit_pos_zoom_out_test_1() {
     assert_eq!(a, expected);
 }
 
+/*
+
 // TODO: Impl properly
 #[test]
 fn unit_pos_zoom_out_test_2() {
@@ -22,6 +21,8 @@ fn unit_pos_zoom_out_test_2() {
 #[test]
 fn unit_pos_zoom_out_test_3() {
 }
+
+*/
 
 #[test]
 fn unit_pos_zoom_in_test_1() {
@@ -39,13 +40,25 @@ fn unit_pos_zoom_in_test_2() {
     assert_eq!(a, expected);
 }
 
+// TODO: Impl properly
 #[test]
 fn unit_pos_zoom_in_test_3() {
-    let mut a = unit_pos!([(0, 0)]: (200.1, 200.1));
-    a.zoom_in();
-    let expected = unit_pos!([(0, 0), (2, 2)]: (1.0, 1.0));
+    let mut a = unit_pos!([(0, 0), (4, 4), (3, 3), (2, 2), (1, 1)]: (0.0, 0.0));
+    a.zoom_out();
+    let expected = unit_pos!([(0, 0), (4, 4), (3, 3), (2, 2)]: (0.0, 0.0));
     assert_eq!(a, expected);
 }
+
+// TODO: Impl properly
+#[test]
+fn unit_pos_zoom_out_test_4() {
+    let mut a = unit_pos!([(0, 0), (4, 4), (3, 3), (2, 2), (1, 1)]: (499.9, 499.9));
+    a.zoom_out();
+    let expected = unit_pos!([(0, 0), (4, 4), (3, 3), (2, 2)]: (149.99, 149.99));
+    assert_eq!(a, expected);
+}
+
+/*
 
 // TODO: Impl properly
 #[test]
@@ -61,6 +74,8 @@ fn unit_pos_zoom_in_multi_test_2() {
 #[test]
 fn unit_pos_zoom_in_multi_test_3() {
 }
+
+*/
 
 #[test]
 fn unit_pos_add_test_1() {

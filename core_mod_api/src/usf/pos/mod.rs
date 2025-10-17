@@ -34,7 +34,7 @@ macro_rules! subgrid_pos {
 macro_rules! unit_pos {
     ([$first:expr $(, $rest:expr)*]: $unit:expr) => {{
         {
-            use bevy::math::IVec2;
+            use bevy::math::{IVec2, Vec2};
             use crate::usf::pos::unit::types::UnitPos;
             
             let stack = vec![IVec2::from($first) $(, IVec2::from($rest))*];
