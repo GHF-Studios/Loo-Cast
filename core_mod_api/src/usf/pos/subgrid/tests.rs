@@ -1,7 +1,3 @@
-use bevy::prelude::IVec2;
-
-use crate::usf::scale::Scale;
-use crate::usf::pos::grid::types::GridPos;
 use crate::subgrid_pos;
 
 use super::types::SubgridPos;
@@ -50,10 +46,10 @@ fn subgrid_pos_add_test_2() {
 
 #[test]
 fn subgrid_pos_add_test_3() {
-    let a = subgrid_pos!([(0, 0)]: (1, 1));
-    let b = subgrid_pos!([(0, 0), (4, 4), (3, 3)]: (2, 2));
+    let a = SubgridPos::build().repeat((4, 4), 70).finish((4, 4));
+    let b = SubgridPos::build().repeat((0, 0), 70).finish((1, 1));
     let c = a + b;
-    let expected = subgrid_pos!([(1, 1), (-5, -5), (3, 3)]: (2, 2));
+    let expected = SubgridPos::build().repeat((-5, -5), 70).finish((-5, -5));
     assert_eq!(c, expected);
 }
 
@@ -77,9 +73,9 @@ fn subgrid_pos_sub_test_2() {
 
 #[test]
 fn subgrid_pos_sub_test_3() {
-    let a = subgrid_pos!([(0, 0)]: (1, 1));
-    let b = subgrid_pos!([(0, 0), (4, 4), (3, 3)]: (2, 2));
+    let a = SubgridPos::build().repeat((-5, -5), 70).finish((-5, -5));
+    let b = SubgridPos::build().repeat((0, 0), 70).finish((1, 1));
     let c = a - b;
-    let expected = subgrid_pos!([(0, 0), (-3, -3), (-3, -3)]: (-2, -2));
+    let expected = SubgridPos::build().repeat((4, 4), 70).finish((4, 4));
     assert_eq!(c, expected);
 }

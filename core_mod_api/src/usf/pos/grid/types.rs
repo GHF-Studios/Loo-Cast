@@ -10,24 +10,30 @@ pub struct GridPosBuilder {
 }
 
 impl GridPosBuilder {
-    pub fn from_root(root: IVec2) -> Self {
+    pub fn new() -> Self {
         Self {
-            chain: vec![root],
+            chain: vec![],
         }
     }
 
-    pub fn push(mut self, next: IVec2) -> Self {
+    pub fn push(mut self, next: (i32, i32)) -> Self {
+        let next = IVec2::new(next.0, next.1);
         self.chain.push(next);
         self
     }
 
-    pub fn push_many<I: IntoIterator<Item = IVec2>>(mut self, items: I) -> Self {
-        self.chain.extend(items);
+    pub fn push_many<I: IntoIterator<Item = (i32, i32)>>(mut self, items: I) -> Self {
+        self.chain.extend(items.into_iter().map(|xy| IVec2::new(xy.0, xy.1)));
         self
     }
 
-    pub fn repeat(mut self, xy: IVec2, count: usize) -> Self {
-        self.chain.extend(std::iter::repeat_n(xy, count));
+    pub fn repeat(mut self, xy: (i32, i32), count: usize) -> Self {
+        self.chain.extend(std::iter::repeat_n(IVec2::new(xy.0, xy.1), count));
+        self
+    }
+
+    pub fn reverse(mut self) -> Self {
+        self.chain.reverse();
         self
     }
 
@@ -44,8 +50,8 @@ pub struct GridPos<LS: LogicSafety = Checked> {
     pub(in super::super) phantom_safety: PhantomData<LS>,
 }
 impl GridPos {
-    pub fn build(root: IVec2) -> GridPosBuilder {
-        GridPosBuilder::from_root(root)
+    pub fn build() -> GridPosBuilder {
+        GridPosBuilder::new()
     }
 
     fn validate_xy(xy: &IVec2) {

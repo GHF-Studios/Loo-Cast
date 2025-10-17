@@ -9,29 +9,35 @@ pub struct UnitPosBuilder {
 }
 
 impl UnitPosBuilder {
-    pub fn from_root(root: IVec2) -> Self {
+    pub fn new() -> Self {
         Self {
-            chain: vec![root],
+            chain: vec![],
         }
     }
 
-    pub fn push(mut self, next: IVec2) -> Self {
+    pub fn push(mut self, next: (i32, i32)) -> Self {
+        let next = IVec2::new(next.0, next.1);
         self.chain.push(next);
         self
     }
 
-    pub fn push_many<I: IntoIterator<Item = IVec2>>(mut self, items: I) -> Self {
-        self.chain.extend(items);
+    pub fn push_many<I: IntoIterator<Item = (i32, i32)>>(mut self, items: I) -> Self {
+        self.chain.extend(items.into_iter().map(|xy| IVec2::new(xy.0, xy.1)));
         self
     }
 
-    pub fn repeat(mut self, xy: IVec2, count: usize) -> Self {
-        self.chain.extend(std::iter::repeat_n(xy, count));
+    pub fn repeat(mut self, xy: (i32, i32), count: usize) -> Self {
+        self.chain.extend(std::iter::repeat_n(IVec2::new(xy.0, xy.1), count));
         self
     }
 
-    pub fn finish(self, unit_offset: Vec2) -> UnitPos {
-        UnitPos::try_from((self.chain, unit_offset)).unwrap()
+    pub fn reverse(mut self) -> Self {
+        self.chain.reverse();
+        self
+    }
+
+    pub fn finish(self, unit_xy: (f32, f32)) -> UnitPos {
+        UnitPos::try_from((self.chain, Vec2::new(unit_xy.0, unit_xy.1))).unwrap()
     }
 }
 
@@ -41,8 +47,8 @@ pub struct UnitPos {
     pub(in super::super) unit_offset: Vec3, // Bevy units inside the chunk (e.g., [-500.0..500.0])
 }
 impl UnitPos {
-    pub fn build(root: IVec2) -> UnitPosBuilder {
-        UnitPosBuilder::from_root(root)
+    pub fn build() -> UnitPosBuilder {
+        UnitPosBuilder::new()
     }
 
     fn validate_unit_offset(unit_offset: &Vec3) {
@@ -71,44 +77,73 @@ impl UnitPos {
         Self { grid_offset, unit_offset }
     }
     
-    fn zoom_in_multi(&mut self, target_scale: Scale) -> Result<(), &'static str> {
+    pub fn zoom_in_multi(&mut self, target_scale: Scale) -> Result<(), &'static str> {
         if target_scale >= self.grid_offset.scale {
-            return Err("Target scale must be smaller than current scale")
+            return Err("Target scale must be smaller than current scale");
         }
 
-        let cursor = &mut self.grid_offset;
+        // === Phase 1: Build stack of deltas ===
         let mut unit_offset = self.unit_offset.truncate();
-        let mut placeholder_grid_pos: Option<GridPos<Checked>> = Some(GridPos::default().into());
+        let mut stack: Vec<(Scale, IVec2)> = Vec::new();
+        let mut scale = self.grid_offset.scale;
 
-        while cursor.scale > target_scale {
-            let scale_factor = 10.0;
+        while scale > target_scale {
+            let next_scale = scale.down().unwrap();
 
-            // Push unit_offset into grid
+            // Compute delta for this scale step
             let grid_delta = IVec2::new(
-                (unit_offset.x / 1000.0).floor() as i32,
-                (unit_offset.y / 1000.0).floor() as i32,
+                ((unit_offset.x + 500.0).div_euclid(1000.0)) as i32,
+                ((unit_offset.y + 500.0).div_euclid(1000.0)) as i32,
             );
 
+            // Centered offset adjustment
             unit_offset -= Vec2::new(
-                grid_delta.x as f32 * 1000.0,
-                grid_delta.y as f32 * 1000.0,
+                (grid_delta.x as f32 * 1000.0) - 500.0,
+                (grid_delta.y as f32 * 1000.0) - 500.0,
             );
 
-            // Multiply unit_offset by 10 to rebase to finer scale
-            unit_offset *= scale_factor;
+            // Prepare for next deeper scale
+            unit_offset *= 10.0;
 
-            // Step down
-            unsafe {
-                let placeholder = std::mem::take(&mut placeholder_grid_pos).unwrap_unchecked();
-                let parent = std::mem::replace(cursor, placeholder);
-                placeholder_grid_pos = Some(std::mem::replace(cursor, GridPos::new(
-                    parent,
-                    grid_delta,
-                )));
-            }
+            // Push the computed delta into our stack
+            stack.push((next_scale, grid_delta));
+
+            scale = next_scale;
         }
 
-        self.unit_offset = unit_offset.extend(Self::compute_z(cursor.scale));
+        // === Phase 2: Normalize the grid deltas (bottom-up) ===
+        let mut carry = IVec2::ZERO;
+        for i in (0..stack.len()).rev() {
+            let (_scale, mut xy) = stack[i];
+
+            let new_xy = xy + carry;
+            let wrapped_x = ((new_xy.x + 5).rem_euclid(10)) - 5;
+            let wrapped_y = ((new_xy.y + 5).rem_euclid(10)) - 5;
+
+            let carry_x = (new_xy.x - wrapped_x).div_euclid(10);
+            let carry_y = (new_xy.y - wrapped_y).div_euclid(10);
+
+            stack[i].1 = IVec2::new(wrapped_x, wrapped_y);
+            carry = IVec2::new(carry_x, carry_y);
+        }
+
+        // === Phase 3: Apply final carry to current grid_offset ===
+        let mut new_grid = self.grid_offset.clone();
+        new_grid.xy += carry;
+
+        // === Phase 4: Build new GridPos tree ===
+        for (_scale, xy) in stack {
+            new_grid = GridPos::new(new_grid, xy);
+        }
+
+        // === Phase 5: Normalize final unit_offset ===
+        let wrapped_x = ((unit_offset.x + 500.0).rem_euclid(1000.0)) - 500.0;
+        let wrapped_y = ((unit_offset.y + 500.0).rem_euclid(1000.0)) - 500.0;
+
+        // === Phase 6: Final assignment ===
+        self.grid_offset = new_grid;
+        self.unit_offset = Vec2::new(wrapped_x, wrapped_y)
+            .extend(Self::compute_z(self.grid_offset.scale));
         Self::validate_unit_offset(&self.unit_offset);
 
         Ok(())

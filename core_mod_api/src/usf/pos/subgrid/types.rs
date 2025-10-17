@@ -9,29 +9,35 @@ pub struct SubgridPosBuilder {
 }
 
 impl SubgridPosBuilder {
-    pub fn from_root(root: IVec2) -> Self {
+    pub fn new() -> Self {
         Self {
-            chain: vec![root],
+            chain: vec![],
         }
     }
 
-    pub fn push(mut self, next: IVec2) -> Self {
+    pub fn push(mut self, next: (i32, i32)) -> Self {
+        let next = IVec2::new(next.0, next.1);
         self.chain.push(next);
         self
     }
 
-    pub fn push_many<I: IntoIterator<Item = IVec2>>(mut self, items: I) -> Self {
-        self.chain.extend(items);
+    pub fn push_many<I: IntoIterator<Item = (i32, i32)>>(mut self, items: I) -> Self {
+        self.chain.extend(items.into_iter().map(|xy| IVec2::new(xy.0, xy.1)));
         self
     }
 
-    pub fn repeat(mut self, xy: IVec2, count: usize) -> Self {
-        self.chain.extend(std::iter::repeat_n(xy, count));
+    pub fn repeat(mut self, xy: (i32, i32), count: usize) -> Self {
+        self.chain.extend(std::iter::repeat_n(IVec2::new(xy.0, xy.1), count));
         self
     }
 
-    pub fn finish(self, subgrid_offset: IVec2) -> SubgridPos {
-        SubgridPos::try_from((self.chain, subgrid_offset)).unwrap()
+    pub fn reverse(mut self) -> Self {
+        self.chain.reverse();
+        self
+    }
+
+    pub fn finish(self, subgrid_xy: (i32, i32)) -> SubgridPos {
+        SubgridPos::try_from((self.chain, IVec2::new(subgrid_xy.0, subgrid_xy.1))).unwrap()
     }
 }
 
@@ -41,8 +47,8 @@ pub struct SubgridPos {
     pub(in super::super) subgrid_offset: IVec2,
 }
 impl SubgridPos {
-    pub fn build(root: IVec2) -> SubgridPosBuilder {
-        SubgridPosBuilder::from_root(root)
+    pub fn build() -> SubgridPosBuilder {
+        SubgridPosBuilder::new()
     }
 
     fn validate_grid_offset(grid_offset: &GridPos) {

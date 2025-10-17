@@ -1,6 +1,5 @@
 use bevy::prelude::{IVec2, Vec2};
 
-use crate::usf::scale::Scale;
 use crate::usf::pos::grid::types::GridPos;
 use crate::unit_pos;
 
@@ -32,14 +31,20 @@ fn unit_pos_zoom_in_test_1() {
     assert_eq!(a, expected);
 }
 
-// TODO: Impl properly
 #[test]
 fn unit_pos_zoom_in_test_2() {
+    let mut a = unit_pos!([(0, 0)]: (200.0, 200.0));
+    a.zoom_in();
+    let expected = unit_pos!([(0, 0), (2, 2)]: (0.0, 0.0));
+    assert_eq!(a, expected);
 }
 
-// TODO: Impl properly
 #[test]
 fn unit_pos_zoom_in_test_3() {
+    let mut a = unit_pos!([(0, 0)]: (200.1, 200.1));
+    a.zoom_in();
+    let expected = unit_pos!([(0, 0), (2, 2)]: (1.0, 1.0));
+    assert_eq!(a, expected);
 }
 
 // TODO: Impl properly
@@ -59,109 +64,65 @@ fn unit_pos_zoom_in_multi_test_3() {
 
 #[test]
 fn unit_pos_add_test_1() {
-    let a_grid = GridPos::new_root(IVec2::new(0, 0));
-    let a = UnitPos::new(a_grid, Vec2::new(0.0, 0.0));
-    let b_grid = GridPos::new_root(IVec2::new(0, 0));
-    let b_grid = GridPos::new(b_grid, IVec2::new(0, 0));
-    let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
+    let a = unit_pos!([(0, 0)]: (0.0, 0.0));
+    let b = unit_pos!([(0, 0), (0, 0)]: (200.0, 200.0));
     let c = a + b;
-    let expected_grid = GridPos::new_root(IVec2::new(0, 0));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(0, 0));
-    let expected = UnitPos::new(expected_grid, Vec2::new(200.0, 200.0));
+    let expected = unit_pos!([(0, 0), (0, 0)]: (200.0, 200.0));
     assert_eq!(c, expected);
 }
 
 #[test]
 fn unit_pos_add_test_2() {
-    let a_grid = GridPos::new_root(IVec2::new(0, 0));
-    let a = UnitPos::new(a_grid, Vec2::new(400.0, 400.0));
-    let b_grid = GridPos::new_root(IVec2::new(0, 0));
-    let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
+    let a = unit_pos!([(0, 0)]: (400.0, 400.0));
+    let b = unit_pos!([(0, 0)]: (200.0, 200.0));
     let c = a + b;
-    let expected_grid = GridPos::new_root(IVec2::new(1, 1));
-    let expected = UnitPos::new(expected_grid, Vec2::new(-400.0, -400.0));
+    let expected = unit_pos!([(1, 1)]: (-400.0, -400.0));
     assert_eq!(c, expected);
 }
 
 #[test]
 fn unit_pos_add_test_3() {
-    let a_grid = GridPos::new_root(IVec2::new(1, 1));
-    let a = UnitPos::new(a_grid, Vec2::new(437.0, 437.0));
-    let b_grid = GridPos::new_root(IVec2::new(1, 1));
-    let b_grid = GridPos::new(b_grid, IVec2::new(1, 1));
-    let b_grid = GridPos::new(b_grid, IVec2::new(1, 1));
-    let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
+    let a = unit_pos!([(1, 1)]: (437.0, 437.0));
+    let b = unit_pos!([(1, 1), (1, 1), (1, 1)]: (200.0, 200.0));
     let c = a + b;
-    let expected_grid = GridPos::new_root(IVec2::new(3, 3));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(-4, -4));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(-5, -5));
-    let expected = UnitPos::new(expected_grid, Vec2::new(-100.0, -100.0));
+    let expected = unit_pos!([(3, 3), (-4, -4), (-5, -5)]: (-100.0, -100.0));
     assert_eq!(c, expected);
 }
 
 #[test]
 fn unit_pos_add_test_4() {
-    // Three-level deep grid
-    let grid = GridPos::new_root(IVec2::new(1, 1));
-    let grid = GridPos::new(grid, IVec2::new(1, 1));
-    let grid = GridPos::new(grid, IVec2::new(1, 1));
-
-    // Two UnitPos, their Vec3 adds up to cause a wrap on one level
-    let a = UnitPos::new(grid.clone(), Vec2::new(499.99, 499.99));
-    let b = UnitPos::new(grid.clone(), Vec2::new(0.02, 0.02));
-
+    let a = unit_pos!([(1, 1), (1, 1), (1, 1)]: (499.99, 499.99));
+    let b = unit_pos!([(1, 1), (1, 1), (1, 1)]: (0.02, 0.02));
     let c = a + b;
-
-    // Carry of (1,1) applied to the lowest grid level
-    let expected_grid = GridPos::new_root(IVec2::new(2, 2));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(2, 2));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(3, 3));
-
-    let expected = UnitPos::new(expected_grid, Vec2::new(-499.99, -499.99));
-
+    let expected = unit_pos!([(2, 2), (2, 2), (3, 3)]: (-499.99, -499.99));
     assert_eq!(c, expected);
 }
 
 #[test]
 fn unit_pos_sub_test_1() {
-    let a_grid = GridPos::new_root(IVec2::new(1, 1));
-    let a = UnitPos::new(a_grid, Vec2::new(0.0, 0.0));
-    let b_grid = GridPos::new_root(IVec2::new(0, 0));
-    let b_grid = GridPos::new(b_grid, IVec2::new(0, 0));
-    let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
+    let a = unit_pos!([(1, 1)]: (0.0, 0.0));
+    let b = unit_pos!([(0, 0), (0, 0)]: (200.0, 200.0));
     let c = a - b;
-    let expected_grid = GridPos::new_root(IVec2::new(1, 1));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(0, 0));
-    let expected = UnitPos::new(expected_grid, Vec2::new(-200.0, -200.0));
+    let expected = unit_pos!([(1, 1), (0, 0)]: (-200.0, -200.0));
     assert_eq!(c, expected);
 }
 
 #[test]
 fn unit_pos_sub_test_2() {
-    let a_grid = GridPos::new_root(IVec2::new(0, 0));
-    let a = UnitPos::new(a_grid, Vec2::new(-200.0, -200.0));
-    let b_grid = GridPos::new_root(IVec2::new(0, 0));
-    let b = UnitPos::new(b_grid, Vec2::new(400.0, 400.0));
+    let a = unit_pos!([(0, 0)]: (-200.0, -200.0));
+    let b = unit_pos!([(0, 0)]: (400.0, 400.0));
     let c = a - b;
-    let expected_grid = GridPos::new_root(IVec2::new(-1, -1));
-    let expected = UnitPos::new(expected_grid, Vec2::new(400.0, 400.0));
+    let expected = unit_pos!([(-1, -1)]: (400.0, 400.0));
     assert_eq!(c, expected);
 }
 
 // TODO: Impl properly
 #[test]
 fn unit_pos_sub_test_3() {
-    let a_grid = GridPos::new_root(IVec2::new(1, 1));
-    let a = UnitPos::new(a_grid, Vec2::new(100.0, 100.0));
-    let b_grid = GridPos::new_root(IVec2::new(1, 1));
-    let b_grid = GridPos::new(b_grid, IVec2::new(0, 0));
-    let b_grid = GridPos::new(b_grid, IVec2::new(0, 0));
-    let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
+    let a = unit_pos!([(1, 1)]: (100.0, 100.0));
+    let b = unit_pos!([(1, 1), (0, 0), (0, 0)]: (200.0, 200.0));
     let c = a - b;
-    let expected_grid = GridPos::new_root(IVec2::new(0, 0));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(1, 1));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(0, 0));
-    let expected = UnitPos::new(expected_grid, Vec2::new(-200.0, -200.0));
+    let expected = unit_pos!([(0, 0), (1, 1), (0, 0)]: (-200.0, -200.0));
     assert_eq!(c, expected);
 }
 
@@ -170,17 +131,10 @@ fn unit_pos_sub_test_3() {
 // TODO: Impl properly
 #[test]
 fn unit_pos_sub_test_4() {
-    let a_grid = GridPos::new_root(IVec2::new(1, 1));
-    let a = UnitPos::new(a_grid, Vec2::new(437.0, 437.0));
-    let b_grid = GridPos::new_root(IVec2::new(1, 1));
-    let b_grid = GridPos::new(b_grid, IVec2::new(1, 1));
-    let b_grid = GridPos::new(b_grid, IVec2::new(1, 1));
-    let b = UnitPos::new(b_grid, Vec2::new(200.0, 200.0));
+    let a = unit_pos!([(1, 1)]: (437.0, 437.0));
+    let b = unit_pos!([(1, 1), (1, 1), (1, 1)]: (200.0, 200.0));
     let c = a - b;
-    let expected_grid = GridPos::new_root(IVec2::new(-4, -4));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(-1, -1));
-    let expected_grid = GridPos::new(expected_grid, IVec2::new(-1, -1));
-    let expected = UnitPos::new(expected_grid, Vec2::new(-500.0, -500.0));
+    let expected = unit_pos!([(-4, -4), (-1, -1), (-1, -1)]: (-500.0, -500.0));
     assert_eq!(c, expected);
 }
 
