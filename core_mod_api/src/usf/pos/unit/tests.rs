@@ -142,12 +142,11 @@ fn unit_pos_sub_test_3() {
     assert_eq!(c, expected);
 }
 
-// TODO: Impl properly
 #[test]
 fn unit_pos_sub_test_4() {
     let a = unit_pos!([(1, 1)]: (437.0, 437.0));
     let b = unit_pos!([(1, 1), (1, 1), (1, 1)]: (200.0, 200.0));
     let c = a - b;
-    let expected = unit_pos!([(0, 0), (3, 3), (2, 2)]: (-193.0, -193.0));
+    let expected = unit_pos!([(0, 0), (3, 3), (3, 3)]: (-500.0, -500.0));
     assert_eq!(c, expected);
 }
