@@ -77,8 +77,8 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         let chunk_z = (-(Scale::MAX as i8 - scale as i8) + chunk_z_offset) as f32;
 
         // let camera_pos = camera_transform.translation.truncate();
-        // let camera_grid_pos = camera_pos.to_grid_coord(grid_origin_offset.0);
-        // let camera_world_coord = camera_pos.to_world_coord(scale, camera_grid_pos);
+        // let camera_grid_extent = camera_pos.to_grid_coord(grid_origin_offset.0);
+        // let camera_world_coord = camera_pos.to_world_coord(scale, camera_grid_extent);
         // println!("camera_world_coord: {:?}", camera_world_coord);
 
         let chunk_transform = Transform {

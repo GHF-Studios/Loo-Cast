@@ -3,13 +3,13 @@ use std::{marker::PhantomData, sync::Arc};
 
 use crate::usf::scale::Scale;
 use crate::utils::logic_safety::{LogicSafety, Checked, Unchecked};
-use crate::usf::pos::unit::types::UnitPos;
+use crate::usf::pos::unit::types::UnitExtent;
 
-pub struct GridPosBuilder {
+pub struct GridExtentBuilder {
     chain: Vec<IVec2>,
 }
 
-impl GridPosBuilder {
+impl GridExtentBuilder {
     pub fn new() -> Self {
         Self {
             chain: vec![],
@@ -37,21 +37,21 @@ impl GridPosBuilder {
         self
     }
 
-    pub fn finish(self) -> GridPos {
-        GridPos::try_from(self.chain).unwrap()
+    pub fn finish(self) -> GridExtent {
+        GridExtent::try_from(self.chain).unwrap()
     }
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct GridPos<LS: LogicSafety = Checked> {
-    pub(in super::super) parent: Option<Arc<GridPos>>,
+pub struct GridExtent<LS: LogicSafety = Checked> {
+    pub(in super::super) parent: Option<Arc<GridExtent>>,
     pub(in super::super) scale: Scale,
     pub(in super::super) xy: IVec2,
     pub(in super::super) phantom_safety: PhantomData<LS>,
 }
-impl GridPos {
-    pub fn build() -> GridPosBuilder {
-        GridPosBuilder::new()
+impl GridExtent {
+    pub fn build() -> GridExtentBuilder {
+        GridExtentBuilder::new()
     }
 
     fn validate_xy(xy: &IVec2) {
@@ -61,32 +61,32 @@ impl GridPos {
         if xy.y >= 5 { panic!("Y coordinate {} is too large. Range is (-5..5)", xy.y); }
     }
 
-    /// Create a GridPos with random (yet valid) coordinates, from the root, down to and including the specified scale, with the same random coords at each scale.
+    /// Create a GridExtent with random (yet valid) coordinates, from the root, down to and including the specified scale, with the same random coords at each scale.
     pub fn new_random_homo(_scale: Scale) -> Self {
         todo!()
     }
     
-    /// Create a GridPos with random (yet valid) coordinates, from the root, down to and including the specified scale, with different random coords at each scale.
+    /// Create a GridExtent with random (yet valid) coordinates, from the root, down to and including the specified scale, with different random coords at each scale.
     pub fn new_random_hetero(_scale: Scale) -> Self {
         todo!()
     }
 
-    /// Create a GridPos at the absolute root (Scale::MAX) with no parent.
+    /// Create a GridExtent at the absolute root (Scale::MAX) with no parent.
     pub fn new_root(xy: IVec2) -> Self {
         Self::validate_xy(&xy);
         Self { parent: None, scale: Scale::MAX, xy, phantom_safety: PhantomData }
     }
 
-    /// Create a GridPos at the absolute root (Scale::MAX) with no parent.
-    pub fn new_root_unchecked(xy: IVec2) -> GridPos<Unchecked> {
-        GridPos::<Unchecked> { parent: None, scale: Scale::MAX, xy, phantom_safety: PhantomData }
+    /// Create a GridExtent at the absolute root (Scale::MAX) with no parent.
+    pub fn new_root_unchecked(xy: IVec2) -> GridExtent<Unchecked> {
+        GridExtent::<Unchecked> { parent: None, scale: Scale::MAX, xy, phantom_safety: PhantomData }
     }
 
-    /// Create a GridPos with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
-    pub fn new(parent: GridPos, xy: IVec2) -> Self {
+    /// Create a GridExtent with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
+    pub fn new(parent: GridExtent, xy: IVec2) -> Self {
         Self::validate_xy(&xy);
         if parent.scale == Scale::MIN {
-            panic!("Cannot create a child GridPos from a parent at Scale::MIN, as there is no smaller scale.");
+            panic!("Cannot create a child GridExtent from a parent at Scale::MIN, as there is no smaller scale.");
         }
         let scale = parent.scale.zoomed_in();
         let parent = Some(Arc::new(parent));
@@ -94,15 +94,15 @@ impl GridPos {
         Self { parent, scale, xy, phantom_safety: PhantomData }
     }
 
-    /// Create a GridPos with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
-    pub fn new_unchecked(parent: GridPos, xy: IVec2) -> GridPos<Unchecked> {
+    /// Create a GridExtent with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
+    pub fn new_unchecked(parent: GridExtent, xy: IVec2) -> GridExtent<Unchecked> {
         let scale = parent.scale.zoomed_in();
         let parent = Some(Arc::new(parent));
 
-        GridPos::<Unchecked> { parent, scale, xy, phantom_safety: PhantomData }
+        GridExtent::<Unchecked> { parent, scale, xy, phantom_safety: PhantomData }
     }
 
-    /// Create a GridPos with all ancestors up, from the specified scale to the root at Scale::MAX, pre-filled with IVec2::ZERO, except for the leaf at the specified scale, which is set to the specified xy.
+    /// Create a GridExtent with all ancestors up, from the specified scale to the root at Scale::MAX, pre-filled with IVec2::ZERO, except for the leaf at the specified scale, which is set to the specified xy.
     pub fn new_at_scale(scale: Scale, xy: IVec2) -> Self {
         Self::validate_xy(&xy);
         if scale == Scale::MAX {
@@ -120,7 +120,7 @@ impl GridPos {
         Self { parent: current.parent, scale, xy, phantom_safety: PhantomData }
     }
 
-    /// Create a GridPos with all ancestors, from the specified scale up to the root at Scale::MAX, pre-filled with the specified xy.
+    /// Create a GridExtent with all ancestors, from the specified scale up to the root at Scale::MAX, pre-filled with the specified xy.
     pub fn new_splat(scale: Scale, xy: IVec2) -> Self {
         Self::validate_xy(&xy);
         if scale == Scale::MAX {
@@ -139,14 +139,14 @@ impl GridPos {
     }
 
     pub fn zoom_out(&mut self) {
-        let mut unit_pos = UnitPos {
+        let mut unit_extent = UnitExtent {
             grid_offset: self.clone(),
             unit_offset: Vec3::ZERO,
         };
-        unit_pos.zoom_out();
-        self.parent = unit_pos.grid_offset.parent;
-        self.scale = unit_pos.grid_offset.scale;
-        self.xy = unit_pos.grid_offset.xy;
+        unit_extent.zoom_out();
+        self.parent = unit_extent.grid_offset.parent;
+        self.scale = unit_extent.grid_offset.scale;
+        self.xy = unit_extent.grid_offset.xy;
     }
     
     pub fn query_grid_radius(&self, radius: u32) -> Vec<IVec2> {
@@ -189,17 +189,17 @@ impl GridPos {
         raw_offsets
     }
 }
-impl From<GridPos<Unchecked>> for GridPos<Checked> {
-    fn from(value: GridPos<Unchecked>) -> Self {
-        GridPos::<Checked> { parent: value.parent, scale: value.scale, xy: value.xy, phantom_safety: PhantomData }
+impl From<GridExtent<Unchecked>> for GridExtent<Checked> {
+    fn from(value: GridExtent<Unchecked>) -> Self {
+        GridExtent::<Checked> { parent: value.parent, scale: value.scale, xy: value.xy, phantom_safety: PhantomData }
     }
 }
-impl Default for GridPos<Unchecked> {
+impl Default for GridExtent<Unchecked> {
     fn default() -> Self {
-        GridPos::<Unchecked> { parent: None, scale: Scale::default(), xy: IVec2::ZERO, phantom_safety: PhantomData }
+        GridExtent::<Unchecked> { parent: None, scale: Scale::default(), xy: IVec2::ZERO, phantom_safety: PhantomData }
     }
 }
-impl std::fmt::Debug for GridPos {
+impl std::fmt::Debug for GridExtent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut msg = String::new();
         let mut cursor = self;
@@ -216,7 +216,7 @@ impl std::fmt::Debug for GridPos {
         write!(f, "[{}] @ scale {}", msg, self.scale as i8)
     }
 }
-impl std::ops::Add<IVec2> for GridPos {
+impl std::ops::Add<IVec2> for GridExtent {
     type Output = Self;
 
     fn add(mut self, rhs: IVec2) -> Self::Output {
@@ -225,13 +225,13 @@ impl std::ops::Add<IVec2> for GridPos {
         self
     }
 }
-impl std::ops::AddAssign<IVec2> for GridPos {
+impl std::ops::AddAssign<IVec2> for GridExtent {
     fn add_assign(&mut self, rhs: IVec2) {
         self.xy += rhs;
         Self::validate_xy(&self.xy);
     }
 }
-impl std::ops::Sub<IVec2> for GridPos {
+impl std::ops::Sub<IVec2> for GridExtent {
     type Output = Self;
 
     fn sub(mut self, rhs: IVec2) -> Self::Output {
@@ -240,18 +240,18 @@ impl std::ops::Sub<IVec2> for GridPos {
         self
     }
 }
-impl std::ops::SubAssign<IVec2> for GridPos {
+impl std::ops::SubAssign<IVec2> for GridExtent {
     fn sub_assign(&mut self, rhs: IVec2) {
         self.xy -= rhs;
         Self::validate_xy(&self.xy);
     }
 }
-impl std::ops::Add<GridPos> for GridPos {
-    type Output = GridPos;
+impl std::ops::Add<GridExtent> for GridExtent {
+    type Output = GridExtent;
 
-    fn add(self, rhs: GridPos) -> Self::Output {
+    fn add(self, rhs: GridExtent) -> Self::Output {
         // === Phase 1: Collect full stack from root to leaf ===
-        fn stack_up(mut cursor: &GridPos) -> Vec<(Scale, IVec2)> {
+        fn stack_up(mut cursor: &GridExtent) -> Vec<(Scale, IVec2)> {
             let mut stack = Vec::new();
             loop {
                 stack.push((cursor.scale, cursor.xy));
@@ -301,29 +301,29 @@ impl std::ops::Add<GridPos> for GridPos {
             carry = IVec2::new(carry_x, carry_y);
         }
 
-        // === Phase 4: Build final GridPos tree ===
-        let mut result: Option<GridPos> = None;
+        // === Phase 4: Build final GridExtent tree ===
+        let mut result: Option<GridExtent> = None;
         for (_scale, xy) in raw_stack {
             result = Some(match result {
-                Some(parent) => GridPos::new(parent, xy),
-                None => GridPos::new_root(xy),
+                Some(parent) => GridExtent::new(parent, xy),
+                None => GridExtent::new_root(xy),
             });
         }
 
-        result.expect("GridPos addition should yield a result")
+        result.expect("GridExtent addition should yield a result")
     }
 }
-impl std::ops::AddAssign<GridPos> for GridPos {
-    fn add_assign(&mut self, rhs: GridPos) {
+impl std::ops::AddAssign<GridExtent> for GridExtent {
+    fn add_assign(&mut self, rhs: GridExtent) {
         *self = self.clone() + rhs;
     }
 }
-impl std::ops::Sub<GridPos> for GridPos {
+impl std::ops::Sub<GridExtent> for GridExtent {
     type Output = Self;
 
-    fn sub(self, rhs: GridPos) -> Self::Output {
+    fn sub(self, rhs: GridExtent) -> Self::Output {
         // === Phase 1: Collect full stack from root to leaf ===
-        fn stack_up(mut cursor: &GridPos) -> Vec<(Scale, IVec2)> {
+        fn stack_up(mut cursor: &GridExtent) -> Vec<(Scale, IVec2)> {
             let mut stack = Vec::new();
             loop {
                 stack.push((cursor.scale, cursor.xy));
@@ -373,36 +373,36 @@ impl std::ops::Sub<GridPos> for GridPos {
             carry = IVec2::new(carry_x, carry_y);
         }
 
-        // === Phase 4: Build final GridPos tree ===
-        let mut result: Option<GridPos> = None;
+        // === Phase 4: Build final GridExtent tree ===
+        let mut result: Option<GridExtent> = None;
         for (_scale, xy) in raw_stack {
             result = Some(match result {
-                Some(parent) => GridPos::new(parent, xy),
-                None => GridPos::new_root(xy),
+                Some(parent) => GridExtent::new(parent, xy),
+                None => GridExtent::new_root(xy),
             });
         }
 
-        result.expect("GridPos subtraction should yield a result")
+        result.expect("GridExtent subtraction should yield a result")
     }
 }
-impl std::ops::SubAssign<GridPos> for GridPos {
-    fn sub_assign(&mut self, rhs: GridPos) {
+impl std::ops::SubAssign<GridExtent> for GridExtent {
+    fn sub_assign(&mut self, rhs: GridExtent) {
         *self = self.clone() - rhs;
     }
 }
-impl std::convert::TryFrom<Vec<IVec2>> for GridPos {
+impl std::convert::TryFrom<Vec<IVec2>> for GridExtent {
     type Error = &'static str;
 
     fn try_from(stack: Vec<IVec2>) -> Result<Self, Self::Error> {
         if stack.is_empty() {
-            return Err("GridPos stack must contain at least one element");
+            return Err("GridExtent stack must contain at least one element");
         }
 
         let mut iter = stack.into_iter();
-        let mut current = GridPos::new_root(iter.next().unwrap());
+        let mut current = GridExtent::new_root(iter.next().unwrap());
 
         for xy in iter {
-            current = GridPos::new(current, xy);
+            current = GridExtent::new(current, xy);
         }
 
         Ok(current)

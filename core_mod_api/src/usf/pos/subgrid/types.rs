@@ -1,14 +1,14 @@
 use bevy::prelude::{IVec2, Vec3};
 
 use crate::usf::scale::{Scale, DynScale};
-use crate::usf::pos::grid::types::GridPos;
-use crate::usf::pos::unit::types::UnitPos;
+use crate::usf::pos::grid::types::GridExtent;
+use crate::usf::pos::unit::types::UnitExtent;
 
-pub struct SubgridPosBuilder {
+pub struct SubgridExtentBuilder {
     chain: Vec<IVec2>,
 }
 
-impl SubgridPosBuilder {
+impl SubgridExtentBuilder {
     pub fn new() -> Self {
         Self {
             chain: vec![],
@@ -36,24 +36,24 @@ impl SubgridPosBuilder {
         self
     }
 
-    pub fn finish(self, subgrid_xy: (i32, i32)) -> SubgridPos {
-        SubgridPos::try_from((self.chain, IVec2::new(subgrid_xy.0, subgrid_xy.1))).unwrap()
+    pub fn finish(self, subgrid_xy: (i32, i32)) -> SubgridExtent {
+        SubgridExtent::try_from((self.chain, IVec2::new(subgrid_xy.0, subgrid_xy.1))).unwrap()
     }
 }
 
 #[derive(Clone, PartialEq)]
-pub struct SubgridPos {
-    pub(in super::super) grid_offset: GridPos,
+pub struct SubgridExtent {
+    pub(in super::super) grid_offset: GridExtent,
     pub(in super::super) subgrid_offset: IVec2,
 }
-impl SubgridPos {
-    pub fn build() -> SubgridPosBuilder {
-        SubgridPosBuilder::new()
+impl SubgridExtent {
+    pub fn build() -> SubgridExtentBuilder {
+        SubgridExtentBuilder::new()
     }
 
-    fn validate_grid_offset(grid_offset: &GridPos) {
+    fn validate_grid_offset(grid_offset: &GridExtent) {
         if grid_offset.scale == Scale::MIN {
-            panic!("SubgridPos must be based on a scale no smaller than MIN+1, so there is room to represent the subgrid level as a virtual GridPos leaf");
+            panic!("SubgridExtent must be based on a scale no smaller than MIN+1, so there is room to represent the subgrid level as a virtual GridExtent leaf");
         }
     }
 
@@ -64,7 +64,7 @@ impl SubgridPos {
         if subgrid_offset.y >= 5 { panic!("Y coordinate {} is too large. Range is (-5..5)", subgrid_offset.y); }
     }
 
-    pub fn new(grid_offset: GridPos, subgrid_offset: IVec2) -> Self {
+    pub fn new(grid_offset: GridExtent, subgrid_offset: IVec2) -> Self {
         Self::validate_grid_offset(&grid_offset);
         Self::validate_subgrid_offset(&subgrid_offset);
         Self { grid_offset, subgrid_offset }
@@ -72,31 +72,31 @@ impl SubgridPos {
 
     pub fn zoom_out(&mut self) {
         if self.grid_offset.parent.as_ref().unwrap().parent.is_none() {
-            panic!("Cannot zoom out SubgridPos beyond the root GridPos");
+            panic!("Cannot zoom out SubgridExtent beyond the root GridExtent");
         }
 
-        let grid_pos = GridPos::new(
+        let grid_extent = GridExtent::new(
             self.grid_offset.clone(),
             self.subgrid_offset,
         );
 
-        let mut unit_pos = UnitPos {
-            grid_offset: grid_pos,
+        let mut unit_extent = UnitExtent {
+            grid_offset: grid_extent,
             unit_offset: Vec3::ZERO,
         };
 
-        unit_pos.zoom_out();
+        unit_extent.zoom_out();
 
-        self.grid_offset = (*unit_pos.grid_offset.parent.unwrap()).clone();
-        self.subgrid_offset = unit_pos.grid_offset.xy;
+        self.grid_offset = (*unit_extent.grid_offset.parent.unwrap()).clone();
+        self.subgrid_offset = unit_extent.grid_offset.xy;
     }
 }
-impl std::fmt::Debug for SubgridPos {
+impl std::fmt::Debug for SubgridExtent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({:?}: {})", self.grid_offset, self.subgrid_offset)
     }
 }
-impl std::ops::Add<IVec2> for SubgridPos {
+impl std::ops::Add<IVec2> for SubgridExtent {
     type Output = Self;
 
     fn add(mut self, rhs: IVec2) -> Self::Output {
@@ -105,13 +105,13 @@ impl std::ops::Add<IVec2> for SubgridPos {
         self
     }
 }
-impl std::ops::AddAssign<IVec2> for SubgridPos {
+impl std::ops::AddAssign<IVec2> for SubgridExtent {
     fn add_assign(&mut self, rhs: IVec2) {
         self.subgrid_offset += rhs;
         Self::validate_subgrid_offset(&self.subgrid_offset);
     }
 }
-impl std::ops::Sub<IVec2> for SubgridPos {
+impl std::ops::Sub<IVec2> for SubgridExtent {
     type Output = Self;
 
     fn sub(mut self, rhs: IVec2) -> Self::Output {
@@ -120,18 +120,18 @@ impl std::ops::Sub<IVec2> for SubgridPos {
         self
     }
 }
-impl std::ops::SubAssign<IVec2> for SubgridPos {
+impl std::ops::SubAssign<IVec2> for SubgridExtent {
     fn sub_assign(&mut self, rhs: IVec2) {
         self.subgrid_offset -= rhs;
         Self::validate_subgrid_offset(&self.subgrid_offset);
     }
 }
-impl std::ops::Add<SubgridPos> for SubgridPos {
+impl std::ops::Add<SubgridExtent> for SubgridExtent {
     type Output = Self;
 
-    fn add(self, rhs: SubgridPos) -> Self::Output {
-        // === Phase 1: Build extended GridPos stacks from root to leaf ===
-        fn build_stack(subgrid: &SubgridPos) -> Vec<(Scale, IVec2)> {
+    fn add(self, rhs: SubgridExtent) -> Self::Output {
+        // === Phase 1: Build extended GridExtent stacks from root to leaf ===
+        fn build_stack(subgrid: &SubgridExtent) -> Vec<(Scale, IVec2)> {
             let mut stack = Vec::new();
             let mut cursor = &subgrid.grid_offset;
             loop {
@@ -186,12 +186,12 @@ impl std::ops::Add<SubgridPos> for SubgridPos {
             carry = IVec2::new(carry_x, carry_y);
         }
 
-        // === Phase 4: Build GridPos tree and extract SubgridPos ===
-        let mut result: Option<GridPos> = None;
+        // === Phase 4: Build GridExtent tree and extract SubgridExtent ===
+        let mut result: Option<GridExtent> = None;
         for (_scale, xy) in raw_stack {
             result = Some(match result {
-                Some(parent) => GridPos::new(parent, xy),
-                None => GridPos::new_root(xy),
+                Some(parent) => GridExtent::new(parent, xy),
+                None => GridExtent::new_root(xy),
             });
         }
 
@@ -199,20 +199,20 @@ impl std::ops::Add<SubgridPos> for SubgridPos {
         let subgrid_offset = final_leaf.xy;
         let grid_offset = (*final_leaf.parent.unwrap()).clone();
 
-        SubgridPos { grid_offset, subgrid_offset }
+        SubgridExtent { grid_offset, subgrid_offset }
     }
 }
-impl std::ops::AddAssign<SubgridPos> for SubgridPos {
-    fn add_assign(&mut self, rhs: SubgridPos) {
+impl std::ops::AddAssign<SubgridExtent> for SubgridExtent {
+    fn add_assign(&mut self, rhs: SubgridExtent) {
         *self = self.clone() + rhs;
     }
 }
-impl std::ops::Sub<SubgridPos> for SubgridPos {
+impl std::ops::Sub<SubgridExtent> for SubgridExtent {
     type Output = Self;
 
-    fn sub(self, rhs: SubgridPos) -> Self::Output {
-        // === Phase 1: Build extended GridPos stacks from root to leaf ===
-        fn build_stack(subgrid: &SubgridPos) -> Vec<(Scale, IVec2)> {
+    fn sub(self, rhs: SubgridExtent) -> Self::Output {
+        // === Phase 1: Build extended GridExtent stacks from root to leaf ===
+        fn build_stack(subgrid: &SubgridExtent) -> Vec<(Scale, IVec2)> {
             let mut stack = Vec::new();
             let mut cursor = &subgrid.grid_offset;
             loop {
@@ -267,12 +267,12 @@ impl std::ops::Sub<SubgridPos> for SubgridPos {
             carry = IVec2::new(carry_x, carry_y);
         }
 
-        // === Phase 4: Build GridPos tree and extract SubgridPos ===
-        let mut result: Option<GridPos> = None;
+        // === Phase 4: Build GridExtent tree and extract SubgridExtent ===
+        let mut result: Option<GridExtent> = None;
         for (_scale, xy) in raw_stack {
             result = Some(match result {
-                Some(parent) => GridPos::new(parent, xy),
-                None => GridPos::new_root(xy),
+                Some(parent) => GridExtent::new(parent, xy),
+                None => GridExtent::new_root(xy),
             });
         }
 
@@ -280,19 +280,19 @@ impl std::ops::Sub<SubgridPos> for SubgridPos {
         let subgrid_offset = final_leaf.xy;
         let grid_offset = (*final_leaf.parent.unwrap()).clone();
 
-        SubgridPos { grid_offset, subgrid_offset }
+        SubgridExtent { grid_offset, subgrid_offset }
     }
 }
-impl std::ops::SubAssign<SubgridPos> for SubgridPos {
-    fn sub_assign(&mut self, rhs: SubgridPos) {
+impl std::ops::SubAssign<SubgridExtent> for SubgridExtent {
+    fn sub_assign(&mut self, rhs: SubgridExtent) {
         *self = self.clone() - rhs;
     }
 }
-impl std::convert::TryFrom<(Vec<IVec2>, IVec2)> for SubgridPos {
+impl std::convert::TryFrom<(Vec<IVec2>, IVec2)> for SubgridExtent {
     type Error = &'static str;
 
     fn try_from((stack, subgrid_offset): (Vec<IVec2>, IVec2)) -> Result<Self, Self::Error> {
-        let grid_offset = GridPos::try_from(stack)?;
-        Ok(SubgridPos::new(grid_offset, subgrid_offset))
+        let grid_offset = GridExtent::try_from(stack)?;
+        Ok(SubgridExtent::new(grid_offset, subgrid_offset))
     }
 }

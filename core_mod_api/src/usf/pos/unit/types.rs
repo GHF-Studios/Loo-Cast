@@ -2,13 +2,13 @@ use bevy::prelude::{IVec2, Vec2, Vec3};
 
 use crate::usf::scale::{Scale, DynScale};
 use crate::utils::logic_safety::Checked;
-use crate::usf::pos::grid::types::GridPos;
+use crate::usf::pos::grid::types::GridExtent;
 
-pub struct UnitPosBuilder {
+pub struct UnitExtentBuilder {
     chain: Vec<IVec2>,
 }
 
-impl UnitPosBuilder {
+impl UnitExtentBuilder {
     pub fn new() -> Self {
         Self {
             chain: vec![],
@@ -36,19 +36,19 @@ impl UnitPosBuilder {
         self
     }
 
-    pub fn finish(self, unit_xy: (f32, f32)) -> UnitPos {
-        UnitPos::try_from((self.chain, Vec2::new(unit_xy.0, unit_xy.1))).unwrap()
+    pub fn finish(self, unit_xy: (f32, f32)) -> UnitExtent {
+        UnitExtent::try_from((self.chain, Vec2::new(unit_xy.0, unit_xy.1))).unwrap()
     }
 }
 
 #[derive(Clone, PartialEq)]
-pub struct UnitPos {
-    pub(in super::super) grid_offset: GridPos, // Recursive chunk position
+pub struct UnitExtent {
+    pub(in super::super) grid_offset: GridExtent, // Recursive chunk position
     pub(in super::super) unit_offset: Vec3, // Bevy units inside the chunk (e.g., [-500.0..500.0])
 }
-impl UnitPos {
-    pub fn build() -> UnitPosBuilder {
-        UnitPosBuilder::new()
+impl UnitExtent {
+    pub fn build() -> UnitExtentBuilder {
+        UnitExtentBuilder::new()
     }
 
     fn validate_unit_offset(unit_offset: &Vec3) {
@@ -66,13 +66,13 @@ impl UnitPos {
         scale.to_index_from_bottom() as f32 * -10.0
     }
 
-    pub fn new(grid_offset: GridPos, unit_offset: Vec2) -> Self {
+    pub fn new(grid_offset: GridExtent, unit_offset: Vec2) -> Self {
         let unit_offset = unit_offset.extend(Self::compute_z(grid_offset.scale));
         Self::validate_unit_offset(&unit_offset);
         Self { grid_offset, unit_offset }
     }
 
-    pub fn new_unchecked(grid_offset: GridPos, unit_offset: Vec2) -> Self {
+    pub fn new_unchecked(grid_offset: GridExtent, unit_offset: Vec2) -> Self {
         let unit_offset = unit_offset.extend(Self::compute_z(grid_offset.scale));
         Self { grid_offset, unit_offset }
     }
@@ -133,9 +133,9 @@ impl UnitPos {
         let mut new_grid = self.grid_offset.clone();
         new_grid.xy += carry;
 
-        // === Phase 4: Build new GridPos tree ===
+        // === Phase 4: Build new GridExtent tree ===
         for (_scale, xy) in stack {
-            new_grid = GridPos::new(new_grid, xy);
+            new_grid = GridExtent::new(new_grid, xy);
         }
 
         // === Phase 5: Normalize final unit_offset ===
@@ -180,12 +180,12 @@ impl UnitPos {
         Self::validate_unit_offset(&self.unit_offset);
     }
 }
-impl std::fmt::Debug for UnitPos {
+impl std::fmt::Debug for UnitExtent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({:?}: {})", self.grid_offset, self.unit_offset)
     }
 }
-impl std::ops::Add<IVec2> for UnitPos {
+impl std::ops::Add<IVec2> for UnitExtent {
     type Output = Self;
 
     fn add(mut self, rhs: IVec2) -> Self::Output {
@@ -193,12 +193,12 @@ impl std::ops::Add<IVec2> for UnitPos {
         self
     }
 }
-impl std::ops::AddAssign<IVec2> for UnitPos {
+impl std::ops::AddAssign<IVec2> for UnitExtent {
     fn add_assign(&mut self, rhs: IVec2) {
         self.grid_offset += rhs;
     }
 }
-impl std::ops::Sub<IVec2> for UnitPos {
+impl std::ops::Sub<IVec2> for UnitExtent {
     type Output = Self;
 
     fn sub(mut self, rhs: IVec2) -> Self::Output {
@@ -206,12 +206,12 @@ impl std::ops::Sub<IVec2> for UnitPos {
         self
     }
 }
-impl std::ops::SubAssign<IVec2> for UnitPos {
+impl std::ops::SubAssign<IVec2> for UnitExtent {
     fn sub_assign(&mut self, rhs: IVec2) {
         self.grid_offset -= rhs;
     }
 }
-impl std::ops::Add<Vec3> for UnitPos {
+impl std::ops::Add<Vec3> for UnitExtent {
     type Output = Self;
 
     fn add(mut self, rhs: Vec3) -> Self::Output {
@@ -220,13 +220,13 @@ impl std::ops::Add<Vec3> for UnitPos {
         self
     }
 }
-impl std::ops::AddAssign<Vec3> for UnitPos {
+impl std::ops::AddAssign<Vec3> for UnitExtent {
     fn add_assign(&mut self, rhs: Vec3) {
         self.unit_offset += rhs;
         Self::validate_unit_offset(&self.unit_offset);
     }
 }
-impl std::ops::Sub<Vec3> for UnitPos {
+impl std::ops::Sub<Vec3> for UnitExtent {
     type Output = Self;
 
     fn sub(mut self, rhs: Vec3) -> Self::Output {
@@ -235,19 +235,19 @@ impl std::ops::Sub<Vec3> for UnitPos {
         self
     }
 }
-impl std::ops::SubAssign<Vec3> for UnitPos {
+impl std::ops::SubAssign<Vec3> for UnitExtent {
     fn sub_assign(&mut self, rhs: Vec3) {
         self.unit_offset -= rhs;
         Self::validate_unit_offset(&self.unit_offset);
     }
 }
-impl std::ops::Add<UnitPos> for UnitPos {
+impl std::ops::Add<UnitExtent> for UnitExtent {
     type Output = Self;
 
-    fn add(self, rhs: UnitPos) -> Self::Output {
+    fn add(self, rhs: UnitExtent) -> Self::Output {
         const MAX_DEPTH_DIFF: u8 = 4;
 
-        fn stack_up(mut cursor: &GridPos) -> Vec<IVec2> {
+        fn stack_up(mut cursor: &GridExtent) -> Vec<IVec2> {
             let mut stack = Vec::new();
             loop {
                 stack.push(cursor.xy);
@@ -262,7 +262,7 @@ impl std::ops::Add<UnitPos> for UnitPos {
         }
 
         if (self.grid_offset.scale as i8 - rhs.grid_offset.scale as i8).abs() > MAX_DEPTH_DIFF as i8 {
-            panic!("Cannot add UnitPos with grid offsets differing in scale by more than {} levels", MAX_DEPTH_DIFF);
+            panic!("Cannot add UnitExtent with grid offsets differing in scale by more than {} levels", MAX_DEPTH_DIFF);
         }
 
         let mut a_stack = stack_up(&self.grid_offset);
@@ -321,27 +321,27 @@ impl std::ops::Add<UnitPos> for UnitPos {
             carry = IVec2::new(carry_x, carry_y);
         }
 
-        // === Phase 5: Build final GridPos tree ===
-        let mut result: Option<GridPos> = None;
+        // === Phase 5: Build final GridExtent tree ===
+        let mut result: Option<GridExtent> = None;
         for xy in raw_stack {
             result = Some(match result {
-                Some(parent) => GridPos::new(parent, xy),
-                None => GridPos::new_root(xy),
+                Some(parent) => GridExtent::new(parent, xy),
+                None => GridExtent::new_root(xy),
             });
         }
 
-        UnitPos::new(result.unwrap(), unit_offset)
+        UnitExtent::new(result.unwrap(), unit_offset)
     }
 }
-impl std::ops::AddAssign<UnitPos> for UnitPos {
-    fn add_assign(&mut self, rhs: UnitPos) {
+impl std::ops::AddAssign<UnitExtent> for UnitExtent {
+    fn add_assign(&mut self, rhs: UnitExtent) {
         *self = self.clone() + rhs;
     }
 }
-impl std::ops::Sub<UnitPos> for UnitPos {
+impl std::ops::Sub<UnitExtent> for UnitExtent {
     type Output = Self;
 
-    fn sub(mut self, mut rhs: UnitPos) -> Self::Output {
+    fn sub(mut self, mut rhs: UnitExtent) -> Self::Output {
         const MAX_DEPTH_DIFF: u8 = 4;
 
         match self.grid_offset.scale.cmp(&rhs.grid_offset.scale) {
@@ -350,7 +350,7 @@ impl std::ops::Sub<UnitPos> for UnitPos {
             std::cmp::Ordering::Less => rhs.zoom_in_multi(self.grid_offset.scale).unwrap(),
         }
 
-        fn stack_up(mut cursor: &GridPos) -> Vec<IVec2> {
+        fn stack_up(mut cursor: &GridExtent) -> Vec<IVec2> {
             let mut stack = Vec::new();
             loop {
                 stack.push(cursor.xy);
@@ -365,7 +365,7 @@ impl std::ops::Sub<UnitPos> for UnitPos {
         }
 
         if (self.grid_offset.scale as i8 - rhs.grid_offset.scale as i8).abs() > MAX_DEPTH_DIFF as i8 {
-            panic!("Cannot subtract UnitPos with grid offsets differing in scale by more than {} levels", MAX_DEPTH_DIFF);
+            panic!("Cannot subtract UnitExtent with grid offsets differing in scale by more than {} levels", MAX_DEPTH_DIFF);
         }
 
         let mut a_stack = stack_up(&self.grid_offset);
@@ -424,28 +424,28 @@ impl std::ops::Sub<UnitPos> for UnitPos {
             carry = IVec2::new(carry_x, carry_y);
         }
 
-        // === Phase 5: Build final GridPos tree ===
-        let mut result: Option<GridPos> = None;
+        // === Phase 5: Build final GridExtent tree ===
+        let mut result: Option<GridExtent> = None;
         for xy in raw_stack {
             result = Some(match result {
-                Some(parent) => GridPos::new(parent, xy),
-                None => GridPos::new_root(xy),
+                Some(parent) => GridExtent::new(parent, xy),
+                None => GridExtent::new_root(xy),
             });
         }
 
-        UnitPos::new(result.unwrap(), unit_offset)
+        UnitExtent::new(result.unwrap(), unit_offset)
     }
 }
-impl std::ops::SubAssign<UnitPos> for UnitPos {
-    fn sub_assign(&mut self, rhs: UnitPos) {
+impl std::ops::SubAssign<UnitExtent> for UnitExtent {
+    fn sub_assign(&mut self, rhs: UnitExtent) {
         *self = self.clone() - rhs;
     }
 }
-impl std::convert::TryFrom<(Vec<IVec2>, Vec2)> for UnitPos {
+impl std::convert::TryFrom<(Vec<IVec2>, Vec2)> for UnitExtent {
     type Error = &'static str;
 
     fn try_from((stack, unit_offset): (Vec<IVec2>, Vec2)) -> Result<Self, Self::Error> {
-        let grid_offset = GridPos::try_from(stack)?;
-        Ok(UnitPos::new(grid_offset, unit_offset))
+        let grid_offset = GridExtent::try_from(stack)?;
+        Ok(UnitExtent::new(grid_offset, unit_offset))
     }
 }

@@ -37,7 +37,7 @@ pub fn run_ecs(input: Input, main_access: MainAccess) -> Output {
 
     let chunk_owner_id = input.chunk_owner_id;
     let position = input.chunk_loader_position;
-    let chunk_loader_grid_position = position.to_grid_coord(*chunk_loader.id().scale(), grid_origin_offset.0);
+    let chunk_loader_grid_extentition = position.to_grid_coord(*chunk_loader.id().scale(), grid_origin_offset.0);
     let radius = input.chunk_loader_radius;
 
     let mut unload_chunk_inputs = Vec::new();
@@ -49,7 +49,7 @@ pub fn run_ecs(input: Input, main_access: MainAccess) -> Output {
         .collect();
 
     for chunk_to_despawn in chunks_to_despawn {
-        let chunk_loader_distance_squared = chunk_to_despawn.xy.distance_squared(&chunk_loader_grid_position.xy).try_into().unwrap();
+        let chunk_loader_distance_squared = chunk_to_despawn.xy.distance_squared(&chunk_loader_grid_extentition.xy).try_into().unwrap();
         let chunk_loader_radius_squared = radius * radius;
 
         unload_chunk_inputs.push(UnloadChunkInput {
