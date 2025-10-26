@@ -86,26 +86,26 @@ impl UnitPos {
         let mut unit_offset = self.unit_offset.truncate();
         let mut stack: Vec<(Scale, IVec2)> = Vec::new();
         let mut scale = self.grid_offset.scale;
+        let initial_scale = scale;
 
         while scale > target_scale {
             let next_scale = scale.down().unwrap();
+            let scale_diff = (scale as i8).abs_diff(next_scale as i8);
+            let unit_factor = 10f32.powi(scale_diff as i32);
+            let unit_center = 500.0 / unit_factor;
+            let unit_size = 1000.0 / unit_factor;
 
             // Compute delta for this scale step
             let grid_delta = IVec2::new(
-                ((unit_offset.x + 50.0) / 100.0).floor() as i32,
-                ((unit_offset.y + 50.0) / 100.0).floor() as i32,
+                ((unit_offset.x + unit_center) / unit_size).floor() as i32,
+                ((unit_offset.y + unit_center) / unit_size).floor() as i32,
             );
 
-            let chunk_size = 1000.0 / 10f32.powi((scale as i8 - next_scale as i8) as i32);
-
-            // Centered offset adjustment
-            unit_offset -= Vec2::new(
-                grid_delta.x as f32 * chunk_size,
-                grid_delta.y as f32 * chunk_size,
-            );
-
-            // Prepare for next deeper scale
-            unit_offset *= 10.0;
+            // Update unit_offset for next iteration
+            unit_offset = (unit_offset - Vec2::new(
+                grid_delta.x as f32 * unit_size,
+                grid_delta.y as f32 * unit_size,
+            )) * 10.0;
 
             // Push the computed delta into our stack
             stack.push((next_scale, grid_delta));

@@ -46,28 +46,38 @@ fn unit_pos_zoom_in_test_2() {
 fn unit_pos_zoom_in_test_3() {
     let mut a = unit_pos!([(0, 0)]: (149.99, 149.99));
     a.zoom_in();
-    let expected = unit_pos!([(0, 0), (1, 1)]: (499.90002, 499.90002)); // Not 499.9 due to floating point precision
+    let expected = unit_pos!([(0, 0), (1, 1)]: (499.90002, 499.90002)); // Not 499.9 due to floating point precision limitations
     assert_eq!(a, expected);
 }
 
-/*
-
-// TODO: Impl properly
 #[test]
 fn unit_pos_zoom_in_multi_test_1() {
+    let mut a = unit_pos!([(1, 1)]: (437.0, 437.0));
+    let scale_b = a.grid_offset.scale.zoomed_in().zoomed_in();
+    a.zoom_in_multi(scale_b);
+    let expected = unit_pos!([(1, 1), (4, 4), (4, 4)]: (-300.0, -300.0));
+    assert_eq!(a, expected);
 }
 
-// TODO: Impl properly
 #[test]
 fn unit_pos_zoom_in_multi_test_2() {
+    let mut a = unit_pos!([(0, 0)]: (0.0, 0.0));
+    let scale_b = a.grid_offset.scale.zoomed_in().zoomed_in().zoomed_in();
+    a.zoom_in_multi(scale_b);
+    let expected = unit_pos!([(0, 0), (0, 0), (0, 0), (0, 0)]: (0.0, 0.0));
+    assert_eq!(a, expected);
 }
 
-// TODO: Impl properly
 #[test]
 fn unit_pos_zoom_in_multi_test_3() {
+    let mut a = unit_pos!([(1, 1), (1, 1)]: (499.99, 499.99));
+    let scale_b = a.grid_offset.scale.zoomed_in().zoomed_in().zoomed_in();
+    a.zoom_in_multi(scale_b);
+    // This wraps because the float error in the intermediate steps happened to push the final value over the wrap threshold
+    // after subtraction, scaling, and remapping — and did so deterministically, but in a way that's opaque unless you replay all ops step-by-step.
+    let expected = unit_pos!([(1, 1), (2, 2), (-5, -5), (0, 0), (0, 0)]: (-10.009766, -10.009766));
+    assert_eq!(a, expected);
 }
-
-*/
 
 #[test]
 fn unit_pos_add_test_1() {
