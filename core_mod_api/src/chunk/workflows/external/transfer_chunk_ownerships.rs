@@ -1,11 +1,12 @@
 // Imports
 use bevy::prelude::{ResMut, Entity, Query};
 
-use crate::chunk::{components::Chunk, resources::ChunkManager, types::{GridCoord, ChunkOwnerId}};
+use crate::chunk::{components::Chunk, resources::ChunkManager, types::GridCoord};
+use crate::chunk_loader::types::ChunkLoaderId;
 
 // Items
 pub struct TransferChunkOwnershipInput {
-    pub new_chunk_owner_id: ChunkOwnerId,
+    pub new_chunk_owner_id: ChunkLoaderId,
     pub grid_coord: GridCoord,
 }
 

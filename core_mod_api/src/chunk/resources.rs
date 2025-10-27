@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use crate::{chunk::types::ChunkOwnerId, gpu::workflows::gpu::generate_chunk_textures::user_items::ChunkRenderExecutor};
+use crate::{chunk_loader::types::ChunkLoaderId, gpu::workflows::gpu::generate_chunk_textures::user_items::ChunkRenderExecutor};
 use crate::chunk::types::GridCoord;
 use crate::utils::i128vec2::I128Vec2;
 
@@ -96,7 +96,7 @@ impl ActionIntentBuffer {
 #[reflect(Resource)]
 pub struct ChunkManager {
     pub loaded_chunks: HashSet<GridCoord>,
-    pub owned_chunks: HashMap<GridCoord, ChunkOwnerId>,
+    pub owned_chunks: HashMap<GridCoord, ChunkLoaderId>,
 }
 impl ChunkManager {
     pub fn get_states(&self, grid_coord: &GridCoord) -> (bool, bool) {

@@ -13,7 +13,7 @@ use enums::ZoomState;
 use observers::{observe_on_remove_chunk_loader, on_remove_chunk_loader_observation_queue_processing_system};
 use resources::{RemovedChunkLoaders, RemovedChunkLoaderObservationQueue};
 use systems::{post_update_chunk_loader_system, update_chunk_loader_system, zoom_cooldown_system};
-use types::{RemovedChunkLoader, RemovedChunkLoaderObservation};
+use types::{ChunkLoaderId, RemovedChunkLoader, RemovedChunkLoaderObservation};
 
 use crate::{
     core::run_conditions::run_after_startup_finished,
@@ -46,6 +46,7 @@ impl Plugin for ChunkLoaderPlugin {
             .insert_resource(RemovedChunkLoaderObservationQueue::default())
             .insert_resource(RemovedChunkLoaders::default())
 
+            .register_type::<ChunkLoaderId>()
             .register_type::<ChunkLoader>()
             .register_type::<RemovedChunkLoader>()
             .register_type::<RemovedChunkLoaders>()

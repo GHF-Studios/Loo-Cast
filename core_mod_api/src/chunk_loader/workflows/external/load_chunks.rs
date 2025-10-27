@@ -6,13 +6,14 @@ use crate::chunk::{
     components::Chunk,
     intent::{resolve_intent, ActionIntent, ActionPriority, ResolvedActionIntent},
     resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager},
-    types::{GridCoord, ChunkOwnerId},
+    types::{GridCoord},
 };
+use crate::chunk_loader::types::ChunkLoaderId;
 use crate::workflow::types::Outcome;
 
 // Items
 pub struct LoadChunkInput {
-    pub owner_id: ChunkOwnerId,
+    pub owner_id: ChunkLoaderId,
     pub grid_coord: GridCoord,
     pub chunk_loader_distance_squared: u32,
     pub chunk_loader_radius_squared: u32,
@@ -20,13 +21,13 @@ pub struct LoadChunkInput {
 
 pub struct SpawnChunkState {
     pub coord: GridCoord,
-    pub owner_id: ChunkOwnerId,
+    pub owner_id: ChunkLoaderId,
     pub is_spawned: bool,
 }
 
 pub struct TransferChunkOwnershipState {
     pub coord: GridCoord,
-    pub owner_id: ChunkOwnerId,
+    pub owner_id: ChunkLoaderId,
     pub is_ownership_transfered: bool,
 }
 

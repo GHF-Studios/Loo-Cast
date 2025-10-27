@@ -4,6 +4,8 @@ use bevy::prelude::{Reflect, Resource, ReflectResource};
 use std::fmt::Debug;
 use std::hash::Hash;
 
+use crate::usf::phenomenon::PhenomenonModel;
+
 #[derive(Resource, Default, Reflect)]
 #[reflect(Resource)]
 pub struct CurrentViewScale {
@@ -562,23 +564,6 @@ pub trait ConstScale: 'static + Send + Sync + Clone + Copy + Default + Debug + R
     fn scale_factor() -> f64 {
         10f64.powi(Self::SCALE_FACTOR_EXPONENT as i32)
     }
-}
-
-pub trait ScaleRangeMarker {
-    type Min: ConstScale;
-    type Max: ConstScale;
-
-    fn includes<S: ConstScale>() -> bool {
-        S::SCALE_FACTOR_EXPONENT >= Self::Min::SCALE_FACTOR_EXPONENT && S::SCALE_FACTOR_EXPONENT <= Self::Max::SCALE_FACTOR_EXPONENT
-    }
-}
-
-pub struct ScaleRange<Min: ConstScale, Max: ConstScale> {
-    _phantom: std::marker::PhantomData<(Min, Max)>,
-}
-impl<Min: ConstScale, Max: ConstScale> ScaleRangeMarker for ScaleRange<Min, Max> {
-    type Min = Min;
-    type Max = Max;
 }
 
 #[derive(Clone, Copy, Default, Reflect, PartialOrd, Ord, PartialEq, Eq, Hash)]

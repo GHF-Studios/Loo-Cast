@@ -2,7 +2,7 @@
 use bevy::prelude::*;
 use std::marker::PhantomData;
 
-use crate::chunk::types::ChunkOwnerId;
+use crate::chunk_loader::types::ChunkLoaderId;
 
 use super::super::super::types::RemovedChunkLoader;
 use super::super::super::resources::RemovedChunkLoaders;
@@ -17,7 +17,7 @@ pub struct MainAccess<'w, 's> {
 }
 
 pub struct Input {
-    pub chunk_owner_id: Option<ChunkOwnerId>,
+    pub chunk_owner_id: Option<ChunkLoaderId>,
 }
 
 // Core Functions

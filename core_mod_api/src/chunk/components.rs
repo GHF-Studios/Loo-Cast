@@ -4,20 +4,19 @@ use bevy::{
 };
 
 use crate::chunk::types::GridCoord;
+use crate::chunk_loader::types::ChunkLoaderId;
 use crate::chunk::hooks::hook_on_add_chunk;
 use crate::usf::scale::Scale;
-
-use super::types::ChunkOwnerId;
 
 #[derive(Default, Debug, Reflect)]
 #[reflect(Component)]
 pub struct Chunk {
     pub coord: GridCoord,
-    pub(crate) owner_id: Option<ChunkOwnerId>,
+    pub(crate) owner_id: Option<ChunkLoaderId>,
     pub scale: Scale,
 }
 impl Chunk {
-    pub fn owner_id(&self) -> &ChunkOwnerId {
+    pub fn owner_id(&self) -> &ChunkLoaderId {
         self.owner_id.as_ref().expect("Unreachable state: Chunk has no owner_id")
     }
 }

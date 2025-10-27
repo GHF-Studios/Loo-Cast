@@ -4,8 +4,9 @@ use std::marker::PhantomData;
 
 use crate::chunk::resources::{ChunkManager, GridOriginOffset};
 use crate::chunk::traits::Vec2Ext;
-use crate::chunk::types::{GridCoord, ChunkOwnerId};
+use crate::chunk::types::{GridCoord};
 use crate::chunk_loader::components::ChunkLoader;
+use crate::chunk_loader::types::ChunkLoaderId;
 use crate::chunk_loader::workflows::external::unload_chunks::UnloadChunkInput;
 
 // Items
@@ -20,7 +21,7 @@ pub struct MainAccess<'w, 's> {
 }
 
 pub struct Input {
-    pub chunk_owner_id: ChunkOwnerId,
+    pub chunk_owner_id: ChunkLoaderId,
     pub chunk_loader_position: Vec2,
     pub chunk_loader_radius: u32,
 }
@@ -37,7 +38,7 @@ pub fn run_ecs(input: Input, main_access: MainAccess) -> Output {
 
     let chunk_owner_id = input.chunk_owner_id;
     let position = input.chunk_loader_position;
-    let chunk_loader_grid_extentition = position.to_grid_coord(*chunk_loader.id().scale(), grid_origin_offset.0);
+    let chunk_loader_grid_extent = position.to_grid_coord(*chunk_loader.id().scale(), grid_origin_offset.0);
     let radius = input.chunk_loader_radius;
 
     let mut unload_chunk_inputs = Vec::new();
@@ -49,7 +50,7 @@ pub fn run_ecs(input: Input, main_access: MainAccess) -> Output {
         .collect();
 
     for chunk_to_despawn in chunks_to_despawn {
-        let chunk_loader_distance_squared = chunk_to_despawn.xy.distance_squared(&chunk_loader_grid_extentition.xy).try_into().unwrap();
+        let chunk_loader_distance_squared = chunk_to_despawn.xy.distance_squared(&chunk_loader_grid_extent.xy).try_into().unwrap();
         let chunk_loader_radius_squared = radius * radius;
 
         unload_chunk_inputs.push(UnloadChunkInput {

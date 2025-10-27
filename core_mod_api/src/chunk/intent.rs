@@ -1,17 +1,16 @@
 use bevy::prelude::Reflect;
 
 use crate::chunk::types::GridCoord;
-
-use super::types::ChunkOwnerId;
+use crate::chunk_loader::types::ChunkLoaderId;
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Reflect)]
 pub enum State {
     #[default]
     Absent,
-    Owned(ChunkOwnerId),
+    Owned(ChunkLoaderId),
 }
 impl State {
-    pub fn owner_id(&self) -> Option<ChunkOwnerId> {
+    pub fn owner_id(&self) -> Option<ChunkLoaderId> {
         match self {
             State::Absent => None,
             State::Owned(owner_id) => Some(owner_id.clone()),
@@ -22,17 +21,17 @@ impl State {
 #[derive(Debug, Clone, PartialEq, Eq, Reflect)]
 pub enum ActionIntent {
     Spawn {
-        owner_id: ChunkOwnerId,
+        owner_id: ChunkLoaderId,
         coord: GridCoord,
         priority: ActionPriority,
     },
     Despawn {
-        owner_id: ChunkOwnerId,
+        owner_id: ChunkLoaderId,
         coord: GridCoord,
         priority: ActionPriority,
     },
     TransferOwnership {
-        new_owner_id: ChunkOwnerId,
+        new_owner_id: ChunkLoaderId,
         coord: GridCoord,
         priority: ActionPriority,
     },
@@ -50,7 +49,7 @@ impl ActionIntent {
         matches!(self, ActionIntent::TransferOwnership { .. })
     }
 
-    pub fn owner_id(&self) -> ChunkOwnerId {
+    pub fn owner_id(&self) -> ChunkLoaderId {
         match self {
             ActionIntent::Spawn { owner_id, .. } | ActionIntent::Despawn { owner_id, .. } | ActionIntent::TransferOwnership { new_owner_id: owner_id, .. } => {
                 owner_id.clone()

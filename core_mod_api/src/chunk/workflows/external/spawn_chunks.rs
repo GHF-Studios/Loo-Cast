@@ -2,7 +2,8 @@
 use bevy::prelude::{Commands, Entity, Single, Query, With, Res, ResMut, Handle, Image, Transform, Sprite, Name, warn, Vec2, Vec3};
 
 use crate::camera::components::MainCamera;
-use crate::chunk::{components::Chunk, resources::{ChunkManager, GridOriginOffset}, types::{GridCoord, ChunkOwnerId}};
+use crate::chunk::{components::Chunk, resources::{ChunkManager, GridOriginOffset}, types::GridCoord};
+use crate::chunk_loader::types::ChunkLoaderId;
 use crate::config::statics::CONFIG;
 use crate::debug::observers::on_click_select;
 use crate::usf::scale::{Scale, DynScale};
@@ -11,7 +12,7 @@ use crate::workflow::types::Outcome;
 // Items
 pub struct SpawnChunkInput {
     pub grid_coord: GridCoord,
-    pub chunk_owner_id: ChunkOwnerId,
+    pub chunk_owner_id: ChunkLoaderId,
     pub metric_texture: Handle<Image>
 }
 

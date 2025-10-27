@@ -16,7 +16,7 @@ use errors::{DespawnError, SpawnError, TransferOwnershipError};
 use intent::{ActionIntent, ActionPriority, ResolutionError, ResolutionWarning, ResolvedActionIntent, State};
 use resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, ChunkRenderExecutorRegistry, ChunkRenderHandles, GridOriginOffset};
 use systems::{chunk_startup_system, chunk_update_system, process_chunk_actions_system};
-use types::{ChunkActionWorkflowHandles, GridCoord, ChunkOwnerId};
+use types::{ChunkActionWorkflowHandles, GridCoord};
 
 use crate::{core::run_conditions::run_after_startup_finished, time::run_conditions::run_if_not_paused};
 
@@ -44,7 +44,6 @@ impl Plugin for ChunkPlugin {
             .register_type::<ResolutionError>()
             .register_type::<ResolutionWarning>()
             .register_type::<ResolvedActionIntent>()
-            .register_type::<ChunkOwnerId>()
             .register_type::<GridCoord>()
             .register_type::<SpawnError>()
             .register_type::<DespawnError>()

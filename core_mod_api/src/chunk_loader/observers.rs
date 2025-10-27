@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
-use crate::{chunk::types::ChunkOwnerId, chunk_loader::components::ChunkLoader, workflow::functions::handle_composite_workflow_return_later};
+use crate::{chunk_loader::types::ChunkLoaderId, chunk_loader::components::ChunkLoader, workflow::functions::handle_composite_workflow_return_later};
 
 use super::types::RemovedChunkLoaderObservation;
 use super::resources::RemovedChunkLoaderObservationQueue;
@@ -41,7 +41,7 @@ pub(crate) fn on_remove_chunk_loader_observation_queue_processing_system(
         OnRemoveChunkLoader,
         //move in loader_position: Vec2,
         //move in loader_radius: u32,
-        move in removed_owner_id: Option<ChunkOwnerId>,
+        move in removed_owner_id: Option<ChunkLoaderId>,
     {
         warn!("Running composite workflow 'OnRemoveChunkLoader'");
 

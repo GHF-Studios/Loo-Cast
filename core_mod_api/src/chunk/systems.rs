@@ -2,12 +2,13 @@ use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
 use crate::chunk::traits::Vec2Ext;
-use crate::chunk::types::{WorldCoord, GridCoord, ChunkOwnerId};
+use crate::chunk::types::{WorldCoord, GridCoord};
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
 use crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::resources::RemovedChunkLoaders;
+use crate::chunk_loader::types::ChunkLoaderId;
 use crate::config::statics::CONFIG;
 use crate::utils::lifecycle_hook::InitHook;
 use crate::workflow::functions::handle_composite_workflow_return_now;
@@ -117,7 +118,7 @@ pub(crate) fn process_chunk_actions_system(
     let mut despawn_inputs = vec![];
     let mut transfer_inputs = vec![];
 
-    let mut chunk_loaders_performing_chunk_loads: Vec<ChunkOwnerId> = Vec::new();
+    let mut chunk_loaders_performing_chunk_loads: Vec<ChunkLoaderId> = Vec::new();
 
     for (_, coords) in action_intent_commit_buffer.priority_buckets.iter() {
         for coord in coords {

@@ -3,14 +3,15 @@ use bevy::prelude::{warn, Query, Res, ResMut, Transform, Vec2};
 use std::collections::HashSet;
 
 use crate::{chunk::{
-    components::Chunk, intent::{ActionIntent, ActionPriority, ResolutionWarning, ResolvedActionIntent, State as ChunkState, resolve_intent}, resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, GridOriginOffset}, traits::Vec2Ext, types::{ChunkOwnerId, GridCoord}
+    components::Chunk, intent::{ActionIntent, ActionPriority, ResolutionWarning, ResolvedActionIntent, State as ChunkState, resolve_intent}, resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, GridOriginOffset}, traits::Vec2Ext, types::GridCoord
 }, utils::i128vec2::I128Vec2};
 use crate::chunk_loader::components::ChunkLoader;
+use crate::chunk_loader::types::ChunkLoaderId;
 use crate::workflow::types::Outcome;
 
 // Items
 pub struct UnloadChunkInput {
-    pub owner_id: ChunkOwnerId,
+    pub owner_id: ChunkLoaderId,
     pub grid_coord: GridCoord,
     pub chunk_loader_distance_squared: u32,
     pub chunk_loader_radius_squared: u32,
@@ -23,7 +24,7 @@ pub struct DespawnChunkState {
 
 pub struct TransferChunkOwnershipState {
     pub coord: GridCoord,
-    pub owner_id: ChunkOwnerId,
+    pub owner_id: ChunkLoaderId,
     pub is_ownership_transfered: bool,
 }
 

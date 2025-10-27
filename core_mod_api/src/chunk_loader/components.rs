@@ -3,7 +3,7 @@ use std::{collections::HashSet, sync::Mutex};
 use bevy::prelude::*;
 use lazy_static::lazy_static;
 
-use crate::{chunk::types::ChunkOwnerId, config::statics::CONFIG, entity::functions::get_reserved_entity};
+use crate::{chunk_loader::types::ChunkLoaderId, config::statics::CONFIG, entity::functions::get_reserved_entity};
 use crate::usf::scale::Scale;
 
 use super::enums::ZoomState;
@@ -16,24 +16,24 @@ lazy_static! {
 #[reflect(Component)]
 pub struct ChunkLoader {
     pub radius: u32,
-    chunk_owner_id: ChunkOwnerId,
+    chunk_owner_id: ChunkLoaderId,
     pub(crate) zoom_state: ZoomState,
 }
 impl ChunkLoader {
     pub fn new(owner_id: String, owner_scale: Scale) -> Self {
         let owner_id_registry = OWNER_ID_REGISTRY.lock().unwrap();
         if owner_id_registry.contains(&owner_id) {
-            unreachable!("ChunkOwnerID '{}' is already in use", owner_id);
+            unreachable!("ChunkLoaderID '{}' is already in use", owner_id);
         }
 
         ChunkLoader {
             radius: CONFIG().get::<u32>("chunk_loader/default_radius"),
-            chunk_owner_id: ChunkOwnerId::new(owner_id, get_reserved_entity(), owner_scale),
+            chunk_owner_id: ChunkLoaderId::new(owner_id, get_reserved_entity(), owner_scale),
             zoom_state: ZoomState::default(),
         }
     }
 
-    pub fn id(&self) -> &ChunkOwnerId {
+    pub fn id(&self) -> &ChunkLoaderId {
         &self.chunk_owner_id
     }
 

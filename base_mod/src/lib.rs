@@ -15,13 +15,14 @@ api_initializer!("base_mod");
 use core_mod_api::usf;
 use usf::pos::unit::types::*;
 
-struct ImmoveableSquareModel {
+// A homogeneous/inert immovable/infinite-mass square rigidbody
+struct TestSquareRigidbody {
     origin: UnitExtent,
     extent: [UnitExtent; 2],
 }
 
-impl DiscretePhenomenaModel for ImmoveableSquareModel {
-    fn is_within_bounds(&self, chunk: &GridPos) -> bool {
+impl DiscretePhenomenaModel for TestSquareRigidbody {
+    fn is_within_bounds(&self, unit_pos: &UnitExtent) -> bool {
         // simple spatial AABB test
     }
 
@@ -30,10 +31,3 @@ impl DiscretePhenomenaModel for ImmoveableSquareModel {
     }
 }
 
-struct Phenomenon {
-    model_id: PhenomenaModelId,
-    chunk: GridPos,
-    spatial_bounds: AABB<FixedVec2>,
-    scale: Scale,
-    // Maybe links to parent phenomena, maybe not
-}
