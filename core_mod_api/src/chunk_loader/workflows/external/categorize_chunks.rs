@@ -7,6 +7,7 @@ use crate::chunk::traits::Vec2Ext;
 use crate::chunk::types::GridCoord;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::workflows::external::{load_chunks::LoadChunkInput, unload_chunks::UnloadChunkInput};
+use crate::usf::scale::Scale;
 use crate::utils::lifecycle_hook::DropHook;
 
 // Items
@@ -36,8 +37,8 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
         println!("scale: {:?}", chunk_loader.id().scale());
         let chunk_loader_position = transform.translation.truncate();
         println!("chunk_loader_position: {:?}", chunk_loader_position);
-        let chunk_loader_grid_extent = chunk_loader_position.to_grid_coord(*chunk_loader.id().scale(), grid_origin_offset.0);
-        println!("chunk_loader_grid_extent: {:?}", chunk_loader_grid_extent);
+        let chunk_loader_grid_coord = chunk_loader_position.to_grid_coord(*chunk_loader.id().scale(), grid_origin_offset.0);
+        println!("chunk_loader_grid_extent: {:?}", chunk_loader_grid_coord);
         let radius = chunk_loader.radius;
 
         let chunk_owner_id = chunk_loader.id();
@@ -45,7 +46,23 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
         let target_chunks = if drop_hook.is_some() {
             HashSet::new()
         } else {
-            chunk_loader_grid_extent.coords_in_radius(radius).into_iter().collect::<HashSet<GridCoord>>()
+            let mut chunk_loader_scale_cursor = *chunk_loader.id().scale();
+            let mut chunk_loader_grid_coord_cursor = chunk_loader_grid_coord.clone();
+            let mut coords_in_cone = HashSet::new();
+
+            while chunk_loader_scale_cursor != Scale::MAX {
+                let coords_in_radius = chunk_loader_grid_coord_cursor.coords_in_radius(radius).into_iter().collect::<HashSet<GridCoord>>();
+
+                if !coords_in_cone.is_disjoint(&coords_in_radius) {
+                    panic!("Duplicate coords!")
+                }
+
+                coords_in_cone.extend(coords_in_radius);
+                chunk_loader_scale_cursor.zoom_out();
+                chunk_loader_grid_coord_cursor.zoom_out();
+            }
+
+            coords_in_cone
         };
 
         let current_chunks: HashSet<GridCoord> = chunk_manager
@@ -58,7 +75,7 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
         let chunks_to_unload: Vec<_> = current_chunks.difference(&target_chunks).cloned().collect();
 
         for chunk_to_load in chunks_to_load {
-            let chunk_loader_distance_squared = chunk_to_load.distance_squared(&chunk_loader_grid_extent);
+            let chunk_loader_distance_squared = chunk_to_load.distance_squared(&chunk_loader_grid_coord);
             let chunk_loader_radius_squared = radius * radius;
 
             load_chunk_inputs.push(LoadChunkInput {
@@ -70,7 +87,7 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
         }
 
         for chunk_to_unload in chunks_to_unload {
-            let chunk_loader_distance_squared = chunk_to_unload.distance_squared(&chunk_loader_grid_extent);
+            let chunk_loader_distance_squared = chunk_to_unload.distance_squared(&chunk_loader_grid_coord);
             let chunk_loader_radius_squared = radius * radius;
 
             unload_chunk_inputs.push(UnloadChunkInput {

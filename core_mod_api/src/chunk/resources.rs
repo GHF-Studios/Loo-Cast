@@ -124,7 +124,3 @@ pub struct ChunkRenderHandles {
 pub struct ChunkRenderExecutorRegistry {
     pub executors: HashMap<GridCoord, ChunkRenderExecutor>,
 }
-
-#[derive(Resource, Reflect, Default)]
-#[reflect(Resource)]
-pub struct GridOriginOffset(pub I128Vec2);

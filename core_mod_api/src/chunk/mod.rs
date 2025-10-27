@@ -4,7 +4,6 @@ pub mod functions;
 pub mod hooks;
 pub mod resources;
 pub mod systems;
-pub mod traits;
 pub mod types;
 
 pub mod intent;
