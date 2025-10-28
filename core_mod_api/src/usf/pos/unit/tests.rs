@@ -1,6 +1,6 @@
 use crate::unit_extent;
 
-use super::types::UnitExtent;
+use super::types::UnitVec;
 
 #[test]
 fn unit_extent_zoom_out_test_1() {

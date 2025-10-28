@@ -1,15 +1,15 @@
-use bevy::prelude::{IVec2, Vec3};
+use bevy::prelude::{IVec2, Vec3, Reflect};
 use std::{marker::PhantomData, sync::Arc};
 
 use crate::usf::scale::Scale;
 use crate::utils::logic_safety::{LogicSafety, Checked, Unchecked};
-use crate::usf::pos::unit::types::UnitExtent;
+use crate::usf::pos::unit::types::UnitVec;
 
-pub struct GridExtentBuilder {
+pub struct GridVecBuilder {
     chain: Vec<IVec2>,
 }
 
-impl GridExtentBuilder {
+impl GridVecBuilder {
     pub fn new() -> Self {
         Self {
             chain: vec![],
@@ -37,21 +37,21 @@ impl GridExtentBuilder {
         self
     }
 
-    pub fn finish(self) -> GridExtent {
-        GridExtent::try_from(self.chain).unwrap()
+    pub fn finish(self) -> GridVec {
+        GridVec::try_from(self.chain).unwrap()
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct GridExtent<LS: LogicSafety = Checked> {
-    pub(in super::super) parent: Option<Arc<GridExtent>>,
-    pub(in super::super) scale: Scale,
-    pub(in super::super) xy: IVec2,
-    pub(in super::super) phantom_safety: PhantomData<LS>,
+#[derive(Default, Clone, PartialEq, Eq, Hash, Reflect)]
+pub struct GridVec<LS: LogicSafety = Checked> {
+    pub(in crate) parent: Option<Arc<GridVec>>,
+    pub(in crate) scale: Scale,
+    pub(in crate) xy: IVec2,
+    pub(in crate) phantom_safety: PhantomData<LS>,
 }
-impl GridExtent {
-    pub fn build() -> GridExtentBuilder {
-        GridExtentBuilder::new()
+impl GridVec {
+    pub fn build() -> GridVecBuilder {
+        GridVecBuilder::new()
     }
 
     fn validate_xy(xy: &IVec2) {
@@ -61,32 +61,32 @@ impl GridExtent {
         if xy.y >= 5 { panic!("Y coordinate {} is too large. Range is (-5..5)", xy.y); }
     }
 
-    /// Create a GridExtent with random (yet valid) coordinates, from the root, down to and including the specified scale, with the same random coords at each scale.
+    /// Create a GridVec with random (yet valid) coordinates, from the root, down to and including the specified scale, with the same random coords at each scale.
     pub fn new_random_homo(_scale: Scale) -> Self {
         todo!()
     }
     
-    /// Create a GridExtent with random (yet valid) coordinates, from the root, down to and including the specified scale, with different random coords at each scale.
+    /// Create a GridVec with random (yet valid) coordinates, from the root, down to and including the specified scale, with different random coords at each scale.
     pub fn new_random_hetero(_scale: Scale) -> Self {
         todo!()
     }
 
-    /// Create a GridExtent at the absolute root (Scale::MAX) with no parent.
+    /// Create a GridVec at the absolute root (Scale::MAX) with no parent.
     pub fn new_root(xy: IVec2) -> Self {
         Self::validate_xy(&xy);
         Self { parent: None, scale: Scale::MAX, xy, phantom_safety: PhantomData }
     }
 
-    /// Create a GridExtent at the absolute root (Scale::MAX) with no parent.
-    pub fn new_root_unchecked(xy: IVec2) -> GridExtent<Unchecked> {
-        GridExtent::<Unchecked> { parent: None, scale: Scale::MAX, xy, phantom_safety: PhantomData }
+    /// Create a GridVec at the absolute root (Scale::MAX) with no parent.
+    pub fn new_root_unchecked(xy: IVec2) -> GridVec<Unchecked> {
+        GridVec::<Unchecked> { parent: None, scale: Scale::MAX, xy, phantom_safety: PhantomData }
     }
 
-    /// Create a GridExtent with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
-    pub fn new(parent: GridExtent, xy: IVec2) -> Self {
+    /// Create a GridVec with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
+    pub fn new(parent: GridVec, xy: IVec2) -> Self {
         Self::validate_xy(&xy);
         if parent.scale == Scale::MIN {
-            panic!("Cannot create a child GridExtent from a parent at Scale::MIN, as there is no smaller scale.");
+            panic!("Cannot create a child GridVec from a parent at Scale::MIN, as there is no smaller scale.");
         }
         let scale = parent.scale.zoomed_in();
         let parent = Some(Arc::new(parent));
@@ -94,15 +94,15 @@ impl GridExtent {
         Self { parent, scale, xy, phantom_safety: PhantomData }
     }
 
-    /// Create a GridExtent with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
-    pub fn new_unchecked(parent: GridExtent, xy: IVec2) -> GridExtent<Unchecked> {
+    /// Create a GridVec with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
+    pub fn new_unchecked(parent: GridVec, xy: IVec2) -> GridVec<Unchecked> {
         let scale = parent.scale.zoomed_in();
         let parent = Some(Arc::new(parent));
 
-        GridExtent::<Unchecked> { parent, scale, xy, phantom_safety: PhantomData }
+        GridVec::<Unchecked> { parent, scale, xy, phantom_safety: PhantomData }
     }
 
-    /// Create a GridExtent with all ancestors up, from the specified scale to the root at Scale::MAX, pre-filled with IVec2::ZERO, except for the leaf at the specified scale, which is set to the specified xy.
+    /// Create a GridVec with all ancestors up, from the specified scale to the root at Scale::MAX, pre-filled with IVec2::ZERO, except for the leaf at the specified scale, which is set to the specified xy.
     pub fn new_at_scale(scale: Scale, xy: IVec2) -> Self {
         Self::validate_xy(&xy);
         if scale == Scale::MAX {
@@ -120,7 +120,7 @@ impl GridExtent {
         Self { parent: current.parent, scale, xy, phantom_safety: PhantomData }
     }
 
-    /// Create a GridExtent with all ancestors, from the specified scale up to the root at Scale::MAX, pre-filled with the specified xy.
+    /// Create a GridVec with all ancestors, from the specified scale up to the root at Scale::MAX, pre-filled with the specified xy.
     pub fn new_splat(scale: Scale, xy: IVec2) -> Self {
         Self::validate_xy(&xy);
         if scale == Scale::MAX {
@@ -139,7 +139,7 @@ impl GridExtent {
     }
 
     pub fn zoom_out(&mut self) {
-        let mut unit_extent = UnitExtent {
+        let mut unit_extent = UnitVec {
             grid_offset: self.clone(),
             unit_offset: Vec3::ZERO,
         };
@@ -189,17 +189,17 @@ impl GridExtent {
         raw_offsets
     }
 }
-impl From<GridExtent<Unchecked>> for GridExtent<Checked> {
-    fn from(value: GridExtent<Unchecked>) -> Self {
-        GridExtent::<Checked> { parent: value.parent, scale: value.scale, xy: value.xy, phantom_safety: PhantomData }
+impl From<GridVec<Unchecked>> for GridVec<Checked> {
+    fn from(value: GridVec<Unchecked>) -> Self {
+        GridVec::<Checked> { parent: value.parent, scale: value.scale, xy: value.xy, phantom_safety: PhantomData }
     }
 }
-impl Default for GridExtent<Unchecked> {
+impl Default for GridVec<Unchecked> {
     fn default() -> Self {
-        GridExtent::<Unchecked> { parent: None, scale: Scale::default(), xy: IVec2::ZERO, phantom_safety: PhantomData }
+        GridVec::<Unchecked> { parent: None, scale: Scale::default(), xy: IVec2::ZERO, phantom_safety: PhantomData }
     }
 }
-impl std::fmt::Debug for GridExtent {
+impl std::fmt::Debug for GridVec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut msg = String::new();
         let mut cursor = self;
@@ -216,7 +216,7 @@ impl std::fmt::Debug for GridExtent {
         write!(f, "[{}] @ scale {}", msg, self.scale as i8)
     }
 }
-impl std::ops::Add<IVec2> for GridExtent {
+impl std::ops::Add<IVec2> for GridVec {
     type Output = Self;
 
     fn add(mut self, rhs: IVec2) -> Self::Output {
@@ -225,13 +225,13 @@ impl std::ops::Add<IVec2> for GridExtent {
         self
     }
 }
-impl std::ops::AddAssign<IVec2> for GridExtent {
+impl std::ops::AddAssign<IVec2> for GridVec {
     fn add_assign(&mut self, rhs: IVec2) {
         self.xy += rhs;
         Self::validate_xy(&self.xy);
     }
 }
-impl std::ops::Sub<IVec2> for GridExtent {
+impl std::ops::Sub<IVec2> for GridVec {
     type Output = Self;
 
     fn sub(mut self, rhs: IVec2) -> Self::Output {
@@ -240,18 +240,18 @@ impl std::ops::Sub<IVec2> for GridExtent {
         self
     }
 }
-impl std::ops::SubAssign<IVec2> for GridExtent {
+impl std::ops::SubAssign<IVec2> for GridVec {
     fn sub_assign(&mut self, rhs: IVec2) {
         self.xy -= rhs;
         Self::validate_xy(&self.xy);
     }
 }
-impl std::ops::Add<GridExtent> for GridExtent {
-    type Output = GridExtent;
+impl std::ops::Add<GridVec> for GridVec {
+    type Output = GridVec;
 
-    fn add(self, rhs: GridExtent) -> Self::Output {
+    fn add(self, rhs: GridVec) -> Self::Output {
         // === Phase 1: Collect full stack from root to leaf ===
-        fn stack_up(mut cursor: &GridExtent) -> Vec<(Scale, IVec2)> {
+        fn stack_up(mut cursor: &GridVec) -> Vec<(Scale, IVec2)> {
             let mut stack = Vec::new();
             loop {
                 stack.push((cursor.scale, cursor.xy));
@@ -301,29 +301,29 @@ impl std::ops::Add<GridExtent> for GridExtent {
             carry = IVec2::new(carry_x, carry_y);
         }
 
-        // === Phase 4: Build final GridExtent tree ===
-        let mut result: Option<GridExtent> = None;
+        // === Phase 4: Build final GridVec tree ===
+        let mut result: Option<GridVec> = None;
         for (_scale, xy) in raw_stack {
             result = Some(match result {
-                Some(parent) => GridExtent::new(parent, xy),
-                None => GridExtent::new_root(xy),
+                Some(parent) => GridVec::new(parent, xy),
+                None => GridVec::new_root(xy),
             });
         }
 
-        result.expect("GridExtent addition should yield a result")
+        result.expect("GridVec addition should yield a result")
     }
 }
-impl std::ops::AddAssign<GridExtent> for GridExtent {
-    fn add_assign(&mut self, rhs: GridExtent) {
+impl std::ops::AddAssign<GridVec> for GridVec {
+    fn add_assign(&mut self, rhs: GridVec) {
         *self = self.clone() + rhs;
     }
 }
-impl std::ops::Sub<GridExtent> for GridExtent {
+impl std::ops::Sub<GridVec> for GridVec {
     type Output = Self;
 
-    fn sub(self, rhs: GridExtent) -> Self::Output {
+    fn sub(self, rhs: GridVec) -> Self::Output {
         // === Phase 1: Collect full stack from root to leaf ===
-        fn stack_up(mut cursor: &GridExtent) -> Vec<(Scale, IVec2)> {
+        fn stack_up(mut cursor: &GridVec) -> Vec<(Scale, IVec2)> {
             let mut stack = Vec::new();
             loop {
                 stack.push((cursor.scale, cursor.xy));
@@ -373,36 +373,36 @@ impl std::ops::Sub<GridExtent> for GridExtent {
             carry = IVec2::new(carry_x, carry_y);
         }
 
-        // === Phase 4: Build final GridExtent tree ===
-        let mut result: Option<GridExtent> = None;
+        // === Phase 4: Build final GridVec tree ===
+        let mut result: Option<GridVec> = None;
         for (_scale, xy) in raw_stack {
             result = Some(match result {
-                Some(parent) => GridExtent::new(parent, xy),
-                None => GridExtent::new_root(xy),
+                Some(parent) => GridVec::new(parent, xy),
+                None => GridVec::new_root(xy),
             });
         }
 
-        result.expect("GridExtent subtraction should yield a result")
+        result.expect("GridVec subtraction should yield a result")
     }
 }
-impl std::ops::SubAssign<GridExtent> for GridExtent {
-    fn sub_assign(&mut self, rhs: GridExtent) {
+impl std::ops::SubAssign<GridVec> for GridVec {
+    fn sub_assign(&mut self, rhs: GridVec) {
         *self = self.clone() - rhs;
     }
 }
-impl std::convert::TryFrom<Vec<IVec2>> for GridExtent {
+impl std::convert::TryFrom<Vec<IVec2>> for GridVec {
     type Error = &'static str;
 
     fn try_from(stack: Vec<IVec2>) -> Result<Self, Self::Error> {
         if stack.is_empty() {
-            return Err("GridExtent stack must contain at least one element");
+            return Err("GridVec stack must contain at least one element");
         }
 
         let mut iter = stack.into_iter();
-        let mut current = GridExtent::new_root(iter.next().unwrap());
+        let mut current = GridVec::new_root(iter.next().unwrap());
 
         for xy in iter {
-            current = GridExtent::new(current, xy);
+            current = GridVec::new(current, xy);
         }
 
         Ok(current)

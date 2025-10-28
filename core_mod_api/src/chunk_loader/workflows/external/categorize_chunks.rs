@@ -2,11 +2,11 @@
 use bevy::prelude::*;
 use std::collections::HashSet;
 
-use crate::chunk::resources::{ChunkManager, GridOriginOffset};
-use crate::chunk::traits::Vec2Ext;
-use crate::chunk::types::GridCoord;
+use crate::chunk::resources::ChunkManager;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::workflows::external::{load_chunks::LoadChunkInput, unload_chunks::UnloadChunkInput};
+use crate::usf::pos::grid::types::GridVec;
+use crate::usf::pos::resources::OriginOffset;
 use crate::usf::scale::Scale;
 use crate::utils::lifecycle_hook::DropHook;
 
@@ -17,7 +17,7 @@ use crate::utils::lifecycle_hook::DropHook;
 pub struct MainAccess<'w, 's> {
     pub chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader, Option<&'static DropHook<ChunkLoader>>)>,
     pub chunk_manager: Res<'w, ChunkManager>,
-    pub grid_origin_offset: Res<'w, GridOriginOffset>,
+    pub origin_offset: Res<'w, OriginOffset>,
 }
 pub struct Output {
     pub load_chunk_inputs: Vec<LoadChunkInput>,
@@ -28,17 +28,14 @@ pub struct Output {
 pub fn run_ecs(main_access: MainAccess) -> Output {
     let chunk_loader_query = &main_access.chunk_loader_query;
     let chunk_manager = &main_access.chunk_manager;
-    let grid_origin_offset = main_access.grid_origin_offset;
+    let origin_offset = main_access.origin_offset;
 
     let mut load_chunk_inputs = Vec::new();
     let mut unload_chunk_inputs = Vec::new();
 
     for (transform, chunk_loader, drop_hook) in chunk_loader_query.iter() {
-        println!("scale: {:?}", chunk_loader.id().scale());
         let chunk_loader_position = transform.translation.truncate();
-        println!("chunk_loader_position: {:?}", chunk_loader_position);
-        let chunk_loader_grid_coord = chunk_loader_position.to_grid_coord(*chunk_loader.id().scale(), grid_origin_offset.0);
-        println!("chunk_loader_grid_extent: {:?}", chunk_loader_grid_coord);
+        let chunk_loader_grid_coord = chunk_loader_position.to_grid_coord(*chunk_loader.id().scale(), origin_offset.0);
         let radius = chunk_loader.radius;
 
         let chunk_owner_id = chunk_loader.id();
@@ -51,7 +48,7 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
             let mut coords_in_cone = HashSet::new();
 
             while chunk_loader_scale_cursor != Scale::MAX {
-                let coords_in_radius = chunk_loader_grid_coord_cursor.coords_in_radius(radius).into_iter().collect::<HashSet<GridCoord>>();
+                let coords_in_radius = chunk_loader_grid_coord_cursor.coords_in_radius(radius).into_iter().collect::<HashSet<GridVec>>();
 
                 if !coords_in_cone.is_disjoint(&coords_in_radius) {
                     panic!("Duplicate coords!")
@@ -65,7 +62,7 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
             coords_in_cone
         };
 
-        let current_chunks: HashSet<GridCoord> = chunk_manager
+        let current_chunks: HashSet<GridVec> = chunk_manager
             .owned_chunks
             .iter()
             .filter_map(|(chunk, owner_id)| if owner_id == chunk_owner_id { Some(*chunk) } else { None })

@@ -7,5 +7,10 @@ use bevy::prelude::*;
 
 pub(crate) struct UtilsPlugin;
 impl Plugin for UtilsPlugin {
-    fn build(&self, _app: &mut App) {}
+    fn build(&self, app: &mut App) {
+        app
+            .register_type::<logic_safety::Checked>()
+            .register_type::<logic_safety::Unchecked>()
+            .register_type::<premium_box::AnySendSyncPremiumBox>();
+    }
 }

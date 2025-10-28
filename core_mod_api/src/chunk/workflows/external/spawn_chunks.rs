@@ -1,17 +1,19 @@
 // Imports
-use bevy::prelude::{Commands, Entity, Single, Query, With, Res, ResMut, Handle, Image, Transform, Sprite, Name, warn, Vec2, Vec3};
+use bevy::prelude::*;
 
 use crate::camera::components::MainCamera;
-use crate::chunk::{components::Chunk, resources::{ChunkManager, GridOriginOffset}, types::GridCoord};
+use crate::chunk::{components::Chunk, resources::ChunkManager};
 use crate::chunk_loader::types::ChunkLoaderId;
 use crate::config::statics::CONFIG;
 use crate::debug::observers::on_click_select;
+use crate::usf::pos::grid::types::GridVec;
+use crate::usf::pos::resources::OriginOffset;
 use crate::usf::scale::{Scale, DynScale};
 use crate::workflow::types::Outcome;
 
 // Items
 pub struct SpawnChunkInput {
-    pub grid_coord: GridCoord,
+    pub grid_coord: GridVec,
     pub chunk_owner_id: ChunkLoaderId,
     pub metric_texture: Handle<Image>
 }
@@ -28,7 +30,7 @@ pub struct MainAccess<'w, 's> {
     pub commands: Commands<'w, 's>,
     pub chunk_query: Query<'w, 's, &'static Chunk>,
     pub chunk_manager: ResMut<'w, ChunkManager>,
-    pub grid_origin_offset: Res<'w, GridOriginOffset>,
+    pub origin_offset: Res<'w, OriginOffset>,
     pub camera_transform: Single<'w, &'static Transform, With<MainCamera>>,
 }
 
@@ -46,7 +48,7 @@ pub struct Output {
 
 #[derive(Debug)]
 pub enum Error {
-    ChunkAlreadyLoaded { grid_coord: GridCoord },
+    ChunkAlreadyLoaded { grid_coord: GridVec },
 }
 
 // Core Functions
@@ -54,7 +56,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     let mut commands = main_access.commands;
     let chunk_query = main_access.chunk_query;
     let mut chunk_manager = main_access.chunk_manager;
-    let grid_origin_offset = main_access.grid_origin_offset;
+    let origin_offset = main_access.origin_offset;
     let _camera_transform = main_access.camera_transform;
 
     let mut spawn_chunk_states = Vec::new();
@@ -65,7 +67,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         println!("scale_factor: {:?}", scale_factor);
         let grid_coord = input.grid_coord;
         println!("grid_coord: {:?}", grid_coord);
-        let world_coord = grid_coord.to_world_coord(grid_origin_offset.0, Vec2::ZERO);
+        let world_coord = grid_coord.to_world_coord(origin_offset.0, Vec2::ZERO);
         println!("world_coord: {:?}", world_coord);
         let chunk_owner_id = input.chunk_owner_id;
         let metric_texture = input.metric_texture.clone();
@@ -78,7 +80,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         let chunk_z = (-(Scale::MAX as i8 - scale as i8) + chunk_z_offset) as f32;
 
         // let camera_pos = camera_transform.translation.truncate();
-        // let camera_grid_extent = camera_pos.to_grid_coord(grid_origin_offset.0);
+        // let camera_grid_extent = camera_pos.to_grid_coord(origin_offset.0);
         // let camera_world_coord = camera_pos.to_world_coord(scale, camera_grid_extent);
         // println!("camera_world_coord: {:?}", camera_world_coord);
 

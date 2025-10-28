@@ -13,9 +13,9 @@ use bevy::prelude::*;
 use components::Chunk;
 use errors::{DespawnError, SpawnError, TransferOwnershipError};
 use intent::{ActionIntent, ActionPriority, ResolutionError, ResolutionWarning, ResolvedActionIntent, State};
-use resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, ChunkRenderExecutorRegistry, ChunkRenderHandles, GridOriginOffset};
+use resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, ChunkRenderExecutorRegistry, ChunkRenderHandles};
 use systems::{chunk_startup_system, chunk_update_system, process_chunk_actions_system};
-use types::{ChunkActionWorkflowHandles, GridCoord};
+use types::{ChunkActionWorkflowHandles};
 
 use crate::{core::run_conditions::run_after_startup_finished, time::run_conditions::run_if_not_paused};
 
@@ -27,7 +27,6 @@ impl Plugin for ChunkPlugin {
             .insert_resource(ActionIntentCommitBuffer::default())
             .insert_resource(ChunkManager::default())
             .insert_resource(ChunkRenderExecutorRegistry::default())
-            .insert_resource(GridOriginOffset::default())
             
             .add_systems(Startup, chunk_startup_system)
             .add_systems(Update, chunk_update_system.run_if(run_after_startup_finished.and(run_if_not_paused)))
@@ -43,12 +42,10 @@ impl Plugin for ChunkPlugin {
             .register_type::<ResolutionError>()
             .register_type::<ResolutionWarning>()
             .register_type::<ResolvedActionIntent>()
-            .register_type::<GridCoord>()
             .register_type::<SpawnError>()
             .register_type::<DespawnError>()
             .register_type::<TransferOwnershipError>()
             .register_type::<ActionPriority>()
-            .register_type::<ChunkActionWorkflowHandles>()
-            .register_type::<GridOriginOffset>();
+            .register_type::<ChunkActionWorkflowHandles>();
     }
 }

@@ -9,6 +9,7 @@ use bevy::prelude::*;
 
 pub(crate) struct UsfPlugin;
 impl Plugin for UsfPlugin {
-    fn build(&self, _app: &mut App) {
+    fn build(&self, app: &mut App) {
+        app.add_plugin(pos::PosPlugin);
     }
 }

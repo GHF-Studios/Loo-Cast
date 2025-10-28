@@ -1,4 +1,4 @@
-use bevy::prelude::{warn, Reflect};
+use bevy::prelude::*;
 use std::any::Any;
 use std::fmt::Debug;
 use std::panic::Location;
@@ -133,6 +133,7 @@ fn placeholder_callsite() -> &'static Location<'static> {
 }
 
 #[cfg(not(feature = "allow_premium_box"))]
+#[derive(Reflect)]
 #[repr(transparent)]
 pub struct AnySendSyncPremiumBox {
     inner: Box<dyn Any + Send + Sync>,

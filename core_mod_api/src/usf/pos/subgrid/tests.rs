@@ -1,6 +1,6 @@
 use crate::subgrid_extent;
 
-use super::types::SubgridExtent;
+use super::types::SubgridVec;
 
 #[test]
 fn subgrid_extent_zoom_out_test_1() {
@@ -46,10 +46,10 @@ fn subgrid_extent_add_test_2() {
 
 #[test]
 fn subgrid_extent_add_test_3() {
-    let a = SubgridExtent::build().repeat((4, 4), 70).finish((4, 4));
-    let b = SubgridExtent::build().repeat((0, 0), 70).finish((1, 1));
+    let a = SubgridVec::build().repeat((4, 4), 70).finish((4, 4));
+    let b = SubgridVec::build().repeat((0, 0), 70).finish((1, 1));
     let c = a + b;
-    let expected = SubgridExtent::build().repeat((-5, -5), 70).finish((-5, -5));
+    let expected = SubgridVec::build().repeat((-5, -5), 70).finish((-5, -5));
     assert_eq!(c, expected);
 }
 
@@ -73,9 +73,9 @@ fn subgrid_extent_sub_test_2() {
 
 #[test]
 fn subgrid_extent_sub_test_3() {
-    let a = SubgridExtent::build().repeat((-5, -5), 70).finish((-5, -5));
-    let b = SubgridExtent::build().repeat((0, 0), 70).finish((1, 1));
+    let a = SubgridVec::build().repeat((-5, -5), 70).finish((-5, -5));
+    let b = SubgridVec::build().repeat((0, 0), 70).finish((1, 1));
     let c = a - b;
-    let expected = SubgridExtent::build().repeat((4, 4), 70).finish((4, 4));
+    let expected = SubgridVec::build().repeat((4, 4), 70).finish((4, 4));
     assert_eq!(c, expected);
 }

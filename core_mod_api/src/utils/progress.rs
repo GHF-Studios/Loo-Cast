@@ -1,3 +1,15 @@
+// use bevy::prelude::*;
+
+// pub(crate) struct ProgressPlugin<U, F>;
+// impl<U, F> Plugin for ProgressPlugin<U, F> {
+//     fn build(&self, app: &mut App) {
+//         app
+//             .register_type::<Progress<U, F>>();
+//     }
+// }
+
+// #[derive(Reflect)]
+// TODO: MAJOR: Impl Reflect manually, and add Reflect and other common sensible trait impls/derives to all external workflow types.
 pub enum Progress<U, F> {
     Unfinished(U),
     Finished(F),
