@@ -4,11 +4,11 @@ pub mod grid;
 pub mod subgrid;
 pub mod unit;
 
-pub mod resources;
+pub mod components;
 
 use bevy::prelude::*;
 
-use resources::OriginOffset;
+use components::OriginOffset;
 
 pub(crate) struct PosPlugin;
 impl Plugin for PosPlugin {

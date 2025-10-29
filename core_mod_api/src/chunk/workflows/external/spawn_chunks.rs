@@ -7,7 +7,7 @@ use crate::chunk_loader::types::ChunkLoaderId;
 use crate::config::statics::CONFIG;
 use crate::debug::observers::on_click_select;
 use crate::usf::pos::grid::types::GridVec;
-use crate::usf::pos::resources::OriginOffset;
+use crate::usf::pos::components::OriginOffset;
 use crate::usf::scale::{Scale, DynScale};
 use crate::workflow::types::Outcome;
 

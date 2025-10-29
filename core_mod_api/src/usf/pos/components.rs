@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use super::grid::types::GridVec;
 
-#[derive(Resource, Default, Debug, Clone, PartialEq, Eq, Hash, Reflect)]
-#[reflect(Resource)]
+#[derive(Component, Default, Debug, Clone, PartialEq, Eq, Hash, Reflect)]
+#[reflect(Component)]
 #[repr(transparent)]
 pub struct OriginOffset(pub GridVec);
