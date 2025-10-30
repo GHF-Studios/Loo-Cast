@@ -1,7 +1,7 @@
 use bevy::prelude::Reflect;
 
-use crate::chunk::types::GridCoord;
 use crate::chunk_loader::types::ChunkLoaderId;
+use crate::usf::pos::grid::types::GridVec;
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Reflect)]
 pub enum State {
@@ -22,17 +22,17 @@ impl State {
 pub enum ActionIntent {
     Spawn {
         owner_id: ChunkLoaderId,
-        coord: GridCoord,
+        coord: GridVec,
         priority: ActionPriority,
     },
     Despawn {
         owner_id: ChunkLoaderId,
-        coord: GridCoord,
+        coord: GridVec,
         priority: ActionPriority,
     },
     TransferOwnership {
         new_owner_id: ChunkLoaderId,
-        coord: GridCoord,
+        coord: GridVec,
         priority: ActionPriority,
     },
 }
@@ -57,7 +57,7 @@ impl ActionIntent {
         }
     }
 
-    pub fn coord(&self) -> GridCoord {
+    pub fn coord(&self) -> GridVec {
         match self {
             ActionIntent::Spawn { coord, .. } | ActionIntent::Despawn { coord, .. } | ActionIntent::TransferOwnership { coord, .. } => *coord,
         }

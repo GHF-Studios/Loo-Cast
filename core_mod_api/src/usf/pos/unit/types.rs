@@ -1,7 +1,6 @@
 use bevy::prelude::{IVec2, Vec2, Vec3, Reflect};
 
 use crate::usf::scale::{Scale, DynScale};
-use crate::utils::logic_safety::Checked;
 use crate::usf::pos::grid::types::GridVec;
 
 pub struct UnitVecBuilder {
@@ -72,7 +71,7 @@ impl UnitVec {
         my_self.normalize();
         my_self
     }
-    
+
     pub fn normalize(&mut self) {
         // Normalize X
         while self.unit_offset.x < -500.0 {

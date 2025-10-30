@@ -29,7 +29,7 @@ pub struct SpawnChunkState {
 pub struct MainAccess<'w, 's> {
     pub commands: Commands<'w, 's>,
     pub chunk_query: Query<'w, 's, &'static Chunk>,
-    pub chunk_loader_query: Query<'w, 's, &'static ChunkLoader>,
+    pub chunk_loader_query: Single<'w, &'static ChunkLoader>,
     pub chunk_manager: ResMut<'w, ChunkManager>,
     pub camera_transform: Single<'w, &'static Transform, With<MainCamera>>,
 }
@@ -55,7 +55,7 @@ pub enum Error {
 pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, Error> {
     let mut commands = main_access.commands;
     let chunk_query = main_access.chunk_query;
-    let chunk_loader_query = main_access.chunk_loader_query;
+    let chunk_loader = main_access.chunk_loader_query;
     let mut chunk_manager = main_access.chunk_manager;
     let _camera_transform = main_access.camera_transform;
 
@@ -65,7 +65,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         let scale = input.grid_coord.scale;
         let scale_factor = scale.scale_factor() as f32;
         let grid_coord = input.grid_coord;
-        let world_coord = grid_coord.to_world_coord(origin_offset.0, Vec2::ZERO);
+        let world_coord = grid_coord.clone().to_native(chunk_loader.origin_offset.clone());
         let chunk_owner_id = input.chunk_owner_id;
         let metric_texture = input.metric_texture.clone();
 
@@ -82,8 +82,8 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         // println!("camera_world_coord: {:?}", camera_world_coord);
 
         let chunk_transform = Transform {
-            translation: (world_coord.local_offset).extend(chunk_z),
-            scale: Vec3::new(scale_factor, scale_factor, 1.0),
+            translation: (world_coord as FuckYou).extend(chunk_z),
+            // scale: Vec3::new(scale_factor, scale_factor, 1.0),
             ..Default::default()
         };
 
@@ -98,7 +98,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             Chunk {
                 coord: grid_coord,
                 owner_id: Some(chunk_owner_id.clone()),
-                scale: grid_coord.scale,
             },
             chunk_name
         )).observe(on_click_select).id();

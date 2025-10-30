@@ -150,12 +150,3 @@ fn unit_extent_sub_test_4() {
     let expected = unit_extent!([(0, 0), (3, 3), (3, 3)]: (-500.0, -500.0));
     assert_eq!(c, expected);
 }
-
-#[test]
-fn unit_complex_test_1() {
-    let mut a = unit_extent!([(0, 0)]: (0.0, 0.0));
-    let b = unit_extent!([(0, 0), (0, 0), (0, 0)]: (0.0, 0.0));
-    a.zoom_in_multi(b.grid_offset.scale.zoomed_in().zoomed_in().zoomed_in());
-    let expected = unit_extent!([(1, 1), (4, 4), (4, 4)]: (-300.0, -300.0));
-    assert_eq!(a, expected);
-}

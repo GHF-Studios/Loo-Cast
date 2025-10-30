@@ -1,13 +1,13 @@
 use bevy::prelude::Reflect;
 
-use crate::chunk::types::GridCoord;
+use crate::usf::pos::grid::types::GridVec;
 
 #[derive(Debug, Reflect)]
 pub enum SpawnError {
-    AlreadySpawned { grid_coord: GridCoord },
-    NotSpawning { grid_coord: GridCoord },
-    AlreadyBeingDespawned { grid_coord: GridCoord },
-    AlreadyTransferingOwnership { grid_coord: GridCoord },
+    AlreadySpawned { grid_coord: GridVec },
+    NotSpawning { grid_coord: GridVec },
+    AlreadyBeingDespawned { grid_coord: GridVec },
+    AlreadyTransferingOwnership { grid_coord: GridVec },
 }
 impl std::fmt::Display for SpawnError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -31,10 +31,10 @@ impl std::error::Error for SpawnError {}
 
 #[derive(Debug, Reflect)]
 pub enum DespawnError {
-    AlreadyDespawned { grid_coord: GridCoord },
-    AlreadyBeingSpawned { grid_coord: GridCoord },
-    NotDespawning { grid_coord: GridCoord },
-    AlreadyTransferingOwnership { grid_coord: GridCoord },
+    AlreadyDespawned { grid_coord: GridVec },
+    AlreadyBeingSpawned { grid_coord: GridVec },
+    NotDespawning { grid_coord: GridVec },
+    AlreadyTransferingOwnership { grid_coord: GridVec },
 }
 impl std::fmt::Display for DespawnError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -58,11 +58,11 @@ impl std::error::Error for DespawnError {}
 
 #[derive(Debug, Reflect)]
 pub enum TransferOwnershipError {
-    AlreadyDespawned { grid_coord: GridCoord },
-    AlreadyTransferedOwnership { grid_coord: GridCoord },
-    AlreadyBeingDespawned { grid_coord: GridCoord },
-    AlreadyBeingSpawned { grid_coord: GridCoord },
-    NotTransferingOwnership { grid_coord: GridCoord },
+    AlreadyDespawned { grid_coord: GridVec },
+    AlreadyTransferedOwnership { grid_coord: GridVec },
+    AlreadyBeingDespawned { grid_coord: GridVec },
+    AlreadyBeingSpawned { grid_coord: GridVec },
+    NotTransferingOwnership { grid_coord: GridVec },
 }
 impl std::fmt::Display for TransferOwnershipError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -1,8 +1,7 @@
-use bevy::prelude::{IVec2, Vec3, Reflect};
+use bevy::prelude::*;
 use std::{marker::PhantomData, sync::Arc};
 
 use crate::usf::scale::Scale;
-use crate::utils::logic_safety::{LogicSafety, Checked, Unchecked};
 use crate::usf::pos::unit::types::UnitVec;
 
 pub struct GridVecBuilder {
@@ -147,6 +146,40 @@ impl GridVec {
         let mut my_self = Self { parent: current.parent, scale, xy };
         my_self.normalize();
         my_self
+    }
+
+    pub fn is_zero(&self) -> bool {
+        let mut cursor = self;
+
+        while cursor.scale <= Scale::MAX {
+            if cursor.xy != IVec2::ZERO {
+                return false;
+            }
+
+            cursor = cursor.parent.as_ref().unwrap().as_ref();
+        }
+
+        true
+    }
+
+    // TODO: Impl properly
+    pub fn to_native_logical(self, origin: Self) -> Vec2 {
+        assert!(self.scale <= origin.scale);
+        let diff = self.clone() - origin.clone();
+        assert!(diff.parent.as_ref().unwrap().is_zero());
+        let native_x = diff.xy.x as f32 * 1000.0;
+        let native_y = diff.xy.y as f32 * 1000.0;
+        Vec2::new(native_x, native_y)
+    }
+
+    // TODO: Impl properly
+    pub fn to_native_visual(self, origin: Self) -> Vec2 {
+        assert!(self.scale <= origin.scale);
+        let diff = self.clone() - origin.clone();
+        assert!(diff.parent.as_ref().unwrap().is_zero());
+        let native_x = diff.xy.x as f32 * 1000.0;
+        let native_y = diff.xy.y as f32 * 1000.0;
+        Vec2::new(native_x, native_y)
     }
 
     // TODO: REFACTOR: PERF: This is much less performant than it could be;
