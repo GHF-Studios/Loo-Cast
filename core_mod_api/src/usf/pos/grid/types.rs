@@ -42,12 +42,11 @@ impl GridVecBuilder {
     }
 }
 
-#[derive(Default, Clone, PartialEq, Eq, Hash, Reflect)]
-pub struct GridVec<LS: LogicSafety = Checked> {
+#[derive(Clone, PartialEq, Eq, Hash, Reflect)]
+pub struct GridVec {
     pub(in crate) parent: Option<Arc<GridVec>>,
     pub(in crate) scale: Scale,
     pub(in crate) xy: IVec2,
-    pub(in crate) phantom_safety: PhantomData<LS>,
 }
 impl GridVec {
     pub fn build() -> GridVecBuilder {
@@ -74,12 +73,16 @@ impl GridVec {
     /// Create a GridVec at the absolute root (Scale::MAX) with no parent.
     pub fn new_root(xy: IVec2) -> Self {
         Self::validate_xy(&xy);
-        Self { parent: None, scale: Scale::MAX, xy, phantom_safety: PhantomData }
+        let mut my_self = Self { parent: None, scale: Scale::MAX, xy };
+        my_self.normalize();
+        my_self
     }
 
     /// Create a GridVec at the absolute root (Scale::MAX) with no parent.
-    pub fn new_root_unchecked(xy: IVec2) -> GridVec<Unchecked> {
-        GridVec::<Unchecked> { parent: None, scale: Scale::MAX, xy, phantom_safety: PhantomData }
+    pub fn new_root_unchecked(xy: IVec2) -> Self {
+        let mut my_self = Self { parent: None, scale: Scale::MAX, xy };
+        my_self.normalize();
+        my_self
     }
 
     /// Create a GridVec with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
@@ -91,15 +94,19 @@ impl GridVec {
         let scale = parent.scale.zoomed_in();
         let parent = Some(Arc::new(parent));
 
-        Self { parent, scale, xy, phantom_safety: PhantomData }
+        let mut my_self = Self { parent, scale, xy };
+        my_self.normalize();
+        my_self
     }
 
     /// Create a GridVec with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
-    pub fn new_unchecked(parent: GridVec, xy: IVec2) -> GridVec<Unchecked> {
+    pub fn new_unchecked(parent: GridVec, xy: IVec2) -> Self {
         let scale = parent.scale.zoomed_in();
         let parent = Some(Arc::new(parent));
 
-        GridVec::<Unchecked> { parent, scale, xy, phantom_safety: PhantomData }
+        let mut my_self = Self { parent, scale, xy };
+        my_self.normalize();
+        my_self
     }
 
     /// Create a GridVec with all ancestors up, from the specified scale to the root at Scale::MAX, pre-filled with IVec2::ZERO, except for the leaf at the specified scale, which is set to the specified xy.
@@ -117,7 +124,9 @@ impl GridVec {
             current = Self::new(current, IVec2::ZERO);
         }
 
-        Self { parent: current.parent, scale, xy, phantom_safety: PhantomData }
+        let mut my_self = Self { parent: current.parent, scale, xy };
+        my_self.normalize();
+        my_self
     }
 
     /// Create a GridVec with all ancestors, from the specified scale up to the root at Scale::MAX, pre-filled with the specified xy.
@@ -135,7 +144,21 @@ impl GridVec {
             current = Self::new(current, xy);
         }
 
-        Self { parent: current.parent, scale, xy, phantom_safety: PhantomData }
+        let mut my_self = Self { parent: current.parent, scale, xy };
+        my_self.normalize();
+        my_self
+    }
+
+    // TODO: REFACTOR: PERF: This is much less performant than it could be;
+    //      it just abuses the fact that Add(and Sub) internally perform a wrap, by just doing +/- "zero", or rather a default that equates in a no-op.
+    //      In short: It's a fast, dirty, and lazy solution
+    /// Recursively normalize the GridVec to ensure all coordinates are within valid ranges.
+    pub fn normalize(&mut self) {
+        let zero = GridVec::default();
+        let normalized = self.clone() + zero;
+        self.parent = normalized.parent;
+        self.scale = normalized.scale;
+        self.xy = normalized.xy;
     }
 
     pub fn zoom_out(&mut self) {
@@ -189,14 +212,9 @@ impl GridVec {
         raw_offsets
     }
 }
-impl From<GridVec<Unchecked>> for GridVec<Checked> {
-    fn from(value: GridVec<Unchecked>) -> Self {
-        GridVec::<Checked> { parent: value.parent, scale: value.scale, xy: value.xy, phantom_safety: PhantomData }
-    }
-}
-impl Default for GridVec<Unchecked> {
+impl Default for GridVec {
     fn default() -> Self {
-        GridVec::<Unchecked> { parent: None, scale: Scale::default(), xy: IVec2::ZERO, phantom_safety: PhantomData }
+        GridVec { parent: None, scale: Scale::MAX, xy: IVec2::ZERO }
     }
 }
 impl std::fmt::Debug for GridVec {

@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use lazy_static::lazy_static;
 
 use crate::{chunk_loader::types::ChunkLoaderId, config::statics::CONFIG, entity::functions::get_reserved_entity};
+use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 
 use super::enums::ZoomState;
@@ -18,6 +19,7 @@ pub struct ChunkLoader {
     pub radius: u32,
     chunk_owner_id: ChunkLoaderId,
     pub(crate) zoom_state: ZoomState,
+    pub(crate) origin_offset: GridVec,
 }
 impl ChunkLoader {
     pub fn new(owner_id: String, owner_scale: Scale) -> Self {
@@ -30,6 +32,7 @@ impl ChunkLoader {
             radius: CONFIG().get::<u32>("chunk_loader/default_radius"),
             chunk_owner_id: ChunkLoaderId::new(owner_id, get_reserved_entity(), owner_scale),
             zoom_state: ZoomState::default(),
+            origin_offset: GridVec::default(),
         }
     }
 

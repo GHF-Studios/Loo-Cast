@@ -6,7 +6,6 @@ use crate::chunk::resources::ChunkManager;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::workflows::external::{load_chunks::LoadChunkInput, unload_chunks::UnloadChunkInput};
 use crate::usf::pos::grid::types::GridVec;
-use crate::usf::pos::components::OriginOffset;
 use crate::usf::scale::Scale;
 use crate::utils::lifecycle_hook::DropHook;
 

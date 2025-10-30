@@ -4,11 +4,7 @@ pub mod grid;
 pub mod subgrid;
 pub mod unit;
 
-pub mod components;
-
 use bevy::prelude::*;
-
-use components::OriginOffset;
 
 pub(crate) struct PosPlugin;
 impl Plugin for PosPlugin {
@@ -16,11 +12,7 @@ impl Plugin for PosPlugin {
         app
             .add_plugins(grid::GridPlugin)
             .add_plugins(subgrid::SubgridPlugin)
-            .add_plugins(unit::UnitPlugin)
-
-            .insert_resource(OriginOffset::default())
-
-            .register_type::<OriginOffset>();
+            .add_plugins(unit::UnitPlugin);
     }
 }
 

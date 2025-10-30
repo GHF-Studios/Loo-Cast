@@ -3,11 +3,11 @@ use bevy::prelude::*;
 
 use crate::camera::components::MainCamera;
 use crate::chunk::{components::Chunk, resources::ChunkManager};
+use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::types::ChunkLoaderId;
 use crate::config::statics::CONFIG;
 use crate::debug::observers::on_click_select;
 use crate::usf::pos::grid::types::GridVec;
-use crate::usf::pos::components::OriginOffset;
 use crate::usf::scale::{Scale, DynScale};
 use crate::workflow::types::Outcome;
 
@@ -29,8 +29,8 @@ pub struct SpawnChunkState {
 pub struct MainAccess<'w, 's> {
     pub commands: Commands<'w, 's>,
     pub chunk_query: Query<'w, 's, &'static Chunk>,
+    pub chunk_loader_query: Query<'w, 's, &'static ChunkLoader>,
     pub chunk_manager: ResMut<'w, ChunkManager>,
-    pub origin_offset: Res<'w, OriginOffset>,
     pub camera_transform: Single<'w, &'static Transform, With<MainCamera>>,
 }
 
@@ -55,8 +55,8 @@ pub enum Error {
 pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, Error> {
     let mut commands = main_access.commands;
     let chunk_query = main_access.chunk_query;
+    let chunk_loader_query = main_access.chunk_loader_query;
     let mut chunk_manager = main_access.chunk_manager;
-    let origin_offset = main_access.origin_offset;
     let _camera_transform = main_access.camera_transform;
 
     let mut spawn_chunk_states = Vec::new();
@@ -64,11 +64,8 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     for input in input.inputs {
         let scale = input.grid_coord.scale;
         let scale_factor = scale.scale_factor() as f32;
-        println!("scale_factor: {:?}", scale_factor);
         let grid_coord = input.grid_coord;
-        println!("grid_coord: {:?}", grid_coord);
         let world_coord = grid_coord.to_world_coord(origin_offset.0, Vec2::ZERO);
-        println!("world_coord: {:?}", world_coord);
         let chunk_owner_id = input.chunk_owner_id;
         let metric_texture = input.metric_texture.clone();
 

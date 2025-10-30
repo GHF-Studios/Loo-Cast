@@ -69,12 +69,41 @@ impl UnitVec {
     pub fn new(grid_offset: GridVec, unit_offset: Vec2) -> Self {
         let unit_offset = unit_offset.extend(Self::compute_z(grid_offset.scale));
         Self::validate_unit_offset(&unit_offset);
-        Self { grid_offset, unit_offset }
+        let mut my_self = Self { grid_offset, unit_offset };
+        my_self.normalize();
+        my_self
     }
 
     pub fn new_unchecked(grid_offset: GridVec, unit_offset: Vec2) -> Self {
         let unit_offset = unit_offset.extend(Self::compute_z(grid_offset.scale));
-        Self { grid_offset, unit_offset }
+        let mut my_self = Self { grid_offset, unit_offset };
+        my_self.normalize();
+        my_self
+    }
+
+    pub fn normalize(&mut self) {
+        // Normalize X
+        while self.unit_offset.x < -500.0 {
+            self.unit_offset.x += 1000.0;
+            self.grid_offset.xy.x -= 1;
+        }
+        while self.unit_offset.x >= 500.0 {
+            self.unit_offset.x -= 1000.0;
+            self.grid_offset.xy.x += 1;
+        }
+
+        // Normalize Y
+        while self.unit_offset.y < -500.0 {
+            self.unit_offset.y += 1000.0;
+            self.grid_offset.xy.y -= 1;
+        }
+        while self.unit_offset.y >= 500.0 {
+            self.unit_offset.y -= 1000.0;
+            self.grid_offset.xy.y += 1;
+        }
+
+        // Normalize GridVec
+        self.grid_offset.normalize();
     }
     
     pub fn zoom_in_multi(&mut self, target_scale: Scale) -> Result<(), &'static str> {

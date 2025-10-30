@@ -6,8 +6,11 @@ use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::enums::ZoomState;
 use crate::chunk_loader::resources::RemovedChunkLoaders;
 use crate::config::statics::CONFIG;
+use crate::usf::pos::unit::types::UnitVec;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 use crate::workflow::functions::handle_composite_workflow_return_now;
+
+use super::constants::ORIGIN_OFFSET_THRESHOLD;
 
 pub(crate) fn zoom_cooldown_system(
     time: Res<Time<Virtual>>,
@@ -70,4 +73,17 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
 #[tracing::instrument(skip_all)]
 pub(crate) fn post_update_chunk_loader_system(mut removed_chunk_loaders: ResMut<RemovedChunkLoaders>) {
     removed_chunk_loaders.0.clear();
+}
+
+#[tracing::instrument(skip_all)]
+pub(crate) fn origin_offset_system(
+    mut chunk_loader_query: Single<(&mut ChunkLoader, &Transform), Changed<Transform>>,
+    mut other_transforms_query: Query<&mut Transform, Without<ChunkLoader>>
+) {
+    let (chunk_loader, transform) = &mut *chunk_loader_query;
+    let unit_pos = UnitVec::new(chunk_loader.origin_offset, transform.translation.truncate());
+
+    // Add/Sub of a UnitVec must internally "normalize" itself or the rhs UnitVec, an since
+    let david = unit_pos - UnitVec::default();
+
 }
