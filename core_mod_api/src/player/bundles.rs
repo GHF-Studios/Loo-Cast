@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 
 use crate::{chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader, config::statics::CONFIG, utils::lifecycle_hook::InitHook};
-use crate::usf::pos::components::OriginOffset;
 use crate::usf::scale::Scale;
 
 use super::components::Player;
@@ -14,7 +13,6 @@ pub struct PlayerBundle {
     player: Player,
     sprite: Sprite,
     transform: Transform,
-    origin_offset: OriginOffset,
     name: Name,
 }
 impl PlayerBundle {
@@ -41,7 +39,6 @@ impl Default for PlayerBundle {
                 translation: Vec3::new(0.0, 0.0, 0.0),
                 ..Default::default()
             },
-            origin_offset: OriginOffset::default(),
             name: Name::new("player_entity"),
         }
     }

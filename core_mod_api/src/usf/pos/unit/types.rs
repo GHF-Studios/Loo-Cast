@@ -43,8 +43,8 @@ impl UnitVecBuilder {
 
 #[derive(Default, Clone, PartialEq, Reflect)]
 pub struct UnitVec {
-    pub(in super::super) grid_offset: GridVec, // Recursive chunk position
-    pub(in super::super) unit_offset: Vec3, // Bevy units inside the chunk (e.g., [-500.0..500.0])
+    pub(in crate) grid_offset: GridVec, // Recursive chunk position
+    pub(in crate) unit_offset: Vec3, // Bevy units inside the chunk (e.g., [-500.0..500.0])
 }
 impl UnitVec {
     pub fn build() -> UnitVecBuilder {
@@ -68,19 +68,11 @@ impl UnitVec {
 
     pub fn new(grid_offset: GridVec, unit_offset: Vec2) -> Self {
         let unit_offset = unit_offset.extend(Self::compute_z(grid_offset.scale));
-        Self::validate_unit_offset(&unit_offset);
         let mut my_self = Self { grid_offset, unit_offset };
         my_self.normalize();
         my_self
     }
-
-    pub fn new_unchecked(grid_offset: GridVec, unit_offset: Vec2) -> Self {
-        let unit_offset = unit_offset.extend(Self::compute_z(grid_offset.scale));
-        let mut my_self = Self { grid_offset, unit_offset };
-        my_self.normalize();
-        my_self
-    }
-
+    
     pub fn normalize(&mut self) {
         // Normalize X
         while self.unit_offset.x < -500.0 {

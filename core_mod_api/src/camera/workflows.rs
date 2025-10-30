@@ -17,6 +17,7 @@ define_workflow_mod_OLD! {
                 use bevy::window::WindowRef;
 
                 use crate::camera::components::MainCamera;
+                use crate::chunk_actor::components::ChunkActor;
                 use crate::config::statics::CONFIG;
                 use crate::follower::components::{Follower, FollowerTarget};
             },
@@ -64,6 +65,7 @@ define_workflow_mod_OLD! {
                                     Vec2::ZERO,
                                     CONFIG().get::<f32>("camera/follow_smoothness"),
                                 ),
+                                ChunkActor::default(),
                             )).id();
 
                             State {
