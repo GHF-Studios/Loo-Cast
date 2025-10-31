@@ -7,6 +7,8 @@ use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::types::ChunkLoaderId;
 use crate::config::statics::CONFIG;
 use crate::debug::observers::on_click_select;
+use crate::render::components::RenderProxyHandle;
+use crate::render::functions::make_sprite_proxy_bundle;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::{Scale, DynScale};
 use crate::workflow::types::Outcome;
@@ -65,7 +67,8 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         let scale = input.grid_coord.scale;
         let scale_factor = scale.scale_factor() as f32;
         let grid_coord = input.grid_coord;
-        let world_coord = grid_coord.clone().to_native(chunk_loader.origin_offset.clone());
+        let logical_world_coord = grid_coord.clone().to_native_logical(chunk_loader.origin_offset.clone());
+        let (visual_world_coord, visual_world_scale) = grid_coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
         let chunk_owner_id = input.chunk_owner_id;
         let metric_texture = input.metric_texture.clone();
 
@@ -82,25 +85,32 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         // println!("camera_world_coord: {:?}", camera_world_coord);
 
         let chunk_transform = Transform {
-            translation: (world_coord as FuckYou).extend(chunk_z),
-            // scale: Vec3::new(scale_factor, scale_factor, 1.0),
+            translation: logical_world_coord.extend(chunk_z),
             ..Default::default()
         };
 
         let chunk_name = Name::new(format!("chunk_entity({grid_coord:?})"));
 
-        let chunk_entity = commands.spawn((
+        let chunk_entity = commands.spawn(()).observe(on_click_select).id();
+
+        let chunk_render_proxy_entity = commands.spawn(make_sprite_proxy_bundle(
+            metric_texture,
+            visual_world_coord,
+            visual_world_scale,
+            chunk_entity,
+        )).id();
+
+        commands.entity(chunk_entity).insert((
             chunk_transform,
-            Sprite {
-                image: metric_texture,
-                ..Default::default()
-            },
             Chunk {
                 coord: grid_coord,
                 owner_id: Some(chunk_owner_id.clone()),
             },
+            RenderProxyHandle {
+                proxy_entity: chunk_render_proxy_entity,
+            },
             chunk_name
-        )).observe(on_click_select).id();
+        ));
 
         // warn!("Spawning chunk at coord ({}, {})", grid_coord.0, grid_coord.1);
 

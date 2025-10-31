@@ -75,6 +75,7 @@ pub mod gpu;
 pub mod input;
 pub mod logging;
 pub mod player;
+pub mod render;
 pub mod time;
 pub mod ui;
 pub mod usf;
@@ -98,6 +99,7 @@ use gpu::GpuPlugin;
 use input::InputPlugin;
 use logging::LogPlugin;
 use player::PlayerPlugin;
+use render::RenderPlugin;
 use time::TimePlugin;
 use ui::UiPlugin;
 use usf::UsfPlugin;
@@ -123,6 +125,7 @@ impl PluginGroup for CoreApiPluginGroup {
             .add(InputPlugin)
             .add(LogPlugin)
             .add(PlayerPlugin)
+            .add(RenderPlugin)
             .add(TimePlugin)
             .add(UiPlugin)
             .add(UsfPlugin)

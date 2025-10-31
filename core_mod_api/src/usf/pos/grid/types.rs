@@ -167,19 +167,27 @@ impl GridVec {
         assert!(self.scale <= origin.scale);
         let diff = self.clone() - origin.clone();
         assert!(diff.parent.as_ref().unwrap().is_zero());
+        
         let native_x = diff.xy.x as f32 * 1000.0;
         let native_y = diff.xy.y as f32 * 1000.0;
+
         Vec2::new(native_x, native_y)
     }
 
     // TODO: Impl properly
-    pub fn to_native_visual(self, origin: Self) -> Vec2 {
-        assert!(self.scale <= origin.scale);
+    pub fn to_native_visual(self, origin: Self) -> (Vec2, f32) {
+        assert!(self.scale >= origin.scale);
+        let scale_diff = self.scale as i8 - origin.scale as i8;
         let diff = self.clone() - origin.clone();
         assert!(diff.parent.as_ref().unwrap().is_zero());
-        let native_x = diff.xy.x as f32 * 1000.0;
-        let native_y = diff.xy.y as f32 * 1000.0;
-        Vec2::new(native_x, native_y)
+
+        let scale = 10.0_f32.powi(scale_diff as i32);
+        let native_unit = 1000.0 / scale;
+
+        let native_x = diff.xy.x as f32 * native_unit;
+        let native_y = diff.xy.y as f32 * native_unit;
+
+        (Vec2::new(native_x, native_y), scale)
     }
 
     // TODO: REFACTOR: PERF: This is much less performant than it could be;

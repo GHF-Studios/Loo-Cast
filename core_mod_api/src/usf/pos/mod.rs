@@ -4,15 +4,22 @@ pub mod grid;
 pub mod subgrid;
 pub mod unit;
 
-use bevy::prelude::*;
+pub mod constants;
+pub mod systems;
 
+use bevy::prelude::*;
+use systems::origin_offset_system;
+
+use crate::core::run_conditions::run_after_startup_finished;
+use crate::time::run_conditions::run_if_not_paused;
 pub(crate) struct PosPlugin;
 impl Plugin for PosPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_plugins(grid::GridPlugin)
             .add_plugins(subgrid::SubgridPlugin)
-            .add_plugins(unit::UnitPlugin);
+            .add_plugins(unit::UnitPlugin)
+            .add_systems(First, origin_offset_system.run_if(run_after_startup_finished.and(run_if_not_paused)));
     }
 }
 
