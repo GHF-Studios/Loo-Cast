@@ -14,7 +14,7 @@ pub(crate) fn hook_on_add_chunk(mut world: DeferredWorld<'_>, hook_context: Hook
         relationship_hook_mode: _,
     } = hook_context;
     let (chunk, grid_coord) = match world.get::<Chunk>(entity) {
-        Some(chunk) => (chunk, chunk.coord),
+        Some(chunk) => (chunk, chunk.coord.clone()),
         None => return,
     };
 

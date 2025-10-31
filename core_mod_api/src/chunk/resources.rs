@@ -17,7 +17,7 @@ impl ActionIntentCommitBuffer {
         let coord = action_intent.coord();
         let priority = action_intent.priority();
 
-        self.action_intent.insert(coord, action_intent);
+        self.action_intent.insert(coord.clone(), action_intent);
         self.priority_buckets.entry(priority).or_default().insert(coord);
     }
 

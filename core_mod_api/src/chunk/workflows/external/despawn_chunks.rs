@@ -1,12 +1,13 @@
 // Imports
 use bevy::prelude::{ResMut, Commands, Query, Entity};
 
-use crate::chunk::{components::Chunk, resources::ChunkManager, types::GridCoord};
+use crate::chunk::{components::Chunk, resources::ChunkManager};
+use crate::usf::pos::grid::types::GridVec;
 use crate::workflow::types::Outcome;
 
 // Items
 pub struct DespawnChunkInput {
-    pub grid_coord: GridCoord
+    pub grid_coord: GridVec
 }
 #[derive(Clone)]
 pub struct DespawnChunkState {
@@ -36,7 +37,7 @@ pub struct Output {
 
 #[derive(Debug)]
 pub enum Error {
-    ChunkNotLoaded { grid_coord: GridCoord },
+    ChunkNotLoaded { grid_coord: GridVec },
 }
 
 // Core Functions

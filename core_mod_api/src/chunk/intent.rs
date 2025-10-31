@@ -59,7 +59,7 @@ impl ActionIntent {
 
     pub fn coord(&self) -> GridVec {
         match self {
-            ActionIntent::Spawn { coord, .. } | ActionIntent::Despawn { coord, .. } | ActionIntent::TransferOwnership { coord, .. } => *coord,
+            ActionIntent::Spawn { coord, .. } | ActionIntent::Despawn { coord, .. } | ActionIntent::TransferOwnership { coord, .. } => coord.clone(),
         }
     }
 

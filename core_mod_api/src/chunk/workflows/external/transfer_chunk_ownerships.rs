@@ -1,13 +1,14 @@
 // Imports
 use bevy::prelude::{ResMut, Entity, Query};
 
-use crate::chunk::{components::Chunk, resources::ChunkManager, types::GridCoord};
+use crate::chunk::{components::Chunk, resources::ChunkManager};
+use crate::usf::pos::grid::types::GridVec;
 use crate::chunk_loader::types::ChunkLoaderId;
 
 // Items
 pub struct TransferChunkOwnershipInput {
     pub new_chunk_owner_id: ChunkLoaderId,
-    pub grid_coord: GridCoord,
+    pub grid_coord: GridVec,
 }
 
 // Core Types
@@ -27,7 +28,7 @@ pub struct Output {
 
 #[derive(Debug)]
 pub enum Error {
-    ChunkNotLoaded { grid_coord: GridCoord },
+    ChunkNotLoaded { grid_coord: GridVec },
 }
 
 // Core Functions

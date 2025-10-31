@@ -103,7 +103,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         commands.entity(chunk_entity).insert((
             chunk_transform,
             Chunk {
-                coord: grid_coord,
+                coord: grid_coord.clone(),
                 owner_id: Some(chunk_owner_id.clone()),
             },
             RenderProxyHandle {
@@ -114,7 +114,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
 
         // warn!("Spawning chunk at coord ({}, {})", grid_coord.0, grid_coord.1);
 
-        chunk_manager.loaded_chunks.insert(grid_coord);
+        chunk_manager.loaded_chunks.insert(grid_coord.clone());
         chunk_manager.owned_chunks.insert(grid_coord, chunk_owner_id.clone());
 
         spawn_chunk_states.push(SpawnChunkState {
