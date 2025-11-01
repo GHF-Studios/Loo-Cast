@@ -5,28 +5,28 @@ use std::collections::HashSet;
 use crate::chunk::{
     components::Chunk,
     intent::{resolve_intent, ActionIntent, ActionPriority, ResolvedActionIntent},
-    resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager},
-    types::{GridCoord},
+    resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager}
 };
 use crate::chunk_loader::types::ChunkLoaderId;
+use crate::usf::pos::grid::types::GridVec;
 use crate::workflow::types::Outcome;
 
 // Items
 pub struct LoadChunkInput {
     pub owner_id: ChunkLoaderId,
-    pub grid_coord: GridCoord,
+    pub grid_coord: GridVec,
     pub chunk_loader_distance_squared: u32,
     pub chunk_loader_radius_squared: u32,
 }
 
 pub struct SpawnChunkState {
-    pub coord: GridCoord,
+    pub coord: GridVec,
     pub owner_id: ChunkLoaderId,
     pub is_spawned: bool,
 }
 
 pub struct TransferChunkOwnershipState {
-    pub coord: GridCoord,
+    pub coord: GridVec,
     pub owner_id: ChunkLoaderId,
     pub is_ownership_transfered: bool,
 }
@@ -89,13 +89,13 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
         let proposed_intent = if !is_loaded {
             ActionIntent::Spawn {
                 owner_id,
-                coord,
+                coord: coord.clone(),
                 priority: calculate_spawn_priority(input.chunk_loader_distance_squared, input.chunk_loader_radius_squared),
             }
         } else if !is_owned {
             ActionIntent::TransferOwnership {
                 new_owner_id: owner_id,
-                coord,
+                coord: coord.clone(),
                 priority: ActionPriority::Realtime,
             }
         } else {

@@ -1,29 +1,30 @@
 // Imports
-use bevy::prelude::{warn, Query, Res, ResMut, Transform, Vec2};
+use bevy::prelude::*;
 use std::collections::HashSet;
 
-use crate::{chunk::{
-    components::Chunk, intent::{ActionIntent, ActionPriority, ResolutionWarning, ResolvedActionIntent, State as ChunkState, resolve_intent}, resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager, GridOriginOffset}, traits::Vec2Ext, types::GridCoord
-}, utils::i128vec2::I128Vec2};
+use crate::chunk::components::Chunk;
+use crate::chunk::intent::{ActionIntent, ActionPriority, ResolutionWarning, ResolvedActionIntent, State as ChunkState, resolve_intent};
+use crate::chunk::resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager};
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::types::ChunkLoaderId;
+use crate::usf::pos::grid::types::GridVec;
 use crate::workflow::types::Outcome;
 
 // Items
 pub struct UnloadChunkInput {
     pub owner_id: ChunkLoaderId,
-    pub grid_coord: GridCoord,
+    pub grid_coord: GridVec,
     pub chunk_loader_distance_squared: u32,
     pub chunk_loader_radius_squared: u32,
 }
 
 pub struct DespawnChunkState {
-    pub coord: GridCoord,
+    pub coord: GridVec,
     pub is_despawned: bool,
 }
 
 pub struct TransferChunkOwnershipState {
-    pub coord: GridCoord,
+    pub coord: GridVec,
     pub owner_id: ChunkLoaderId,
     pub is_ownership_transfered: bool,
 }
@@ -34,13 +35,10 @@ pub fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) ->
     ActionPriority::Deferred(priority_value)
 }
 
-pub fn is_chunk_in_loader_range(grid_origin_offset: I128Vec2, grid_coord: &GridCoord, loader_position: Vec2, loader_radius: u32) -> bool {
-    let loader_grid_coord = loader_position.to_grid_coord(grid_coord.scale, grid_origin_offset);
-    let dx = grid_coord.xy.x - loader_grid_coord.xy.x;
-    let dy = grid_coord.xy.y - loader_grid_coord.xy.y;
-    let distance_squared = dx * dx + dy * dy;
-    let radius_squared = ((loader_radius as i32) * (loader_radius as i32)) as i128;
-    distance_squared <= radius_squared
+pub fn is_chunk_in_loader_range(loader_grid_coord: &GridVec, chunk_grid_coord: &GridVec, loader_radius: u32) -> bool {
+    let chunk_loader_distance_squared = chunk_grid_coord.xy.distance_squared(loader_grid_coord.xy);
+    let radius_squared = (loader_radius as i32) ^ 2;
+    chunk_loader_distance_squared <= radius_squared
 }
 
 // Core Types
@@ -50,8 +48,7 @@ pub struct MainAccess<'w, 's> {
     pub action_intent_commit_buffer: ResMut<'w, ActionIntentCommitBuffer>,
     pub action_intent_buffer: ResMut<'w, ActionIntentBuffer>,
     pub chunk_query: Query<'w, 's, &'static Chunk>,
-    pub chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader)>,
-    pub grid_origin_offset: Res<'w, GridOriginOffset>,
+    pub chunk_loader_query: Single<'w, (&'static Transform, &'static ChunkLoader)>,
 }
 
 pub struct Input {
@@ -70,8 +67,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
     let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
     let mut action_intent_buffer = main_access.action_intent_buffer;
     let chunk_query = main_access.chunk_query;
-    let chunk_loader_query = main_access.chunk_loader_query;
-    let grid_origin_offset = main_access.grid_origin_offset;
+    let (chunk_loader_transform, chunk_loader) = *main_access.chunk_loader_query;
 
     let mut despawn_chunk_states = Vec::new();
     let mut transfer_chunk_ownership_states = Vec::new();
@@ -100,34 +96,37 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
             unreachable!("Unreachable state: Chunk is absent")
         };
 
-        let (transfer_candidate, is_chunk_existing) = match chunk_query.iter().find(|chunk| chunk.coord == coord) {
-            Some(chunk) => {
-                let tc = chunk_loader_query.iter().find_map(|(transform, loader)| {
-                    if loader.id() == chunk.owner_id() {
-                        None
-                    } else if is_chunk_in_loader_range(grid_origin_offset.0, &coord, transform.translation.truncate(), loader.radius) {
-                        Some(loader.id())
-                    } else {
-                        None
-                    }
-                });
+        // TODO: Maybe re-implement if we ever decide to support multiple chunk loaders for good
+        // let (transfer_candidate, is_chunk_existing) = match chunk_query.iter().find(|chunk| chunk.coord == coord) {
+        //     Some(chunk) => {
+        //         let tc = chunk_loader_query.iter().find_map(|(transform, loader)| {
+        //             if loader.id() == chunk.owner_id() {
+        //                 None
+        //             } else if is_chunk_in_loader_range(grid_origin_offset.0, &coord, transform.translation.truncate(), loader.radius) {
+        //                 Some(loader.id())
+        //             } else {
+        //                 None
+        //             }
+        //         });
+        //         
+        //         (tc, true)
+        //     }
+        //     None => (None, false),
+        // };
 
-                (tc, true)
-            }
-            None => (None, false),
-        };
+        let (transfer_candidate, is_chunk_existing): (Option<ChunkLoaderId>, bool) = (None, false);
 
         let proposed_intent = match (transfer_candidate, is_chunk_existing) {
             (None, false) => None,
             (None, true) => Some(ActionIntent::Despawn {
                 owner_id,
-                coord,
+                coord: coord.clone(),
                 priority: calculate_despawn_priority(distance_squared, radius_squared),
             }),
             (Some(_), false) => None,
             (Some(new_owner_id), true) => Some(ActionIntent::TransferOwnership {
                 new_owner_id: new_owner_id.clone(),
-                coord,
+                coord: coord.clone(),
                 priority: ActionPriority::Realtime,
             }),
         };
@@ -230,12 +229,12 @@ pub fn run_ecs_while(state: State, main_access: MainAccess) -> Outcome<State, ()
 
         Outcome::Done(())
     } else {
-        let not_despawned: Vec<_> = despawn_chunk_states.iter().filter(|d| !d.is_despawned).map(|s| s.coord).collect();
+        let not_despawned: Vec<_> = despawn_chunk_states.iter().filter(|d| !d.is_despawned).map(|s| s.coord.clone()).collect();
 
         let not_transferred: Vec<_> = transfer_chunk_ownership_states
             .iter()
             .filter(|ot| !ot.is_ownership_transfered)
-            .map(|s| s.coord)
+            .map(|s| s.coord.clone())
             .collect();
 
         if !not_despawned.is_empty() {

@@ -213,7 +213,7 @@ impl GridVec {
         self.xy = unit_extent.grid_offset.xy;
     }
     
-    pub fn query_grid_radius(&self, radius: u32) -> Vec<IVec2> {
+    pub fn query_grid_radius(&self, radius: u32) -> Vec<GridVec> {
         let mut raw_offsets = Vec::new();
 
         let radius = radius as i32;
@@ -228,15 +228,31 @@ impl GridVec {
                 let offset1 = IVec2::new(dx, y);
                 let offset2 = IVec2::new(dx, -y);
 
-                raw_offsets.push(offset1);
-                raw_offsets.push(offset2);
+                raw_offsets.push(GridVec {
+                    parent: self.parent.clone(),
+                    scale: self.scale,
+                    xy: offset1
+                });
+                raw_offsets.push(GridVec {
+                    parent: self.parent.clone(),
+                    scale: self.scale,
+                    xy: offset2
+                });
             }
             for dy in -y..=y {
                 let offset1 = IVec2::new(dy, x);
                 let offset2 = IVec2::new(dy, -x);
 
-                raw_offsets.push(offset1);
-                raw_offsets.push(offset2);
+                raw_offsets.push(GridVec {
+                    parent: self.parent.clone(),
+                    scale: self.scale,
+                    xy: offset1
+                });
+                raw_offsets.push(GridVec {
+                    parent: self.parent.clone(),
+                    scale: self.scale,
+                    xy: offset2
+                });
             }
 
             if d < 0 {

@@ -126,9 +126,9 @@ pub(crate) fn process_chunk_actions_system(
 
             match action_intent {
                 ActionIntent::Spawn { owner_id, coord, .. } => {
-                    spawn_coords.push(coord);
+                    spawn_coords.push(coord.clone());
                     spawn_inputs.push(crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput {
-                        grid_coord: coord,
+                        grid_coord: coord.clone(),
                         chunk_owner_id: owner_id.clone(),
                         metric_texture: Handle::default(),
                     });
@@ -136,14 +136,14 @@ pub(crate) fn process_chunk_actions_system(
                     chunk_loaders_performing_chunk_loads.push(owner_id);
                 }
                 ActionIntent::Despawn { coord, .. } => {
-                    despawn_inputs.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { grid_coord: coord });
+                    despawn_inputs.push(crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput { grid_coord: coord.clone() });
                     processed_coords.push(coord);
                 }
                 ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
                     transfer_inputs.push(
                         crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
                             new_chunk_owner_id: new_owner_id.clone(),
-                            grid_coord: coord,
+                            grid_coord: coord.clone(),
                         },
                     );
                     processed_coords.push(coord);

@@ -1,1 +1,1 @@
-pub const ORIGIN_OFFSET_THRESHOLD: u8 = 3;
+pub const ORIGIN_OFFSET_THRESHOLD: u8 = 1;
