@@ -8,7 +8,7 @@ use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::workflows::external::{load_chunks::LoadChunkInput, unload_chunks::UnloadChunkInput};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
-use crate::utils::lifecycle_hook::DropHook;
+use crate::utils::lifecycle_hook::{DropHook, InitHook};
 
 // Items
 
@@ -45,7 +45,6 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
 
         while chunk_loader_scale_cursor <= Scale::MAX {
             let coords_in_radius = chunk_loader_grid_coord_cursor.query_grid_radius(radius).into_iter().collect::<HashSet<GridVec>>();
-
             coords_in_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
 
             if chunk_loader_scale_cursor != Scale::MAX {

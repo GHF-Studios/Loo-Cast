@@ -42,4 +42,4 @@ success_logging_enabled = false
 [workflow]
 timeout_frames_per_stage = 30
 max_retries = 5
-runner_logging_blacklist = "Chunk::*, ChunkLoader::*"
+runner_logging_blacklist = "Chunk::*"
