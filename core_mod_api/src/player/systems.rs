@@ -51,8 +51,8 @@ pub(super) fn update_player_system(
 
             if let Some(handle) = handle {
                 if !handle.is_finished() {
+                    warn!("Waiting for composite workflow 'SpawnPlayer' to finish... handle: {:?}", handle);
                     *player_state_resource = PlayerLifecycle::Spawning(Some(handle));
-                    warn!("Waiting for composite workflow 'SpawnPlayer' to finish...");
                     return;
                 }
 

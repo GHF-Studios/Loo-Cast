@@ -7,18 +7,13 @@ use super::components::Player;
 
 #[derive(Bundle, Reflect)]
 pub struct PlayerBundle {
-    chunk_actor: ChunkActor,
-    chunk_loader: ChunkLoader,
-    chunk_loader_init_hook: InitHook<ChunkLoader>,
-    player: Player,
-    sprite: Sprite,
-    transform: Transform,
-    name: Name,
-}
-impl PlayerBundle {
-    pub fn chunk_loader(&self) -> &ChunkLoader {
-        &self.chunk_loader
-    }
+    pub chunk_actor: ChunkActor,
+    pub chunk_loader: ChunkLoader,
+    pub chunk_loader_init_hook: InitHook<ChunkLoader>,
+    pub player: Player,
+    pub sprite: Sprite,
+    pub transform: Transform,
+    pub name: Name,
 }
 impl Default for PlayerBundle {
     fn default() -> Self {

@@ -5,7 +5,7 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnPlayer, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
-                use bevy::prelude::{Commands, Entity, Query, Res, ResMut};
+                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, warn};
 
                 use crate::{
                     player::bundles::PlayerBundle,
@@ -41,7 +41,7 @@ define_workflow_mod_OLD! {
                             }
 
                             let player_bundle = PlayerBundle::default();
-                            let player_entity = *player_bundle.chunk_loader().id().entity();
+                            let player_entity = *player_bundle.chunk_loader.id().entity();
 
                             commands.entity(player_entity).insert((
                                 player_bundle,
@@ -49,7 +49,7 @@ define_workflow_mod_OLD! {
                                     id: "main_camera".to_string(),
                                 },
                             ));
-                            bevy::prelude::debug!("Spawned player entity: {:?}", player_entity);
+                            warn!("Spawned player entity: {:?}", player_entity);
 
                             Ok(State { player_entity })
                         }
@@ -58,10 +58,10 @@ define_workflow_mod_OLD! {
                             let mut commands = main_access.commands;
 
                             if commands.get_entity(state.player_entity).is_ok() {
-                                bevy::prelude::debug!("Player entity is ready: {:?}", state.player_entity);
+                                warn!("Player entity is ready: {:?}", state.player_entity);
                                 Ok(Done(Output { player_entity: state.player_entity }))
                             } else {
-                                bevy::prelude::debug!("Player entity is not ready yet: {:?}", state.player_entity);
+                                warn!("Player entity is not ready yet: {:?}", state.player_entity);
                                 Ok(Wait(state))
                             }
                         }
@@ -72,7 +72,7 @@ define_workflow_mod_OLD! {
 
         DespawnPlayer, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
-                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, debug};
+                use bevy::prelude::{Commands, Entity, Query, Res, ResMut, warn};
 
                 use crate::{
                     chunk_loader::components::ChunkLoader,
@@ -135,7 +135,7 @@ define_workflow_mod_OLD! {
 
                             let player_entity = chunk_loader_with_drop_hook_query.single().unwrap();
                             commands.entity(player_entity).despawn();
-                            debug!("Despawned player entity: {:?}", player_entity);
+                            warn!("Despawned player entity: {:?}", player_entity);
 
                             Ok(Done(()))
                         }
