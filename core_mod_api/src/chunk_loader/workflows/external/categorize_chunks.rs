@@ -15,9 +15,9 @@ use crate::utils::lifecycle_hook::{DropHook, InitHook};
 // Core Types
 #[derive(bevy::ecs::system::SystemParam)]
 pub struct MainAccess<'w, 's> {
-    pub chunk_loader_query: Single<'w, (&'static Transform, &'static ChunkLoader, Option<&'static DropHook<ChunkLoader>>)>,
+    pub chunk_loader_query: Query<'w, 's, (&'static Transform, &'static ChunkLoader, Option<&'static DropHook<ChunkLoader>>)>,
     pub chunk_manager: Res<'w, ChunkManager>,
-    _phantom: PhantomData<&'s ()>,
+    // _phantom: PhantomData<&'s ()>,
 }
 pub struct Output {
     pub load_chunk_inputs: Vec<LoadChunkInput>,
@@ -25,8 +25,18 @@ pub struct Output {
 }
 
 // Core Functions
+#[tracing::instrument(skip_all)]
 pub fn run_ecs(main_access: MainAccess) -> Output {
-    let (transform, chunk_loader, drop_hook) = *main_access.chunk_loader_query;
+    let (transform, chunk_loader, drop_hook) = match main_access.chunk_loader_query.single() {
+        Ok(data) => data,
+        Err(_) => {
+            warn!("No ChunkLoader found; skipping CategorizeChunks");
+            return Output {
+                load_chunk_inputs: Vec::new(),
+                unload_chunk_inputs: Vec::new(),
+            };
+        }
+    };
     let chunk_manager = &main_access.chunk_manager;
 
     let mut load_chunk_inputs = Vec::new();
@@ -43,15 +53,14 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
         let mut chunk_loader_grid_coord_cursor = &chunk_loader.origin_offset;
         let mut coords_in_cone = Vec::new();
 
-        while chunk_loader_scale_cursor <= Scale::MAX {
+        while chunk_loader_scale_cursor < Scale::MAX {
             let coords_in_radius = chunk_loader_grid_coord_cursor.query_grid_radius(radius).into_iter().collect::<HashSet<GridVec>>();
             coords_in_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
-
-            if chunk_loader_scale_cursor != Scale::MAX {
-                chunk_loader_scale_cursor.zoom_out();
-                chunk_loader_grid_coord_cursor = &**chunk_loader_grid_coord_cursor.parent.as_ref().unwrap();
-            }
+            chunk_loader_scale_cursor.zoom_out();
+            chunk_loader_grid_coord_cursor = &**chunk_loader_grid_coord_cursor.parent.as_ref().unwrap();
         }
+        let coords_in_radius = chunk_loader_grid_coord_cursor.query_grid_radius(radius).into_iter().collect::<HashSet<GridVec>>();
+        coords_in_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
 
         coords_in_cone.reverse();
         coords_in_cone

@@ -9,8 +9,7 @@ use crate::{
 pub(super) fn update_player_system(
     chunk_loader_init_hook_query: Query<(&ChunkLoader, &InitHook<ChunkLoader>)>,
     chunk_loader_drop_hook_query: Query<(&ChunkLoader, &DropHook<ChunkLoader>)>,
-    mut chunk_loader_query: Query<&mut ChunkLoader, (Without<InitHook<ChunkLoader>>, Without<DropHook<ChunkLoader>>)>,
-    mut transform_query: Query<&mut Transform>,
+    mut chunk_loader_query: Query<(&mut Transform, &mut ChunkLoader), (Without<InitHook<ChunkLoader>>, Without<DropHook<ChunkLoader>>)>,
     mut player_state_resource: ResMut<PlayerLifecycle>,
     keys: Res<ButtonInput<KeyCode>>,
     input_mode: Res<State<InputMode>>,
@@ -85,7 +84,7 @@ pub(super) fn update_player_system(
         PlayerLifecycle::PendingActivation(entity) => {
             let _fsm_case_span = info_span!("case: PendingActivation").entered();
 
-            if transform_query.contains(entity) {
+            if chunk_loader_query.contains(entity) {
                 *player_state_resource = PlayerLifecycle::Active(entity);
                 warn!("Player entity is now active");
             } else {
@@ -113,7 +112,7 @@ pub(super) fn update_player_system(
             }
 
             let _transformation_span = info_span!("transformation").entered();
-            if let Ok(mut transform) = transform_query.get_mut(entity) {
+            if let Ok((mut transform, _chunk_loader)) = chunk_loader_query.get_mut(entity) {
                 transform.scale = Vec3::splat(zoom_factor.0);
 
                 let mut direction = Vec3::ZERO;
@@ -152,10 +151,10 @@ pub(super) fn update_player_system(
             }
 
             let _scale_zoom_span = info_span!("scale_zoom").entered();
-            if let Ok(mut chunk_loader) = chunk_loader_query.get_mut(entity) {
+            if let Ok((mut transform, mut chunk_loader)) = chunk_loader_query.get_mut(entity) {
                 if input_mode.is_game() {
                     if keys.just_pressed(KeyCode::NumpadAdd) {
-                        chunk_loader.suggest_zoom_in();
+                        transform.translation = chunk_loader.suggest_zoom_in(transform.translation);
                     } else if keys.just_pressed(KeyCode::NumpadSubtract) {
                         chunk_loader.suggest_zoom_out();
                     }

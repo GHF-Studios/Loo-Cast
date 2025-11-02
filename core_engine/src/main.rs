@@ -52,7 +52,6 @@ fn configure_low_level_stuff() {
     std::panic::set_hook(Box::new(|panic_info| {
         error!("{}", panic_info);
     }));
-    std::env::set_var("RUST_BACKTRACE", if ENABLE_BACKTRACE { "1" } else { "0" });
 }
 
 fn configure_third_party_plugins() -> PluginGroupBuilder {

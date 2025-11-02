@@ -28,13 +28,13 @@ impl Plugin for ChunkLoaderPlugin {
             .add_observer(observe_on_remove_chunk_loader)
             .add_observer(observe_on_remove_init_hook::<ChunkLoader>)
             .add_observer(observe_on_remove_drop_hook::<ChunkLoader>)
-
+            
             .add_systems(
                 PreUpdate,
                 cleanup_drop_hooks_system::<ChunkLoader>.run_if(run_after_startup_finished.and(run_if_not_paused))
             )
             .add_systems(Update, (
-                update_chunk_loader_system, 
+                update_chunk_loader_system.run_if(run_if_chunk_loader_spawned), 
                 on_remove_chunk_loader_observation_queue_processing_system,
                 zoom_cooldown_system,
             ).run_if(run_after_startup_finished.and(run_if_not_paused)))

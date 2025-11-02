@@ -174,15 +174,13 @@ pub(crate) fn process_chunk_actions_system(
     // Step 3: Build & launch composite workflows
     let spawn_handle = if !spawn_inputs.is_empty()
     {
-        let current_view_scale = CONFIG().get::<i32>("chunk_loader/current_view_scale");
-
         let param_data = spawn_coords
             .iter()
             .map(|coord| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
                 chunk_pos: [coord.xy.x.try_into().unwrap(), coord.xy.y.try_into().unwrap()],
                 chunk_size: 1000,
                 chunk_scale: coord.scale as i32,
-                current_view_scale,
+                current_view_scale: 35,
                 _padding0: 0,
                 _padding1: [0, 0, 0, 0],
             })
@@ -213,6 +211,8 @@ pub(crate) fn process_chunk_actions_system(
                     input
                 })
                 .collect::<Vec<_>>();
+
+            warn!("Finished GenerateChunkTextures workflow execution");
 
             let _ = workflow!(IOE, Chunk::SpawnChunks, Input {
                 inner: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures },

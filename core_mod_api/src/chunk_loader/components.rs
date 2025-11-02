@@ -3,6 +3,7 @@ use std::{collections::HashSet, sync::Mutex};
 use bevy::prelude::*;
 use lazy_static::lazy_static;
 
+use crate::usf::pos::unit::types::UnitVec;
 use crate::{chunk_loader::types::ChunkLoaderId, config::statics::CONFIG, entity::functions::get_reserved_entity};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
@@ -40,10 +41,16 @@ impl ChunkLoader {
         &self.chunk_owner_id
     }
 
-    pub fn suggest_zoom_in(&mut self) {
+    pub fn suggest_zoom_in(&mut self, logical_world_pos: Vec3) -> Vec3 {
         if self.zoom_state == ZoomState::None {
             self.zoom_state = ZoomState::ZoomIn;
             self.chunk_owner_id.scale_mut().zoom_in();
+            let mut unit_pos = UnitVec::new(std::mem::take(&mut self.origin_offset), logical_world_pos.truncate());
+            unit_pos.zoom_in();
+            self.origin_offset = unit_pos.grid_offset;
+            unit_pos.unit_offset
+        } else {
+            logical_world_pos
         }
     }
 

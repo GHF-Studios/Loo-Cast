@@ -65,7 +65,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
 
     for input in input.inputs {
         let scale = input.grid_coord.scale;
-        let scale_factor = scale.scale_factor() as f32;
         let grid_coord = input.grid_coord;
         let logical_world_coord = grid_coord.clone().to_native_logical(chunk_loader.origin_offset.clone());
         let (visual_world_coord, visual_world_scale) = grid_coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
@@ -112,8 +111,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             chunk_name
         ));
 
-        // warn!("Spawning chunk at coord ({}, {})", grid_coord.0, grid_coord.1);
-
         chunk_manager.loaded_chunks.insert(grid_coord.clone());
         chunk_manager.owned_chunks.insert(grid_coord, chunk_owner_id.clone());
 
@@ -122,8 +119,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             is_spawned: false,
         });
     }
-
-    // warn!("Spawning {} chunks", spawn_chunk_states.len());
 
     Ok(State {
         spawn_chunk_states

@@ -3,7 +3,7 @@ use core_mod_macros::define_workflow_mod_OLD;
 define_workflow_mod_OLD! {
     name: "Player",
     workflows: [
-        SpawnPlayer, timeout_secs: 1.0, timeout_mode: VirtualTime {
+        SpawnPlayer, timeout_secs: 5.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::{Commands, Entity, Query, Res, ResMut, warn};
 

@@ -151,7 +151,7 @@ impl GridVec {
     pub fn is_zero(&self) -> bool {
         let mut cursor = self;
 
-        while cursor.scale <= Scale::MAX {
+        while cursor.scale < Scale::MAX {
             if cursor.xy != IVec2::ZERO {
                 return false;
             }
@@ -159,14 +159,17 @@ impl GridVec {
             cursor = cursor.parent.as_ref().unwrap().as_ref();
         }
 
+        if cursor.xy != IVec2::ZERO {
+            return false;
+        }
+
         true
     }
 
-    // TODO: Impl properly
     pub fn to_native_logical(self, origin: Self) -> Vec2 {
         assert!(self.scale <= origin.scale);
         let diff = self.clone() - origin.clone();
-        assert!(diff.parent.as_ref().unwrap().is_zero());
+        assert!(diff.parent.as_ref().map(|p| p.is_zero()).unwrap_or(true));
         
         let native_x = diff.xy.x as f32 * 1000.0;
         let native_y = diff.xy.y as f32 * 1000.0;
@@ -174,12 +177,11 @@ impl GridVec {
         Vec2::new(native_x, native_y)
     }
 
-    // TODO: Impl properly
     pub fn to_native_visual(self, origin: Self) -> (Vec2, f32) {
         assert!(self.scale >= origin.scale);
         let scale_diff = self.scale as i8 - origin.scale as i8;
         let diff = self.clone() - origin.clone();
-        assert!(diff.parent.as_ref().unwrap().is_zero());
+        assert!(diff.parent.as_ref().map(|p| p.is_zero()).unwrap_or(true));
 
         let scale = 10.0_f32.powi(scale_diff as i32);
         let native_unit = 1000.0 / scale;
@@ -378,11 +380,8 @@ impl std::ops::Add<GridVec> for GridVec {
 
         // === Phase 4: Build final GridVec tree ===
         let mut result: Option<GridVec> = None;
-        for (_scale, xy) in raw_stack {
-            result = Some(match result {
-                Some(parent) => GridVec::new(parent, xy),
-                None => GridVec::new_root(xy),
-            });
+        for (scale, xy) in raw_stack {
+            result = Some(GridVec { parent: result.map(Arc::new), scale, xy })
         }
 
         result.expect("GridVec addition should yield a result")
@@ -450,11 +449,8 @@ impl std::ops::Sub<GridVec> for GridVec {
 
         // === Phase 4: Build final GridVec tree ===
         let mut result: Option<GridVec> = None;
-        for (_scale, xy) in raw_stack {
-            result = Some(match result {
-                Some(parent) => GridVec::new(parent, xy),
-                None => GridVec::new_root(xy),
-            });
+        for (scale, xy) in raw_stack {
+            result = Some(GridVec { parent: result.map(Arc::new), scale, xy })
         }
 
         result.expect("GridVec subtraction should yield a result")

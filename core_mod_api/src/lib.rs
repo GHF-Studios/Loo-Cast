@@ -1,5 +1,6 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
+#![warn(clippy::large_stack_frames)]
 
 pub use bevy_consumable_event;
 pub use core_mod_macros;

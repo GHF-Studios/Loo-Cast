@@ -4,8 +4,6 @@ use bevy::prelude::{Reflect, Resource, ReflectResource};
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use crate::usf::phenomenon::PhenomenonModel;
-
 #[derive(Resource, Default, Reflect)]
 #[reflect(Resource)]
 pub struct CurrentViewScale {

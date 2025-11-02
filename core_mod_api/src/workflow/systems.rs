@@ -231,7 +231,7 @@ pub(super) fn send_render_while_stages_to_render_while_buffers_system(mut buffer
     }
 }
 
-/// Note: We actually convert the event from 'setup' to 'wait', seeing as the event handler logic from post-setup is identical to that of post-wait
+/// Note: We actually convert the event from 'setup' to 'wait', seeing as the event handler logic from post-setup is identical to that of post-run
 pub(super) fn stage_setup_relay_system(stage_event_receiver: Res<StageSetupEventReceiver>, mut stage_event_writer: ConsumableEventWriter<StageWaitEvent>) {
     while let Ok(StageSetupEvent {
         ty,

@@ -32,7 +32,6 @@ pub(crate) fn zoom_cooldown_system(
 
 #[tracing::instrument(skip_all)]
 pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>) {
-    warn!("Update Chunk Loader System Triggered");
     let handle_is_some = (*composite_workflow_handle).is_some();
     let handle_is_finished = match *composite_workflow_handle {
         Some(ref handle) => handle.is_finished(),
@@ -40,7 +39,6 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
     };
 
     if !handle_is_some {
-        // warn!("Starting UpdateChunkLoaders composite workflow");
         let handle = composite_workflow!(UpdateChunkLoaders, {
             let categorize_chunks_output = workflow!(O, ChunkLoader::CategorizeChunks);
 
@@ -54,14 +52,11 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
             workflow!(I, ChunkLoader::UnloadChunks, Input {
                 inner: crate::chunk_loader::workflows::external::unload_chunks::Input { inputs: unload_chunk_inputs },
             });
-
-            // warn!("Finished UpdateChunkLoaders composite workflow execution");
         });
 
         *composite_workflow_handle = Some(handle);
     }
     if handle_is_some && !handle_is_finished {
-        // warn!("Waiting for UpdateChunkLoaders composite workflow to finish...");
         return;
     }
 
@@ -69,7 +64,6 @@ pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Op
         let handle = composite_workflow_handle.take().unwrap();
         handle_composite_workflow_return_now(handle, |_ctx| {
             composite_workflow_return!();
-            // warn!("Finished UpdateChunkLoaders composite workflow cleanup");
         });
     }
 }
