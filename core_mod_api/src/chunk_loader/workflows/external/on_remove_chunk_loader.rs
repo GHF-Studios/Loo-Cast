@@ -34,7 +34,7 @@ pub fn run_ecs(input: Input, main_access: MainAccess) -> Output {
     let chunk_loader = *main_access.chunk_loader;
 
     let chunk_owner_id = input.chunk_owner_id;
-    let position = input.chunk_loader_position;
+    let _position = input.chunk_loader_position;
     let radius = input.chunk_loader_radius;
 
     let mut unload_chunk_inputs = Vec::new();

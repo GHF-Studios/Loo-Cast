@@ -177,7 +177,7 @@ pub(crate) fn process_chunk_actions_system(
         let param_data = spawn_coords
             .iter()
             .map(|coord| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
-                chunk_pos: [coord.xy.x.try_into().unwrap(), coord.xy.y.try_into().unwrap()],
+                chunk_pos: [coord.xy.x, coord.xy.y],
                 chunk_size: 1000,
                 chunk_scale: coord.scale as i32,
                 current_view_scale: 35,

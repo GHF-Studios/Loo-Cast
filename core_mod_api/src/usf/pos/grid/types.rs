@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use std::{marker::PhantomData, sync::Arc};
+use std::sync::Arc;
 
 use crate::usf::scale::Scale;
 use crate::usf::pos::unit::types::UnitVec;
@@ -52,6 +52,7 @@ impl GridVec {
         GridVecBuilder::new()
     }
 
+    #[track_caller]
     fn validate_xy(xy: &IVec2) {
         if xy.x < -5 { panic!("X coordinate {} is too small. Range is (-5..5)", xy.x); }
         if xy.x >= 5 { panic!("X coordinate {} is too large. Range is (-5..5)", xy.x); }
@@ -59,17 +60,30 @@ impl GridVec {
         if xy.y >= 5 { panic!("Y coordinate {} is too large. Range is (-5..5)", xy.y); }
     }
 
+    #[track_caller]
+    fn try_validate_xy(xy: &IVec2) -> Result<(), String> {
+        if xy.x < -5 { return Err(format!("X coordinate {} is too small. Range is (-5..5)", xy.x)) }
+        if xy.x >= 5 { return Err(format!("X coordinate {} is too large. Range is (-5..5)", xy.x)) }
+        if xy.y < -5 { return Err(format!("Y coordinate {} is too small. Range is (-5..5)", xy.y)) }
+        if xy.y >= 5 { return Err(format!("Y coordinate {} is too large. Range is (-5..5)", xy.y)) }
+        
+        Ok(())
+    }
+
     /// Create a GridVec with random (yet valid) coordinates, from the root, down to and including the specified scale, with the same random coords at each scale.
+    #[track_caller]
     pub fn new_random_homo(_scale: Scale) -> Self {
         todo!()
     }
     
     /// Create a GridVec with random (yet valid) coordinates, from the root, down to and including the specified scale, with different random coords at each scale.
+    #[track_caller]
     pub fn new_random_hetero(_scale: Scale) -> Self {
         todo!()
     }
 
     /// Create a GridVec at the absolute root (Scale::MAX) with no parent.
+    #[track_caller]
     pub fn new_root(xy: IVec2) -> Self {
         Self::validate_xy(&xy);
         let mut my_self = Self { parent: None, scale: Scale::MAX, xy };
@@ -78,6 +92,7 @@ impl GridVec {
     }
 
     /// Create a GridVec at the absolute root (Scale::MAX) with no parent.
+    #[track_caller]
     pub fn new_root_unchecked(xy: IVec2) -> Self {
         let mut my_self = Self { parent: None, scale: Scale::MAX, xy };
         my_self.normalize();
@@ -85,6 +100,7 @@ impl GridVec {
     }
 
     /// Create a GridVec with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
+    #[track_caller]
     pub fn new(parent: GridVec, xy: IVec2) -> Self {
         Self::validate_xy(&xy);
         if parent.scale == Scale::MIN {
@@ -99,6 +115,7 @@ impl GridVec {
     }
 
     /// Create a GridVec with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
+    #[track_caller]
     pub fn new_unchecked(parent: GridVec, xy: IVec2) -> Self {
         let scale = parent.scale.zoomed_in();
         let parent = Some(Arc::new(parent));
@@ -109,6 +126,7 @@ impl GridVec {
     }
 
     /// Create a GridVec with all ancestors up, from the specified scale to the root at Scale::MAX, pre-filled with IVec2::ZERO, except for the leaf at the specified scale, which is set to the specified xy.
+    #[track_caller]
     pub fn new_at_scale(scale: Scale, xy: IVec2) -> Self {
         Self::validate_xy(&xy);
         if scale == Scale::MAX {
@@ -129,6 +147,7 @@ impl GridVec {
     }
 
     /// Create a GridVec with all ancestors, from the specified scale up to the root at Scale::MAX, pre-filled with the specified xy.
+    #[track_caller]
     pub fn new_splat(scale: Scale, xy: IVec2) -> Self {
         Self::validate_xy(&xy);
         if scale == Scale::MAX {
@@ -148,6 +167,7 @@ impl GridVec {
         my_self
     }
 
+    #[track_caller]
     pub fn is_zero(&self) -> bool {
         let mut cursor = self;
 
@@ -166,6 +186,7 @@ impl GridVec {
         true
     }
 
+    #[track_caller]
     pub fn to_native_logical(self, origin: Self) -> Vec2 {
         assert!(self.scale <= origin.scale);
         let diff = self.clone() - origin.clone();
@@ -177,6 +198,7 @@ impl GridVec {
         Vec2::new(native_x, native_y)
     }
 
+    #[track_caller]
     pub fn to_native_visual(self, origin: Self) -> (Vec2, f32) {
         assert!(self.scale >= origin.scale);
         let scale_diff = self.scale as i8 - origin.scale as i8;
@@ -196,6 +218,7 @@ impl GridVec {
     //      it just abuses the fact that Add(and Sub) internally perform a wrap, by just doing +/- "zero", or rather a default that equates in a no-op.
     //      In short: It's a fast, dirty, and lazy solution
     /// Recursively normalize the GridVec to ensure all coordinates are within valid ranges.
+    #[track_caller]
     pub fn normalize(&mut self) {
         let zero = GridVec::default();
         let normalized = self.clone() + zero;
@@ -204,6 +227,7 @@ impl GridVec {
         self.xy = normalized.xy;
     }
 
+    #[track_caller]
     pub fn zoom_out(&mut self) {
         let mut unit_extent = UnitVec {
             grid_offset: self.clone(),
@@ -215,6 +239,7 @@ impl GridVec {
         self.xy = unit_extent.grid_offset.xy;
     }
     
+    #[track_caller]
     pub fn query_grid_radius(&self, radius: u32) -> Vec<GridVec> {
         let mut raw_offsets = Vec::new();
 
@@ -296,36 +321,49 @@ impl std::fmt::Debug for GridVec {
 impl std::ops::Add<IVec2> for GridVec {
     type Output = Self;
 
+    #[track_caller]
     fn add(mut self, rhs: IVec2) -> Self::Output {
         self.xy += rhs;
-        Self::validate_xy(&self.xy);
+        if Self::try_validate_xy(&self.xy).is_err() {
+            self.normalize();
+        }
         self
     }
 }
 impl std::ops::AddAssign<IVec2> for GridVec {
+    #[track_caller]
     fn add_assign(&mut self, rhs: IVec2) {
         self.xy += rhs;
-        Self::validate_xy(&self.xy);
+        if Self::try_validate_xy(&self.xy).is_err() {
+            self.normalize();
+        }
     }
 }
 impl std::ops::Sub<IVec2> for GridVec {
     type Output = Self;
 
+    #[track_caller]
     fn sub(mut self, rhs: IVec2) -> Self::Output {
         self.xy -= rhs;
-        Self::validate_xy(&self.xy);
+        if Self::try_validate_xy(&self.xy).is_err() {
+            self.normalize();
+        }
         self
     }
 }
 impl std::ops::SubAssign<IVec2> for GridVec {
+    #[track_caller]
     fn sub_assign(&mut self, rhs: IVec2) {
         self.xy -= rhs;
-        Self::validate_xy(&self.xy);
+        if Self::try_validate_xy(&self.xy).is_err() {
+            self.normalize();
+        }
     }
 }
 impl std::ops::Add<GridVec> for GridVec {
     type Output = GridVec;
 
+    #[track_caller]
     fn add(self, rhs: GridVec) -> Self::Output {
         // === Phase 1: Collect full stack from root to leaf ===
         fn stack_up(mut cursor: &GridVec) -> Vec<(Scale, IVec2)> {
@@ -388,6 +426,7 @@ impl std::ops::Add<GridVec> for GridVec {
     }
 }
 impl std::ops::AddAssign<GridVec> for GridVec {
+    #[track_caller]
     fn add_assign(&mut self, rhs: GridVec) {
         *self = self.clone() + rhs;
     }
@@ -395,6 +434,7 @@ impl std::ops::AddAssign<GridVec> for GridVec {
 impl std::ops::Sub<GridVec> for GridVec {
     type Output = Self;
 
+    #[track_caller]
     fn sub(self, rhs: GridVec) -> Self::Output {
         // === Phase 1: Collect full stack from root to leaf ===
         fn stack_up(mut cursor: &GridVec) -> Vec<(Scale, IVec2)> {
@@ -457,6 +497,7 @@ impl std::ops::Sub<GridVec> for GridVec {
     }
 }
 impl std::ops::SubAssign<GridVec> for GridVec {
+    #[track_caller]
     fn sub_assign(&mut self, rhs: GridVec) {
         *self = self.clone() - rhs;
     }

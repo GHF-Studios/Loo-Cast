@@ -49,9 +49,9 @@ fn setup_tracing() {
 fn configure_low_level_stuff() {
     info!("Configuring low-level stuff");
 
-    std::panic::set_hook(Box::new(|panic_info| {
-        error!("{}", panic_info);
-    }));
+    // std::panic::set_hook(Box::new(|panic_info| {
+    //     error!("{}", panic_info);
+    // }));
 }
 
 fn configure_third_party_plugins() -> PluginGroupBuilder {

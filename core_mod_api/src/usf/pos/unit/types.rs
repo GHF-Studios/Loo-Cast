@@ -106,7 +106,6 @@ impl UnitVec {
         let mut unit_offset = self.unit_offset.truncate();
         let mut stack: Vec<(Scale, IVec2)> = Vec::new();
         let mut scale = self.grid_offset.scale;
-        let initial_scale = scale;
 
         while scale > target_scale {
             let next_scale = scale.down().unwrap();
@@ -136,7 +135,7 @@ impl UnitVec {
         // === Phase 2: Normalize the grid deltas (bottom-up) ===
         let mut carry = IVec2::ZERO;
         for i in (0..stack.len()).rev() {
-            let (_scale, mut xy) = stack[i];
+            let (_scale, xy) = stack[i];
 
             let new_xy = xy + carry;
             let wrapped_x = ((new_xy.x + 5).rem_euclid(10)) - 5;

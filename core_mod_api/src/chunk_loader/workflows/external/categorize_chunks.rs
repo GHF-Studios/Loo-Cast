@@ -1,14 +1,13 @@
 // Imports
 use bevy::prelude::*;
 use std::collections::HashSet;
-use std::marker::PhantomData;
 
 use crate::chunk::resources::ChunkManager;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::workflows::external::{load_chunks::LoadChunkInput, unload_chunks::UnloadChunkInput};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
-use crate::utils::lifecycle_hook::{DropHook, InitHook};
+use crate::utils::lifecycle_hook::DropHook;
 
 // Items
 
@@ -27,7 +26,7 @@ pub struct Output {
 // Core Functions
 #[tracing::instrument(skip_all)]
 pub fn run_ecs(main_access: MainAccess) -> Output {
-    let (transform, chunk_loader, drop_hook) = match main_access.chunk_loader_query.single() {
+    let (_transform, chunk_loader, drop_hook) = match main_access.chunk_loader_query.single() {
         Ok(data) => data,
         Err(_) => {
             warn!("No ChunkLoader found; skipping CategorizeChunks");

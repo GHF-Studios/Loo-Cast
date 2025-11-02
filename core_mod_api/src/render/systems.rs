@@ -1,11 +1,6 @@
 use bevy::prelude::*;
 
-use crate::chunk::components::Chunk;
-use crate::chunk_actor::components::ChunkActor;
-use crate::chunk_loader::components::ChunkLoader;
 use crate::render::components::{RenderProxy, RenderProxyHandle};
-use crate::usf::pos::constants::ORIGIN_OFFSET_THRESHOLD;
-use crate::usf::pos::unit::types::UnitVec;
 
 #[tracing::instrument(skip_all)]
 pub(crate) fn update_render_proxies(
@@ -14,6 +9,7 @@ pub(crate) fn update_render_proxies(
 ) {
     for (source_transform, proxy_handle) in &sources {
         if let Ok(mut proxy_transform) = proxies.get_mut(proxy_handle.proxy_entity) {
+            // TODO: MAJOR: Actually transform logical to visual here, not just clone it lmao (and don't forget the visual transform.scale!)
             *proxy_transform = *source_transform;
         }
     }
@@ -28,7 +24,7 @@ pub(crate) fn despawn_orphaned_render_proxies(
     for removed_source in removed.read() {
         for (proxy_entity, proxy) in &proxies {
             if proxy.source == removed_source {
-                let _ = commands.entity(proxy_entity).despawn();
+                commands.entity(proxy_entity).despawn();
             }
         }
     }

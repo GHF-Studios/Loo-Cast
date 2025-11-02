@@ -10,7 +10,7 @@ use crate::debug::observers::on_click_select;
 use crate::render::components::RenderProxyHandle;
 use crate::render::functions::make_sprite_proxy_bundle;
 use crate::usf::pos::grid::types::GridVec;
-use crate::usf::scale::{Scale, DynScale};
+use crate::usf::scale::Scale;
 use crate::workflow::types::Outcome;
 
 // Items

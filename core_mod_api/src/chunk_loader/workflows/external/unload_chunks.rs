@@ -66,8 +66,8 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
     let chunk_manager = main_access.chunk_manager;
     let mut action_intent_commit_buffer = main_access.action_intent_commit_buffer;
     let mut action_intent_buffer = main_access.action_intent_buffer;
-    let chunk_query = main_access.chunk_query;
-    let (chunk_loader_transform, chunk_loader) = *main_access.chunk_loader_query;
+    let _chunk_query = main_access.chunk_query;
+    let (_chunk_loader_transform, _chunk_loader) = *main_access.chunk_loader_query;
 
     let mut despawn_chunk_states = Vec::new();
     let mut transfer_chunk_ownership_states = Vec::new();
