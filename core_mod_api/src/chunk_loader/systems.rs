@@ -31,7 +31,20 @@ pub(crate) fn zoom_cooldown_system(
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn update_chunk_loader_system(mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>) {
+pub(crate) fn update_chunk_loader_system(
+    mut composite_workflow_handle: Local<Option<JoinHandle<ScopedCompositeWorkflowContext>>>,
+    mut chunk_loader: Single<(&mut Transform, &mut ChunkLoader), Changed<Transform>>,
+) {
+    // === PHASE 1: Re-align origin_offset ===
+    let (ref mut transform, ref mut chunk_loader) = *chunk_loader;
+    let unit_pos = crate::usf::pos::unit::types::UnitVec::new(
+        chunk_loader.origin_offset.clone(),
+        transform.translation.truncate(),
+    );  // `UnitVec::new` internally normalizes the position based on the current origin_offset; does the heavy lifting for us
+    chunk_loader.origin_offset = unit_pos.grid_offset;
+    transform.translation = unit_pos.unit_offset;
+
+    // === PHASE 2: Handle main chunk loading shenanigans ===
     let handle_is_some = (*composite_workflow_handle).is_some();
     let handle_is_finished = match *composite_workflow_handle {
         Some(ref handle) => handle.is_finished(),
