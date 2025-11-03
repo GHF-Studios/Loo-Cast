@@ -186,30 +186,95 @@ impl GridVec {
         true
     }
 
+    /// - Assumes that the given `scale` is greater than or equal to that of `self`.
+    /// - Assumes that the parent of `grid_diff` is the same as `self`'s parent.
+    #[track_caller]
+    pub fn from_native_logical(origin: Self, (native_logical_pos, scale): (Vec2, Scale)) -> Self {
+        assert!(scale >= origin.scale);
+        let unit_offset_x = native_logical_pos.x / 1000.0;
+        let unit_offset_y = native_logical_pos.y / 1000.0;
+
+        let diff_x = unit_offset_x.round() as i32;
+        let diff_y = unit_offset_y.round() as i32;
+
+        let diff = GridVec {
+            parent: origin.parent.clone(),
+            scale,
+            xy: IVec2::new(diff_x, diff_y),
+        };
+
+        origin + diff
+    }
+
+    /// - Assumes that the given `scale` is greater than or equal to that of `self`.
+    /// - Assumes that the parent of `grid_diff` is the same as `self`'s parent.
+    #[track_caller]
+    pub fn from_native_visual(origin: Self, native_visual_pos: Vec2, scale: Scale) -> Self {
+        assert!(scale >= origin.scale);
+        let scale_diff = scale as i8 - origin.scale as i8;
+        let scale_factor = 10.0_f32.powi(scale_diff as i32);
+        let native_unit = 1000.0 / scale_factor;
+
+        let unit_offset_x = native_visual_pos.x / native_unit;
+        let unit_offset_y = native_visual_pos.y / native_unit;
+
+        let diff_x = unit_offset_x.round() as i32;
+        let diff_y = unit_offset_y.round() as i32;
+
+        let diff = GridVec {
+            parent: origin.parent.clone(),
+            scale,
+            xy: IVec2::new(diff_x, diff_y),
+        };
+
+        origin + diff
+    }
+
+    /// - Assumes that `self`'s scale is greater than or equal to that of `origin`.
+    /// - Assumes that the parent of `self` is the same as `origin`'s parent.
     #[track_caller]
     pub fn to_native_logical(self, origin: Self) -> Vec2 {
-        assert!(self.scale <= origin.scale);
-        let diff = self.clone() - origin.clone();
-        assert!(diff.parent.as_ref().map(|p| p.is_zero()).unwrap_or(true));
+        assert!(self.scale >= origin.scale);
+        let scale_diff = self.scale as i8 - origin.scale as i8;
+        let self_unit = UnitVec {
+            grid_offset: self.clone(),
+            unit_offset: Vec3::ZERO,
+        };
+        let origin_unit = UnitVec {
+            grid_offset: origin.clone(),
+            unit_offset: Vec3::ZERO,
+        };
+        let diff_unit = self_unit - origin_unit;
+        assert!(diff_unit.grid_offset.parent.as_ref().map(|p| p.is_zero()).unwrap_or(true));
         
-        let native_x = diff.xy.x as f32 * 1000.0;
-        let native_y = diff.xy.y as f32 * 1000.0;
+        let native_x = diff_unit.grid_offset.xy.x as f32 * 1000.0;
+        let native_y = diff_unit.grid_offset.xy.y as f32 * 1000.0;
 
         Vec2::new(native_x, native_y)
     }
 
+    /// - Assumes that `self`'s scale is greater than or equal to that of `origin`.
+    /// - Assumes that the parent of `self` is the same as `origin`'s parent.
     #[track_caller]
     pub fn to_native_visual(self, origin: Self) -> (Vec2, f32) {
         assert!(self.scale >= origin.scale);
         let scale_diff = self.scale as i8 - origin.scale as i8;
-        let diff = self.clone() - origin.clone();
-        assert!(diff.parent.as_ref().map(|p| p.is_zero()).unwrap_or(true));
+        let self_unit = UnitVec {
+            grid_offset: self.clone(),
+            unit_offset: Vec3::ZERO,
+        };
+        let origin_unit = UnitVec {
+            grid_offset: origin.clone(),
+            unit_offset: Vec3::ZERO,
+        };
+        let diff_unit = self_unit - origin_unit;
+        assert!(diff_unit.grid_offset.parent.as_ref().map(|p| p.is_zero()).unwrap_or(true));
 
         let scale = 10.0_f32.powi(scale_diff as i32);
         let native_unit = 1000.0 / scale;
 
-        let native_x = diff.xy.x as f32 * native_unit;
-        let native_y = diff.xy.y as f32 * native_unit;
+        let native_x = diff_unit.grid_offset.xy.x as f32 * native_unit;
+        let native_y = diff_unit.grid_offset.xy.y as f32 * native_unit;
 
         (Vec2::new(native_x, native_y), scale)
     }

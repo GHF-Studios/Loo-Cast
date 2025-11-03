@@ -27,7 +27,7 @@ define_workflow_mod_OLD! {
                     let chunk_loader = ChunkLoader::new(chunk_loader_id, Scale::default());
 
                     commands.entity(*chunk_loader.id().entity()).insert((
-                        ChunkActor,
+                        ChunkActor::default(), // TODO: Make this proper
                         chunk_loader,
                         DebugObjectComponent { movement },
                         Sprite {

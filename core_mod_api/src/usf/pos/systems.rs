@@ -43,7 +43,7 @@ pub(crate) fn origin_offset_system(
             chunk.coord -= grid_diff;
         }
 
-        for (mut chunk_actor, mut transform) in chunk_actor_transform_query.iter_mut() {
+        for (_chunk_actor, mut transform) in chunk_actor_transform_query.iter_mut() {
             transform.translation.x -= unit_diff.x;
             transform.translation.y -= unit_diff.y;
         }
