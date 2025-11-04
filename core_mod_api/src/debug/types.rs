@@ -3,13 +3,14 @@ use std::any::TypeId;
 use bevy::asset::UntypedAssetId;
 use bevy::ecs::reflect::AppTypeRegistry;
 use bevy::ecs::world::World;
-use bevy::prelude::Reflect;
+use bevy::prelude::*;
 use bevy::state::state::State;
 use bevy_inspector_egui::bevy_inspector::by_type_id::{ui_for_asset, ui_for_resource};
 use bevy_inspector_egui::bevy_inspector::hierarchy::hierarchy_ui;
 use bevy_inspector_egui::bevy_inspector::{ui_for_entities_shared_components, ui_for_entity_with_children};
 use egui_dock::TabViewer;
 
+use crate::camera::components::MainCamera;
 use crate::debug::functions::{select_asset, select_resource};
 use crate::input::states::InputMode;
 
@@ -59,6 +60,7 @@ pub enum DebugSuiteTab {
 
 #[derive(Clone, Default, Eq, PartialEq, Reflect)]
 pub enum InspectorSelection {
+    Entity(Entity),
     #[default]
     Entities,
     Resource(TypeId, String),
@@ -95,6 +97,8 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
                 }
 
                 if let (Some(texture_id), Some(texture_size)) = (self.game_view_texture_id, self.game_view_texture_size) {
+                    let camera_entity = self.world.query_filtered::<Entity, With<MainCamera>>().single(self.world).expect("NO MAIN CAMERA FOUND???? How can this be?");
+
                     draw_game_view(ui, texture_id, texture_size);
                 } else {
                     ui.label("Game View Render Texture not available yet.");
@@ -109,6 +113,9 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
             DebugSuiteTab::Resources => select_resource(ui, &type_registry, &mut self.state.selection),
             DebugSuiteTab::Assets => select_asset(ui, &type_registry, self.world, &mut self.state.selection),
             DebugSuiteTab::Inspector => match self.state.selection {
+                InspectorSelection::Entity(entity) => {
+                    ui_for_entity_with_children(self.world, entity, ui);
+                }
                 InspectorSelection::Entities => match self.state.selected_entities.as_slice() {
                     &[entity] => ui_for_entity_with_children(self.world, entity, ui),
                     entities => ui_for_entities_shared_components(self.world, entities, ui),

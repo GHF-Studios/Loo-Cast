@@ -4,7 +4,7 @@ param(
     [string]$BuildProfile = "fastdev"
 )
 
-$env:RUST_BACKTRACE = "full"
+$env:RUST_BACKTRACE = "1"
 # $env:RUST_MIN_STACK = 335544320
 
 $env:BUILD_PROFILE = $BuildProfile

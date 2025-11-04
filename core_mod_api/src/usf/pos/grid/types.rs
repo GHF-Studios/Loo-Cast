@@ -235,7 +235,7 @@ impl GridVec {
     #[track_caller]
     pub fn to_native_logical(self, origin: Self) -> Vec2 {
         assert!(self.scale >= origin.scale);
-        let scale_diff = self.scale as i8 - origin.scale as i8;
+        let _scale_diff = self.scale as i8 - origin.scale as i8;
         let self_unit = UnitVec {
             grid_offset: self.clone(),
             unit_offset: Vec3::ZERO,

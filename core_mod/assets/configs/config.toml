@@ -28,12 +28,15 @@ enabled = true
 
 [player]
 base_size = 32.0
-base_movement_speed = 5.0
+base_movement_speed = 50.0
 sprint_multiplier = 2.5
 
 [time]
 start_paused = false
 start_step_secs = 0.02
+
+[usf.pos]
+origin_offset_threshold = 2
 
 [utils.premium_box]
 success_logging_enabled = false

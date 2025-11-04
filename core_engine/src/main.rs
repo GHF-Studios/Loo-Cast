@@ -17,6 +17,7 @@ use libloading::{Library, Symbol};
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::{EnvFilter, Layer};
+use transform_gizmo_bevy::prelude::*;
 
 fn main() {
     setup_tracing();
@@ -49,9 +50,9 @@ fn setup_tracing() {
 fn configure_low_level_stuff() {
     info!("Configuring low-level stuff");
 
-    // std::panic::set_hook(Box::new(|panic_info| {
-    //     error!("{}", panic_info);
-    // }));
+    std::panic::set_hook(Box::new(|panic_info| {
+        error!("{}", panic_info);
+    }));
 }
 
 fn configure_third_party_plugins() -> PluginGroupBuilder {
@@ -76,6 +77,7 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
         // Ui Plugins
         .add(EguiPlugin::default())
         .add(PerfUiPlugin)
+        .add(TransformGizmoPlugin)
         // Physics Plugins
         .add(RapierPhysicsPlugin::<NoUserData>::default())
 

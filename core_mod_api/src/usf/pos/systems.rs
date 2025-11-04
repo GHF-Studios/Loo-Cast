@@ -1,18 +1,18 @@
 use bevy::prelude::*;
 
+use crate::config::statics::CONFIG;
 use crate::chunk::components::Chunk;
 use crate::chunk_actor::components::ChunkActor;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 
-use super::constants::ORIGIN_OFFSET_THRESHOLD;
-
 #[tracing::instrument(skip_all)]
 pub(crate) fn apply_new_origin_offset_system(
-    mut chunk_loader_query: Query<&ChunkLoader, (Changed<ChunkActor>, Without<Chunk>, With<ChunkActor>)>,
-    mut chunk_transform_query: Query<(&mut Chunk, &mut Transform), Without<ChunkActor>>,
-    mut chunk_actor_transform_query: Query<(&mut ChunkActor, &mut Transform), Without<Chunk>>,
+    mut chunk_loader_query: Query<&ChunkLoader, (Changed<ChunkLoader>, Without<Chunk>, With<ChunkActor>)>,
+    mut chunk_transform_query: Query<(&mut Chunk, &mut Transform), (Without<ChunkActor>, Without<ChunkLoader>)>,
+    mut chunk_actor_transform_query: Query<(&mut ChunkActor, &mut Transform), (Without<Chunk>, Without<ChunkLoader>)>,
+    mut chunk_loader_transform_query: Query<(&mut ChunkActor, &mut Transform), (Without<Chunk>, With<ChunkLoader>)>,
 ) {
     let chunk_loader = match chunk_loader_query.single_mut() {
         Ok(data) => data,
@@ -20,6 +20,7 @@ pub(crate) fn apply_new_origin_offset_system(
             return;
         }
     };
+    let origin_offset_threshold = CONFIG().get::<u8>("usf/pos/origin_offset_threshold");
 
     for (mut chunk, mut transform) in chunk_transform_query.iter_mut() {
         let unit_pos = UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation.truncate());
@@ -29,10 +30,10 @@ pub(crate) fn apply_new_origin_offset_system(
 
             let mut unit_diff = Vec2::ZERO;
 
-            if grid_diff.x.abs() >= ORIGIN_OFFSET_THRESHOLD as i32 {
+            if grid_diff.x.abs() >= origin_offset_threshold as i32 {
                 unit_diff.x = grid_diff.x as f32 * 1000.0;
             }
-            if grid_diff.y.abs() >= ORIGIN_OFFSET_THRESHOLD as i32 {
+            if grid_diff.y.abs() >= origin_offset_threshold as i32 {
                 unit_diff.y = grid_diff.y as f32 * 1000.0;
             }
 
@@ -41,7 +42,7 @@ pub(crate) fn apply_new_origin_offset_system(
             chunk.coord -= grid_diff;
         }
     }
-    for (mut chunk_actor, mut transform) in chunk_actor_transform_query.iter_mut() {
+    for (mut chunk_actor, mut transform) in chunk_actor_transform_query.iter_mut().chain(chunk_loader_transform_query.iter_mut()) {
         let unit_pos = UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation.truncate());
 
         if unit_pos.grid_offset != chunk_loader.origin_offset {
@@ -49,10 +50,10 @@ pub(crate) fn apply_new_origin_offset_system(
 
             let mut unit_diff = Vec2::ZERO;
 
-            if grid_diff.x.abs() >= ORIGIN_OFFSET_THRESHOLD as i32 {
+            if grid_diff.x.abs() >= origin_offset_threshold as i32 {
                 unit_diff.x = grid_diff.x as f32 * 1000.0;
             }
-            if grid_diff.y.abs() >= ORIGIN_OFFSET_THRESHOLD as i32 {
+            if grid_diff.y.abs() >= origin_offset_threshold as i32 {
                 unit_diff.y = grid_diff.y as f32 * 1000.0;
             }
 

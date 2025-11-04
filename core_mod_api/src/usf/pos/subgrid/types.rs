@@ -4,15 +4,14 @@ use crate::usf::scale::{Scale, DynScale};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 
+#[derive(Default)]
 pub struct SubgridVecBuilder {
     chain: Vec<IVec2>,
 }
 
 impl SubgridVecBuilder {
     pub fn new() -> Self {
-        Self {
-            chain: vec![],
-        }
+        Self::default()
     }
 
     pub fn push(mut self, next: (i32, i32)) -> Self {

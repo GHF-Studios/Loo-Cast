@@ -4,7 +4,6 @@ pub mod grid;
 pub mod subgrid;
 pub mod unit;
 
-pub mod constants;
 pub mod systems;
 
 use bevy::prelude::*;
