@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContexts};
+use bevy_egui::EguiContexts;
 
 use crate::ui::toolbar::resources::ToolbarState;
 
@@ -18,6 +18,8 @@ pub(super) fn show_toolbar_ui(mut egui_ctx: EguiContexts, keys: Res<ButtonInput<
         return;
     }
 
+    // use bevy_egui::egui;
+    // 
     // let ctx = match egui_ctx.ctx_mut() {
     //     Ok(ctx) => ctx,
     //     Err(_) => {

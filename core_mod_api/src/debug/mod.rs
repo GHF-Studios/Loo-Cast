@@ -1,5 +1,6 @@
 pub mod components;
 pub mod functions;
+pub mod gizmo;
 pub mod observers;
 pub mod resources;
 pub mod systems;
@@ -11,18 +12,21 @@ use bevy::prelude::*;
 use bevy_egui::EguiPrimaryContextPass;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use components::DebugObjectComponent;
+use gizmo::GizmoPlugin;
 use resources::{DebugSuiteUiDockState, DebugSuiteUiState};
 use systems::{
     debug_object_movement_system, debug_suite_ui_system, log_registry_debug_ui, perf_ui_startup, toggle_debug_suite_ui_system, toggle_perf_ui_system,
 };
-use types::{DebugObjectMovement, StepConfig, StepMode};
+use types::{DebugSuiteTab, DebugObjectMovement, StepConfig, StepMode, InspectorSelection};
 
 use crate::{core::run_conditions::run_after_startup_finished, time::run_conditions::run_if_not_paused};
 
 pub(crate) struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(DefaultInspectorConfigPlugin)
+        app
+            .add_plugins(DefaultInspectorConfigPlugin)
+            .add_plugins(GizmoPlugin)
             .init_resource::<DebugSuiteUiState>()
             .init_resource::<DebugSuiteUiDockState>()
             .add_systems(Startup, perf_ui_startup)
@@ -39,6 +43,9 @@ impl Plugin for DebugPlugin {
             .register_type::<DebugObjectComponent>()
             .register_type::<DebugObjectMovement>()
             .register_type::<StepMode>()
-            .register_type::<StepConfig>();
+            .register_type::<StepConfig>()
+            .register_type::<DebugSuiteTab>()
+            .register_type::<InspectorSelection>()
+            .register_type::<DebugSuiteUiState>();
     }
 }

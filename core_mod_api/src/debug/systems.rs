@@ -3,7 +3,7 @@ use crate::{
     debug::resources::{DebugSuiteUiDockState, DebugSuiteUiState},
     input::states::InputMode,
     logging::resources::LogRegistry,
-    ui::toolbar::resources::ToolbarState,
+    ui::{custom_perf_ui_entries::player_position::PerfUiEntryPlayerPosition, toolbar::resources::ToolbarState},
 };
 
 use bevy::{
@@ -15,7 +15,10 @@ use bevy_egui::{
     egui::{self, ScrollArea},
     EguiContexts,
 };
-use iyes_perf_ui::prelude::PerfUiRoot;
+use iyes_perf_ui::{
+    prelude::PerfUiRoot,
+    entries::diagnostics::{PerfUiEntryFPS, PerfUiEntryFPSAverage},
+};
 
 use super::components::DebugObjectComponent;
 use super::types::DebugObjectMovement;
@@ -23,7 +26,7 @@ use super::types::DebugObjectMovement;
 #[tracing::instrument(skip_all)]
 pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Commands) {
     use iyes_perf_ui::{
-        entries::{PerfUiFramerateEntries, PerfUiSystemEntries},
+        entries::PerfUiSystemEntries,
         prelude::{PerfUiEntryEntityCount, PerfUiRoot},
     };
 
@@ -31,9 +34,11 @@ pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Comman
         *has_spawned = true;
         commands.spawn((
             PerfUiRoot::default(),
-            PerfUiFramerateEntries::default(),
+            PerfUiEntryFPS::default(),
+            PerfUiEntryFPSAverage::default(),
             PerfUiSystemEntries::default(),
             PerfUiEntryEntityCount::default(),
+            PerfUiEntryPlayerPosition::default(),
         ));
     }
 }

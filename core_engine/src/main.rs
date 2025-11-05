@@ -1,6 +1,6 @@
 use core_mod::*;
 use core_mod_api::config::statics::CONFIG;
-use core_mod_api::core::constants::{CLI_LOG_FILTER, ENABLE_BACKTRACE};
+use core_mod_api::core::constants::CLI_LOG_FILTER;
 use core_mod_api::core::types::ShortTime;
 use core_mod_api::logging::tracing::types::LogTreeTracingLayer;
 use core_mod_api::*;
@@ -13,11 +13,9 @@ use bevy::window::PresentMode;
 use bevy_egui::EguiPlugin;
 use bevy_rapier2d::prelude::*;
 use iyes_perf_ui::prelude::*;
-use libloading::{Library, Symbol};
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::{EnvFilter, Layer};
-use transform_gizmo_bevy::prelude::*;
 
 fn main() {
     setup_tracing();
@@ -70,6 +68,7 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
             }),
             ..default()
         })
+        .set(ImagePlugin::default_nearest())
         // Diagnostics Plugins
         .add(FrameTimeDiagnosticsPlugin::default())
         .add(EntityCountDiagnosticsPlugin)
@@ -77,15 +76,10 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
         // Ui Plugins
         .add(EguiPlugin::default())
         .add(PerfUiPlugin)
-        .add(TransformGizmoPlugin)
         // Physics Plugins
         .add(RapierPhysicsPlugin::<NoUserData>::default())
-
-    // Picking Plugins
-    //.add(PickingPlugin::default())
-    //.add(MeshPickingPlugin)
-    //.add(UiPickingPlugin)
-    //.add(SpritePickingPlugin)
+        // Picking Plugins
+        .add_group(DefaultPickingPlugins)
 }
 
 fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
@@ -102,6 +96,7 @@ fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
 fn global_init(_app: &mut App) {
     core_mod::__init_api__core_mod_api();
 
+    // use libloading::{Library, Symbol};
     // let exe_dir = std::env::current_exe().expect("failed to get exe path").parent().unwrap().to_path_buf();
     // let lib_path = exe_dir.join(format!("base_mod{}", std::env::consts::DLL_SUFFIX));
     // unsafe {

@@ -10,7 +10,6 @@ use bevy_inspector_egui::bevy_inspector::hierarchy::hierarchy_ui;
 use bevy_inspector_egui::bevy_inspector::{ui_for_entities_shared_components, ui_for_entity_with_children};
 use egui_dock::TabViewer;
 
-use crate::camera::components::MainCamera;
 use crate::debug::functions::{select_asset, select_resource};
 use crate::input::states::InputMode;
 
@@ -97,8 +96,6 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
                 }
 
                 if let (Some(texture_id), Some(texture_size)) = (self.game_view_texture_id, self.game_view_texture_size) {
-                    let camera_entity = self.world.query_filtered::<Entity, With<MainCamera>>().single(self.world).expect("NO MAIN CAMERA FOUND???? How can this be?");
-
                     draw_game_view(ui, texture_id, texture_size);
                 } else {
                     ui.label("Game View Render Texture not available yet.");
@@ -107,7 +104,12 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
             DebugSuiteTab::Hierarchy => {
                 let selected = hierarchy_ui(self.world, ui, &mut self.state.selected_entities);
                 if selected {
-                    self.state.selection = InspectorSelection::Entities;
+                    if self.state.selected_entities.len() == 1 {
+                        let entity = self.state.selected_entities.as_slice()[0];
+                        self.state.selection = InspectorSelection::Entity(entity);
+                    } else {
+                        self.state.selection = InspectorSelection::Entities;
+                    }
                 }
             }
             DebugSuiteTab::Resources => select_resource(ui, &type_registry, &mut self.state.selection),

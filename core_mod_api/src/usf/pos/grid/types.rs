@@ -4,15 +4,14 @@ use std::sync::Arc;
 use crate::usf::scale::Scale;
 use crate::usf::pos::unit::types::UnitVec;
 
+#[derive(Default)]
 pub struct GridVecBuilder {
     chain: Vec<IVec2>,
 }
 
 impl GridVecBuilder {
     pub fn new() -> Self {
-        Self {
-            chain: vec![],
-        }
+        Self::default()
     }
 
     pub fn push(mut self, next: (i32, i32)) -> Self {

@@ -18,6 +18,7 @@ pub fn make_sprite_proxy_bundle(
             image,
             ..Default::default()
         },
+        Pickable::default(),
         RenderProxy {
             source: source_entity,
         },

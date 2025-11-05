@@ -47,6 +47,5 @@ pub struct DebugSuiteUiState {
     pub viewport_rect: Option<egui::Rect>,
     #[reflect(ignore)]
     pub selected_entities: SelectedEntities,
-    #[reflect(ignore)]
     pub selection: InspectorSelection,
 }

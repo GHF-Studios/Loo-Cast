@@ -1,9 +1,7 @@
-use crate::subgrid_extent;
-
-use super::types::SubgridVec;
-
 #[test]
 fn subgrid_extent_zoom_out_test_1() {
+    use crate::subgrid_extent;
+
     let mut a = subgrid_extent!([(0, 0), (4, 4), (3, 3)]: (2, 2));
     a.zoom_out();
     let expected = subgrid_extent!([(0, 0), (4, 4)]: (3, 3));
@@ -12,6 +10,8 @@ fn subgrid_extent_zoom_out_test_1() {
 
 #[test]
 fn subgrid_extent_zoom_out_test_2() {
+    use crate::subgrid_extent;
+
     let mut a = subgrid_extent!([(0, 0), (4, 4), (3, 3), (2, 2)]: (1, 1));
     a.zoom_out();
     let expected = subgrid_extent!([(0, 0), (4, 4), (3, 3)]: (2, 2));
@@ -20,6 +20,8 @@ fn subgrid_extent_zoom_out_test_2() {
 
 #[test]
 fn subgrid_extent_zoom_out_test_3() {
+    use crate::subgrid_extent;
+
     let mut a = subgrid_extent!([(0, 0), (4, 4), (3, 3), (2, 2), (1, 1)]: (0, 0));
     a.zoom_out();
     let expected = subgrid_extent!([(0, 0), (4, 4), (3, 3), (2, 2)]: (1, 1));
@@ -28,6 +30,8 @@ fn subgrid_extent_zoom_out_test_3() {
 
 #[test]
 fn subgrid_extent_add_test_1() {
+    use crate::subgrid_extent;
+
     let a = subgrid_extent!([(0, 0)]: (4, 4));
     let b = subgrid_extent!([(0, 0)]: (3, 3));
     let c = a + b;
@@ -37,6 +41,8 @@ fn subgrid_extent_add_test_1() {
 
 #[test]
 fn subgrid_extent_add_test_2() {
+    use crate::subgrid_extent;
+
     let a = subgrid_extent!([(0, 0), (4, 4), (3, 3)]: (2, 2));
     let b = subgrid_extent!([(0, 0)]: (1, 1));
     let c = a + b;
@@ -46,6 +52,8 @@ fn subgrid_extent_add_test_2() {
 
 #[test]
 fn subgrid_extent_add_test_3() {
+    use super::types::SubgridVec;
+
     let a = SubgridVec::build().repeat((4, 4), 70).finish((4, 4));
     let b = SubgridVec::build().repeat((0, 0), 70).finish((1, 1));
     let c = a + b;
@@ -55,6 +63,8 @@ fn subgrid_extent_add_test_3() {
 
 #[test]
 fn subgrid_extent_sub_test_1() {
+    use crate::subgrid_extent;
+
     let a = subgrid_extent!([(0, 0)]: (-3, -3));
     let b = subgrid_extent!([(0, 0)]: (4, 4));
     let c = a - b;
@@ -64,6 +74,8 @@ fn subgrid_extent_sub_test_1() {
 
 #[test]
 fn subgrid_extent_sub_test_2() {
+    use crate::subgrid_extent;
+
     let a = subgrid_extent!([(0, 0), (4, 4), (3, 3)]: (2, 2));
     let b = subgrid_extent!([(0, 0)]: (1, 1));
     let c = a - b;
@@ -73,6 +85,8 @@ fn subgrid_extent_sub_test_2() {
 
 #[test]
 fn subgrid_extent_sub_test_3() {
+    use super::types::SubgridVec;
+
     let a = SubgridVec::build().repeat((-5, -5), 70).finish((-5, -5));
     let b = SubgridVec::build().repeat((0, 0), 70).finish((1, 1));
     let c = a - b;

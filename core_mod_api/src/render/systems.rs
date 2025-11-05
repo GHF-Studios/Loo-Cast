@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader, render::components::{RenderProxy, RenderProxyHandle}, usf::pos::{grid::types::GridVec, unit::types::UnitVec}};
+use crate::{chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader, render::components::{RenderProxy, RenderProxyHandle}};
 
 #[tracing::instrument(skip_all)]
 #[tracing::instrument(skip_all)]

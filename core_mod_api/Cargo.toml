@@ -18,7 +18,6 @@ bevy_rapier2d = { version = "0.31.0", features = ["debug-render-2d", "serde-seri
 bevy_consumable_event = { path = "../bevy_consumable_event" }
 egui = "0.32.1"
 egui_dock = "0.17.0"
-transform-gizmo-bevy = "0.7"
 iyes_perf_ui = "0.5"
 rand = "0.8.5"
 noise = "0.9"

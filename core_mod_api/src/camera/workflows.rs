@@ -15,7 +15,6 @@ define_workflow_mod_OLD! {
                 };
                 use bevy::render::camera::RenderTarget;
                 use bevy::window::WindowRef;
-                use transform_gizmo_bevy::prelude::GizmoCamera;
 
                 use crate::camera::components::MainCamera;
                 use crate::chunk_actor::components::ChunkActor;
@@ -67,7 +66,6 @@ define_workflow_mod_OLD! {
                                     CONFIG().get::<f32>("camera/follow_smoothness"),
                                 ),
                                 ChunkActor::default(),
-                                GizmoCamera,
                             )).id();
 
                             State {

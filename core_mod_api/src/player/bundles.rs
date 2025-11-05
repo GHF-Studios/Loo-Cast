@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use transform_gizmo_bevy::prelude::GizmoTarget;
 
 use crate::{chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader, config::statics::CONFIG, utils::lifecycle_hook::InitHook};
 use crate::usf::scale::Scale;
@@ -15,8 +14,7 @@ pub struct PlayerBundle {
     pub sprite: Sprite,
     pub transform: Transform,
     pub name: Name,
-    #[reflect(ignore)]
-    pub gizmo_target: GizmoTarget,
+    pub pickable: Pickable,
 }
 impl Default for PlayerBundle {
     fn default() -> Self {
@@ -34,11 +32,11 @@ impl Default for PlayerBundle {
                 ..Default::default()
             },
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, -10000.0),
+                translation: Vec3::new(0.0, 0.0, 0.0),
                 ..Default::default()
             },
             name: Name::new("player_entity"),
-            gizmo_target: GizmoTarget::default(),
+            pickable: Pickable::default(),
         }
     }
 }
