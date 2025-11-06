@@ -17,6 +17,7 @@ use define_workflow_mod_OLD::WorkflowModule;
 use register_workflow_mods::WorkflowMods;
 use usf::scale::{
     configure_app_with_all_scales::AppConfigInput,
+    scale_factor_exponent_dynamic_match::ScaleFactorExponentDynamicMatch,
     scale_type_generic_match::ScaleTypeGenericMatch,
 };
 
@@ -86,6 +87,12 @@ pub fn configure_app_with_all_scales(input: TokenStream) -> TokenStream {
 pub fn scale_type_generic_match(input: TokenStream) -> TokenStream {
     let scale_type_generic_match = parse_macro_input!(input as ScaleTypeGenericMatch);
     scale_type_generic_match.generate().into()
+}
+
+#[proc_macro]
+pub fn scale_factor_exponent_dynamic_match(input: TokenStream) -> TokenStream {
+    let scale_factor_exponent_dynamic_match = parse_macro_input!(input as ScaleFactorExponentDynamicMatch);
+    scale_factor_exponent_dynamic_match.generate().into()
 }
 
 // Global statics

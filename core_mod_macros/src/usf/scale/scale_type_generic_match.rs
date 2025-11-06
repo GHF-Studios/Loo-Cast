@@ -1,4 +1,3 @@
-use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Block, Expr, Ident, Token, parse::{Parse, ParseStream}};
 
@@ -98,23 +97,22 @@ impl Parse for ScaleTypeGenericMatch {
 }
 impl ScaleTypeGenericMatch {
     pub fn generate(self) -> proc_macro2::TokenStream {
-        let ScaleTypeGenericMatch { expr, block, overrides } = self;
+        let ScaleTypeGenericMatch { expr, block, mut overrides } = self;
 
-        let fallback_arms = SCALES.iter().map(|variant| {
-            let ident = format_ident!("{}", variant);
-            quote! { Scale::#ident => { type __SCALE__ = #ident; #block } }
-        });
-
-        let override_arms = overrides.iter().map(|(pat, block)| {
-            quote! { #pat => #block }
-        });
+        let scales = SCALES.iter().map(|scale| {
+            if let Some(override_index) = overrides.iter().position(|(ident, _)| ident.to_string().as_str() == *scale) {
+                let (override_ident, override_block) = overrides.remove(override_index);
+                quote! { Scale::#override_ident => { type __SCALE__ = #override_ident; #override_block } }
+            } else {
+                let ident = format_ident!("{}", scale);
+                quote! { Scale::#ident => { type __SCALE__ = #ident; #block } }
+            }
+        }).collect::<Vec<proc_macro2::TokenStream>>();
 
         let expanded = quote! {
             match #expr {
-                #(#override_arms,)*
-                scale_type => match scale_type {
-                    #(#fallback_arms,)*
-                }
+                #(#scales,)*
+                _ => unreachable!()
             }
         };
 

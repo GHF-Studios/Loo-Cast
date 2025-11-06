@@ -646,9 +646,10 @@ impl InspectorPrimitive for GridVec {
         let mut changed = false;
 
         // Step 1: Convert to Vec<IVec2>
-        let mut coords = scale_index_generic_match!(self.scale, {
-            self.to_raw::<__SCALE__>().unwrap().to_vec()
-        });
+        let mut coords = scale_index_generic_match!(
+            self.scale,
+            { self.to_raw::<__SCALE__>().unwrap().to_vec() }
+        );
 
         // Step 2: Dynamic editable UI
         ui.horizontal_wrapped(|ui| {
