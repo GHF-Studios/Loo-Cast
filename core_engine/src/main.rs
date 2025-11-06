@@ -1,6 +1,5 @@
 use core_mod::*;
 use core_mod_api::config::statics::CONFIG;
-use core_mod_api::core::constants::CLI_LOG_FILTER;
 use core_mod_api::core::types::ShortTime;
 use core_mod_api::logging::tracing::types::LogTreeTracingLayer;
 use core_mod_api::*;
@@ -35,7 +34,7 @@ fn setup_tracing() {
         .with_timer(ShortTime)
         .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
         .with_ansi(true)
-        .with_filter(EnvFilter::new(CLI_LOG_FILTER));
+        .with_filter(EnvFilter::new(CONFIG().get::<&'static str>("core/cli_log_filter")));
 
     let subscriber = tracing_subscriber::registry()
         .with(LogTreeTracingLayer)

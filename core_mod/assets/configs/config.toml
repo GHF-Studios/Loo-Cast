@@ -13,6 +13,9 @@ texture_generator_shader = "texture_generators/example_world"
 default_radius = 2
 zoom_cooldown_secs = 1.0
 
+[core]
+cli_log_filter = "warn,core_engine=info,core_mod_macros=info"
+
 [debug]
 spawn_debug_objects = false
 

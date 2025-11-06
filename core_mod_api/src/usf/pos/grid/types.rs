@@ -46,7 +46,7 @@ impl GridVecBuilder {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Reflect)]
+#[derive(Default, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct GridVec {
     pub(in crate) parent: Option<Arc<GridVec>>,
     pub(in crate) scale: Scale,
@@ -415,11 +415,6 @@ impl GridVec {
         raw_offsets
     }
 }
-impl Default for GridVec {
-    fn default() -> Self {
-        GridVec { parent: None, scale: Scale::MAX, xy: IVec2::ZERO }
-    }
-}
 impl std::fmt::Debug for GridVec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut msg = String::new();
@@ -434,7 +429,7 @@ impl std::fmt::Debug for GridVec {
             }
         }
 
-        write!(f, "[{}] @ scale {}", msg, self.scale as i8)
+        write!(f, "{msg}")
     }
 }
 impl std::ops::Add<IVec2> for GridVec {

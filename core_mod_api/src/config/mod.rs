@@ -1,9 +1,9 @@
-pub mod enums;
 pub mod statics;
 pub mod structs;
+pub mod types;
 
 use bevy::prelude::*;
-use enums::ConfigValue;
+use types::ConfigValue;
 use structs::Config;
 
 pub(crate) struct ConfigPlugin;

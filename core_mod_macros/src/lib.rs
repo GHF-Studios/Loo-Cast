@@ -15,7 +15,10 @@ use composite_workflow_return::CompositeWorkflowReturn;
 use define_composite_workflow::CompositeWorkflow as InnerCompositeWorkflow;
 use define_workflow_mod_OLD::WorkflowModule;
 use register_workflow_mods::WorkflowMods;
-use usf::scale::configure_app_with_all_scales::AppConfigInput;
+use usf::scale::{
+    configure_app_with_all_scales::AppConfigInput,
+    scale_type_generic_match::ScaleTypeGenericMatch,
+};
 
 use proc_macro::TokenStream;
 use quote::quote;
@@ -77,6 +80,12 @@ pub fn define_worfklow_stages(_input: TokenStream) -> TokenStream {
 pub fn configure_app_with_all_scales(input: TokenStream) -> TokenStream {
     let app_config_input = parse_macro_input!(input as AppConfigInput);
     app_config_input.generate().into()
+}
+
+#[proc_macro]
+pub fn scale_type_generic_match(input: TokenStream) -> TokenStream {
+    let scale_type_generic_match = parse_macro_input!(input as ScaleTypeGenericMatch);
+    scale_type_generic_match.generate().into()
 }
 
 // Global statics

@@ -7,7 +7,7 @@ use std::sync::RwLock;
 
 use crate::core::functions::asset_root;
 
-use super::enums::ConfigValue;
+use super::types::ConfigValue;
 
 #[derive(Debug, Reflect)]
 pub struct Config {

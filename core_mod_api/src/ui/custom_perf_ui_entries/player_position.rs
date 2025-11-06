@@ -2,25 +2,77 @@ use bevy::prelude::*;
 use bevy::ecs::system::SystemParam;
 use iyes_perf_ui::{entry::PerfUiEntry, ui::root::PerfUiRoot, utils::next_sort_key};
 
+use crate::chunk_actor::components::ChunkActor;
 use crate::player::components::Player;
+use crate::usf::pos::grid::types::GridVec;
+
+#[derive(Bundle, Default)]
+pub struct PerfUiEntryPlayerPosEntries {
+    pub grid_offset: PerfUiEntryPlayerGridOffset,
+    pub unit_offset: PerfUiEntryPlayerUnitOffset,
+}
 
 #[derive(Component, Debug, Clone)]
 #[require(PerfUiRoot)]
-pub struct PerfUiEntryPlayerPosition {
+pub struct PerfUiEntryPlayerGridOffset {
     pub label: String,
     pub sort_key: i32,
 }
-
-impl Default for PerfUiEntryPlayerPosition {
+impl Default for PerfUiEntryPlayerGridOffset {
     fn default() -> Self {
         Self {
-            label: "PlayerPos".to_string(),
+            label: "GridPos".to_string(),
             sort_key: next_sort_key(),
         }
     }
 }
+impl PerfUiEntry for PerfUiEntryPlayerGridOffset {
+    type SystemParam = Query<'static, 'static, &'static ChunkActor, With<Player>>;
+    type Value = GridVec;
 
-impl PerfUiEntry for PerfUiEntryPlayerPosition {
+    fn label(&self) -> &str {
+        &self.label
+    }
+
+    fn sort_key(&self) -> i32 {
+        self.sort_key
+    }
+
+    fn update_value(
+        &self,
+        query: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>,
+    ) -> Option<Self::Value> {
+        query.iter().next().map(|chunk_actor| chunk_actor.coord.clone())
+    }
+
+    fn format_value(&self, value: &Self::Value) -> String {
+        format!("{:?}", value)
+    }
+
+    fn value_color(&self, _value: &Self::Value) -> Option<Color> {
+        Some(Color::linear_rgba(0.0, 0.0, 1.0, 1.0))
+    }
+
+    fn value_highlight(&self, _value: &Self::Value) -> bool {
+        false
+    }
+}
+
+#[derive(Component, Debug, Clone)]
+#[require(PerfUiRoot)]
+pub struct PerfUiEntryPlayerUnitOffset {
+    pub label: String,
+    pub sort_key: i32,
+}
+impl Default for PerfUiEntryPlayerUnitOffset {
+    fn default() -> Self {
+        Self {
+            label: "UnitPos".to_string(),
+            sort_key: next_sort_key(),
+        }
+    }
+}
+impl PerfUiEntry for PerfUiEntryPlayerUnitOffset {
     type SystemParam = Query<'static, 'static, &'static Transform, With<Player>>;
     type Value = Vec3;
 
@@ -40,18 +92,14 @@ impl PerfUiEntry for PerfUiEntryPlayerPosition {
     }
 
     fn format_value(&self, value: &Self::Value) -> String {
-        format!("({:.1}, {:.1}, {:.1})", value.x, value.y, value.z)
+        format!("{:.1}", value)
     }
 
-    fn value_color(&self, value: &Self::Value) -> Option<Color> {
-        if value.x < -500.0 || value.x >= 500.0 || value.y < -500.0 || value.y >= 500.0  {
-            Some(Color::linear_rgba(1.0, 0.0, 0.0, 1.0))
-        } else {
-            Some(Color::linear_rgba(0.0, 1.0, 0.0, 1.0))
-        }
+    fn value_color(&self, _value: &Self::Value) -> Option<Color> {
+        Some(Color::linear_rgba(0.0, 0.0, 1.0, 1.0))
     }
 
-    fn value_highlight(&self, value: &Self::Value) -> bool {
-        value.x < -500.0 || value.x >= 500.0 || value.y < -500.0 || value.y >= 500.0
+    fn value_highlight(&self, _value: &Self::Value) -> bool {
+        false
     }
 }

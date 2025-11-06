@@ -1,1 +1,2 @@
 pub mod configure_app_with_all_scales;
+pub mod scale_type_generic_match;

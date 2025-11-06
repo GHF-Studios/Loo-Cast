@@ -27,12 +27,12 @@ pub(super) fn update_player_system(
         condition_1 && condition_2
     };
 
-    let _fsm_span = info_span!("state_machine").entered();
+    let _fsm_span = trace_span!("state_machine").entered();
 
     let player_state = std::mem::take(&mut *player_state_resource);
     match player_state {
         PlayerLifecycle::None => {
-            let _fsm_case_span = info_span!("case: None").entered();
+            let _fsm_case_span = trace_span!("case: None").entered();
 
             if is_player_update_allowed && keys.just_pressed(KeyCode::F1) && input_mode.is_game() {
                 let handle = composite_workflow!(SpawnPlayer, move out entity: Entity, {
@@ -46,7 +46,7 @@ pub(super) fn update_player_system(
             }
         }
         PlayerLifecycle::Spawning(handle) => {
-            let _fsm_case_span = info_span!("case: Spawning").entered();
+            let _fsm_case_span = trace_span!("case: Spawning").entered();
 
             if let Some(handle) = handle {
                 if !handle.is_finished() {
@@ -64,7 +64,7 @@ pub(super) fn update_player_system(
             }
         }
         PlayerLifecycle::Despawning(handle) => {
-            let _fsm_case_span = info_span!("case: Despawning").entered();
+            let _fsm_case_span = trace_span!("case: Despawning").entered();
 
             if let Some(handle) = handle {
                 if !handle.is_finished() {
@@ -82,7 +82,7 @@ pub(super) fn update_player_system(
             }
         }
         PlayerLifecycle::PendingActivation(entity) => {
-            let _fsm_case_span = info_span!("case: PendingActivation").entered();
+            let _fsm_case_span = trace_span!("case: PendingActivation").entered();
 
             if chunk_loader_query.contains(entity) {
                 *player_state_resource = PlayerLifecycle::Active(entity);
@@ -93,7 +93,7 @@ pub(super) fn update_player_system(
             }
         }
         PlayerLifecycle::Active(entity) => {
-            let _fsm_case_span = info_span!("case: Active").entered();
+            let _fsm_case_span = trace_span!("case: Active").entered();
 
             if !is_player_update_allowed {
                 *player_state_resource = PlayerLifecycle::Active(entity);
@@ -111,7 +111,7 @@ pub(super) fn update_player_system(
                 return;
             }
 
-            let _transformation_span = info_span!("transformation").entered();
+            let _transformation_span = trace_span!("transformation").entered();
             if let Ok((mut transform, _chunk_loader)) = chunk_loader_query.get_mut(entity) {
                 transform.scale = Vec3::splat(zoom_factor.0);
 
@@ -150,7 +150,7 @@ pub(super) fn update_player_system(
                 warn!("Player entity not found in update_player_system. The player entity should not be manually despawned! Resetting player lifecycle...");
             }
 
-            let _scale_zoom_span = info_span!("scale_zoom").entered();
+            let _scale_zoom_span = trace_span!("scale_zoom").entered();
             if let Ok((mut transform, mut chunk_loader)) = chunk_loader_query.get_mut(entity) {
                 if input_mode.is_game() {
                     if keys.just_pressed(KeyCode::NumpadAdd) {
