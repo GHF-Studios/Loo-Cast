@@ -1,5 +1,5 @@
 use quote::{format_ident, quote};
-use syn::{Block, Expr, Token, parse::{Parse, ParseStream}};
+use syn::{Expr, Token, parse::{Parse, ParseStream}};
 
 pub const SCALES: &[&str] = &[
     "ScaleQuettaMeter100000", "ScaleQuettaMeter10000", "ScaleQuettaMeter1000",
