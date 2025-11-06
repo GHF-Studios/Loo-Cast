@@ -62,7 +62,7 @@ impl UnitVec {
     /// - Each subsequent smaller scale decreases Z by an additional 10.0 units.
     #[inline]
     fn compute_z(scale: Scale) -> f32 {
-        (scale.to_index_from_top() as f32 * 10.0) - 1000.0
+        (scale.index_from_bottom() as f32 * 10.0) - 1000.0
     }
 
     pub fn new(grid_offset: GridVec, unit_offset: Vec2) -> Self {

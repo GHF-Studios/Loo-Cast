@@ -97,6 +97,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             visual_world_coord,
             visual_world_scale,
             chunk_entity,
+            chunk_z,
         )).id();
 
         commands.entity(chunk_entity).insert((

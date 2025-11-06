@@ -32,7 +32,7 @@ impl Default for PlayerBundle {
                 ..Default::default()
             },
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 0.0),
+                translation: Vec3::new(0.0, 0.0, 10.0),
                 ..Default::default()
             },
             name: Name::new("player_entity"),

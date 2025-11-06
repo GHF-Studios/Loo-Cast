@@ -14,7 +14,7 @@ pub struct PerfUiEntryPlayerPosition {
 impl Default for PerfUiEntryPlayerPosition {
     fn default() -> Self {
         Self {
-            label: "Player Position".to_string(),
+            label: "PlayerPos".to_string(),
             sort_key: next_sort_key(),
         }
     }
@@ -40,7 +40,7 @@ impl PerfUiEntry for PerfUiEntryPlayerPosition {
     }
 
     fn format_value(&self, value: &Self::Value) -> String {
-        format!("x: {:.3}, y: {:.3}, z: {:.3}", value.x, value.y, value.z)
+        format!("({:.1}, {:.1}, {:.1})", value.x, value.y, value.z)
     }
 
     fn value_color(&self, value: &Self::Value) -> Option<Color> {

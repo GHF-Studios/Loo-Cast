@@ -43,6 +43,7 @@ pub(crate) fn update_chunk_loader_system(
     );  // `UnitVec::new` internally normalizes the position based on the current origin_offset; does the heavy lifting for us
     chunk_loader.origin_offset = unit_pos.grid_offset;
     transform.translation = unit_pos.unit_offset;
+    transform.translation.z = CONFIG().get::<f32>("player/z");
 
     // === PHASE 2: Handle main chunk loading shenanigans ===
     let handle_is_some = (*composite_workflow_handle).is_some();

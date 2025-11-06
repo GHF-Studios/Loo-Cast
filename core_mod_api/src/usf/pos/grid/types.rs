@@ -1,6 +1,12 @@
 use bevy::prelude::*;
+use bevy_inspector_egui::inspector_egui_impls::InspectorPrimitive;
+use bevy_inspector_egui::reflect_inspector::InspectorUi;
+use bevy::reflect::Reflect;
+use egui::{Ui, Id};
+use std::any::Any;
 use std::sync::Arc;
 
+use crate::scale_index_generic_match;
 use crate::usf::scale::Scale;
 use crate::usf::pos::unit::types::UnitVec;
 
@@ -47,6 +53,8 @@ pub struct GridVec {
     pub(in crate) xy: IVec2,
 }
 impl GridVec {
+    pub const MAX_DEPTH: usize = 71;
+
     pub fn build() -> GridVecBuilder {
         GridVecBuilder::new()
     }
@@ -183,6 +191,53 @@ impl GridVec {
         }
 
         true
+    }
+
+    /// Converts an `[IVec2; N]` from root to leaf into a GridVec
+    pub fn from_raw<const N: usize>(raw: [IVec2; N]) -> Result<Self, &'static str> {
+        if N == 0 {
+            return Err("Cannot build a GridVec from an empty array");
+        }
+        if N > Self::MAX_DEPTH {
+            return Err("Too many levels in GridVec::from_raw");
+        }
+
+        let mut current = GridVec::new_root(raw[0]);
+        for &xy in &raw[1..] {
+            current = GridVec::new(current, xy);
+        }
+
+        Ok(current)
+    }
+
+    /// Converts a GridVec into an `[IVec2; N]` array
+    /// If the GridVec's actual depth does not match N, this will return `None`
+    pub fn to_raw<const N: usize>(&self) -> Option<[IVec2; N]> {
+        if N > Self::MAX_DEPTH {
+            return None;
+        }
+
+        let mut stack = [IVec2::ZERO; N];
+        let mut cursor = self;
+        let mut len = 0;
+
+        loop {
+            if len >= N {
+                return None; // Mismatch: too deep
+            }
+            stack[N - 1 - len] = cursor.xy;
+            len += 1;
+            match &cursor.parent {
+                Some(parent) => cursor = parent,
+                None => break,
+            }
+        }
+
+        if len != N {
+            return None;
+        }
+
+        Some(stack)
     }
 
     /// - Assumes that the given `scale` is greater than or equal to that of `self`.
@@ -582,5 +637,79 @@ impl std::convert::TryFrom<Vec<IVec2>> for GridVec {
         }
 
         Ok(current)
+    }
+}
+
+impl InspectorPrimitive for GridVec {
+    fn ui(
+        &mut self,
+        ui: &mut Ui,
+        _options: &dyn Any,
+        _id: Id,
+        _env: InspectorUi<'_, '_>,
+    ) -> bool {
+        let mut changed = false;
+
+        // Step 1: Convert to Vec<IVec2>
+        let mut coords = scale_index_generic_match!(self.scale, {
+            self.to_raw::<__SCALE__>().unwrap().to_vec()
+        });
+
+        // Step 2: Dynamic editable UI
+        ui.horizontal_wrapped(|ui| {
+            for (i, xy) in coords.iter_mut().enumerate() {
+                let scale = 35 - i as i8;
+                let mut vec2 = [xy.x as f32, xy.y as f32];
+
+                let r = ui.add(egui::DragValue::new(&mut vec2[0]).speed(1.0));
+                ui.add(egui::DragValue::new(&mut vec2[1]).speed(1.0));
+                r.on_hover_text(format!("10^{scale}m"));
+
+                let updated = IVec2::new(vec2[0] as i32, vec2[1] as i32);
+                if *xy != updated {
+                    *xy = updated;
+                    changed = true;
+                }
+            }
+        });
+
+        // Step 3: Optional grow/shrink controls
+        ui.horizontal(|ui| {
+            if coords.len() < GridVec::MAX_DEPTH && ui.button("+").clicked() {
+                coords.push(IVec2::ZERO);
+                changed = true;
+            }
+            if coords.len() > 1 && ui.button("-").clicked() {
+                coords.pop();
+                changed = true;
+            }
+        });
+
+        // Step 4: Rebuild GridVec if changed
+        if changed {
+            if let Ok(new_gv) = GridVec::from_raw::<{ GridVec::MAX_DEPTH }>(coords.try_into().unwrap_or_else(|v: Vec<_>| {
+                let mut arr = [IVec2::ZERO; GridVec::MAX_DEPTH];
+                for (i, v) in v.into_iter().enumerate() {
+                    arr[i] = v;
+                }
+                arr
+            })) {
+                *self = new_gv;
+            } else {
+                ui.label("Invalid GridVec conversion");
+            }
+        }
+
+        changed
+    }
+
+    fn ui_readonly(
+        &self,
+        ui: &mut Ui,
+        _options: &dyn Any,
+        _id: Id,
+        _env: InspectorUi<'_, '_>,
+    ) {
+        ui.label("Readonly GridVec not yet implemented");
     }
 }

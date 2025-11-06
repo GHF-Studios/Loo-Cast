@@ -4,6 +4,167 @@ use bevy::prelude::{Reflect, Resource, ReflectResource};
 use std::fmt::Debug;
 use std::hash::Hash;
 
+/// Matches a provided scale to execute code with an impl ConstScale __SCALE__ without actually touching it.
+#[macro_export]
+macro_rules! scale_type_generic_match {
+    ($scale_type_expr:expr, $code:block) => {
+        match $scale_type_expr {
+            Scale::ScaleQuettaMeter100000 => { type __SCALE__ = ScaleQuettaMeter100000; $code }
+            Scale::ScaleQuettaMeter10000 => { type __SCALE__ = ScaleQuettaMeter10000; $code }
+            Scale::ScaleQuettaMeter1000 => { type __SCALE__ = ScaleQuettaMeter1000; $code }
+            Scale::ScaleQuettaMeter100 => { type __SCALE__ = ScaleQuettaMeter100; $code }
+            Scale::ScaleQuettaMeter10 => { type __SCALE__ = ScaleQuettaMeter10; $code }
+            Scale::ScaleQuettaMeter1 => { type __SCALE__ = ScaleQuettaMeter1; $code }
+            Scale::ScaleRonnaMeter100 => { type __SCALE__ = ScaleRonnaMeter100; $code }
+            Scale::ScaleRonnaMeter10 => { type __SCALE__ = ScaleRonnaMeter10; $code }
+            Scale::ScaleRonnaMeter1 => { type __SCALE__ = ScaleRonnaMeter1; $code }
+            Scale::ScaleYottaMeter100 => { type __SCALE__ = ScaleYottaMeter100; $code }
+            Scale::ScaleYottaMeter10 => { type __SCALE__ = ScaleYottaMeter10; $code }
+            Scale::ScaleYottaMeter1 => { type __SCALE__ = ScaleYottaMeter1; $code }
+            Scale::ScaleZettaMeter100 => { type __SCALE__ = ScaleZettaMeter100; $code }
+            Scale::ScaleZettaMeter10 => { type __SCALE__ = ScaleZettaMeter10; $code }
+            Scale::ScaleZettaMeter1 => { type __SCALE__ = ScaleZettaMeter1; $code }
+            Scale::ScaleExaMeter100 => { type __SCALE__ = ScaleExaMeter100; $code }
+            Scale::ScaleExaMeter10 => { type __SCALE__ = ScaleExaMeter10; $code }
+            Scale::ScaleExaMeter1 => { type __SCALE__ = ScaleExaMeter1; $code }
+            Scale::ScalePetaMeter100 => { type __SCALE__ = ScalePetaMeter100; $code }
+            Scale::ScalePetaMeter10 => { type __SCALE__ = ScalePetaMeter10; $code }
+            Scale::ScalePetaMeter1 => { type __SCALE__ = ScalePetaMeter1; $code }
+            Scale::ScaleTeraMeter100 => { type __SCALE__ = ScaleTeraMeter100; $code }
+            Scale::ScaleTeraMeter10 => { type __SCALE__ = ScaleTeraMeter10; $code }
+            Scale::ScaleTeraMeter1 => { type __SCALE__ = ScaleTeraMeter1; $code }
+            Scale::ScaleGigaMeter100 => { type __SCALE__ = ScaleGigaMeter100; $code }
+            Scale::ScaleGigaMeter10 => { type __SCALE__ = ScaleGigaMeter10; $code }
+            Scale::ScaleGigaMeter1 => { type __SCALE__ = ScaleGigaMeter1; $code }
+            Scale::ScaleMegaMeter100 => { type __SCALE__ = ScaleMegaMeter100; $code }
+            Scale::ScaleMegaMeter10 => { type __SCALE__ = ScaleMegaMeter10; $code }
+            Scale::ScaleMegaMeter1 => { type __SCALE__ = ScaleMegaMeter1; $code }
+            Scale::ScaleKiloMeter100 => { type __SCALE__ = ScaleKiloMeter100; $code }
+            Scale::ScaleKiloMeter10 => { type __SCALE__ = ScaleKiloMeter10; $code }
+            Scale::ScaleKiloMeter1 => { type __SCALE__ = ScaleKiloMeter1; $code }
+            Scale::ScaleMeter100 => { type __SCALE__ = ScaleMeter100; $code }
+            Scale::ScaleMeter10 => { type __SCALE__ = ScaleMeter10; $code }
+            Scale::ScaleMeter1 => { type __SCALE__ = ScaleMeter1; $code }
+            Scale::ScaleMilliMeter100 => { type __SCALE__ = ScaleMilliMeter100; $code }
+            Scale::ScaleMilliMeter10 => { type __SCALE__ = ScaleMilliMeter10; $code }
+            Scale::ScaleMilliMeter1 => { type __SCALE__ = ScaleMilliMeter1; $code }
+            Scale::ScaleMicroMeter100 => { type __SCALE__ = ScaleMicroMeter100; $code }
+            Scale::ScaleMicroMeter10 => { type __SCALE__ = ScaleMicroMeter10; $code }
+            Scale::ScaleMicroMeter1 => { type __SCALE__ = ScaleMicroMeter1; $code }
+            Scale::ScaleNanoMeter100 => { type __SCALE__ = ScaleNanoMeter100; $code }
+            Scale::ScaleNanoMeter10 => { type __SCALE__ = ScaleNanoMeter10; $code }
+            Scale::ScaleNanoMeter1 => { type __SCALE__ = ScaleNanoMeter1; $code }
+            Scale::ScalePicoMeter100 => { type __SCALE__ = ScalePicoMeter100; $code }
+            Scale::ScalePicoMeter10 => { type __SCALE__ = ScalePicoMeter10; $code }
+            Scale::ScalePicoMeter1 => { type __SCALE__ = ScalePicoMeter1; $code }
+            Scale::ScaleFemtoMeter100 => { type __SCALE__ = ScaleFemtoMeter100; $code }
+            Scale::ScaleFemtoMeter10 => { type __SCALE__ = ScaleFemtoMeter10; $code }
+            Scale::ScaleFemtoMeter1 => { type __SCALE__ = ScaleFemtoMeter1; $code }
+            Scale::ScaleAttoMeter100 => { type __SCALE__ = ScaleAttoMeter100; $code }
+            Scale::ScaleAttoMeter10 => { type __SCALE__ = ScaleAttoMeter10; $code }
+            Scale::ScaleAttoMeter1 => { type __SCALE__ = ScaleAttoMeter1; $code }
+            Scale::ScaleZeptoMeter100 => { type __SCALE__ = ScaleZeptoMeter100; $code }
+            Scale::ScaleZeptoMeter10 => { type __SCALE__ = ScaleZeptoMeter10; $code }
+            Scale::ScaleZeptoMeter1 => { type __SCALE__ = ScaleZeptoMeter1; $code }
+            Scale::ScaleYoctoMeter100 => { type __SCALE__ = ScaleYoctoMeter100; $code }
+            Scale::ScaleYoctoMeter10 => { type __SCALE__ = ScaleYoctoMeter10; $code }
+            Scale::ScaleYoctoMeter1 => { type __SCALE__ = ScaleYoctoMeter1; $code }
+            Scale::ScaleRontoMeter100 => { type __SCALE__ = ScaleRontoMeter100; $code }
+            Scale::ScaleRontoMeter10 => { type __SCALE__ = ScaleRontoMeter10; $code }
+            Scale::ScaleRontoMeter1 => { type __SCALE__ = ScaleRontoMeter1; $code }
+            Scale::ScaleQuectoMeter100 => { type __SCALE__ = ScaleQuectoMeter100; $code }
+            Scale::ScaleQuectoMeter10 => { type __SCALE__ = ScaleQuectoMeter10; $code }
+            Scale::ScaleQuectoMeter1 => { type __SCALE__ = ScaleQuectoMeter1; $code }
+            Scale::ScaleQuectoMeter01 => { type __SCALE__ = ScaleQuectoMeter01; $code }
+            Scale::ScaleQuectoMeter001 => { type __SCALE__ = ScaleQuectoMeter001; $code }
+            Scale::ScaleQuectoMeter0001 => { type __SCALE__ = ScaleQuectoMeter0001; $code }
+            Scale::ScaleQuectoMeter00001 => { type __SCALE__ = ScaleQuectoMeter00001; $code }
+            Scale::ScaleQuectoMeter000001 => { type __SCALE__ = ScaleQuectoMeter000001; $code }
+        }
+    }
+}
+
+/// Matches a provided scale to execute code with generic const parameter integer __SCALE__ without actually touching it.
+#[macro_export]
+macro_rules! scale_index_generic_match {
+    ($scale_index_expr:expr, $code:block) => {
+        match ($scale_index_expr.index_from_top()) + 1 {
+            1 => { const __SCALE__: usize = 1; $code }
+            2 => { const __SCALE__: usize = 2; $code }
+            3 => { const __SCALE__: usize = 3; $code }
+            4 => { const __SCALE__: usize = 4; $code }
+            5 => { const __SCALE__: usize = 5; $code }
+            6 => { const __SCALE__: usize = 6; $code }
+            7 => { const __SCALE__: usize = 7; $code }
+            8 => { const __SCALE__: usize = 8; $code }
+            9 => { const __SCALE__: usize = 9; $code }
+            10 => { const __SCALE__: usize = 10; $code }
+            11 => { const __SCALE__: usize = 11; $code }
+            12 => { const __SCALE__: usize = 12; $code }
+            13 => { const __SCALE__: usize = 13; $code }
+            14 => { const __SCALE__: usize = 14; $code }
+            15 => { const __SCALE__: usize = 15; $code }
+            16 => { const __SCALE__: usize = 16; $code }
+            17 => { const __SCALE__: usize = 17; $code }
+            18 => { const __SCALE__: usize = 18; $code }
+            19 => { const __SCALE__: usize = 19; $code }
+            20 => { const __SCALE__: usize = 20; $code }
+            21 => { const __SCALE__: usize = 21; $code }
+            22 => { const __SCALE__: usize = 22; $code }
+            23 => { const __SCALE__: usize = 23; $code }
+            24 => { const __SCALE__: usize = 24; $code }
+            25 => { const __SCALE__: usize = 25; $code }
+            26 => { const __SCALE__: usize = 26; $code }
+            27 => { const __SCALE__: usize = 27; $code }
+            28 => { const __SCALE__: usize = 28; $code }
+            29 => { const __SCALE__: usize = 29; $code }
+            30 => { const __SCALE__: usize = 30; $code }
+            31 => { const __SCALE__: usize = 31; $code }
+            32 => { const __SCALE__: usize = 32; $code }
+            33 => { const __SCALE__: usize = 33; $code }
+            34 => { const __SCALE__: usize = 34; $code }
+            35 => { const __SCALE__: usize = 35; $code }
+            36 => { const __SCALE__: usize = 36; $code }
+            37 => { const __SCALE__: usize = 37; $code }
+            38 => { const __SCALE__: usize = 38; $code }
+            39 => { const __SCALE__: usize = 39; $code }
+            40 => { const __SCALE__: usize = 40; $code }
+            41 => { const __SCALE__: usize = 41; $code }
+            42 => { const __SCALE__: usize = 42; $code }
+            43 => { const __SCALE__: usize = 43; $code }
+            44 => { const __SCALE__: usize = 44; $code }
+            45 => { const __SCALE__: usize = 45; $code }
+            46 => { const __SCALE__: usize = 46; $code }
+            47 => { const __SCALE__: usize = 47; $code }
+            48 => { const __SCALE__: usize = 48; $code }
+            49 => { const __SCALE__: usize = 49; $code }
+            50 => { const __SCALE__: usize = 50; $code }
+            51 => { const __SCALE__: usize = 51; $code }
+            52 => { const __SCALE__: usize = 52; $code }
+            53 => { const __SCALE__: usize = 53; $code }
+            54 => { const __SCALE__: usize = 54; $code }
+            55 => { const __SCALE__: usize = 55; $code }
+            56 => { const __SCALE__: usize = 56; $code }
+            57 => { const __SCALE__: usize = 57; $code }
+            58 => { const __SCALE__: usize = 58; $code }
+            59 => { const __SCALE__: usize = 59; $code }
+            60 => { const __SCALE__: usize = 60; $code }
+            61 => { const __SCALE__: usize = 61; $code }
+            62 => { const __SCALE__: usize = 62; $code }
+            63 => { const __SCALE__: usize = 63; $code }
+            64 => { const __SCALE__: usize = 64; $code }
+            65 => { const __SCALE__: usize = 65; $code }
+            66 => { const __SCALE__: usize = 66; $code }
+            67 => { const __SCALE__: usize = 67; $code }
+            68 => { const __SCALE__: usize = 68; $code }
+            69 => { const __SCALE__: usize = 69; $code }
+            70 => { const __SCALE__: usize = 70; $code }
+            71 => { const __SCALE__: usize = 71; $code }
+            _ => unreachable!(),
+        }
+    };
+}
+
 #[derive(Resource, Default, Reflect)]
 #[reflect(Resource)]
 pub struct CurrentViewScale {
@@ -71,6 +232,7 @@ pub enum Scale {
     ScaleNanoMeter100 = -7_i8,
     ScaleNanoMeter10 = -8_i8,
     ScaleNanoMeter1 = -9_i8,
+    ScalePicoMeter100 = -10_i8,
     ScalePicoMeter10 = -11_i8,
     ScalePicoMeter1 = -12_i8,
     ScaleFemtoMeter100 = -13_i8,
@@ -80,7 +242,7 @@ pub enum Scale {
     ScaleAttoMeter10 = -17_i8,
     ScaleAttoMeter1 = -18_i8,
     ScaleZeptoMeter100 = -19_i8,
-    ScalePicoMeter100 = -10_i8,
+    ScaleZeptoMeter10 = -20_i8,
     ScaleZeptoMeter1 = -21_i8,
     ScaleYoctoMeter100 = -22_i8,
     ScaleYoctoMeter10 = -23_i8,
@@ -90,167 +252,26 @@ pub enum Scale {
     ScaleRontoMeter1 = -27_i8,
     ScaleQuectoMeter100 = -28_i8,
     ScaleQuectoMeter10 = -29_i8,
-    ScaleZeptoMeter10 = -20_i8,
-    ScaleQuectoMeter000001 = -35_i8,
-    ScaleQuectoMeter00001 = -34_i8,
-    ScaleQuectoMeter0001 = -33_i8,
-    ScaleQuectoMeter001 = -32_i8,
-    ScaleQuectoMeter01 = -31_i8,
     ScaleQuectoMeter1 = -30_i8,
+    ScaleQuectoMeter01 = -31_i8,
+    ScaleQuectoMeter001 = -32_i8,
+    ScaleQuectoMeter0001 = -33_i8,
+    ScaleQuectoMeter00001 = -34_i8,
+    ScaleQuectoMeter000001 = -35_i8,
 }
 impl DynScale for Scale {
     fn name(&self) -> &'static str {
-        match self {
-            Self::ScaleQuectoMeter000001 => <ScaleQuectoMeter000001 as ConstScale>::NAME,
-            Self::ScaleQuectoMeter00001 => <ScaleQuectoMeter00001 as ConstScale>::NAME,
-            Self::ScaleQuectoMeter0001 => <ScaleQuectoMeter0001 as ConstScale>::NAME,
-            Self::ScaleQuectoMeter001 => <ScaleQuectoMeter001 as ConstScale>::NAME,
-            Self::ScaleQuectoMeter01 => <ScaleQuectoMeter01 as ConstScale>::NAME,
-            Self::ScaleQuectoMeter1 => <ScaleQuectoMeter1 as ConstScale>::NAME,
-            Self::ScaleQuectoMeter10 => <ScaleQuectoMeter10 as ConstScale>::NAME,
-            Self::ScaleQuectoMeter100 => <ScaleQuectoMeter100 as ConstScale>::NAME,
-            Self::ScaleRontoMeter1 => <ScaleRontoMeter1 as ConstScale>::NAME,
-            Self::ScaleRontoMeter10 => <ScaleRontoMeter10 as ConstScale>::NAME,
-            Self::ScaleRontoMeter100 => <ScaleRontoMeter100 as ConstScale>::NAME,
-            Self::ScaleYoctoMeter1 => <ScaleYoctoMeter1 as ConstScale>::NAME,
-            Self::ScaleYoctoMeter10 => <ScaleYoctoMeter10 as ConstScale>::NAME,
-            Self::ScaleYoctoMeter100 => <ScaleYoctoMeter100 as ConstScale>::NAME,
-            Self::ScaleZeptoMeter1 => <ScaleZeptoMeter1 as ConstScale>::NAME,
-            Self::ScaleZeptoMeter10 => <ScaleZeptoMeter10 as ConstScale>::NAME,
-            Self::ScaleZeptoMeter100 => <ScaleZeptoMeter100 as ConstScale>::NAME,
-            Self::ScaleAttoMeter1 => <ScaleAttoMeter1 as ConstScale>::NAME,
-            Self::ScaleAttoMeter10 => <ScaleAttoMeter10 as ConstScale>::NAME,
-            Self::ScaleAttoMeter100 => <ScaleAttoMeter100 as ConstScale>::NAME,
-            Self::ScaleFemtoMeter1 => <ScaleFemtoMeter1 as ConstScale>::NAME,
-            Self::ScaleFemtoMeter10 => <ScaleFemtoMeter10 as ConstScale>::NAME,
-            Self::ScaleFemtoMeter100 => <ScaleFemtoMeter100 as ConstScale>::NAME,
-            Self::ScalePicoMeter1 => <ScalePicoMeter1 as ConstScale>::NAME,
-            Self::ScalePicoMeter10 => <ScalePicoMeter10 as ConstScale>::NAME,
-            Self::ScalePicoMeter100 => <ScalePicoMeter100 as ConstScale>::NAME,
-            Self::ScaleNanoMeter1 => <ScaleNanoMeter1 as ConstScale>::NAME,
-            Self::ScaleNanoMeter10 => <ScaleNanoMeter10 as ConstScale>::NAME,
-            Self::ScaleNanoMeter100 => <ScaleNanoMeter100 as ConstScale>::NAME,
-            Self::ScaleMicroMeter1 => <ScaleMicroMeter1 as ConstScale>::NAME,
-            Self::ScaleMicroMeter10 => <ScaleMicroMeter10 as ConstScale>::NAME,
-            Self::ScaleMicroMeter100 => <ScaleMicroMeter100 as ConstScale>::NAME,
-            Self::ScaleMilliMeter1 => <ScaleMilliMeter1 as ConstScale>::NAME,
-            Self::ScaleMilliMeter10 => <ScaleMilliMeter10 as ConstScale>::NAME,
-            Self::ScaleMilliMeter100 => <ScaleMilliMeter100 as ConstScale>::NAME,
-            Self::ScaleMeter1 => <ScaleMeter1 as ConstScale>::NAME,
-            Self::ScaleMeter10 => <ScaleMeter10 as ConstScale>::NAME,
-            Self::ScaleMeter100 => <ScaleMeter100 as ConstScale>::NAME,
-            Self::ScaleKiloMeter1 => <ScaleKiloMeter1 as ConstScale>::NAME,
-            Self::ScaleKiloMeter10 => <ScaleKiloMeter10 as ConstScale>::NAME,
-            Self::ScaleKiloMeter100 => <ScaleKiloMeter100 as ConstScale>::NAME,
-            Self::ScaleMegaMeter1 => <ScaleMegaMeter1 as ConstScale>::NAME,
-            Self::ScaleMegaMeter10 => <ScaleMegaMeter10 as ConstScale>::NAME,
-            Self::ScaleMegaMeter100 => <ScaleMegaMeter100 as ConstScale>::NAME,
-            Self::ScaleGigaMeter1 => <ScaleGigaMeter1 as ConstScale>::NAME,
-            Self::ScaleGigaMeter10 => <ScaleGigaMeter10 as ConstScale>::NAME,
-            Self::ScaleGigaMeter100 => <ScaleGigaMeter100 as ConstScale>::NAME,
-            Self::ScaleTeraMeter1 => <ScaleTeraMeter1 as ConstScale>::NAME,
-            Self::ScaleTeraMeter10 => <ScaleTeraMeter10 as ConstScale>::NAME,
-            Self::ScaleTeraMeter100 => <ScaleTeraMeter100 as ConstScale>::NAME,
-            Self::ScalePetaMeter1 => <ScalePetaMeter1 as ConstScale>::NAME,
-            Self::ScalePetaMeter10 => <ScalePetaMeter10 as ConstScale>::NAME,
-            Self::ScalePetaMeter100 => <ScalePetaMeter100 as ConstScale>::NAME,
-            Self::ScaleExaMeter1 => <ScaleExaMeter1 as ConstScale>::NAME,
-            Self::ScaleExaMeter10 => <ScaleExaMeter10 as ConstScale>::NAME,
-            Self::ScaleExaMeter100 => <ScaleExaMeter100 as ConstScale>::NAME,
-            Self::ScaleZettaMeter1 => <ScaleZettaMeter1 as ConstScale>::NAME,
-            Self::ScaleZettaMeter10 => <ScaleZettaMeter10 as ConstScale>::NAME,
-            Self::ScaleZettaMeter100 => <ScaleZettaMeter100 as ConstScale>::NAME,
-            Self::ScaleYottaMeter1 => <ScaleYottaMeter1 as ConstScale>::NAME,
-            Self::ScaleYottaMeter10 => <ScaleYottaMeter10 as ConstScale>::NAME,
-            Self::ScaleYottaMeter100 => <ScaleYottaMeter100 as ConstScale>::NAME,
-            Self::ScaleRonnaMeter1 => <ScaleRonnaMeter1 as ConstScale>::NAME,
-            Self::ScaleRonnaMeter10 => <ScaleRonnaMeter10 as ConstScale>::NAME,
-            Self::ScaleRonnaMeter100 => <ScaleRonnaMeter100 as ConstScale>::NAME,
-            Self::ScaleQuettaMeter1 => <ScaleQuettaMeter1 as ConstScale>::NAME,
-            Self::ScaleQuettaMeter10 => <ScaleQuettaMeter10 as ConstScale>::NAME,
-            Self::ScaleQuettaMeter100 => <ScaleQuettaMeter100 as ConstScale>::NAME,
-            Self::ScaleQuettaMeter1000 => <ScaleQuettaMeter1000 as ConstScale>::NAME,
-            Self::ScaleQuettaMeter10000 => <ScaleQuettaMeter10000 as ConstScale>::NAME,
-            Self::ScaleQuettaMeter100000 => <ScaleQuettaMeter100000 as ConstScale>::NAME,
-        }
+        scale_type_generic_match!(self, {
+            <__SCALE__ as ConstScale>::NAME
+        })
     }
     fn scale_factor_exponent(&self) -> i8 {
         *self as i8
     }
     fn scale_factor(&self) -> f64 {
-        match self {
-            Self::ScaleQuectoMeter000001 => <ScaleQuectoMeter000001 as ConstScale>::scale_factor(),
-            Self::ScaleQuectoMeter00001 => <ScaleQuectoMeter00001 as ConstScale>::scale_factor(),
-            Self::ScaleQuectoMeter0001 => <ScaleQuectoMeter0001 as ConstScale>::scale_factor(),
-            Self::ScaleQuectoMeter001 => <ScaleQuectoMeter001 as ConstScale>::scale_factor(),
-            Self::ScaleQuectoMeter01 => <ScaleQuectoMeter01 as ConstScale>::scale_factor(),
-            Self::ScaleQuectoMeter1 => <ScaleQuectoMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleQuectoMeter10 => <ScaleQuectoMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleQuectoMeter100 => <ScaleQuectoMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleRontoMeter1 => <ScaleRontoMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleRontoMeter10 => <ScaleRontoMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleRontoMeter100 => <ScaleRontoMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleYoctoMeter1 => <ScaleYoctoMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleYoctoMeter10 => <ScaleYoctoMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleYoctoMeter100 => <ScaleYoctoMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleZeptoMeter1 => <ScaleZeptoMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleZeptoMeter10 => <ScaleZeptoMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleZeptoMeter100 => <ScaleZeptoMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleAttoMeter1 => <ScaleAttoMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleAttoMeter10 => <ScaleAttoMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleAttoMeter100 => <ScaleAttoMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleFemtoMeter1 => <ScaleFemtoMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleFemtoMeter10 => <ScaleFemtoMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleFemtoMeter100 => <ScaleFemtoMeter100 as ConstScale>::scale_factor(),
-            Self::ScalePicoMeter1 => <ScalePicoMeter1 as ConstScale>::scale_factor(),
-            Self::ScalePicoMeter10 => <ScalePicoMeter10 as ConstScale>::scale_factor(),
-            Self::ScalePicoMeter100 => <ScalePicoMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleNanoMeter1 => <ScaleNanoMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleNanoMeter10 => <ScaleNanoMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleNanoMeter100 => <ScaleNanoMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleMicroMeter1 => <ScaleMicroMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleMicroMeter10 => <ScaleMicroMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleMicroMeter100 => <ScaleMicroMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleMilliMeter1 => <ScaleMilliMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleMilliMeter10 => <ScaleMilliMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleMilliMeter100 => <ScaleMilliMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleMeter1 => <ScaleMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleMeter10 => <ScaleMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleMeter100 => <ScaleMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleKiloMeter1 => <ScaleKiloMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleKiloMeter10 => <ScaleKiloMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleKiloMeter100 => <ScaleKiloMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleMegaMeter1 => <ScaleMegaMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleMegaMeter10 => <ScaleMegaMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleMegaMeter100 => <ScaleMegaMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleGigaMeter1 => <ScaleGigaMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleGigaMeter10 => <ScaleGigaMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleGigaMeter100 => <ScaleGigaMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleTeraMeter1 => <ScaleTeraMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleTeraMeter10 => <ScaleTeraMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleTeraMeter100 => <ScaleTeraMeter100 as ConstScale>::scale_factor(),
-            Self::ScalePetaMeter1 => <ScalePetaMeter1 as ConstScale>::scale_factor(),
-            Self::ScalePetaMeter10 => <ScalePetaMeter10 as ConstScale>::scale_factor(),
-            Self::ScalePetaMeter100 => <ScalePetaMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleExaMeter1 => <ScaleExaMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleExaMeter10 => <ScaleExaMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleExaMeter100 => <ScaleExaMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleZettaMeter1 => <ScaleZettaMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleZettaMeter10 => <ScaleZettaMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleZettaMeter100 => <ScaleZettaMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleYottaMeter1 => <ScaleYottaMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleYottaMeter10 => <ScaleYottaMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleYottaMeter100 => <ScaleYottaMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleRonnaMeter1 => <ScaleRonnaMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleRonnaMeter10 => <ScaleRonnaMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleRonnaMeter100 => <ScaleRonnaMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleQuettaMeter1 => <ScaleQuettaMeter1 as ConstScale>::scale_factor(),
-            Self::ScaleQuettaMeter10 => <ScaleQuettaMeter10 as ConstScale>::scale_factor(),
-            Self::ScaleQuettaMeter100 => <ScaleQuettaMeter100 as ConstScale>::scale_factor(),
-            Self::ScaleQuettaMeter1000 => <ScaleQuettaMeter1000 as ConstScale>::scale_factor(),
-            Self::ScaleQuettaMeter10000 => <ScaleQuettaMeter10000 as ConstScale>::scale_factor(),
-            Self::ScaleQuettaMeter100000 => <ScaleQuettaMeter100000 as ConstScale>::scale_factor(),
-        }
+        scale_type_generic_match!(self, {
+            <__SCALE__ as ConstScale>::scale_factor()
+        })
     }
     fn up(&self) -> Option<Scale> {
         match self {
@@ -421,25 +442,25 @@ impl Scale {
     /// So the max difference in scale can be 3 orders of magnitude
     pub const MAX_DIFF_SCALE_EXP: i8 = 3;
 
-    /// Create a Scale from an index from the top (0..=70)
-    pub fn from_index_from_top(index_from_top: u8) -> Option<Self> {
-        assert!(index_from_top <= 70);
-        let scale_factor_exponent = 35_i8 - (index_from_top as i8);
-        Self::from_scale_factor_exponent(scale_factor_exponent)
-    }
-
     /// Get the index from the top (0..=70)
-    pub fn to_index_from_top(&self) -> u8 {
+    pub fn index_from_top(&self) -> u8 {
         let scale_factor_exponent = self.scale_factor_exponent();
         assert!((-35_i8..=35_i8).contains(&scale_factor_exponent));
         (35_i8 - scale_factor_exponent) as u8
     }
 
     /// Get the index from the bottom (70..=0)
-    pub fn to_index_from_bottom(&self) -> u8 {
+    pub fn index_from_bottom(&self) -> u8 {
         let scale_factor_exponent = self.scale_factor_exponent();
         assert!((-35_i8..=35_i8).contains(&scale_factor_exponent));
         (scale_factor_exponent + 35_i8) as u8
+    }
+
+    /// Create a Scale from an index from the top (0..=70)
+    pub fn from_index_from_top(index_from_top: u8) -> Option<Self> {
+        assert!(index_from_top <= 70);
+        let scale_factor_exponent = 35_i8 - (index_from_top as i8);
+        Self::from_scale_factor_exponent(scale_factor_exponent)
     }
 
     /// Create a Scale from an index from the bottom (70..=0)

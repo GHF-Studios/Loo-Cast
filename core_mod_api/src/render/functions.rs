@@ -7,10 +7,11 @@ pub fn make_sprite_proxy_bundle(
     pos: Vec2,
     scale: f32,
     source_entity: Entity,
+    chunk_z: f32,
 ) -> impl Bundle {
     (
         Transform {
-            translation: pos.extend(0.0),
+            translation: pos.extend(chunk_z),
             scale: Vec3::splat(scale),
             ..Default::default()
         },
