@@ -106,37 +106,37 @@ pub fn scale_factor_exponent(scale_str: &str) -> Result<i8, ()> {
 }
 
 pub struct ScaleFactorExponentDynamicMatch {
-    expr: Expr,
-    block: Block,
-    fallback_block: Block,
+    value_expr: Expr,
+    case_expr: Expr,
+    fallback_case_expr: Expr,
 }
 impl Parse for ScaleFactorExponentDynamicMatch {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let expr: Expr = input.parse()?;
+        let value_expr: Expr = input.parse()?;
         let _ = input.parse::<Token![,]>()?;
-        let block: Block = input.parse()?;
+        let case_expr: Expr = input.parse()?;
         let _ = input.parse::<Token![,]>()?;
-        let fallback_block: Block = input.parse()?;
+        let fallback_case_expr: Expr = input.parse()?;
 
-        Ok(Self { expr, block, fallback_block })
+        Ok(Self { value_expr, case_expr, fallback_case_expr })
     }
 }
 impl ScaleFactorExponentDynamicMatch {
     pub fn generate(self) -> proc_macro2::TokenStream {
-        let ScaleFactorExponentDynamicMatch { expr, block, fallback_block } = self;
+        let ScaleFactorExponentDynamicMatch { value_expr, case_expr, fallback_case_expr } = self;
 
         let scales = SCALES.iter().map(|scale| {
                 let scale_factor_exponent = scale_factor_exponent(scale).unwrap();
                 let scale_ident = format_ident!("{}", scale);
 
-                quote! { #scale_factor_exponent => { const __SCALE__: Scale = Scale::#scale_ident; #block } }
+                quote! { #scale_factor_exponent => { const __SCALE__: Scale = Scale::#scale_ident; #case_expr } }
         }).collect::<Vec<proc_macro2::TokenStream>>();
 
         let expanded = quote! {
-            match #expr {
-                i8::MIN..=-36_i8 => #fallback_block,
+            match #value_expr {
+                i8::MIN..=-36_i8 => #fallback_case_expr,
                 #(#scales,)*
-                36_i8..=i8::MAX => #fallback_block
+                36_i8..=i8::MAX => #fallback_case_expr
             }
         };
 

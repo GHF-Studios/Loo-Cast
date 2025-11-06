@@ -29,20 +29,20 @@ pub const SCALES: &[&str] = &[
 ];
 
 pub struct ScaleTypeGenericMatch {
-    expr: Expr,
-    block: Block,
+    value_expr: Expr,
+    case_block: Block,
     overrides: Vec<(Ident, Block)>,
 }
 impl Parse for ScaleTypeGenericMatch {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let expr: Expr = input.parse()?;
+        let value_expr: Expr = input.parse()?;
         let _ = input.parse::<Token![,]>()?;
-        let block: Block = input.parse()?;
+        let case_block: Block = input.parse()?;
 
         let mut overrides = Vec::new();
 
         if input.is_empty() {
-            return Ok(Self { expr, block, overrides });
+            return Ok(Self { value_expr, case_block, overrides });
         }
 
         input.parse::<Token![,]>()?;
@@ -80,8 +80,8 @@ impl Parse for ScaleTypeGenericMatch {
                 ));
             }
             let _ = input.parse::<Token![=>]>()?;
-            let override_block: Block = input.parse()?;
-            overrides.push((scale_ident, override_block));
+            let override_case_block: Block = input.parse()?;
+            overrides.push((scale_ident, override_case_block));
 
             if input.peek(Token![,]) {
                 let _ = input.parse::<Token![,]>()?;
@@ -92,25 +92,25 @@ impl Parse for ScaleTypeGenericMatch {
             }
         }
 
-        Ok(Self { expr, block, overrides })
+        Ok(Self { value_expr, case_block, overrides })
     }
 }
 impl ScaleTypeGenericMatch {
     pub fn generate(self) -> proc_macro2::TokenStream {
-        let ScaleTypeGenericMatch { expr, block, mut overrides } = self;
+        let ScaleTypeGenericMatch { value_expr, case_block, mut overrides } = self;
 
         let scales = SCALES.iter().map(|scale| {
             if let Some(override_index) = overrides.iter().position(|(ident, _)| ident.to_string().as_str() == *scale) {
-                let (override_ident, override_block) = overrides.remove(override_index);
-                quote! { Scale::#override_ident => { type __SCALE__ = #override_ident; #override_block } }
+                let (override_ident, override_case_block) = overrides.remove(override_index);
+                quote! { Scale::#override_ident => { type __SCALE__ = #override_ident; #override_case_block } }
             } else {
                 let ident = format_ident!("{}", scale);
-                quote! { Scale::#ident => { type __SCALE__ = #ident; #block } }
+                quote! { Scale::#ident => { type __SCALE__ = #ident; #case_block } }
             }
         }).collect::<Vec<proc_macro2::TokenStream>>();
 
         let expanded = quote! {
-            match #expr {
+            match #value_expr {
                 #(#scales,)*
                 _ => unreachable!()
             }

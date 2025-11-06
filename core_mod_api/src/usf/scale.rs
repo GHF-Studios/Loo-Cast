@@ -460,8 +460,8 @@ impl Scale {
     pub fn from_scale_factor_exponent(scale_factor_exponent: i8) -> Option<Self> {
         scale_factor_exponent_dynamic_match!(
             scale_factor_exponent,
-            { Some(__SCALE__) },
-            { None }
+            Some(__SCALE__),
+            None
         )
     }
 
