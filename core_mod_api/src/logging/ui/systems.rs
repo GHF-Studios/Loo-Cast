@@ -1,26 +1,24 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 
-use crate::{
-    logging::{
-        resources::LogRegistry,
-        ui::{
-            functions::{render_console, render_console_toolbar, render_selection_tree, render_selection_tree_toolbar},
-            resources::LogViewerState,
-        },
+use crate::logging::{
+    resources::LogRegistry,
+    ui::{
+        functions::{render_console, render_console_toolbar, render_selection_tree, render_selection_tree_toolbar},
+        resources::LogViewerState,
     },
-    ui::toolbar::resources::ToolbarState,
 };
 
+#[deprecated]
 pub(super) fn show_log_viewer_ui(
     mut egui_ctx: EguiContexts,
-    toolbar_state: Res<ToolbarState>,
     mut log_viewer_state: ResMut<LogViewerState>,
     mut log_registry: ResMut<LogRegistry>,
 ) {
-    if !toolbar_state.show_log_viewer_ui {
-        return;
-    }
+    // Temporary stopgap
+    return;
+    // Temporary stopgap
+
     let ctx = match egui_ctx.ctx_mut() {
         Ok(ctx) => ctx,
         Err(_) => {

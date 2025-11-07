@@ -3,7 +3,7 @@ use crate::{
     debug::resources::{DebugSuiteUiDockState, DebugSuiteUiState},
     input::states::InputMode,
     logging::resources::LogRegistry,
-    ui::{custom_perf_ui_entries::{cursor_position::PerfUiCursorPosEntries, player_position::PerfUiPlayerPosEntries}, toolbar::resources::ToolbarState},
+    ui::{custom_perf_ui_entries::{cursor_position::PerfUiCursorPosEntries, player_position::PerfUiPlayerPosEntries}},
 };
 
 use bevy::{
@@ -28,7 +28,7 @@ use super::types::DebugObjectMovement;
 
 #[tracing::instrument(skip_all)]
 pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Commands, ui_camera_query: Query<Entity, With<UiCamera>>) {
-    let ui_camera_entity = match ui_camera_query.get_single() {
+    let ui_camera_entity = match ui_camera_query.single() {
         Ok(entity) => entity,
         Err(err) => {
             panic!("Failed to get UiCamera entity for Perf UI setup: {}", err);
@@ -57,28 +57,6 @@ pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Comman
 }
 
 #[tracing::instrument(skip_all)]
-pub(super) fn toggle_perf_ui_system(mut query: Query<&mut Visibility, With<PerfUiRoot>>, toolbar_state: Res<ToolbarState>) {
-    for mut vis in query.iter_mut() {
-        match (*vis, toolbar_state.show_perf_ui) {
-            (Visibility::Inherited, false) => {
-                *vis = Visibility::Hidden;
-            }
-            (Visibility::Inherited, true) => {
-                *vis = Visibility::Visible;
-            }
-            (Visibility::Hidden, false) => {}
-            (Visibility::Hidden, true) => {
-                *vis = Visibility::Visible;
-            }
-            (Visibility::Visible, false) => {
-                *vis = Visibility::Hidden;
-            }
-            (Visibility::Visible, true) => {}
-        }
-    }
-}
-
-#[tracing::instrument(skip_all)]
 pub(super) fn debug_object_movement_system(time: Res<Time<Virtual>>, mut query: Query<(&mut Transform, &DebugObjectComponent)>) {
     for (mut transform, debug_object) in query.iter_mut() {
         match &debug_object.movement {
@@ -98,11 +76,13 @@ pub(super) fn debug_object_movement_system(time: Res<Time<Virtual>>, mut query: 
 }
 
 // TODO: Move into debug/ui/systems.rs or remove if not needed anymore
+#[deprecated]
 #[tracing::instrument(skip_all)]
-pub(super) fn log_registry_debug_ui(log_registry: Res<LogRegistry>, mut egui_ctx: EguiContexts, toolbar_state: Res<ToolbarState>) {
-    if !toolbar_state.show_log_registry_debug_ui {
-        return;
-    }
+pub(super) fn log_registry_debug_ui(log_registry: Res<LogRegistry>, mut egui_ctx: EguiContexts) {
+    // Temporary stopgap
+    return;
+    // Temporary stopgap
+
     let ctx = match egui_ctx.ctx_mut() {
         Ok(ctx) => ctx,
         Err(_) => {
