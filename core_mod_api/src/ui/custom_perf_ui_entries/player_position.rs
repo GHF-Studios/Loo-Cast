@@ -6,27 +6,27 @@ use crate::chunk_actor::components::ChunkActor;
 use crate::player::components::Player;
 use crate::usf::pos::grid::types::GridVec;
 
-#[derive(Bundle, Default)]
-pub struct PerfUiEntryPlayerPosEntries {
-    pub grid_offset: PerfUiEntryPlayerGridOffset,
-    pub unit_offset: PerfUiEntryPlayerUnitOffset,
+#[derive(Bundle, Default, Reflect)]
+pub struct PerfUiPlayerPosEntries {
+    pub grid_offset: PerfUiEntryPlayerGridPos,
+    pub unit_offset: PerfUiEntryPlayerUnitPos,
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[require(PerfUiRoot)]
-pub struct PerfUiEntryPlayerGridOffset {
+pub struct PerfUiEntryPlayerGridPos {
     pub label: String,
     pub sort_key: i32,
 }
-impl Default for PerfUiEntryPlayerGridOffset {
+impl Default for PerfUiEntryPlayerGridPos {
     fn default() -> Self {
         Self {
-            label: "GridPos".to_string(),
+            label: "(P)GridPos".to_string(),
             sort_key: next_sort_key(),
         }
     }
 }
-impl PerfUiEntry for PerfUiEntryPlayerGridOffset {
+impl PerfUiEntry for PerfUiEntryPlayerGridPos {
     type SystemParam = Query<'static, 'static, &'static ChunkActor, With<Player>>;
     type Value = GridVec;
 
@@ -58,21 +58,21 @@ impl PerfUiEntry for PerfUiEntryPlayerGridOffset {
     }
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[require(PerfUiRoot)]
-pub struct PerfUiEntryPlayerUnitOffset {
+pub struct PerfUiEntryPlayerUnitPos {
     pub label: String,
     pub sort_key: i32,
 }
-impl Default for PerfUiEntryPlayerUnitOffset {
+impl Default for PerfUiEntryPlayerUnitPos {
     fn default() -> Self {
         Self {
-            label: "UnitPos".to_string(),
+            label: "(P)UnitPos".to_string(),
             sort_key: next_sort_key(),
         }
     }
 }
-impl PerfUiEntry for PerfUiEntryPlayerUnitOffset {
+impl PerfUiEntry for PerfUiEntryPlayerUnitPos {
     type SystemParam = Query<'static, 'static, &'static Transform, With<Player>>;
     type Value = Vec3;
 

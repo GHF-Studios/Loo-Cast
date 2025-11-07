@@ -3,7 +3,7 @@ use crate::{
     debug::resources::{DebugSuiteUiDockState, DebugSuiteUiState},
     input::states::InputMode,
     logging::resources::LogRegistry,
-    ui::{custom_perf_ui_entries::player_position::PerfUiEntryPlayerPosEntries, toolbar::resources::ToolbarState},
+    ui::{custom_perf_ui_entries::{cursor_position::PerfUiCursorPosEntries, player_position::PerfUiPlayerPosEntries}, toolbar::resources::ToolbarState},
 };
 
 use bevy::{
@@ -38,7 +38,8 @@ pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Comman
             PerfUiEntryFPSAverage::default(),
             PerfUiSystemEntries::default(),
             PerfUiEntryEntityCount::default(),
-            PerfUiEntryPlayerPosEntries::default(),
+            PerfUiPlayerPosEntries::default(),
+            PerfUiCursorPosEntries::default(),
         ));
     }
 }

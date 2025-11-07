@@ -706,6 +706,6 @@ impl InspectorPrimitive for GridVec {
         _id: Id,
         _env: InspectorUi<'_, '_>,
     ) {
-        ui.label("Readonly GridVec not yet implemented");
+        ui.label(format!("{:?}", self));
     }
 }

@@ -137,7 +137,7 @@ impl PluginGroup for CoreApiPluginGroup {
 
 register_workflow_mods!(
     Camera {
-        SpawnMainCameras {
+        SpawnCameras {
             SpawnAndWait: EcsWhile,
         },
     },
