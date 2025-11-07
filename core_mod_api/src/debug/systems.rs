@@ -8,7 +8,7 @@ use crate::{
 
 use bevy::{
     prelude::*,
-    render::camera::RenderTarget,
+    render::{camera::RenderTarget, view::RenderLayers},
     window::WindowRef,
 };
 use bevy_egui::{
@@ -40,6 +40,7 @@ pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Comman
             PerfUiEntryEntityCount::default(),
             PerfUiPlayerPosEntries::default(),
             PerfUiCursorPosEntries::default(),
+            RenderLayers::layer(1),
         ));
     }
 }

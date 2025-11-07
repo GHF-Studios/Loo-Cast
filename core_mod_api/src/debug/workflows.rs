@@ -62,7 +62,7 @@ define_workflow_mod_OLD! {
 
                             let circle_entity = spawn_debug_object(
                                 &mut commands,
-                                "circle_entity".to_string(),
+                                "circle".to_string(),
                                 Vec2::new(350.0, 350.0),
                                 0.0,
                                 Vec2::ONE,
@@ -74,7 +74,7 @@ define_workflow_mod_OLD! {
 
                             let line_entity = spawn_debug_object(
                                 &mut commands,
-                                "line_entity".to_string(),
+                                "line".to_string(),
                                 Vec2::new(-300.0, -400.0),
                                 0.0,
                                 Vec2::ONE,
@@ -86,7 +86,7 @@ define_workflow_mod_OLD! {
 
                             let static_entity = spawn_debug_object(
                                 &mut commands,
-                                "static_entity".to_string(),
+                                "static".to_string(),
                                 Vec2::new(-350.0, 400.0),
                                 0.0,
                                 Vec2::ONE,

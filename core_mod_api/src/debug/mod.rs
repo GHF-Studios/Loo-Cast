@@ -33,7 +33,7 @@ impl Plugin for DebugPlugin {
             .add_systems(
                 Update,
                 (
-                    toggle_perf_ui_system,
+                    // toggle_perf_ui_system,
                     toggle_debug_suite_ui_system,
                     debug_object_movement_system.run_if(run_after_startup_finished.and(run_if_not_paused)),
                     log_registry_debug_ui,

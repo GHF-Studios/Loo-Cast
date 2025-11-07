@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy::ecs::system::SystemParam;
+use bevy::window::PrimaryWindow;
 use iyes_perf_ui::{entry::PerfUiEntry, ui::root::PerfUiRoot, utils::next_sort_key};
 
 use crate::camera::components::MainCamera;
@@ -7,6 +8,7 @@ use crate::camera::components::MainCamera;
 #[derive(Bundle, Default, Reflect)]
 pub struct PerfUiCursorPosEntries {
     pub screen_pos: PerfUiEntryCursorScreenPos,
+    pub unit_pos: PerfUiEntryCursorUnitPos,
 }
 
 #[derive(Component, Debug, Clone, Reflect)]
@@ -72,10 +74,10 @@ impl Default for PerfUiEntryCursorUnitPos {
 }
 impl PerfUiEntry for PerfUiEntryCursorUnitPos {
     type SystemParam = (
-        Query<'static, 'static, &'static Window>, 
-        Query<'static, 'static, (&'static Camera, &'static GlobalTransform, &'static Projection), With<MainCamera>>,
+        Query<'static, 'static, (&'static Camera, &'static GlobalTransform), With<MainCamera>>,
+        Query<'static, 'static, &'static Window, With<PrimaryWindow>>,
     );
-    type Value = Vec3;
+    type Value = Vec2;
 
     fn label(&self) -> &str {
         &self.label
@@ -89,30 +91,12 @@ impl PerfUiEntry for PerfUiEntryCursorUnitPos {
         &self,
         query: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>,
     ) -> Option<Self::Value> {
-        let window = query.0.single().ok()?;
-        let (camera, camera_transform, projection) = query.1.single().ok()?;
+        let (camera, camera_transform) = query.0.single().ok()?;
+        let window = query.1.single().ok()?;
 
-        let cursor_pos = window.cursor_position()?;
-        // Step 1: Get the window size
-        let window_size = Vec2::new(window.width(), window.height());
-
-        // Step 2: Convert screen-space to NDC (-1.0 to +1.0)
-        let ndc = (cursor_pos / window_size) * 2.0 - Vec2::ONE;
-
-        // Flip Y because screen-space Y is top-down, NDC is bottom-up
-        let ndc = Vec3::new(ndc.x, -ndc.y, 1.0);
-
-        let projection_matrix = match projection {
-            Projection::Orthographic(orthographic) => orthographic.get_projection_matrix(),
-            _ => return None, // Only orthographic projection is supported here
-        };
-
-        // Step 3: Transform NDC into world-space
-        let ndc_to_world = camera_transform.compute_matrix() * inverse_projection_matrix;
-
-        let world_pos = ndc_to_world.project_point3(ndc);
-
-        Some(world_pos)
+        window.cursor_position()
+            .map(|cursor| camera.viewport_to_world(camera_transform, cursor).ok())
+            .and_then(|ray| ray.map(|r| r.origin.truncate()))
     }
 
     fn format_value(&self, value: &Self::Value) -> String {

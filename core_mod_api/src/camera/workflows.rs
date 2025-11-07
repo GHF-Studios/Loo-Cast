@@ -16,7 +16,7 @@ define_workflow_mod_OLD! {
                 use bevy::render::camera::RenderTarget;
                 use bevy::window::WindowRef;
 
-                use crate::camera::components::MainCamera;
+                use crate::camera::components::{MainCamera, UiCamera};
                 use crate::chunk_actor::components::ChunkActor;
                 use crate::config::statics::CONFIG;
                 use crate::follower::components::{Follower, FollowerTarget};
@@ -30,10 +30,12 @@ define_workflow_mod_OLD! {
                         }
                         struct State {
                             main_camera_entity: Entity,
+                            ui_camera_entity: Entity,
                             egui_camera_entity: Entity,
                         }
                         struct Output {
                             spawned_main_camera_entity: Entity,
+                            spawned_ui_camera_entity: Entity,
                             spawned_egui_camera_entity: Entity,
                         }
                     ],
@@ -44,21 +46,33 @@ define_workflow_mod_OLD! {
                             let egui_camera_entity = commands.spawn((
                                 Camera2d,
                                 Camera {
-                                    order: 1,
+                                    order: 2,
                                     ..Default::default()
                                 },
-                                Name::new("egui_camera_entity"),
+                                Name::new("egui_camera"),
                                 PrimaryEguiContext,
                                 EguiRenderOutput::default(),
                                 RenderLayers::none(),
                             )).id();
-                            let main_camera_entity = commands.spawn((
+                            let ui_camera_entity = commands.spawn((
                                 Camera2d,
                                 Camera {
+                                    order: 1,
                                     target: RenderTarget::Window(WindowRef::Primary),
                                     ..Default::default()
                                 },
-                                Name::new("main_camera_entity"),
+                                UiCamera,
+                                Name::new("ui_camera"),
+                                RenderLayers::layer(1),
+                            )).id();
+                            let main_camera_entity = commands.spawn((
+                                Camera2d,
+                                Camera {
+                                    order: 0,
+                                    target: RenderTarget::Window(WindowRef::Primary),
+                                    ..Default::default()
+                                },
+                                Name::new("main_camera"),
                                 MainCamera,
                                 Follower::new(
                                     "main_camera".to_string(),
@@ -66,10 +80,12 @@ define_workflow_mod_OLD! {
                                     CONFIG().get::<f32>("camera/follow_smoothness"),
                                 ),
                                 ChunkActor::default(),
+                                RenderLayers::default(),
                             )).id();
 
                             State {
                                 main_camera_entity,
+                                ui_camera_entity,
                                 egui_camera_entity
                             }
                         }
@@ -82,6 +98,7 @@ define_workflow_mod_OLD! {
                             {
                                 Outcome::Done(Output {
                                     spawned_main_camera_entity: state.main_camera_entity,
+                                    spawned_ui_camera_entity: state.ui_camera_entity,
                                     spawned_egui_camera_entity: state.egui_camera_entity,
                                 })
                             } else {
