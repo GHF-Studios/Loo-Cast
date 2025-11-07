@@ -14,6 +14,7 @@ define_workflow_mod_OLD! {
                 };
                 use bevy::render::camera::RenderTarget;
                 use bevy::window::WindowRef;
+                use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
 
                 use crate::camera::components::MainCamera;
                 use crate::camera::functions::get_reserved_camera_entities;
@@ -53,11 +54,12 @@ define_workflow_mod_OLD! {
                                 Camera2d,
                                 Camera {
                                     order: 2,
+                                    target: RenderTarget::Window(WindowRef::Primary),
                                     ..Default::default()
                                 },
                                 Name::new("egui_camera"),
+                                PrimaryEguiContext,
                                 EguiRenderOutput::default(),
-                                RenderLayers::none(),
                             ));
                             commands.entity(ui_camera_entity).insert((
                                 Camera2d,

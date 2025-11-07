@@ -9,7 +9,7 @@ pub mod types;
 pub mod workflows;
 
 use bevy::prelude::*;
-use bevy_egui::EguiPrimaryContextPass;
+use bevy_egui::{EguiContexts, EguiPrimaryContextPass};
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use components::DebugObjectComponent;
 use gizmo::GizmoPlugin;
