@@ -1,5 +1,5 @@
 use crate::{
-    camera::{components::MainCamera, resources::GameViewRenderTarget},
+    camera::{components::{MainCamera, UiCamera}, resources::GameViewRenderTarget},
     debug::resources::{DebugSuiteUiDockState, DebugSuiteUiState},
     input::states::InputMode,
     logging::resources::LogRegistry,
@@ -16,24 +16,35 @@ use bevy_egui::{
     EguiContexts,
 };
 use iyes_perf_ui::{
-    prelude::PerfUiRoot,
-    entries::diagnostics::{PerfUiEntryFPS, PerfUiEntryFPSAverage},
+    prelude::{PerfUiRoot, PerfUiEntryEntityCount},
+    entries::{
+        diagnostics::{PerfUiEntryFPS, PerfUiEntryFPSAverage},
+        PerfUiSystemEntries,
+    },
 };
 
 use super::components::DebugObjectComponent;
 use super::types::DebugObjectMovement;
 
 #[tracing::instrument(skip_all)]
-pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Commands) {
-    use iyes_perf_ui::{
-        entries::PerfUiSystemEntries,
-        prelude::{PerfUiEntryEntityCount, PerfUiRoot},
+pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Commands, ui_camera_query: Query<Entity, With<UiCamera>>) {
+    let ui_camera_entity = match ui_camera_query.get_single() {
+        Ok(entity) => entity,
+        Err(err) => {
+            panic!("Failed to get UiCamera entity for Perf UI setup: {}", err);
+        }
     };
 
     if !*has_spawned {
         *has_spawned = true;
         commands.spawn((
-            PerfUiRoot::default(),
+            UiTargetCamera(ui_camera_entity),
+            PerfUiRoot {
+                fontsize_label: 16.0,
+                fontsize_value: 16.0,
+                values_col_width: 172.0,
+                ..Default::default()
+            },
             PerfUiEntryFPS::default(),
             PerfUiEntryFPSAverage::default(),
             PerfUiSystemEntries::default(),
@@ -119,26 +130,29 @@ pub(super) fn toggle_debug_suite_ui_system(
     keys: Res<ButtonInput<KeyCode>>,
     input_mode: Res<State<InputMode>>,
     mut next_input_mode: ResMut<NextState<InputMode>>,
-    mut main_camera_query: Single<&mut Camera, With<MainCamera>>,
+    mut main_camera_query: Single<&mut Camera, (With<MainCamera>, Without<UiCamera>)>,
+    mut ui_camera_query: Single<&mut Camera, (With<UiCamera>, Without<MainCamera>)>,
 ) {
     if keys.just_pressed(KeyCode::F3) {
         ui_state.enabled = !ui_state.enabled;
         if ui_state.enabled {
             main_camera_query.target = RenderTarget::Image(render_target.handle.clone().into());
+            ui_camera_query.target = RenderTarget::Image(render_target.handle.clone().into());
 
             if input_mode.is_game() {
                 next_input_mode.set(InputMode::DebugSuite);
             }
 
-            info!("Debug suite UI enabled.");
+            info!("Debug suite enabled.");
         } else {
             main_camera_query.target = RenderTarget::Window(WindowRef::Primary);
+            ui_camera_query.target = RenderTarget::Window(WindowRef::Primary);
 
             if input_mode.is_debug_suite() {
                 next_input_mode.set(InputMode::Game);
             }
 
-            info!("Debug suite UI disabled.");
+            info!("Debug suite disabled.");
         }
     }
 }

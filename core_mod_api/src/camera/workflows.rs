@@ -8,7 +8,6 @@ define_workflow_mod_OLD! {
                 use bevy::prelude::{Commands, Res, ResMut, Camera2d, Vec2, Name, Camera};
                 use bevy::render::view::RenderLayers;
                 use bevy_egui::EguiRenderOutput;
-                use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
                 use bevy::render::render_resource::{
                     Buffer, TextureView, TextureDescriptor, Extent3d,
                     TextureDimension, TextureFormat, TextureUsages,
@@ -16,7 +15,8 @@ define_workflow_mod_OLD! {
                 use bevy::render::camera::RenderTarget;
                 use bevy::window::WindowRef;
 
-                use crate::camera::components::{MainCamera, UiCamera};
+                use crate::camera::components::MainCamera;
+                use crate::camera::functions::get_reserved_camera_entities;
                 use crate::chunk_actor::components::ChunkActor;
                 use crate::config::statics::CONFIG;
                 use crate::follower::components::{Follower, FollowerTarget};
@@ -43,29 +43,33 @@ define_workflow_mod_OLD! {
                         fn SetupEcsWhile |main_access| -> State {
                             let mut commands = main_access.commands;
 
-                            let egui_camera_entity = commands.spawn((
+                            let (
+                                egui_camera_entity,
+                                ui_camera_entity,
+                                main_camera_entity,
+                            ) = get_reserved_camera_entities();
+
+                            commands.entity(egui_camera_entity).insert((
                                 Camera2d,
                                 Camera {
                                     order: 2,
                                     ..Default::default()
                                 },
                                 Name::new("egui_camera"),
-                                PrimaryEguiContext,
                                 EguiRenderOutput::default(),
                                 RenderLayers::none(),
-                            )).id();
-                            let ui_camera_entity = commands.spawn((
+                            ));
+                            commands.entity(ui_camera_entity).insert((
                                 Camera2d,
                                 Camera {
                                     order: 1,
                                     target: RenderTarget::Window(WindowRef::Primary),
                                     ..Default::default()
                                 },
-                                UiCamera,
                                 Name::new("ui_camera"),
                                 RenderLayers::layer(1),
-                            )).id();
-                            let main_camera_entity = commands.spawn((
+                            ));
+                            commands.entity(main_camera_entity).insert((
                                 Camera2d,
                                 Camera {
                                     order: 0,
@@ -81,7 +85,7 @@ define_workflow_mod_OLD! {
                                 ),
                                 ChunkActor::default(),
                                 RenderLayers::default(),
-                            )).id();
+                            ));
 
                             State {
                                 main_camera_entity,

@@ -1,12 +1,21 @@
 use bevy::input::mouse::MouseScrollUnit;
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 use bevy::{input::mouse::MouseWheel, prelude::*};
+use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
 
+use crate::camera::components::{MainCamera, UiCamera};
 use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
 use crate::time::resources::VirtualPaused;
 
 use super::resources::{GameViewRenderTarget, ZoomFactor, ViewScale};
+
+pub(super) fn reserve_camera_entities(mut commands: Commands) {
+    let egui_camera = commands.spawn(PrimaryEguiContext).id();
+    let ui_camera = commands.spawn(UiCamera).id();
+    let main_camera = commands.spawn(MainCamera).id();
+    super::functions::reserve_camera_entities(egui_camera, ui_camera, main_camera);
+}
 
 pub(super) fn setup_main_render_target(
     mut commands: Commands,
