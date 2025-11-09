@@ -74,6 +74,7 @@ pub mod follower;
 pub mod gpu;
 pub mod input;
 pub mod logging;
+pub mod picking;
 pub mod player;
 pub mod render;
 pub mod time;
@@ -98,6 +99,7 @@ use follower::FollowerPlugin;
 use gpu::GpuPlugin;
 use input::InputPlugin;
 use logging::LogPlugin;
+use picking::PickingPlugin;
 use player::PlayerPlugin;
 use render::RenderPlugin;
 use time::TimePlugin;
@@ -124,6 +126,7 @@ impl PluginGroup for CoreApiPluginGroup {
             .add(GpuPlugin)
             .add(InputPlugin)
             .add(LogPlugin)
+            .add(PickingPlugin)
             .add(PlayerPlugin)
             .add(RenderPlugin)
             .add(TimePlugin)

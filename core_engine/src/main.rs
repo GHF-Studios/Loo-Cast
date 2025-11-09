@@ -78,7 +78,7 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
         // Physics Plugins
         .add(RapierPhysicsPlugin::<NoUserData>::default())
         // Picking Plugins
-        .add_group(DefaultPickingPlugins)
+        // .add(SpritePickingPlugin)
 }
 
 fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
