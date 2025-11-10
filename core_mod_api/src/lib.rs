@@ -76,6 +76,7 @@ pub mod input;
 pub mod logging;
 pub mod picking;
 pub mod player;
+pub mod reflect;
 pub mod render;
 pub mod time;
 pub mod ui;

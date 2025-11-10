@@ -94,7 +94,7 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
                 }
 
                 if let (Some(texture_id), Some(texture_size)) = (self.game_view_texture_id, self.game_view_texture_size) {
-                    draw_game_view(ui, texture_id, texture_size, self.state.viewport_rect_precision_proxy.as_mut());
+                    draw_game_view(ui, texture_id, texture_size, &mut self.state.viewport_rect_precision_proxy);
                 } else {
                     ui.label("Game View Render Texture not available yet.");
                 }

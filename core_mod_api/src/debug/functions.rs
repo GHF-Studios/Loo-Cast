@@ -108,7 +108,7 @@ pub(super) fn draw_game_view(
     ui: &mut egui::Ui,
     texture_id: egui::TextureId,
     image_size: egui::Vec2, // actual render texture size
-    viewport_rect_precision_proxy: Option<&mut egui::Rect>,
+    viewport_rect_precision_proxy: &mut Option<egui::Rect>,
 ) {
     let available_size = ui.available_size();
     let available_aspect = available_size.x / available_size.y;
@@ -133,9 +133,7 @@ pub(super) fn draw_game_view(
 
     let image_rect = egui::Rect::from_min_size(rect.min + offset, final_size);
 
-    if let Some(rect) = viewport_rect_precision_proxy {
-        *rect = image_rect;
-    }
+    *viewport_rect_precision_proxy = Some(image_rect);
 
     ui.painter().image(
         texture_id,

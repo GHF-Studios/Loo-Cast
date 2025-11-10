@@ -2,7 +2,7 @@ use bevy::input::ButtonState;
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::ecs::query::QuerySingleError;
-use bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerId, PointerInput, PointerLocation,};
+use bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerId, PointerInput, PointerLocation, PointerPress};
 use bevy::picking::backend::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::window::{PrimaryWindow, WindowEvent, WindowRef};
@@ -10,36 +10,45 @@ use bevy::window::{PrimaryWindow, WindowEvent, WindowRef};
 use crate::camera::components::MainCamera;
 use crate::debug::resources::DebugSuiteUiState;
 use crate::player::components::Player;
+use crate::reflect::functions::get_struct_field_mut;
 
 /// Sends mouse pointer events to *`hopefully`* be processed by the core plugin
 /// This silently early-returns if any other non-primary windows (or not window at all) are detected
 pub(super) fn mouse_pick_events(
     mut window_events: EventReader<WindowEvent>,
-    mut pointer_events: EventWriter<PointerInput>,
+    // mut pointer_events: EventWriter<PointerInput>,
     mut cursor_last: Local<Vec2>,
+    mut pointers: Query<(&PointerId, &mut PointerLocation, &mut PointerPress)>,
     primary_window: Query<(Entity, &Window), With<PrimaryWindow>>,
     ui_state: Res<DebugSuiteUiState>,
 ) {
+    println!("1");
+
     if !ui_state.enabled || window_events.is_empty() {
         return;
     }
 
+    println!("2");
+
     let Ok((primary_window_entity, primary_window)) = primary_window.single() else { return };
+    println!("3");
     let Some(cursor_pos) = primary_window.cursor_position() else { return };
+    println!("4");
     let Some(viewport) = ui_state.viewport_rect_precision_proxy else { return };
+    println!("5");
 
     // Only inject pointer if it's within the egui image viewport
     if !viewport.contains(egui::Pos2::new(cursor_pos.x, cursor_pos.y)) {
         return;
     }
-    println!("6: viewport.contains(egui::Pos2::new(cursor_pos.x, cursor_pos.y))");
+
+    println!("VIIIIIIEWPORT");
+
+    let mut pointer_events: Vec<PointerInput> = Vec::with_capacity(window_events.len());
 
     for window_event in window_events.read() {
-        println!("7: window_event");
         match window_event {
-            // Handle cursor movement events
             WindowEvent::CursorMoved(event) => {
-                println!("8: CursorMoved");
                 let location = Location {
                     target: match RenderTarget::Window(WindowRef::Primary)
                         .normalize(Some(primary_window_entity))
@@ -49,8 +58,7 @@ pub(super) fn mouse_pick_events(
                     },
                     position: event.position,
                 };
-                println!("9: CursorMoved");
-                pointer_events.write(PointerInput::new(
+                pointer_events.push(PointerInput::new(
                     PointerId::Mouse,
                     location,
                     PointerAction::Move {
@@ -59,9 +67,7 @@ pub(super) fn mouse_pick_events(
                 ));
                 *cursor_last = event.position;
             }
-            // Handle mouse button press events
             WindowEvent::MouseButtonInput(input) => {
-                println!("8: MouseButtonInput");
                 let location = Location {
                     target: match RenderTarget::Window(WindowRef::Primary)
                         .normalize(Some(primary_window_entity))
@@ -71,24 +77,20 @@ pub(super) fn mouse_pick_events(
                     },
                     position: *cursor_last,
                 };
-                println!("9: MouseButtonInput");
                 let button = match input.button {
                     MouseButton::Left => PointerButton::Primary,
                     MouseButton::Right => PointerButton::Secondary,
                     MouseButton::Middle => PointerButton::Middle,
                     MouseButton::Other(_) | MouseButton::Back | MouseButton::Forward => continue,
                 };
-                println!("10: MouseButtonInput");
                 let action = match input.state {
                     ButtonState::Pressed => PointerAction::Press(button),
                     ButtonState::Released => PointerAction::Release(button),
                 };
-                pointer_events.write(PointerInput::new(PointerId::Mouse, location, action));
+                pointer_events.push(PointerInput::new(PointerId::Mouse, location, action));
             }
             WindowEvent::MouseWheel(event) => {
-                println!("8: MouseWheel");
                 let MouseWheel { unit, x, y, window: _ } = *event;
-
                 let location = Location {
                     target: match RenderTarget::Window(WindowRef::Primary)
                         .normalize(Some(primary_window_entity))
@@ -98,11 +100,47 @@ pub(super) fn mouse_pick_events(
                     },
                     position: *cursor_last,
                 };
-                println!("9: MouseWheel");
-
                 let action = PointerAction::Scroll { x, y, unit };
+                pointer_events.push(PointerInput::new(PointerId::Mouse, location, action));
+            }
+            _ => {}
+        }
+    }
 
-                pointer_events.write(PointerInput::new(PointerId::Mouse, location, action));
+    for event in pointer_events.into_iter() {
+        match event.action {
+            PointerAction::Press(button) => {
+                pointers
+                    .iter_mut()
+                    .for_each(|(pointer_id, _, mut pointer)| {
+                        if *pointer_id == event.pointer_id {
+                            match button {
+                                PointerButton::Primary => *get_struct_field_mut(&mut *pointer, "primary") = true,
+                                PointerButton::Secondary => *get_struct_field_mut(&mut *pointer, "secondary") = true,
+                                PointerButton::Middle => *get_struct_field_mut(&mut *pointer, "middle") = true,
+                            }
+                        }
+                    });
+            }
+            PointerAction::Release(button) => {
+                pointers
+                    .iter_mut()
+                    .for_each(|(pointer_id, _, mut pointer)| {
+                        if *pointer_id == event.pointer_id {
+                            match button {
+                                PointerButton::Primary => *get_struct_field_mut(&mut *pointer, "primary") = false,
+                                PointerButton::Secondary => *get_struct_field_mut(&mut *pointer, "secondary") = false,
+                                PointerButton::Middle => *get_struct_field_mut(&mut *pointer, "middle") = false,
+                            }
+                        }
+                    });
+            }
+            PointerAction::Move { .. } => {
+                pointers.iter_mut().for_each(|(id, mut pointer, _)| {
+                    if *id == event.pointer_id {
+                        pointer.location = Some(event.location.to_owned());
+                    }
+                });
             }
             _ => {}
         }
