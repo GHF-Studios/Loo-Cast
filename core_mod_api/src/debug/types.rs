@@ -86,8 +86,6 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
 
         match tab {
             DebugSuiteTab::GameView => {
-                self.state.viewport_rect = Some(ui.clip_rect());
-
                 let input_mode = self.world.resource::<State<InputMode>>();
                 if input_mode.is_game() {
                     let rect = ui.clip_rect();
@@ -96,7 +94,7 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
                 }
 
                 if let (Some(texture_id), Some(texture_size)) = (self.game_view_texture_id, self.game_view_texture_size) {
-                    draw_game_view(ui, texture_id, texture_size);
+                    draw_game_view(ui, texture_id, texture_size, self.state.viewport_rect_precision_proxy.as_mut());
                 } else {
                     ui.label("Game View Render Texture not available yet.");
                 }

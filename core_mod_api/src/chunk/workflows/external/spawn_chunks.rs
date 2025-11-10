@@ -6,7 +6,6 @@ use crate::chunk::{components::Chunk, resources::ChunkManager};
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::types::ChunkLoaderId;
 use crate::config::statics::CONFIG;
-use crate::debug::observers::on_click_select;
 use crate::render::components::RenderProxyHandle;
 use crate::render::functions::make_sprite_proxy_bundle;
 use crate::usf::pos::grid::types::GridVec;
@@ -90,7 +89,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
 
         let chunk_name = Name::new(format!("chunk_entity({grid_coord:?})"));
 
-        let chunk_entity = commands.spawn(()).observe(on_click_select).id();
+        let chunk_entity = commands.spawn(()).id();
 
         let chunk_render_proxy_entity = commands.spawn(make_sprite_proxy_bundle(
             metric_texture,
