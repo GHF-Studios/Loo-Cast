@@ -12,37 +12,35 @@ use crate::debug::resources::DebugSuiteUiState;
 use crate::player::components::Player;
 use crate::reflect::functions::get_struct_field_mut;
 
+use super::constants::MOUSE_POINTER_ID;
+
+pub(super) fn spawn_mouse_pointer(mut commands: Commands) {
+    commands.spawn(MOUSE_POINTER_ID);
+}
+
 /// Sends mouse pointer events to *`hopefully`* be processed by the core plugin
 /// This silently early-returns if any other non-primary windows (or not window at all) are detected
+#[tracing::instrument(skip_all)]
 pub(super) fn mouse_pick_events(
     mut window_events: EventReader<WindowEvent>,
-    // mut pointer_events: EventWriter<PointerInput>,
+    mut pointer_event_writer: EventWriter<PointerInput>,
     mut cursor_last: Local<Vec2>,
     mut pointers: Query<(&PointerId, &mut PointerLocation, &mut PointerPress)>,
     primary_window: Query<(Entity, &Window), With<PrimaryWindow>>,
     ui_state: Res<DebugSuiteUiState>,
 ) {
-    println!("1");
-
     if !ui_state.enabled || window_events.is_empty() {
         return;
     }
 
-    println!("2");
-
     let Ok((primary_window_entity, primary_window)) = primary_window.single() else { return };
-    println!("3");
     let Some(cursor_pos) = primary_window.cursor_position() else { return };
-    println!("4");
     let Some(viewport) = ui_state.viewport_rect_precision_proxy else { return };
-    println!("5");
 
     // Only inject pointer if it's within the egui image viewport
     if !viewport.contains(egui::Pos2::new(cursor_pos.x, cursor_pos.y)) {
         return;
     }
-
-    println!("VIIIIIIEWPORT");
 
     let mut pointer_events: Vec<PointerInput> = Vec::with_capacity(window_events.len());
 
@@ -58,13 +56,14 @@ pub(super) fn mouse_pick_events(
                     },
                     position: event.position,
                 };
-                pointer_events.push(PointerInput::new(
-                    PointerId::Mouse,
+                let pointer_input = PointerInput::new(
+                    MOUSE_POINTER_ID,
                     location,
                     PointerAction::Move {
                         delta: event.position - *cursor_last,
                     },
-                ));
+                );
+                pointer_events.push(pointer_input.clone());
                 *cursor_last = event.position;
             }
             WindowEvent::MouseButtonInput(input) => {
@@ -87,7 +86,8 @@ pub(super) fn mouse_pick_events(
                     ButtonState::Pressed => PointerAction::Press(button),
                     ButtonState::Released => PointerAction::Release(button),
                 };
-                pointer_events.push(PointerInput::new(PointerId::Mouse, location, action));
+                let pointer_input = PointerInput::new(MOUSE_POINTER_ID, location, action);
+                pointer_events.push(pointer_input.clone());
             }
             WindowEvent::MouseWheel(event) => {
                 let MouseWheel { unit, x, y, window: _ } = *event;
@@ -101,7 +101,8 @@ pub(super) fn mouse_pick_events(
                     position: *cursor_last,
                 };
                 let action = PointerAction::Scroll { x, y, unit };
-                pointer_events.push(PointerInput::new(PointerId::Mouse, location, action));
+                let pointer_input = PointerInput::new(MOUSE_POINTER_ID, location, action);
+                pointer_events.push(pointer_input.clone());
             }
             _ => {}
         }
@@ -109,7 +110,7 @@ pub(super) fn mouse_pick_events(
 
     for event in pointer_events.into_iter() {
         match event.action {
-            PointerAction::Press(button) => {
+            PointerAction::Press(ref button) => {
                 pointers
                     .iter_mut()
                     .for_each(|(pointer_id, _, mut pointer)| {
@@ -122,7 +123,7 @@ pub(super) fn mouse_pick_events(
                         }
                     });
             }
-            PointerAction::Release(button) => {
+            PointerAction::Release(ref button) => {
                 pointers
                     .iter_mut()
                     .for_each(|(pointer_id, _, mut pointer)| {
@@ -144,23 +145,23 @@ pub(super) fn mouse_pick_events(
             }
             _ => {}
         }
+
+        pointer_event_writer.write(event);
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub(super) fn sprite_picking_backend(
     pointers: Query<(&PointerId, &PointerLocation)>,
     main_camera_query: Query<(Entity, &Camera), With<MainCamera>>,
     player_query: Query<(Entity, &GlobalTransform), With<Player>>,
     mut output: EventWriter<PointerHits>,
 ) {
-    let (pointer_id, _) = match pointers.single() {
-        Ok(value) => value,
-        Err(err) => match err {
-            QuerySingleError::NoEntities(_) => {
-                warn!("No pointer found");
-                return
-            },
-            QuerySingleError::MultipleEntities(_) => panic!("Multiple Pointers not supported!"),
+    let (pointer_id, _) = match pointers.iter().find(|(p_id, _)| **p_id == MOUSE_POINTER_ID) {
+        Some(value) => value,
+        None => {
+            warn!("Pointer not found");
+            return
         }
     };
 

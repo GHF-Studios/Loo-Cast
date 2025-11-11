@@ -7,7 +7,7 @@ members = [
   "base_mod_macros",
   "bevy_consumable_event",
   "core_mod",
-  "base_mod_api"
+  "base_mod_api",
 ]
 
 [profile.dev]

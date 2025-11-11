@@ -3,7 +3,7 @@ pub mod systems;
 pub mod types;
 
 use bevy::prelude::*;
-use systems::{setup, handle_sprite_selection, update_gizmo_visibility_and_position, move_selected_with_gizmo};
+use systems::{setup, update_gizmo_visibility_and_position, move_selected_with_gizmo};
 
 use crate::core::run_conditions::run_after_startup_finished;
 
@@ -13,7 +13,6 @@ impl Plugin for GizmoPlugin {
         app
             .add_systems(Startup, setup)
             .add_systems(Update, (
-                handle_sprite_selection,
                 update_gizmo_visibility_and_position,
                 move_selected_with_gizmo,
             ).run_if(run_after_startup_finished));

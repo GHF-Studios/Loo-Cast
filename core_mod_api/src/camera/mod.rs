@@ -5,7 +5,7 @@ pub mod systems;
 pub mod workflows;
 
 use bevy::prelude::*;
-use components::{MainCamera, UiCamera};
+use components::{MainCameraProxy, MainCamera, UiCamera};
 use systems::{reserve_camera_entities, setup_main_render_target, main_camera_zoom_system, update_view_scale_from_zoom};
 use resources::{ZoomFactor, ViewScale};
 
@@ -23,6 +23,7 @@ impl Plugin for CameraPlugin {
             ))
             .add_systems(Update, (main_camera_zoom_system.before(update_view_scale_from_zoom), update_view_scale_from_zoom).run_if(run_after_startup_finished))
             .register_type::<MainCamera>()
+            .register_type::<MainCameraProxy>()
             .register_type::<UiCamera>()
             .register_type::<ZoomFactor>()
             .register_type::<ViewScale>();

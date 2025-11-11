@@ -2,6 +2,7 @@ pub mod components;
 pub mod functions;
 pub mod gizmo;
 pub mod resources;
+pub mod selection;
 pub mod systems;
 pub mod types;
 
@@ -13,6 +14,7 @@ use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use components::DebugObjectComponent;
 use gizmo::GizmoPlugin;
 use resources::{DebugSuiteUiDockState, DebugSuiteUiState};
+use selection::SelectionPlugin;
 use systems::{
     debug_object_movement_system, debug_suite_ui_system, log_registry_debug_ui, perf_ui_startup, toggle_debug_suite_ui_system,
 };
@@ -26,6 +28,7 @@ impl Plugin for DebugPlugin {
         app
             .add_plugins(DefaultInspectorConfigPlugin)
             .add_plugins(GizmoPlugin)
+            .add_plugins(SelectionPlugin)
             .init_resource::<DebugSuiteUiState>()
             .init_resource::<DebugSuiteUiDockState>()
             .add_systems(Startup, perf_ui_startup)

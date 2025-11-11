@@ -35,6 +35,7 @@ impl Follower {
 #[derive(Reflect)]
 #[reflect(Component)]
 pub struct FollowerTarget {
+    /// Who this target is followed by
     pub id: String,
 }
 impl Component for FollowerTarget {

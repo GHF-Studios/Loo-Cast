@@ -16,7 +16,7 @@ define_workflow_mod_OLD! {
                 use bevy::window::WindowRef;
                 use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
 
-                use crate::camera::components::MainCamera;
+                use crate::camera::components::{MainCamera, MainCameraProxy};
                 use crate::camera::functions::get_reserved_camera_entities;
                 use crate::chunk_actor::components::ChunkActor;
                 use crate::config::statics::CONFIG;
@@ -31,11 +31,13 @@ define_workflow_mod_OLD! {
                         }
                         struct State {
                             main_camera_entity: Entity,
+                            main_camera_proxy_entity: Entity,
                             ui_camera_entity: Entity,
                             egui_camera_entity: Entity,
                         }
                         struct Output {
                             spawned_main_camera_entity: Entity,
+                            spawned_main_camera_proxy_entity: Entity,
                             spawned_ui_camera_entity: Entity,
                             spawned_egui_camera_entity: Entity,
                         }
@@ -48,51 +50,72 @@ define_workflow_mod_OLD! {
                                 egui_camera_entity,
                                 ui_camera_entity,
                                 main_camera_entity,
+                                main_camera_proxy_entity,
                             ) = get_reserved_camera_entities();
 
                             commands.entity(egui_camera_entity).insert((
+                                Name::new("egui_camera"),
                                 Camera2d,
                                 Camera {
                                     order: 2,
                                     target: RenderTarget::Window(WindowRef::Primary),
                                     ..Default::default()
                                 },
-                                Name::new("egui_camera"),
                                 PrimaryEguiContext,
                                 EguiRenderOutput::default(),
                             ));
                             commands.entity(ui_camera_entity).insert((
+                                Name::new("ui_camera"),
                                 Camera2d,
                                 Camera {
                                     order: 1,
                                     target: RenderTarget::Window(WindowRef::Primary),
                                     ..Default::default()
                                 },
-                                Name::new("ui_camera"),
                                 RenderLayers::layer(1),
                             ));
                             commands.entity(main_camera_entity).insert((
+                                Name::new("main_camera"),
                                 Camera2d,
                                 Camera {
                                     order: 0,
                                     target: RenderTarget::Window(WindowRef::Primary),
                                     ..Default::default()
                                 },
-                                Name::new("main_camera"),
                                 MainCamera,
+                                RenderLayers::default(),
+                                ChunkActor::default(),
                                 Follower::new(
                                     "main_camera".to_string(),
                                     Vec2::ZERO,
                                     CONFIG().get::<f32>("camera/follow_smoothness"),
                                 ),
-                                ChunkActor::default(),
-                                RenderLayers::default(),
+                                FollowerTarget {
+                                    id: "main_camera_proxy".to_string(),
+                                },
+                            ));
+                            commands.entity(main_camera_proxy_entity).insert((
+                                Name::new("main_camera_proxy"),
+                                Camera2d,
+                                Camera {
+                                    order: isize::MIN,
+                                    target: RenderTarget::Window(WindowRef::Primary),
+                                    ..Default::default()
+                                },
+                                MainCameraProxy,
+                                RenderLayers::none(),
+                                Follower::new(
+                                    "main_camera_proxy".to_string(),
+                                    Vec2::ZERO,
+                                    0.0,
+                                ),
                             ));
 
                             State {
                                 main_camera_entity,
                                 ui_camera_entity,
-                                egui_camera_entity
+                                egui_camera_entity,
+                                main_camera_proxy_entity,
                             }
                         }
 
@@ -100,10 +123,13 @@ define_workflow_mod_OLD! {
                             let mut commands = main_access.commands;
 
                             if commands.get_entity(state.main_camera_entity).is_ok()
+                                && commands.get_entity(state.main_camera_proxy_entity).is_ok()
+                                && commands.get_entity(state.ui_camera_entity).is_ok()
                                 && commands.get_entity(state.egui_camera_entity).is_ok()
                             {
                                 Outcome::Done(Output {
                                     spawned_main_camera_entity: state.main_camera_entity,
+                                    spawned_main_camera_proxy_entity: state.main_camera_proxy_entity,
                                     spawned_ui_camera_entity: state.ui_camera_entity,
                                     spawned_egui_camera_entity: state.egui_camera_entity,
                                 })
