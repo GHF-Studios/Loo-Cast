@@ -2,20 +2,36 @@ use bevy::input::ButtonState;
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::ecs::query::QuerySingleError;
+use bevy::math::FloatOrd;
 use bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerId, PointerInput, PointerLocation, PointerPress};
 use bevy::picking::backend::prelude::*;
-use bevy::render::camera::RenderTarget;
+use bevy::render::camera::{ImageRenderTarget, RenderTarget};
 use bevy::window::{PrimaryWindow, WindowEvent, WindowRef};
 
 use crate::camera::components::MainCamera;
+use crate::camera::resources::GameViewRenderTarget;
 use crate::debug::resources::DebugSuiteUiState;
 use crate::player::components::Player;
 use crate::reflect::functions::get_struct_field_mut;
 
 use super::constants::MOUSE_POINTER_ID;
 
-pub(super) fn spawn_mouse_pointer(mut commands: Commands) {
-    commands.spawn(MOUSE_POINTER_ID);
+pub(super) fn spawn_mouse_pointer(
+    mut commands: Commands,
+    game_view_render_target: Res<GameViewRenderTarget>,
+) {
+    commands.spawn((
+        MOUSE_POINTER_ID,
+        PointerLocation::new(Location {
+            target: bevy::render::camera::NormalizedRenderTarget::Image(ImageRenderTarget {
+                handle: game_view_render_target.handle.clone(),
+                scale_factor: FloatOrd(1.0),
+            }),
+            // TODO: Actually compute this
+            position: Vec2::ZERO,
+        }),
+        PointerPress::default()
+    ));
 }
 
 /// Sends mouse pointer events to *`hopefully`* be processed by the core plugin
@@ -27,15 +43,16 @@ pub(super) fn mouse_pick_events(
     mut cursor_last: Local<Vec2>,
     mut pointers: Query<(&PointerId, &mut PointerLocation, &mut PointerPress)>,
     primary_window: Query<(Entity, &Window), With<PrimaryWindow>>,
-    ui_state: Res<DebugSuiteUiState>,
+    debug_suite_ui_state: Res<DebugSuiteUiState>,
+    game_view_render_target: Res<GameViewRenderTarget>,
 ) {
-    if !ui_state.enabled || window_events.is_empty() {
+    if !debug_suite_ui_state.enabled || window_events.is_empty() {
         return;
     }
 
     let Ok((primary_window_entity, primary_window)) = primary_window.single() else { return };
     let Some(cursor_pos) = primary_window.cursor_position() else { return };
-    let Some(viewport) = ui_state.viewport_rect_precision_proxy else { return };
+    let Some(viewport) = debug_suite_ui_state.viewport_rect_precision_proxy else { return };
 
     // Only inject pointer if it's within the egui image viewport
     if !viewport.contains(egui::Pos2::new(cursor_pos.x, cursor_pos.y)) {
@@ -48,29 +65,31 @@ pub(super) fn mouse_pick_events(
         match window_event {
             WindowEvent::CursorMoved(event) => {
                 let location = Location {
-                    target: match RenderTarget::Window(WindowRef::Primary)
-                        .normalize(Some(primary_window_entity))
-                    {
+                    target: match RenderTarget::Image(ImageRenderTarget {
+                        handle: game_view_render_target.handle.clone(),
+                        scale_factor: FloatOrd(1.0),
+                    }).normalize(Some(primary_window_entity)) {
                         Some(target) => target,
                         None => continue,
                     },
                     position: event.position,
                 };
-                let pointer_input = PointerInput::new(
+                let action = PointerAction::Move {
+                    delta: event.position - *cursor_last,
+                };
+                pointer_events.push(PointerInput::new(
                     MOUSE_POINTER_ID,
                     location,
-                    PointerAction::Move {
-                        delta: event.position - *cursor_last,
-                    },
-                );
-                pointer_events.push(pointer_input.clone());
+                    action,
+                ));
                 *cursor_last = event.position;
             }
             WindowEvent::MouseButtonInput(input) => {
                 let location = Location {
-                    target: match RenderTarget::Window(WindowRef::Primary)
-                        .normalize(Some(primary_window_entity))
-                    {
+                    target: match RenderTarget::Image(ImageRenderTarget {
+                        handle: game_view_render_target.handle.clone(),
+                        scale_factor: FloatOrd(1.0),
+                    }).normalize(Some(primary_window_entity)) {
                         Some(target) => target,
                         None => continue,
                     },
@@ -86,23 +105,30 @@ pub(super) fn mouse_pick_events(
                     ButtonState::Pressed => PointerAction::Press(button),
                     ButtonState::Released => PointerAction::Release(button),
                 };
-                let pointer_input = PointerInput::new(MOUSE_POINTER_ID, location, action);
-                pointer_events.push(pointer_input.clone());
+                pointer_events.push(PointerInput::new(
+                    MOUSE_POINTER_ID,
+                    location,
+                    action
+                ));
             }
             WindowEvent::MouseWheel(event) => {
                 let MouseWheel { unit, x, y, window: _ } = *event;
                 let location = Location {
-                    target: match RenderTarget::Window(WindowRef::Primary)
-                        .normalize(Some(primary_window_entity))
-                    {
+                    target: match RenderTarget::Image(ImageRenderTarget {
+                        handle: game_view_render_target.handle.clone(),
+                        scale_factor: FloatOrd(1.0),
+                    }).normalize(Some(primary_window_entity)) {
                         Some(target) => target,
                         None => continue,
                     },
                     position: *cursor_last,
                 };
                 let action = PointerAction::Scroll { x, y, unit };
-                let pointer_input = PointerInput::new(MOUSE_POINTER_ID, location, action);
-                pointer_events.push(pointer_input.clone());
+                pointer_events.push(PointerInput::new(
+                    MOUSE_POINTER_ID,
+                    location,
+                    action
+                ));
             }
             _ => {}
         }
@@ -150,12 +176,14 @@ pub(super) fn mouse_pick_events(
     }
 }
 
+// TODO: Impl properly
 #[tracing::instrument(skip_all)]
 pub(super) fn sprite_picking_backend(
+    mut pointer_hits_event_writer: EventWriter<PointerHits>,
     pointers: Query<(&PointerId, &PointerLocation)>,
     main_camera_query: Query<(Entity, &Camera), With<MainCamera>>,
     player_query: Query<(Entity, &GlobalTransform), With<Player>>,
-    mut output: EventWriter<PointerHits>,
+    debug_suite_ui_state: Res<DebugSuiteUiState>,
 ) {
     let (pointer_id, _) = match pointers.iter().find(|(p_id, _)| **p_id == MOUSE_POINTER_ID) {
         Some(value) => value,
@@ -164,6 +192,22 @@ pub(super) fn sprite_picking_backend(
             return
         }
     };
+    // let (pointer_id, _) = match debug_suite_ui_state.viewport_rect_precision_proxy {
+    //     Some(viewport) => match pointers.iter().find(|(p_id, _)| **p_id == MOUSE_POINTER_ID) {
+    //         Some(value) => value,
+    //         None => {
+    //             warn!("Custom debug suite mouse pointer not found");
+    //             return
+    //         }
+    //     }
+    //     None => match pointers.iter().find(|(p_id, _)| **p_id == PointerId::Mouse) {
+    //         Some(value) => value,
+    //         None => {
+    //             warn!("Built-in default mouse pointer not found");
+    //             return
+    //         }
+    //     }
+    // };
 
     let (main_camera_entity, main_camera) = match main_camera_query.single() {
         Ok(value) => value,
@@ -191,11 +235,12 @@ pub(super) fn sprite_picking_backend(
         HitData::new(
             main_camera_entity,
             0.0,
+            // TODO: Actually compute this
             Some(Vec3::ZERO),
             Some(*player_transform.back()),
         ),
     )];
 
     let order = main_camera.order as f32;
-    output.write(PointerHits::new(*pointer_id, picks, order));
+    pointer_hits_event_writer.write(PointerHits::new(*pointer_id, picks, order));
 }
