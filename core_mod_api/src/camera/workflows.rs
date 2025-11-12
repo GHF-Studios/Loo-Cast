@@ -94,22 +94,22 @@ define_workflow_mod_OLD! {
                                     id: "main_camera_proxy".to_string(),
                                 },
                             ));
-                            commands.entity(main_camera_proxy_entity).insert((
-                                Name::new("main_camera_proxy"),
-                                Camera2d,
-                                Camera {
-                                    order: isize::MIN,
-                                    target: RenderTarget::Window(WindowRef::Primary),
-                                    ..Default::default()
-                                },
-                                MainCameraProxy,
-                                RenderLayers::none(),
-                                Follower::new(
-                                    "main_camera_proxy".to_string(),
-                                    Vec2::ZERO,
-                                    0.0,
-                                ),
-                            ));
+                            // commands.entity(main_camera_proxy_entity).insert((
+                            //     Name::new("main_camera_proxy"),
+                            //     Camera2d,
+                            //     Camera {
+                            //         order: isize::MIN,
+                            //         target: RenderTarget::Window(WindowRef::Primary),
+                            //         ..Default::default()
+                            //     },
+                            //     MainCameraProxy,
+                            //     RenderLayers::none(),
+                            //     Follower::new(
+                            //         "main_camera_proxy".to_string(),
+                            //         Vec2::ZERO,
+                            //         0.0,
+                            //     ),
+                            // ));
 
                             State {
                                 main_camera_entity,
