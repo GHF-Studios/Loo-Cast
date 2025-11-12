@@ -31,7 +31,7 @@ pub(super) fn perf_ui_startup(
     mut has_spawned: Local<bool>,
     mut commands: Commands,
     main_camera_query: Query<Entity, With<MainCamera>>,
-    // ui_camera_query: Query<Entity, With<UiCamera>>,
+    ui_camera_query: Query<Entity, With<UiCamera>>,
 ) {
     let main_camera_entity = match main_camera_query.single() {
         Ok(entity) => entity,
@@ -39,17 +39,18 @@ pub(super) fn perf_ui_startup(
             panic!("Failed to get MainCamera entity for Perf UI setup: {}", err);
         }
     };
-    // let ui_camera_entity = match ui_camera_query.single() {
-    //     Ok(entity) => entity,
-    //     Err(err) => {
-    //         panic!("Failed to get UiCamera entity for Perf UI setup: {}", err);
-    //     }
-    // };
+    let ui_camera_entity = match ui_camera_query.single() {
+        Ok(entity) => entity,
+        Err(err) => {
+            panic!("Failed to get UiCamera entity for Perf UI setup: {}", err);
+        }
+    };
 
     if !*has_spawned {
         *has_spawned = true;
         commands.spawn((
-            UiTargetCamera(main_camera_entity),
+            // UiTargetCamera(main_camera_entity),
+            UiTargetCamera(ui_camera_entity),
             PerfUiRoot {
                 fontsize_label: 16.0,
                 fontsize_value: 16.0,
@@ -62,8 +63,8 @@ pub(super) fn perf_ui_startup(
             PerfUiEntryEntityCount::default(),
             PerfUiPlayerPosEntries::default(),
             PerfUiCursorPosEntries::default(),
-            RenderLayers::default(),
-            // RenderLayers::layer(1),
+            // RenderLayers::default(),
+            RenderLayers::layer(1),
         ));
     }
 }
