@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use bevy::input::mouse::{MouseWheel, MouseScrollUnit};
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
-use bevy::window::PrimaryWindow;
 
 use crate::chunk_actor::components::ChunkActor;
 use crate::chunk_loader::components::ChunkLoader;
@@ -55,18 +54,18 @@ pub(super) fn pre_setup_phase_1(
     mut commands: Commands,
     mut egui_textures: ResMut<bevy_egui::EguiUserTextures>,
 ) {
-    let (image_handle, size_uvec2) = super::functions::get_reserved_game_view_render_target();
+    let (image_handle, size) = super::functions::get_reserved_game_view_render_target();
     let texture_id = egui_textures.add_image(image_handle.clone_weak());
 
     commands.insert_resource(GameViewRenderTarget {
         handle: image_handle,
-        size: size_uvec2,
+        size,
         id: texture_id,
     });
 }
 
 pub(super) fn resize_render_texture(
-    mut previous_physical_window_size: Local<UVec2>,
+    mut previous_window_size_uvec2: Local<UVec2>,
     mut images: ResMut<Assets<Image>>,
     mut game_view_render_target: ResMut<GameViewRenderTarget>,
     windows: Query<&Window>,
@@ -74,11 +73,11 @@ pub(super) fn resize_render_texture(
     let window = windows.single().unwrap();
     let size_uvec2 = window.physical_size();
 
-    if size_uvec2 == *previous_physical_window_size {
+    if size_uvec2 == *previous_window_size_uvec2 {
         return;
     }
 
-    *previous_physical_window_size = size_uvec2;
+    *previous_window_size_uvec2 = size_uvec2;
     game_view_render_target.size = size_uvec2;
     
     let image = images.get_mut(&game_view_render_target.handle).unwrap();

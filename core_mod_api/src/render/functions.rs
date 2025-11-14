@@ -1,4 +1,5 @@
-use bevy::{ecs::system::SystemState, prelude::*};
+use bevy::prelude::*;
+use bevy::ecs::system::SystemState;
 use egui::Color32;
 use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
@@ -21,7 +22,7 @@ static RESERVED_UI_CAMERA_ENTITY: OnceCell<Entity> = OnceCell::new();
 static RESERVED_MAIN_CAMERA_ENTITY: OnceCell<Entity> = OnceCell::new();
 
 static RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE: OnceCell<Handle<Image>> = OnceCell::new();
-static RESERVED_GAME_VIEW_RENDER_TARGET_SIZE: OnceCell<UVec2> = OnceCell::new();
+static RESERVED_GAME_VIEW_RENDER_TARGET_SIZE_UVEC2: OnceCell<UVec2> = OnceCell::new();
 
 pub(super) fn reserve_camera_entities(egui_camera: Entity, ui_camera: Entity, main_camera: Entity) {
     RESERVED_EGUI_CAMERA_ENTITY.set(egui_camera).expect("RESERVED_EGUI_CAMERA_ENTITY already set");
@@ -37,13 +38,13 @@ pub(super) fn get_reserved_camera_entities() -> (Entity, Entity, Entity) {
 }
 
 pub(super) fn reserve_game_view_render_target(handle: Handle<Image>, size_uvec2: UVec2) {
-    RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE.set(handle).expect("RESERVER_GAME_VIEW_RENDER_TARGET_HANDLE already set");
-    RESERVED_GAME_VIEW_RENDER_TARGET_SIZE.set(size_uvec2).expect("RESERVER_GAME_VIEW_RENDER_TARGET_SIZE already set");
+    RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE.set(handle).expect("RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE already set");
+    RESERVED_GAME_VIEW_RENDER_TARGET_SIZE_UVEC2.set(size_uvec2).expect("RESERVED_GAME_VIEW_RENDER_TARGET_SIZE already set");
 }
 pub(super) fn get_reserved_game_view_render_target() -> (Handle<Image>, UVec2) {
     (
-        RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE.clone().into_inner().expect("RESERVER_GAME_VIEW_RENDER_TARGET_HANDLE not set"),
-        RESERVED_GAME_VIEW_RENDER_TARGET_SIZE.clone().into_inner().expect("RESERVER_GAME_VIEW_RENDER_TARGET_SIZE not set"),
+        RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE.clone().into_inner().expect("RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE not set"),
+        RESERVED_GAME_VIEW_RENDER_TARGET_SIZE_UVEC2.clone().into_inner().expect("RESERVED_GAME_VIEW_RENDER_TARGET_SIZE not set"),
     )
 }
 

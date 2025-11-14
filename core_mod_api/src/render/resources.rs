@@ -1,6 +1,6 @@
 use bevy::prelude::*;
-use egui::TextureId;
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
+use egui::TextureId;
 use egui_dock::{DockState, NodeIndex};
 
 use crate::config::statics::CONFIG;
