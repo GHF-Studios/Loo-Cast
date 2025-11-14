@@ -142,7 +142,7 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
             DebugSuiteTab::ChunkInspector => {
                 ui.label("Chunk Inspector (todo)");
             }
-        };
+        }; 
     }
 
     fn clear_background(&self, tab: &Self::Tab) -> bool {

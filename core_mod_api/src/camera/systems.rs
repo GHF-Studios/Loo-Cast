@@ -9,20 +9,19 @@ use crate::time::resources::VirtualPaused;
 
 use super::resources::{GameViewRenderTarget, ZoomFactor, ViewScale};
 
-pub(super) fn reserve_camera_entities(mut commands: Commands) {
+pub(super) fn pre_setup_phase_0(
+    mut commands: Commands,
+    mut images: ResMut<Assets<Image>>,
+    windows: Query<&Window>,
+) {
+    // Reserve camera entities
     let egui_camera = commands.spawn(()).id();
     let ui_camera = commands.spawn(UiCamera).id();
     let main_camera = commands.spawn(MainCamera).id();
     let main_camera_proxy = commands.spawn(MainCameraProxy).id();
     super::functions::reserve_camera_entities(egui_camera, ui_camera, main_camera, main_camera_proxy);
-}
 
-pub(super) fn setup_main_render_target(
-    mut commands: Commands,
-    mut images: ResMut<Assets<Image>>,
-    mut egui_textures: ResMut<bevy_egui::EguiUserTextures>,
-    windows: Query<&Window>,
-) {
+    // Reserve game view render target handle
     let window = windows.single().unwrap();
     let size_uvec2 = window.physical_size();
     let size_extent3d = Extent3d {
@@ -30,7 +29,6 @@ pub(super) fn setup_main_render_target(
         height: size_uvec2.y,
         depth_or_array_layers: 1,
     };
-
     let mut image = Image {
         texture_descriptor: TextureDescriptor {
             label: Some("Game View Render Target"),
@@ -45,8 +43,15 @@ pub(super) fn setup_main_render_target(
         ..default()
     };
     image.resize(size_extent3d);
-
     let image_handle = images.add(image);
+    super::functions::reserve_game_view_render_target(image_handle, size_uvec2);
+}
+
+pub(super) fn pre_setup_phase_1(
+    mut commands: Commands,
+    mut egui_textures: ResMut<bevy_egui::EguiUserTextures>,
+) {
+    let (image_handle, size_uvec2) = super::functions::get_reserved_game_view_render_target();
     let texture_id = egui_textures.add_image(image_handle.clone());
 
     commands.insert_resource(GameViewRenderTarget {

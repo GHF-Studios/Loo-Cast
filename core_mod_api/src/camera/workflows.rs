@@ -6,18 +6,20 @@ define_workflow_mod_OLD! {
         SpawnCameras, timeout_secs: 5.0, timeout_mode: RealTime {
             user_imports: {
                 use bevy::prelude::{Commands, Res, ResMut, Camera2d, Vec2, Name, Camera};
+                use bevy::math::FloatOrd;
                 use bevy::render::view::RenderLayers;
                 use bevy_egui::EguiRenderOutput;
                 use bevy::render::render_resource::{
                     Buffer, TextureView, TextureDescriptor, Extent3d,
                     TextureDimension, TextureFormat, TextureUsages,
                 };
-                use bevy::render::camera::RenderTarget;
+                use bevy::render::camera::{RenderTarget, ImageRenderTarget};
                 use bevy::window::WindowRef;
                 use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
 
                 use crate::camera::components::{MainCamera, MainCameraProxy};
                 use crate::camera::functions::get_reserved_camera_entities;
+                use crate::camera::resources::GameViewRenderTarget;
                 use crate::chunk_actor::components::ChunkActor;
                 use crate::config::statics::CONFIG;
                 use crate::follower::components::{Follower, FollowerTarget};
@@ -28,6 +30,7 @@ define_workflow_mod_OLD! {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>,
+                            game_view_render_target: Res<'w, GameViewRenderTarget>,
                         }
                         struct State {
                             main_camera_entity: Entity,
@@ -45,6 +48,7 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn SetupEcsWhile |main_access| -> State {
                             let mut commands = main_access.commands;
+                            let game_view_render_target = main_access.game_view_render_target;
 
                             let (
                                 egui_camera_entity,
@@ -69,7 +73,10 @@ define_workflow_mod_OLD! {
                                 Camera2d,
                                 Camera {
                                     order: 1,
-                                    target: RenderTarget::Window(WindowRef::Primary),
+                                    target: RenderTarget::Image(ImageRenderTarget {
+                                        handle: game_view_render_target.handle.clone(),
+                                        scale_factor: FloatOrd(1.0),
+                                    }),
                                     ..Default::default()
                                 },
                                 RenderLayers::layer(1),
@@ -79,7 +86,10 @@ define_workflow_mod_OLD! {
                                 Camera2d,
                                 Camera {
                                     order: 0,
-                                    target: RenderTarget::Window(WindowRef::Primary),
+                                    target: RenderTarget::Image(ImageRenderTarget {
+                                        handle: game_view_render_target.handle.clone(),
+                                        scale_factor: FloatOrd(1.0),
+                                    }),
                                     ..Default::default()
                                 },
                                 MainCamera,

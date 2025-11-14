@@ -13,6 +13,7 @@ use crate::{
 
 use super::resources::{DebugSuiteUiDockState, DebugSuiteUiState};
 
+// TODO: Move this (and other similar/related) to "render/functions.rs" (and other similar/related)
 #[tracing::instrument(skip_all)]
 pub(super) fn draw_debug_suite(
     state: &mut DebugSuiteUiState,
@@ -21,73 +22,71 @@ pub(super) fn draw_debug_suite(
     world: &mut World,
     ctx: &mut egui::Context,
 ) {
-    if !state.enabled {
-        return;
-    }
+    if state.enabled {
+        // Debug suite toolbar
+        egui::TopBottomPanel::top("debug_suite_toolbar").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.checkbox(&mut state.show_chunk_manager, "Chunk Manager");
+                ui.checkbox(&mut state.show_intent_buffer, "Intent Buffer");
+                ui.checkbox(&mut state.show_intent_commit, "Intent Commit");
+                ui.checkbox(&mut state.show_chunk_inspector, "Chunk Inspector");
 
-    // Toolbar
-    egui::TopBottomPanel::top("debug_suite_toolbar").show(ctx, |ui| {
-        ui.horizontal(|ui| {
-            ui.checkbox(&mut state.show_chunk_manager, "Chunk Manager");
-            ui.checkbox(&mut state.show_intent_buffer, "Intent Buffer");
-            ui.checkbox(&mut state.show_intent_commit, "Intent Commit");
-            ui.checkbox(&mut state.show_chunk_inspector, "Chunk Inspector");
+                ui.separator();
 
-            ui.separator();
+                let mut system_state: SystemState<_> = SystemState::<(ResMut<TimeInfo>, ResMut<Time<Virtual>>)>::new(world);
+                let (mut time_info, mut virtual_time) = system_state.get_mut(world);
+                let pause_state = &mut time_info.pause_state;
 
-            let mut system_state: SystemState<_> = SystemState::<(ResMut<TimeInfo>, ResMut<Time<Virtual>>)>::new(world);
-            let (mut time_info, mut virtual_time) = system_state.get_mut(world);
-            let pause_state = &mut time_info.pause_state;
-
-            if ui.button(if pause_state.is_paused() { "▶ Resume" } else { "⏸ Pause" }).clicked() {
-                match pause_state {
-                    PauseState::Running => {
-                        *pause_state = PauseState::Paused;
-                        virtual_time.pause();
-                    }
-                    PauseState::Paused => {
-                        *pause_state = PauseState::Running;
-                        virtual_time.unpause();
-                    }
-                    PauseState::Step => {}
-                }
-            }
-
-            if ui.button("⏭ Step").clicked() {
-                match time_info.pause_state {
-                    PauseState::Running => {
-                        return;
-                    }
-                    PauseState::Paused => {
-                        time_info.pause_state = PauseState::Step;
-                    }
-                    PauseState::Step => {
-                        return;
+                if ui.button(if pause_state.is_paused() { "▶ Resume" } else { "⏸ Pause" }).clicked() {
+                    match pause_state {
+                        PauseState::Running => {
+                            *pause_state = PauseState::Paused;
+                            virtual_time.pause();
+                        }
+                        PauseState::Paused => {
+                            *pause_state = PauseState::Running;
+                            virtual_time.unpause();
+                        }
+                        PauseState::Step => {}
                     }
                 }
-            }
 
-            ui.label("Step Mode:");
-            egui::ComboBox::from_label("")
-                .selected_text(match time_info.step_config {
-                    StepConfig::Cycles(_) => "Cycles",
-                    StepConfig::Seconds(_) => "Seconds",
-                })
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut time_info.step_config, StepConfig::Cycles(1), "Cycles");
-                    ui.selectable_value(&mut time_info.step_config, StepConfig::Seconds(1.0), "Seconds");
-                });
+                if ui.button("⏭ Step").clicked() {
+                    match time_info.pause_state {
+                        PauseState::Running => {
+                            return;
+                        }
+                        PauseState::Paused => {
+                            time_info.pause_state = PauseState::Step;
+                        }
+                        PauseState::Step => {
+                            return;
+                        }
+                    }
+                }
 
-            match &mut time_info.step_config {
-                StepConfig::Cycles(cycles) => {
-                    ui.add(egui::DragValue::new(cycles).speed(1));
+                ui.label("Step Mode:");
+                egui::ComboBox::from_label("")
+                    .selected_text(match time_info.step_config {
+                        StepConfig::Cycles(_) => "Cycles",
+                        StepConfig::Seconds(_) => "Seconds",
+                    })
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut time_info.step_config, StepConfig::Cycles(1), "Cycles");
+                        ui.selectable_value(&mut time_info.step_config, StepConfig::Seconds(1.0), "Seconds");
+                    });
+
+                match &mut time_info.step_config {
+                    StepConfig::Cycles(cycles) => {
+                        ui.add(egui::DragValue::new(cycles).speed(1));
+                    }
+                    StepConfig::Seconds(seconds) => {
+                        ui.add(egui::DragValue::new(seconds).speed(1));
+                    }
                 }
-                StepConfig::Seconds(seconds) => {
-                    ui.add(egui::DragValue::new(seconds).speed(1));
-                }
-            }
+            });
         });
-    });
+    }
 
     // Dock area
     egui::CentralPanel::default().show(ctx, |_ui| {

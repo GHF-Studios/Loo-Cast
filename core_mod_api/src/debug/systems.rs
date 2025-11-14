@@ -120,6 +120,7 @@ pub(super) fn log_registry_debug_ui(log_registry: Res<LogRegistry>, mut egui_ctx
 pub(super) fn toggle_debug_suite_ui_system(
     render_target: Res<GameViewRenderTarget>,
     mut ui_state: ResMut<DebugSuiteUiState>,
+    mut ui_dock_state: ResMut<DebugSuiteUiDockState>,
     keys: Res<ButtonInput<KeyCode>>,
     input_mode: Res<State<InputMode>>,
     mut next_input_mode: ResMut<NextState<InputMode>>,
@@ -129,21 +130,25 @@ pub(super) fn toggle_debug_suite_ui_system(
     if keys.just_pressed(KeyCode::F3) {
         ui_state.enabled = !ui_state.enabled;
         if ui_state.enabled {
-            main_camera_query.target = RenderTarget::Image(render_target.handle.clone().into());
-            ui_camera_query.target = RenderTarget::Image(render_target.handle.clone().into());
+            // main_camera_query.target = RenderTarget::Image(render_target.handle.clone().into());
+            // ui_camera_query.target = RenderTarget::Image(render_target.handle.clone().into());
 
             if input_mode.is_game() {
                 next_input_mode.set(InputMode::DebugSuite);
             }
 
+            *ui_dock_state = DebugSuiteUiDockState::new_for_debug();
+
             info!("Debug suite enabled.");
         } else {
-            main_camera_query.target = RenderTarget::Window(WindowRef::Primary);
-            ui_camera_query.target = RenderTarget::Window(WindowRef::Primary);
+            // main_camera_query.target = RenderTarget::Window(WindowRef::Primary);
+            // ui_camera_query.target = RenderTarget::Window(WindowRef::Primary);
 
             if input_mode.is_debug_suite() {
                 next_input_mode.set(InputMode::Game);
             }
+
+            *ui_dock_state = DebugSuiteUiDockState::new_for_release();
 
             info!("Debug suite disabled.");
         }

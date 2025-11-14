@@ -6,7 +6,7 @@ pub mod workflows;
 
 use bevy::prelude::*;
 use components::{MainCameraProxy, MainCamera, UiCamera};
-use systems::{reserve_camera_entities, setup_main_render_target, main_camera_zoom_system, update_view_scale_from_zoom};
+use systems::{pre_setup_phase_0, pre_setup_phase_1, main_camera_zoom_system, update_view_scale_from_zoom};
 use resources::{ZoomFactor, ViewScale};
 
 use crate::core::run_conditions::run_after_startup_finished;
@@ -18,8 +18,8 @@ impl Plugin for CameraPlugin {
             .insert_resource(ZoomFactor::default())
             .insert_resource(ViewScale::default())
             .add_systems(PreStartup, (
-                reserve_camera_entities.before(setup_main_render_target),
-                setup_main_render_target,
+                pre_setup_phase_0.before(pre_setup_phase_1),
+                pre_setup_phase_1,
             ))
             .add_systems(Update, (main_camera_zoom_system.before(update_view_scale_from_zoom), update_view_scale_from_zoom).run_if(run_after_startup_finished))
             .register_type::<MainCamera>()
