@@ -12,9 +12,10 @@ use egui_dock::TabViewer;
 
 use crate::debug::functions::{select_asset, select_resource};
 use crate::input::states::InputMode;
-
-use super::functions::draw_game_view;
-use super::resources::DebugSuiteUiState;
+use crate::render::{
+    functions::draw_game_view,
+    resources::PrimaryWindowUiState,
+};
 
 #[derive(Default, Reflect)]
 pub enum DebugObjectMovement {
@@ -66,9 +67,9 @@ pub enum InspectorSelection {
     Asset(TypeId, String, #[reflect(ignore)] Option<UntypedAssetId>),
 }
 
-pub(super) struct DebugSuiteTabViewer<'a> {
+pub(crate) struct DebugSuiteTabViewer<'a> {
     pub world: &'a mut World,
-    pub state: &'a mut DebugSuiteUiState,
+    pub state: &'a mut PrimaryWindowUiState,
     pub game_view_texture_id: Option<egui::TextureId>,
     pub game_view_texture_size: Option<egui::Vec2>,
 }

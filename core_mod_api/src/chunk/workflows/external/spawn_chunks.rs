@@ -1,15 +1,20 @@
 // Imports
 use bevy::prelude::*;
 
-use crate::camera::components::MainCamera;
 use crate::chunk::{components::Chunk, resources::ChunkManager};
-use crate::chunk_loader::components::ChunkLoader;
-use crate::chunk_loader::types::ChunkLoaderId;
+use crate::chunk_loader::{
+    components::ChunkLoader,
+    types::ChunkLoaderId,
+};
 use crate::config::statics::CONFIG;
-use crate::render::components::RenderProxyHandle;
-use crate::render::functions::make_sprite_proxy_bundle;
-use crate::usf::pos::grid::types::GridVec;
-use crate::usf::scale::Scale;
+use crate::render::{
+    components::{MainCamera, RenderProxyHandle},
+    functions::new_sprite_proxy_bundle,
+};
+use crate::usf::{
+    pos::grid::types::GridVec,
+    scale::Scale,
+};
 use crate::workflow::types::Outcome;
 
 // Items
@@ -91,7 +96,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
 
         let chunk_entity = commands.spawn(()).id();
 
-        let chunk_render_proxy_entity = commands.spawn(make_sprite_proxy_bundle(
+        let chunk_render_proxy_entity = commands.spawn(new_sprite_proxy_bundle(
             metric_texture,
             visual_world_coord,
             visual_world_scale,

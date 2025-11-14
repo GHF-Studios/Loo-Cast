@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 
-use crate::debug::resources::DebugSuiteUiState;
+use crate::render::resources::PrimaryWindowUiState;
 
 #[tracing::instrument(skip_all)]
 pub(super) fn handle_selection(
     mut events: EventReader<Pointer<Click>>,
     selectable_query: Query<Entity, With<Sprite>>,
-    mut debug_suite_ui_state: ResMut<DebugSuiteUiState>,
+    mut debug_suite_ui_state: ResMut<PrimaryWindowUiState>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {
     let selected = &mut debug_suite_ui_state.selected_entities;

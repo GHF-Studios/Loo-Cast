@@ -62,7 +62,6 @@ pub use uuid;
 //pub mod traits;
 
 // Modules
-pub mod camera;
 pub mod chunk;
 pub mod chunk_actor;
 pub mod chunk_loader;
@@ -79,7 +78,6 @@ pub mod player;
 pub mod reflect;
 pub mod render;
 pub mod time;
-pub mod ui;
 pub mod usf;
 pub mod utils;
 pub mod window;
@@ -88,7 +86,6 @@ pub mod workflow;
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use core_mod_macros::register_workflow_mods;
 
-use camera::CameraPlugin;
 use chunk::ChunkPlugin;
 use chunk_actor::ChunkActorPlugin;
 use chunk_loader::ChunkLoaderPlugin;
@@ -104,7 +101,6 @@ use picking::PickingPlugin;
 use player::PlayerPlugin;
 use render::RenderPlugin;
 use time::TimePlugin;
-use ui::UiPlugin;
 use usf::UsfPlugin;
 use utils::UtilsPlugin;
 use window::WindowPlugin;
@@ -116,7 +112,6 @@ impl PluginGroup for CoreApiPluginGroup {
         PluginGroupBuilder::start::<Self>()
             .add_group(WorkflowPlugins)
             .add(CorePlugin)
-            .add(CameraPlugin)
             .add(ChunkPlugin)
             .add(ChunkActorPlugin)
             .add(ChunkLoaderPlugin)
@@ -131,7 +126,6 @@ impl PluginGroup for CoreApiPluginGroup {
             .add(PlayerPlugin)
             .add(RenderPlugin)
             .add(TimePlugin)
-            .add(UiPlugin)
             .add(UsfPlugin)
             .add(UtilsPlugin)
             .add(WindowPlugin)
@@ -140,11 +134,6 @@ impl PluginGroup for CoreApiPluginGroup {
 }
 
 register_workflow_mods!(
-    Camera {
-        SpawnCameras {
-            SpawnAndWait: EcsWhile,
-        },
-    },
     Chunk {
         SpawnChunks {
             ValidateAndSpawnAndWait: EcsWhile,
@@ -209,5 +198,10 @@ register_workflow_mods!(
         DespawnPlayer {
             ValidateAndDespawnAndWait: EcsWhile,
         }
+    },
+    Render {
+        SpawnCameras {
+            SpawnAndWait: EcsWhile,
+        },
     },
 );

@@ -6,7 +6,7 @@ use crate::logging::{
     types::{LogLevel::*, *},
     ui::{resources::LogViewerState, types::SelectionMode},
 };
-use crate::ui::custom_egui_widgets::tri_checkbox::TriCheckboxExt;
+use crate::render::custom_egui_widgets::tri_checkbox::TriCheckboxExt;
 
 // === Basics ===
 

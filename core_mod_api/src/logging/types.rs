@@ -8,7 +8,7 @@ use tracing::{Level as TracingLevel, Metadata};
 
 use crate::logging::resources::LogRegistry;
 use crate::logging::statics::LOG_ID_COUNTER;
-use crate::ui::custom_egui_widgets::tri_checkbox::TriState;
+use crate::render::custom_egui_widgets::tri_checkbox::TriState;
 
 // === Basics ===
 

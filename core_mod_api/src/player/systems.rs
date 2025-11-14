@@ -1,9 +1,13 @@
 use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
-use crate::{
-    camera::resources::ZoomFactor, chunk_loader::components::ChunkLoader, config::statics::CONFIG, input::states::InputMode, player::resources::PlayerLifecycle, utils::lifecycle_hook::{DropHook, InitHook}, workflow::functions::handle_composite_workflow_return_now
-};
+use crate::chunk_loader::components::ChunkLoader;
+use crate::config::statics::CONFIG;
+use crate::input::states::InputMode;
+use crate::player::resources::PlayerLifecycle;
+use crate::render::resources::ZoomFactor;
+use crate::utils::lifecycle_hook::{DropHook, InitHook};
+use crate::workflow::functions::handle_composite_workflow_return_now;
 
 #[tracing::instrument(skip_all)]
 pub(super) fn update_player_system(

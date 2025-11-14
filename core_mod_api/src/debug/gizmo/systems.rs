@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
-use crate::debug::resources::DebugSuiteUiState;
 
 use super::components::GizmoArrow;
+use crate::render::resources::PrimaryWindowUiState;
 use super::types::Axis2D;
 
 pub(super) fn setup(
@@ -44,7 +44,7 @@ pub(super) fn setup(
 pub(super) fn update_gizmo_visibility_and_position(
     mut gizmo_root: Query<(&mut Transform, &mut Visibility), With<Children>>,
     transforms: Query<&GlobalTransform>,
-    debug_suite_ui_state: Res<DebugSuiteUiState>,
+    debug_suite_ui_state: Res<PrimaryWindowUiState>,
 ) {
     let Ok((mut gizmo_transform, mut vis)) = gizmo_root.single_mut() else {
         return;
@@ -79,7 +79,7 @@ pub(super) fn move_selected_with_gizmo(
     mut drag_events: EventReader<Pointer<Drag>>,
     mut transforms: Query<&mut Transform>,
     gizmo_parts: Query<(&GizmoArrow, &GlobalTransform)>,
-    debug_suite_ui_state: Res<DebugSuiteUiState>,
+    debug_suite_ui_state: Res<PrimaryWindowUiState>,
 ) {
     let selected = &debug_suite_ui_state.selected_entities;
 

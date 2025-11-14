@@ -8,11 +8,12 @@ use bevy::picking::backend::prelude::*;
 use bevy::render::camera::{ImageRenderTarget, RenderTarget};
 use bevy::window::{PrimaryWindow, WindowEvent, WindowRef};
 
-use crate::camera::components::MainCamera;
-use crate::camera::resources::GameViewRenderTarget;
-use crate::debug::resources::DebugSuiteUiState;
 use crate::player::components::Player;
 use crate::reflect::functions::get_struct_field_mut;
+use crate::render::{
+    components::MainCamera,
+    resources::{GameViewRenderTarget, PrimaryWindowUiState},
+};
 
 use super::constants::MOUSE_POINTER_ID;
 
@@ -43,7 +44,7 @@ pub(super) fn mouse_pick_events(
     mut cursor_last: Local<Vec2>,
     mut pointers: Query<(&PointerId, &mut PointerLocation, &mut PointerPress)>,
     primary_window: Query<(Entity, &Window), With<PrimaryWindow>>,
-    debug_suite_ui_state: Res<DebugSuiteUiState>,
+    debug_suite_ui_state: Res<PrimaryWindowUiState>,
     game_view_render_target: Res<GameViewRenderTarget>,
 ) {
     if window_events.is_empty() {
@@ -183,31 +184,14 @@ pub(super) fn sprite_picking_backend(
     pointers: Query<(&PointerId, &PointerLocation)>,
     main_camera_query: Query<(Entity, &Camera), With<MainCamera>>,
     player_query: Query<(Entity, &GlobalTransform), With<Player>>,
-    debug_suite_ui_state: Res<DebugSuiteUiState>,
 ) {
     let (pointer_id, _) = match pointers.iter().find(|(p_id, _)| **p_id == MOUSE_POINTER_ID) {
         Some(value) => value,
         None => {
-            warn!("Pointer not found");
+            warn!("Mouse pointer not found");
             return
         }
     };
-    // let (pointer_id, _) = match debug_suite_ui_state.viewport_rect_precision_proxy {
-    //     Some(viewport) => match pointers.iter().find(|(p_id, _)| **p_id == MOUSE_POINTER_ID) {
-    //         Some(value) => value,
-    //         None => {
-    //             warn!("Custom debug suite mouse pointer not found");
-    //             return
-    //         }
-    //     }
-    //     None => match pointers.iter().find(|(p_id, _)| **p_id == PointerId::Mouse) {
-    //         Some(value) => value,
-    //         None => {
-    //             warn!("Built-in default mouse pointer not found");
-    //             return
-    //         }
-    //     }
-    // };
 
     let (main_camera_entity, main_camera) = match main_camera_query.single() {
         Ok(value) => value,

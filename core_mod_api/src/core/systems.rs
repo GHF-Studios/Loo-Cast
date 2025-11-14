@@ -9,7 +9,7 @@ pub(super) fn startup_system() {
     let handle = composite_workflow!(Startup, {
         warn!("Running composite workflow 'Startup'");
 
-        workflow!(Camera::SpawnCameras);
+        workflow!(Render::SpawnCameras);
 
         let example_dev_texture_generator_shader_name = "texture_generators/example_dev";
         let example_dev_texture_generator_shader_path = "core_mod/shaders/texture_generators/example_dev.wgsl".to_string();

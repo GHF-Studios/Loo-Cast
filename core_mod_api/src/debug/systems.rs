@@ -1,11 +1,3 @@
-use crate::{
-    camera::{components::{MainCamera, UiCamera}, resources::GameViewRenderTarget},
-    debug::resources::{DebugSuiteUiDockState, DebugSuiteUiState},
-    input::states::InputMode,
-    logging::resources::LogRegistry,
-    ui::{custom_perf_ui_entries::{cursor_position::PerfUiCursorPosEntries, player_position::PerfUiPlayerPosEntries}},
-};
-
 use bevy::{
     prelude::*,
     render::{camera::RenderTarget, view::RenderLayers},
@@ -23,6 +15,19 @@ use iyes_perf_ui::{
     },
 };
 
+use crate::{
+    input::states::InputMode,
+    logging::resources::LogRegistry,
+    render::{
+        custom_perf_ui_entries::{
+            cursor_position::PerfUiCursorPosEntries,
+            player_position::PerfUiPlayerPosEntries
+        },
+        components::{MainCamera, UiCamera},
+        functions::draw_primary_window_ui,
+        resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState}
+    },
+};
 use super::components::DebugObjectComponent;
 use super::types::DebugObjectMovement;
 
@@ -118,7 +123,7 @@ pub(super) fn log_registry_debug_ui(log_registry: Res<LogRegistry>, mut egui_ctx
 
 #[tracing::instrument(skip_all)]
 pub(super) fn toggle_debug_suite_ui_system(
-    mut ui_state: ResMut<DebugSuiteUiState>,
+    mut ui_state: ResMut<PrimaryWindowUiState>,
     keys: Res<ButtonInput<KeyCode>>,
     input_mode: Res<State<InputMode>>,
     mut next_input_mode: ResMut<NextState<InputMode>>,
@@ -142,7 +147,7 @@ pub(super) fn toggle_debug_suite_ui_system(
 }
 
 #[tracing::instrument(skip_all)]
-pub(super) fn debug_suite_ui_system(world: &mut World) {
+pub(super) fn primary_window_ui_system(world: &mut World) {
     let Ok(egui_context) = world
         .query_filtered::<&mut bevy_egui::EguiContext, With<bevy_egui::PrimaryEguiContext>>()
         .single(world)
@@ -151,10 +156,10 @@ pub(super) fn debug_suite_ui_system(world: &mut World) {
     };
     let mut egui_context = egui_context.clone();
 
-    world.resource_scope::<DebugSuiteUiState, _>(|world, mut state| {
-        world.resource_scope::<DebugSuiteUiDockState, _>(|world, mut dock_state| {
+    world.resource_scope::<PrimaryWindowUiState, _>(|world, mut state| {
+        world.resource_scope::<PrimaryWindowUiDockState, _>(|world, mut dock_state| {
             world.resource_scope::<GameViewRenderTarget, _>(|world, target| {
-                super::functions::draw_debug_suite(&mut state, &mut dock_state, &target, world, egui_context.get_mut());
+                draw_primary_window_ui(&mut state, &mut dock_state, &target, world, egui_context.get_mut());
             });
         });
     });
