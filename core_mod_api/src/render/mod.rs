@@ -11,7 +11,7 @@ use bevy::prelude::*;
 use bevy_egui::EguiPrimaryContextPass;
 use components::{MainCamera, UiCamera, RenderProxyHandle, RenderProxy};
 use resources::{PrimaryWindowUiDockState, PrimaryWindowUiState, ZoomFactor, ViewScale};
-use systems::{pre_setup_phase_0, pre_setup_phase_1, main_camera_zoom_system, update_view_scale_from_zoom, update_render_proxies, despawn_orphaned_render_proxies, primary_window_ui_system};
+use systems::{pre_setup_phase_0, pre_setup_phase_1, resize_render_texture, main_camera_zoom_system, update_view_scale_from_zoom, update_render_proxies, despawn_orphaned_render_proxies, primary_window_ui_system};
 
 use crate::core::run_conditions::run_after_startup_finished;
 
@@ -33,6 +33,7 @@ impl Plugin for RenderPlugin {
                 pre_setup_phase_1,
             ))
             .add_systems(Update, (
+                resize_render_texture,
                 main_camera_zoom_system.before(update_view_scale_from_zoom),
                 update_view_scale_from_zoom,
                 despawn_orphaned_render_proxies.before(update_render_proxies),
