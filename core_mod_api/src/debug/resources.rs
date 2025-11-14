@@ -10,12 +10,8 @@ use super::types::{DebugSuiteTab, StepConfig, StepMode};
 pub struct DebugSuiteUiDockState {
     pub dock_state: DockState<DebugSuiteTab>,
 }
-impl DebugSuiteUiDockState {
-    pub fn new_for_release() -> Self {
-        Self { dock_state: DockState::new(vec![DebugSuiteTab::GameView]) }
-    }
-
-    pub fn new_for_debug() -> Self {
+impl Default for DebugSuiteUiDockState {
+    fn default() -> Self {
         let mut dock_state = DockState::new(vec![DebugSuiteTab::GameView]);
         let tree = dock_state.main_surface_mut();
         let [game, _inspector] = tree.split_right(NodeIndex::root(), 0.75, vec![DebugSuiteTab::Inspector]);
@@ -34,11 +30,6 @@ impl DebugSuiteUiDockState {
         );
 
         Self { dock_state }
-    }
-}
-impl Default for DebugSuiteUiDockState {
-    fn default() -> Self {
-        Self::new_for_release()
     }
 }
 

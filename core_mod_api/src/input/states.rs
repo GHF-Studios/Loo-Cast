@@ -4,17 +4,17 @@ use bevy::prelude::*;
 #[reflect(State)]
 pub enum InputMode {
     #[default]
-    Game,
-    DebugSuite,
+    Release,
+    Debug,
 }
 impl InputMode {
     #[inline]
     pub fn is_game(&self) -> bool {
-        matches!(self, InputMode::Game)
+        matches!(self, InputMode::Release)
     }
 
     #[inline]
     pub fn is_debug_suite(&self) -> bool {
-        matches!(self, InputMode::DebugSuite)
+        matches!(self, InputMode::Debug)
     }
 }

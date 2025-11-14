@@ -46,7 +46,7 @@ pub(super) fn mouse_pick_events(
     debug_suite_ui_state: Res<DebugSuiteUiState>,
     game_view_render_target: Res<GameViewRenderTarget>,
 ) {
-    if !debug_suite_ui_state.enabled || window_events.is_empty() {
+    if window_events.is_empty() {
         return;
     }
 

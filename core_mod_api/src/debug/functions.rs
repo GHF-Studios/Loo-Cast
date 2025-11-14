@@ -22,8 +22,18 @@ pub(super) fn draw_debug_suite(
     world: &mut World,
     ctx: &mut egui::Context,
 ) {
-    if state.enabled {
-        // Debug suite toolbar
+    if !state.enabled {
+        // Game view only
+        egui::CentralPanel::default().show(ctx, |ui| {
+            super::functions::draw_game_view(
+                ui,
+                target.id,
+                egui::Vec2::new(target.size.x as f32, target.size.y as f32),
+                &mut state.viewport_rect_precision_proxy,
+            );
+        });
+    } else {
+        // Toolbar
         egui::TopBottomPanel::top("debug_suite_toolbar").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.checkbox(&mut state.show_chunk_manager, "Chunk Manager");
@@ -86,20 +96,20 @@ pub(super) fn draw_debug_suite(
                 }
             });
         });
-    }
 
-    // Dock area
-    egui::CentralPanel::default().show(ctx, |_ui| {
-        DockArea::new(&mut dock_state.dock_state).style(Style::from_egui(ctx.style().as_ref())).show(
-            ctx,
-            &mut DebugSuiteTabViewer {
-                world,
-                state,
-                game_view_texture_id: Some(target.id),
-                game_view_texture_size: Some(egui::Vec2::new(target.size.x as f32, target.size.y as f32)),
-            },
-        );
-    });
+        // Dock area
+        egui::CentralPanel::default().show(ctx, |_ui| {
+            DockArea::new(&mut dock_state.dock_state).style(Style::from_egui(ctx.style().as_ref())).show(
+                ctx,
+                &mut DebugSuiteTabViewer {
+                    world,
+                    state,
+                    game_view_texture_id: Some(target.id),
+                    game_view_texture_size: Some(egui::Vec2::new(target.size.x as f32, target.size.y as f32)),
+                },
+            );
+        });
+    }
 }
 
 #[tracing::instrument(skip_all)]

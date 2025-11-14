@@ -6,8 +6,8 @@ use crate::input::states::InputMode;
 pub(super) fn toggle_input_mode(keys: Res<ButtonInput<KeyCode>>, mode: Res<State<InputMode>>, mut next_mode: ResMut<NextState<InputMode>>) {
     if keys.just_pressed(KeyCode::F4) {
         match mode.get() {
-            InputMode::DebugSuite => next_mode.set(InputMode::Game),
-            InputMode::Game => next_mode.set(InputMode::DebugSuite),
+            InputMode::Debug => next_mode.set(InputMode::Release),
+            InputMode::Release => next_mode.set(InputMode::Debug),
         }
     }
 }
