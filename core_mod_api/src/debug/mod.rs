@@ -8,13 +8,12 @@ pub mod types;
 pub mod workflows;
 
 use bevy::prelude::*;
-use bevy_egui::EguiPrimaryContextPass;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use components::DebugObjectComponent;
 use gizmo::GizmoPlugin;
 use selection::SelectionPlugin;
 use systems::{
-    debug_object_movement_system, primary_window_ui_system, log_registry_debug_ui, perf_ui_startup, toggle_debug_suite_ui_system,
+    debug_object_movement_system, log_registry_debug_ui, perf_ui_startup, toggle_debug_suite_ui_system,
 };
 use types::{DebugSuiteTab, DebugObjectMovement, StepConfig, StepMode, InspectorSelection};
 
@@ -36,7 +35,6 @@ impl Plugin for DebugPlugin {
                     log_registry_debug_ui,
                 ),
             )
-            .add_systems(EguiPrimaryContextPass, primary_window_ui_system)
             .register_type::<DebugObjectComponent>()
             .register_type::<DebugObjectMovement>()
             .register_type::<StepMode>()

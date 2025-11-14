@@ -4,7 +4,8 @@ use bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerId, 
 use bevy::window::PrimaryWindow;
 use iyes_perf_ui::{entry::PerfUiEntry, ui::root::PerfUiRoot, utils::next_sort_key};
 
-use crate::{camera::components::MainCamera, picking::constants::MOUSE_POINTER_ID};
+use crate::picking::constants::MOUSE_POINTER_ID;
+use crate::render::components::MainCamera;
 
 #[derive(Bundle, Default, Reflect)]
 pub struct PerfUiCursorPosEntries {

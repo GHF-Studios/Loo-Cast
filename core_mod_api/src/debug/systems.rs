@@ -1,7 +1,6 @@
 use bevy::{
     prelude::*,
-    render::{camera::RenderTarget, view::RenderLayers},
-    window::WindowRef,
+    render::view::RenderLayers,
 };
 use bevy_egui::{
     egui::{self, ScrollArea},
@@ -23,9 +22,8 @@ use crate::{
             cursor_position::PerfUiCursorPosEntries,
             player_position::PerfUiPlayerPosEntries
         },
-        components::{MainCamera, UiCamera},
-        functions::draw_primary_window_ui,
-        resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState}
+        components::UiCamera,
+        resources::PrimaryWindowUiState,
     },
 };
 use super::components::DebugObjectComponent;
@@ -35,15 +33,8 @@ use super::types::DebugObjectMovement;
 pub(super) fn perf_ui_startup(
     mut has_spawned: Local<bool>,
     mut commands: Commands,
-    main_camera_query: Query<Entity, With<MainCamera>>,
     ui_camera_query: Query<Entity, With<UiCamera>>,
 ) {
-    let main_camera_entity = match main_camera_query.single() {
-        Ok(entity) => entity,
-        Err(err) => {
-            panic!("Failed to get MainCamera entity for Perf UI setup: {}", err);
-        }
-    };
     let ui_camera_entity = match ui_camera_query.single() {
         Ok(entity) => entity,
         Err(err) => {
@@ -54,7 +45,6 @@ pub(super) fn perf_ui_startup(
     if !*has_spawned {
         *has_spawned = true;
         commands.spawn((
-            // UiTargetCamera(main_camera_entity),
             UiTargetCamera(ui_camera_entity),
             PerfUiRoot {
                 fontsize_label: 16.0,
@@ -68,7 +58,6 @@ pub(super) fn perf_ui_startup(
             PerfUiEntryEntityCount::default(),
             PerfUiPlayerPosEntries::default(),
             PerfUiCursorPosEntries::default(),
-            // RenderLayers::default(),
             RenderLayers::layer(1),
         ));
     }
@@ -97,9 +86,8 @@ pub(super) fn debug_object_movement_system(time: Res<Time<Virtual>>, mut query: 
 #[deprecated]
 #[tracing::instrument(skip_all)]
 pub(super) fn log_registry_debug_ui(log_registry: Res<LogRegistry>, mut egui_ctx: EguiContexts) {
-    // Temporary stopgap
+    // TODO: Remove Temporary stopgap
     return;
-    // Temporary stopgap
 
     let ctx = match egui_ctx.ctx_mut() {
         Ok(ctx) => ctx,
@@ -144,23 +132,4 @@ pub(super) fn toggle_debug_suite_ui_system(
             info!("Debug suite disabled.");
         }
     }
-}
-
-#[tracing::instrument(skip_all)]
-pub(super) fn primary_window_ui_system(world: &mut World) {
-    let Ok(egui_context) = world
-        .query_filtered::<&mut bevy_egui::EguiContext, With<bevy_egui::PrimaryEguiContext>>()
-        .single(world)
-    else {
-        return;
-    };
-    let mut egui_context = egui_context.clone();
-
-    world.resource_scope::<PrimaryWindowUiState, _>(|world, mut state| {
-        world.resource_scope::<PrimaryWindowUiDockState, _>(|world, mut dock_state| {
-            world.resource_scope::<GameViewRenderTarget, _>(|world, target| {
-                draw_primary_window_ui(&mut state, &mut dock_state, &target, world, egui_context.get_mut());
-            });
-        });
-    });
 }

@@ -1,15 +1,6 @@
-use bevy::{asset::ReflectAsset, ecs::system::SystemState, prelude::*, reflect::TypeRegistry};
-use egui::Color32;
-use egui_dock::{DockArea, Style};
+use bevy::{asset::ReflectAsset, prelude::*, reflect::TypeRegistry};
 
-use crate::{
-    debug::types::{DebugSuiteTabViewer, InspectorSelection},
-    render::resources::{PrimaryWindowUiDockState, PrimaryWindowUiState, GameViewRenderTarget},
-    time::{
-        resources::TimeInfo,
-        types::{PauseState, StepConfig},
-    },
-};
+use crate::debug::types::InspectorSelection;
 
 #[tracing::instrument(skip_all)]
 pub(crate) fn select_resource(ui: &mut egui::Ui, type_registry: &TypeRegistry, selection: &mut InspectorSelection) {

@@ -6,46 +6,12 @@ use crate::chunk_actor::components::ChunkActor;
 use crate::chunk_loader::components::ChunkLoader;
 use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
+use crate::render::{
+    components::{MainCamera, UiCamera, RenderProxy, RenderProxyHandle},
+    functions::draw_primary_window_ui,
+    resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ZoomFactor, ViewScale}
+};
 use crate::time::resources::VirtualPaused;
-
-use super::components::{MainCamera, UiCamera, RenderProxy, RenderProxyHandle};
-use super::resources::{GameViewRenderTarget, ZoomFactor, ViewScale};
-
-#[tracing::instrument(skip_all)]
-pub(super) fn update_render_proxies(
-    chunk_loader_query: Query<&ChunkLoader>,
-    sources: Query<(&RenderProxyHandle, &ChunkActor), Without<RenderProxy>>,
-    mut proxy_transforms: Query<&mut Transform, With<RenderProxy>>,
-) {
-    let chunk_loader = match chunk_loader_query.single() {
-        Ok(loader) => loader,
-        Err(_) => return,
-    };
-
-    for (handle, actor) in &sources {
-        if let Ok(mut proxy_transform) = proxy_transforms.get_mut(handle.proxy_entity) {
-            let (pos, scale) = actor.coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
-            proxy_transform.translation = pos.extend(proxy_transform.translation.z); // preserve Z
-            proxy_transform.scale = Vec3::splat(scale);
-        }
-    }
-}
-
-
-#[tracing::instrument(skip_all)]
-pub(super) fn despawn_orphaned_render_proxies(
-    mut removed: RemovedComponents<RenderProxyHandle>,
-    proxies: Query<(Entity, &RenderProxy)>,
-    mut commands: Commands,
-) {
-    for removed_source in removed.read() {
-        for (proxy_entity, proxy) in &proxies {
-            if proxy.source == removed_source {
-                commands.entity(proxy_entity).despawn();
-            }
-        }
-    }
-}
 
 pub(super) fn pre_setup_phase_0(
     mut commands: Commands,
@@ -95,6 +61,61 @@ pub(super) fn pre_setup_phase_1(
         handle: image_handle,
         size: size_uvec2,
         id: texture_id,
+    });
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn update_render_proxies(
+    chunk_loader_query: Query<&ChunkLoader>,
+    sources: Query<(&RenderProxyHandle, &ChunkActor), Without<RenderProxy>>,
+    mut proxy_transforms: Query<&mut Transform, With<RenderProxy>>,
+) {
+    let chunk_loader = match chunk_loader_query.single() {
+        Ok(loader) => loader,
+        Err(_) => return,
+    };
+
+    for (handle, actor) in &sources {
+        if let Ok(mut proxy_transform) = proxy_transforms.get_mut(handle.proxy_entity) {
+            let (pos, scale) = actor.coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
+            proxy_transform.translation = pos.extend(proxy_transform.translation.z); // preserve Z
+            proxy_transform.scale = Vec3::splat(scale);
+        }
+    }
+}
+
+
+#[tracing::instrument(skip_all)]
+pub(super) fn despawn_orphaned_render_proxies(
+    mut removed: RemovedComponents<RenderProxyHandle>,
+    proxies: Query<(Entity, &RenderProxy)>,
+    mut commands: Commands,
+) {
+    for removed_source in removed.read() {
+        for (proxy_entity, proxy) in &proxies {
+            if proxy.source == removed_source {
+                commands.entity(proxy_entity).despawn();
+            }
+        }
+    }
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn primary_window_ui_system(world: &mut World) {
+    let Ok(egui_context) = world
+        .query_filtered::<&mut bevy_egui::EguiContext, With<bevy_egui::PrimaryEguiContext>>()
+        .single(world)
+    else {
+        return;
+    };
+    let mut egui_context = egui_context.clone();
+
+    world.resource_scope::<PrimaryWindowUiState, _>(|world, mut state| {
+        world.resource_scope::<PrimaryWindowUiDockState, _>(|world, mut dock_state| {
+            world.resource_scope::<GameViewRenderTarget, _>(|world, target| {
+                draw_primary_window_ui(&mut state, &mut dock_state, &target, world, egui_context.get_mut());
+            });
+        });
     });
 }
 

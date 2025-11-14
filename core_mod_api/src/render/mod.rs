@@ -8,12 +8,12 @@ pub mod custom_perf_ui_entries;
 pub mod workflows;
 
 use bevy::prelude::*;
+use bevy_egui::EguiPrimaryContextPass;
 use components::{MainCamera, UiCamera, RenderProxyHandle, RenderProxy};
 use resources::{PrimaryWindowUiDockState, PrimaryWindowUiState, ZoomFactor, ViewScale};
-use systems::{pre_setup_phase_0, pre_setup_phase_1, main_camera_zoom_system, update_view_scale_from_zoom, update_render_proxies, despawn_orphaned_render_proxies};
+use systems::{pre_setup_phase_0, pre_setup_phase_1, main_camera_zoom_system, update_view_scale_from_zoom, update_render_proxies, despawn_orphaned_render_proxies, primary_window_ui_system};
 
 use crate::core::run_conditions::run_after_startup_finished;
-use crate::time::run_conditions::run_if_not_paused;
 
 pub(crate) struct RenderPlugin;
 impl Plugin for RenderPlugin {
@@ -38,6 +38,7 @@ impl Plugin for RenderPlugin {
                 despawn_orphaned_render_proxies.before(update_render_proxies),
                 update_render_proxies,
             ).run_if(run_after_startup_finished))
+            .add_systems(EguiPrimaryContextPass, primary_window_ui_system)
 
             .register_type::<MainCamera>()
             .register_type::<UiCamera>()

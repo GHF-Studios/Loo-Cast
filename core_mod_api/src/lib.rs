@@ -32,6 +32,7 @@ pub use parking_lot;
 pub use paste;
 pub use pin_project_lite;
 pub use queues;
+pub use radsort;
 pub use rand;
 pub use serde;
 pub use serde_json;

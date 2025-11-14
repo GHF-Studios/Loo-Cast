@@ -64,7 +64,7 @@ fn unit_extent_zoom_in_multi_test_1() {
     
     let mut a = unit_extent!([(1, 1)]: (437.0, 437.0));
     let scale_b = a.grid_offset.scale.zoomed_in().zoomed_in();
-    a.zoom_in_multi(scale_b);
+    a.zoom_in_multi(scale_b).unwrap();
     let expected = unit_extent!([(1, 1), (4, 4), (4, 4)]: (-300.0, -300.0));
     assert_eq!(a, expected);
 }
@@ -75,7 +75,7 @@ fn unit_extent_zoom_in_multi_test_2() {
     
     let mut a = unit_extent!([(0, 0)]: (0.0, 0.0));
     let scale_b = a.grid_offset.scale.zoomed_in().zoomed_in().zoomed_in();
-    a.zoom_in_multi(scale_b);
+    a.zoom_in_multi(scale_b).unwrap();
     let expected = unit_extent!([(0, 0), (0, 0), (0, 0), (0, 0)]: (0.0, 0.0));
     assert_eq!(a, expected);
 }
@@ -86,7 +86,7 @@ fn unit_extent_zoom_in_multi_test_3() {
     
     let mut a = unit_extent!([(1, 1), (1, 1)]: (499.99, 499.99));
     let scale_b = a.grid_offset.scale.zoomed_in().zoomed_in().zoomed_in();
-    a.zoom_in_multi(scale_b);
+    a.zoom_in_multi(scale_b).unwrap();
     // This wraps because the float error in the intermediate steps happened to push the final value over the wrap threshold
     // after subtraction, scaling, and remapping — and did so deterministically, but in a way that's opaque unless you replay all ops step-by-step.
     let expected = unit_extent!([(1, 1), (2, 2), (-5, -5), (0, 0), (0, 0)]: (-10.009766, -10.009766));

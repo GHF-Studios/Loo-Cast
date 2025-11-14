@@ -1,10 +1,10 @@
-use bevy::{asset::ReflectAsset, ecs::system::SystemState, prelude::*, reflect::TypeRegistry};
+use bevy::{ecs::system::SystemState, prelude::*};
 use egui::Color32;
 use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
 
 use crate::{
-    debug::types::{DebugSuiteTabViewer, InspectorSelection},
+    debug::types::DebugSuiteTabViewer,
     render::{
         components::RenderProxy,
         resources::{PrimaryWindowUiDockState, PrimaryWindowUiState, GameViewRenderTarget},
