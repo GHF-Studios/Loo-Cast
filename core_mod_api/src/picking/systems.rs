@@ -17,6 +17,7 @@ use crate::render::{
 
 use super::constants::MOUSE_POINTER_ID;
 
+// TODO: Impl properly
 pub(super) fn spawn_mouse_pointer(
     mut commands: Commands,
     game_view_render_target: Res<GameViewRenderTarget>,
@@ -180,10 +181,16 @@ pub(super) fn mouse_pick_events(
 // TODO: Impl properly
 #[tracing::instrument(skip_all)]
 pub(super) fn sprite_picking_backend(
-    mut pointer_hits_event_writer: EventWriter<PointerHits>,
     pointers: Query<(&PointerId, &PointerLocation)>,
-    main_camera_query: Query<(Entity, &Camera), With<MainCamera>>,
-    player_query: Query<(Entity, &GlobalTransform), With<Player>>,
+    main_camera_query: Query<(Entity, &Camera, &GlobalTransform, &Projection), With<MainCamera>>,
+    primary_window: Query<(Entity, &Window), With<PrimaryWindow>>,
+    sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility)>,
+    images: Res<Assets<Image>>,
+    texture_atlas_layout: Res<Assets<TextureAtlasLayout>>,
+    settings: Res<SpritePickingSettings>,
+    game_view_render_target: Res<GameViewRenderTarget>,
+    primary_window_ui_state: Res<PrimaryWindowUiState>,
+    mut output: EventWriter<PointerHits>,
 ) {
     let (pointer_id, _) = match pointers.iter().find(|(p_id, _)| **p_id == MOUSE_POINTER_ID) {
         Some(value) => value,
@@ -193,8 +200,19 @@ pub(super) fn sprite_picking_backend(
         }
     };
 
-    let (main_camera_entity, main_camera) = match main_camera_query.single() {
-        Ok(value) => value,
+    let (
+        main_camera_entity,
+        main_camera,
+        main_camera_transform,
+        main_camera_ortho,
+    ) = match main_camera_query.single() {
+        Ok((ent, cam, cam_transform, cam_projection)) => match cam_projection {
+            Projection::Orthographic(ortho) => (ent, cam, cam_transform, ortho),
+            _ => {
+                warn!("Main camera is not orthographic");
+                return;
+            }
+        },
         Err(err) => match err {
             QuerySingleError::NoEntities(_) => {
                 warn!("No main camera found");
@@ -203,28 +221,163 @@ pub(super) fn sprite_picking_backend(
             QuerySingleError::MultipleEntities(_) => panic!("Multiple MainCameras not supported!"),
         }
     };
-    let (player_entity, player_transform) = match player_query.single() {
-        Ok(value) => value,
-        Err(err) => match err {
-            QuerySingleError::NoEntities(_) => {
-                warn!("No player found");
-                return
-            },
-            QuerySingleError::MultipleEntities(_) => panic!("Multiple Players not supported!"),
-        },
+
+    let mut sorted_sprites: Vec<_> = sprite_query
+        .iter()
+        .filter_map(|(entity, sprite, transform, vis)| {
+            if !transform.affine().is_nan() && vis.get() {
+                Some((entity, sprite, transform))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // radsort is a stable radix sort that performed better than `slice::sort_by_key` (according to bevy's source code)
+    radsort::sort_by_key(&mut sorted_sprites, |(_, _, transform)| {
+        -transform.translation().z
+    });
+
+    let Ok((primary_window_entity, primary_window)) = primary_window.single() else {
+        warn!("Primary window not found");
+        return;
+    };
+    let mut blocked = false;
+    let window_size = primary_window.physical_size();
+    let window_size_vec2 = Vec2::new(window_size.x as f32, window_size.y as f32);
+    let viewport_size = game_view_render_target.size;
+    let viewport_size_vec2 = Vec2::new(viewport_size.x as f32, viewport_size.y as f32);
+    let Some(current_position) = primary_window.cursor_position()  else {
+        return;
+    };
+    let Some(viewport_rect) = primary_window_ui_state.viewport_rect_precision_proxy else {
+        warn!("Viewport rect not found");
+        return;
+    };
+    
+    if !viewport_rect.contains(egui::Pos2 {
+        x: current_position.x,
+        y: current_position.y,
+    }) {
+        info!("Cursor outside viewport");
+        return;
+    }
+
+    let current_position =  {
+        let x = current_position.x.remap(viewport_rect.min.x, viewport_size_vec2.x, 0.0, window_size_vec2.x);
+        let y = current_position.y.remap(viewport_rect.min.y, viewport_size_vec2.y, 0.0, window_size_vec2.y);
+        main_camera.viewport_to_world(main_camera_transform, Vec2::new(x, y)).ok().map(|ray| ray.origin.truncate())
+    };
+    let Some(current_position) = current_position else {
+        warn!("Failed to compute cursor world position");
+        return;
     };
 
-    let picks = vec![(
-        player_entity,
-        HitData::new(
-            main_camera_entity,
-            0.0,
-            // TODO: Actually compute this
-            Some(Vec3::ZERO),
-            Some(*player_transform.back()),
-        ),
-    )];
+    let viewport_pos = main_camera
+        .logical_viewport_rect()
+        .map(|v| v.min)
+        .unwrap_or_default();
+    let pos_in_viewport = current_position - viewport_pos;
+
+    let Ok(cursor_ray_world) = main_camera.viewport_to_world(main_camera_transform, pos_in_viewport) else {
+        warn!("Failed to compute cursor ray world position");
+        return;
+    };
+    let cursor_ray_len = main_camera_ortho.far - main_camera_ortho.near;
+    let cursor_ray_end = cursor_ray_world.origin + cursor_ray_world.direction * cursor_ray_len;
+    let picks: Vec<(Entity, HitData)> = sorted_sprites
+        .iter()
+        .copied()
+        .filter_map(|(entity, sprite, sprite_transform)| {
+            if blocked {
+                return None;
+            }
+
+            // Transform cursor line segment to sprite coordinate system
+            let world_to_sprite = sprite_transform.affine().inverse();
+            let cursor_start_sprite = world_to_sprite.transform_point3(cursor_ray_world.origin);
+            let cursor_end_sprite = world_to_sprite.transform_point3(cursor_ray_end);
+
+            // Find where the cursor segment intersects the plane Z=0 (which is the sprite's
+            // plane in sprite-local space). It may not intersect if, for example, we're
+            // viewing the sprite side-on
+            if cursor_start_sprite.z == cursor_end_sprite.z {
+                // Cursor ray is parallel to the sprite and misses it
+                return None;
+            }
+            let lerp_factor =
+                f32::inverse_lerp(cursor_start_sprite.z, cursor_end_sprite.z, 0.0);
+            if !(0.0..=1.0).contains(&lerp_factor) {
+                // Lerp factor is out of range, meaning that while an infinite line cast by
+                // the cursor would intersect the sprite, the sprite is not between the
+                // camera's near and far planes
+                return None;
+            }
+            // Otherwise we can interpolate the xy of the start and end positions by the
+            // lerp factor to get the cursor position in sprite space!
+            let cursor_pos_sprite = cursor_start_sprite
+                .lerp(cursor_end_sprite, lerp_factor)
+                .xy();
+
+            let Ok(cursor_pixel_space) = sprite.compute_pixel_space_point(
+                cursor_pos_sprite,
+                &images,
+                &texture_atlas_layout,
+            ) else {
+                return None;
+            };
+
+            // Since the pixel space coordinate is `Ok`, we know the cursor is in the bounds of
+            // the sprite.
+
+            let cursor_in_valid_pixels_of_sprite = 'valid_pixel: {
+                match settings.picking_mode {
+                    SpritePickingMode::AlphaThreshold(cutoff) => {
+                        let Some(image) = images.get(&sprite.image) else {
+                            // [`Sprite::from_color`] returns a defaulted handle.
+                            // This handle doesn't return a valid image, so returning false here would make picking "color sprites" impossible
+                            break 'valid_pixel true;
+                        };
+                        // grab pixel and check alpha
+                        let Ok(color) = image.get_color_at(
+                            cursor_pixel_space.x as u32,
+                            cursor_pixel_space.y as u32,
+                        ) else {
+                            // We don't know how to interpret the pixel.
+                            break 'valid_pixel false;
+                        };
+                        // Check the alpha is above the cutoff.
+                        color.alpha() > cutoff
+                    }
+                    SpritePickingMode::BoundingBox => true,
+                }
+            };
+
+            blocked = cursor_in_valid_pixels_of_sprite;
+            
+            cursor_in_valid_pixels_of_sprite.then(|| {
+                let hit_pos_world =
+                    sprite_transform.transform_point(cursor_pos_sprite.extend(0.0));
+                // Transform point from world to camera space to get the Z distance
+                let hit_pos_cam = main_camera_transform
+                    .affine()
+                    .inverse()
+                    .transform_point3(hit_pos_world);
+                // HitData requires a depth as calculated from the camera's near clipping plane
+                let depth = -main_camera_ortho.near - hit_pos_cam.z;
+                (
+                    entity,
+                    HitData::new(
+                        main_camera_entity,
+                        depth,
+                        Some(hit_pos_world),
+                        Some(*sprite_transform.back()),
+                    ),
+                )
+            })
+        })
+        .collect();
 
     let order = main_camera.order as f32;
-    pointer_hits_event_writer.write(PointerHits::new(*pointer_id, picks, order));
+    output.write(PointerHits::new(*pointer_id, picks, order));
 }
