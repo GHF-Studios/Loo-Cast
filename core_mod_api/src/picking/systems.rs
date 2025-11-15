@@ -193,8 +193,14 @@ pub(super) fn sprite_picking_backend(
     primary_window_ui_state: Res<PrimaryWindowUiState>,
     mut output: EventWriter<PointerHits>,
 ) {
-    let (pointer_id, _) = match pointers.iter().find(|(p_id, _)| **p_id == MOUSE_POINTER_ID) {
-        Some(value) => value,
+    let (pointer_id, location) = match pointers.iter().find(|(p_id, _)| **p_id == MOUSE_POINTER_ID) {
+        Some((pointer, pointer_location)) => match pointer_location.location().map(|loc| (pointer, loc)) {
+            Some(v) => v,
+            None => {
+                warn!("Mouse pointer is inactive");
+                return
+            }
+        },
         None => {
             warn!("Mouse pointer not found");
             return
