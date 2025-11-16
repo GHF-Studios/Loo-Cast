@@ -49,7 +49,7 @@ pub(super) fn perf_ui_startup(
             PerfUiRoot {
                 fontsize_label: 16.0,
                 fontsize_value: 16.0,
-                values_col_width: 172.0,
+                values_col_width: 256.0,
                 ..Default::default()
             },
             PerfUiEntryFPS::default(),

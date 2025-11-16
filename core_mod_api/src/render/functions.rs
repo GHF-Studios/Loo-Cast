@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
-use egui::Color32;
+use egui::{Color32, emath::GuiRounding};
 use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
 
@@ -83,7 +83,17 @@ pub(crate) fn draw_primary_window_ui(
 ) {
     if !state.enabled {
         // Game view only
-        egui::CentralPanel::default().show(ctx, |ui| {
+        let central_panel = egui::CentralPanel::default();
+        let central_panel = central_panel.frame(egui::Frame {
+            inner_margin: egui::Margin::same(0),
+            fill: Color32::default(),
+            stroke: egui::Stroke::new(0.0, Color32::default()),
+            corner_radius: egui::CornerRadius::same(0),
+            outer_margin: egui::Margin::same(0),
+            shadow: egui::Shadow::NONE,
+        });
+
+        central_panel.show(ctx, |ui| {
             super::functions::draw_game_view(
                 ui,
                 target.id,

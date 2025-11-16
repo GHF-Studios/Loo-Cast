@@ -254,31 +254,25 @@ pub(super) fn sprite_picking_backend(
     let window_size_vec2 = Vec2::new(window_size.x as f32, window_size.y as f32);
     let viewport_size = game_view_render_target.size;
     let viewport_size_vec2 = Vec2::new(viewport_size.x as f32, viewport_size.y as f32);
-    let Some(current_position) = primary_window.cursor_position()  else {
-        return;
-    };
+    let current_window_position = location.position;
     let Some(viewport_rect) = primary_window_ui_state.viewport_rect_precision_proxy else {
         warn!("Viewport rect not found");
         return;
     };
     
     if !viewport_rect.contains(egui::Pos2 {
-        x: current_position.x,
-        y: current_position.y,
+        x: current_window_position.x,
+        y: current_window_position.y,
     }) {
         // warn!("Cursor outside viewport");
         return;
     }
 
-    // let current_position =  {
-    //     let x = current_position.x.remap(viewport_rect.min.x, viewport_size_vec2.x, 0.0, window_size_vec2.x);
-    //     let y = current_position.y.remap(viewport_rect.min.y, viewport_size_vec2.y, 0.0, window_size_vec2.y);
-    //     Some(Vec2::new(x, y))
-    // };
-    // let Some(current_position) = current_position else {
-    //     warn!("Failed to compute cursor world position");
-    //     return;
-    // };
+    let current_viewport_position =  {
+        let x = current_window_position.x.remap(viewport_rect.min.x, viewport_size_vec2.x, 0.0, window_size_vec2.x);
+        let y = current_window_position.y.remap(viewport_rect.min.y, viewport_size_vec2.y, 0.0, window_size_vec2.y);
+        Vec2::new(x, y)
+    };
 
     // let viewport_pos = main_camera
     //     .logical_viewport_rect()
@@ -286,7 +280,7 @@ pub(super) fn sprite_picking_backend(
     //     .unwrap_or_default();
     // let pos_in_viewport = current_position - viewport_pos;
 
-    let Ok(cursor_ray_world) = main_camera.viewport_to_world(main_camera_transform, location.position) else {
+    let Ok(cursor_ray_world) = main_camera.viewport_to_world(main_camera_transform, current_viewport_position) else {
         warn!("Failed to compute cursor ray world position");
         return;
     };

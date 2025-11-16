@@ -10,6 +10,8 @@ use crate::render::resources::{GameViewRenderTarget, PrimaryWindowUiState};
 pub struct PerfUiCursorPosEntries {
     pub window_pos: PerfUiEntryCursorWindowPos,
     pub unit_pos: PerfUiEntryCursorUnitPos,
+    pub pointer_pos: PerfUiEntryCursorPointerPos,
+    pub viewport_rect: PerfUiEntryViewportRect,
 }
 
 #[derive(Component, Debug, Clone, Reflect)]
@@ -160,6 +162,138 @@ impl PerfUiEntry for PerfUiEntryCursorUnitPos {
 
     fn format_value(&self, value: &Self::Value) -> String {
         format!("{:.1}", value)
+    }
+
+    fn value_color(&self, _value: &Self::Value) -> Option<Color> {
+        Some(Color::linear_rgba(0.0, 0.0, 1.0, 1.0))
+    }
+
+    fn value_highlight(&self, _value: &Self::Value) -> bool {
+        false
+    }
+}
+
+#[derive(Component, Debug, Clone, Reflect)]
+#[require(PerfUiRoot)]
+pub struct PerfUiEntryCursorPointerPos {
+    pub label: String,
+    pub sort_key: i32,
+}
+impl Default for PerfUiEntryCursorPointerPos {
+    fn default() -> Self {
+        Self {
+            label: "(C)PointerPos".to_string(),
+            sort_key: next_sort_key(),
+        }
+    }
+}
+impl PerfUiEntry for PerfUiEntryCursorPointerPos {
+    type SystemParam = (
+        Local<'static, Option<Vec2>>,
+        EventReader<'static, 'static, Pointer<Move>>,
+        Query<'static, 'static, &'static Window, With<PrimaryWindow>>,
+        Res<'static, GameViewRenderTarget>,
+        Res<'static, PrimaryWindowUiState>,
+    );
+    type Value = Vec2;
+
+    fn label(&self) -> &str {
+        &self.label
+    }
+
+    fn sort_key(&self) -> i32 {
+        self.sort_key
+    }
+
+    fn update_value(
+        &self,
+        sys_params: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>,
+    ) -> Option<Self::Value> {
+        let (
+            ref mut previous_position,
+            ref mut pointer_move_events,
+            ref window_query,
+            ref game_view_render_target,
+            ref primary_window_ui_state,
+        ) = sys_params;
+        
+        let window = window_query.single().ok()?;
+
+        let window_size = window.physical_size();
+        let window_size_vec2 = Vec2::new(window_size.x as f32, window_size.y as f32);
+        let viewport_size = game_view_render_target.size;
+        let viewport_size_vec2 = Vec2::new(viewport_size.x as f32, viewport_size.y as f32);
+
+        if let Some(event) = pointer_move_events.read().last() {
+            let current_position = event.pointer_location.position;
+            let viewport_rect = primary_window_ui_state.viewport_rect_precision_proxy?;
+            
+            **previous_position = if viewport_rect.contains(egui::Pos2 {
+                x: current_position.x,
+                y: current_position.y,
+            }) {
+                let x = current_position.x.remap(viewport_rect.min.x, viewport_size_vec2.x, 0.0, window_size_vec2.x);
+                let y = current_position.y.remap(viewport_rect.min.y, viewport_size_vec2.y, 0.0, window_size_vec2.y);
+                Some(Vec2::new(x, y))
+            } else { None };
+        }
+
+        **previous_position
+    }
+
+    fn format_value(&self, value: &Self::Value) -> String {
+        format!("{:.1}", value)
+    }
+
+    fn value_color(&self, _value: &Self::Value) -> Option<Color> {
+        Some(Color::linear_rgba(0.0, 0.0, 1.0, 1.0))
+    }
+
+    fn value_highlight(&self, _value: &Self::Value) -> bool {
+        false
+    }
+}
+
+#[derive(Component, Debug, Clone, Reflect)]
+#[require(PerfUiRoot)]
+pub struct PerfUiEntryViewportRect {
+    pub label: String,
+    pub sort_key: i32,
+}
+impl Default for PerfUiEntryViewportRect {
+    fn default() -> Self {
+        Self {
+            label: "ViewportRect".to_string(),
+            sort_key: next_sort_key(),
+        }
+    }
+}
+impl PerfUiEntry for PerfUiEntryViewportRect {
+    type SystemParam = Res<'static, PrimaryWindowUiState>;
+    type Value = egui::Rect;
+
+    fn label(&self) -> &str {
+        &self.label
+    }
+
+    fn sort_key(&self) -> i32 {
+        self.sort_key
+    }
+
+    fn update_value(
+        &self,
+        sys_param: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>,
+    ) -> Option<Self::Value> {
+        let primary_window_ui_state = sys_param;
+
+        primary_window_ui_state.viewport_rect_precision_proxy
+    }
+
+    fn format_value(&self, value: &Self::Value) -> String {
+        format!(
+            "({:.1}, {:.1})->({:.1}, {:.1})",
+            value.min.x, value.min.y, value.max.x, value.max.y
+        )
     }
 
     fn value_color(&self, _value: &Self::Value) -> Option<Color> {
