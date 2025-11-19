@@ -193,6 +193,28 @@ pub(super) fn sprite_picking_backend(
     primary_window_ui_state: Res<PrimaryWindowUiState>,
     mut output: EventWriter<PointerHits>,
 ) {
+    fn sprite_local_to_pixel_coords(
+        sprite_local: Vec2,
+        sprite_size: Vec2,
+        image_size: Vec2,
+    ) -> Option<IVec2> {
+        // Step 1: Convert from centered (origin at 0,0) to bottom-left
+        let sprite_bottom_left = sprite_local + sprite_size / 2.0;
+
+        // Step 2: Normalize to 0.0 - 1.0 range
+        let uv = sprite_bottom_left / sprite_size;
+
+        // Step 3: Convert to pixel coordinates
+        let pixel_coords = uv * image_size;
+
+        // Step 4: Validate and convert to IVec2
+        if uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0 {
+            return None;
+        }
+
+        Some(pixel_coords.as_ivec2())
+    }
+
     let (pointer_id, location) = match pointers.iter().find(|(p_id, _)| **p_id == MOUSE_POINTER_ID) {
         Some((pointer, pointer_location)) => match pointer_location.location().map(|loc| (pointer, loc)) {
             Some(v) => v,
@@ -325,14 +347,18 @@ pub(super) fn sprite_picking_backend(
                 .lerp(cursor_end_sprite, lerp_factor)
                 .xy();
 
+            let sprite_size = sprite.custom_size.unwrap_or(Vec2::ONE);
+            let cursor_pixel_space = cursor_pos_sprite + sprite_size / 2.0;
+
             let Ok(cursor_pixel_space) = sprite.compute_pixel_space_point(
-                cursor_pos_sprite,
+                cursor_pixel_space,
                 &images,
                 &texture_atlas_layout,
             ) else {
-                // warn!("Cursor position outside sprite bounds");
+                warn!("Cursor position outside sprite bounds");
                 return None;
             };
+            warn!("Cursor position inside sprite bounds: {}", cursor_pixel_space);
 
             // Since the pixel space coordinate is `Ok`, we know the cursor is in the bounds of
             // the sprite.
@@ -340,21 +366,62 @@ pub(super) fn sprite_picking_backend(
             let cursor_in_valid_pixels_of_sprite = 'valid_pixel: {
                 match settings.picking_mode {
                     SpritePickingMode::AlphaThreshold(cutoff) => {
+                        // OLD CODE
+                        // let Some(image) = images.get(&sprite.image) else {
+                        //     // [`Sprite::from_color`] returns a defaulted handle.
+                        //     // This handle doesn't return a valid image, so returning false here would make picking "color sprites" impossible
+                        //     warn!("Sprite image not found");
+                        //     break 'valid_pixel true;
+                        // };
+                        // // grab pixel and check alpha
+                        // let Ok(color) = image.get_color_at(
+                        //     cursor_pixel_space.x as u32,
+                        //     cursor_pixel_space.y as u32,
+                        // ) else {
+                        //     // We don't know how to interpret the pixel.
+                        //     warn!("Failed to get color at cursor pixel space");
+                        //     break 'valid_pixel false;
+                        // };
+                        // // Check the alpha is above the cutoff.
+                        // color.alpha() > cutoff
+
+
+
+
+
                         let Some(image) = images.get(&sprite.image) else {
                             // [`Sprite::from_color`] returns a defaulted handle.
                             // This handle doesn't return a valid image, so returning false here would make picking "color sprites" impossible
+                            warn!("Sprite image not found");
                             break 'valid_pixel true;
                         };
-                        // grab pixel and check alpha
-                        let Ok(color) = image.get_color_at(
-                            cursor_pixel_space.x as u32,
-                            cursor_pixel_space.y as u32,
-                        ) else {
-                            // We don't know how to interpret the pixel.
-                            break 'valid_pixel false;
-                        };
-                        // Check the alpha is above the cutoff.
-                        color.alpha() > cutoff
+
+                        let image_size = image.size_f32();
+                        let sprite_size = sprite.custom_size.unwrap_or(Vec2::ONE); // fallback if not set
+
+                        match sprite_local_to_pixel_coords(cursor_pos_sprite, sprite_size, image_size) {
+                            Some(pixel) => {
+                                warn!("Pixel coords in image: {:?}", pixel);
+
+                                // Optional: sample color
+                                if let Ok(color) = image.get_color_at(pixel.x as u32, pixel.y as u32) {
+                                    warn!("Pixel color: {:?}", color);
+                                    if color.alpha() > cutoff {
+                                        true
+                                    } else {
+                                        warn!("Pixel alpha '{}' is below cutoff '{}'", color.alpha(), cutoff);
+                                        break 'valid_pixel false;
+                                    }
+                                } else {
+                                    warn!("Failed to read pixel color at {:?}", pixel);
+                                    break 'valid_pixel false;
+                                }
+                            }
+                            None => {
+                                // warn!("Cursor outside sprite bounds.");
+                                break 'valid_pixel false;
+                            }
+                        }
                     }
                     SpritePickingMode::BoundingBox => true,
                 }
