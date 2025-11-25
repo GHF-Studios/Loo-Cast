@@ -8,12 +8,15 @@ use bevy::picking::backend::prelude::*;
 use bevy::render::camera::{ImageRenderTarget, RenderTarget};
 use bevy::window::{PrimaryWindow, WindowEvent, WindowRef};
 
+use crate::chunk::components::Chunk;
 use crate::player::components::Player;
 use crate::reflect::functions::get_struct_field_mut;
+use crate::render::components::RenderProxy;
 use crate::render::{
     components::MainCamera,
     resources::{GameViewRenderTarget, PrimaryWindowUiState},
 };
+use crate::usf::pos::grid::types::GridVec;
 
 use super::constants::MOUSE_POINTER_ID;
 
@@ -185,7 +188,7 @@ pub(super) fn sprite_picking_backend(
     main_camera_query: Query<(Entity, &Camera, &GlobalTransform, &Projection), With<MainCamera>>,
     primary_window: Query<(Entity, &Window), With<PrimaryWindow>>,
     // sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility)>,
-    sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), With<Player>>,
+    sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), With<RenderProxy>>,
     images: Res<Assets<Image>>,
     texture_atlas_layout: Res<Assets<TextureAtlasLayout>>,
     settings: Res<SpritePickingSettings>,
@@ -264,7 +267,7 @@ pub(super) fn sprite_picking_backend(
         x: current_window_position.x,
         y: current_window_position.y,
     }) {
-        // warn!("Cursor outside viewport");
+        warn!("Cursor outside viewport");
         return;
     }
 
@@ -349,13 +352,13 @@ pub(super) fn sprite_picking_backend(
                 return None;
             };
 
-            // let cursor_pos_sprite_pixel = cursor_pos_sprite_pixel + sprite_size / 2.0;
+            let cursor_pos_sprite_pixel = cursor_pos_sprite_pixel - sprite_size / 2.0;
 
 
 
 
 
-            
+
             // Since the pixel space coordinate is `Ok`, we know the cursor is in the bounds of
             // the sprite.
 
@@ -377,7 +380,12 @@ pub(super) fn sprite_picking_backend(
                         };
 
                         // Check the alpha is above the cutoff.
-                        color.alpha() > cutoff
+                        if color.alpha() > cutoff {
+                            true
+                        } else {
+                            warn!("Alpha threshold '{}' was not met: {:?}", cutoff, color);
+                            false
+                        }
                     }
                     SpritePickingMode::BoundingBox => true,
                 }
