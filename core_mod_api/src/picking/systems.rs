@@ -269,8 +269,8 @@ pub(super) fn sprite_picking_backend(
     }
 
     let current_viewport_position =  {
-        let x = current_window_position.x.remap(viewport_rect.min.x, viewport_size_vec2.x, 0.0, window_size_vec2.x);
-        let y = current_window_position.y.remap(viewport_rect.min.y, viewport_size_vec2.y, 0.0, window_size_vec2.y);
+        let x = current_window_position.x.remap(viewport_rect.min.x, viewport_rect.max.x, 0.0, viewport_size_vec2.x);
+        let y = current_window_position.y.remap(viewport_rect.min.y, viewport_rect.max.y, 0.0, viewport_size_vec2.y);
         Vec2::new(x, y)
     };
 
@@ -330,22 +330,32 @@ pub(super) fn sprite_picking_backend(
                 return None;
             };
 
-            let sprite_size = sprite.custom_size.unwrap_or(Vec2::ONE) * image.size().as_vec2() * sprite_transform.scale().truncate();
-            warn!("Computed sprite size '{}' from custom_size '{:?}' and image.size() '{}' converted to a vec2 '{}' and sprite.transform.scale '{}'", sprite_size, sprite.custom_size, image.size(), image.size().as_vec2(), sprite_transform.scale().truncate());
-            let cursor_pos_sprite_pixel = cursor_pos_sprite + sprite_size / 2.0;
+            let sprite_size = sprite.custom_size.unwrap_or(Vec2::ONE) * image.size().as_vec2() * sprite.rect.unwrap_or_default().size();
+
+
+
+
+
+
+            // let cursor_pos_sprite_pixel = cursor_pos_sprite - sprite_size / 2.0;
+            let cursor_pos_sprite_pixel = cursor_pos_sprite;
 
             let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(
                 cursor_pos_sprite_pixel,
                 &images,
                 &texture_atlas_layout,
             ) else {
-                warn!("Cursor position outside sprite bounds");
+                warn!("Cursor position '{}' outside sprite bounds", cursor_pos_sprite_pixel);
                 return None;
             };
-            warn!("Cursor position inside sprite bounds: {}", cursor_pos_sprite_pixel);
-            let cursor_pos_sprite_pixel = cursor_pos_sprite_pixel + sprite_size / 2.0;
-            warn!("Cursor position in sprite pixel space: {}", cursor_pos_sprite_pixel);
 
+            // let cursor_pos_sprite_pixel = cursor_pos_sprite_pixel + sprite_size / 2.0;
+
+
+
+
+
+            
             // Since the pixel space coordinate is `Ok`, we know the cursor is in the bounds of
             // the sprite.
 
