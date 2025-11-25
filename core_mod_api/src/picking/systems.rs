@@ -335,12 +335,6 @@ pub(super) fn sprite_picking_backend(
 
             let sprite_size = sprite.custom_size.unwrap_or(Vec2::ONE) * image.size().as_vec2() * sprite.rect.unwrap_or_default().size();
 
-
-
-
-
-
-            // let cursor_pos_sprite_pixel = cursor_pos_sprite - sprite_size / 2.0;
             let cursor_pos_sprite_pixel = cursor_pos_sprite;
 
             let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(
@@ -353,11 +347,6 @@ pub(super) fn sprite_picking_backend(
             };
 
             let cursor_pos_sprite_pixel = cursor_pos_sprite_pixel - sprite_size / 2.0;
-
-
-
-
-
 
             // Since the pixel space coordinate is `Ok`, we know the cursor is in the bounds of
             // the sprite.
@@ -372,14 +361,12 @@ pub(super) fn sprite_picking_backend(
                             break 'valid_pixel true;
                         };
 
-                        // grab pixel and check alpha
                         let Ok(color) = image.get_color_at(cursor_pos_sprite_pixel.x as u32, cursor_pos_sprite_pixel.y as u32) else {
                             // We don't know how to interpret the pixel.
                             warn!("Failed to get color at cursor pixel space: {}", cursor_pos_sprite_pixel);
                             break 'valid_pixel false;
                         };
 
-                        // Check the alpha is above the cutoff.
                         if color.alpha() > cutoff {
                             true
                         } else {
