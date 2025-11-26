@@ -237,7 +237,7 @@ define_workflow_mod_OLD! {
                     CachedComputePipelineId, BindGroupLayout,
                     Buffer, TextureView, TextureDescriptor, Extent3d,
                     TextureDimension, TextureFormat, TextureUsages,
-                    BufferInitDescriptor, BufferUsages, CommandEncoderDescriptor,
+                    BufferDescriptor, BufferInitDescriptor, BufferUsages, CommandEncoderDescriptor,
                     ComputePassDescriptor, BindGroupEntry, BindingResource
                 };
                 use bevy::ecs::system::SystemState;
@@ -523,6 +523,7 @@ define_workflow_mod_OLD! {
                     CachedComputePipelineId, BindGroupLayout, TextureView,
                     Buffer, BufferInitDescriptor, BufferUsages, BindingResource,
                     TextureDescriptor, Extent3d, TextureDimension, TextureFormat, TextureUsages,
+                    TexelCopyBufferInfo, TexelCopyBufferLayout,
                     CommandEncoderDescriptor, ComputePassDescriptor, BindGroupEntry,
                 };
                 use bevy::render::renderer::{RenderDevice, RenderQueue};
@@ -531,6 +532,7 @@ define_workflow_mod_OLD! {
                 use bevy::render::render_resource::PipelineCache;
                 use bevy::render::texture::GpuImage;
                 use crossbeam_channel::Receiver;
+                use std::num::NonZeroU32;
 
                 use crate::config::statics::CONFIG;
                 use crate::gpu::resources::ShaderRegistry;
@@ -546,6 +548,7 @@ define_workflow_mod_OLD! {
                     pub bind_group_layout: BindGroupLayout,
                     pub texture_handles: Vec<Handle<Image>>,
                     pub param_buffers: Vec<Buffer>,
+                    pub readback_buffers: Vec<Buffer>,
                 }
 
                 #[derive(Clone)]
@@ -555,6 +558,7 @@ define_workflow_mod_OLD! {
                     pub bind_group_layout: BindGroupLayout,
                     pub texture_handles: Vec<Handle<Image>>,
                     pub param_buffers: Vec<Buffer>,
+                    pub readback_buffers: Vec<Buffer>,
                     pub texture_views: Vec<TextureView>,
                     pub receiver: Option<Receiver<()>>,
                 }
@@ -615,6 +619,7 @@ define_workflow_mod_OLD! {
 
                             let mut texture_handles = Vec::new();
                             let mut param_buffers = Vec::new();
+                            let mut readback_buffers = Vec::new();
                             for param in &input.param_data {
                                 texture_handles.push(images.add(new_chunk_texture(1000)));
 
@@ -624,6 +629,13 @@ define_workflow_mod_OLD! {
                                     usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
                                 });
                                 param_buffers.push(buffer);
+
+                                // let readback_buffer = render_device.create_buffer(&BufferInitDescriptor {
+                                //     label: Some("Staging Readback Buffer"),
+                                //     contents: &[],
+                                //     usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
+                                // });
+                                // readback_buffers.push(readback_buffer);
                             }
 
                             Output {
@@ -633,6 +645,7 @@ define_workflow_mod_OLD! {
                                     bind_group_layout: bind_group_layout.clone(),
                                     texture_handles,
                                     param_buffers,
+                                    readback_buffers,
                                 },
                             }
                         }
@@ -681,6 +694,7 @@ define_workflow_mod_OLD! {
                                     bind_group_layout: state.params.bind_group_layout,
                                     texture_handles: state.params.texture_handles,
                                     param_buffers: state.params.param_buffers,
+                                    readback_buffers: state.params.readback_buffers,
                                     texture_views,
                                     receiver: None
                                 },
@@ -695,6 +709,7 @@ define_workflow_mod_OLD! {
                             render_device: Res<'w, RenderDevice>,
                             queue: Res<'w, RenderQueue>,
                             pipeline_cache: Res<'w, PipelineCache>,
+                            gpu_images: Res<'w, RenderAssets<GpuImage>>,
                         }
                         struct Input {
                             render_executor: ChunkRenderExecutor,
@@ -705,6 +720,8 @@ define_workflow_mod_OLD! {
                     ],
                     core_functions: [
                         fn RunRender |input, render_access| -> Output {
+                            let gpu_images = render_access.gpu_images;
+
                             let mut render_executor = input.render_executor;
 
                             let pipeline = render_access.pipeline_cache
@@ -715,8 +732,14 @@ define_workflow_mod_OLD! {
                                 label: Some("DispatchChunkTextures Encoder"),
                             });
 
-                            let big_loop_iter = render_executor.texture_views.iter().zip(&render_executor.param_buffers).zip(&render_executor.texture_handles);
-                            for ((view, buffer), _handle) in big_loop_iter {
+                            let big_loop_iter = render_executor.texture_views.iter()
+                                .zip(&render_executor.param_buffers)
+                                .zip(&render_executor.readback_buffers)
+                                .zip(&render_executor.texture_handles);
+
+                            let mut copy_commands = Vec::with_capacity(big_loop_iter.len());
+
+                            for (((view, buffer), readback_buffer), handle) in big_loop_iter {
                                 let bind_group = render_access.render_device.create_bind_group(
                                     Some("ChunkRender BindGroup"),
                                     &render_executor.bind_group_layout,
@@ -746,17 +769,48 @@ define_workflow_mod_OLD! {
                                 pass.set_pipeline(pipeline);
                                 pass.set_bind_group(0, &bind_group, &[]);
                                 pass.dispatch_workgroups(dispatch_x, dispatch_y, 1);
+
+                                let gpu_image = gpu_images.get(handle).expect("GpuImage not ready");
+                                
+                                let block_dimensions = gpu_image.texture_format.block_dimensions();
+                                let block_size = gpu_image
+                                    .texture_format
+                                    .block_copy_size(None)
+                                    .expect("Can't get block size for texture format");
+                                
+                                // Align the bytes per row (required by wgpu)
+                                let padded_bytes_per_row = RenderDevice::align_copy_bytes_per_row(
+                                    (gpu_image.size.width as usize / block_dimensions.0 as usize) * block_size as usize,
+                                );
+                                
+                                // Encode the copy command
+                                copy_commands.push((
+                                    gpu_image.texture.as_image_copy(),
+                                    TexelCopyBufferInfo {
+                                        buffer: readback_buffer,
+                                        layout: TexelCopyBufferLayout {
+                                            offset: 0,
+                                            bytes_per_row: Some(NonZeroU32::new(padded_bytes_per_row as u32).unwrap().into()),
+                                            rows_per_image: None,
+                                        },
+                                    },
+                                    gpu_image.size,
+                                ));
                             }
-
+                            
+                            for (texture_copy, buffer_copy, size) in copy_commands {
+                                encoder.copy_texture_to_buffer(texture_copy, buffer_copy, size);
+                            }
+                            
                             render_access.queue.submit(Some(encoder.finish()));
-
+                            
                             let (sender, receiver) = crossbeam_channel::unbounded();
                             render_access.queue.on_submitted_work_done(move || {
                                 let _ = sender.send(());
                             });
-
+                            
                             render_executor.receiver = Some(receiver);
-
+                            
                             Output {
                                 render_executor: render_executor.clone(),
                             }
@@ -801,6 +855,49 @@ define_workflow_mod_OLD! {
                                 Progress::Unfinished(state) => Wait(State {
                                     render_executor: state.render_executor,
                                 })
+                            }
+                        }
+                    ]
+                }
+
+                ReadbackTextureData: Ecs, run_if_paused: false, run_after_startup_finished: false {
+                    core_types: [
+                        struct MainAccess<'w> {
+                            render_device: Res<'w, RenderDevice>,
+                        }
+                        struct Input {
+                            render_executor: ChunkRenderExecutor,
+                        }
+                        struct Output {
+                            render_executor: ChunkRenderExecutor,
+                            pixel_data: Vec<Vec<u8>>, // One Vec per texture
+                        }
+                    ],
+                    core_functions: [
+                        fn RunEcs |input, main_access| -> Output {
+                            let mut pixel_data = Vec::new();
+
+                            for buffer in &input.render_executor.readback_buffers {
+                                // let slice = buffer.slice(..);
+                                // let (sender, receiver) = crossbeam_channel::unbounded();
+                                // 
+                                // slice.map_async(wgpu::MapMode::Read, move |result| {
+                                //     if result.is_ok() {
+                                //         let _ = sender.send(());
+                                //     }
+                                // });
+                                // 
+                                // main_access.render_device.poll(wgpu::Maintain::Wait);
+                                // receiver.recv().unwrap();
+                                // 
+                                // let data = slice.get_mapped_range().to_vec();
+                                // pixel_data.push(data);
+                                // buffer.unmap();
+                            }
+
+                            Output {
+                                render_executor: input.render_executor,
+                                pixel_data,
                             }
                         }
                     ]

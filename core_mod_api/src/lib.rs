@@ -190,6 +190,7 @@ register_workflow_mods!(
             GetTextureViews: RenderWhile,
             DispatchChunkTextures: Render,
             WaitForTexturesReady: EcsWhile,
+            ReadbackTextureData: Ecs,
         }
     },
     Player {
