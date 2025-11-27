@@ -630,12 +630,12 @@ define_workflow_mod_OLD! {
                                 });
                                 param_buffers.push(buffer);
 
-                                // let readback_buffer = render_device.create_buffer(&BufferInitDescriptor {
-                                //     label: Some("Staging Readback Buffer"),
-                                //     contents: &[],
-                                //     usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
-                                // });
-                                // readback_buffers.push(readback_buffer);
+                                let readback_buffer = render_device.create_buffer(&BufferInitDescriptor {
+                                    label: Some("Staging Readback Buffer"),
+                                    contents: &[],
+                                    usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
+                                });
+                                readback_buffers.push(readback_buffer);
                             }
 
                             Output {
@@ -878,21 +878,21 @@ define_workflow_mod_OLD! {
                             let mut pixel_data = Vec::new();
 
                             for buffer in &input.render_executor.readback_buffers {
-                                // let slice = buffer.slice(..);
-                                // let (sender, receiver) = crossbeam_channel::unbounded();
-                                // 
-                                // slice.map_async(wgpu::MapMode::Read, move |result| {
-                                //     if result.is_ok() {
-                                //         let _ = sender.send(());
-                                //     }
-                                // });
-                                // 
-                                // main_access.render_device.poll(wgpu::Maintain::Wait);
-                                // receiver.recv().unwrap();
-                                // 
-                                // let data = slice.get_mapped_range().to_vec();
-                                // pixel_data.push(data);
-                                // buffer.unmap();
+                                let slice = buffer.slice(..);
+                                let (sender, receiver) = crossbeam_channel::unbounded();
+                                
+                                slice.map_async(wgpu::MapMode::Read, move |result| {
+                                    if result.is_ok() {
+                                        let _ = sender.send(());
+                                    }
+                                });
+                                
+                                main_access.render_device.poll(wgpu::Maintain::Wait);
+                                receiver.recv().unwrap();
+                                
+                                let data = slice.get_mapped_range().to_vec();
+                                pixel_data.push(data);
+                                buffer.unmap();
                             }
 
                             Output {
