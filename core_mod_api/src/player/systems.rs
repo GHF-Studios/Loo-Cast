@@ -117,7 +117,7 @@ pub(super) fn update_player_system(
 
             let _transformation_span = trace_span!("transformation").entered();
             if let Ok((mut transform, _chunk_loader)) = chunk_loader_query.get_mut(entity) {
-                transform.scale = Vec3::splat(zoom_factor.0);
+                transform.scale = Vec2::splat(zoom_factor.0).extend(1.0);
 
                 let mut direction = Vec3::ZERO;
 
@@ -144,7 +144,7 @@ pub(super) fn update_player_system(
                     } else {
                         1.0
                     };
-                    transform.translation += direction * zoom_factor.0 * base_movement_speed * sprint_multiplier * time.delta_secs();
+                    transform.translation += (direction * zoom_factor.0 * base_movement_speed * sprint_multiplier * time.delta_secs()).truncate().extend(0.0);
                 }
 
                 *player_state_resource = PlayerLifecycle::Active(entity);
