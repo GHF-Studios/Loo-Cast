@@ -1,0 +1,11 @@
+{
+    "statNames": [
+        "Body",
+        "Might",
+        "Brawn",
+        "Power"
+    ],
+    "level": 0,
+    "maxLevel": 0,
+    "proposedLevelChange": 0
+}

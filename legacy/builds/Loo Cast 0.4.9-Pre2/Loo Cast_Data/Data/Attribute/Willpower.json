@@ -1,0 +1,11 @@
+{
+    "statNames": [
+        "Sanity",
+        "Personality",
+        "Ego",
+        "Resolve"
+    ],
+    "level": 0,
+    "maxLevel": 0,
+    "proposedLevelChange": 0
+}

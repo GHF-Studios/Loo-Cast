@@ -1,0 +1,10 @@
+{
+    "statNames": [
+        "Agility",
+        "Reflexes",
+        "Quickness"
+    ],
+    "level": 0,
+    "maxLevel": 0,
+    "proposedLevelChange": 0
+}
