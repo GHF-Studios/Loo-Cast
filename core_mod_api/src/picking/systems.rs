@@ -295,7 +295,7 @@ pub(super) fn sprite_picking_backend(
         .copied()
         .filter_map(|(entity, sprite, sprite_transform)| {
             if blocked {
-                warn!("Picking blocked by previous sprite");
+                // warn!("Picking blocked by previous sprite");
                 return None;
             }
 
@@ -303,6 +303,17 @@ pub(super) fn sprite_picking_backend(
             let world_to_sprite = sprite_transform.affine().inverse();
             let cursor_start_sprite = world_to_sprite.transform_point3(cursor_ray_world.origin);
             let cursor_end_sprite = world_to_sprite.transform_point3(cursor_ray_end);
+
+            warn!(
+                "Evaluating Entity {:?} — sprite Z: {:?}, world_to_sprite Z: {:?}",
+                entity,
+                sprite_transform.translation().z,
+                sprite_transform
+                    .affine()
+                    .inverse()
+                    .transform_point3(cursor_ray_world.origin)
+                    .z,
+            );
 
             // Find where the cursor segment intersects the plane Z=0 (which is the sprite's
             // plane in sprite-local space). It may not intersect if, for example, we're
@@ -342,7 +353,7 @@ pub(super) fn sprite_picking_backend(
                 &images,
                 &texture_atlas_layout,
             ) else {
-                warn!("Cursor position '{}' outside sprite bounds", cursor_pos_sprite_pixel);
+                // warn!("Cursor position '{}' outside sprite bounds", cursor_pos_sprite_pixel);
                 return None;
             };
 
@@ -392,6 +403,13 @@ pub(super) fn sprite_picking_backend(
 
                 // HitData requires a depth as calculated from the camera's near clipping plane
                 let depth = -main_camera_ortho.near - hit_pos_cam.z;
+
+                warn!(
+                    "✅ Picked entity {:?} at world Z: {:?}",
+                    entity,
+                    sprite_transform.translation().z
+                );
+
                 (
                     entity,
                     HitData::new(
@@ -406,7 +424,7 @@ pub(super) fn sprite_picking_backend(
         .collect();
 
     if !picks.is_empty() {
-        warn!("Pick(s) detected for mouse pointer");
+        // warn!("Pick(s) detected for mouse pointer");
     }
 
     let order = main_camera.order as f32;
