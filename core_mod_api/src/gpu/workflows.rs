@@ -577,6 +577,7 @@ define_workflow_mod_OLD! {
                             dimension: TextureDimension::D2,
                             format: TextureFormat::Rgba8Unorm,
                             usage: TextureUsages::COPY_DST
+                                | TextureUsages::COPY_SRC
                                 | TextureUsages::TEXTURE_BINDING
                                 | TextureUsages::STORAGE_BINDING,
                             view_formats: &[],
@@ -630,9 +631,10 @@ define_workflow_mod_OLD! {
                                 });
                                 param_buffers.push(buffer);
 
-                                let readback_buffer = render_device.create_buffer(&BufferInitDescriptor {
+                                let readback_buffer = render_device.create_buffer(&wgpu::BufferDescriptor {
                                     label: Some("Staging Readback Buffer"),
-                                    contents: &[],
+                                    size: (1024 * 1024 * 4) as u64,
+                                    mapped_at_creation: false,
                                     usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
                                 });
                                 readback_buffers.push(readback_buffer);
@@ -716,6 +718,7 @@ define_workflow_mod_OLD! {
                         }
                         struct Output {
                             render_executor: ChunkRenderExecutor,
+                            gpu_image_infos: Vec<(usize, Extent3d)>,
                         }
                     ],
                     core_functions: [
@@ -736,8 +739,11 @@ define_workflow_mod_OLD! {
                                 .zip(&render_executor.param_buffers)
                                 .zip(&render_executor.readback_buffers)
                                 .zip(&render_executor.texture_handles);
+                        
+                            let big_loop_len = big_loop_iter.len();
 
-                            let mut copy_commands = Vec::with_capacity(big_loop_iter.len());
+                            let mut copy_commands = Vec::with_capacity(big_loop_len);
+                            let mut gpu_image_infos = Vec::with_capacity(big_loop_len);
 
                             for (((view, buffer), readback_buffer), handle) in big_loop_iter {
                                 let bind_group = render_access.render_device.create_bind_group(
@@ -796,6 +802,8 @@ define_workflow_mod_OLD! {
                                     },
                                     gpu_image.size,
                                 ));
+                                
+                                gpu_image_infos.push((padded_bytes_per_row, gpu_image.size));
                             }
                             
                             for (texture_copy, buffer_copy, size) in copy_commands {
@@ -813,6 +821,7 @@ define_workflow_mod_OLD! {
                             
                             Output {
                                 render_executor: render_executor.clone(),
+                                gpu_image_infos,
                             }
                         }
                     ]
@@ -824,20 +833,24 @@ define_workflow_mod_OLD! {
 
                         struct Input {
                             render_executor: ChunkRenderExecutor,
+                            gpu_image_infos: Vec<(usize, Extent3d)>,
                         }
 
                         struct State {
                             render_executor: ChunkRenderExecutor,
+                            gpu_image_infos: Vec<(usize, Extent3d)>,
                         }
 
                         struct Output {
                             render_executor: ChunkRenderExecutor,
+                            gpu_image_infos: Vec<(usize, Extent3d)>,
                         }
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> State {
                             State {
                                 render_executor: input.render_executor,
+                                gpu_image_infos: input.gpu_image_infos,
                             }
                         }
 
@@ -851,9 +864,11 @@ define_workflow_mod_OLD! {
                             match progress {
                                 Progress::Finished(state) => Done(Output {
                                     render_executor: state.render_executor,
+                                    gpu_image_infos: state.gpu_image_infos,
                                 }),
                                 Progress::Unfinished(state) => Wait(State {
                                     render_executor: state.render_executor,
+                                    gpu_image_infos: state.gpu_image_infos,
                                 })
                             }
                         }
@@ -863,27 +878,46 @@ define_workflow_mod_OLD! {
                 ReadbackTextureData: Ecs, run_if_paused: false, run_after_startup_finished: false {
                     core_types: [
                         struct MainAccess<'w> {
+                            images: ResMut<'w, Assets<Image>>,
                             render_device: Res<'w, RenderDevice>,
                         }
                         struct Input {
                             render_executor: ChunkRenderExecutor,
+                            gpu_image_infos: Vec<(usize, Extent3d)>,
                         }
                         struct Output {
                             render_executor: ChunkRenderExecutor,
-                            pixel_data: Vec<Vec<u8>>, // One Vec per texture
                         }
                     ],
                     core_functions: [
                         fn RunEcs |input, main_access| -> Output {
-                            let mut pixel_data = Vec::new();
+                            fn repack_texture_data(data: &[u8], width: u32, height: u32, padded_bytes_per_row: usize) -> Vec<u8> {
+                                let unpadded_row_bytes = (width * 4) as usize;
+                            
+                                let mut output = Vec::with_capacity(unpadded_row_bytes * height as usize);
+                            
+                                for row in 0..height as usize {
+                                    let start = row * padded_bytes_per_row;
+                                    let end = start + unpadded_row_bytes;
+                                    output.extend_from_slice(&data[start..end]);
+                                }
+                            
+                                output
+                            }
 
-                            for buffer in &input.render_executor.readback_buffers {
+                            let mut images = main_access.images;
+
+                            let big_loop_iter = input.render_executor.readback_buffers.iter().zip(input.render_executor.texture_handles.iter()).zip(input.gpu_image_infos.iter());
+
+                            for ((buffer, texture_handle), (padded_bytes_per_row, gpu_image_size)) in big_loop_iter {
                                 let slice = buffer.slice(..);
                                 let (sender, receiver) = crossbeam_channel::unbounded();
                                 
                                 slice.map_async(wgpu::MapMode::Read, move |result| {
                                     if result.is_ok() {
                                         let _ = sender.send(());
+                                    } else {
+                                        panic!("Failed to map buffer for texture readback");
                                     }
                                 });
                                 
@@ -891,13 +925,25 @@ define_workflow_mod_OLD! {
                                 receiver.recv().unwrap();
                                 
                                 let data = slice.get_mapped_range().to_vec();
-                                pixel_data.push(data);
+                            
+                                // // TOOD: Hmm
+                                // let unpadded = repack_texture_data(
+                                //     &data,
+                                //     gpu_image_size.width,
+                                //     gpu_image_size.height,
+                                //     *padded_bytes_per_row,
+                                // );
+                                // 
+                                // // TOOD: Hmmmmmmmmmm
+                                // if let Some(image) = images.get_mut(texture_handle) {
+                                //     image.data = Some(unpadded);
+                                // }
+
                                 buffer.unmap();
                             }
 
                             Output {
                                 render_executor: input.render_executor,
-                                pixel_data,
                             }
                         }
                     ]
