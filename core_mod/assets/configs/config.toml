@@ -10,7 +10,7 @@ z_offset = -10
 texture_generator_shader = "texture_generators/example_world"
 
 [chunk_loader]
-default_radius = 2
+default_radius = 0
 zoom_cooldown_secs = 1.0
 
 [core]

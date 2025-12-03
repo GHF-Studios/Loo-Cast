@@ -926,18 +926,18 @@ define_workflow_mod_OLD! {
                                 
                                 let data = slice.get_mapped_range().to_vec();
                             
-                                // // TOOD: Hmm
-                                // let unpadded = repack_texture_data(
-                                //     &data,
-                                //     gpu_image_size.width,
-                                //     gpu_image_size.height,
-                                //     *padded_bytes_per_row,
-                                // );
-                                // 
-                                // // TOOD: Hmmmmmmmmmm
-                                // if let Some(image) = images.get_mut(texture_handle) {
-                                //     image.data = Some(unpadded);
-                                // }
+                                // TOOD: Hmm
+                                let unpadded = repack_texture_data(
+                                    &data,
+                                    gpu_image_size.width,
+                                    gpu_image_size.height,
+                                    *padded_bytes_per_row,
+                                );
+                                
+                                // TOOD: Hmmmmmmmmmm
+                                if let Some(image) = images.get_mut(texture_handle) {
+                                    image.data = Some(unpadded);
+                                }
 
                                 buffer.unmap();
                             }
