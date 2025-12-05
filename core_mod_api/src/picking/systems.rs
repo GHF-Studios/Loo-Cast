@@ -285,7 +285,7 @@ pub(super) fn diegetic_sprite_picking_backend(
         .copied()
         .filter_map(|(entity, sprite, sprite_transform)| {
             if blocked {
-                warn!("Picking for Entity {:?} blocked by previous sprite", entity);
+                // warn!("Picking for Entity {:?} blocked by previous sprite", entity);
                 return None;
             }
 
