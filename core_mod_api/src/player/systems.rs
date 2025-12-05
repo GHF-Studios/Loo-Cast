@@ -145,7 +145,9 @@ pub(super) fn update_player_system(
                     } else {
                         1.0
                     };
-                    transform.translation += (direction * zoom_factor.0 * base_movement_speed * sprint_multiplier * time.delta_secs()).truncate().extend(0.0);
+                    transform.translation += (direction * zoom_factor.0 * base_movement_speed * sprint_multiplier * time.delta_secs())
+                        .truncate()
+                        .extend(0.0);
                 }
 
                 *player_state_resource = PlayerLifecycle::Active(entity);

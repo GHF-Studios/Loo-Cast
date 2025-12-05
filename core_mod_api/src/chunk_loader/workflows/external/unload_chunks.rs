@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use std::collections::HashSet;
 
 use crate::chunk::components::Chunk;
-use crate::chunk::intent::{ActionIntent, ActionPriority, ResolutionWarning, ResolvedActionIntent, State as ChunkState, resolve_intent};
+use crate::chunk::intent::{resolve_intent, ActionIntent, ActionPriority, ResolutionWarning, ResolvedActionIntent, State as ChunkState};
 use crate::chunk::resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager};
 use crate::chunk_loader::components::ChunkLoader;
 use crate::chunk_loader::types::ChunkLoaderId;
@@ -108,7 +108,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
         //                 None
         //             }
         //         });
-        //         
+        //
         //         (tc, true)
         //     }
         //     None => (None, false),
@@ -140,10 +140,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> State {
             ResolvedActionIntent::PushCommit(action) => match action.clone() {
                 ActionIntent::Despawn { .. } => {
                     action_intent_commit_buffer.commit_intent(action);
-                    despawn_chunk_states.push(DespawnChunkState {
-                        coord,
-                        is_despawned: false,
-                    });
+                    despawn_chunk_states.push(DespawnChunkState { coord, is_despawned: false });
                 }
                 ActionIntent::TransferOwnership { new_owner_id, .. } => {
                     action_intent_commit_buffer.commit_intent(action);

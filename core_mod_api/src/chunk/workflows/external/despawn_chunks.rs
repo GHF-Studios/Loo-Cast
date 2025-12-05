@@ -1,5 +1,5 @@
 // Imports
-use bevy::prelude::{ResMut, Commands, Query, Entity};
+use bevy::prelude::{Commands, Entity, Query, ResMut};
 
 use crate::chunk::{components::Chunk, resources::ChunkManager};
 use crate::usf::pos::grid::types::GridVec;
@@ -7,7 +7,7 @@ use crate::workflow::types::Outcome;
 
 // Items
 pub struct DespawnChunkInput {
-    pub grid_coord: GridVec
+    pub grid_coord: GridVec,
 }
 #[derive(Clone)]
 pub struct DespawnChunkState {
@@ -66,32 +66,30 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         }
     }
 
-    Ok(State {
-        despawn_chunk_states
-    })
+    Ok(State { despawn_chunk_states })
 }
 
 pub fn run_ecs_while(state: State, main_access: MainAccess) -> Result<Outcome<State, Output>, Error> {
     let mut commands = main_access.commands;
 
-    let despawn_chunk_states = state.despawn_chunk_states.into_iter().map(|mut despawn_chunk_state| {
-        if commands.get_entity(despawn_chunk_state.entity).is_err() {
-            despawn_chunk_state.is_despawned = true;
-        }
+    let despawn_chunk_states = state
+        .despawn_chunk_states
+        .into_iter()
+        .map(|mut despawn_chunk_state| {
+            if commands.get_entity(despawn_chunk_state.entity).is_err() {
+                despawn_chunk_state.is_despawned = true;
+            }
 
-        despawn_chunk_state
-    }).collect::<Vec<_>>();
+            despawn_chunk_state
+        })
+        .collect::<Vec<_>>();
     let is_done = despawn_chunk_states.iter().all(|despawn_chunk_state| despawn_chunk_state.is_despawned);
 
     if is_done {
         let despawned_chunk_entities = despawn_chunk_states.into_iter().map(|despawn_chunk_state| despawn_chunk_state.entity).collect();
 
-        Ok(Outcome::Done(Output {
-            despawned_chunk_entities
-        }))
+        Ok(Outcome::Done(Output { despawned_chunk_entities }))
     } else {
-        Ok(Outcome::Wait(State {
-            despawn_chunk_states
-        }))
+        Ok(Outcome::Wait(State { despawn_chunk_states }))
     }
 }

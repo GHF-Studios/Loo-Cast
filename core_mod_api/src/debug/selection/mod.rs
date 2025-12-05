@@ -8,9 +8,6 @@ use crate::core::run_conditions::run_after_startup_finished;
 pub(crate) struct SelectionPlugin;
 impl Plugin for SelectionPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Update, (
-                handle_selection,
-            ).run_if(run_after_startup_finished));
+        app.add_systems(Update, (handle_selection,).run_if(run_after_startup_finished));
     }
 }

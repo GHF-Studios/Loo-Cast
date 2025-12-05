@@ -9,8 +9,6 @@ use types::GridVec;
 pub(crate) struct GridPlugin;
 impl Plugin for GridPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .register_type::<GridVec>()
-            .register_type_data::<GridVec, InspectorEguiImpl>();
+        app.register_type::<GridVec>().register_type_data::<GridVec, InspectorEguiImpl>();
     }
 }

@@ -1,23 +1,18 @@
 use bevy::prelude::*;
 
-
-use super::components::GizmoArrow;
+use crate::core::components::Meta;
 use crate::render::resources::PrimaryWindowUiState;
+
+use super::components::{GizmoArrow, GizmoRoot};
 use super::types::Axis2D;
 
-pub(super) fn setup(
-    mut commands: Commands,
-) {
+pub(super) fn setup(mut commands: Commands) {
     // Gizmo Arrows – one entity, hidden until needed
     let half_arrow_size_x = Vec2::new(5.0, 100.0) / 2.0;
     let half_arrow_size_y = Vec2::new(100.0, 5.0) / 2.0;
 
     commands
-        .spawn((
-            Transform::default(),
-            Visibility::Hidden,
-            Name::new("Gizmo Root"),
-        ))
+        .spawn((Transform::default(), Visibility::Hidden, Name::new("Gizmo Root"), GizmoRoot))
         .with_children(|parent| {
             parent.spawn((
                 Sprite {
@@ -25,6 +20,7 @@ pub(super) fn setup(
                     rect: Some(Rect::new(-half_arrow_size_x.x, -half_arrow_size_x.y, half_arrow_size_x.x, half_arrow_size_x.y)),
                     ..Default::default()
                 },
+                Meta::<Sprite>::default(),
                 Transform::from_translation(Vec3::new(25.0, 0.0, 10.0)),
                 GizmoArrow { axis: Axis2D::X },
             ));
@@ -35,6 +31,7 @@ pub(super) fn setup(
                     rect: Some(Rect::new(-half_arrow_size_y.x, -half_arrow_size_y.y, half_arrow_size_y.x, half_arrow_size_y.y)),
                     ..Default::default()
                 },
+                Meta::<Sprite>::default(),
                 Transform::from_translation(Vec3::new(0.0, 25.0, 10.0)),
                 GizmoArrow { axis: Axis2D::Y },
             ));

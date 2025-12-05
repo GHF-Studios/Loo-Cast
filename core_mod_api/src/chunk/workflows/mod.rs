@@ -46,7 +46,7 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
                             let state = validate_and_spawn_and_wait_setup_ecs_while(input.inner, main_access.inner).map_err(Error::Inner)?;
-                            
+
                             Ok(State {
                                 inner: Progress::Unfinished(state),
                             })
@@ -57,13 +57,13 @@ define_workflow_mod_OLD! {
                                 Progress::Unfinished(state) => validate_and_spawn_and_wait_run_ecs_while(state, main_access.inner).map_err(Error::Inner)?.into_progress(),
                                 Progress::Finished(output) => Progress::Finished(output)
                             };
-                            
+
                             if progress.is_finished() {
                                 return Ok(Done(Output {
                                     inner: progress.unwrap_finished(),
                                 }));
                             }
-                            
+
                             Ok(Wait(State {
                                 inner: progress,
                             }))
@@ -114,7 +114,7 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
                             let state = find_and_despawn_and_wait_setup_ecs_while(input.inner, main_access.inner).map_err(Error::Inner)?;
-                            
+
                             Ok(State {
                                 inner: Progress::Unfinished(state),
                             })
@@ -125,7 +125,7 @@ define_workflow_mod_OLD! {
                                 Progress::Unfinished(state) => find_and_despawn_and_wait_run_ecs_while(state, main_access.inner).map_err(Error::Inner)?.into_progress(),
                                 Progress::Finished(output) => Progress::Finished(output)
                             };
-                            
+
                             if progress.is_finished() {
                                 return Ok(Done(Output {
                                     inner: progress.unwrap_finished(),

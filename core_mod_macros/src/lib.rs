@@ -16,8 +16,7 @@ use define_composite_workflow::CompositeWorkflow as InnerCompositeWorkflow;
 use define_workflow_mod_OLD::WorkflowModule;
 use register_workflow_mods::WorkflowMods;
 use usf::scale::{
-    configure_app_with_all_scales::AppConfigInput,
-    scale_factor_exponent_dynamic_match::ScaleFactorExponentDynamicMatch,
+    configure_app_with_all_scales::AppConfigInput, scale_factor_exponent_dynamic_match::ScaleFactorExponentDynamicMatch,
     scale_type_generic_match::ScaleTypeGenericMatch,
 };
 

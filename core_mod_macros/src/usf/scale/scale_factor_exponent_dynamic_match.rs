@@ -1,31 +1,81 @@
 use quote::{format_ident, quote};
-use syn::{Expr, Token, parse::{Parse, ParseStream}};
+use syn::{
+    parse::{Parse, ParseStream},
+    Expr, Token,
+};
 
 pub const SCALES: &[&str] = &[
-    "ScaleQuettaMeter100000", "ScaleQuettaMeter10000", "ScaleQuettaMeter1000",
-    "ScaleQuettaMeter100", "ScaleQuettaMeter10", "ScaleQuettaMeter1",
-    "ScaleRonnaMeter100", "ScaleRonnaMeter10", "ScaleRonnaMeter1",
-    "ScaleYottaMeter100", "ScaleYottaMeter10", "ScaleYottaMeter1",
-    "ScaleZettaMeter100", "ScaleZettaMeter10", "ScaleZettaMeter1",
-    "ScaleExaMeter100", "ScaleExaMeter10", "ScaleExaMeter1",
-    "ScalePetaMeter100", "ScalePetaMeter10", "ScalePetaMeter1",
-    "ScaleTeraMeter100", "ScaleTeraMeter10", "ScaleTeraMeter1",
-    "ScaleGigaMeter100", "ScaleGigaMeter10", "ScaleGigaMeter1",
-    "ScaleMegaMeter100", "ScaleMegaMeter10", "ScaleMegaMeter1",
-    "ScaleKiloMeter100", "ScaleKiloMeter10", "ScaleKiloMeter1",
-    "ScaleMeter100", "ScaleMeter10", "ScaleMeter1",
-    "ScaleMilliMeter100", "ScaleMilliMeter10", "ScaleMilliMeter1",
-    "ScaleMicroMeter100", "ScaleMicroMeter10", "ScaleMicroMeter1",
-    "ScaleNanoMeter100", "ScaleNanoMeter10", "ScaleNanoMeter1",
-    "ScalePicoMeter100", "ScalePicoMeter10", "ScalePicoMeter1",
-    "ScaleFemtoMeter100", "ScaleFemtoMeter10", "ScaleFemtoMeter1",
-    "ScaleAttoMeter100", "ScaleAttoMeter10", "ScaleAttoMeter1",
-    "ScaleZeptoMeter100", "ScaleZeptoMeter10", "ScaleZeptoMeter1",
-    "ScaleYoctoMeter100", "ScaleYoctoMeter10", "ScaleYoctoMeter1",
-    "ScaleRontoMeter100", "ScaleRontoMeter10", "ScaleRontoMeter1",
-    "ScaleQuectoMeter100", "ScaleQuectoMeter10", "ScaleQuectoMeter1",
-    "ScaleQuectoMeter01", "ScaleQuectoMeter001", "ScaleQuectoMeter0001",
-    "ScaleQuectoMeter00001", "ScaleQuectoMeter000001"
+    "ScaleQuettaMeter100000",
+    "ScaleQuettaMeter10000",
+    "ScaleQuettaMeter1000",
+    "ScaleQuettaMeter100",
+    "ScaleQuettaMeter10",
+    "ScaleQuettaMeter1",
+    "ScaleRonnaMeter100",
+    "ScaleRonnaMeter10",
+    "ScaleRonnaMeter1",
+    "ScaleYottaMeter100",
+    "ScaleYottaMeter10",
+    "ScaleYottaMeter1",
+    "ScaleZettaMeter100",
+    "ScaleZettaMeter10",
+    "ScaleZettaMeter1",
+    "ScaleExaMeter100",
+    "ScaleExaMeter10",
+    "ScaleExaMeter1",
+    "ScalePetaMeter100",
+    "ScalePetaMeter10",
+    "ScalePetaMeter1",
+    "ScaleTeraMeter100",
+    "ScaleTeraMeter10",
+    "ScaleTeraMeter1",
+    "ScaleGigaMeter100",
+    "ScaleGigaMeter10",
+    "ScaleGigaMeter1",
+    "ScaleMegaMeter100",
+    "ScaleMegaMeter10",
+    "ScaleMegaMeter1",
+    "ScaleKiloMeter100",
+    "ScaleKiloMeter10",
+    "ScaleKiloMeter1",
+    "ScaleMeter100",
+    "ScaleMeter10",
+    "ScaleMeter1",
+    "ScaleMilliMeter100",
+    "ScaleMilliMeter10",
+    "ScaleMilliMeter1",
+    "ScaleMicroMeter100",
+    "ScaleMicroMeter10",
+    "ScaleMicroMeter1",
+    "ScaleNanoMeter100",
+    "ScaleNanoMeter10",
+    "ScaleNanoMeter1",
+    "ScalePicoMeter100",
+    "ScalePicoMeter10",
+    "ScalePicoMeter1",
+    "ScaleFemtoMeter100",
+    "ScaleFemtoMeter10",
+    "ScaleFemtoMeter1",
+    "ScaleAttoMeter100",
+    "ScaleAttoMeter10",
+    "ScaleAttoMeter1",
+    "ScaleZeptoMeter100",
+    "ScaleZeptoMeter10",
+    "ScaleZeptoMeter1",
+    "ScaleYoctoMeter100",
+    "ScaleYoctoMeter10",
+    "ScaleYoctoMeter1",
+    "ScaleRontoMeter100",
+    "ScaleRontoMeter10",
+    "ScaleRontoMeter1",
+    "ScaleQuectoMeter100",
+    "ScaleQuectoMeter10",
+    "ScaleQuectoMeter1",
+    "ScaleQuectoMeter01",
+    "ScaleQuectoMeter001",
+    "ScaleQuectoMeter0001",
+    "ScaleQuectoMeter00001",
+    "ScaleQuectoMeter000001",
 ];
 
 pub fn scale_factor_exponent(scale_str: &str) -> Result<i8, ()> {
@@ -118,19 +168,30 @@ impl Parse for ScaleFactorExponentDynamicMatch {
         let _ = input.parse::<Token![,]>()?;
         let fallback_case_expr: Expr = input.parse()?;
 
-        Ok(Self { value_expr, case_expr, fallback_case_expr })
+        Ok(Self {
+            value_expr,
+            case_expr,
+            fallback_case_expr,
+        })
     }
 }
 impl ScaleFactorExponentDynamicMatch {
     pub fn generate(self) -> proc_macro2::TokenStream {
-        let ScaleFactorExponentDynamicMatch { value_expr, case_expr, fallback_case_expr } = self;
+        let ScaleFactorExponentDynamicMatch {
+            value_expr,
+            case_expr,
+            fallback_case_expr,
+        } = self;
 
-        let scales = SCALES.iter().map(|scale| {
+        let scales = SCALES
+            .iter()
+            .map(|scale| {
                 let scale_factor_exponent = scale_factor_exponent(scale).unwrap();
                 let scale_ident = format_ident!("{}", scale);
 
                 quote! { #scale_factor_exponent => { const __SCALE__: Scale = Scale::#scale_ident; #case_expr } }
-        }).collect::<Vec<proc_macro2::TokenStream>>();
+            })
+            .collect::<Vec<proc_macro2::TokenStream>>();
 
         let expanded = quote! {
             match #value_expr {

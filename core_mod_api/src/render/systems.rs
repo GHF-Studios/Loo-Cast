@@ -1,5 +1,5 @@
+use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
-use bevy::input::mouse::{MouseWheel, MouseScrollUnit};
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 
 use crate::chunk_actor::components::ChunkActor;
@@ -7,17 +7,13 @@ use crate::chunk_loader::components::ChunkLoader;
 use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
 use crate::render::{
-    components::{MainCamera, UiCamera, RenderProxy, RenderProxyHandle},
+    components::{MainCamera, RenderProxy, RenderProxyHandle, UiCamera},
     functions::draw_primary_window_ui,
-    resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ZoomFactor, ViewScale}
+    resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor},
 };
 use crate::time::resources::VirtualPaused;
 
-pub(super) fn pre_setup_phase_0(
-    mut commands: Commands,
-    mut images: ResMut<Assets<Image>>,
-    windows: Query<&Window>,
-) {
+pub(super) fn pre_setup_phase_0(mut commands: Commands, mut images: ResMut<Assets<Image>>, windows: Query<&Window>) {
     // Reserve camera entities
     let egui_camera = commands.spawn(()).id();
     let ui_camera = commands.spawn(UiCamera).id();
@@ -50,10 +46,7 @@ pub(super) fn pre_setup_phase_0(
     super::functions::reserve_game_view_render_target(image_handle, size_uvec2);
 }
 
-pub(super) fn pre_setup_phase_1(
-    mut commands: Commands,
-    mut egui_textures: ResMut<bevy_egui::EguiUserTextures>,
-) {
+pub(super) fn pre_setup_phase_1(mut commands: Commands, mut egui_textures: ResMut<bevy_egui::EguiUserTextures>) {
     let (image_handle, size) = super::functions::get_reserved_game_view_render_target();
     let texture_id = egui_textures.add_image(image_handle.clone_weak());
 
@@ -79,7 +72,7 @@ pub(super) fn resize_render_texture(
 
     *previous_window_size_uvec2 = size_uvec2;
     game_view_render_target.size = size_uvec2;
-    
+
     let image = images.get_mut(&game_view_render_target.handle).unwrap();
     image.resize(Extent3d {
         width: size_uvec2.x,
@@ -179,10 +172,7 @@ pub(super) fn main_camera_zoom_system(
 }
 
 #[tracing::instrument(skip_all)]
-pub(super) fn update_view_scale_from_zoom(
-    zoom_factor: Res<ZoomFactor>,
-    mut view_scale: ResMut<ViewScale>,
-) {
+pub(super) fn update_view_scale_from_zoom(zoom_factor: Res<ZoomFactor>, mut view_scale: ResMut<ViewScale>) {
     let zoom = zoom_factor.0;
     let scale = -zoom.log10(); // Since zooming in decreases ortho scale
     view_scale.discrete = scale.floor() as i32;

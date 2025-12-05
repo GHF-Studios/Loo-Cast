@@ -3,8 +3,8 @@ pub mod structs;
 pub mod types;
 
 use bevy::prelude::*;
-use types::ConfigValue;
 use structs::Config;
+use types::ConfigValue;
 
 pub(crate) struct ConfigPlugin;
 impl Plugin for ConfigPlugin {

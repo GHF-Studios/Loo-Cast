@@ -125,12 +125,7 @@ pub enum ResolvedActionIntent {
     Error(ResolutionError),
 }
 
-pub fn resolve_intent(
-    chunk_state: &State,
-    committed: Option<&ActionIntent>,
-    buffered: Option<&ActionIntent>,
-    incoming: ActionIntent,
-) -> ResolvedActionIntent {
+pub fn resolve_intent(chunk_state: &State, committed: Option<&ActionIntent>, buffered: Option<&ActionIntent>, incoming: ActionIntent) -> ResolvedActionIntent {
     use ActionIntent::*;
     use ResolutionError::*;
     use ResolutionWarning::*;

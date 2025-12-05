@@ -1,7 +1,7 @@
 #![allow(clippy::default_constructed_unit_structs)]
 
-use bevy::prelude::{Reflect, Resource, ReflectResource};
-use core_mod_macros::{scale_type_generic_match, scale_factor_exponent_dynamic_match};
+use bevy::prelude::{Reflect, ReflectResource, Resource};
+use core_mod_macros::{scale_factor_exponent_dynamic_match, scale_type_generic_match};
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -206,77 +206,290 @@ macro_rules! scale_index_generic_match {
         $code:block
     ) => {
         match ($scale_index_expr.index_from_top()) + 1 {
-            1 => { const __SCALE__: usize = 1; $code }
-            2 => { const __SCALE__: usize = 2; $code }
-            3 => { const __SCALE__: usize = 3; $code }
-            4 => { const __SCALE__: usize = 4; $code }
-            5 => { const __SCALE__: usize = 5; $code }
-            6 => { const __SCALE__: usize = 6; $code }
-            7 => { const __SCALE__: usize = 7; $code }
-            8 => { const __SCALE__: usize = 8; $code }
-            9 => { const __SCALE__: usize = 9; $code }
-            10 => { const __SCALE__: usize = 10; $code }
-            11 => { const __SCALE__: usize = 11; $code }
-            12 => { const __SCALE__: usize = 12; $code }
-            13 => { const __SCALE__: usize = 13; $code }
-            14 => { const __SCALE__: usize = 14; $code }
-            15 => { const __SCALE__: usize = 15; $code }
-            16 => { const __SCALE__: usize = 16; $code }
-            17 => { const __SCALE__: usize = 17; $code }
-            18 => { const __SCALE__: usize = 18; $code }
-            19 => { const __SCALE__: usize = 19; $code }
-            20 => { const __SCALE__: usize = 20; $code }
-            21 => { const __SCALE__: usize = 21; $code }
-            22 => { const __SCALE__: usize = 22; $code }
-            23 => { const __SCALE__: usize = 23; $code }
-            24 => { const __SCALE__: usize = 24; $code }
-            25 => { const __SCALE__: usize = 25; $code }
-            26 => { const __SCALE__: usize = 26; $code }
-            27 => { const __SCALE__: usize = 27; $code }
-            28 => { const __SCALE__: usize = 28; $code }
-            29 => { const __SCALE__: usize = 29; $code }
-            30 => { const __SCALE__: usize = 30; $code }
-            31 => { const __SCALE__: usize = 31; $code }
-            32 => { const __SCALE__: usize = 32; $code }
-            33 => { const __SCALE__: usize = 33; $code }
-            34 => { const __SCALE__: usize = 34; $code }
-            35 => { const __SCALE__: usize = 35; $code }
-            36 => { const __SCALE__: usize = 36; $code }
-            37 => { const __SCALE__: usize = 37; $code }
-            38 => { const __SCALE__: usize = 38; $code }
-            39 => { const __SCALE__: usize = 39; $code }
-            40 => { const __SCALE__: usize = 40; $code }
-            41 => { const __SCALE__: usize = 41; $code }
-            42 => { const __SCALE__: usize = 42; $code }
-            43 => { const __SCALE__: usize = 43; $code }
-            44 => { const __SCALE__: usize = 44; $code }
-            45 => { const __SCALE__: usize = 45; $code }
-            46 => { const __SCALE__: usize = 46; $code }
-            47 => { const __SCALE__: usize = 47; $code }
-            48 => { const __SCALE__: usize = 48; $code }
-            49 => { const __SCALE__: usize = 49; $code }
-            50 => { const __SCALE__: usize = 50; $code }
-            51 => { const __SCALE__: usize = 51; $code }
-            52 => { const __SCALE__: usize = 52; $code }
-            53 => { const __SCALE__: usize = 53; $code }
-            54 => { const __SCALE__: usize = 54; $code }
-            55 => { const __SCALE__: usize = 55; $code }
-            56 => { const __SCALE__: usize = 56; $code }
-            57 => { const __SCALE__: usize = 57; $code }
-            58 => { const __SCALE__: usize = 58; $code }
-            59 => { const __SCALE__: usize = 59; $code }
-            60 => { const __SCALE__: usize = 60; $code }
-            61 => { const __SCALE__: usize = 61; $code }
-            62 => { const __SCALE__: usize = 62; $code }
-            63 => { const __SCALE__: usize = 63; $code }
-            64 => { const __SCALE__: usize = 64; $code }
-            65 => { const __SCALE__: usize = 65; $code }
-            66 => { const __SCALE__: usize = 66; $code }
-            67 => { const __SCALE__: usize = 67; $code }
-            68 => { const __SCALE__: usize = 68; $code }
-            69 => { const __SCALE__: usize = 69; $code }
-            70 => { const __SCALE__: usize = 70; $code }
-            71 => { const __SCALE__: usize = 71; $code }
+            1 => {
+                const __SCALE__: usize = 1;
+                $code
+            }
+            2 => {
+                const __SCALE__: usize = 2;
+                $code
+            }
+            3 => {
+                const __SCALE__: usize = 3;
+                $code
+            }
+            4 => {
+                const __SCALE__: usize = 4;
+                $code
+            }
+            5 => {
+                const __SCALE__: usize = 5;
+                $code
+            }
+            6 => {
+                const __SCALE__: usize = 6;
+                $code
+            }
+            7 => {
+                const __SCALE__: usize = 7;
+                $code
+            }
+            8 => {
+                const __SCALE__: usize = 8;
+                $code
+            }
+            9 => {
+                const __SCALE__: usize = 9;
+                $code
+            }
+            10 => {
+                const __SCALE__: usize = 10;
+                $code
+            }
+            11 => {
+                const __SCALE__: usize = 11;
+                $code
+            }
+            12 => {
+                const __SCALE__: usize = 12;
+                $code
+            }
+            13 => {
+                const __SCALE__: usize = 13;
+                $code
+            }
+            14 => {
+                const __SCALE__: usize = 14;
+                $code
+            }
+            15 => {
+                const __SCALE__: usize = 15;
+                $code
+            }
+            16 => {
+                const __SCALE__: usize = 16;
+                $code
+            }
+            17 => {
+                const __SCALE__: usize = 17;
+                $code
+            }
+            18 => {
+                const __SCALE__: usize = 18;
+                $code
+            }
+            19 => {
+                const __SCALE__: usize = 19;
+                $code
+            }
+            20 => {
+                const __SCALE__: usize = 20;
+                $code
+            }
+            21 => {
+                const __SCALE__: usize = 21;
+                $code
+            }
+            22 => {
+                const __SCALE__: usize = 22;
+                $code
+            }
+            23 => {
+                const __SCALE__: usize = 23;
+                $code
+            }
+            24 => {
+                const __SCALE__: usize = 24;
+                $code
+            }
+            25 => {
+                const __SCALE__: usize = 25;
+                $code
+            }
+            26 => {
+                const __SCALE__: usize = 26;
+                $code
+            }
+            27 => {
+                const __SCALE__: usize = 27;
+                $code
+            }
+            28 => {
+                const __SCALE__: usize = 28;
+                $code
+            }
+            29 => {
+                const __SCALE__: usize = 29;
+                $code
+            }
+            30 => {
+                const __SCALE__: usize = 30;
+                $code
+            }
+            31 => {
+                const __SCALE__: usize = 31;
+                $code
+            }
+            32 => {
+                const __SCALE__: usize = 32;
+                $code
+            }
+            33 => {
+                const __SCALE__: usize = 33;
+                $code
+            }
+            34 => {
+                const __SCALE__: usize = 34;
+                $code
+            }
+            35 => {
+                const __SCALE__: usize = 35;
+                $code
+            }
+            36 => {
+                const __SCALE__: usize = 36;
+                $code
+            }
+            37 => {
+                const __SCALE__: usize = 37;
+                $code
+            }
+            38 => {
+                const __SCALE__: usize = 38;
+                $code
+            }
+            39 => {
+                const __SCALE__: usize = 39;
+                $code
+            }
+            40 => {
+                const __SCALE__: usize = 40;
+                $code
+            }
+            41 => {
+                const __SCALE__: usize = 41;
+                $code
+            }
+            42 => {
+                const __SCALE__: usize = 42;
+                $code
+            }
+            43 => {
+                const __SCALE__: usize = 43;
+                $code
+            }
+            44 => {
+                const __SCALE__: usize = 44;
+                $code
+            }
+            45 => {
+                const __SCALE__: usize = 45;
+                $code
+            }
+            46 => {
+                const __SCALE__: usize = 46;
+                $code
+            }
+            47 => {
+                const __SCALE__: usize = 47;
+                $code
+            }
+            48 => {
+                const __SCALE__: usize = 48;
+                $code
+            }
+            49 => {
+                const __SCALE__: usize = 49;
+                $code
+            }
+            50 => {
+                const __SCALE__: usize = 50;
+                $code
+            }
+            51 => {
+                const __SCALE__: usize = 51;
+                $code
+            }
+            52 => {
+                const __SCALE__: usize = 52;
+                $code
+            }
+            53 => {
+                const __SCALE__: usize = 53;
+                $code
+            }
+            54 => {
+                const __SCALE__: usize = 54;
+                $code
+            }
+            55 => {
+                const __SCALE__: usize = 55;
+                $code
+            }
+            56 => {
+                const __SCALE__: usize = 56;
+                $code
+            }
+            57 => {
+                const __SCALE__: usize = 57;
+                $code
+            }
+            58 => {
+                const __SCALE__: usize = 58;
+                $code
+            }
+            59 => {
+                const __SCALE__: usize = 59;
+                $code
+            }
+            60 => {
+                const __SCALE__: usize = 60;
+                $code
+            }
+            61 => {
+                const __SCALE__: usize = 61;
+                $code
+            }
+            62 => {
+                const __SCALE__: usize = 62;
+                $code
+            }
+            63 => {
+                const __SCALE__: usize = 63;
+                $code
+            }
+            64 => {
+                const __SCALE__: usize = 64;
+                $code
+            }
+            65 => {
+                const __SCALE__: usize = 65;
+                $code
+            }
+            66 => {
+                const __SCALE__: usize = 66;
+                $code
+            }
+            67 => {
+                const __SCALE__: usize = 67;
+                $code
+            }
+            68 => {
+                const __SCALE__: usize = 68;
+                $code
+            }
+            69 => {
+                const __SCALE__: usize = 69;
+                $code
+            }
+            70 => {
+                const __SCALE__: usize = 70;
+                $code
+            }
+            71 => {
+                const __SCALE__: usize = 71;
+                $code
+            }
             _ => unreachable!(),
         }
     };
@@ -285,15 +498,19 @@ macro_rules! scale_index_generic_match {
 #[derive(Resource, Default, Reflect)]
 #[reflect(Resource)]
 pub struct CurrentViewScale {
-    scale: u32
+    scale: u32,
 }
 
 pub trait DynScale: Send + Sync + Debug {
     fn name(&self) -> &'static str;
     /// Scale factor exponent, mapped from -35 - 35 to 0 - 70 range where 0 == raw scale factor exponent of 35 (0.00001 quectoMeter)
-    fn index_from_top(&self) -> u8 { (self.scale_factor_exponent() + 35) as u8 }
+    fn index_from_top(&self) -> u8 {
+        (self.scale_factor_exponent() + 35) as u8
+    }
     /// Scale factor exponent, mapped from -35 - 35 to 70 - 0 range where 0 == raw scale factor exponent of -35 (100000 quettaMeter)
-    fn index_from_bottom(&self) -> u8 { 70 - (self.scale_factor_exponent() + 35) as u8 }
+    fn index_from_bottom(&self) -> u8 {
+        70 - (self.scale_factor_exponent() + 35) as u8
+    }
     fn scale_factor_exponent(&self) -> i8;
     fn scale_factor(&self) -> f64;
     fn up(&self) -> Option<Scale>;
@@ -379,20 +596,14 @@ pub enum Scale {
 impl DynScale for Scale {
     #[allow(unused_braces)]
     fn name(&self) -> &'static str {
-        scale_type_generic_match!(
-            *self,
-            { <__SCALE__ as ConstScale>::NAME }
-        )
+        scale_type_generic_match!(*self, { <__SCALE__ as ConstScale>::NAME })
     }
     fn scale_factor_exponent(&self) -> i8 {
         *self as i8
     }
     #[allow(unused_braces)]
     fn scale_factor(&self) -> f64 {
-        scale_type_generic_match!(
-            *self,
-            { <__SCALE__ as ConstScale>::scale_factor() }
-        )
+        scale_type_generic_match!(*self, { <__SCALE__ as ConstScale>::scale_factor() })
     }
     #[allow(unused_braces)]
     fn up(&self) -> Option<Scale> {
@@ -458,11 +669,7 @@ impl Scale {
     }
 
     pub fn from_scale_factor_exponent(scale_factor_exponent: i8) -> Option<Self> {
-        scale_factor_exponent_dynamic_match!(
-            scale_factor_exponent,
-            Some(__SCALE__),
-            None
-        )
+        scale_factor_exponent_dynamic_match!(scale_factor_exponent, Some(__SCALE__), None)
     }
 
     pub fn zoom_in(&mut self) {
@@ -504,19 +711,73 @@ pub trait ConstScale: 'static + Send + Sync + Clone + Copy + Default + Debug + R
 
 define_scale!(NoLowerScale, 0, "no_lower_scale");
 define_scale!(ScaleQuectoMeter000001, -35, "scale_quecto_meter_000001", up = ScaleQuectoMeter00001);
-define_scale!(ScaleQuectoMeter00001, -34, "scale_quecto_meter_00001", up = ScaleQuectoMeter0001, down = ScaleQuectoMeter000001);
-define_scale!(ScaleQuectoMeter0001, -33, "scale_quecto_meter_0001", up = ScaleQuectoMeter001, down = ScaleQuectoMeter00001);
-define_scale!(ScaleQuectoMeter001, -32, "scale_quecto_meter_001", up = ScaleQuectoMeter01, down = ScaleQuectoMeter0001);
-define_scale!(ScaleQuectoMeter01, -31, "scale_quecto_meter_01", up = ScaleQuectoMeter1, down = ScaleQuectoMeter001);
-define_scale!(ScaleQuectoMeter1, -30, "scale_quecto_meter_1", up = ScaleQuectoMeter10, down = ScaleQuectoMeter01);
-define_scale!(ScaleQuectoMeter10, -29, "scale_quecto_meter_10", up = ScaleQuectoMeter100, down = ScaleQuectoMeter1);
-define_scale!(ScaleQuectoMeter100, -28, "scale_quecto_meter_100", up = ScaleRontoMeter1, down = ScaleQuectoMeter10);
+define_scale!(
+    ScaleQuectoMeter00001,
+    -34,
+    "scale_quecto_meter_00001",
+    up = ScaleQuectoMeter0001,
+    down = ScaleQuectoMeter000001
+);
+define_scale!(
+    ScaleQuectoMeter0001,
+    -33,
+    "scale_quecto_meter_0001",
+    up = ScaleQuectoMeter001,
+    down = ScaleQuectoMeter00001
+);
+define_scale!(
+    ScaleQuectoMeter001,
+    -32,
+    "scale_quecto_meter_001",
+    up = ScaleQuectoMeter01,
+    down = ScaleQuectoMeter0001
+);
+define_scale!(
+    ScaleQuectoMeter01,
+    -31,
+    "scale_quecto_meter_01",
+    up = ScaleQuectoMeter1,
+    down = ScaleQuectoMeter001
+);
+define_scale!(
+    ScaleQuectoMeter1,
+    -30,
+    "scale_quecto_meter_1",
+    up = ScaleQuectoMeter10,
+    down = ScaleQuectoMeter01
+);
+define_scale!(
+    ScaleQuectoMeter10,
+    -29,
+    "scale_quecto_meter_10",
+    up = ScaleQuectoMeter100,
+    down = ScaleQuectoMeter1
+);
+define_scale!(
+    ScaleQuectoMeter100,
+    -28,
+    "scale_quecto_meter_100",
+    up = ScaleRontoMeter1,
+    down = ScaleQuectoMeter10
+);
 define_scale!(ScaleRontoMeter1, -27, "scale_ronto_meter_1", up = ScaleRontoMeter10, down = ScaleQuectoMeter100);
 define_scale!(ScaleRontoMeter10, -26, "scale_ronto_meter_10", up = ScaleRontoMeter100, down = ScaleRontoMeter1);
-define_scale!(ScaleRontoMeter100, -25, "scale_ronto_meter_100", up = ScaleYoctoMeter1, down = ScaleRontoMeter10);
+define_scale!(
+    ScaleRontoMeter100,
+    -25,
+    "scale_ronto_meter_100",
+    up = ScaleYoctoMeter1,
+    down = ScaleRontoMeter10
+);
 define_scale!(ScaleYoctoMeter1, -24, "scale_yocto_meter_1", up = ScaleYoctoMeter10, down = ScaleRontoMeter100);
 define_scale!(ScaleYoctoMeter10, -23, "scale_yocto_meter_10", up = ScaleYoctoMeter100, down = ScaleYoctoMeter1);
-define_scale!(ScaleYoctoMeter100, -22, "scale_yocto_meter_100", up = ScaleZeptoMeter1, down = ScaleYoctoMeter10);
+define_scale!(
+    ScaleYoctoMeter100,
+    -22,
+    "scale_yocto_meter_100",
+    up = ScaleZeptoMeter1,
+    down = ScaleYoctoMeter10
+);
 define_scale!(ScaleZeptoMeter1, -21, "scale_zepto_meter_1", up = ScaleZeptoMeter10, down = ScaleYoctoMeter100);
 define_scale!(ScaleZeptoMeter10, -20, "scale_zepto_meter_10", up = ScaleZeptoMeter100, down = ScaleZeptoMeter1);
 define_scale!(ScaleZeptoMeter100, -19, "scale_zepto_meter_100", up = ScaleAttoMeter1, down = ScaleZeptoMeter10);
@@ -567,11 +828,47 @@ define_scale!(ScaleYottaMeter10, 25, "scale_yotta_meter_10", up = ScaleYottaMete
 define_scale!(ScaleYottaMeter100, 26, "scale_yotta_meter_100", up = ScaleRonnaMeter1, down = ScaleYottaMeter10);
 define_scale!(ScaleRonnaMeter1, 27, "scale_ronna_meter_1", up = ScaleRonnaMeter10, down = ScaleYottaMeter100);
 define_scale!(ScaleRonnaMeter10, 28, "scale_ronna_meter_10", up = ScaleRonnaMeter100, down = ScaleRonnaMeter1);
-define_scale!(ScaleRonnaMeter100, 29, "scale_ronna_meter_100", up = ScaleQuettaMeter1, down = ScaleRonnaMeter10);
-define_scale!(ScaleQuettaMeter1, 30, "scale_quetta_meter_1", up = ScaleQuettaMeter10, down = ScaleRonnaMeter100);
-define_scale!(ScaleQuettaMeter10, 31, "scale_quetta_meter_10", up = ScaleQuettaMeter100, down = ScaleQuettaMeter1);
-define_scale!(ScaleQuettaMeter100, 32, "scale_quetta_meter_100", up = ScaleQuettaMeter1000, down = ScaleQuettaMeter10);
-define_scale!(ScaleQuettaMeter1000, 33, "scale_quetta_meter_1000", up = ScaleQuettaMeter10000, down = ScaleQuettaMeter100);
-define_scale!(ScaleQuettaMeter10000, 34, "scale_quetta_meter_10000", up = ScaleQuettaMeter100000, down = ScaleQuettaMeter1000);
+define_scale!(
+    ScaleRonnaMeter100,
+    29,
+    "scale_ronna_meter_100",
+    up = ScaleQuettaMeter1,
+    down = ScaleRonnaMeter10
+);
+define_scale!(
+    ScaleQuettaMeter1,
+    30,
+    "scale_quetta_meter_1",
+    up = ScaleQuettaMeter10,
+    down = ScaleRonnaMeter100
+);
+define_scale!(
+    ScaleQuettaMeter10,
+    31,
+    "scale_quetta_meter_10",
+    up = ScaleQuettaMeter100,
+    down = ScaleQuettaMeter1
+);
+define_scale!(
+    ScaleQuettaMeter100,
+    32,
+    "scale_quetta_meter_100",
+    up = ScaleQuettaMeter1000,
+    down = ScaleQuettaMeter10
+);
+define_scale!(
+    ScaleQuettaMeter1000,
+    33,
+    "scale_quetta_meter_1000",
+    up = ScaleQuettaMeter10000,
+    down = ScaleQuettaMeter100
+);
+define_scale!(
+    ScaleQuettaMeter10000,
+    34,
+    "scale_quetta_meter_10000",
+    up = ScaleQuettaMeter100000,
+    down = ScaleQuettaMeter1000
+);
 define_scale!(ScaleQuettaMeter100000, 35, "scale_quetta_meter_100000", down = ScaleQuettaMeter10000);
 define_scale!(NoHigherScale, 0, "no_higher_scale");

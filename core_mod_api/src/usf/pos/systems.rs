@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 
-use crate::config::statics::CONFIG;
 use crate::chunk::components::Chunk;
 use crate::chunk_actor::components::ChunkActor;
 use crate::chunk_loader::components::ChunkLoader;
+use crate::config::statics::CONFIG;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 
@@ -65,20 +65,14 @@ pub(crate) fn apply_new_origin_offset_system(
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn sync_logical_from_transform_system(
-    chunk_loader_query: Query<&ChunkLoader>,
-    mut query: Query<(&Transform, &mut ChunkActor)>,
-) {
+pub(crate) fn sync_logical_from_transform_system(chunk_loader_query: Query<&ChunkLoader>, mut query: Query<(&Transform, &mut ChunkActor)>) {
     let loader = match chunk_loader_query.single() {
         Ok(loader) => loader,
         Err(_) => return,
     };
 
     for (transform, mut actor) in &mut query {
-        let new_coord = GridVec::from_native_logical(
-            loader.origin_offset.clone(),
-            (transform.translation.truncate(), actor.coord.scale)
-        );
+        let new_coord = GridVec::from_native_logical(loader.origin_offset.clone(), (transform.translation.truncate(), actor.coord.scale));
         actor.coord = new_coord;
     }
 }

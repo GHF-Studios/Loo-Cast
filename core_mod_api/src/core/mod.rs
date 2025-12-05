@@ -1,3 +1,4 @@
+pub mod components;
 pub mod functions;
 pub mod resources;
 pub mod run_conditions;
@@ -15,7 +16,6 @@ use systems::startup_system;
 pub(crate) struct CorePlugin;
 impl Plugin for CorePlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Startup, startup_system);
+        app.add_systems(Startup, startup_system);
     }
 }

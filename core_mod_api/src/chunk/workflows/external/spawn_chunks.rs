@@ -2,26 +2,20 @@
 use bevy::prelude::*;
 
 use crate::chunk::{components::Chunk, resources::ChunkManager};
-use crate::chunk_loader::{
-    components::ChunkLoader,
-    types::ChunkLoaderId,
-};
+use crate::chunk_loader::{components::ChunkLoader, types::ChunkLoaderId};
 use crate::config::statics::CONFIG;
 use crate::render::{
     components::{MainCamera, RenderProxyHandle},
     functions::new_sprite_proxy_bundle,
 };
-use crate::usf::{
-    pos::grid::types::GridVec,
-    scale::Scale,
-};
+use crate::usf::{pos::grid::types::GridVec, scale::Scale};
 use crate::workflow::types::Outcome;
 
 // Items
 pub struct SpawnChunkInput {
     pub grid_coord: GridVec,
     pub chunk_owner_id: ChunkLoaderId,
-    pub metric_texture: Handle<Image>
+    pub metric_texture: Handle<Image>,
 }
 
 #[derive(Clone)]
@@ -96,13 +90,15 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
 
         let chunk_entity = commands.spawn(()).id();
 
-        let chunk_render_proxy_entity = commands.spawn(new_sprite_proxy_bundle(
-            metric_texture,
-            visual_world_coord,
-            visual_world_scale,
-            chunk_entity,
-            chunk_z,
-        )).id();
+        let chunk_render_proxy_entity = commands
+            .spawn(new_sprite_proxy_bundle(
+                metric_texture,
+                visual_world_coord,
+                visual_world_scale,
+                chunk_entity,
+                chunk_z,
+            ))
+            .id();
 
         commands.entity(chunk_entity).insert((
             chunk_transform,
@@ -113,7 +109,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             RenderProxyHandle {
                 proxy_entity: chunk_render_proxy_entity,
             },
-            chunk_name
+            chunk_name,
         ));
 
         chunk_manager.loaded_chunks.insert(grid_coord.clone());
@@ -125,21 +121,23 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         });
     }
 
-    Ok(State {
-        spawn_chunk_states
-    })
+    Ok(State { spawn_chunk_states })
 }
 
 pub fn run_ecs_while(state: State, main_access: MainAccess) -> Result<Outcome<State, Output>, Error> {
     let mut commands = main_access.commands;
 
-    let spawn_chunk_states = state.spawn_chunk_states.into_iter().map(|mut spawn_chunk_state| {
-        if commands.get_entity(spawn_chunk_state.chunk_entity).is_ok() {
-            spawn_chunk_state.is_spawned = true;
-        }
+    let spawn_chunk_states = state
+        .spawn_chunk_states
+        .into_iter()
+        .map(|mut spawn_chunk_state| {
+            if commands.get_entity(spawn_chunk_state.chunk_entity).is_ok() {
+                spawn_chunk_state.is_spawned = true;
+            }
 
-        spawn_chunk_state
-    }).collect::<Vec<_>>();
+            spawn_chunk_state
+        })
+        .collect::<Vec<_>>();
     let is_done = spawn_chunk_states.iter().all(|spawn_chunk_state| spawn_chunk_state.is_spawned);
 
     if is_done {
@@ -147,15 +145,11 @@ pub fn run_ecs_while(state: State, main_access: MainAccess) -> Result<Outcome<St
 
         // warn!("All chunks spawned.");
 
-        Ok(Outcome::Done(Output {
-            spawned_chunk_entities
-        }))
+        Ok(Outcome::Done(Output { spawned_chunk_entities }))
     } else {
         // let done_count = spawn_chunk_states.iter().filter(|spawn_chunk_state| spawn_chunk_state.is_spawned).count();
         // warn!("Waiting for chunks to spawn... {}/{}", done_count, spawn_chunk_states.len());
 
-        Ok(Outcome::Wait(State {
-            spawn_chunk_states
-        }))
+        Ok(Outcome::Wait(State { spawn_chunk_states }))
     }
 }

@@ -739,7 +739,7 @@ define_workflow_mod_OLD! {
                                 .zip(&render_executor.param_buffers)
                                 .zip(&render_executor.readback_buffers)
                                 .zip(&render_executor.texture_handles);
-                        
+
                             let big_loop_len = big_loop_iter.len();
 
                             let mut copy_commands = Vec::with_capacity(big_loop_len);
@@ -777,18 +777,18 @@ define_workflow_mod_OLD! {
                                 pass.dispatch_workgroups(dispatch_x, dispatch_y, 1);
 
                                 let gpu_image = gpu_images.get(handle).expect("GpuImage not ready");
-                                
+
                                 let block_dimensions = gpu_image.texture_format.block_dimensions();
                                 let block_size = gpu_image
                                     .texture_format
                                     .block_copy_size(None)
                                     .expect("Can't get block size for texture format");
-                                
+
                                 // Align the bytes per row (required by wgpu)
                                 let padded_bytes_per_row = RenderDevice::align_copy_bytes_per_row(
                                     (gpu_image.size.width as usize / block_dimensions.0 as usize) * block_size as usize,
                                 );
-                                
+
                                 // Encode the copy command
                                 copy_commands.push((
                                     gpu_image.texture.as_image_copy(),
@@ -802,23 +802,23 @@ define_workflow_mod_OLD! {
                                     },
                                     gpu_image.size,
                                 ));
-                                
+
                                 gpu_image_infos.push((padded_bytes_per_row, gpu_image.size));
                             }
-                            
+
                             for (texture_copy, buffer_copy, size) in copy_commands {
                                 encoder.copy_texture_to_buffer(texture_copy, buffer_copy, size);
                             }
-                            
+
                             render_access.queue.submit(Some(encoder.finish()));
-                            
+
                             let (sender, receiver) = crossbeam_channel::unbounded();
                             render_access.queue.on_submitted_work_done(move || {
                                 let _ = sender.send(());
                             });
-                            
+
                             render_executor.receiver = Some(receiver);
-                            
+
                             Output {
                                 render_executor: render_executor.clone(),
                                 gpu_image_infos,
@@ -860,7 +860,7 @@ define_workflow_mod_OLD! {
                                 Err(crossbeam_channel::TryRecvError::Empty) => Progress::Unfinished(state),
                                 Err(e) => panic!("Render texture GPU dispatch failed: {}", e),
                             };
-                            
+
                             match progress {
                                 Progress::Finished(state) => Done(Output {
                                     render_executor: state.render_executor,
@@ -893,15 +893,15 @@ define_workflow_mod_OLD! {
                         fn RunEcs |input, main_access| -> Output {
                             fn repack_texture_data(data: &[u8], width: u32, height: u32, padded_bytes_per_row: usize) -> Vec<u8> {
                                 let unpadded_row_bytes = (width * 4) as usize;
-                            
+
                                 let mut output = Vec::with_capacity(unpadded_row_bytes * height as usize);
-                            
+
                                 for row in 0..height as usize {
                                     let start = row * padded_bytes_per_row;
                                     let end = start + unpadded_row_bytes;
                                     output.extend_from_slice(&data[start..end]);
                                 }
-                            
+
                                 output
                             }
 
@@ -912,7 +912,7 @@ define_workflow_mod_OLD! {
                             for ((buffer, texture_handle), (padded_bytes_per_row, gpu_image_size)) in big_loop_iter {
                                 let slice = buffer.slice(..);
                                 let (sender, receiver) = crossbeam_channel::unbounded();
-                                
+
                                 slice.map_async(wgpu::MapMode::Read, move |result| {
                                     if result.is_ok() {
                                         let _ = sender.send(());
@@ -920,12 +920,12 @@ define_workflow_mod_OLD! {
                                         panic!("Failed to map buffer for texture readback");
                                     }
                                 });
-                                
+
                                 main_access.render_device.poll(wgpu::Maintain::Wait);
                                 receiver.recv().unwrap();
-                                
+
                                 let data = slice.get_mapped_range().to_vec();
-                            
+
                                 // TOOD: Hmm
                                 let unpadded = repack_texture_data(
                                     &data,
@@ -933,7 +933,7 @@ define_workflow_mod_OLD! {
                                     gpu_image_size.height,
                                     *padded_bytes_per_row,
                                 );
-                                
+
                                 // TOOD: Hmmmmmmmmmm
                                 if let Some(image) = images.get_mut(texture_handle) {
                                     image.data = Some(unpadded);

@@ -1,13 +1,14 @@
-use bevy::input::ButtonState;
-use bevy::input::mouse::MouseWheel;
-use bevy::prelude::*;
 use bevy::ecs::query::QuerySingleError;
+use bevy::input::mouse::MouseWheel;
+use bevy::input::ButtonState;
 use bevy::math::FloatOrd;
-use bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerId, PointerInput, PointerLocation, PointerPress};
 use bevy::picking::backend::prelude::*;
+use bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerId, PointerInput, PointerLocation, PointerPress};
+use bevy::prelude::*;
 use bevy::render::camera::{ImageRenderTarget, RenderTarget};
 use bevy::window::{PrimaryWindow, WindowEvent, WindowRef};
 
+use crate::core::components::Meta;
 use crate::chunk::components::Chunk;
 use crate::player::components::Player;
 use crate::reflect::functions::get_struct_field_mut;
@@ -16,16 +17,14 @@ use crate::render::{
     components::MainCamera,
     resources::{GameViewRenderTarget, PrimaryWindowUiState},
 };
+
 use crate::usf::pos::grid::types::GridVec;
 
-use super::constants::MOUSE_POINTER_ID;
+use super::constants::{MOUSE_POINTER_ID, NO_HIT_SENTINEL};
 use super::resources::{SpritePickingMode, SpritePickingSettings};
 
 // TODO: Impl properly
-pub(super) fn spawn_mouse_pointer(
-    mut commands: Commands,
-    game_view_render_target: Res<GameViewRenderTarget>,
-) {
+pub(super) fn spawn_mouse_pointer(mut commands: Commands, game_view_render_target: Res<GameViewRenderTarget>) {
     commands.spawn((
         MOUSE_POINTER_ID,
         PointerLocation::new(Location {
@@ -36,7 +35,7 @@ pub(super) fn spawn_mouse_pointer(
             // TODO: Actually compute this
             position: Vec2::ZERO,
         }),
-        PointerPress::default()
+        PointerPress::default(),
     ));
 }
 
@@ -56,9 +55,13 @@ pub(super) fn mouse_pick_events(
         return;
     }
 
-    let Ok((primary_window_entity, primary_window)) = primary_window.single() else { return };
+    let Ok((primary_window_entity, primary_window)) = primary_window.single() else {
+        return;
+    };
     let Some(cursor_pos) = primary_window.cursor_position() else { return };
-    let Some(viewport) = debug_suite_ui_state.viewport_rect_precision_proxy else { return };
+    let Some(viewport) = debug_suite_ui_state.viewport_rect_precision_proxy else {
+        return;
+    };
 
     // Only inject pointer if it's within the egui image viewport
     if !viewport.contains(egui::Pos2::new(cursor_pos.x, cursor_pos.y)) {
@@ -74,7 +77,9 @@ pub(super) fn mouse_pick_events(
                     target: match RenderTarget::Image(ImageRenderTarget {
                         handle: game_view_render_target.handle.clone(),
                         scale_factor: FloatOrd(1.0),
-                    }).normalize(Some(primary_window_entity)) {
+                    })
+                    .normalize(Some(primary_window_entity))
+                    {
                         Some(target) => target,
                         None => continue,
                     },
@@ -83,11 +88,7 @@ pub(super) fn mouse_pick_events(
                 let action = PointerAction::Move {
                     delta: event.position - *cursor_last,
                 };
-                pointer_events.push(PointerInput::new(
-                    MOUSE_POINTER_ID,
-                    location,
-                    action,
-                ));
+                pointer_events.push(PointerInput::new(MOUSE_POINTER_ID, location, action));
                 *cursor_last = event.position;
             }
             WindowEvent::MouseButtonInput(input) => {
@@ -95,7 +96,9 @@ pub(super) fn mouse_pick_events(
                     target: match RenderTarget::Image(ImageRenderTarget {
                         handle: game_view_render_target.handle.clone(),
                         scale_factor: FloatOrd(1.0),
-                    }).normalize(Some(primary_window_entity)) {
+                    })
+                    .normalize(Some(primary_window_entity))
+                    {
                         Some(target) => target,
                         None => continue,
                     },
@@ -111,11 +114,7 @@ pub(super) fn mouse_pick_events(
                     ButtonState::Pressed => PointerAction::Press(button),
                     ButtonState::Released => PointerAction::Release(button),
                 };
-                pointer_events.push(PointerInput::new(
-                    MOUSE_POINTER_ID,
-                    location,
-                    action
-                ));
+                pointer_events.push(PointerInput::new(MOUSE_POINTER_ID, location, action));
             }
             WindowEvent::MouseWheel(event) => {
                 let MouseWheel { unit, x, y, window: _ } = *event;
@@ -123,18 +122,16 @@ pub(super) fn mouse_pick_events(
                     target: match RenderTarget::Image(ImageRenderTarget {
                         handle: game_view_render_target.handle.clone(),
                         scale_factor: FloatOrd(1.0),
-                    }).normalize(Some(primary_window_entity)) {
+                    })
+                    .normalize(Some(primary_window_entity))
+                    {
                         Some(target) => target,
                         None => continue,
                     },
                     position: *cursor_last,
                 };
                 let action = PointerAction::Scroll { x, y, unit };
-                pointer_events.push(PointerInput::new(
-                    MOUSE_POINTER_ID,
-                    location,
-                    action
-                ));
+                pointer_events.push(PointerInput::new(MOUSE_POINTER_ID, location, action));
             }
             _ => {}
         }
@@ -143,30 +140,26 @@ pub(super) fn mouse_pick_events(
     for event in pointer_events.into_iter() {
         match event.action {
             PointerAction::Press(ref button) => {
-                pointers
-                    .iter_mut()
-                    .for_each(|(pointer_id, _, mut pointer)| {
-                        if *pointer_id == event.pointer_id {
-                            match button {
-                                PointerButton::Primary => *get_struct_field_mut(&mut *pointer, "primary") = true,
-                                PointerButton::Secondary => *get_struct_field_mut(&mut *pointer, "secondary") = true,
-                                PointerButton::Middle => *get_struct_field_mut(&mut *pointer, "middle") = true,
-                            }
+                pointers.iter_mut().for_each(|(pointer_id, _, mut pointer)| {
+                    if *pointer_id == event.pointer_id {
+                        match button {
+                            PointerButton::Primary => *get_struct_field_mut(&mut *pointer, "primary") = true,
+                            PointerButton::Secondary => *get_struct_field_mut(&mut *pointer, "secondary") = true,
+                            PointerButton::Middle => *get_struct_field_mut(&mut *pointer, "middle") = true,
                         }
-                    });
+                    }
+                });
             }
             PointerAction::Release(ref button) => {
-                pointers
-                    .iter_mut()
-                    .for_each(|(pointer_id, _, mut pointer)| {
-                        if *pointer_id == event.pointer_id {
-                            match button {
-                                PointerButton::Primary => *get_struct_field_mut(&mut *pointer, "primary") = false,
-                                PointerButton::Secondary => *get_struct_field_mut(&mut *pointer, "secondary") = false,
-                                PointerButton::Middle => *get_struct_field_mut(&mut *pointer, "middle") = false,
-                            }
+                pointers.iter_mut().for_each(|(pointer_id, _, mut pointer)| {
+                    if *pointer_id == event.pointer_id {
+                        match button {
+                            PointerButton::Primary => *get_struct_field_mut(&mut *pointer, "primary") = false,
+                            PointerButton::Secondary => *get_struct_field_mut(&mut *pointer, "secondary") = false,
+                            PointerButton::Middle => *get_struct_field_mut(&mut *pointer, "middle") = false,
                         }
-                    });
+                    }
+                });
             }
             PointerAction::Move { .. } => {
                 pointers.iter_mut().for_each(|(id, mut pointer, _)| {
@@ -182,15 +175,13 @@ pub(super) fn mouse_pick_events(
     }
 }
 
-// TODO: Impl properly
+/// A picking backend that performs sprite picking only on "in-game" or "diegetic" sprites.
 #[tracing::instrument(skip_all)]
-pub(super) fn sprite_picking_backend(
+pub(super) fn diegetic_sprite_picking_backend(
     pointers: Query<(&PointerId, &PointerLocation)>,
     main_camera_query: Query<(Entity, &Camera, &GlobalTransform, &Projection), With<MainCamera>>,
     primary_window: Query<(Entity, &Window), With<PrimaryWindow>>,
-    sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility)>,
-    // sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), With<RenderProxy>>,
-    // sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), With<Player>>,
+    sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), Without<Meta<Sprite>>>,
     images: Res<Assets<Image>>,
     texture_atlas_layout: Res<Assets<TextureAtlasLayout>>,
     settings: Res<SpritePickingSettings>,
@@ -203,21 +194,16 @@ pub(super) fn sprite_picking_backend(
             Some(v) => v,
             None => {
                 warn!("Mouse pointer is inactive");
-                return
+                return;
             }
         },
         None => {
             warn!("Mouse pointer not found");
-            return
+            return;
         }
     };
 
-    let (
-        main_camera_entity,
-        main_camera,
-        main_camera_transform,
-        main_camera_ortho,
-    ) = match main_camera_query.single() {
+    let (main_camera_entity, main_camera, main_camera_transform, main_camera_ortho) = match main_camera_query.single() {
         Ok((ent, cam, cam_transform, cam_projection)) => match cam_projection {
             Projection::Orthographic(ortho) => (ent, cam, cam_transform, ortho),
             _ => {
@@ -228,10 +214,10 @@ pub(super) fn sprite_picking_backend(
         Err(err) => match err {
             QuerySingleError::NoEntities(_) => {
                 warn!("No main camera found");
-                return
-            },
+                return;
+            }
             QuerySingleError::MultipleEntities(_) => panic!("Multiple MainCameras not supported!"),
-        }
+        },
     };
 
     let mut sorted_sprites: Vec<_> = sprite_query
@@ -246,9 +232,7 @@ pub(super) fn sprite_picking_backend(
         .collect();
 
     // radsort is a stable radix sort that performed better than `slice::sort_by_key` (according to bevy's source code)
-    radsort::sort_by_key(&mut sorted_sprites, |(_, _, transform)| {
-        -transform.translation().z
-    });
+    radsort::sort_by_key(&mut sorted_sprites, |(_, _, transform)| -transform.translation().z);
 
     let Ok((primary_window_entity, primary_window)) = primary_window.single() else {
         warn!("Primary window not found");
@@ -264,7 +248,7 @@ pub(super) fn sprite_picking_backend(
         warn!("Viewport rect not found");
         return;
     };
-    
+
     if !viewport_rect.contains(egui::Pos2 {
         x: current_window_position.x,
         y: current_window_position.y,
@@ -273,9 +257,13 @@ pub(super) fn sprite_picking_backend(
         return;
     }
 
-    let current_viewport_position =  {
-        let x = current_window_position.x.remap(viewport_rect.min.x, viewport_rect.max.x, 0.0, viewport_size_vec2.x);
-        let y = current_window_position.y.remap(viewport_rect.min.y, viewport_rect.max.y, 0.0, viewport_size_vec2.y);
+    let current_viewport_position = {
+        let x = current_window_position
+            .x
+            .remap(viewport_rect.min.x, viewport_rect.max.x, 0.0, viewport_size_vec2.x);
+        let y = current_window_position
+            .y
+            .remap(viewport_rect.min.y, viewport_rect.max.y, 0.0, viewport_size_vec2.y);
         Vec2::new(x, y)
     };
 
@@ -292,7 +280,7 @@ pub(super) fn sprite_picking_backend(
 
     let cursor_ray_len = main_camera_ortho.far - main_camera_ortho.near;
     let cursor_ray_end = cursor_ray_world.origin + cursor_ray_world.direction * cursor_ray_len;
-    let picks: Vec<(Entity, HitData)> = sorted_sprites
+    let mut picks: Vec<(Entity, HitData)> = sorted_sprites
         .iter()
         .copied()
         .filter_map(|(entity, sprite, sprite_transform)| {
@@ -325,8 +313,7 @@ pub(super) fn sprite_picking_backend(
                 warn!("Cursor ray parallel to sprite plane");
                 return None;
             }
-            let lerp_factor =
-                f32::inverse_lerp(cursor_start_sprite.z, cursor_end_sprite.z, 0.0);
+            let lerp_factor = f32::inverse_lerp(cursor_start_sprite.z, cursor_end_sprite.z, 0.0);
             if !(0.0..=1.0).contains(&lerp_factor) {
                 // Lerp factor is out of range, meaning that while an infinite line cast by
                 // the cursor would intersect the sprite, the sprite is not between the
@@ -337,9 +324,7 @@ pub(super) fn sprite_picking_backend(
             }
             // Otherwise we can interpolate the xy of the start and end positions by the
             // lerp factor to get the cursor position in sprite space!
-            let cursor_pos_sprite = cursor_start_sprite
-                .lerp(cursor_end_sprite, lerp_factor)
-                .xy();
+            let cursor_pos_sprite = cursor_start_sprite.lerp(cursor_end_sprite, lerp_factor).xy();
 
             let Some(image) = images.get(&sprite.image) else {
                 warn!("Sprite image not found");
@@ -358,11 +343,7 @@ pub(super) fn sprite_picking_backend(
             //     cursor_pos_sprite
             // );
 
-            let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(
-                cursor_pos_sprite_pixel,
-                &images,
-                &texture_atlas_layout,
-            ) else {
+            let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(cursor_pos_sprite_pixel, &images, &texture_atlas_layout) else {
                 // warn!("Cursor position '{}' outside sprite bounds", cursor_pos_sprite_pixel);
                 return None;
             };
@@ -406,34 +387,21 @@ pub(super) fn sprite_picking_backend(
             };
 
             blocked = cursor_in_valid_pixels_of_sprite;
-        
+
             cursor_in_valid_pixels_of_sprite.then(|| {
-                let hit_pos_world =
-                    sprite_transform.transform_point(cursor_pos_sprite.extend(0.0));
+                let hit_pos_world = sprite_transform.transform_point(cursor_pos_sprite.extend(0.0));
 
                 // Transform point from world to camera space to get the Z distance
-                let hit_pos_cam = main_camera_transform
-                    .affine()
-                    .inverse()
-                    .transform_point3(hit_pos_world);
+                let hit_pos_cam = main_camera_transform.affine().inverse().transform_point3(hit_pos_world);
 
                 // HitData requires a depth as calculated from the camera's near clipping plane
                 let depth = -main_camera_ortho.near - hit_pos_cam.z;
 
-                warn!(
-                    "✅ Picked entity {:?} at world Z: {:?}",
-                    entity,
-                    sprite_transform.translation().z
-                );
+                warn!("✅ Picked entity {:?} at world Z: {:?}", entity, sprite_transform.translation().z);
 
                 (
                     entity,
-                    HitData::new(
-                        main_camera_entity,
-                        depth,
-                        Some(hit_pos_world),
-                        Some(*sprite_transform.back()),
-                    ),
+                    HitData::new(main_camera_entity, depth, Some(hit_pos_world), Some(*sprite_transform.back())),
                 )
             })
         })
@@ -441,6 +409,11 @@ pub(super) fn sprite_picking_backend(
 
     if !picks.is_empty() {
         // warn!("Pick(s) detected for mouse pointer");
+    } else {
+        picks.push((
+            NO_HIT_SENTINEL,
+            HitData::new(main_camera_entity, 0.0, None, None),
+        ));
     }
 
     let order = main_camera.order as f32;

@@ -1,9 +1,9 @@
 // Imports
-use bevy::prelude::{ResMut, Entity, Query};
+use bevy::prelude::{Entity, Query, ResMut};
 
 use crate::chunk::{components::Chunk, resources::ChunkManager};
-use crate::usf::pos::grid::types::GridVec;
 use crate::chunk_loader::types::ChunkLoaderId;
+use crate::usf::pos::grid::types::GridVec;
 
 // Items
 pub struct TransferChunkOwnershipInput {
@@ -23,7 +23,7 @@ pub struct Input {
 }
 
 pub struct Output {
-    pub ownership_transfered_chunk_entities: Vec<Entity>
+    pub ownership_transfered_chunk_entities: Vec<Entity>,
 }
 
 #[derive(Debug)]
@@ -56,6 +56,6 @@ pub fn run_ecs(input: Input, main_access: MainAccess) -> Result<Output, Error> {
     }
 
     Ok(Output {
-        ownership_transfered_chunk_entities: chunk_entities
+        ownership_transfered_chunk_entities: chunk_entities,
     })
 }

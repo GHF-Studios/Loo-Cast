@@ -1,4 +1,7 @@
-pub(super) enum Axis2D {
+use bevy::prelude::*;
+
+#[derive(Reflect)]
+pub enum Axis2D {
     X,
     Y,
 }

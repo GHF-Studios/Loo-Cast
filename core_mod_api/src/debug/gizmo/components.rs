@@ -2,7 +2,12 @@ use bevy::prelude::*;
 
 use super::types::Axis2D;
 
-#[derive(Component)]
-pub(super) struct GizmoArrow {
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct GizmoRoot;
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct GizmoArrow {
     pub axis: Axis2D,
 }

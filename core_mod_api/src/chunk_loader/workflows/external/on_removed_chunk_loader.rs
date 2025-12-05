@@ -4,8 +4,8 @@ use std::marker::PhantomData;
 
 use crate::chunk_loader::types::ChunkLoaderId;
 
-use super::super::super::types::RemovedChunkLoader;
 use super::super::super::resources::RemovedChunkLoaders;
+use super::super::super::types::RemovedChunkLoader;
 
 // Items
 

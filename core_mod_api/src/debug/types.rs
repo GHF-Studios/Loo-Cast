@@ -12,10 +12,7 @@ use egui_dock::TabViewer;
 
 use crate::debug::functions::{select_asset, select_resource};
 use crate::input::states::InputMode;
-use crate::render::{
-    functions::draw_game_view,
-    resources::PrimaryWindowUiState,
-};
+use crate::render::{functions::draw_game_view, resources::PrimaryWindowUiState};
 
 #[derive(Default, Reflect)]
 pub enum DebugObjectMovement {
@@ -143,7 +140,7 @@ impl TabViewer for DebugSuiteTabViewer<'_> {
             DebugSuiteTab::ChunkInspector => {
                 ui.label("Chunk Inspector (todo)");
             }
-        }; 
+        };
     }
 
     fn clear_background(&self, tab: &Self::Tab) -> bool {

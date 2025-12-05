@@ -14,14 +14,18 @@ use crate::time::run_conditions::run_if_not_paused;
 pub(crate) struct PosPlugin;
 impl Plugin for PosPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugins(grid::GridPlugin)
+        app.add_plugins(grid::GridPlugin)
             .add_plugins(subgrid::SubgridPlugin)
             .add_plugins(unit::UnitPlugin)
-            .add_systems(Last, (
-                apply_new_origin_offset_system.run_if(run_after_startup_finished.and(run_if_not_paused)),
-                sync_logical_from_transform_system.after(apply_new_origin_offset_system).run_if(run_after_startup_finished.and(run_if_not_paused)),
-            ));
+            .add_systems(
+                Last,
+                (
+                    apply_new_origin_offset_system.run_if(run_after_startup_finished.and(run_if_not_paused)),
+                    sync_logical_from_transform_system
+                        .after(apply_new_origin_offset_system)
+                        .run_if(run_after_startup_finished.and(run_if_not_paused)),
+                ),
+            );
     }
 }
 
@@ -44,7 +48,7 @@ macro_rules! subgrid_extent {
         {
             use bevy::math::IVec2;
             use crate::usf::pos::subgrid::types::SubgridVec;
-            
+
             let stack = vec![IVec2::from($first) $(, IVec2::from($rest))*];
             SubgridVec::try_from((stack, IVec2::from($sub))).unwrap()
         }
@@ -57,7 +61,7 @@ macro_rules! unit_extent {
         {
             use bevy::math::{IVec2, Vec2};
             use crate::usf::pos::unit::types::UnitVec;
-            
+
             let stack = vec![IVec2::from($first) $(, IVec2::from($rest))*];
             UnitVec::try_from((stack, Vec2::from($unit))).unwrap()
         }

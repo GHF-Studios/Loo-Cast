@@ -1,14 +1,14 @@
 use bevy::prelude::*;
+use bevy::reflect::Reflect;
 use bevy_inspector_egui::inspector_egui_impls::InspectorPrimitive;
 use bevy_inspector_egui::reflect_inspector::InspectorUi;
-use bevy::reflect::Reflect;
-use egui::{Ui, Id};
+use egui::{Id, Ui};
 use std::any::Any;
 use std::sync::Arc;
 
 use crate::scale_index_generic_match;
-use crate::usf::scale::Scale;
 use crate::usf::pos::unit::types::UnitVec;
+use crate::usf::scale::Scale;
 
 #[derive(Default)]
 pub struct GridVecBuilder {
@@ -48,9 +48,9 @@ impl GridVecBuilder {
 
 #[derive(Default, Clone, PartialEq, Eq, Hash, Reflect)]
 pub struct GridVec {
-    pub(in crate) parent: Option<Arc<GridVec>>,
-    pub(in crate) scale: Scale,
-    pub(in crate) xy: IVec2,
+    pub(crate) parent: Option<Arc<GridVec>>,
+    pub(crate) scale: Scale,
+    pub(crate) xy: IVec2,
 }
 impl GridVec {
     pub const MAX_DEPTH: usize = 71;
@@ -61,19 +61,35 @@ impl GridVec {
 
     #[track_caller]
     fn validate_xy(xy: &IVec2) {
-        if xy.x < -5 { panic!("X coordinate {} is too small. Range is (-5..5)", xy.x); }
-        if xy.x >= 5 { panic!("X coordinate {} is too large. Range is (-5..5)", xy.x); }
-        if xy.y < -5 { panic!("Y coordinate {} is too small. Range is (-5..5)", xy.y); }
-        if xy.y >= 5 { panic!("Y coordinate {} is too large. Range is (-5..5)", xy.y); }
+        if xy.x < -5 {
+            panic!("X coordinate {} is too small. Range is (-5..5)", xy.x);
+        }
+        if xy.x >= 5 {
+            panic!("X coordinate {} is too large. Range is (-5..5)", xy.x);
+        }
+        if xy.y < -5 {
+            panic!("Y coordinate {} is too small. Range is (-5..5)", xy.y);
+        }
+        if xy.y >= 5 {
+            panic!("Y coordinate {} is too large. Range is (-5..5)", xy.y);
+        }
     }
 
     #[track_caller]
     fn try_validate_xy(xy: &IVec2) -> Result<(), String> {
-        if xy.x < -5 { return Err(format!("X coordinate {} is too small. Range is (-5..5)", xy.x)) }
-        if xy.x >= 5 { return Err(format!("X coordinate {} is too large. Range is (-5..5)", xy.x)) }
-        if xy.y < -5 { return Err(format!("Y coordinate {} is too small. Range is (-5..5)", xy.y)) }
-        if xy.y >= 5 { return Err(format!("Y coordinate {} is too large. Range is (-5..5)", xy.y)) }
-        
+        if xy.x < -5 {
+            return Err(format!("X coordinate {} is too small. Range is (-5..5)", xy.x));
+        }
+        if xy.x >= 5 {
+            return Err(format!("X coordinate {} is too large. Range is (-5..5)", xy.x));
+        }
+        if xy.y < -5 {
+            return Err(format!("Y coordinate {} is too small. Range is (-5..5)", xy.y));
+        }
+        if xy.y >= 5 {
+            return Err(format!("Y coordinate {} is too large. Range is (-5..5)", xy.y));
+        }
+
         Ok(())
     }
 
@@ -82,7 +98,7 @@ impl GridVec {
     pub fn new_random_homo(_scale: Scale) -> Self {
         todo!()
     }
-    
+
     /// Create a GridVec with random (yet valid) coordinates, from the root, down to and including the specified scale, with different random coords at each scale.
     #[track_caller]
     pub fn new_random_hetero(_scale: Scale) -> Self {
@@ -93,7 +109,11 @@ impl GridVec {
     #[track_caller]
     pub fn new_root(xy: IVec2) -> Self {
         Self::validate_xy(&xy);
-        let mut my_self = Self { parent: None, scale: Scale::MAX, xy };
+        let mut my_self = Self {
+            parent: None,
+            scale: Scale::MAX,
+            xy,
+        };
         my_self.normalize();
         my_self
     }
@@ -101,7 +121,11 @@ impl GridVec {
     /// Create a GridVec at the absolute root (Scale::MAX) with no parent.
     #[track_caller]
     pub fn new_root_unchecked(xy: IVec2) -> Self {
-        let mut my_self = Self { parent: None, scale: Scale::MAX, xy };
+        let mut my_self = Self {
+            parent: None,
+            scale: Scale::MAX,
+            xy,
+        };
         my_self.normalize();
         my_self
     }
@@ -148,7 +172,11 @@ impl GridVec {
             current = Self::new(current, IVec2::ZERO);
         }
 
-        let mut my_self = Self { parent: current.parent, scale, xy };
+        let mut my_self = Self {
+            parent: current.parent,
+            scale,
+            xy,
+        };
         my_self.normalize();
         my_self
     }
@@ -169,7 +197,11 @@ impl GridVec {
             current = Self::new(current, xy);
         }
 
-        let mut my_self = Self { parent: current.parent, scale, xy };
+        let mut my_self = Self {
+            parent: current.parent,
+            scale,
+            xy,
+        };
         my_self.normalize();
         my_self
     }
@@ -300,7 +332,7 @@ impl GridVec {
         };
         let diff_unit = self_unit - origin_unit;
         assert!(diff_unit.grid_offset.parent.as_ref().map(|p| p.is_zero()).unwrap_or(true));
-        
+
         let native_x = diff_unit.grid_offset.xy.x as f32 * 1000.0;
         let native_y = diff_unit.grid_offset.xy.y as f32 * 1000.0;
 
@@ -357,7 +389,7 @@ impl GridVec {
         self.scale = unit_extent.grid_offset.scale;
         self.xy = unit_extent.grid_offset.xy;
     }
-    
+
     #[track_caller]
     pub fn query_grid_radius(&self, radius: u32) -> Vec<GridVec> {
         let mut raw_offsets = Vec::new();
@@ -377,12 +409,12 @@ impl GridVec {
                 raw_offsets.push(GridVec {
                     parent: self.parent.clone(),
                     scale: self.scale,
-                    xy: offset1
+                    xy: offset1,
                 });
                 raw_offsets.push(GridVec {
                     parent: self.parent.clone(),
                     scale: self.scale,
-                    xy: offset2
+                    xy: offset2,
                 });
             }
             for dy in -y..=y {
@@ -392,12 +424,12 @@ impl GridVec {
                 raw_offsets.push(GridVec {
                     parent: self.parent.clone(),
                     scale: self.scale,
-                    xy: offset1
+                    xy: offset1,
                 });
                 raw_offsets.push(GridVec {
                     parent: self.parent.clone(),
                     scale: self.scale,
-                    xy: offset2
+                    xy: offset2,
                 });
             }
 
@@ -533,7 +565,11 @@ impl std::ops::Add<GridVec> for GridVec {
         // === Phase 4: Build final GridVec tree ===
         let mut result: Option<GridVec> = None;
         for (scale, xy) in raw_stack {
-            result = Some(GridVec { parent: result.map(Arc::new), scale, xy })
+            result = Some(GridVec {
+                parent: result.map(Arc::new),
+                scale,
+                xy,
+            })
         }
 
         result.expect("GridVec addition should yield a result")
@@ -604,7 +640,11 @@ impl std::ops::Sub<GridVec> for GridVec {
         // === Phase 4: Build final GridVec tree ===
         let mut result: Option<GridVec> = None;
         for (scale, xy) in raw_stack {
-            result = Some(GridVec { parent: result.map(Arc::new), scale, xy })
+            result = Some(GridVec {
+                parent: result.map(Arc::new),
+                scale,
+                xy,
+            })
         }
 
         result.expect("GridVec subtraction should yield a result")
@@ -636,20 +676,11 @@ impl std::convert::TryFrom<Vec<IVec2>> for GridVec {
 }
 
 impl InspectorPrimitive for GridVec {
-    fn ui(
-        &mut self,
-        ui: &mut Ui,
-        _options: &dyn Any,
-        _id: Id,
-        _env: InspectorUi<'_, '_>,
-    ) -> bool {
+    fn ui(&mut self, ui: &mut Ui, _options: &dyn Any, _id: Id, _env: InspectorUi<'_, '_>) -> bool {
         let mut changed = false;
 
         // Step 1: Convert to Vec<IVec2>
-        let mut coords = scale_index_generic_match!(
-            self.scale,
-            { self.to_raw::<__SCALE__>().unwrap().to_vec() }
-        );
+        let mut coords = scale_index_generic_match!(self.scale, { self.to_raw::<__SCALE__>().unwrap().to_vec() });
 
         // Step 2: Dynamic editable UI
         ui.horizontal_wrapped(|ui| {
@@ -699,13 +730,7 @@ impl InspectorPrimitive for GridVec {
         changed
     }
 
-    fn ui_readonly(
-        &self,
-        ui: &mut Ui,
-        _options: &dyn Any,
-        _id: Id,
-        _env: InspectorUi<'_, '_>,
-    ) {
+    fn ui_readonly(&self, ui: &mut Ui, _options: &dyn Any, _id: Id, _env: InspectorUi<'_, '_>) {
         ui.label(format!("{:?}", self));
     }
 }

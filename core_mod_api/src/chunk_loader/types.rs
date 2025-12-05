@@ -10,11 +10,7 @@ pub struct ChunkLoaderId {
 }
 impl ChunkLoaderId {
     pub fn new(id: String, entity: Entity, scale: Scale) -> Self {
-        Self {
-            id,
-            entity,
-            scale,
-        }
+        Self { id, entity, scale }
     }
 
     pub fn id(&self) -> &str {

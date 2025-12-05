@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use bevy::ecs::system::SystemParam;
+use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use iyes_perf_ui::{entry::PerfUiEntry, ui::root::PerfUiRoot, utils::next_sort_key};
 
@@ -40,20 +40,14 @@ impl PerfUiEntry for PerfUiEntryViewportRect {
         self.sort_key
     }
 
-    fn update_value(
-        &self,
-        sys_param: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>,
-    ) -> Option<Self::Value> {
+    fn update_value(&self, sys_param: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>) -> Option<Self::Value> {
         let primary_window_ui_state = sys_param;
 
         primary_window_ui_state.viewport_rect_precision_proxy
     }
 
     fn format_value(&self, value: &Self::Value) -> String {
-        format!(
-            "({:.1}, {:.1})->({:.1}, {:.1})",
-            value.min.x, value.min.y, value.max.x, value.max.y
-        )
+        format!("({:.1}, {:.1})->({:.1}, {:.1})", value.min.x, value.min.y, value.max.x, value.max.y)
     }
 
     fn value_color(&self, _value: &Self::Value) -> Option<Color> {
@@ -96,17 +90,9 @@ impl PerfUiEntry for PerfUiEntryCursorWindowPos {
         self.sort_key
     }
 
-    fn update_value(
-        &self,
-        sys_params: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>,
-    ) -> Option<Self::Value> {
-        let (
-            ref mut previous_position,
-            ref window_query,
-            ref game_view_render_target,
-            ref primary_window_ui_state,
-        ) = sys_params;
-        
+    fn update_value(&self, sys_params: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>) -> Option<Self::Value> {
+        let (ref mut previous_position, ref window_query, ref game_view_render_target, ref primary_window_ui_state) = sys_params;
+
         let window = window_query.single().ok()?;
 
         let window_size = window.physical_size();
@@ -116,7 +102,7 @@ impl PerfUiEntry for PerfUiEntryCursorWindowPos {
 
         **previous_position = if let Some(current_position) = window.cursor_position() {
             let viewport_rect = primary_window_ui_state.viewport_rect_precision_proxy?;
-            
+
             if viewport_rect.contains(egui::Pos2 {
                 x: current_position.x,
                 y: current_position.y,
@@ -124,8 +110,12 @@ impl PerfUiEntry for PerfUiEntryCursorWindowPos {
                 let x = current_position.x.remap(viewport_rect.min.x, viewport_rect.max.x, 0.0, window_size_vec2.x);
                 let y = current_position.y.remap(viewport_rect.min.y, viewport_rect.max.y, 0.0, window_size_vec2.y);
                 Some(Vec2::new(x, y))
-            } else { None }
-        } else { None };
+            } else {
+                None
+            }
+        } else {
+            None
+        };
 
         **previous_position
     }
@@ -175,18 +165,9 @@ impl PerfUiEntry for PerfUiEntryCursorPointerPos {
         self.sort_key
     }
 
-    fn update_value(
-        &self,
-        sys_params: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>,
-    ) -> Option<Self::Value> {
-        let (
-            ref mut previous_position,
-            ref mut pointer_move_events,
-            ref window_query,
-            ref game_view_render_target,
-            ref primary_window_ui_state,
-        ) = sys_params;
-        
+    fn update_value(&self, sys_params: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>) -> Option<Self::Value> {
+        let (ref mut previous_position, ref mut pointer_move_events, ref window_query, ref game_view_render_target, ref primary_window_ui_state) = sys_params;
+
         let window = window_query.single().ok()?;
 
         let window_size = window.physical_size();
@@ -197,7 +178,7 @@ impl PerfUiEntry for PerfUiEntryCursorPointerPos {
         **previous_position = if let Some(event) = pointer_move_events.read().last() {
             let current_position = event.pointer_location.position;
             let viewport_rect = primary_window_ui_state.viewport_rect_precision_proxy?;
-            
+
             if viewport_rect.contains(egui::Pos2 {
                 x: current_position.x,
                 y: current_position.y,
@@ -205,8 +186,12 @@ impl PerfUiEntry for PerfUiEntryCursorPointerPos {
                 let x = current_position.x.remap(viewport_rect.min.x, viewport_rect.max.x, 0.0, window_size_vec2.x);
                 let y = current_position.y.remap(viewport_rect.min.y, viewport_rect.max.y, 0.0, window_size_vec2.y);
                 Some(Vec2::new(x, y))
-            } else { None }
-        } else { None };
+            } else {
+                None
+            }
+        } else {
+            None
+        };
 
         **previous_position
     }
@@ -256,18 +241,9 @@ impl PerfUiEntry for PerfUiEntryCursorUnitPos {
         self.sort_key
     }
 
-    fn update_value(
-        &self,
-        sys_params: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>,
-    ) -> Option<Self::Value> {
-        let (
-            ref mut previous_position,
-            ref camera_query,
-            ref window_query,
-            ref game_view_render_target,
-            ref primary_window_ui_state,
-        ) = sys_params;
-        
+    fn update_value(&self, sys_params: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>) -> Option<Self::Value> {
+        let (ref mut previous_position, ref camera_query, ref window_query, ref game_view_render_target, ref primary_window_ui_state) = sys_params;
+
         let (camera, camera_transform) = camera_query.single().ok()?;
         let window = window_query.single().ok()?;
 
@@ -278,16 +254,23 @@ impl PerfUiEntry for PerfUiEntryCursorUnitPos {
 
         **previous_position = if let Some(current_position) = window.cursor_position() {
             let viewport_rect = primary_window_ui_state.viewport_rect_precision_proxy?;
-            
+
             if viewport_rect.contains(egui::Pos2 {
                 x: current_position.x,
                 y: current_position.y,
             }) {
                 let x = current_position.x.remap(viewport_rect.min.x, viewport_rect.max.x, 0.0, window_size_vec2.x);
                 let y = current_position.y.remap(viewport_rect.min.y, viewport_rect.max.y, 0.0, window_size_vec2.y);
-                camera.viewport_to_world(camera_transform, Vec2::new(x, y)).ok().map(|ray| ray.origin.truncate())
-            } else { None }
-        } else { None };
+                camera
+                    .viewport_to_world(camera_transform, Vec2::new(x, y))
+                    .ok()
+                    .map(|ray| ray.origin.truncate())
+            } else {
+                None
+            }
+        } else {
+            None
+        };
 
         **previous_position
     }

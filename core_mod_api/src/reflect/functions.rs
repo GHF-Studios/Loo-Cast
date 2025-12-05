@@ -21,11 +21,7 @@ where
     T: Reflect,
     F: Reflect + 'static,
 {
-    target
-        .reflect_ref()
-        .as_struct().ok()?
-        .field(field)?
-        .try_downcast_ref::<F>()
+    target.reflect_ref().as_struct().ok()?.field(field)?.try_downcast_ref::<F>()
 }
 
 fn get_struct_field_mut_inner<'a, T, F>(target: &'a mut T, field: &str) -> Option<&'a mut F>
@@ -33,9 +29,5 @@ where
     T: Reflect,
     F: Reflect + 'static,
 {
-    target
-        .reflect_mut()
-        .as_struct().ok()?
-        .field_mut(field)?
-        .try_downcast_mut::<F>()
+    target.reflect_mut().as_struct().ok()?.field_mut(field)?.try_downcast_mut::<F>()
 }

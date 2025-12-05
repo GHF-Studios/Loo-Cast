@@ -11,7 +11,7 @@ fn unit_extent_zoom_out_test_1() {
 #[test]
 fn unit_extent_zoom_out_test_2() {
     use crate::unit_extent;
-    
+
     let mut a = unit_extent!([(0, 0), (4, 4), (3, 3), (2, 2), (1, 1)]: (0.0, 0.0));
     a.zoom_out();
     let expected = unit_extent!([(0, 0), (4, 4), (3, 3), (2, 2)]: (100.0, 100.0));
@@ -21,7 +21,7 @@ fn unit_extent_zoom_out_test_2() {
 #[test]
 fn unit_extent_zoom_out_test_3() {
     use crate::unit_extent;
-    
+
     let mut a = unit_extent!([(0, 0), (4, 4), (3, 3), (2, 2), (1, 1)]: (499.9, 499.9));
     a.zoom_out();
     let expected = unit_extent!([(0, 0), (4, 4), (3, 3), (2, 2)]: (149.98999, 149.98999)); // Not 149.99 due to floating point precision
@@ -31,7 +31,7 @@ fn unit_extent_zoom_out_test_3() {
 #[test]
 fn unit_extent_zoom_in_test_1() {
     use crate::unit_extent;
-    
+
     let mut a = unit_extent!([(0, 0), (0, 0)]: (20.0, 20.0));
     a.zoom_in();
     let expected = unit_extent!([(0, 0), (0, 0), (0, 0)]: (200.0, 200.0));
@@ -41,7 +41,7 @@ fn unit_extent_zoom_in_test_1() {
 #[test]
 fn unit_extent_zoom_in_test_2() {
     use crate::unit_extent;
-    
+
     let mut a = unit_extent!([(0, 0)]: (200.0, 200.0));
     a.zoom_in();
     let expected = unit_extent!([(0, 0), (2, 2)]: (0.0, 0.0));
@@ -51,7 +51,7 @@ fn unit_extent_zoom_in_test_2() {
 #[test]
 fn unit_extent_zoom_in_test_3() {
     use crate::unit_extent;
-    
+
     let mut a = unit_extent!([(0, 0)]: (149.99, 149.99));
     a.zoom_in();
     let expected = unit_extent!([(0, 0), (1, 1)]: (499.90002, 499.90002)); // Not 499.9 due to floating point precision limitations
@@ -61,7 +61,7 @@ fn unit_extent_zoom_in_test_3() {
 #[test]
 fn unit_extent_zoom_in_multi_test_1() {
     use crate::unit_extent;
-    
+
     let mut a = unit_extent!([(1, 1)]: (437.0, 437.0));
     let scale_b = a.grid_offset.scale.zoomed_in().zoomed_in();
     a.zoom_in_multi(scale_b).unwrap();
@@ -72,7 +72,7 @@ fn unit_extent_zoom_in_multi_test_1() {
 #[test]
 fn unit_extent_zoom_in_multi_test_2() {
     use crate::unit_extent;
-    
+
     let mut a = unit_extent!([(0, 0)]: (0.0, 0.0));
     let scale_b = a.grid_offset.scale.zoomed_in().zoomed_in().zoomed_in();
     a.zoom_in_multi(scale_b).unwrap();
@@ -83,7 +83,7 @@ fn unit_extent_zoom_in_multi_test_2() {
 #[test]
 fn unit_extent_zoom_in_multi_test_3() {
     use crate::unit_extent;
-    
+
     let mut a = unit_extent!([(1, 1), (1, 1)]: (499.99, 499.99));
     let scale_b = a.grid_offset.scale.zoomed_in().zoomed_in().zoomed_in();
     a.zoom_in_multi(scale_b).unwrap();
@@ -96,7 +96,7 @@ fn unit_extent_zoom_in_multi_test_3() {
 #[test]
 fn unit_extent_add_test_1() {
     use crate::unit_extent;
-    
+
     let a = unit_extent!([(0, 0)]: (0.0, 0.0));
     let b = unit_extent!([(0, 0), (0, 0)]: (200.0, 200.0));
     let c = a + b;
@@ -107,7 +107,7 @@ fn unit_extent_add_test_1() {
 #[test]
 fn unit_extent_add_test_2() {
     use crate::unit_extent;
-    
+
     let a = unit_extent!([(0, 0)]: (400.0, 400.0));
     let b = unit_extent!([(0, 0)]: (200.0, 200.0));
     let c = a + b;
@@ -118,7 +118,7 @@ fn unit_extent_add_test_2() {
 #[test]
 fn unit_extent_add_test_3() {
     use crate::unit_extent;
-    
+
     let a = unit_extent!([(1, 1)]: (437.0, 437.0));
     let b = unit_extent!([(1, 1), (1, 1), (1, 1)]: (200.0, 200.0));
     let c = a + b;
@@ -129,7 +129,7 @@ fn unit_extent_add_test_3() {
 #[test]
 fn unit_extent_add_test_4() {
     use crate::unit_extent;
-    
+
     let a = unit_extent!([(1, 1), (1, 1), (1, 1)]: (499.99, 499.99));
     let b = unit_extent!([(1, 1), (1, 1), (1, 1)]: (0.02, 0.02));
     let c = a + b;
@@ -140,7 +140,7 @@ fn unit_extent_add_test_4() {
 #[test]
 fn unit_extent_sub_test_1() {
     use crate::unit_extent;
-    
+
     let a = unit_extent!([(1, 1)]: (0.0, 0.0));
     let b = unit_extent!([(0, 0), (0, 0)]: (200.0, 200.0));
     let c = a - b;
@@ -151,7 +151,7 @@ fn unit_extent_sub_test_1() {
 #[test]
 fn unit_extent_sub_test_2() {
     use crate::unit_extent;
-    
+
     let a = unit_extent!([(0, 0)]: (-200.0, -200.0));
     let b = unit_extent!([(0, 0)]: (400.0, 400.0));
     let c = a - b;
@@ -162,7 +162,7 @@ fn unit_extent_sub_test_2() {
 #[test]
 fn unit_extent_sub_test_3() {
     use crate::unit_extent;
-    
+
     let a = unit_extent!([(1, 1)]: (100.0, 100.0));
     let b = unit_extent!([(1, 1), (0, 0), (0, 0)]: (200.0, 200.0));
     let c = a - b;
@@ -173,7 +173,7 @@ fn unit_extent_sub_test_3() {
 #[test]
 fn unit_extent_sub_test_4() {
     use crate::unit_extent;
-    
+
     let a = unit_extent!([(1, 1)]: (437.0, 437.0));
     let b = unit_extent!([(1, 1), (1, 1), (1, 1)]: (200.0, 200.0));
     let c = a - b;

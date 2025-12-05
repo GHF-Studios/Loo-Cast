@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use bevy::prelude::*;
 
 #[derive(Component, Reflect)]
@@ -19,4 +21,3 @@ pub struct RenderProxyHandle {
 pub struct RenderProxy {
     pub source: Entity,
 }
-

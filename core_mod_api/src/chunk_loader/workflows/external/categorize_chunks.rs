@@ -53,12 +53,18 @@ pub fn run_ecs(main_access: MainAccess) -> Output {
         let mut coords_in_cone = Vec::new();
 
         while chunk_loader_scale_cursor < Scale::MAX {
-            let coords_in_radius = chunk_loader_grid_coord_cursor.query_grid_radius(radius).into_iter().collect::<HashSet<GridVec>>();
+            let coords_in_radius = chunk_loader_grid_coord_cursor
+                .query_grid_radius(radius)
+                .into_iter()
+                .collect::<HashSet<GridVec>>();
             coords_in_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
             chunk_loader_scale_cursor.zoom_out();
             chunk_loader_grid_coord_cursor = &**chunk_loader_grid_coord_cursor.parent.as_ref().unwrap();
         }
-        let coords_in_radius = chunk_loader_grid_coord_cursor.query_grid_radius(radius).into_iter().collect::<HashSet<GridVec>>();
+        let coords_in_radius = chunk_loader_grid_coord_cursor
+            .query_grid_radius(radius)
+            .into_iter()
+            .collect::<HashSet<GridVec>>();
         coords_in_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
 
         coords_in_cone.reverse();

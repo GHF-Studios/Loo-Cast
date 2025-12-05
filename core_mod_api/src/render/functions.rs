@@ -1,6 +1,6 @@
-use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
-use egui::{Color32, emath::GuiRounding};
+use bevy::prelude::*;
+use egui::{emath::GuiRounding, Color32};
 use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
 
@@ -8,8 +8,7 @@ use crate::{
     debug::types::DebugSuiteTabViewer,
     render::{
         components::RenderProxy,
-        resources::{PrimaryWindowUiDockState, PrimaryWindowUiState, GameViewRenderTarget},
-        
+        resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState},
     },
     time::{
         resources::TimeInfo,
@@ -38,37 +37,36 @@ pub(super) fn get_reserved_camera_entities() -> (Entity, Entity, Entity) {
 }
 
 pub(super) fn reserve_game_view_render_target(handle: Handle<Image>, size_uvec2: UVec2) {
-    RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE.set(handle).expect("RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE already set");
-    RESERVED_GAME_VIEW_RENDER_TARGET_SIZE_UVEC2.set(size_uvec2).expect("RESERVED_GAME_VIEW_RENDER_TARGET_SIZE already set");
+    RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE
+        .set(handle)
+        .expect("RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE already set");
+    RESERVED_GAME_VIEW_RENDER_TARGET_SIZE_UVEC2
+        .set(size_uvec2)
+        .expect("RESERVED_GAME_VIEW_RENDER_TARGET_SIZE already set");
 }
 pub(super) fn get_reserved_game_view_render_target() -> (Handle<Image>, UVec2) {
     (
-        RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE.clone().into_inner().expect("RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE not set"),
-        RESERVED_GAME_VIEW_RENDER_TARGET_SIZE_UVEC2.clone().into_inner().expect("RESERVED_GAME_VIEW_RENDER_TARGET_SIZE not set"),
+        RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE
+            .clone()
+            .into_inner()
+            .expect("RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE not set"),
+        RESERVED_GAME_VIEW_RENDER_TARGET_SIZE_UVEC2
+            .clone()
+            .into_inner()
+            .expect("RESERVED_GAME_VIEW_RENDER_TARGET_SIZE not set"),
     )
 }
 
-pub fn new_sprite_proxy_bundle(
-    image: Handle<Image>,
-    pos: Vec2,
-    scale: f32,
-    source_entity: Entity,
-    chunk_z: f32,
-) -> impl Bundle {
+pub fn new_sprite_proxy_bundle(image: Handle<Image>, pos: Vec2, scale: f32, source_entity: Entity, chunk_z: f32) -> impl Bundle {
     (
         Transform {
             translation: pos.extend(chunk_z),
             scale: Vec3::splat(scale),
             ..Default::default()
         },
-        Sprite {
-            image,
-            ..Default::default()
-        },
+        Sprite { image, ..Default::default() },
         Pickable::default(),
-        RenderProxy {
-            source: source_entity,
-        },
+        RenderProxy { source: source_entity },
     )
 }
 

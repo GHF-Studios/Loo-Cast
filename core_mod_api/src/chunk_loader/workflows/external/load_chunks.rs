@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use crate::chunk::{
     components::Chunk,
     intent::{resolve_intent, ActionIntent, ActionPriority, ResolvedActionIntent},
-    resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager}
+    resources::{ActionIntentBuffer, ActionIntentCommitBuffer, ChunkManager},
 };
 use crate::chunk_loader::types::ChunkLoaderId;
 use crate::usf::pos::grid::types::GridVec;

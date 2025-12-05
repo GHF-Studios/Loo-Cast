@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
-use crate::config::statics::CONFIG;
 use super::statics::ENTITY_RESERVATION_BUFFER;
+use crate::config::statics::CONFIG;
 
 pub(super) fn fill_entity_reservation_buffer(mut commands: Commands) {
     let mut queue = ENTITY_RESERVATION_BUFFER().lock().unwrap();

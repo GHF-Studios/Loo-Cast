@@ -1,16 +1,13 @@
 use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
-use crate::{chunk_loader::types::ChunkLoaderId, chunk_loader::components::ChunkLoader, workflow::functions::handle_composite_workflow_return_later};
+use crate::{chunk_loader::components::ChunkLoader, chunk_loader::types::ChunkLoaderId, workflow::functions::handle_composite_workflow_return_later};
 
-use super::types::RemovedChunkLoaderObservation;
 use super::resources::RemovedChunkLoaderObservationQueue;
+use super::types::RemovedChunkLoaderObservation;
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn observe_on_remove_chunk_loader(
-    trigger: Trigger<OnRemove, ChunkLoader>,
-    mut queue: ResMut<RemovedChunkLoaderObservationQueue>,
-) {
+pub(crate) fn observe_on_remove_chunk_loader(trigger: Trigger<OnRemove, ChunkLoader>, mut queue: ResMut<RemovedChunkLoaderObservationQueue>) {
     let loader_entity = trigger.target();
     queue.0.insert(RemovedChunkLoaderObservation { entity: loader_entity });
 }
@@ -27,7 +24,10 @@ pub(crate) fn on_remove_chunk_loader_observation_queue_processing_system(
     for RemovedChunkLoaderObservation { entity: loader_entity } in std::mem::take(&mut queue.0).into_iter() {
         let loader = match chunk_loader_query.get(loader_entity) {
             Ok(value) => value,
-            Err(_) => unreachable!("Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.", loader_entity)
+            Err(_) => unreachable!(
+                "Failed to remove chunk loader {:?}: Chunk Loader Query did not include it at the present time.",
+                loader_entity
+            ),
         };
 
         removed_owner_id = Some(loader.id().clone());

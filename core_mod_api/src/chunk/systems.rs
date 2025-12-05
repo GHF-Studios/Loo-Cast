@@ -31,11 +31,7 @@ pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<As
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn chunk_update_system(
-    mut commands: Commands,
-    chunk_query: Query<(Entity, &Chunk)>,
-    removed_chunk_loaders: Res<RemovedChunkLoaders>,
-) {
+pub(crate) fn chunk_update_system(mut commands: Commands, chunk_query: Query<(Entity, &Chunk)>, removed_chunk_loaders: Res<RemovedChunkLoaders>) {
     for (entity, chunk) in chunk_query.iter() {
         if let Some(chunk_owner_id) = chunk.owner_id.clone() {
             if removed_chunk_loaders.0.iter().any(|rcl| rcl.id == chunk_owner_id) {
@@ -120,8 +116,16 @@ pub(crate) fn process_chunk_actions_system(
 
     for (_, coords) in action_intent_commit_buffer.priority_buckets.iter() {
         for coord in coords {
-            let action_intent = action_intent_commit_buffer.action_intent.get(coord)
-                .unwrap_or_else(|| panic!("Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}", coord, action_intent_commit_buffer)).clone();
+            let action_intent = action_intent_commit_buffer
+                .action_intent
+                .get(coord)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Failed to get ActionIntent for chunk at {:?}! Full commit-buffer printout: {:?}",
+                        coord, action_intent_commit_buffer
+                    )
+                })
+                .clone();
             // warn!("Processing chunk action intent: {:?}", action_intent);
 
             match action_intent {
@@ -140,12 +144,10 @@ pub(crate) fn process_chunk_actions_system(
                     processed_coords.push(coord);
                 }
                 ActionIntent::TransferOwnership { new_owner_id, coord, .. } => {
-                    transfer_inputs.push(
-                        crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
-                            new_chunk_owner_id: new_owner_id.clone(),
-                            grid_coord: coord.clone(),
-                        },
-                    );
+                    transfer_inputs.push(crate::chunk::workflows::external::transfer_chunk_ownerships::TransferChunkOwnershipInput {
+                        new_chunk_owner_id: new_owner_id.clone(),
+                        grid_coord: coord.clone(),
+                    });
                     processed_coords.push(coord);
                     chunk_loaders_performing_chunk_loads.push(new_owner_id);
                 }
@@ -153,10 +155,7 @@ pub(crate) fn process_chunk_actions_system(
         }
     }
 
-    if spawn_inputs.is_empty() 
-        && despawn_inputs.is_empty() 
-        && transfer_inputs.is_empty()
-    {
+    if spawn_inputs.is_empty() && despawn_inputs.is_empty() && transfer_inputs.is_empty() {
         // warn!("No chunk actions to process");
         return;
     }
@@ -172,8 +171,7 @@ pub(crate) fn process_chunk_actions_system(
     }
 
     // Step 3: Build & launch composite workflows
-    let spawn_handle = if !spawn_inputs.is_empty()
-    {
+    let spawn_handle = if !spawn_inputs.is_empty() {
         let param_data = spawn_coords
             .iter()
             .map(|coord| crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
@@ -237,8 +235,7 @@ pub(crate) fn process_chunk_actions_system(
         None
     };
 
-    let transfer_handle = if !transfer_inputs.is_empty()
-    {
+    let transfer_handle = if !transfer_inputs.is_empty() {
         Some(composite_workflow!(
             TransferChunkOwnerships,
             move in transfer_inputs: Vec<TransferChunkOwnershipInput>,

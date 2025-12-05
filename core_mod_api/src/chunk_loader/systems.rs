@@ -10,11 +10,7 @@ use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 use crate::workflow::functions::handle_composite_workflow_return_now;
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn zoom_cooldown_system(
-    time: Res<Time<Virtual>>,
-    mut timer: Local<f32>,
-    mut query: Query<&mut ChunkLoader>,
-) {
+pub(crate) fn zoom_cooldown_system(time: Res<Time<Virtual>>, mut timer: Local<f32>, mut query: Query<&mut ChunkLoader>) {
     if *timer > 0.0 {
         *timer -= time.delta_secs();
         if *timer < 0.0 {
@@ -37,10 +33,7 @@ pub(crate) fn update_chunk_loader_system(
 ) {
     // === PHASE 1: Re-align origin_offset ===
     let (ref mut transform, ref mut chunk_loader) = *chunk_loader;
-    let unit_pos = crate::usf::pos::unit::types::UnitVec::new(
-        chunk_loader.origin_offset.clone(),
-        transform.translation.truncate(),
-    );  // `UnitVec::new` internally normalizes the position based on the current origin_offset; does the heavy lifting for us
+    let unit_pos = crate::usf::pos::unit::types::UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation.truncate()); // `UnitVec::new` internally normalizes the position based on the current origin_offset; does the heavy lifting for us
     chunk_loader.origin_offset = unit_pos.grid_offset;
     transform.translation = unit_pos.unit_offset;
     transform.translation.z = CONFIG().get::<f32>("player/z");
@@ -59,13 +52,21 @@ pub(crate) fn update_chunk_loader_system(
             let load_chunk_inputs = categorize_chunks_output.inner.load_chunk_inputs;
             let unload_chunk_inputs = categorize_chunks_output.inner.unload_chunk_inputs;
 
-            workflow!(I, ChunkLoader::LoadChunks, Input {
-                inner: crate::chunk_loader::workflows::external::load_chunks::Input { inputs: load_chunk_inputs },
-            });
+            workflow!(
+                I,
+                ChunkLoader::LoadChunks,
+                Input {
+                    inner: crate::chunk_loader::workflows::external::load_chunks::Input { inputs: load_chunk_inputs },
+                }
+            );
 
-            workflow!(I, ChunkLoader::UnloadChunks, Input {
-                inner: crate::chunk_loader::workflows::external::unload_chunks::Input { inputs: unload_chunk_inputs },
-            });
+            workflow!(
+                I,
+                ChunkLoader::UnloadChunks,
+                Input {
+                    inner: crate::chunk_loader::workflows::external::unload_chunks::Input { inputs: unload_chunk_inputs },
+                }
+            );
         });
 
         *composite_workflow_handle = Some(handle);

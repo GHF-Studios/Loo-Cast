@@ -1,10 +1,6 @@
 use bevy::ecs::{component::HookContext, world::DeferredWorld};
 
-use crate::{
-    chunk::components::Chunk,
-    chunk_loader::resources::RemovedChunkLoaders,
-    chunk_loader::types::RemovedChunkLoader,
-};
+use crate::{chunk::components::Chunk, chunk_loader::resources::RemovedChunkLoaders, chunk_loader::types::RemovedChunkLoader};
 
 pub(crate) fn hook_on_add_chunk(mut world: DeferredWorld<'_>, hook_context: HookContext) {
     let HookContext {

@@ -10,11 +10,7 @@ use crate::logging::{
 };
 
 #[deprecated]
-pub(super) fn show_log_viewer_ui(
-    mut egui_ctx: EguiContexts,
-    mut log_viewer_state: ResMut<LogViewerState>,
-    mut log_registry: ResMut<LogRegistry>,
-) {
+pub(super) fn show_log_viewer_ui(mut egui_ctx: EguiContexts, mut log_viewer_state: ResMut<LogViewerState>, mut log_registry: ResMut<LogRegistry>) {
     // Temporary stopgap
     return;
     // Temporary stopgap

@@ -1,7 +1,7 @@
-use bevy::prelude::{IVec2, Vec2, Vec3, Reflect};
+use bevy::prelude::{IVec2, Reflect, Vec2, Vec3};
 
-use crate::usf::scale::{Scale, DynScale};
 use crate::usf::pos::grid::types::GridVec;
+use crate::usf::scale::{DynScale, Scale};
 
 pub struct UnitVecBuilder {
     chain: Vec<IVec2>,
@@ -9,9 +9,7 @@ pub struct UnitVecBuilder {
 
 impl UnitVecBuilder {
     pub fn new() -> Self {
-        Self {
-            chain: vec![],
-        }
+        Self { chain: vec![] }
     }
 
     pub fn push(mut self, next: (i32, i32)) -> Self {
@@ -42,8 +40,8 @@ impl UnitVecBuilder {
 
 #[derive(Default, Clone, PartialEq, Reflect)]
 pub struct UnitVec {
-    pub(in crate) grid_offset: GridVec, // Recursive chunk position
-    pub(in crate) unit_offset: Vec3, // Bevy units inside the chunk (e.g., [-500.0..500.0])
+    pub(crate) grid_offset: GridVec, // Recursive chunk position
+    pub(crate) unit_offset: Vec3,    // Bevy units inside the chunk (e.g., [-500.0..500.0])
 }
 impl UnitVec {
     pub fn build() -> UnitVecBuilder {
@@ -51,10 +49,18 @@ impl UnitVec {
     }
 
     fn validate_unit_offset(unit_offset: &Vec3) {
-        if unit_offset.x < -500.0 { panic!("X = {} is too small. Range is (-500.0..500.0)", unit_offset.x); }
-        if unit_offset.x > 500.0 { panic!("X = {} is too large. Range is (-500.0..500.0)", unit_offset.x); }
-        if unit_offset.y < -500.0 { panic!("Y = {} is too small. Range is (-500.0..500.0)", unit_offset.y); }
-        if unit_offset.y > 500.0 { panic!("Y = {} is too large. Range is (-500.0..500.0)", unit_offset.y); }
+        if unit_offset.x < -500.0 {
+            panic!("X = {} is too small. Range is (-500.0..500.0)", unit_offset.x);
+        }
+        if unit_offset.x > 500.0 {
+            panic!("X = {} is too large. Range is (-500.0..500.0)", unit_offset.x);
+        }
+        if unit_offset.y < -500.0 {
+            panic!("Y = {} is too small. Range is (-500.0..500.0)", unit_offset.y);
+        }
+        if unit_offset.y > 500.0 {
+            panic!("Y = {} is too large. Range is (-500.0..500.0)", unit_offset.y);
+        }
     }
 
     /// Compute the one and only valid Z coordinate for any given scale level.
@@ -96,7 +102,7 @@ impl UnitVec {
         // Normalize GridVec
         self.grid_offset.normalize();
     }
-    
+
     pub fn zoom_in_multi(&mut self, target_scale: Scale) -> Result<(), &'static str> {
         if target_scale >= self.grid_offset.scale {
             return Err("Target scale must be smaller than current scale");
@@ -121,10 +127,7 @@ impl UnitVec {
             );
 
             // Update unit_offset for next iteration
-            unit_offset = (unit_offset - Vec2::new(
-                grid_delta.x as f32 * unit_size,
-                grid_delta.y as f32 * unit_size,
-            )) * 10.0;
+            unit_offset = (unit_offset - Vec2::new(grid_delta.x as f32 * unit_size, grid_delta.y as f32 * unit_size)) * 10.0;
 
             // Push the computed delta into our stack
             stack.push((next_scale, grid_delta));
@@ -163,8 +166,7 @@ impl UnitVec {
 
         // === Phase 6: Final assignment ===
         self.grid_offset = new_grid;
-        self.unit_offset = Vec2::new(wrapped_x, wrapped_y)
-            .extend(Self::compute_z(self.grid_offset.scale));
+        self.unit_offset = Vec2::new(wrapped_x, wrapped_y).extend(Self::compute_z(self.grid_offset.scale));
         Self::validate_unit_offset(&self.unit_offset);
 
         Ok(())
@@ -311,12 +313,12 @@ impl std::ops::Add<UnitVec> for UnitVec {
                 // self is deeper → scale *up* self
                 let factor = 10.0_f32.powi((self.grid_offset.scale as i8 - rhs.grid_offset.scale as i8) as i32);
                 rhs.unit_offset.truncate() + (self.unit_offset.truncate() * factor)
-            },
+            }
             std::cmp::Ordering::Less => {
                 // rhs is deeper → scale *up* rhs
                 let factor = 10.0_f32.powi((rhs.grid_offset.scale as i8 - self.grid_offset.scale as i8) as i32);
                 self.unit_offset.truncate() + (rhs.unit_offset.truncate() * factor)
-            },
+            }
         };
 
         // === Phase 3: Extract unit_carry from summed unit_offset ===
@@ -364,7 +366,7 @@ impl std::ops::Sub<UnitVec> for UnitVec {
         const MAX_DEPTH_DIFF: u8 = 4;
 
         match self.grid_offset.scale.cmp(&rhs.grid_offset.scale) {
-            std::cmp::Ordering::Equal => {},
+            std::cmp::Ordering::Equal => {}
             std::cmp::Ordering::Greater => self.zoom_in_multi(rhs.grid_offset.scale).unwrap(),
             std::cmp::Ordering::Less => rhs.zoom_in_multi(self.grid_offset.scale).unwrap(),
         }
@@ -384,7 +386,10 @@ impl std::ops::Sub<UnitVec> for UnitVec {
         }
 
         if (self.grid_offset.scale as i8 - rhs.grid_offset.scale as i8).abs() > MAX_DEPTH_DIFF as i8 {
-            panic!("Cannot subtract UnitVec with grid offsets differing in scale by more than {} levels", MAX_DEPTH_DIFF);
+            panic!(
+                "Cannot subtract UnitVec with grid offsets differing in scale by more than {} levels",
+                MAX_DEPTH_DIFF
+            );
         }
 
         let mut a_stack = stack_up(&self.grid_offset);
@@ -414,12 +419,12 @@ impl std::ops::Sub<UnitVec> for UnitVec {
                 // self is deeper → scale *up* self
                 let factor = 10.0_f32.powi((self.grid_offset.scale as i8 - rhs.grid_offset.scale as i8) as i32);
                 (self.unit_offset.truncate() * factor) - rhs.unit_offset.truncate()
-            },
+            }
             std::cmp::Ordering::Less => {
                 // rhs is deeper → scale *up* rhs
                 let factor = 10.0_f32.powi((rhs.grid_offset.scale as i8 - self.grid_offset.scale as i8) as i32);
                 self.unit_offset.truncate() - (rhs.unit_offset.truncate() * factor)
-            },
+            }
         };
 
         // === Phase 3: Extract unit_carry from summed unit_offset ===

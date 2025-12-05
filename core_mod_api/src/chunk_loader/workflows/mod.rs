@@ -45,7 +45,7 @@ define_workflow_mod_OLD! {
         OnRemoveChunkLoader, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::ResMut;
-                
+
                 use crate::chunk_loader::workflows::external::on_remove_chunk_loader::{
                     MainAccess as ExtractUnloadChunkInputsStageMainAccess,
                     Input as ExtractUnloadChunkInputsStageInput,
@@ -84,7 +84,7 @@ define_workflow_mod_OLD! {
         OnRemovedChunkLoader, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::ResMut;
-                
+
                 use crate::chunk_loader::workflows::external::on_removed_chunk_loader::{
                     MainAccess as SendRemovedChunkLoaderEventStageMainAccess,
                     Input as SendRemovedChunkLoaderEventStageInput,
@@ -115,7 +115,7 @@ define_workflow_mod_OLD! {
         LoadChunks, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::ResMut;
-                
+
                 use crate::chunk_loader::workflows::external::load_chunks::{
                     MainAccess as ValidateAndLoadAndWaitStageMainAccess,
                     Input as ValidateAndLoadAndWaitStageInput,
@@ -143,7 +143,7 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> State {
                             let state = validate_and_load_and_wait_stage_setup_ecs_while(input.inner, main_access.inner);
-                            
+
                             State {
                                 inner: Some(state),
                             }
@@ -176,7 +176,7 @@ define_workflow_mod_OLD! {
         UnloadChunks, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
                 use bevy::prelude::ResMut;
-                
+
                 use crate::chunk_loader::workflows::external::unload_chunks::{
                     MainAccess as UnloadAndWaitStageMainAccess,
                     Input as UnloadAndWaitStageInput,
@@ -204,7 +204,7 @@ define_workflow_mod_OLD! {
                     core_functions: [
                         fn SetupEcsWhile |input, main_access| -> State {
                             let state = unload_and_wait_stage_setup_ecs_while(input.inner, main_access.inner);
-                            
+
                             State {
                                 inner: Some(state),
                             }

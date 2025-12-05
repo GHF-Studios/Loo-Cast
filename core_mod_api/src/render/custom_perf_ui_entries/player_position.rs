@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use bevy::ecs::system::SystemParam;
+use bevy::prelude::*;
 use iyes_perf_ui::{entry::PerfUiEntry, ui::root::PerfUiRoot, utils::next_sort_key};
 
 use crate::chunk_actor::components::ChunkActor;
@@ -38,10 +38,7 @@ impl PerfUiEntry for PerfUiEntryPlayerGridPos {
         self.sort_key
     }
 
-    fn update_value(
-        &self,
-        query: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>,
-    ) -> Option<Self::Value> {
+    fn update_value(&self, query: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>) -> Option<Self::Value> {
         query.iter().next().map(|chunk_actor| chunk_actor.coord.clone())
     }
 
@@ -84,10 +81,7 @@ impl PerfUiEntry for PerfUiEntryPlayerUnitPos {
         self.sort_key
     }
 
-    fn update_value(
-        &self,
-        query: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>,
-    ) -> Option<Self::Value> {
+    fn update_value(&self, query: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>) -> Option<Self::Value> {
         query.iter().next().map(|transform| transform.translation)
     }
 

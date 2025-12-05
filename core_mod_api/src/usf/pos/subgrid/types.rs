@@ -1,8 +1,8 @@
-use bevy::prelude::{IVec2, Vec3, Reflect};
+use bevy::prelude::{IVec2, Reflect, Vec3};
 
-use crate::usf::scale::{Scale, DynScale};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
+use crate::usf::scale::{DynScale, Scale};
 
 #[derive(Default)]
 pub struct SubgridVecBuilder {
@@ -57,10 +57,18 @@ impl SubgridVec {
     }
 
     fn validate_subgrid_offset(subgrid_offset: &IVec2) {
-        if subgrid_offset.x < -5 { panic!("X coordinate {} is too small. Range is (-5..5)", subgrid_offset.x); }
-        if subgrid_offset.x >= 5 { panic!("X coordinate {} is too large. Range is (-5..5)", subgrid_offset.x); }
-        if subgrid_offset.y < -5 { panic!("Y coordinate {} is too small. Range is (-5..5)", subgrid_offset.y); }
-        if subgrid_offset.y >= 5 { panic!("Y coordinate {} is too large. Range is (-5..5)", subgrid_offset.y); }
+        if subgrid_offset.x < -5 {
+            panic!("X coordinate {} is too small. Range is (-5..5)", subgrid_offset.x);
+        }
+        if subgrid_offset.x >= 5 {
+            panic!("X coordinate {} is too large. Range is (-5..5)", subgrid_offset.x);
+        }
+        if subgrid_offset.y < -5 {
+            panic!("Y coordinate {} is too small. Range is (-5..5)", subgrid_offset.y);
+        }
+        if subgrid_offset.y >= 5 {
+            panic!("Y coordinate {} is too large. Range is (-5..5)", subgrid_offset.y);
+        }
     }
 
     pub fn new(grid_offset: GridVec, subgrid_offset: IVec2) -> Self {
@@ -74,10 +82,7 @@ impl SubgridVec {
             panic!("Cannot zoom out SubgridVec beyond the root GridVec");
         }
 
-        let grid_extent = GridVec::new(
-            self.grid_offset.clone(),
-            self.subgrid_offset,
-        );
+        let grid_extent = GridVec::new(self.grid_offset.clone(), self.subgrid_offset);
 
         let mut unit_extent = UnitVec {
             grid_offset: grid_extent,

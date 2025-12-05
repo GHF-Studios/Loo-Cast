@@ -1,40 +1,30 @@
-use bevy::{
-    prelude::*,
-    render::view::RenderLayers,
-};
+use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_egui::{
     egui::{self, ScrollArea},
     EguiContexts,
 };
 use iyes_perf_ui::{
-    prelude::{PerfUiRoot, PerfUiEntryEntityCount},
     entries::{
         diagnostics::{PerfUiEntryFPS, PerfUiEntryFPSAverage},
         PerfUiSystemEntries,
     },
+    prelude::{PerfUiEntryEntityCount, PerfUiRoot},
 };
 
+use super::components::DebugObjectComponent;
+use super::types::DebugObjectMovement;
 use crate::{
     input::states::InputMode,
     logging::resources::LogRegistry,
     render::{
-        custom_perf_ui_entries::{
-            cursor_position::PerfUiCursorPosEntries,
-            player_position::PerfUiPlayerPosEntries
-        },
         components::UiCamera,
+        custom_perf_ui_entries::{cursor_position::PerfUiCursorPosEntries, player_position::PerfUiPlayerPosEntries},
         resources::PrimaryWindowUiState,
     },
 };
-use super::components::DebugObjectComponent;
-use super::types::DebugObjectMovement;
 
 #[tracing::instrument(skip_all)]
-pub(super) fn perf_ui_startup(
-    mut has_spawned: Local<bool>,
-    mut commands: Commands,
-    ui_camera_query: Query<Entity, With<UiCamera>>,
-) {
+pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Commands, ui_camera_query: Query<Entity, With<UiCamera>>) {
     let ui_camera_entity = match ui_camera_query.single() {
         Ok(entity) => entity,
         Err(err) => {

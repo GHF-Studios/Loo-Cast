@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use crate::{chunk_loader::types::ChunkLoaderId, gpu::workflows::gpu::generate_chunk_textures::user_items::ChunkRenderExecutor};
 use crate::usf::pos::grid::types::GridVec;
+use crate::{chunk_loader::types::ChunkLoaderId, gpu::workflows::gpu::generate_chunk_textures::user_items::ChunkRenderExecutor};
 
 use super::intent::{ActionIntent, ActionPriority};
 

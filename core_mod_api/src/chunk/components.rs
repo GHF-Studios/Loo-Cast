@@ -3,9 +3,9 @@ use bevy::{
     prelude::*,
 };
 
-use crate::usf::pos::grid::types::GridVec;
-use crate::chunk_loader::types::ChunkLoaderId;
 use crate::chunk::hooks::hook_on_add_chunk;
+use crate::chunk_loader::types::ChunkLoaderId;
+use crate::usf::pos::grid::types::GridVec;
 
 #[derive(Default, Debug, Reflect)]
 #[reflect(Component)]

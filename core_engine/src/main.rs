@@ -89,7 +89,7 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
                     is_input_enabled: true,
                     is_hover_enabled: true,
                     is_window_picking_enabled: false,
-                })
+                }),
         )
 }
 
