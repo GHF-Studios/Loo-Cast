@@ -9,8 +9,8 @@ pub(super) fn setup(
     mut commands: Commands,
 ) {
     // Gizmo Arrows – one entity, hidden until needed
-    let half_arrow_size_x = Vec2::new(25.0, 250.0) / 2.0;
-    let half_arrow_size_y = Vec2::new(250.0, 25.0) / 2.0;
+    let half_arrow_size_x = Vec2::new(5.0, 100.0) / 2.0;
+    let half_arrow_size_y = Vec2::new(100.0, 5.0) / 2.0;
 
     commands
         .spawn((
