@@ -397,7 +397,7 @@ pub(super) fn diegetic_sprite_picking_backend(
                 // HitData requires a depth as calculated from the camera's near clipping plane
                 let depth = -main_camera_ortho.near - hit_pos_cam.z;
 
-                warn!("✅ Picked entity {:?} at world Z: {:?}", entity, sprite_transform.translation().z);
+                // warn!("✅ Picked entity {:?} at world Z: {:?}", entity, sprite_transform.translation().z);
 
                 (
                     entity,
