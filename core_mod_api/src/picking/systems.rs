@@ -187,8 +187,9 @@ pub(super) fn sprite_picking_backend(
     pointers: Query<(&PointerId, &PointerLocation)>,
     main_camera_query: Query<(Entity, &Camera, &GlobalTransform, &Projection), With<MainCamera>>,
     primary_window: Query<(Entity, &Window), With<PrimaryWindow>>,
-    sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility)>,
+    // sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility)>,
     // sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), With<RenderProxy>>,
+    sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), With<Player>>,
     images: Res<Assets<Image>>,
     texture_atlas_layout: Res<Assets<TextureAtlasLayout>>,
     settings: Res<SpritePickingSettings>,
@@ -295,7 +296,7 @@ pub(super) fn sprite_picking_backend(
         .copied()
         .filter_map(|(entity, sprite, sprite_transform)| {
             if blocked {
-                // warn!("Picking blocked by previous sprite");
+                warn!("Picking for Entity {:?} blocked by previous sprite", entity);
                 return None;
             }
 
@@ -304,16 +305,16 @@ pub(super) fn sprite_picking_backend(
             let cursor_start_sprite = world_to_sprite.transform_point3(cursor_ray_world.origin);
             let cursor_end_sprite = world_to_sprite.transform_point3(cursor_ray_end);
 
-            warn!(
-                "Evaluating Entity {:?} — sprite Z: {:?}, world_to_sprite Z: {:?}",
-                entity,
-                sprite_transform.translation().z,
-                sprite_transform
-                    .affine()
-                    .inverse()
-                    .transform_point3(cursor_ray_world.origin)
-                    .z,
-            );
+            // warn!(
+            //     "Evaluating Entity {:?} — sprite Z: {:?}, world_to_sprite Z: {:?}",
+            //     entity,
+            //     sprite_transform.translation().z,
+            //     sprite_transform
+            //         .affine()
+            //         .inverse()
+            //         .transform_point3(cursor_ray_world.origin)
+            //         .z,
+            // );
 
             // Find where the cursor segment intersects the plane Z=0 (which is the sprite's
             // plane in sprite-local space). It may not intersect if, for example, we're
@@ -348,6 +349,14 @@ pub(super) fn sprite_picking_backend(
 
             let cursor_pos_sprite_pixel = cursor_pos_sprite;
 
+            warn!(
+                "Entity {:?} — Sprite world pos: {:?}, sprite_size: {:?}, cursor_pos_sprite: {:?}",
+                entity,
+                sprite_transform.translation(),
+                sprite_size,
+                cursor_pos_sprite
+            );
+
             let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(
                 cursor_pos_sprite_pixel,
                 &images,
@@ -356,6 +365,12 @@ pub(super) fn sprite_picking_backend(
                 // warn!("Cursor position '{}' outside sprite bounds", cursor_pos_sprite_pixel);
                 return None;
             };
+
+            warn!(
+                "→ cursor pixel space pos: {:?} (image size: {:?})",
+                cursor_pos_sprite_pixel,
+                image.size()
+            );
 
             let cursor_pos_sprite_pixel = cursor_pos_sprite_pixel - sprite_size / 2.0;
 
