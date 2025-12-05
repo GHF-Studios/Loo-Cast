@@ -12,18 +12,21 @@ pub(super) fn handle_selection(
     let selected = &mut debug_suite_ui_state.selected_entities;
     
     if !events.is_empty() {
-        warn!("Handling {} pointer click events (this should be 1) when clicking once", events.len());
+        // warn!("Handling {} pointer click events (this should be 1) when clicking once", events.len());
     }
 
     if events.len() > 1 {
         warn!("Multiple pointer click events detected in a single frame; this may indicate an issue with input handling.");
-        warn!("Events: {:?}", events.read().collect::<Vec<_>>());
+        warn!("Events: '{:?}'", events.read().collect::<Vec<_>>());
     }
 
     for event in events.read() {
         if selectable_query.get(event.target).is_err() {
+            warn!("Tried to select non-existent/incompatible entity: {:?}", event.target);
             continue;
         }
+
+        warn!("Selecting entity: {:?}", event.target);
 
         let shift = keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight);
 

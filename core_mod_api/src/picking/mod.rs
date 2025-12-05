@@ -14,8 +14,14 @@ impl Plugin for PickingPlugin {
             .init_resource::<SpritePickingSettings>()
             .add_systems(Startup, spawn_mouse_pointer)
             .add_systems(First, mouse_pick_events.in_set(PickSet::Input))
-            .add_systems(PreUpdate, sprite_picking_backend.in_set(PickSet::Backend))
+            .add_systems(PreUpdate, (sprite_picking_backend, log_hits).chain().in_set(PickSet::Backend))
             .register_type::<SpritePickingMode>()
             .register_type::<SpritePickingSettings>();
+    }
+}
+
+fn log_hits(mut hits: EventReader<PointerHits>) {
+    if !hits.is_empty()  {
+        warn!("🧩 PointerHits seen by BevyPicking: {:?}", hits.read().collect::<Vec<_>>());
     }
 }

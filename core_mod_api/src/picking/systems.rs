@@ -19,6 +19,7 @@ use crate::render::{
 use crate::usf::pos::grid::types::GridVec;
 
 use super::constants::MOUSE_POINTER_ID;
+use super::resources::{SpritePickingMode, SpritePickingSettings};
 
 // TODO: Impl properly
 pub(super) fn spawn_mouse_pointer(
@@ -349,13 +350,13 @@ pub(super) fn sprite_picking_backend(
 
             let cursor_pos_sprite_pixel = cursor_pos_sprite;
 
-            warn!(
-                "Entity {:?} — Sprite world pos: {:?}, sprite_size: {:?}, cursor_pos_sprite: {:?}",
-                entity,
-                sprite_transform.translation(),
-                sprite_size,
-                cursor_pos_sprite
-            );
+            // warn!(
+            //     "Entity {:?} — Sprite world pos: {:?}, sprite_size: {:?}, cursor_pos_sprite: {:?}",
+            //     entity,
+            //     sprite_transform.translation(),
+            //     sprite_size,
+            //     cursor_pos_sprite
+            // );
 
             let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(
                 cursor_pos_sprite_pixel,
@@ -366,11 +367,11 @@ pub(super) fn sprite_picking_backend(
                 return None;
             };
 
-            warn!(
-                "→ cursor pixel space pos: {:?} (image size: {:?})",
-                cursor_pos_sprite_pixel,
-                image.size()
-            );
+            // warn!(
+            //     "→ cursor pixel space pos: {:?} (image size: {:?})",
+            //     cursor_pos_sprite_pixel,
+            //     image.size()
+            // );
 
             let cursor_pos_sprite_pixel = cursor_pos_sprite_pixel - sprite_size / 2.0;
 

@@ -78,12 +78,19 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
         // Physics Plugins
         .add(RapierPhysicsPlugin::<NoUserData>::default())
         // Picking Plugins
-        .add_group(DefaultPickingPlugins.set(
-            bevy::picking::input::PointerInputPlugin {
-                is_touch_enabled: false,
-                is_mouse_enabled: false,
-            }
-        ))
+        .add_group(
+            DefaultPickingPlugins
+                .set(bevy::picking::input::PointerInputPlugin {
+                    is_touch_enabled: false,
+                    is_mouse_enabled: false,
+                })
+                .set(bevy::picking::PickingPlugin {
+                    is_enabled: true,
+                    is_input_enabled: true,
+                    is_hover_enabled: true,
+                    is_window_picking_enabled: false,
+                })
+        )
 }
 
 fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
