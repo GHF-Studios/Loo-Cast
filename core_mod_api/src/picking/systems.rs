@@ -8,9 +8,8 @@ use bevy::prelude::*;
 use bevy::render::camera::{ImageRenderTarget, RenderTarget};
 use bevy::window::{PrimaryWindow, WindowEvent, WindowRef};
 
-use crate::core::components::Meta;
 use crate::chunk::components::Chunk;
-use crate::core::types::OntologicalContext;
+use crate::core::types::{Diegetic, Meta, OntologicalContext};
 use crate::player::components::Player;
 use crate::reflect::functions::get_struct_field_mut;
 use crate::render::components::RenderProxy;
@@ -193,11 +192,12 @@ pub(super) fn mouse_pick_events(
 }
 
 #[tracing::instrument(skip_all)]
-pub(super) fn sprite_picking_backend<OC: OntologicalContext>(
+pub(super) fn sprite_picking_backend(
     pointers: Query<(&PointerId, &PointerLocation)>,
     main_camera_query: Query<(Entity, &Camera, &GlobalTransform, &Projection), With<MainCamera>>,
     primary_window: Query<(Entity, &Window), With<PrimaryWindow>>,
-    sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), OC::SpriteOntologyFilter>,
+    diegetic_sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), Without<crate::core::components::Meta<Sprite>>>,
+    meta_sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), With<crate::core::components::Meta<Sprite>>>,
     images: Res<Assets<Image>>,
     texture_atlas_layout: Res<Assets<TextureAtlasLayout>>,
     settings: Res<SpritePickingSettings>,
@@ -205,17 +205,60 @@ pub(super) fn sprite_picking_backend<OC: OntologicalContext>(
     primary_window_ui_state: Res<PrimaryWindowUiState>,
     mut output: EventWriter<PointerHits>,
 ) {
+    let any_meta_hits = sprite_picking_backend_inner::<Meta>(
+        &pointers,
+        &main_camera_query,
+        &primary_window,
+        &meta_sprite_query,
+        &images,
+        &texture_atlas_layout,
+        &settings,
+        &game_view_render_target,
+        &primary_window_ui_state,
+        &mut output,
+    );
+
+    if any_meta_hits {
+        return;
+    }
+
+    let _any_diegetic_hits = sprite_picking_backend_inner::<Diegetic>(
+        &pointers,
+        &main_camera_query,
+        &primary_window,
+        &diegetic_sprite_query,
+        &images,
+        &texture_atlas_layout,
+        &settings,
+        &game_view_render_target,
+        &primary_window_ui_state,
+        &mut output,
+    );
+}
+
+fn sprite_picking_backend_inner<OC: OntologicalContext>(
+    pointers: &Query<(&PointerId, &PointerLocation)>,
+    main_camera_query: &Query<(Entity, &Camera, &GlobalTransform, &Projection), With<MainCamera>>,
+    primary_window: &Query<(Entity, &Window), With<PrimaryWindow>>,
+    sprite_query: &Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), OC::SpriteOntologyFilter>,
+    images: &Res<Assets<Image>>,
+    texture_atlas_layout: &Res<Assets<TextureAtlasLayout>>,
+    settings: &Res<SpritePickingSettings>,
+    game_view_render_target: &Res<GameViewRenderTarget>,
+    primary_window_ui_state: &Res<PrimaryWindowUiState>,
+    output: &mut EventWriter<PointerHits>,
+) -> bool {
     let (pointer_id, location) = match pointers.iter().find(|(p_id, _)| **p_id == OC::pointer_id()) {
         Some((pointer, pointer_location)) => match pointer_location.location().map(|loc| (pointer, loc)) {
             Some(v) => v,
             None => {
                 warn!("Mouse pointer is inactive");
-                return;
+                return false;
             }
         },
         None => {
             warn!("Mouse pointer not found");
-            return;
+            return false;
         }
     };
 
@@ -224,13 +267,13 @@ pub(super) fn sprite_picking_backend<OC: OntologicalContext>(
             Projection::Orthographic(ortho) => (ent, cam, cam_transform, ortho),
             _ => {
                 warn!("Main camera is not orthographic");
-                return;
+                return false;
             }
         },
         Err(err) => match err {
             QuerySingleError::NoEntities(_) => {
                 warn!("No main camera found");
-                return;
+                return false;
             }
             QuerySingleError::MultipleEntities(_) => panic!("Multiple MainCameras not supported!"),
         },
@@ -252,7 +295,7 @@ pub(super) fn sprite_picking_backend<OC: OntologicalContext>(
 
     let Ok((primary_window_entity, primary_window)) = primary_window.single() else {
         warn!("Primary window not found");
-        return;
+        return false;
     };
     let mut blocked = false;
     let window_size = primary_window.physical_size();
@@ -262,7 +305,7 @@ pub(super) fn sprite_picking_backend<OC: OntologicalContext>(
     let current_window_position = location.position;
     let Some(viewport_rect) = primary_window_ui_state.viewport_rect_precision_proxy else {
         warn!("Viewport rect not found");
-        return;
+        return false;
     };
 
     if !viewport_rect.contains(egui::Pos2 {
@@ -270,7 +313,7 @@ pub(super) fn sprite_picking_backend<OC: OntologicalContext>(
         y: current_window_position.y,
     }) {
         warn!("Cursor outside viewport");
-        return;
+        return false;
     }
 
     let current_viewport_position = {
@@ -291,7 +334,7 @@ pub(super) fn sprite_picking_backend<OC: OntologicalContext>(
 
     let Ok(cursor_ray_world) = main_camera.viewport_to_world(main_camera_transform, current_viewport_position) else {
         warn!("Failed to compute cursor ray world position");
-        return;
+        return false;
     };
 
     let cursor_ray_len = main_camera_ortho.far - main_camera_ortho.near;
@@ -425,13 +468,20 @@ pub(super) fn sprite_picking_backend<OC: OntologicalContext>(
 
     if !picks.is_empty() {
         // warn!("Pick(s) detected for mouse pointer");
+
+        let order = main_camera.order as f32;
+        output.write(PointerHits::new(*pointer_id, picks, order));
+
+        return true;
     } else {
         picks.push((
             NO_HIT_SENTINEL,
             HitData::new(main_camera_entity, 0.0, None, None),
         ));
-    }
 
-    let order = main_camera.order as f32;
-    output.write(PointerHits::new(*pointer_id, picks, order));
+        let order = main_camera.order as f32;
+        output.write(PointerHits::new(*pointer_id, picks, order));
+
+        return false;
+    }
 }

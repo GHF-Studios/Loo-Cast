@@ -14,31 +14,31 @@ pub(super) fn setup(mut commands: Commands) {
     let z = CONFIG().get::<f32>("debug/gizmo/z");
 
     // Gizmo Arrows – one entity, hidden until needed
-    let half_arrow_size_x = Vec2::new(arrow_thickness, arrow_length) / 2.0;
-    let half_arrow_size_y = Vec2::new(arrow_length, arrow_thickness) / 2.0;
+    let half_arrow_size_x = Vec2::new(arrow_length, arrow_thickness) / 2.0;
+    let half_arrow_size_y = Vec2::new(arrow_thickness, arrow_length) / 2.0;
 
     commands
         .spawn((Transform::default(), Visibility::Hidden, Name::new("Gizmo Root"), GizmoRoot))
         .with_children(|parent| {
             parent.spawn((
                 Sprite {
-                    color: Color::linear_rgba(1.0, 0.0, 0.0, 1.0),
+                    color: Color::linear_rgba(1.0, 0.0, 0.0, 0.75),
                     rect: Some(Rect::new(-half_arrow_size_x.x, -half_arrow_size_x.y, half_arrow_size_x.x, half_arrow_size_x.y)),
                     ..Default::default()
                 },
                 Meta::<Sprite>::default(),
-                Transform::from_translation(Vec3::new(0.0, 0.0, z)),
+                Transform::from_translation(Vec3::new(half_arrow_size_x.x + half_arrow_size_x.y, 0.0, z)),
                 GizmoArrow { axis: Axis2D::X },
             ));
 
             parent.spawn((
                 Sprite {
-                    color: Color::linear_rgba(0.0, 1.0, 0.0, 1.0),
+                    color: Color::linear_rgba(0.0, 1.0, 0.0, 0.75),
                     rect: Some(Rect::new(-half_arrow_size_y.x, -half_arrow_size_y.y, half_arrow_size_y.x, half_arrow_size_y.y)),
                     ..Default::default()
                 },
                 Meta::<Sprite>::default(),
-                Transform::from_translation(Vec3::new(0.0, 0.0, z)),
+                Transform::from_translation(Vec3::new(0.0, half_arrow_size_y.x + half_arrow_size_y.y, z)),
                 GizmoArrow { axis: Axis2D::Y },
             ));
         });
@@ -86,6 +86,8 @@ pub(super) fn move_selected_with_gizmo(
     mut transforms: Query<&mut Transform>,
     gizmo_parts: Query<(&GizmoArrow, &GlobalTransform)>,
     debug_suite_ui_state: Res<PrimaryWindowUiState>,
+    fixed_time: Res<Time<Fixed>>,
+    zoom_factor: Res<ZoomFactor>,
 ) {
     let selected = &debug_suite_ui_state.selected_entities;
 
@@ -100,11 +102,11 @@ pub(super) fn move_selected_with_gizmo(
                 Axis2D::Y => Vec3::Y,
             };
 
-            let delta = axis * event.delta.dot(axis.truncate().normalize_or_zero());
+            let delta = axis * event.delta.dot(axis.truncate().normalize_or_zero()) * fixed_time.delta_secs() * CONFIG().get::<f32>("debug/gizmo/drag_speed") * zoom_factor.0;
 
             for entity in selected.iter() {
                 if let Ok(mut transform) = transforms.get_mut(entity) {
-                    transform.translation += delta;
+                    transform.translation += Vec3::new(delta.x, -delta.y, delta.z);
                 }
             }
         }

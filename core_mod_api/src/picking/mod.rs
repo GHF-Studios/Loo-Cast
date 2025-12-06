@@ -18,8 +18,7 @@ impl Plugin for PickingPlugin {
             .add_systems(
                 PreUpdate,
                 (
-                    sprite_picking_backend::<Diegetic>,
-                    sprite_picking_backend::<Meta>,
+                    sprite_picking_backend,
                     // log_hits::<Diegetic>,
                     // log_hits::<Meta>,
                 )
