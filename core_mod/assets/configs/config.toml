@@ -23,7 +23,7 @@ spawn_debug_objects = false
 arrow_length = 128.0
 arrow_thickness = 12.0
 z = 20.0
-drag_speed = 24.0
+drag_speed = 64.0
 
 [entity]
 reservation_buffer_size = 8

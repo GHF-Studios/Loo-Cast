@@ -22,7 +22,7 @@ pub(super) fn setup(mut commands: Commands) {
         .with_children(|parent| {
             parent.spawn((
                 Sprite {
-                    color: Color::linear_rgba(1.0, 0.0, 0.0, 0.75),
+                    color: Color::linear_rgba(1.0, 0.0, 0.0, 0.9),
                     rect: Some(Rect::new(-half_arrow_size_x.x, -half_arrow_size_x.y, half_arrow_size_x.x, half_arrow_size_x.y)),
                     ..Default::default()
                 },
@@ -33,7 +33,7 @@ pub(super) fn setup(mut commands: Commands) {
 
             parent.spawn((
                 Sprite {
-                    color: Color::linear_rgba(0.0, 1.0, 0.0, 0.75),
+                    color: Color::linear_rgba(0.0, 1.0, 0.0, 0.9),
                     rect: Some(Rect::new(-half_arrow_size_y.x, -half_arrow_size_y.y, half_arrow_size_y.x, half_arrow_size_y.y)),
                     ..Default::default()
                 },
