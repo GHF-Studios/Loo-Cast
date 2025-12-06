@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::core::components::Meta;
+use crate::picking::constants::META_MOUSE_POINTER_ID;
 use crate::render::resources::PrimaryWindowUiState;
 
 use super::components::{GizmoArrow, GizmoRoot};
@@ -39,7 +40,7 @@ pub(super) fn setup(mut commands: Commands) {
 }
 
 pub(super) fn update_gizmo_visibility_and_position(
-    mut gizmo_root: Query<(&mut Transform, &mut Visibility), With<Children>>,
+    mut gizmo_root: Query<(&mut Transform, &mut Visibility), With<GizmoRoot>>,
     transforms: Query<&GlobalTransform>,
     debug_suite_ui_state: Res<PrimaryWindowUiState>,
 ) {
@@ -81,6 +82,10 @@ pub(super) fn move_selected_with_gizmo(
     let selected = &debug_suite_ui_state.selected_entities;
 
     for event in drag_events.read() {
+        if event.pointer_id != META_MOUSE_POINTER_ID {
+            continue;
+        }
+
         if let Ok((gizmo_arrow, _)) = gizmo_parts.get(event.target) {
             let axis = match gizmo_arrow.axis {
                 Axis2D::X => Vec3::X,

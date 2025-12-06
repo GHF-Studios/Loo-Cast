@@ -10,6 +10,7 @@ use bevy::window::{PrimaryWindow, WindowEvent, WindowRef};
 
 use crate::core::components::Meta;
 use crate::chunk::components::Chunk;
+use crate::core::types::OntologicalContext;
 use crate::player::components::Player;
 use crate::reflect::functions::get_struct_field_mut;
 use crate::render::components::RenderProxy;
@@ -20,13 +21,26 @@ use crate::render::{
 
 use crate::usf::pos::grid::types::GridVec;
 
-use super::constants::{MOUSE_POINTER_ID, NO_HIT_SENTINEL};
+use super::constants::{DIEGETIC_MOUSE_POINTER_ID, META_MOUSE_POINTER_ID, NO_HIT_SENTINEL};
 use super::resources::{SpritePickingMode, SpritePickingSettings};
 
 // TODO: Impl properly
-pub(super) fn spawn_mouse_pointer(mut commands: Commands, game_view_render_target: Res<GameViewRenderTarget>) {
+pub(super) fn spawn_mouse_pointers(mut commands: Commands, game_view_render_target: Res<GameViewRenderTarget>) {
     commands.spawn((
-        MOUSE_POINTER_ID,
+        DIEGETIC_MOUSE_POINTER_ID,
+        PointerLocation::new(Location {
+            target: bevy::render::camera::NormalizedRenderTarget::Image(ImageRenderTarget {
+                handle: game_view_render_target.handle.clone(),
+                scale_factor: FloatOrd(1.0),
+            }),
+            // TODO: Actually compute this
+            position: Vec2::ZERO,
+        }),
+        PointerPress::default(),
+    ));
+
+    commands.spawn((
+        META_MOUSE_POINTER_ID,
         PointerLocation::new(Location {
             target: bevy::render::camera::NormalizedRenderTarget::Image(ImageRenderTarget {
                 handle: game_view_render_target.handle.clone(),
@@ -39,8 +53,6 @@ pub(super) fn spawn_mouse_pointer(mut commands: Commands, game_view_render_targe
     ));
 }
 
-/// Sends mouse pointer events to *`hopefully`* be processed by the core plugin
-/// This silently early-returns if any other non-primary windows (or not window at all) are detected
 #[tracing::instrument(skip_all)]
 pub(super) fn mouse_pick_events(
     mut window_events: EventReader<WindowEvent>,
@@ -88,7 +100,8 @@ pub(super) fn mouse_pick_events(
                 let action = PointerAction::Move {
                     delta: event.position - *cursor_last,
                 };
-                pointer_events.push(PointerInput::new(MOUSE_POINTER_ID, location, action));
+                pointer_events.push(PointerInput::new(DIEGETIC_MOUSE_POINTER_ID, location.clone(), action));
+                pointer_events.push(PointerInput::new(META_MOUSE_POINTER_ID, location, action));
                 *cursor_last = event.position;
             }
             WindowEvent::MouseButtonInput(input) => {
@@ -114,7 +127,8 @@ pub(super) fn mouse_pick_events(
                     ButtonState::Pressed => PointerAction::Press(button),
                     ButtonState::Released => PointerAction::Release(button),
                 };
-                pointer_events.push(PointerInput::new(MOUSE_POINTER_ID, location, action));
+                pointer_events.push(PointerInput::new(DIEGETIC_MOUSE_POINTER_ID, location.clone(), action));
+                pointer_events.push(PointerInput::new(META_MOUSE_POINTER_ID, location, action));
             }
             WindowEvent::MouseWheel(event) => {
                 let MouseWheel { unit, x, y, window: _ } = *event;
@@ -131,7 +145,8 @@ pub(super) fn mouse_pick_events(
                     position: *cursor_last,
                 };
                 let action = PointerAction::Scroll { x, y, unit };
-                pointer_events.push(PointerInput::new(MOUSE_POINTER_ID, location, action));
+                pointer_events.push(PointerInput::new(DIEGETIC_MOUSE_POINTER_ID, location.clone(), action));
+                pointer_events.push(PointerInput::new(META_MOUSE_POINTER_ID, location, action));
             }
             _ => {}
         }
@@ -143,6 +158,7 @@ pub(super) fn mouse_pick_events(
                 pointers.iter_mut().for_each(|(pointer_id, _, mut pointer)| {
                     if *pointer_id == event.pointer_id {
                         match button {
+                            // We utilize reflection here because the `PointerPress` struct was never meant to be directly mutable outside of Bevy Picking's internal systems (But I don't care hehe)
                             PointerButton::Primary => *get_struct_field_mut(&mut *pointer, "primary") = true,
                             PointerButton::Secondary => *get_struct_field_mut(&mut *pointer, "secondary") = true,
                             PointerButton::Middle => *get_struct_field_mut(&mut *pointer, "middle") = true,
@@ -154,6 +170,7 @@ pub(super) fn mouse_pick_events(
                 pointers.iter_mut().for_each(|(pointer_id, _, mut pointer)| {
                     if *pointer_id == event.pointer_id {
                         match button {
+                            // Same as above
                             PointerButton::Primary => *get_struct_field_mut(&mut *pointer, "primary") = false,
                             PointerButton::Secondary => *get_struct_field_mut(&mut *pointer, "secondary") = false,
                             PointerButton::Middle => *get_struct_field_mut(&mut *pointer, "middle") = false,
@@ -175,13 +192,12 @@ pub(super) fn mouse_pick_events(
     }
 }
 
-/// A picking backend that performs sprite picking only on "in-game" or "diegetic" sprites.
 #[tracing::instrument(skip_all)]
-pub(super) fn diegetic_sprite_picking_backend(
+pub(super) fn sprite_picking_backend<OC: OntologicalContext>(
     pointers: Query<(&PointerId, &PointerLocation)>,
     main_camera_query: Query<(Entity, &Camera, &GlobalTransform, &Projection), With<MainCamera>>,
     primary_window: Query<(Entity, &Window), With<PrimaryWindow>>,
-    sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), Without<Meta<Sprite>>>,
+    sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), OC::SpriteOntologyFilter>,
     images: Res<Assets<Image>>,
     texture_atlas_layout: Res<Assets<TextureAtlasLayout>>,
     settings: Res<SpritePickingSettings>,
@@ -189,7 +205,7 @@ pub(super) fn diegetic_sprite_picking_backend(
     primary_window_ui_state: Res<PrimaryWindowUiState>,
     mut output: EventWriter<PointerHits>,
 ) {
-    let (pointer_id, location) = match pointers.iter().find(|(p_id, _)| **p_id == MOUSE_POINTER_ID) {
+    let (pointer_id, location) = match pointers.iter().find(|(p_id, _)| **p_id == OC::pointer_id()) {
         Some((pointer, pointer_location)) => match pointer_location.location().map(|loc| (pointer, loc)) {
             Some(v) => v,
             None => {

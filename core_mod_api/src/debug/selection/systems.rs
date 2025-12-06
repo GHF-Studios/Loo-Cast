@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::core::components::Meta;
-use crate::picking::constants::NO_HIT_SENTINEL;
+use crate::picking::constants::{DIEGETIC_MOUSE_POINTER_ID, NO_HIT_SENTINEL};
 use crate::render::resources::PrimaryWindowUiState;
 
 #[tracing::instrument(skip_all)]
@@ -13,15 +13,11 @@ pub(super) fn handle_selection(
 ) {
     let selected = &mut debug_suite_ui_state.selected_entities;
 
-    if !events.is_empty() {
-        // warn!("Handling {} pointer click events (this should be 1) when clicking once", events.len());
-    }
-
-    if events.len() > 1 {
-        warn!("Multiple pointer click events detected in a single frame; this may indicate an issue with input handling.\nEvents: '{:?}'", events.read().collect::<Vec<_>>());
-    }
-
     for event in events.read() {
+        if event.pointer_id != DIEGETIC_MOUSE_POINTER_ID {
+            continue;
+        }
+
         if event.target == NO_HIT_SENTINEL {
             warn!("Clicked on empty space; clearing selection.");
             selected.clear();
