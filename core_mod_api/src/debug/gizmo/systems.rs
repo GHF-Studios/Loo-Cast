@@ -1,16 +1,21 @@
 use bevy::prelude::*;
 
+use crate::config::statics::CONFIG;
 use crate::core::components::Meta;
 use crate::picking::constants::META_MOUSE_POINTER_ID;
-use crate::render::resources::PrimaryWindowUiState;
+use crate::render::resources::{PrimaryWindowUiState, ZoomFactor};
 
 use super::components::{GizmoArrow, GizmoRoot};
 use super::types::Axis2D;
 
 pub(super) fn setup(mut commands: Commands) {
+    let arrow_length = CONFIG().get::<f32>("debug/gizmo/arrow_length");
+    let arrow_thickness = CONFIG().get::<f32>("debug/gizmo/arrow_thickness");
+    let z = CONFIG().get::<f32>("debug/gizmo/z");
+
     // Gizmo Arrows – one entity, hidden until needed
-    let half_arrow_size_x = Vec2::new(5.0, 100.0) / 2.0;
-    let half_arrow_size_y = Vec2::new(100.0, 5.0) / 2.0;
+    let half_arrow_size_x = Vec2::new(arrow_thickness, arrow_length) / 2.0;
+    let half_arrow_size_y = Vec2::new(arrow_length, arrow_thickness) / 2.0;
 
     commands
         .spawn((Transform::default(), Visibility::Hidden, Name::new("Gizmo Root"), GizmoRoot))
@@ -22,7 +27,7 @@ pub(super) fn setup(mut commands: Commands) {
                     ..Default::default()
                 },
                 Meta::<Sprite>::default(),
-                Transform::from_translation(Vec3::new(25.0, 0.0, 10.0)),
+                Transform::from_translation(Vec3::new(0.0, 0.0, z)),
                 GizmoArrow { axis: Axis2D::X },
             ));
 
@@ -33,7 +38,7 @@ pub(super) fn setup(mut commands: Commands) {
                     ..Default::default()
                 },
                 Meta::<Sprite>::default(),
-                Transform::from_translation(Vec3::new(0.0, 25.0, 10.0)),
+                Transform::from_translation(Vec3::new(0.0, 0.0, z)),
                 GizmoArrow { axis: Axis2D::Y },
             ));
         });
@@ -43,6 +48,7 @@ pub(super) fn update_gizmo_visibility_and_position(
     mut gizmo_root: Query<(&mut Transform, &mut Visibility), With<GizmoRoot>>,
     transforms: Query<&GlobalTransform>,
     debug_suite_ui_state: Res<PrimaryWindowUiState>,
+    zoom_factor: Res<ZoomFactor>,
 ) {
     let Ok((mut gizmo_transform, mut vis)) = gizmo_root.single_mut() else {
         return;
@@ -71,6 +77,8 @@ pub(super) fn update_gizmo_visibility_and_position(
         avg /= count as f32;
         gizmo_transform.translation = avg;
     }
+
+    gizmo_transform.scale = Vec2::splat(zoom_factor.0).extend(1.0);
 }
 
 pub(super) fn move_selected_with_gizmo(

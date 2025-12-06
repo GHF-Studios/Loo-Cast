@@ -117,8 +117,8 @@ pub(super) fn update_player_system(
 
             let _transformation_span = trace_span!("transformation").entered();
             if let Ok((mut transform, _chunk_loader)) = chunk_loader_query.get_mut(entity) {
-                // transform.scale = Vec2::splat(zoom_factor.0).extend(1.0);
-                transform.scale = Vec3::ONE;
+                transform.scale = Vec2::splat(zoom_factor.0).extend(1.0);
+                // transform.scale = Vec3::ONE;
 
                 let mut direction = Vec3::ZERO;
 

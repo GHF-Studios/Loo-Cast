@@ -20,8 +20,8 @@ impl Plugin for PickingPlugin {
                 (
                     sprite_picking_backend::<Diegetic>,
                     sprite_picking_backend::<Meta>,
-                    log_hits::<Diegetic>,
-                    log_hits::<Meta>,
+                    // log_hits::<Diegetic>,
+                    // log_hits::<Meta>,
                 )
                     .chain()
                     .in_set(PickSet::Backend),
@@ -31,18 +31,12 @@ impl Plugin for PickingPlugin {
     }
 }
 
-// fn log_hits(mut hits: EventReader<PointerHits>) {
-// if !hits.is_empty()  {
-// warn!("🧩 PointerHits seen by BevyPicking: {:?}", hits.read().collect::<Vec<_>>());
+// fn log_hits<OC: crate::core::types::OntologicalContext>(mut hits: EventReader<PointerHits>) {
+//     for hit_event in hits.read() {
+//         if hit_event.pointer != OC::pointer_id() {
+//             continue;
+//         }
+// 
+//         warn!("🧩 {} PointerHits seen by BevyPicking: {:?}", OC::name(), hit_event);
+//     }
 // }
-// }
-
-fn log_hits<OC: crate::core::types::OntologicalContext>(mut hits: EventReader<PointerHits>) {
-    for hit_event in hits.read() {
-        if hit_event.pointer != OC::pointer_id() {
-            continue;
-        }
-
-        tracing::debug!("🧩 PointerHits seen by BevyPicking ({:?}): {:?}", OC::name(), hit_event);
-    }
-}

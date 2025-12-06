@@ -27,7 +27,7 @@ impl Default for PlayerBundle {
             chunk_loader_init_hook: InitHook::<ChunkLoader>::default(),
             player: Default::default(),
             sprite: Sprite {
-                color: Color::srgb(0.0, 1.0, 0.0),
+                color: Color::srgb(0.0, 0.77, 0.33),
                 rect: Some(Rect::new(-half_player_size, -half_player_size, half_player_size, half_player_size)),
                 ..Default::default()
             },
