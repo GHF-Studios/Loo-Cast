@@ -4,7 +4,7 @@ use bevy::window::PrimaryWindow;
 use iyes_perf_ui::{entry::PerfUiEntry, ui::root::PerfUiRoot, utils::next_sort_key};
 
 use crate::render::components::MainCamera;
-use crate::render::resources::{GameViewRenderTarget, PrimaryWindowUiState};
+use crate::render::resources::PrimaryWindowUiState;
 
 #[derive(Bundle, Default, Reflect)]
 pub struct PerfUiCursorPosEntries {
@@ -77,7 +77,6 @@ impl PerfUiEntry for PerfUiEntryCursorWindowPos {
     type SystemParam = (
         Local<'static, Option<Vec2>>,
         Query<'static, 'static, &'static Window, With<PrimaryWindow>>,
-        Res<'static, GameViewRenderTarget>,
         Res<'static, PrimaryWindowUiState>,
     );
     type Value = Vec2;
@@ -91,14 +90,12 @@ impl PerfUiEntry for PerfUiEntryCursorWindowPos {
     }
 
     fn update_value(&self, sys_params: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>) -> Option<Self::Value> {
-        let (ref mut previous_position, ref window_query, ref game_view_render_target, ref primary_window_ui_state) = sys_params;
+        let (ref mut previous_position, ref window_query, ref primary_window_ui_state) = sys_params;
 
         let window = window_query.single().ok()?;
 
         let window_size = window.physical_size();
         let window_size_vec2 = Vec2::new(window_size.x as f32, window_size.y as f32);
-        let viewport_size = game_view_render_target.size;
-        let viewport_size_vec2 = Vec2::new(viewport_size.x as f32, viewport_size.y as f32);
 
         **previous_position = if let Some(current_position) = window.cursor_position() {
             let viewport_rect = primary_window_ui_state.viewport_rect_precision_proxy?;
@@ -152,7 +149,6 @@ impl PerfUiEntry for PerfUiEntryCursorPointerPos {
         Local<'static, Option<Vec2>>,
         EventReader<'static, 'static, Pointer<Move>>,
         Query<'static, 'static, &'static Window, With<PrimaryWindow>>,
-        Res<'static, GameViewRenderTarget>,
         Res<'static, PrimaryWindowUiState>,
     );
     type Value = Vec2;
@@ -166,14 +162,12 @@ impl PerfUiEntry for PerfUiEntryCursorPointerPos {
     }
 
     fn update_value(&self, sys_params: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>) -> Option<Self::Value> {
-        let (ref mut previous_position, ref mut pointer_move_events, ref window_query, ref game_view_render_target, ref primary_window_ui_state) = sys_params;
+        let (ref mut previous_position, ref mut pointer_move_events, ref window_query, ref primary_window_ui_state) = sys_params;
 
         let window = window_query.single().ok()?;
 
         let window_size = window.physical_size();
         let window_size_vec2 = Vec2::new(window_size.x as f32, window_size.y as f32);
-        let viewport_size = game_view_render_target.size;
-        let viewport_size_vec2 = Vec2::new(viewport_size.x as f32, viewport_size.y as f32);
 
         **previous_position = if let Some(event) = pointer_move_events.read().last() {
             let current_position = event.pointer_location.position;
@@ -228,7 +222,6 @@ impl PerfUiEntry for PerfUiEntryCursorUnitPos {
         Local<'static, Option<Vec2>>,
         Query<'static, 'static, (&'static Camera, &'static GlobalTransform), With<MainCamera>>,
         Query<'static, 'static, &'static Window, With<PrimaryWindow>>,
-        Res<'static, GameViewRenderTarget>,
         Res<'static, PrimaryWindowUiState>,
     );
     type Value = Vec2;
@@ -242,15 +235,13 @@ impl PerfUiEntry for PerfUiEntryCursorUnitPos {
     }
 
     fn update_value(&self, sys_params: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>) -> Option<Self::Value> {
-        let (ref mut previous_position, ref camera_query, ref window_query, ref game_view_render_target, ref primary_window_ui_state) = sys_params;
+        let (ref mut previous_position, ref camera_query, ref window_query, ref primary_window_ui_state) = sys_params;
 
         let (camera, camera_transform) = camera_query.single().ok()?;
         let window = window_query.single().ok()?;
 
         let window_size = window.physical_size();
         let window_size_vec2 = Vec2::new(window_size.x as f32, window_size.y as f32);
-        let viewport_size = game_view_render_target.size;
-        let viewport_size_vec2 = Vec2::new(viewport_size.x as f32, viewport_size.y as f32);
 
         **previous_position = if let Some(current_position) = window.cursor_position() {
             let viewport_rect = primary_window_ui_state.viewport_rect_precision_proxy?;

@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
-use crate::config::statics::CONFIG;
 use crate::workflow::functions::handle_composite_workflow_return_later;
 
 #[tracing::instrument(skip_all)]
@@ -43,10 +42,6 @@ pub(super) fn startup_system() {
                 shader_path: example_world_texture_generator_shader_path,
             }
         );
-
-        if CONFIG().get::<bool>("debug/spawn_debug_objects") {
-            workflow!(Debug::SpawnDebugObjects);
-        }
 
         workflow!(Core::FinishStartup);
     });

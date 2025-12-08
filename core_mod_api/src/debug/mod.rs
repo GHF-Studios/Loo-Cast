@@ -5,8 +5,6 @@ pub mod selection;
 pub mod systems;
 pub mod types;
 
-pub mod workflows;
-
 use bevy::prelude::*;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use components::DebugObjectComponent;

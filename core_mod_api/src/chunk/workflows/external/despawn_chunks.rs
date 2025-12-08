@@ -9,6 +9,11 @@ use crate::workflow::types::Outcome;
 pub struct DespawnChunkInput {
     pub grid_coord: GridVec,
 }
+impl DespawnChunkInput {
+    pub fn new(grid_coord: GridVec) -> Self {
+        Self { grid_coord }
+    }
+}
 #[derive(Clone)]
 pub struct DespawnChunkState {
     pub entity: Entity,
@@ -52,8 +57,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         let grid_coord = input.grid_coord;
 
         if let Some((entity, _)) = chunk_query.iter().find(|(_, chunk)| chunk.coord == grid_coord) {
-            chunk_manager.loaded_chunks.remove(&grid_coord);
-            chunk_manager.owned_chunks.remove(&grid_coord);
+            chunk_manager.chunks.remove(&grid_coord);
 
             let mut chunk_entity_commands = commands.entity(entity);
             despawn_chunk_states.push(DespawnChunkState {

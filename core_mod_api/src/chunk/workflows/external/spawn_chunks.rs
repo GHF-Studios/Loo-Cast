@@ -1,8 +1,7 @@
 // Imports
 use bevy::prelude::*;
 
-use crate::chunk::{components::Chunk, resources::ChunkManager};
-use crate::chunk_loader::{components::ChunkLoader, types::ChunkLoaderId};
+use crate::chunk::{components::{Chunk, ChunkLoader}, resources::ChunkManager};
 use crate::config::statics::CONFIG;
 use crate::render::{
     components::{MainCamera, RenderProxyHandle},
@@ -14,7 +13,6 @@ use crate::workflow::types::Outcome;
 // Items
 pub struct SpawnChunkInput {
     pub grid_coord: GridVec,
-    pub chunk_owner_id: ChunkLoaderId,
     pub metric_texture: Handle<Image>,
 }
 
@@ -66,7 +64,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         let grid_coord = input.grid_coord;
         let logical_world_coord = grid_coord.clone().to_native_logical(chunk_loader.origin_offset.clone());
         let (visual_world_coord, visual_world_scale) = grid_coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
-        let chunk_owner_id = input.chunk_owner_id;
         let metric_texture = input.metric_texture.clone();
 
         if chunk_query.iter().any(|chunk| chunk.coord == grid_coord) {
@@ -104,7 +101,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             chunk_transform,
             Chunk {
                 coord: grid_coord.clone(),
-                owner_id: Some(chunk_owner_id.clone()),
             },
             RenderProxyHandle {
                 proxy_entity: chunk_render_proxy_entity,
@@ -112,8 +108,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             chunk_name,
         ));
 
-        chunk_manager.loaded_chunks.insert(grid_coord.clone());
-        chunk_manager.owned_chunks.insert(grid_coord, chunk_owner_id.clone());
+        chunk_manager.chunks.insert(grid_coord.clone());
 
         spawn_chunk_states.push(SpawnChunkState {
             chunk_entity,

@@ -7,8 +7,6 @@ use bevy::prelude::*;
 use resources::{SpritePickingMode, SpritePickingSettings};
 use systems::{sprite_picking_backend, mouse_pick_events, spawn_mouse_pointers};
 
-use crate::core::types::{Diegetic, Meta};
-
 pub(crate) struct PickingPlugin;
 impl Plugin for PickingPlugin {
     fn build(&self, app: &mut App) {
@@ -19,8 +17,8 @@ impl Plugin for PickingPlugin {
                 PreUpdate,
                 (
                     sprite_picking_backend,
-                    // log_hits::<Diegetic>,
-                    // log_hits::<Meta>,
+                    // log_hits::<crate::core::types::Diegetic>,
+                    // log_hits::<crate::core::types::Meta>,
                 )
                     .chain()
                     .in_set(PickSet::Backend),

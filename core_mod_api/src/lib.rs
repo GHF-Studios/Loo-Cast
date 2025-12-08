@@ -64,12 +64,9 @@ pub use uuid;
 
 // Modules
 pub mod chunk;
-pub mod chunk_actor;
-pub mod chunk_loader;
 pub mod config;
 pub mod core;
 pub mod debug;
-pub mod entity;
 pub mod follower;
 pub mod gpu;
 pub mod input;
@@ -88,12 +85,9 @@ use bevy::{app::PluginGroupBuilder, prelude::*};
 use core_mod_macros::register_workflow_mods;
 
 use chunk::ChunkPlugin;
-use chunk_actor::ChunkActorPlugin;
-use chunk_loader::ChunkLoaderPlugin;
 use config::ConfigPlugin;
 use core::CorePlugin;
 use debug::DebugPlugin;
-use entity::EntityPlugin;
 use follower::FollowerPlugin;
 use gpu::GpuPlugin;
 use input::InputPlugin;
@@ -114,11 +108,8 @@ impl PluginGroup for CoreApiPluginGroup {
             .add_group(WorkflowPlugins)
             .add(CorePlugin)
             .add(ChunkPlugin)
-            .add(ChunkActorPlugin)
-            .add(ChunkLoaderPlugin)
             .add(ConfigPlugin)
             .add(DebugPlugin)
-            .add(EntityPlugin)
             .add(FollowerPlugin)
             .add(GpuPlugin)
             .add(InputPlugin)
@@ -142,35 +133,10 @@ register_workflow_mods!(
         DespawnChunks {
             FindAndDespawnAndWait: EcsWhile,
         },
-        TransferChunkOwnerships {
-            FindAndTransferOwnership: Ecs,
-        }
-    },
-    ChunkLoader {
-        CategorizeChunks {
-            Categorize: Ecs,
-        },
-        OnRemoveChunkLoader {
-            ExtractUnloadChunkInputs: Ecs
-        },
-        OnRemovedChunkLoader {
-            SendRemovedChunkLoaderEvent: Ecs
-        },
-        LoadChunks {
-            ValidateAndLoadAndWait: EcsWhile,
-        },
-        UnloadChunks {
-            UnloadAndWait: EcsWhile,
-        },
     },
     Core {
         FinishStartup {
             InsertResource: Ecs,
-        },
-    },
-    Debug {
-        SpawnDebugObjects {
-            Spawn: Ecs,
         },
     },
     Gpu {
@@ -191,14 +157,6 @@ register_workflow_mods!(
             DispatchChunkTextures: Render,
             WaitForTexturesReady: EcsWhile,
             ReadbackTextureData: Ecs,
-        }
-    },
-    Player {
-        SpawnPlayer {
-            ValidateAndSpawnAndWait: EcsWhile,
-        },
-        DespawnPlayer {
-            ValidateAndDespawnAndWait: EcsWhile,
         }
     },
     Render {

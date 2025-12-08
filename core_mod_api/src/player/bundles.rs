@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
-use crate::usf::scale::Scale;
-use crate::{chunk_actor::components::ChunkActor, chunk_loader::components::ChunkLoader, config::statics::CONFIG, utils::lifecycle_hook::InitHook};
+use crate::follower::components::FollowerTarget;
+use crate::{chunk::components::{ChunkActor, ChunkLoader}, config::statics::CONFIG};
 
 use super::components::Player;
 
@@ -9,12 +9,12 @@ use super::components::Player;
 pub struct PlayerBundle {
     pub chunk_actor: ChunkActor,
     pub chunk_loader: ChunkLoader,
-    pub chunk_loader_init_hook: InitHook<ChunkLoader>,
     pub player: Player,
     pub sprite: Sprite,
     pub transform: Transform,
     pub name: Name,
     pub pickable: Pickable,
+    pub follower_target: FollowerTarget,
 }
 impl Default for PlayerBundle {
     fn default() -> Self {
@@ -23,8 +23,7 @@ impl Default for PlayerBundle {
 
         PlayerBundle {
             chunk_actor: Default::default(),
-            chunk_loader: ChunkLoader::new("player_entity_chunk_loader".to_string(), Scale::default()),
-            chunk_loader_init_hook: InitHook::<ChunkLoader>::default(),
+            chunk_loader: ChunkLoader::default(),
             player: Default::default(),
             sprite: Sprite {
                 color: Color::srgb(0.0, 0.77, 0.33),
@@ -37,6 +36,9 @@ impl Default for PlayerBundle {
             },
             name: Name::new("player"),
             pickable: Pickable::default(),
+            follower_target: FollowerTarget {
+                id: "main_camera".to_string(),
+            },
         }
     }
 }

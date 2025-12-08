@@ -55,37 +55,3 @@ impl std::fmt::Display for DespawnError {
     }
 }
 impl std::error::Error for DespawnError {}
-
-#[derive(Debug, Reflect)]
-pub enum TransferOwnershipError {
-    AlreadyDespawned { grid_coord: GridVec },
-    AlreadyTransferedOwnership { grid_coord: GridVec },
-    AlreadyBeingDespawned { grid_coord: GridVec },
-    AlreadyBeingSpawned { grid_coord: GridVec },
-    NotTransferingOwnership { grid_coord: GridVec },
-}
-impl std::fmt::Display for TransferOwnershipError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TransferOwnershipError::AlreadyDespawned { grid_coord } => {
-                write!(f, "Cannot transfer ownership of chunk {:?}: it is already despawned", grid_coord)
-            }
-            TransferOwnershipError::AlreadyTransferedOwnership { grid_coord } => {
-                write!(f, "Cannot transfer ownership of chunk {:?}: it's ownership is already transfered", grid_coord)
-            }
-            TransferOwnershipError::AlreadyBeingSpawned { grid_coord } => {
-                write!(f, "Cannot transfer ownership of chunk {:?}: it is already being spawned", grid_coord)
-            }
-            TransferOwnershipError::AlreadyBeingDespawned { grid_coord } => {
-                write!(f, "Cannot transfer ownership of chunk {:?}: it is already being despawned", grid_coord)
-            }
-            TransferOwnershipError::NotTransferingOwnership { grid_coord } => {
-                write!(
-                    f,
-                    "Cannot transfer ownership of chunk {:?}: it's ownership is not marked as being transfered",
-                    grid_coord
-                )
-            }
-        }
-    }
-}

@@ -17,7 +17,7 @@ define_workflow_mod_OLD! {
                 use bevy::window::WindowRef;
                 use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
 
-                use crate::chunk_actor::components::ChunkActor;
+                use crate::chunk::components::ChunkActor;
                 use crate::config::statics::CONFIG;
                 use crate::follower::components::{Follower, FollowerTarget};
                 use crate::render::{

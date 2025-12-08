@@ -1,4 +1,3 @@
-pub mod lifecycle_hook;
 pub mod premium_box;
 pub mod progress;
 

@@ -2,8 +2,7 @@ use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 
-use crate::chunk_actor::components::ChunkActor;
-use crate::chunk_loader::components::ChunkLoader;
+use crate::chunk::components::{ChunkActor, ChunkLoader};
 use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
 use crate::render::{

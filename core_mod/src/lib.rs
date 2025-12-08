@@ -8,7 +8,6 @@ api_initializer!(
     crate::core_mod_api::config::statics::CONFIG,
     crate::core_mod_api::core::statics::TOKIO_RUNTIME,
     crate::core_mod_api::core::statics::START_TIME,
-    crate::core_mod_api::entity::statics::ENTITY_RESERVATION_BUFFER,
     crate::core_mod_api::logging::statics::LOG_ID_COUNTER,
     crate::core_mod_api::logging::statics::SPAN_EVENT_BUFFER,
     crate::core_mod_api::logging::statics::LOG_EVENT_BUFFER,

@@ -6,19 +6,14 @@ use bevy::picking::backend::prelude::*;
 use bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerId, PointerInput, PointerLocation, PointerPress};
 use bevy::prelude::*;
 use bevy::render::camera::{ImageRenderTarget, RenderTarget};
-use bevy::window::{PrimaryWindow, WindowEvent, WindowRef};
+use bevy::window::{PrimaryWindow, WindowEvent};
 
-use crate::chunk::components::Chunk;
 use crate::core::types::{Diegetic, Meta, OntologicalContext};
-use crate::player::components::Player;
 use crate::reflect::functions::get_struct_field_mut;
-use crate::render::components::RenderProxy;
 use crate::render::{
     components::MainCamera,
     resources::{GameViewRenderTarget, PrimaryWindowUiState},
 };
-
-use crate::usf::pos::grid::types::GridVec;
 
 use super::constants::{DIEGETIC_MOUSE_POINTER_ID, META_MOUSE_POINTER_ID, NO_HIT_SENTINEL};
 use super::resources::{SpritePickingMode, SpritePickingSettings};
@@ -195,7 +190,6 @@ pub(super) fn mouse_pick_events(
 pub(super) fn sprite_picking_backend(
     pointers: Query<(&PointerId, &PointerLocation)>,
     main_camera_query: Query<(Entity, &Camera, &GlobalTransform, &Projection), With<MainCamera>>,
-    primary_window: Query<(Entity, &Window), With<PrimaryWindow>>,
     diegetic_sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), Without<crate::core::components::Meta<Sprite>>>,
     meta_sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), With<crate::core::components::Meta<Sprite>>>,
     images: Res<Assets<Image>>,
@@ -208,7 +202,6 @@ pub(super) fn sprite_picking_backend(
     let any_meta_hits = sprite_picking_backend_inner::<Meta>(
         &pointers,
         &main_camera_query,
-        &primary_window,
         &meta_sprite_query,
         &images,
         &texture_atlas_layout,
@@ -225,7 +218,6 @@ pub(super) fn sprite_picking_backend(
     let _any_diegetic_hits = sprite_picking_backend_inner::<Diegetic>(
         &pointers,
         &main_camera_query,
-        &primary_window,
         &diegetic_sprite_query,
         &images,
         &texture_atlas_layout,
@@ -239,7 +231,6 @@ pub(super) fn sprite_picking_backend(
 fn sprite_picking_backend_inner<OC: OntologicalContext>(
     pointers: &Query<(&PointerId, &PointerLocation)>,
     main_camera_query: &Query<(Entity, &Camera, &GlobalTransform, &Projection), With<MainCamera>>,
-    primary_window: &Query<(Entity, &Window), With<PrimaryWindow>>,
     sprite_query: &Query<(Entity, &Sprite, &GlobalTransform, &ViewVisibility), OC::SpriteOntologyFilter>,
     images: &Res<Assets<Image>>,
     texture_atlas_layout: &Res<Assets<TextureAtlasLayout>>,
@@ -293,13 +284,7 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
     // radsort is a stable radix sort that performed better than `slice::sort_by_key` (according to bevy's source code)
     radsort::sort_by_key(&mut sorted_sprites, |(_, _, transform)| -transform.translation().z);
 
-    let Ok((primary_window_entity, primary_window)) = primary_window.single() else {
-        warn!("Primary window not found");
-        return false;
-    };
     let mut blocked = false;
-    let window_size = primary_window.physical_size();
-    let window_size_vec2 = Vec2::new(window_size.x as f32, window_size.y as f32);
     let viewport_size = game_view_render_target.size;
     let viewport_size_vec2 = Vec2::new(viewport_size.x as f32, viewport_size.y as f32);
     let current_window_position = location.position;
@@ -402,7 +387,7 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
             //     cursor_pos_sprite
             // );
 
-            let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(cursor_pos_sprite_pixel, &images, &texture_atlas_layout) else {
+            let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(cursor_pos_sprite_pixel, images, texture_atlas_layout) else {
                 // warn!("Cursor position '{}' outside sprite bounds", cursor_pos_sprite_pixel);
                 return None;
             };
@@ -472,7 +457,7 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
         let order = main_camera.order as f32;
         output.write(PointerHits::new(*pointer_id, picks, order));
 
-        return true;
+        true
     } else {
         picks.push((
             NO_HIT_SENTINEL,
@@ -482,6 +467,6 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
         let order = main_camera.order as f32;
         output.write(PointerHits::new(*pointer_id, picks, order));
 
-        return false;
+        false
     }
 }

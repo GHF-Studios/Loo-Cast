@@ -3,15 +3,12 @@ use bevy::prelude::{IVec2, Reflect, Vec2, Vec3};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::{DynScale, Scale};
 
+#[derive(Default)]
 pub struct UnitVecBuilder {
     chain: Vec<IVec2>,
 }
 
 impl UnitVecBuilder {
-    pub fn new() -> Self {
-        Self { chain: vec![] }
-    }
-
     pub fn push(mut self, next: (i32, i32)) -> Self {
         let next = IVec2::new(next.0, next.1);
         self.chain.push(next);
@@ -45,7 +42,7 @@ pub struct UnitVec {
 }
 impl UnitVec {
     pub fn build() -> UnitVecBuilder {
-        UnitVecBuilder::new()
+        UnitVecBuilder::default()
     }
 
     fn validate_unit_offset(unit_offset: &Vec3) {

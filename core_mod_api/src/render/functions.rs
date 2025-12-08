@@ -1,6 +1,6 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
-use egui::{emath::GuiRounding, Color32};
+use egui::Color32;
 use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
 

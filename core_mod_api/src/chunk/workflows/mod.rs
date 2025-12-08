@@ -140,50 +140,5 @@ define_workflow_mod_OLD! {
                 }
             ]
         }
-
-        TransferChunkOwnerships, timeout_secs: 1.0, timeout_mode: VirtualTime {
-            user_imports: {
-                use bevy::prelude::ResMut;
-
-                use crate::chunk::workflows::external::transfer_chunk_ownerships::{
-                    MainAccess as FindAndTransferOwnershipMainAccess,
-                    Input as FindAndTransferOwnershipInput,
-                    Output as FindAndTransferOwnershipOutput,
-                    Error as FindAndTransferOwnershipError,
-                    run_ecs as find_and_transfer_ownership_run_ecs,
-                };
-                use crate::usf::scale::*;
-                use crate::utils::progress::Progress;
-            },
-            user_items: {
-            },
-            stages: [
-                FindAndTransferOwnership: Ecs, run_if_paused: false, run_after_startup_finished: true {
-                    core_types: [
-                        struct MainAccess<'w, 's> {
-                            inner: FindAndTransferOwnershipMainAccess<'w, 's>,
-                        }
-                        struct Input {
-                            inner: FindAndTransferOwnershipInput,
-                        }
-                        struct Output {
-                            inner: FindAndTransferOwnershipOutput,
-                        }
-                        enum Error {
-                            Inner(FindAndTransferOwnershipError),
-                        }
-                    ],
-                    core_functions: [
-                        fn RunEcs |input, main_access| -> Result<Output, Error> {
-                            let output = find_and_transfer_ownership_run_ecs(input.inner, main_access.inner).map_err(Error::Inner)?;
-
-                            Ok(Output {
-                                inner: output,
-                            })
-                        }
-                    ]
-                }
-            ]
-        }
     ]
 }

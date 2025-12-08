@@ -1,8 +1,6 @@
 use bevy::prelude::*;
 
-use crate::chunk::components::Chunk;
-use crate::chunk_actor::components::ChunkActor;
-use crate::chunk_loader::components::ChunkLoader;
+use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
 use crate::config::statics::CONFIG;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
