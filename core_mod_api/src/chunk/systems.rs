@@ -165,6 +165,14 @@ pub(crate) fn chunk_management_system(
         return;
     }
 
+    if !spawn_chunk_inputs.is_empty() || !despawn_chunk_inputs.is_empty() {
+        warn!(
+            "Chunk Detection: To Load: {:?}, To Unload: {:?}",
+            spawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect::<Vec<_>>(),
+            despawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect::<Vec<_>>()
+        );
+    }
+
     // Step 2: Build & launch composite workflows
     let spawn_handle = if !spawn_chunk_inputs.is_empty() {
         let param_data = spawn_chunk_inputs
