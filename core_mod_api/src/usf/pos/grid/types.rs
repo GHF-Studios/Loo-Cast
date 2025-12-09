@@ -484,7 +484,7 @@ impl std::fmt::Debug for GridVec {
             }
         }
 
-        write!(f, "{msg}")
+        write!(f, "[{msg}]")
     }
 }
 impl PartialEq for GridVec {
