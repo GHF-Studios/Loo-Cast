@@ -6,6 +6,28 @@ use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 
 #[tracing::instrument(skip_all)]
+pub(crate) fn realign_origin_offset_system(
+    mut chunk_loader: Single<(&mut Transform, &mut ChunkLoader), Changed<Transform>>,
+) {
+    // Re-align origin_offset
+    let (ref mut transform, ref mut chunk_loader) = *chunk_loader;
+    let unit_pos = crate::usf::pos::unit::types::UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation.truncate()); // `UnitVec::new` internally normalizes the position based on the current origin_offset; does the heavy lifting for us
+    /*
+        The unitpos we now have, is constructed from the current origin offset, and the updated unit_offset,
+        but the resulting unit_pos is wrapped immediately, to a canonical representation, automatically,
+        but we want the grid_offset of this to be our new origin_offset, if, and only if the distance between unit_pos's grid_offset and the origin_offset is greater than ore equal to the origin_offset_threshold
+    */
+    let grid_diff = unit_pos.grid_offset.xy - chunk_loader.origin_offset.xy;
+    let threshold = CONFIG().get::<u8>("usf/pos/origin_offset_threshold") as i32;
+    
+    if grid_diff.x.abs() >= threshold || grid_diff.y.abs() >= threshold {
+        chunk_loader.origin_offset = unit_pos.grid_offset;
+    }
+    transform.translation = unit_pos.unit_offset;
+    transform.translation.z = CONFIG().get::<f32>("player/z");
+}
+
+#[tracing::instrument(skip_all)]
 pub(crate) fn apply_new_origin_offset_system(
     mut chunk_loader_query: Query<&ChunkLoader, (Changed<ChunkLoader>, Without<Chunk>, With<ChunkActor>)>,
     mut chunk_transform_query: Query<(&mut Chunk, &mut Transform), (Without<ChunkActor>, Without<ChunkLoader>)>,

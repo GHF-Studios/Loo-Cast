@@ -13,7 +13,7 @@ use components::{Chunk, ChunkActor, ChunkLoader};
 use enums::ZoomState;
 use errors::{DespawnError, SpawnError};
 use resources::{ChunkManager, ChunkRenderExecutorRegistry, ChunkRenderHandles};
-use systems::{zoom_cooldown_system, realign_origin_offset_system, chunk_startup_system, chunk_detection_system, chunk_management_system};
+use systems::{chunk_zoom_cooldown_system, chunk_startup_system, chunk_detection_system, chunk_management_system};
 
 use crate::{core::run_conditions::run_after_startup_finished, time::run_conditions::run_if_not_paused};
 
@@ -26,7 +26,7 @@ impl Plugin for ChunkPlugin {
             .add_systems(Startup, chunk_startup_system)
             .add_systems(
                 Update,
-                (zoom_cooldown_system, realign_origin_offset_system).run_if(run_after_startup_finished.and(run_if_not_paused)),
+                chunk_zoom_cooldown_system.run_if(run_after_startup_finished.and(run_if_not_paused)),
             )
             .add_systems(
                 PostUpdate,

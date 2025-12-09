@@ -29,7 +29,7 @@ pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<As
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn zoom_cooldown_system(time: Res<Time<Virtual>>, mut timer: Local<f32>, mut query: Query<&mut ChunkLoader>) {
+pub(crate) fn chunk_zoom_cooldown_system(time: Res<Time<Virtual>>, mut timer: Local<f32>, mut query: Query<&mut ChunkLoader>) {
     if *timer > 0.0 {
         *timer -= time.delta_secs();
         if *timer < 0.0 {
@@ -43,18 +43,6 @@ pub(crate) fn zoom_cooldown_system(time: Res<Time<Virtual>>, mut timer: Local<f3
             *timer = CONFIG().get::<f32>("chunk_loader/zoom_cooldown_secs");
         }
     }
-}
-
-#[tracing::instrument(skip_all)]
-pub(crate) fn realign_origin_offset_system(
-    mut chunk_loader: Single<(&mut Transform, &mut ChunkLoader), Changed<Transform>>,
-) {
-    // Re-align origin_offset
-    let (ref mut transform, ref mut chunk_loader) = *chunk_loader;
-    let unit_pos = crate::usf::pos::unit::types::UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation.truncate()); // `UnitVec::new` internally normalizes the position based on the current origin_offset; does the heavy lifting for us
-    chunk_loader.origin_offset = unit_pos.grid_offset;
-    transform.translation = unit_pos.unit_offset;
-    transform.translation.z = CONFIG().get::<f32>("player/z");
 }
 
 #[tracing::instrument(skip_all)]
