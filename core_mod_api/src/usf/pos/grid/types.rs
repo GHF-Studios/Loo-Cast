@@ -46,7 +46,7 @@ impl GridVecBuilder {
     }
 }
 
-#[derive(Default, Clone, PartialEq, Eq, Hash, Reflect)]
+#[derive(Default, Clone, Reflect)]
 pub struct GridVec {
     pub(crate) parent: Option<Arc<GridVec>>,
     pub(crate) scale: Scale,
@@ -272,6 +272,23 @@ impl GridVec {
         Some(stack)
     }
 
+    /// Converts a GridVec into a `Vec<IVec2>`
+    pub fn to_raw_vec(&self) -> Option<Vec<IVec2>> {
+        let mut stack = Vec::new();
+        let mut cursor = self;
+
+        loop {
+            stack.push(cursor.xy);
+            match &cursor.parent {
+                Some(parent) => cursor = parent,
+                None => break,
+            }
+        }
+
+        stack.reverse();
+        Some(stack)
+    }
+
     /// - Assumes that the given `scale` is greater than or equal to that of `self`.
     /// - Assumes that the parent of `grid_diff` is the same as `self`'s parent.
     #[track_caller]
@@ -366,7 +383,7 @@ impl GridVec {
     }
 
     // TODO: REFACTOR: PERF: This is much less performant than it could be;
-    //      it just abuses the fact that Add(and Sub) internally perform a wrap, by just doing +/- "zero", or rather a default that equates in a no-op.
+    //      it just abuses the fact that Add(and Sub) internally perform a wrap, by just doing +/- "zero", or rather a default that equates in a no-op, akin to the concept of "zero".
     //      In short: It's a fast, dirty, and lazy solution
     /// Recursively normalize the GridVec to ensure all coordinates are within valid ranges.
     #[track_caller]
@@ -376,6 +393,12 @@ impl GridVec {
         self.parent = normalized.parent;
         self.scale = normalized.scale;
         self.xy = normalized.xy;
+    }
+
+    #[track_caller]
+    pub fn normalized(&mut self) -> &mut Self {
+        self.normalize();
+        self
     }
 
     #[track_caller]
@@ -462,6 +485,17 @@ impl std::fmt::Debug for GridVec {
         }
 
         write!(f, "{msg}")
+    }
+}
+impl PartialEq for GridVec {
+    fn eq(&self, other: &Self) -> bool {
+        self.clone().normalized().to_raw_vec() == other.clone().normalized().to_raw_vec()
+    }
+}
+impl Eq for GridVec {}
+impl std::hash::Hash for GridVec {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.clone().normalized().to_raw_vec().hash(state);
     }
 }
 impl std::ops::Add<IVec2> for GridVec {
