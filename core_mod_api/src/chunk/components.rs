@@ -23,6 +23,7 @@ pub struct ChunkActor {
 pub struct ChunkLoader {
     pub(crate) scale: Scale,
     pub(crate) zoom_state: ZoomState,
+    pub(crate) coord: GridVec,
     pub(crate) origin_offset: GridVec,
 }
 impl ChunkLoader {

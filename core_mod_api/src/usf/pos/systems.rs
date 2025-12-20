@@ -6,6 +6,29 @@ use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 
 #[tracing::instrument(skip_all)]
+pub(crate) fn update_managed_positions(
+    mut chunk_loader: Single<(&Transform, &mut ChunkLoader, &mut ChunkActor)>,
+    mut chunk_actor_query: Query<(&Transform, &mut ChunkActor), (Changed<Transform>, Without<ChunkLoader>)>,
+) {
+    let (loader_transform, ref mut chunk_loader, ref mut chunk_actor) = *chunk_loader;
+
+    let origin = GridVec::from_native_logical(
+        chunk_loader.origin_offset.clone(),
+        (loader_transform.translation.truncate(), chunk_loader.scale),
+    );
+    
+    chunk_loader.coord = origin.clone();
+    chunk_actor.coord = origin;
+
+    for (transform, mut actor) in chunk_actor_query.iter_mut() {
+        let new_coord = GridVec::from_native_logical(chunk_loader.origin_offset.clone(), (transform.translation.truncate(), actor.coord.scale));
+        actor.coord = new_coord;
+    }
+}
+
+// Shiny new not-shitass systems ABOVE
+// Old depricated shitass systems BELOW
+#[tracing::instrument(skip_all)]
 pub(crate) fn realign_origin_offset_system(
     mut chunk_loader: Single<(&mut Transform, &mut ChunkLoader), Changed<Transform>>,
 ) {

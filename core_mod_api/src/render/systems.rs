@@ -93,7 +93,7 @@ pub(super) fn update_render_proxies(
 
     for (handle, actor) in &sources {
         if let Ok(mut proxy_transform) = proxy_transforms.get_mut(handle.proxy_entity) {
-            let (pos, scale) = actor.coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
+            let (pos, scale) = actor.coord.clone().to_native_visual(chunk_loader.coord.clone());
             proxy_transform.translation = pos.extend(proxy_transform.translation.z); // preserve Z
             proxy_transform.scale = Vec3::splat(scale);
         }

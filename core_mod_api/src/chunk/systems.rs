@@ -60,7 +60,7 @@ pub(crate) fn chunk_detection_system(
     let radius = chunk_manager.load_radius;
     let current_chunks = chunk_manager.chunks.clone();
     let mut chunk_loader_scale_cursor = chunk_loader.scale;
-    let mut chunk_loader_grid_coord_cursor = &chunk_loader.origin_offset;
+    let mut chunk_loader_grid_coord_cursor = &chunk_loader.coord;
     let mut target_chunk_cone = Vec::new();
     
     while chunk_loader_scale_cursor < Scale::MAX {

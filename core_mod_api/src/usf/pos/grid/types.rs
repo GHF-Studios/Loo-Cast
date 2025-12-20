@@ -382,6 +382,33 @@ impl GridVec {
         (Vec2::new(native_x, native_y), scale)
     }
 
+    /// Returns the total Bevy-space offset between two same-layer siblings.
+    /// It's like std::ops::Sub<UnitVec>, but can be used to return a Vec2 representing the native logical offset in Bevy space
+    /// This assumes that we store and update an `origin: GridVec` somewhere so that we can convert between Bevy space and UnitVec space (which is just a translation, no fancy transformation needed)
+    /// - Fails if `grid_offset.parent` differs, or if scale differs.
+    pub fn native_logical_offset(from: &UnitVec, to: &UnitVec) -> Option<Vec2> {
+        // Scale must match
+        if from.grid_offset.scale != to.grid_offset.scale {
+            return None;
+        }
+
+        // Parents must be equal (value-wise)
+        let same_parent = match (&from.grid_offset.parent, &to.grid_offset.parent) {
+            (Some(a), Some(b)) => **a == **b,
+            (None, None) => true,
+            _ => false,
+        };
+        if !same_parent {
+            return None;
+        }
+
+        // Compute offset
+        let chunk_delta = (to.grid_offset.xy - from.grid_offset.xy).as_vec2() * 1000.0;
+        let unit_delta = to.unit_offset.truncate() - from.unit_offset.truncate();
+
+        Some(chunk_delta + unit_delta)
+    }
+
     // TODO: REFACTOR: PERF: This is much less performant than it could be;
     //      it just abuses the fact that Add(and Sub) internally perform a wrap, by just doing +/- "zero", or rather a default that equates in a no-op, akin to the concept of "zero".
     //      In short: It's a fast, dirty, and lazy solution

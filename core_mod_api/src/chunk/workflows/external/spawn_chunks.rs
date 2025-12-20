@@ -62,8 +62,8 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     for input in input.inputs {
         let scale = input.grid_coord.scale;
         let grid_coord = input.grid_coord;
-        let logical_world_coord = grid_coord.clone().to_native_logical(chunk_loader.origin_offset.clone());
-        let (visual_world_coord, visual_world_scale) = grid_coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
+        let logical_world_coord = grid_coord.clone().to_native_logical(chunk_loader.coord.clone());
+        let (visual_world_coord, visual_world_scale) = grid_coord.clone().to_native_visual(chunk_loader.coord.clone());
         let metric_texture = input.metric_texture.clone();
 
         if chunk_query.iter().any(|chunk| chunk.coord == grid_coord) {

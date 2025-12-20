@@ -7,7 +7,7 @@ pub mod unit;
 pub mod systems;
 
 use bevy::prelude::*;
-use systems::{realign_origin_offset_system, apply_new_origin_offset_system, sync_logical_from_transform_system};
+use systems::{update_managed_positions, realign_origin_offset_system, apply_new_origin_offset_system, sync_logical_from_transform_system};
 
 use crate::core::run_conditions::run_after_startup_finished;
 use crate::time::run_conditions::run_if_not_paused;
@@ -17,19 +17,21 @@ impl Plugin for PosPlugin {
         app.add_plugins(grid::GridPlugin)
             .add_plugins(subgrid::SubgridPlugin)
             .add_plugins(unit::UnitPlugin)
-            .add_systems(
-                Update,
-                realign_origin_offset_system.run_if(run_after_startup_finished.and(run_if_not_paused)),
-            )
-            .add_systems(
-                Last,
-                (
-                    apply_new_origin_offset_system.run_if(run_after_startup_finished.and(run_if_not_paused)),
-                    sync_logical_from_transform_system
-                        .after(apply_new_origin_offset_system)
-                        .run_if(run_after_startup_finished.and(run_if_not_paused)),
-                ),
-            );
+            .add_systems(PreUpdate, update_managed_positions.run_if(run_after_startup_finished.and(run_if_not_paused)))
+            // .add_systems(
+            //     Update,
+            //     realign_origin_offset_system.run_if(run_after_startup_finished.and(run_if_not_paused)),
+            // )
+            // .add_systems(
+            //     Last,
+            //     (
+            //         apply_new_origin_offset_system.run_if(run_after_startup_finished.and(run_if_not_paused)),
+            //         sync_logical_from_transform_system
+            //             .after(apply_new_origin_offset_system)
+            //             .run_if(run_after_startup_finished.and(run_if_not_paused)),
+            //     ),
+            // )
+            ;
     }
 }
 
