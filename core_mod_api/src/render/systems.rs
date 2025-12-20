@@ -2,7 +2,7 @@ use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 
-use crate::chunk::components::{ChunkActor, ChunkLoader};
+use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
 use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
 use crate::render::{
@@ -82,18 +82,28 @@ pub(super) fn resize_render_texture(
 
 #[tracing::instrument(skip_all)]
 pub(super) fn update_render_proxies(
-    chunk_loader_query: Query<&ChunkLoader>,
-    sources: Query<(&RenderProxyHandle, &ChunkActor), Without<RenderProxy>>,
+    chunk_loader: Single<&ChunkLoader>,
+    chunk_actor_query: Query<(&RenderProxyHandle, &ChunkActor), Without<RenderProxy>>,
+    chunk_query: Query<(&RenderProxyHandle, &Chunk), Without<RenderProxy>>,
     mut proxy_transforms: Query<&mut Transform, With<RenderProxy>>,
 ) {
-    let chunk_loader = match chunk_loader_query.single() {
-        Ok(loader) => loader,
-        Err(_) => return,
-    };
+    let chunk_loader = *chunk_loader;
 
-    for (handle, actor) in &sources {
+    for (handle, chunk_actor) in &chunk_actor_query {
+        warn!("Updating Render Proxy for ChunkActor at Coord: {:?}, Scale: {} @ Origin: {:?}", chunk_actor.coord, chunk_actor.coord.scale.index_from_top(), chunk_loader.origin_offset);
+
         if let Ok(mut proxy_transform) = proxy_transforms.get_mut(handle.proxy_entity) {
-            let (pos, scale) = actor.coord.clone().to_native_visual(chunk_loader.coord.clone());
+            let (pos, scale) = chunk_actor.coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
+            proxy_transform.translation = pos.extend(proxy_transform.translation.z); // preserve Z
+            proxy_transform.scale = Vec3::splat(scale);
+        }
+    }
+
+    for (handle, chunk) in &chunk_query {
+        warn!("Updating Render Proxy for Chunk at Coord: {:?}, Scale: {} @ Origin: {:?}", chunk.coord, chunk.coord.scale.index_from_top(), chunk_loader.origin_offset);
+
+        if let Ok(mut proxy_transform) = proxy_transforms.get_mut(handle.proxy_entity) {
+            let (pos, scale) = chunk.coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
             proxy_transform.translation = pos.extend(proxy_transform.translation.z); // preserve Z
             proxy_transform.scale = Vec3::splat(scale);
         }

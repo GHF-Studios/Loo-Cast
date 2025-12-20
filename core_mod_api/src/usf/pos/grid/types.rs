@@ -456,31 +456,37 @@ impl GridVec {
                 let offset1 = IVec2::new(dx, y);
                 let offset2 = IVec2::new(dx, -y);
 
-                raw_offsets.push(GridVec {
-                    parent: self.parent.clone(),
-                    scale: self.scale,
-                    xy: offset1,
-                });
-                raw_offsets.push(GridVec {
-                    parent: self.parent.clone(),
-                    scale: self.scale,
-                    xy: offset2,
-                });
+                // raw_offsets.push(GridVec {
+                //     parent: self.parent.clone(),
+                //     scale: self.scale,
+                //     xy: offset1,
+                // });
+                // raw_offsets.push(GridVec {
+                //     parent: self.parent.clone(),
+                //     scale: self.scale,
+                //     xy: offset2,
+                // });
+
+                raw_offsets.push(self.clone() + offset1);
+                raw_offsets.push(self.clone() + offset2);
             }
             for dy in -y..=y {
                 let offset1 = IVec2::new(dy, x);
                 let offset2 = IVec2::new(dy, -x);
 
-                raw_offsets.push(GridVec {
-                    parent: self.parent.clone(),
-                    scale: self.scale,
-                    xy: offset1,
-                });
-                raw_offsets.push(GridVec {
-                    parent: self.parent.clone(),
-                    scale: self.scale,
-                    xy: offset2,
-                });
+                // raw_offsets.push(GridVec {
+                //     parent: self.parent.clone(),
+                //     scale: self.scale,
+                //     xy: offset1,
+                // });
+                // raw_offsets.push(GridVec {
+                //     parent: self.parent.clone(),
+                //     scale: self.scale,
+                //     xy: offset2,
+                // });
+
+                raw_offsets.push(self.clone() + offset1);
+                raw_offsets.push(self.clone() + offset2);
             }
 
             if d < 0 {
@@ -735,7 +741,6 @@ impl std::convert::TryFrom<Vec<IVec2>> for GridVec {
         Ok(current)
     }
 }
-
 impl InspectorPrimitive for GridVec {
     fn ui(&mut self, ui: &mut Ui, _options: &dyn Any, _id: Id, _env: InspectorUi<'_, '_>) -> bool {
         let mut changed = false;

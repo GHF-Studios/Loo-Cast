@@ -12,16 +12,19 @@ pub(crate) fn update_managed_positions(
 ) {
     let (loader_transform, ref mut chunk_loader, ref mut chunk_actor) = *chunk_loader;
 
-    let origin = GridVec::from_native_logical(
-        chunk_loader.origin_offset.clone(),
+    let native_logical_origin = GridVec::from_native_logical(
+        GridVec::default(),
         (loader_transform.translation.truncate(), chunk_loader.scale),
     );
     
-    chunk_loader.coord = origin.clone();
-    chunk_actor.coord = origin;
+    chunk_loader.coord = native_logical_origin.clone();
+    chunk_actor.coord = native_logical_origin;
 
     for (transform, mut actor) in chunk_actor_query.iter_mut() {
-        let new_coord = GridVec::from_native_logical(chunk_loader.origin_offset.clone(), (transform.translation.truncate(), actor.coord.scale));
+        let new_coord = GridVec::from_native_logical(
+            GridVec::default(),
+            (transform.translation.truncate(), actor.coord.scale)
+        );
         actor.coord = new_coord;
     }
 }

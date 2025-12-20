@@ -62,7 +62,7 @@ pub(crate) fn chunk_detection_system(
     let mut chunk_loader_scale_cursor = chunk_loader.scale;
     let mut chunk_loader_grid_coord_cursor = &chunk_loader.coord;
     let mut target_chunk_cone = Vec::new();
-    
+
     while chunk_loader_scale_cursor < Scale::MAX {
         let coords_in_radius = chunk_loader_grid_coord_cursor
             .query_grid_radius(radius)
@@ -78,6 +78,7 @@ pub(crate) fn chunk_detection_system(
         .into_iter()
         .collect::<HashSet<GridVec>>();
     target_chunk_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
+
     target_chunk_cone.reverse();
 
     for (_chunk_loader_grid_coord, target_chunks) in target_chunk_cone {
@@ -105,6 +106,7 @@ pub(crate) fn chunk_detection_system(
     }
 
     // We now have `spawn_chunk_inputs` and `despawn_chunk_inputs` populated and ready to be used by the chunk management system
+
     (spawn_chunk_inputs, despawn_chunk_inputs)
 }
 
