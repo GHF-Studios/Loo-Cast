@@ -7,18 +7,56 @@ use crate::usf::pos::unit::types::UnitVec;
 
 #[tracing::instrument(skip_all)]
 pub(crate) fn update_managed_positions(
-    mut chunk_loader: Single<(&Transform, &mut ChunkLoader, &mut ChunkActor)>,
+    mut chunk_loader: Single<(&mut Transform, &mut ChunkLoader, &mut ChunkActor)>,
     mut chunk_actor_query: Query<(&Transform, &mut ChunkActor), (Changed<Transform>, Without<ChunkLoader>)>,
+    mut native_logical_layer_size: Local<f32>,
+    mut native_logical_layer_wrapping_size: Local<f32>,
+    mut initialized: Local<bool>,
 ) {
-    let (loader_transform, ref mut chunk_loader, ref mut chunk_actor) = *chunk_loader;
+    if !*initialized {
+        let grid_layer_size = 10_f32;
+        let grid_layer_centering = 0.5_f32;
+        let grid_layer_margin = 0.1_f32;
+        let grid_layer_size_total = grid_layer_size - grid_layer_centering + grid_layer_margin;
+        let grid_layer_chunk_half_size = 500.0;
+        let grid_layer_chunk_size = grid_layer_chunk_half_size * 2.0;
+        *native_logical_layer_size = grid_layer_chunk_half_size * grid_layer_size_total;
+        *native_logical_layer_wrapping_size = grid_layer_chunk_size * grid_layer_size;
+        *initialized = true;
 
-    let native_logical_origin = GridVec::from_native_logical(
+        warn!("Initialized native_logical_layer_size to {}, wrapping_size to {}", *native_logical_layer_size, *native_logical_layer_wrapping_size);
+    }
+
+    let (ref mut loader_transform, ref mut chunk_loader, ref mut chunk_actor) = *chunk_loader;
+
+    let grid_origin = GridVec::from_native_logical(
         GridVec::default(),
         (loader_transform.translation.truncate(), chunk_loader.scale),
     );
+
+    // let mut native_logical_origin_offset = UnitVec::native_logical_offset(
+    //     &UnitVec::default(),
+    //     &UnitVec::new_grid(grid_origin.clone()),
+    // ).unwrap();
+
+    if loader_transform.translation.x >= *native_logical_layer_size {
+        loader_transform.translation.x -= *native_logical_layer_wrapping_size;
+        warn!("Wrapped X Positive with layer_size {} and wrapping_size {}", *native_logical_layer_size, *native_logical_layer_wrapping_size);
+    } else if loader_transform.translation.x < -*native_logical_layer_size {
+        loader_transform.translation.x += *native_logical_layer_wrapping_size;
+        warn!("Wrapped X Negative with layer_size {} and wrapping_size {}", *native_logical_layer_size, *native_logical_layer_wrapping_size);
+    }
     
-    chunk_loader.coord = native_logical_origin.clone();
-    chunk_actor.coord = native_logical_origin;
+    if loader_transform.translation.y >= *native_logical_layer_size {
+        loader_transform.translation.y -= *native_logical_layer_wrapping_size;
+        warn!("Wrapped Y Positive with layer_size {} and wrapping_size {}", *native_logical_layer_size, *native_logical_layer_wrapping_size);
+    } else if loader_transform.translation.y < -*native_logical_layer_size {
+        loader_transform.translation.y += *native_logical_layer_wrapping_size;
+        warn!("Wrapped Y Negative with layer_size {} and wrapping_size {}", *native_logical_layer_size, *native_logical_layer_wrapping_size);
+    }
+    
+    chunk_loader.coord = grid_origin.clone();
+    chunk_actor.coord = grid_origin;
 
     for (transform, mut actor) in chunk_actor_query.iter_mut() {
         let new_coord = GridVec::from_native_logical(

@@ -68,11 +68,18 @@ impl UnitVec {
         (scale.index_from_bottom() as f32 * 10.0) - 1000.0
     }
 
+    /// Create a new UnitVec from grid and unit offsets.
     pub fn new(grid_offset: GridVec, unit_offset: Vec2) -> Self {
         let unit_offset = unit_offset.extend(Self::compute_z(grid_offset.scale));
         let mut my_self = Self { grid_offset, unit_offset };
         my_self.normalize();
         my_self
+    }
+
+    /// Create a new UnitVec from a grid offset only, with unit offset (0.0, 0.0).
+    pub fn new_grid(grid_offset: GridVec) -> Self {
+        let unit_offset = Vec2::ZERO.extend(Self::compute_z(grid_offset.scale));
+        Self { grid_offset, unit_offset }
     }
 
     pub fn normalize(&mut self) {
@@ -99,6 +106,33 @@ impl UnitVec {
         // Normalize GridVec
         self.grid_offset.normalize();
     }
+
+    // /// Returns the total Bevy-space offset between two same-layer siblings.
+    // /// It's like std::ops::Sub<UnitVec>, but can be used to return a Vec2 representing the native logical offset in Bevy space
+    // /// This assumes that we store and update an `origin: GridVec` somewhere so that we can convert between Bevy space and UnitVec space (which is just a translation, no fancy transformation needed)
+    // /// - Fails if `grid_offset.parent` differs, or if scale differs.
+    // pub fn native_logical_offset(from: &UnitVec, to: &UnitVec) -> Option<Vec2> {
+    //     // Scale must match
+    //     if from.grid_offset.scale != to.grid_offset.scale {
+    //         return None;
+    //     }
+    // 
+    //     // Parents must be equal (value-wise)
+    //     let same_parent = match (&from.grid_offset.parent, &to.grid_offset.parent) {
+    //         (Some(a), Some(b)) => **a == **b,
+    //         (None, None) => true,
+    //         _ => false,
+    //     };
+    //     if !same_parent {
+    //         return None;
+    //     }
+    // 
+    //     // Compute offset
+    //     let chunk_delta = (to.grid_offset.xy - from.grid_offset.xy).as_vec2() * 1000.0;
+    //     let unit_delta = to.unit_offset.truncate() - from.unit_offset.truncate();
+    // 
+    //     Some(chunk_delta + unit_delta)
+    // }
 
     pub fn zoom_in_multi(&mut self, target_scale: Scale) -> Result<(), &'static str> {
         if target_scale >= self.grid_offset.scale {
