@@ -9,23 +9,10 @@ use crate::usf::pos::unit::types::UnitVec;
 pub(crate) fn update_managed_positions(
     mut chunk_loader: Single<(&mut Transform, &mut ChunkLoader, &mut ChunkActor)>,
     mut chunk_actor_query: Query<(&Transform, &mut ChunkActor), (Changed<Transform>, Without<ChunkLoader>)>,
-    mut native_logical_layer_size: Local<f32>,
-    mut native_logical_layer_wrapping_size: Local<f32>,
-    mut initialized: Local<bool>,
 ) {
-    if !*initialized {
-        let grid_layer_size = 10_f32;
-        let grid_layer_centering = 0.5_f32;
-        let grid_layer_margin = 0.1_f32;
-        let grid_layer_size_total = grid_layer_size - grid_layer_centering + grid_layer_margin;
-        let grid_layer_chunk_half_size = 500.0;
-        let grid_layer_chunk_size = grid_layer_chunk_half_size * 2.0;
-        *native_logical_layer_size = grid_layer_chunk_half_size * grid_layer_size_total;
-        *native_logical_layer_wrapping_size = grid_layer_chunk_size * grid_layer_size;
-        *initialized = true;
-
-        warn!("Initialized native_logical_layer_size to {}, wrapping_size to {}", *native_logical_layer_size, *native_logical_layer_wrapping_size);
-    }
+    const NATIVE_LOGICAL_LAYER_SIZE_MIN: f32 = -5500.0;
+    const NATIVE_LOGICAL_LAYER_SIZE_MAX: f32 = 4500.0;
+    const NATIVE_LOGICAL_LAYER_WRAPPING_SIZE: f32 = 10000.0;
 
     let (ref mut loader_transform, ref mut chunk_loader, ref mut chunk_actor) = *chunk_loader;
 
@@ -34,25 +21,23 @@ pub(crate) fn update_managed_positions(
         (loader_transform.translation.truncate(), chunk_loader.scale),
     );
 
+    // DEPRECATED (I think?)
     // let mut native_logical_origin_offset = UnitVec::native_logical_offset(
     //     &UnitVec::default(),
     //     &UnitVec::new_grid(grid_origin.clone()),
     // ).unwrap();
+    // DEPRECATED (I think?)
 
-    if loader_transform.translation.x >= *native_logical_layer_size {
-        loader_transform.translation.x -= *native_logical_layer_wrapping_size;
-        warn!("Wrapped X Positive with layer_size {} and wrapping_size {}", *native_logical_layer_size, *native_logical_layer_wrapping_size);
-    } else if loader_transform.translation.x < -*native_logical_layer_size {
-        loader_transform.translation.x += *native_logical_layer_wrapping_size;
-        warn!("Wrapped X Negative with layer_size {} and wrapping_size {}", *native_logical_layer_size, *native_logical_layer_wrapping_size);
+    if loader_transform.translation.x >= NATIVE_LOGICAL_LAYER_SIZE_MAX {
+        loader_transform.translation.x -= NATIVE_LOGICAL_LAYER_WRAPPING_SIZE;
+    } else if loader_transform.translation.x < NATIVE_LOGICAL_LAYER_SIZE_MIN {
+        loader_transform.translation.x += NATIVE_LOGICAL_LAYER_WRAPPING_SIZE;
     }
     
-    if loader_transform.translation.y >= *native_logical_layer_size {
-        loader_transform.translation.y -= *native_logical_layer_wrapping_size;
-        warn!("Wrapped Y Positive with layer_size {} and wrapping_size {}", *native_logical_layer_size, *native_logical_layer_wrapping_size);
-    } else if loader_transform.translation.y < -*native_logical_layer_size {
-        loader_transform.translation.y += *native_logical_layer_wrapping_size;
-        warn!("Wrapped Y Negative with layer_size {} and wrapping_size {}", *native_logical_layer_size, *native_logical_layer_wrapping_size);
+    if loader_transform.translation.y >= NATIVE_LOGICAL_LAYER_SIZE_MAX {
+        loader_transform.translation.y -= NATIVE_LOGICAL_LAYER_WRAPPING_SIZE;
+    } else if loader_transform.translation.y < NATIVE_LOGICAL_LAYER_SIZE_MIN {
+        loader_transform.translation.y += NATIVE_LOGICAL_LAYER_WRAPPING_SIZE;
     }
     
     chunk_loader.coord = grid_origin.clone();
