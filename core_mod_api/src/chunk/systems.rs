@@ -64,25 +64,31 @@ pub(crate) fn chunk_detection_system(
     let mut target_chunk_cone = Vec::new();
 
     while chunk_loader_scale_cursor < Scale::MAX {
-        warn!("Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
+        // warn!("Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
     
         let coords_in_radius = chunk_loader_grid_coord_cursor
             .query_grid_radius(radius)
             .into_iter()
             .collect::<HashSet<GridVec>>();
+        // warn!("Detected Chunks: {:?}", coords_in_radius);
         target_chunk_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
         chunk_loader_scale_cursor.zoom_out();
         chunk_loader_grid_coord_cursor = &**chunk_loader_grid_coord_cursor.parent.as_ref().unwrap();
     }
     
-    warn!("Final Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
+    // warn!("Final Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
     let coords_in_radius = chunk_loader_grid_coord_cursor
         .query_grid_radius(radius)
         .into_iter()
         .collect::<HashSet<GridVec>>();
+    // warn!("Detected Chunks: {:?}", coords_in_radius);
     target_chunk_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
 
     target_chunk_cone.reverse();
+
+    for (chunk_loader_grid_coord, target_chunks) in &target_chunk_cone {
+        warn!("Target Chunks at scale: {:?} => {{{}}} {:?}", chunk_loader_grid_coord.scale, target_chunks.len(), target_chunks);
+    }
 
     for (_chunk_loader_grid_coord, target_chunks) in target_chunk_cone {
         let chunks_to_load: Vec<_> = target_chunks.difference(&current_chunks).cloned().collect();
