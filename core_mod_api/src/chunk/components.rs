@@ -33,7 +33,7 @@ impl ChunkLoader {
             self.scale.zoom_in();
             let mut unit_pos = UnitVec::new(std::mem::take(&mut self.origin_offset), logical_world_pos.truncate());
             unit_pos.zoom_in();
-            self.origin_offset = unit_pos.grid_offset;
+            self.coord = unit_pos.grid_offset;
             unit_pos.unit_offset
         } else {
             logical_world_pos

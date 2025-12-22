@@ -17,7 +17,7 @@ pub(crate) fn update_managed_positions(
     let (ref mut loader_transform, ref mut chunk_loader, ref mut chunk_actor) = *chunk_loader;
 
     let grid_origin = GridVec::from_native_logical(
-        GridVec::default(),
+        GridVec::default_n((chunk_loader.scale.index_from_top() + 1) as usize),
         (loader_transform.translation.truncate(), chunk_loader.scale),
     );
 

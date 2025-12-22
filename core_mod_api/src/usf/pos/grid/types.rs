@@ -36,11 +36,28 @@ impl GridVecBuilder {
         self
     }
 
+    // Takes in a closure for modifying the Builder to repeat something (like push or default_xy for example)
+    pub fn repeat_n<F>(mut self, count: usize, mut f: F) -> Self
+    where
+        F: FnMut(Self) -> Self,
+    {
+        for _ in 0..count {
+            self = f(self);
+        }
+        self
+    }
+
     pub fn reverse(mut self) -> Self {
         self.chain.reverse();
         self
     }
 
+    pub fn default_xy(mut self) -> Self {
+        self.chain.push(IVec2::ZERO);
+        self
+    }
+
+    #[track_caller]
     pub fn finish(self) -> GridVec {
         GridVec::try_from(self.chain).unwrap()
     }
@@ -57,6 +74,11 @@ impl GridVec {
 
     pub fn build() -> GridVecBuilder {
         GridVecBuilder::new()
+    }
+
+    /// Create a GridVec with all ancestors up to the root at Scale::MAX, pre-filled with IVec2::ZERO.
+    pub fn default_n(count: usize) -> Self {
+        Self::build().repeat_n(count, |b| b.default_xy()).finish()
     }
 
     #[track_caller]
@@ -293,7 +315,7 @@ impl GridVec {
     /// - Assumes that the parent of `grid_diff` is the same as `self`'s parent.
     #[track_caller]
     pub fn from_native_logical(origin: Self, (native_logical_pos, scale): (Vec2, Scale)) -> Self {
-        assert!(scale >= origin.scale);
+        assert!(scale == origin.scale);
         let unit_offset_x = native_logical_pos.x / 1000.0;
         let unit_offset_y = native_logical_pos.y / 1000.0;
 
@@ -313,7 +335,7 @@ impl GridVec {
     /// - Assumes that the parent of `grid_diff` is the same as `self`'s parent.
     #[track_caller]
     pub fn from_native_visual(origin: Self, native_visual_pos: Vec2, scale: Scale) -> Self {
-        assert!(scale >= origin.scale);
+        assert!(scale == origin.scale);
         let scale_diff = scale as i8 - origin.scale as i8;
         let scale_factor = 10.0_f32.powi(scale_diff as i32);
         let native_unit = 1000.0 / scale_factor;
@@ -415,6 +437,10 @@ impl GridVec {
 
     #[track_caller]
     pub fn query_grid_radius(&self, radius: u32) -> Vec<GridVec> {
+        if radius == 0 {
+            return vec![self.clone()]
+        }
+
         let mut raw_offsets = Vec::new();
 
         let radius = radius as i32;

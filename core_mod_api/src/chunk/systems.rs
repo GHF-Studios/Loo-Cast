@@ -64,6 +64,8 @@ pub(crate) fn chunk_detection_system(
     let mut target_chunk_cone = Vec::new();
 
     while chunk_loader_scale_cursor < Scale::MAX {
+        warn!("Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
+    
         let coords_in_radius = chunk_loader_grid_coord_cursor
             .query_grid_radius(radius)
             .into_iter()
@@ -73,6 +75,7 @@ pub(crate) fn chunk_detection_system(
         chunk_loader_grid_coord_cursor = &**chunk_loader_grid_coord_cursor.parent.as_ref().unwrap();
     }
     
+    warn!("Final Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
     let coords_in_radius = chunk_loader_grid_coord_cursor
         .query_grid_radius(radius)
         .into_iter()
