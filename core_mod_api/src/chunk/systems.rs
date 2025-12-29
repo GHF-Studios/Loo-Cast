@@ -52,7 +52,10 @@ pub(crate) fn chunk_detection_system(
 ) -> (Vec<SpawnChunkInput>, Vec<DespawnChunkInput>) {
     let chunk_loader = match chunk_loader_query.single() {
         Ok(data) => data,
-        Err(_) => return (Vec::new(), chunk_manager.chunks.iter().cloned().map(DespawnChunkInput::new).collect())
+        Err(_) => {
+            warn!("No ChunkLoader found in the world; skipping chunk detection. Despawning all chunks.");
+            return (Vec::new(), chunk_manager.chunks.iter().cloned().map(DespawnChunkInput::new).collect())
+        }
     };
 
     let mut spawn_chunk_inputs = Vec::new();
@@ -63,57 +66,65 @@ pub(crate) fn chunk_detection_system(
     let mut chunk_loader_grid_coord_cursor = &chunk_loader.coord;
     let mut target_chunk_cone = Vec::new();
 
-    warn!("Starting Chunk Detection with current Chunks: {:?}", current_chunks);
+    // warn!("Starting Chunk Detection with current Chunks: {:?}", current_chunks);
 
     while chunk_loader_scale_cursor < Scale::MAX {
-        warn!("Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
+        // warn!("Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
     
         let coords_in_radius = chunk_loader_grid_coord_cursor
             .query_grid_radius(radius)
             .into_iter()
             .collect::<HashSet<GridVec>>();
-        warn!("Detected Chunks: {:?}", coords_in_radius);
+        // warn!("Detected Chunks: {:?}", coords_in_radius);
         target_chunk_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
         chunk_loader_scale_cursor.zoom_out();
         chunk_loader_grid_coord_cursor = &**chunk_loader_grid_coord_cursor.parent.as_ref().unwrap();
     }
     
-    warn!("Final Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
+    // warn!("Final Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
     let coords_in_radius = chunk_loader_grid_coord_cursor
         .query_grid_radius(radius)
         .into_iter()
         .collect::<HashSet<GridVec>>();
-    warn!("Detected Chunks: {:?}", coords_in_radius);
+    // warn!("Detected Chunks: {:?}", coords_in_radius);
     target_chunk_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
 
     target_chunk_cone.reverse();
 
-    for (chunk_loader_grid_coord, target_chunks) in &target_chunk_cone {
-        warn!("Target Chunks at scale: {:?} => {{{}}} {:?}", chunk_loader_grid_coord.scale, target_chunks.len(), target_chunks);
+    // for (chunk_loader_grid_coord, target_chunks) in &target_chunk_cone {
+    //     warn!("Target Chunks at scale: {:?} => {{{}}} {:?}", chunk_loader_grid_coord.scale, target_chunks.len(), target_chunks);
+    // }
+
+    let mut final_target_chunks: HashSet<GridVec> = HashSet::new();
+
+    for (_coord, target_chunks) in &target_chunk_cone {
+        final_target_chunks.extend(target_chunks.iter().cloned());
     }
 
-    for (_chunk_loader_grid_coord, target_chunks) in target_chunk_cone {
-        let chunks_to_load: Vec<_> = target_chunks.difference(&current_chunks).cloned().collect();
-        let chunks_to_unload: Vec<_> = current_chunks.difference(&target_chunks).cloned().collect();
+    let chunks_to_load =
+        final_target_chunks.difference(&current_chunks).cloned();
 
-        for chunk_to_load in chunks_to_load {
-            // let chunk_loader_distance_squared = chunk_to_load.xy.distance_squared(chunk_loader_grid_coord.xy);
-            // let chunk_loader_radius_squared = radius * radius;
+    let chunks_to_unload =
+        current_chunks.difference(&final_target_chunks).cloned();
 
-            spawn_chunk_inputs.push(SpawnChunkInput {
-                grid_coord: chunk_to_load,
-                metric_texture: Handle::default(),
-            });
-        }
+    for chunk in chunks_to_load {
+        spawn_chunk_inputs.push(SpawnChunkInput {
+            grid_coord: chunk,
+            metric_texture: Handle::default(),
+        });
+    }
 
-        for chunk_to_unload in chunks_to_unload {
-            // let chunk_loader_distance_squared = chunk_to_unload.xy.distance_squared(chunk_loader_grid_coord.xy);
-            // let chunk_loader_radius_squared = radius * radius;
+    for chunk in chunks_to_unload {
+        despawn_chunk_inputs.push(DespawnChunkInput {
+            grid_coord: chunk,
+        });
+    }
 
-            despawn_chunk_inputs.push(DespawnChunkInput {
-                grid_coord: chunk_to_unload,
-            });
-        }
+    if !despawn_chunk_inputs.is_empty() {
+        error!(
+            "DespawnChunk-Inputs detected: {:?}",
+            despawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect::<Vec<_>>()
+        );
     }
 
     // We now have `spawn_chunk_inputs` and `despawn_chunk_inputs` populated and ready to be used by the chunk management system
@@ -167,11 +178,11 @@ pub(crate) fn chunk_management_system(
     }
 
     if !spawn_chunk_inputs.is_empty() || !despawn_chunk_inputs.is_empty() {
-        warn!(
-            "Chunk Detection: To Load: {:?}, To Unload: {:?}",
-            spawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect::<Vec<_>>(),
-            despawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect::<Vec<_>>()
-        );
+        // warn!(
+        //     "Chunk Detection: To Load: {:?}, To Unload: {:?}",
+        //     spawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect::<Vec<_>>(),
+        //     despawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect::<Vec<_>>()
+        // );
     }
 
     // Step 2: Build & launch composite workflows

@@ -31,7 +31,7 @@ impl ChunkLoader {
         if self.zoom_state == ZoomState::None {
             self.zoom_state = ZoomState::ZoomIn;
             self.scale.zoom_in();
-            let mut unit_pos = UnitVec::new(std::mem::take(&mut self.origin_offset), logical_world_pos.truncate());
+            let mut unit_pos = UnitVec::new(std::mem::take(&mut self.coord), logical_world_pos.truncate());
             unit_pos.zoom_in();
             self.coord = unit_pos.grid_offset;
             unit_pos.unit_offset
