@@ -93,7 +93,7 @@ pub(super) fn update_render_proxies(
         // warn!("Updating Render Proxy for ChunkActor at Coord: {:?}, Scale: {} @ Origin: {:?}", chunk_actor.coord, chunk_actor.coord.scale.index_from_top(), chunk_loader.origin_offset);
 
         if let Ok(mut proxy_transform) = proxy_transforms.get_mut(handle.proxy_entity) {
-            // warn!("CHUNK ACTOR SHIT: chunk_actor.coord.scale: {}, chunk_loader.origin_offset.scale: {}", chunk_actor.coord.scale, chunk_loader.origin_offset.scale);
+            warn!("CHUNK ACTOR SHIT: chunk_actor.coord.scale: {}, chunk_loader.origin_offset.scale: {}", chunk_actor.coord.scale, chunk_loader.origin_offset.scale);
             let (pos, scale) = chunk_actor.coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
             proxy_transform.translation = pos.extend(proxy_transform.translation.z); // preserve Z
             proxy_transform.scale = Vec3::splat(scale);
@@ -108,7 +108,7 @@ pub(super) fn update_render_proxies(
                 continue
             }
 
-            // warn!("CHUNK SHIT: chunk.coord.scale: {}, chunk_loader.origin_offset.scale: {}", chunk.coord.scale, chunk_loader.origin_offset.scale);
+            warn!("CHUNK SHIT: chunk.coord.scale: {}, chunk_loader.origin_offset.scale: {}", chunk.coord.scale, chunk_loader.origin_offset.scale);
             let (pos, scale) = chunk.coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
             proxy_transform.translation = pos.extend(proxy_transform.translation.z); // preserve Z
             proxy_transform.scale = Vec3::splat(scale);

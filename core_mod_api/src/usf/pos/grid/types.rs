@@ -398,8 +398,22 @@ impl GridVec {
         let scale = 10.0_f32.powi(scale_diff as i32);
         let native_unit = 1000.0 / scale;
 
-        let native_x = diff_unit.grid_offset.xy.x as f32 * native_unit;
-        let native_y = diff_unit.grid_offset.xy.y as f32 * native_unit;
+        let mut acc = IVec2::ZERO;
+        let mut factor = 1;
+
+        let mut cursor = &diff_unit.grid_offset;
+        loop {
+            acc += cursor.xy * factor;
+            factor *= 10;
+            if let Some(parent) = &cursor.parent {
+                cursor = parent;
+            } else {
+                break;
+            }
+        }
+
+        let native_x = acc.x as f32 * native_unit;
+        let native_y = acc.y as f32 * native_unit;
 
         (Vec2::new(native_x, native_y), scale)
     }

@@ -120,12 +120,12 @@ pub(crate) fn chunk_detection_system(
         });
     }
 
-    if !despawn_chunk_inputs.is_empty() {
-        error!(
-            "DespawnChunk-Inputs detected: {:?}",
-            despawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect::<Vec<_>>()
-        );
-    }
+    // if !despawn_chunk_inputs.is_empty() {
+    //     error!(
+    //         "DespawnChunk-Inputs detected: {:?}",
+    //         despawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect::<Vec<_>>()
+    //     );
+    // }
 
     // We now have `spawn_chunk_inputs` and `despawn_chunk_inputs` populated and ready to be used by the chunk management system
 
