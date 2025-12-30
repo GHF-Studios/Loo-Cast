@@ -8,7 +8,8 @@ use crate::usf::pos::unit::types::UnitVec;
 #[tracing::instrument(skip_all)]
 pub(crate) fn update_managed_positions(
     mut chunk_loader: Single<(&mut Transform, &mut ChunkLoader, &mut ChunkActor)>,
-    mut chunk_actor_query: Query<(&Transform, &mut ChunkActor), (Changed<Transform>, Without<ChunkLoader>)>,
+    mut chunk_query: Query<(&mut Transform, &Chunk), (Without<ChunkLoader>, Without<ChunkActor>)>,
+    mut chunk_actor_query: Query<(&mut Transform, &mut ChunkActor), Without<ChunkLoader>>,
 ) {
     const NATIVE_LOGICAL_LAYER_SIZE_MIN: f32 = -5500.0;
     const NATIVE_LOGICAL_LAYER_SIZE_MAX: f32 = 4500.0;
