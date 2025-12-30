@@ -61,10 +61,9 @@ pub(super) fn update_player_system(
         if direction.length_squared() > 0.0 {
             direction = direction.normalize();
             let sprint_multiplier = if keys.pressed(KeyCode::ShiftLeft) { *sprint_multiplier } else { 1.0 };
-            let z = transform.translation.z;
             transform.translation += (direction * zoom_factor.0 * *base_movement_speed * sprint_multiplier * time.delta_secs())
                 .truncate()
-                .extend(z);
+                .extend(0.0);
         }
 
         if keys.just_pressed(KeyCode::NumpadAdd) {
