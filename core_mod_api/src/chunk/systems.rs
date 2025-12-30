@@ -53,7 +53,7 @@ pub(crate) fn chunk_detection_system(
     let chunk_loader = match chunk_loader_query.single() {
         Ok(data) => data,
         Err(_) => {
-            warn!("No ChunkLoader found in the world; skipping chunk detection. Despawning all chunks.");
+            // warn!("No ChunkLoader found in the world; skipping chunk detection. Despawning all chunks.");
             return (Vec::new(), chunk_manager.chunks.iter().cloned().map(DespawnChunkInput::new).collect());
         }
     };

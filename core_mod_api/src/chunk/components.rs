@@ -27,7 +27,7 @@ pub struct ChunkLoader {
     pub(crate) origin_offset: GridVec,
 }
 impl ChunkLoader {
-    pub fn suggest_zoom_in(&mut self, logical_world_pos: Vec2) -> Vec3 {
+    pub fn zoom_in(&mut self, logical_world_pos: Vec2) -> Vec3 {
         if self.zoom_state == ZoomState::None {
             self.scale.zoom_in();
             self.zoom_state = ZoomState::ZoomIn;
@@ -39,7 +39,7 @@ impl ChunkLoader {
         }
     }
 
-    pub fn suggest_zoom_out(&mut self) {
+    pub fn zoom_out(&mut self) {
         if self.zoom_state == ZoomState::None {
             self.scale.zoom_out();
             self.zoom_state = ZoomState::ZoomOut;

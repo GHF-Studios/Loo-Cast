@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+use crate::chunk::components::ChunkLoader;
 use crate::config::statics::CONFIG;
 use crate::core::components::Meta;
 use crate::picking::constants::META_MOUSE_POINTER_ID;
@@ -11,14 +12,14 @@ use super::types::Axis2D;
 pub(super) fn setup(mut commands: Commands) {
     let arrow_length = CONFIG().get::<f32>("debug/gizmo/arrow_length");
     let arrow_thickness = CONFIG().get::<f32>("debug/gizmo/arrow_thickness");
-    let z = CONFIG().get::<f32>("debug/gizmo/z");
+    let z = CONFIG().get::<f32>("debug/gizmo/z_offset");
 
     // Gizmo Arrows – one entity, hidden until needed
     let half_arrow_size_x = Vec2::new(arrow_length, arrow_thickness) / 2.0;
     let half_arrow_size_y = Vec2::new(arrow_thickness, arrow_length) / 2.0;
 
     commands
-        .spawn((Transform::default(), Visibility::Hidden, Name::new("Gizmo Root"), GizmoRoot))
+        .spawn((Transform::from_translation(Vec3::new(0.0, 0.0, z)), Visibility::Hidden, Name::new("Gizmo Root"), GizmoRoot))
         .with_children(|parent| {
             parent.spawn((
                 Sprite {
@@ -27,7 +28,7 @@ pub(super) fn setup(mut commands: Commands) {
                     ..Default::default()
                 },
                 Meta::<Sprite>::default(),
-                Transform::from_translation(Vec3::new(half_arrow_size_x.x + half_arrow_size_x.y, 0.0, z)),
+                Transform::from_translation(Vec3::new(half_arrow_size_x.x + half_arrow_size_x.y, 0.0, 0.0)),
                 GizmoArrow { axis: Axis2D::X },
             ));
 
@@ -38,13 +39,14 @@ pub(super) fn setup(mut commands: Commands) {
                     ..Default::default()
                 },
                 Meta::<Sprite>::default(),
-                Transform::from_translation(Vec3::new(0.0, half_arrow_size_y.x + half_arrow_size_y.y, z)),
+                Transform::from_translation(Vec3::new(0.0, half_arrow_size_y.x + half_arrow_size_y.y, 0.0)),
                 GizmoArrow { axis: Axis2D::Y },
             ));
         });
 }
 
 pub(super) fn update_gizmo_visibility_and_position(
+    chunk_loader: Single<&ChunkLoader>,
     mut gizmo_root: Query<(&mut Transform, &mut Visibility), With<GizmoRoot>>,
     transforms: Query<&GlobalTransform>,
     debug_suite_ui_state: Res<PrimaryWindowUiState>,
@@ -78,7 +80,10 @@ pub(super) fn update_gizmo_visibility_and_position(
         gizmo_transform.translation = avg;
     }
 
+    gizmo_transform.translation.z = chunk_loader.scale.compute_z() + CONFIG().get::<f32>("debug/gizmo/z_offset");
     gizmo_transform.scale = Vec2::splat(zoom_factor.0).extend(1.0);
+
+    warn!("Gizmo Z position: {}", gizmo_transform.translation.z);
 }
 
 pub(super) fn move_selected_with_gizmo(

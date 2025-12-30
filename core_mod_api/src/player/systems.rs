@@ -67,9 +67,11 @@ pub(super) fn update_player_system(
         }
 
         if keys.just_pressed(KeyCode::NumpadAdd) {
-            transform.translation = chunk_loader.suggest_zoom_in(transform.translation.truncate());
+            transform.translation = chunk_loader.zoom_in(transform.translation.truncate());
+            transform.translation.z += CONFIG().get::<f32>("player/z_offset");
         } else if keys.just_pressed(KeyCode::NumpadSubtract) {
-            chunk_loader.suggest_zoom_out();
+            chunk_loader.zoom_out();
+            transform.translation.z = chunk_loader.scale.compute_z() + CONFIG().get::<f32>("player/z_offset");
         }
     }
 }

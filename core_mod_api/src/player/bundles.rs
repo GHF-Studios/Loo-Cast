@@ -35,7 +35,7 @@ impl Default for PlayerBundle {
                 ..Default::default()
             },
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, Scale::MAX.compute_z()),
+                translation: Vec3::new(0.0, 0.0, Scale::MAX.compute_z() + CONFIG().get::<f32>("player/z_offset")),
                 ..Default::default()
             },
             name: Name::new("player"),
