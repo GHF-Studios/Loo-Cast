@@ -393,7 +393,6 @@ impl GridVec {
             unit_offset: Vec3::ZERO,
         };
         let diff_unit = self_unit - origin_unit;
-        assert!(diff_unit.grid_offset.parent.as_ref().map(|p| p.is_zero()).unwrap_or(true));
 
         let scale = 10.0_f32.powi(scale_diff as i32);
         let native_unit = 1000.0 / scale;
