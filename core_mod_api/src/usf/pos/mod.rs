@@ -7,7 +7,7 @@ pub mod unit;
 pub mod systems;
 
 use bevy::prelude::*;
-use systems::{update_managed_positions, realign_origin_offset_system, apply_new_origin_offset_system, sync_logical_from_transform_system};
+use systems::{apply_new_origin_offset_system, realign_origin_offset_system, sync_logical_from_transform_system, update_managed_positions};
 
 use crate::core::run_conditions::run_after_startup_finished;
 use crate::time::run_conditions::run_if_not_paused;

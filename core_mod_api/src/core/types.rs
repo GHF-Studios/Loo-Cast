@@ -1,7 +1,7 @@
-use std::fmt;
 use bevy::ecs::query::QueryFilter;
-use bevy::prelude::*;
 use bevy::picking::pointer::PointerId;
+use bevy::prelude::*;
+use std::fmt;
 use tracing_subscriber::fmt::{format::Writer, time::FormatTime};
 
 use crate::picking::constants::{DIEGETIC_MOUSE_POINTER_ID, META_MOUSE_POINTER_ID};

@@ -2,8 +2,8 @@ use bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
 
 use crate::config::statics::CONFIG;
+use crate::gpu::workflows::gpu::generate_chunk_textures::user_items::ChunkRenderExecutor;
 use crate::usf::pos::grid::types::GridVec;
-use crate::{gpu::workflows::gpu::generate_chunk_textures::user_items::ChunkRenderExecutor};
 
 #[derive(Resource, Reflect, Debug)]
 #[reflect(Resource)]

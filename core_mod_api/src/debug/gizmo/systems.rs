@@ -102,7 +102,11 @@ pub(super) fn move_selected_with_gizmo(
                 Axis2D::Y => Vec3::Y,
             };
 
-            let delta = axis * event.delta.dot(axis.truncate().normalize_or_zero()) * fixed_time.delta_secs() * CONFIG().get::<f32>("debug/gizmo/drag_speed") * zoom_factor.0;
+            let delta = axis
+                * event.delta.dot(axis.truncate().normalize_or_zero())
+                * fixed_time.delta_secs()
+                * CONFIG().get::<f32>("debug/gizmo/drag_speed")
+                * zoom_factor.0;
 
             for entity in selected.iter() {
                 if let Ok(mut transform) = transforms.get_mut(entity) {

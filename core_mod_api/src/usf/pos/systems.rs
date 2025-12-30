@@ -33,21 +33,18 @@ pub(crate) fn update_managed_positions(
     } else if loader_transform.translation.x < NATIVE_LOGICAL_LAYER_SIZE_MIN {
         loader_transform.translation.x += NATIVE_LOGICAL_LAYER_WRAPPING_SIZE;
     }
-    
+
     if loader_transform.translation.y >= NATIVE_LOGICAL_LAYER_SIZE_MAX {
         loader_transform.translation.y -= NATIVE_LOGICAL_LAYER_WRAPPING_SIZE;
     } else if loader_transform.translation.y < NATIVE_LOGICAL_LAYER_SIZE_MIN {
         loader_transform.translation.y += NATIVE_LOGICAL_LAYER_WRAPPING_SIZE;
     }
-    
+
     chunk_loader.coord = grid_origin.clone();
     chunk_actor.coord = grid_origin;
 
     for (transform, mut actor) in chunk_actor_query.iter_mut() {
-        let new_coord = GridVec::from_native_logical(
-            GridVec::default(),
-            (transform.translation.truncate(), actor.coord.scale)
-        );
+        let new_coord = GridVec::from_native_logical(GridVec::default(), (transform.translation.truncate(), actor.coord.scale));
         actor.coord = new_coord;
     }
 }
@@ -55,20 +52,18 @@ pub(crate) fn update_managed_positions(
 // Shiny new not-shitass systems ABOVE
 // Old depricated shitass systems BELOW
 #[tracing::instrument(skip_all)]
-pub(crate) fn realign_origin_offset_system(
-    mut chunk_loader: Single<(&mut Transform, &mut ChunkLoader), Changed<Transform>>,
-) {
+pub(crate) fn realign_origin_offset_system(mut chunk_loader: Single<(&mut Transform, &mut ChunkLoader), Changed<Transform>>) {
     // Re-align origin_offset
     let (ref mut transform, ref mut chunk_loader) = *chunk_loader;
     let unit_pos = crate::usf::pos::unit::types::UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation.truncate()); // `UnitVec::new` internally normalizes the position based on the current origin_offset; does the heavy lifting for us
-    /*
-        The unitpos we now have, is constructed from the current origin offset, and the updated unit_offset,
-        but the resulting unit_pos is wrapped immediately, to a canonical representation, automatically,
-        but we want the grid_offset of this to be our new origin_offset, if, and only if the distance between unit_pos's grid_offset and the origin_offset is greater than ore equal to the origin_offset_threshold
-    */
+                                                                                                                                     /*
+                                                                                                                                         The unitpos we now have, is constructed from the current origin offset, and the updated unit_offset,
+                                                                                                                                         but the resulting unit_pos is wrapped immediately, to a canonical representation, automatically,
+                                                                                                                                         but we want the grid_offset of this to be our new origin_offset, if, and only if the distance between unit_pos's grid_offset and the origin_offset is greater than ore equal to the origin_offset_threshold
+                                                                                                                                     */
     let grid_diff = unit_pos.grid_offset.xy - chunk_loader.origin_offset.xy;
     let threshold = CONFIG().get::<u8>("usf/pos/origin_offset_threshold") as i32;
-    
+
     if grid_diff.x.abs() >= threshold || grid_diff.y.abs() >= threshold {
         chunk_loader.origin_offset = unit_pos.grid_offset;
     }

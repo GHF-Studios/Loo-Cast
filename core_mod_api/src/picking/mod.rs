@@ -5,7 +5,7 @@ pub mod systems;
 use bevy::picking::backend::prelude::*;
 use bevy::prelude::*;
 use resources::{SpritePickingMode, SpritePickingSettings};
-use systems::{sprite_picking_backend, mouse_pick_events, spawn_mouse_pointers};
+use systems::{mouse_pick_events, spawn_mouse_pointers, sprite_picking_backend};
 
 pub(crate) struct PickingPlugin;
 impl Plugin for PickingPlugin {
@@ -33,7 +33,7 @@ impl Plugin for PickingPlugin {
 //         if hit_event.pointer != OC::pointer_id() {
 //             continue;
 //         }
-// 
+//
 //         warn!("🧩 {} PointerHits seen by BevyPicking: {:?}", OC::name(), hit_event);
 //     }
 // }

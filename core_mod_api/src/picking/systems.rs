@@ -459,10 +459,7 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
 
         true
     } else {
-        picks.push((
-            NO_HIT_SENTINEL,
-            HitData::new(main_camera_entity, 0.0, None, None),
-        ));
+        picks.push((NO_HIT_SENTINEL, HitData::new(main_camera_entity, 0.0, None, None)));
 
         let order = main_camera.order as f32;
         output.write(PointerHits::new(*pointer_id, picks, order));

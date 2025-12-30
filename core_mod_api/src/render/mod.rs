@@ -16,10 +16,7 @@ use systems::{
     update_render_proxies, update_view_scale_from_zoom,
 };
 
-use crate::core::{
-    components::Meta,
-    run_conditions::run_after_startup_finished
-};
+use crate::core::{components::Meta, run_conditions::run_after_startup_finished};
 
 pub(crate) struct RenderPlugin;
 impl Plugin for RenderPlugin {

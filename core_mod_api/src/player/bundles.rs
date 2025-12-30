@@ -2,7 +2,10 @@ use bevy::prelude::*;
 
 use crate::follower::components::FollowerTarget;
 use crate::usf::scale::Scale;
-use crate::{chunk::components::{ChunkActor, ChunkLoader}, config::statics::CONFIG};
+use crate::{
+    chunk::components::{ChunkActor, ChunkLoader},
+    config::statics::CONFIG,
+};
 
 use super::components::Player;
 
@@ -37,9 +40,7 @@ impl Default for PlayerBundle {
             },
             name: Name::new("player"),
             pickable: Pickable::default(),
-            follower_target: FollowerTarget {
-                id: "main_camera".to_string(),
-            },
+            follower_target: FollowerTarget { id: "main_camera".to_string() },
         }
     }
 }

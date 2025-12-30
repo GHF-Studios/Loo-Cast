@@ -462,7 +462,7 @@ impl GridVec {
     #[track_caller]
     pub fn query_grid_radius(&self, radius: u32) -> Vec<GridVec> {
         if radius == 0 {
-            return vec![self.clone()]
+            return vec![self.clone()];
         }
 
         let mut raw_offsets = Vec::new();

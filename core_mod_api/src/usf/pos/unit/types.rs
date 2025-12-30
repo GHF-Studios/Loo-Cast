@@ -108,7 +108,7 @@ impl UnitVec {
     //     if from.grid_offset.scale != to.grid_offset.scale {
     //         return None;
     //     }
-    // 
+    //
     //     // Parents must be equal (value-wise)
     //     let same_parent = match (&from.grid_offset.parent, &to.grid_offset.parent) {
     //         (Some(a), Some(b)) => **a == **b,
@@ -118,11 +118,11 @@ impl UnitVec {
     //     if !same_parent {
     //         return None;
     //     }
-    // 
+    //
     //     // Compute offset
     //     let chunk_delta = (to.grid_offset.xy - from.grid_offset.xy).as_vec2() * 1000.0;
     //     let unit_delta = to.unit_offset.truncate() - from.unit_offset.truncate();
-    // 
+    //
     //     Some(chunk_delta + unit_delta)
     // }
 

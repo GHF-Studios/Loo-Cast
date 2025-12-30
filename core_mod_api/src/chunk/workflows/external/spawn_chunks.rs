@@ -1,7 +1,10 @@
 // Imports
 use bevy::prelude::*;
 
-use crate::chunk::{components::{Chunk, ChunkLoader}, resources::ChunkManager};
+use crate::chunk::{
+    components::{Chunk, ChunkLoader},
+    resources::ChunkManager,
+};
 use crate::config::statics::CONFIG;
 use crate::render::{
     components::{MainCamera, RenderProxyHandle},
@@ -99,9 +102,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
 
         commands.entity(chunk_entity).insert((
             chunk_transform,
-            Chunk {
-                coord: grid_coord.clone(),
-            },
+            Chunk { coord: grid_coord.clone() },
             RenderProxyHandle {
                 proxy_entity: chunk_render_proxy_entity,
             },

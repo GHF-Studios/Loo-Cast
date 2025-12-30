@@ -4,14 +4,14 @@ use std::collections::HashSet;
 
 use crate::chunk::components::ChunkLoader;
 use crate::chunk::enums::ZoomState;
+use crate::chunk::resources::ChunkManager;
 use crate::chunk::types::ChunkActionWorkflowHandles;
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
-use crate::chunk::resources::ChunkManager;
 use crate::config::statics::CONFIG;
-use crate::workflow::functions::handle_composite_workflow_return_now;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
+use crate::workflow::functions::handle_composite_workflow_return_now;
 
 use super::resources::ChunkRenderHandles;
 
@@ -47,14 +47,14 @@ pub(crate) fn chunk_zoom_cooldown_system(time: Res<Time<Virtual>>, mut timer: Lo
 
 #[tracing::instrument(skip_all)]
 pub(crate) fn chunk_detection_system(
-    chunk_loader_query: Query<&ChunkLoader>, 
-    chunk_manager: Res<ChunkManager>
+    chunk_loader_query: Query<&ChunkLoader>,
+    chunk_manager: Res<ChunkManager>,
 ) -> (Vec<SpawnChunkInput>, Vec<DespawnChunkInput>) {
     let chunk_loader = match chunk_loader_query.single() {
         Ok(data) => data,
         Err(_) => {
             warn!("No ChunkLoader found in the world; skipping chunk detection. Despawning all chunks.");
-            return (Vec::new(), chunk_manager.chunks.iter().cloned().map(DespawnChunkInput::new).collect())
+            return (Vec::new(), chunk_manager.chunks.iter().cloned().map(DespawnChunkInput::new).collect());
         }
     };
 
@@ -70,7 +70,7 @@ pub(crate) fn chunk_detection_system(
 
     while chunk_loader_scale_cursor < Scale::MAX {
         // warn!("Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
-    
+
         let coords_in_radius = chunk_loader_grid_coord_cursor
             .query_grid_radius(radius)
             .into_iter()
@@ -80,7 +80,7 @@ pub(crate) fn chunk_detection_system(
         chunk_loader_scale_cursor.zoom_out();
         chunk_loader_grid_coord_cursor = &**chunk_loader_grid_coord_cursor.parent.as_ref().unwrap();
     }
-    
+
     // warn!("Final Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
     let coords_in_radius = chunk_loader_grid_coord_cursor
         .query_grid_radius(radius)
@@ -101,11 +101,9 @@ pub(crate) fn chunk_detection_system(
         final_target_chunks.extend(target_chunks.iter().cloned());
     }
 
-    let chunks_to_load =
-        final_target_chunks.difference(&current_chunks).cloned();
+    let chunks_to_load = final_target_chunks.difference(&current_chunks).cloned();
 
-    let chunks_to_unload =
-        current_chunks.difference(&final_target_chunks).cloned();
+    let chunks_to_unload = current_chunks.difference(&final_target_chunks).cloned();
 
     for chunk in chunks_to_load {
         spawn_chunk_inputs.push(SpawnChunkInput {
@@ -115,9 +113,7 @@ pub(crate) fn chunk_detection_system(
     }
 
     for chunk in chunks_to_unload {
-        despawn_chunk_inputs.push(DespawnChunkInput {
-            grid_coord: chunk,
-        });
+        despawn_chunk_inputs.push(DespawnChunkInput { grid_coord: chunk });
     }
 
     // if !despawn_chunk_inputs.is_empty() {
@@ -170,7 +166,6 @@ pub(crate) fn chunk_management_system(
 
         *workflow_handles = None;
     }
-
 
     if spawn_chunk_inputs.is_empty() && despawn_chunk_inputs.is_empty() {
         // warn!("No chunk actions to process");
