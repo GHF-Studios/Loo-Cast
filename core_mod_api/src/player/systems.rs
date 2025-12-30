@@ -61,13 +61,14 @@ pub(super) fn update_player_system(
         if direction.length_squared() > 0.0 {
             direction = direction.normalize();
             let sprint_multiplier = if keys.pressed(KeyCode::ShiftLeft) { *sprint_multiplier } else { 1.0 };
+            let z = transform.translation.z;
             transform.translation += (direction * zoom_factor.0 * *base_movement_speed * sprint_multiplier * time.delta_secs())
                 .truncate()
-                .extend(0.0);
+                .extend(z);
         }
 
         if keys.just_pressed(KeyCode::NumpadAdd) {
-            transform.translation = chunk_loader.suggest_zoom_in(transform.translation);
+            transform.translation = chunk_loader.suggest_zoom_in(transform.translation.truncate());
         } else if keys.just_pressed(KeyCode::NumpadSubtract) {
             chunk_loader.suggest_zoom_out();
         }

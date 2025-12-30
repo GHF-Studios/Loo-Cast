@@ -695,6 +695,14 @@ impl Scale {
         self.zoom_out();
         self
     }
+
+    /// Compute the one and only valid Z coordinate for any given scale level.
+    /// - Scale::MIN corresponds to Z = -10.0
+    /// - Each subsequent smaller scale decreases Z by an additional 10.0 units.
+    #[inline]
+    pub fn compute_z(self) -> f32 {
+        750.0 - (self.index_from_bottom() as f32 * 10.0)
+    }
 }
 
 pub trait ConstScale: 'static + Send + Sync + Clone + Copy + Default + Debug + Reflect + PartialOrd + Ord + PartialEq + Eq + Hash {

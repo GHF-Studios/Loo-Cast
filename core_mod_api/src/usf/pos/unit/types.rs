@@ -60,17 +60,9 @@ impl UnitVec {
         }
     }
 
-    /// Compute the one and only valid Z coordinate for any given scale level.
-    /// - Scale::MIN corresponds to Z = -10.0
-    /// - Each subsequent smaller scale decreases Z by an additional 10.0 units.
-    #[inline]
-    fn compute_z(scale: Scale) -> f32 {
-        (scale.index_from_bottom() as f32 * 10.0) - 1000.0
-    }
-
     /// Create a new UnitVec from grid and unit offsets.
     pub fn new(grid_offset: GridVec, unit_offset: Vec2) -> Self {
-        let unit_offset = unit_offset.extend(Self::compute_z(grid_offset.scale));
+        let unit_offset = unit_offset.extend(grid_offset.scale.compute_z());
         let mut my_self = Self { grid_offset, unit_offset };
         my_self.normalize();
         my_self
@@ -78,7 +70,7 @@ impl UnitVec {
 
     /// Create a new UnitVec from a grid offset only, with unit offset (0.0, 0.0).
     pub fn new_grid(grid_offset: GridVec) -> Self {
-        let unit_offset = Vec2::ZERO.extend(Self::compute_z(grid_offset.scale));
+        let unit_offset = Vec2::ZERO.extend(grid_offset.scale.compute_z());
         Self { grid_offset, unit_offset }
     }
 
@@ -197,7 +189,7 @@ impl UnitVec {
 
         // === Phase 6: Final assignment ===
         self.grid_offset = new_grid;
-        self.unit_offset = Vec2::new(wrapped_x, wrapped_y).extend(Self::compute_z(self.grid_offset.scale));
+        self.unit_offset = Vec2::new(wrapped_x, wrapped_y).extend(self.grid_offset.scale.compute_z());
         Self::validate_unit_offset(&self.unit_offset);
 
         Ok(())
@@ -228,7 +220,7 @@ impl UnitVec {
 
         // Step 3: Update context
         self.grid_offset = (*parent).clone();
-        self.unit_offset = Vec3::new(offset_in_parent.x, offset_in_parent.y, Self::compute_z(parent.scale));
+        self.unit_offset = Vec3::new(offset_in_parent.x, offset_in_parent.y, parent.scale.compute_z());
         Self::validate_unit_offset(&self.unit_offset);
     }
 }

@@ -438,6 +438,16 @@ impl GridVec {
     }
 
     #[track_caller]
+    pub fn zoom_in(&mut self, logical_world_pos: Vec2) -> Vec3 {
+        let mut unit_pos = UnitVec::new(self.clone(), logical_world_pos);
+        unit_pos.zoom_in();
+        self.parent = unit_pos.grid_offset.parent;
+        self.scale = unit_pos.grid_offset.scale;
+        self.xy = unit_pos.grid_offset.xy;
+        unit_pos.unit_offset
+    }
+
+    #[track_caller]
     pub fn zoom_out(&mut self) {
         let mut unit_extent = UnitVec {
             grid_offset: self.clone(),

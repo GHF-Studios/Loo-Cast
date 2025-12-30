@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::follower::components::FollowerTarget;
+use crate::usf::scale::Scale;
 use crate::{chunk::components::{ChunkActor, ChunkLoader}, config::statics::CONFIG};
 
 use super::components::Player;
@@ -23,7 +24,7 @@ impl Default for PlayerBundle {
 
         PlayerBundle {
             chunk_actor: Default::default(),
-            chunk_loader: ChunkLoader::default(),
+            chunk_loader: Default::default(),
             player: Default::default(),
             sprite: Sprite {
                 color: Color::srgb(0.0, 0.77, 0.33),
@@ -31,7 +32,7 @@ impl Default for PlayerBundle {
                 ..Default::default()
             },
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 10.0),
+                translation: Vec3::new(0.0, 0.0, Scale::MAX.compute_z()),
                 ..Default::default()
             },
             name: Name::new("player"),

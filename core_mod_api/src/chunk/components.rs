@@ -27,23 +27,24 @@ pub struct ChunkLoader {
     pub(crate) origin_offset: GridVec,
 }
 impl ChunkLoader {
-    pub fn suggest_zoom_in(&mut self, logical_world_pos: Vec3) -> Vec3 {
+    pub fn suggest_zoom_in(&mut self, logical_world_pos: Vec2) -> Vec3 {
         if self.zoom_state == ZoomState::None {
-            self.zoom_state = ZoomState::ZoomIn;
             self.scale.zoom_in();
-            let mut unit_pos = UnitVec::new(std::mem::take(&mut self.coord), logical_world_pos.truncate());
-            unit_pos.zoom_in();
-            self.coord = unit_pos.grid_offset;
-            unit_pos.unit_offset
+            self.zoom_state = ZoomState::ZoomIn;
+            let new_logical_world_pos = self.coord.zoom_in(logical_world_pos);
+            self.origin_offset.zoom_in(Vec2::ZERO);
+            new_logical_world_pos
         } else {
-            logical_world_pos
+            logical_world_pos.extend(self.scale.compute_z())
         }
     }
 
     pub fn suggest_zoom_out(&mut self) {
         if self.zoom_state == ZoomState::None {
-            self.zoom_state = ZoomState::ZoomOut;
             self.scale.zoom_out();
+            self.zoom_state = ZoomState::ZoomOut;
+            self.coord.zoom_out();
+            self.origin_offset.zoom_out();
         }
     }
 }

@@ -70,8 +70,8 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             return Err(Error::ChunkAlreadyLoaded { grid_coord });
         }
 
-        let chunk_z_offset = CONFIG().get::<i8>("chunk/z_offset");
-        let chunk_z = (-(Scale::MAX as i8 - scale as i8) + chunk_z_offset) as f32;
+        let chunk_z_offset = CONFIG().get::<i8>("chunk/z_offset") as f32;
+        let chunk_z = scale.compute_z() + chunk_z_offset;
 
         // let camera_pos = camera_transform.translation.truncate();
         // let camera_grid_extent = camera_pos.to_grid_coord(origin_offset.0);
