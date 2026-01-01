@@ -75,6 +75,7 @@ pub mod picking;
 pub mod player;
 pub mod reflect;
 pub mod render;
+pub mod script;
 pub mod time;
 pub mod usf;
 pub mod utils;
@@ -95,6 +96,7 @@ use logging::LogPlugin;
 use picking::PickingPlugin;
 use player::PlayerPlugin;
 use render::RenderPlugin;
+use script::ScriptPlugin;
 use time::TimePlugin;
 use usf::UsfPlugin;
 use utils::UtilsPlugin;
@@ -117,6 +119,7 @@ impl PluginGroup for CoreApiPluginGroup {
             .add(PickingPlugin)
             .add(PlayerPlugin)
             .add(RenderPlugin)
+            .add(ScriptPlugin)
             .add(TimePlugin)
             .add(UsfPlugin)
             .add(UtilsPlugin)
