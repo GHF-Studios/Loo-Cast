@@ -37,7 +37,7 @@ fn setup_tracing() {
         .with_filter(EnvFilter::new(CONFIG().get::<&'static str>("core/cli_log_filter")));
 
     let subscriber = tracing_subscriber::registry()
-        .with(LogTreeTracingLayer)
+        // .with(LogTreeTracingLayer)
         .with(fmt_layer)
         .with(console_subscriber::spawn());
 
