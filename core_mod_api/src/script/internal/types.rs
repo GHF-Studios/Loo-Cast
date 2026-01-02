@@ -37,18 +37,18 @@ impl World {
     }
 
     pub fn spawn_named_entity(&self, name: String) {
-        self.raw_access().spawn(Name::new(name));
-        self.raw_access().despawn(entity);
         self.raw_access().add_observer(system);
         self.raw_access().add_schedule(schedule);
         self.raw_access().add_asset(asset);
         self.raw_access().clear_all();
+        self.raw_access().despawn(entity);
         self.raw_access().query();
         self.raw_access().query_filtered();
         self.raw_access().remove_resource();
         self.raw_access().removed();
         self.raw_access().run_schedule(label);
         self.raw_access().run_system(id);
+        self.raw_access().spawn(bundle);
 
         self.raw_access().archetypes();
         self.raw_access().bundles();
