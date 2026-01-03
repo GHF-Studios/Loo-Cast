@@ -8,13 +8,13 @@ pub struct World {
     world: Option<Arc<Mutex<bevy::prelude::World>>>,
 }
 impl World {
-    pub(super) fn start_access(source: bevy::prelude::World) -> Self {
+    pub(in super::super) fn start_access(source: bevy::prelude::World) -> Self {
         Self {
             world: Some(Arc::new(Mutex::new(source))),
         }
     }
 
-    pub(super) fn end_access(mut self) -> bevy::prelude::World {
+    pub(in super::super) fn end_access(mut self) -> bevy::prelude::World {
         let world = self.world.take().expect("Already cleaned up!");
         let world = Arc::into_inner(world).expect("Too many refs!");
         let world = world.into_inner().unwrap();
@@ -22,7 +22,7 @@ impl World {
         world
     }
 
-    fn raw_access(&'_ self) -> MutexGuard<'_, bevy::prelude::World> {
+    pub(in super::super) fn raw_access(&'_ self) -> MutexGuard<'_, bevy::prelude::World> {
         self.world.as_ref().unwrap().lock().unwrap()
     }
 
@@ -36,7 +36,10 @@ impl World {
         self.raw_access().flush();
     }
 
+    // My personal note book; not used anymore, idk lol. Like writing on the back of a printout.
+    #[deprecated]
     pub fn spawn_named_entity(&self, name: String) {
+        // Irrelevant Notes
         self.raw_access().add_observer(system);
         self.raw_access().add_schedule(schedule);
         self.raw_access().add_asset(asset);
@@ -81,7 +84,7 @@ pub struct Commands {
     commands: Option<Arc<Mutex<bevy::prelude::Commands<'static, 'static>>>>
 }
 impl Commands {
-    fn start_access<'w, 's>(source: bevy::prelude::Commands<'w, 's>) -> Self {
+    pub(in super::super) fn start_access<'w, 's>(source: bevy::prelude::Commands<'w, 's>) -> Self {
         let static_source: bevy::prelude::Commands<'static, 'static> = unsafe {
             std::mem::transmute(source)
         };
@@ -91,7 +94,7 @@ impl Commands {
         }
     }
 
-    fn end_access<'w, 's>(mut self) -> bevy::prelude::Commands<'w, 's> {
+    pub(in super::super) fn end_access<'w, 's>(mut self) -> bevy::prelude::Commands<'w, 's> {
         let commands = self.commands.take().expect("Already cleaned up!");
         let commands = Arc::into_inner(commands).expect("Too many refs!");
         let commands = commands.into_inner().unwrap();
@@ -101,7 +104,7 @@ impl Commands {
         }
     }
 
-    fn raw_access<'w, 's>(&'_ self) -> MutexGuard<'_, bevy::prelude::Commands<'w, 's>> {
+    pub(in super::super) fn raw_access<'w, 's>(&'_ self) -> MutexGuard<'_, bevy::prelude::Commands<'w, 's>> {
         let commands = self.commands.as_ref().unwrap().lock().unwrap();
 
         unsafe {
@@ -162,7 +165,7 @@ pub struct EntityCommands {
     entity_commands: Option<Arc<Mutex<bevy::prelude::EntityCommands<'static>>>>
 }
 impl EntityCommands {
-    fn start_access<'a>(source: bevy::prelude::EntityCommands<'a>) -> Self {
+    pub(in super::super) fn start_access<'a>(source: bevy::prelude::EntityCommands<'a>) -> Self {
         let static_source: bevy::prelude::EntityCommands<'static> = unsafe {
             std::mem::transmute(source)
         };
@@ -172,7 +175,7 @@ impl EntityCommands {
         }
     }
 
-    fn end_access<'a>(mut self) -> bevy::prelude::EntityCommands<'a> {
+    pub(in super::super) fn end_access<'a>(mut self) -> bevy::prelude::EntityCommands<'a> {
         let entity_commands = self.entity_commands.take().expect("Already cleaned up!");
         let entity_commands = Arc::into_inner(entity_commands).expect("Too many refs!");
         let entity_commands = entity_commands.into_inner().unwrap();
@@ -182,7 +185,7 @@ impl EntityCommands {
         }
     }
 
-    fn raw_access<'a>(&'_ self) -> MutexGuard<'_, bevy::prelude::EntityCommands<'a>> {
+    pub(in super::super) fn raw_access<'a>(&'_ self) -> MutexGuard<'_, bevy::prelude::EntityCommands<'a>> {
         let entity_commands = self.entity_commands.as_ref().unwrap().lock().unwrap();
 
         unsafe {
@@ -197,9 +200,14 @@ impl EntityCommands {
     }
 }
 
+#[derive(Clone)]
+#[repr(transparent)]
+pub struct Component {
+    bundle: Option<Arc<Mutex<something>>> // Excuse me, what the fuck
+}
 
 #[derive(Clone)]
 #[repr(transparent)]
 pub struct Bundle {
-    entity_commands: Option<Arc<Mutex<bevy::prelude::EntityCommands<'static>>>>
+    bundle: Option<Arc<Mutex<something>>> // Excuse me, what the fuck
 }

@@ -3,7 +3,7 @@ use rhai::Engine;
 
 use super::resources::MainScriptEngineHandle;
 use super::statics::SCHEDULE_HOOK_HANDLERS;
-use super::types::World;
+use super::super::bindings::types::World;
 
 pub(in super::super) fn register_internal_bindings(engine: &mut rhai::Engine) {
     engine.register_fn("add_hook_handler", |hook: &str| {

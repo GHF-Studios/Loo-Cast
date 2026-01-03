@@ -1,4 +1,3 @@
-use core_mod::core_mod_api::script::core::functions::pre_init;
 use core_mod::*;
 use core_mod_api::config::statics::CONFIG;
 use core_mod_api::core::types::ShortTime;
@@ -99,7 +98,7 @@ fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
 
     let mut app = App::new();
 
-    pre_init(app.world_mut());
+    script::core::functions::pre_init(app.world_mut());
 
     app.add_plugins(third_party_plugins).add_plugins(CoreApiPluginGroup);
 

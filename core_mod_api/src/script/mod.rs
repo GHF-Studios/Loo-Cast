@@ -1,6 +1,6 @@
-pub mod binding;
+pub mod bindings;
 pub mod core;
-pub mod internal;
+mod internal;
 
 use bevy::prelude::*;
 
