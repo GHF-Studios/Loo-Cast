@@ -37,8 +37,9 @@ impl World {
         self.raw_access().flush();
     }
 
+    /// Spawns a new Entity and returns a corresponding EntityWorldMut, which can be used to add components to the entity or retrieve its id.
     pub fn spawn_empty(&self, bundle: Bundle) -> EntityWorldMut { // Return type unsure
-        self.raw_access().spawn_empty()
+        let entity_world_mut = EntityWorldMut::start_access(self.raw_access().spawn_empty());
     }
 
     // My personal note book; not used anymore, idk lol. Like writing on the back of a printout.
@@ -78,7 +79,7 @@ impl World {
 impl Drop for World {
     fn drop(&mut self) {
         if self.world.is_some() {
-            panic!("World shall not be copied/cloned!")
+            panic!("This type should not be copied/cloned!")
         }
     }
 }

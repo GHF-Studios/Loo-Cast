@@ -46,7 +46,7 @@ impl Commands {
 impl Drop for Commands {
     fn drop(&mut self) {
         if self.commands.is_some() {
-            panic!("Commands shall not be copied/cloned!")
+            panic!("This type should not be copied/cloned!")
         }
     }
 }
