@@ -3,8 +3,8 @@ use bevy::prelude::*;
 use super::super::internal::{
     functions::new_hook_runner_system,
     resources::MainScriptEngineHandle,
-    statics::SCHEDULE_HOOK_HANDLERS,
 };
+use super::statics::SCHEDULE_HOOK_HANDLERS;
 
 pub fn pre_init(world: &mut World) {
     world.init_resource::<MainScriptEngineHandle>();

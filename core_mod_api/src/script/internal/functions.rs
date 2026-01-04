@@ -2,8 +2,8 @@ use bevy::prelude::{Mut, World as BevyWorld};
 use rhai::Engine;
 
 use super::resources::MainScriptEngineHandle;
-use super::statics::SCHEDULE_HOOK_HANDLERS;
-use super::super::bindings::types::World;
+use super::super::core::statics::SCHEDULE_HOOK_HANDLERS;
+use super::super::bindings::ecs::world::types::World;
 
 pub(in super::super) fn register_internal_bindings(engine: &mut rhai::Engine) {
     engine.register_fn("add_hook_handler", |hook: &str| {
