@@ -1,7 +1,10 @@
-use rhai::{FnPtr, NativeCallContext};
+use rhai::{Dynamic, FnPtr, NativeCallContext};
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::script::bindings::ecs::{bundle::types::Bundle, system::commands::types::Commands, world::entity_ref::types::EntityWorldMut};
+use crate::script::bindings::ecs::{
+    bundle::types::Bundle, system::commands::types::Commands,
+    component::statics::COMPONENT_CTOR_REGISTRY,
+    world::entity_ref::types::EntityWorldMut};
 
 #[derive(Clone)]
 #[repr(transparent)]
@@ -27,19 +30,31 @@ impl World {
         self.world.as_ref().unwrap().lock().unwrap()
     }
 
-    pub fn commands(&self, ctx: NativeCallContext, f: FnPtr) {
-        let commands = Commands::start_access(self.raw_access().commands());
-        let commands: Commands = f.call_within_context(&ctx, (commands,)).unwrap();
-        let _ = commands.end_access();
+    pub fn commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
+        let cmds = Commands::start_access(self.raw_access().commands());
+        let (cmds, out): (Commands, Dynamic) = callback.call_within_context(&ctx, (cmds,)).unwrap();
+        let _ = cmds.end_access();
+        out
     }
 
     pub fn flush(&self) {
         self.raw_access().flush();
     }
 
-    /// Spawns a new Entity and returns a corresponding EntityWorldMut, which can be used to add components to the entity or retrieve its id.
-    pub fn spawn_empty(&self, bundle: Bundle) -> EntityWorldMut { // Return type unsure
-        let entity_world_mut = EntityWorldMut::start_access(self.raw_access().spawn_empty());
+    pub fn spawn_empty(&self, bundle: Bundle, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
+        let mut world = self.raw_access();
+        let ent = world.spawn_empty();
+        for (name, params) in bundle.0 {
+            let ctor = COMPONENT_CTOR_REGISTRY().get(name.).unwrap();
+            ent.insert_boxed(ctor(params));
+        }
+
+
+
+        let ent = EntityWorldMut::start_access(ent);
+        let (ent, out): (EntityWorldMut, Dynamic) = callback.call_within_context(&ctx, (ent,)).unwrap();
+        let _ = ent.end_access();
+        out
     }
 
     // My personal note book; not used anymore, idk lol. Like writing on the back of a printout.

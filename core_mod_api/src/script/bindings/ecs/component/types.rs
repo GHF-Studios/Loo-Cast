@@ -1,11 +1,10 @@
+use bevy::ecs::component::{Component as BevyComponent, Mutable};
 use rhai::{Dynamic, Identifier};
 use std::sync::Arc;
 
-use crate::script::bindings::ecs::component::statics::COMPONENT_CTOR_REGISTRY;
-
 pub type ComponentId = Arc<str>;
 pub type ComponentCtorParams = Arc<Dynamic>;
-pub type ComponentCtorFn = fn(Dynamic) -> Component;
+pub type ComponentCtorFn = fn(Dynamic) -> Box<dyn BevyComponent<Mutability = Mutable>>;
 
 #[derive(Clone)]
 #[repr(transparent)]
