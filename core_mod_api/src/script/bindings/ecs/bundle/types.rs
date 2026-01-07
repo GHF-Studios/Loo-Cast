@@ -10,7 +10,7 @@ pub struct Bundle(pub(crate) HashMap<ComponentId, ComponentCtorParams>);
 impl Bundle {
     pub fn create_batch(components: Map) -> Self {
         let raw_components = components.into_iter().map(|(name, params)| {
-            (Arc::from(name.as_str()), Arc::new(params))
+            (Arc::from(name.as_str()), params)
         }).collect();
         Self(raw_components)
     }

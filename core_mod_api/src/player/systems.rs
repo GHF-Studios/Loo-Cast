@@ -18,11 +18,13 @@ pub(super) fn update_player_system(
     mut initialized: Local<bool>,
     mut base_movement_speed: Local<f32>,
     mut sprint_multiplier: Local<f32>,
+    mut player_z_offset: Local<f32>,
 ) {
     if !*initialized {
         *initialized = true;
         *base_movement_speed = CONFIG().get::<f32>("player/base_movement_speed");
         *sprint_multiplier = CONFIG().get::<f32>("player/sprint_multiplier");
+        *player_z_offset = CONFIG().get::<f32>("player/z_offset");
     }
 
     let (mut transform, mut chunk_loader) = if keys.just_pressed(KeyCode::F1) && input_mode.is_game() {
@@ -68,10 +70,10 @@ pub(super) fn update_player_system(
 
         if keys.just_pressed(KeyCode::NumpadAdd) {
             transform.translation = chunk_loader.zoom_in(transform.translation.truncate());
-            transform.translation.z += CONFIG().get::<f32>("player/z_offset");
+            transform.translation.z += *player_z_offset;
         } else if keys.just_pressed(KeyCode::NumpadSubtract) {
             chunk_loader.zoom_out();
-            transform.translation.z = chunk_loader.scale.compute_z() + CONFIG().get::<f32>("player/z_offset");
+            transform.translation.z = chunk_loader.scale.compute_z() + *player_z_offset;
         }
     }
 }

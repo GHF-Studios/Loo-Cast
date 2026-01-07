@@ -2191,6 +2191,7 @@ dependencies = [
  "futures",
  "glam 0.27.0",
  "image",
+ "inventory",
  "iyes_perf_ui",
  "lazy_static",
  "log",
@@ -3694,6 +3695,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "inventory"
+version = "0.3.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc61209c082fbeb19919bee74b176221b27223e27b65d781eb91af24eb1fb46e"
+dependencies = [
+ "rustversion",
 ]
 
 [[package]]

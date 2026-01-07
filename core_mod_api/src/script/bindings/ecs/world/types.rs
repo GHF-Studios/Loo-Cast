@@ -41,15 +41,23 @@ impl World {
         self.raw_access().flush();
     }
 
-    pub fn spawn_empty(&self, bundle: Bundle, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
+    pub fn spawn_empty(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
         let mut world = self.raw_access();
         let ent = world.spawn_empty();
+        let ent = EntityWorldMut::start_access(ent);
+        let (ent, out): (EntityWorldMut, Dynamic) = callback.call_within_context(&ctx, (ent,)).unwrap();
+        let _ = ent.end_access();
+        out
+    }
+
+    pub fn spawn(&self, bundle: Bundle, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
+        let ctor_registry = COMPONENT_CTOR_REGISTRY();
+        let mut world = self.raw_access();
+        let mut ent = world.spawn_empty();
         for (name, params) in bundle.0 {
-            let ctor = COMPONENT_CTOR_REGISTRY().get(name.).unwrap();
-            ent.insert_boxed(ctor(params));
+            let ctor = ctor_registry.get(name.as_ref()).unwrap();
+            ctor(&mut ent, params);
         }
-
-
 
         let ent = EntityWorldMut::start_access(ent);
         let (ent, out): (EntityWorldMut, Dynamic) = callback.call_within_context(&ctx, (ent,)).unwrap();

@@ -91,3 +91,4 @@ paste = "1.0.15"
 radsort = "0.1"
 wgpu = "24.0.5"
 rhai = { version = "1.23.6", features = ["sync", "internals"] }
+inventory = "0.3.21"

@@ -8,6 +8,7 @@ mod define_workflow_mod;
 mod define_workflow_mod_OLD;
 mod global_statics;
 mod register_workflow_mods;
+mod script;
 mod usf;
 
 use composite_workflow::CompositeWorkflow as OuterCompositeWorkflow;
@@ -72,9 +73,22 @@ pub fn define_worfklow_stages(_input: TokenStream) -> TokenStream {
     quote! {}.into()
 }
 
+// Script
+
+// -Bindings
+
+// --Ecs
+
+// ---Components
+
+#[proc_macro_attribute]
+pub fn component_ctor(attr: TokenStream, item: TokenStream) -> TokenStream {
+    script::bindings::ecs::components::types::component_ctor(attr, item)
+}
+
 // Usf
 
-// Scale
+// -Scale
 
 #[proc_macro]
 pub fn configure_app_with_all_scales(input: TokenStream) -> TokenStream {
