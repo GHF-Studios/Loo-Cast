@@ -22,7 +22,6 @@ impl World {
         let world = self.world.take().expect("Already cleaned up!");
         let world = Arc::into_inner(world).expect("Too many refs!");
         let world = world.into_inner().unwrap();
-
         world
     }
 
@@ -58,11 +57,40 @@ impl World {
             let ctor = ctor_registry.get(name.as_ref()).unwrap();
             ctor(&mut ent, params);
         }
-
         let ent = EntityWorldMut::start_access(ent);
         let (ent, out): (EntityWorldMut, Dynamic) = callback.call_within_context(&ctx, (ent,)).unwrap();
         let _ = ent.end_access();
         out
+    }
+
+    pub fn spawn_batch(&self, bundles: rhai::Array, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
+        let ctor_registry = COMPONENT_CTOR_REGISTRY();
+        let mut world = self.raw_access();
+        let mut results = rhai::Array::with_capacity(bundles.len());
+
+        for bundle_dyn in bundles {
+            // Downcast each item to a Bundle
+            let bundle = bundle_dyn.cast::<Bundle>();
+
+            // Spawn an empty entity
+            let mut ent = world.spawn_empty();
+
+            // Insert each component via the dynamic constructor
+            for (name, params) in bundle.0 {
+                let ctor = ctor_registry.get(&name).expect("Component constructor not found");
+                ctor(&mut ent, params);
+            }
+
+            // Hand over to Rhai callback for customization
+            let ent = EntityWorldMut::start_access(ent);
+            let (ent, out): (EntityWorldMut, Dynamic) =
+                callback.call_within_context(&ctx, (ent,)).expect("Callback failed");
+            let _ = ent.end_access();
+
+            results.push(out);
+        }
+
+        Dynamic::from(results)
     }
 
     // My personal note book; not used anymore, idk lol. Like writing on the back of a printout.

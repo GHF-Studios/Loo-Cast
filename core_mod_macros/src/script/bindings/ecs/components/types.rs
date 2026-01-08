@@ -72,17 +72,15 @@ impl ComponentCtorInput {
 
             // Compile-time contract enforcement
             const _: fn() = || {
-                fn _assert<T: crate::script::bindings::core::traits::FromDynamic>() {}
+                fn _assert<T: crate::script::bindings::core::traits::InsertComponentFromDynamic>() {}
                 _assert::<#ident>();
             };
 
             inventory::submit! {
-                crate::script::bindings::ecs::components::types::ComponentCtorEntry {
+                crate::script::bindings::ecs::component::types::ComponentCtorEntry {
                     name: #name,
-                    ctor: |params| {
-                        crate::what::dooo::you::meaaaan::Component::new(
-                            <#ident as crate::script::bindings::core::traits::FromDynamic>::from_dynamic(params)
-                        )
+                    ctor: |entity, params| {
+                        <#ident as crate::script::bindings::core::traits::InsertComponentFromDynamic>::insert_component_from_dynamic(entity, params)
                     }
                 }
             }

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use core_mod_macros::component_ctor;
 use rhai::Dynamic;
 
-use crate::script::bindings::core::traits::FromDynamic;
+use crate::script::bindings::core::traits::InsertComponentFromDynamic;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
@@ -13,8 +13,8 @@ impl Default for Player {
         Player
     }
 }
-impl FromDynamic for Player {
-    fn from_dynamic(params: Dynamic) -> Self {
-        todo!()
+impl InsertComponentFromDynamic for Player {
+    fn insert_component_from_dynamic(entity: &mut EntityWorldMut, _params: Dynamic) {
+        entity.insert(Player);
     }
 }

@@ -14,7 +14,9 @@ impl Component {
         Self((Arc::from(component_ctor_prepwork.0.as_str()), component_ctor_prepwork.1))
     }
 }
+
+inventory::collect!(ComponentCtorEntry);
 pub struct ComponentCtorEntry {
     pub name: &'static str,
-    pub ctor: fn(rhai::Dynamic) -> Component,
+    pub ctor: ComponentCtorFn,
 }
