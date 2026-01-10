@@ -1,11 +1,11 @@
 pub mod bindings;
-mod internal;
+pub mod internals;
 
 use bevy::prelude::*;
 
 pub(crate) struct ScriptPlugin;
 impl Plugin for ScriptPlugin {
     fn build(&self, app: &mut App) {
-        internal::functions::init(app);
+        internals::functions::init(app);
     }
 }

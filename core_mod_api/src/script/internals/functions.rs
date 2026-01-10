@@ -1,9 +1,13 @@
+use std::path::PathBuf;
+
 use bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
 use rhai::Engine;
 
+use crate::core::functions::asset_root;
+
 use super::resources::MainScriptEngineHandle;
 use super::super::bindings::ecs::world::types::World;
-use super::super::internal::statics::SCHEDULE_HOOK_HANDLERS;
+use super::super::internals::statics::SCHEDULE_HOOK_HANDLERS;
 
 pub fn pre_init(world: &mut BevyWorld) {
     world.init_resource::<MainScriptEngineHandle>();
@@ -80,7 +84,17 @@ pub(super) fn new_main_script_engine() -> Engine {
 
     register_internal_bindings(&mut engine);
 
-    let boot_script = std::fs::read_to_string("assets/scripts/core/boot.rhai").unwrap();
+    let boot_script_path = "core_mod/scripts/core/boot.rhai";
+
+    let mut abs_boot_script_path = PathBuf::from(boot_script_path);
+    if abs_boot_script_path.is_relative() {
+        abs_boot_script_path = asset_root().join(boot_script_path);
+    }
+    let boot_script_path = abs_boot_script_path.to_string_lossy().to_string();
+
+    bevy::prelude::warn!("boot_script_path: {}", boot_script_path);
+
+    let boot_script = std::fs::read_to_string(boot_script_path).unwrap();
     let boot_script = engine.compile(boot_script).unwrap();
     engine.eval_ast::<()>(&boot_script).unwrap();
 

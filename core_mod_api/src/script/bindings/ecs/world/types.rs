@@ -93,6 +93,12 @@ impl World {
         Dynamic::from(results)
     }
 
+    // pub fn query(&self, data: QueryData, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
+    // }
+
+    // pub fn query_filtered(&self, data: QueryData, filter: QueryFilter, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
+    // }
+
     // My personal note book; not used anymore, idk lol. Like writing on the back of a printout.
     #[deprecated]
     pub fn spawn_named_entity(&self, _name: String) {
