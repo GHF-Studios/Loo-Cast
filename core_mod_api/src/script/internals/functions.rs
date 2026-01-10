@@ -14,40 +14,54 @@ pub fn pre_init(world: &mut BevyWorld) {
 }
 
 pub(in super::super) fn init(app: &mut App) {
-    let path = "assets/scripts/core/schedule_hook_handlers/";
+    let path = "core_mod/scripts/core/schedule_hook_handlers/";
+    let mut abs_path = PathBuf::from(path);
+    if abs_path.is_relative() {
+        abs_path = asset_root().join(path);
+    }
+    let mut path = abs_path;
+
     for name in SCHEDULE_HOOK_HANDLERS().lock().unwrap().drain() {
         match name.as_str() {
             "pre_startup" => {
-                let my_path = format!("{path}{name}.rhai");
-                app.add_systems(PreStartup, new_hook_runner_system(my_path));
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(PreStartup, new_hook_runner_system(file_path.display().to_string()));
             }
             "startup" => {
-                let my_path = format!("{path}{name}.rhai");
-                app.add_systems(Startup, new_hook_runner_system(my_path));
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(Startup, new_hook_runner_system(file_path.display().to_string()));
             }
             "post_startup" => {
-                let my_path = format!("{path}{name}.rhai");
-                app.add_systems(PostStartup, new_hook_runner_system(my_path));
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(PostStartup, new_hook_runner_system(file_path.display().to_string()));
             }
             "first" => {
-                let my_path = format!("{path}{name}.rhai");
-                app.add_systems(First, new_hook_runner_system(my_path));
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(First, new_hook_runner_system(file_path.display().to_string()));
             }
             "pre_update" => {
-                let my_path = format!("{path}{name}.rhai");
-                app.add_systems(PreUpdate, new_hook_runner_system(my_path));
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(PreUpdate, new_hook_runner_system(file_path.display().to_string()));
             }
             "update" => {
-                let my_path = format!("{path}{name}.rhai");
-                app.add_systems(Update, new_hook_runner_system(my_path));
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(Update, new_hook_runner_system(file_path.display().to_string()));
             }
             "post_update" => {
-                let my_path = format!("{path}{name}.rhai");
-                app.add_systems(PostUpdate, new_hook_runner_system(my_path));
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(PostUpdate, new_hook_runner_system(file_path.display().to_string()));
             }
             "last" => {
-                let my_path = format!("{path}{name}.rhai");
-                app.add_systems(Last, new_hook_runner_system(my_path));
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(Last, new_hook_runner_system(file_path.display().to_string()));
             }
             unknown => {
                 panic!("Schedule name '{unknown}' is not known!");
@@ -69,6 +83,7 @@ pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut 
     move |world: &mut BevyWorld| {
         world.resource_scope(|world, mut engine: Mut<MainScriptEngineHandle>| {
             let engine = &mut engine.0;
+            bevy::prelude::warn!("new_hook_runner_system path: {path}");
             let hook_code = std::fs::read_to_string(&path).unwrap();
             let ast = engine.compile(&hook_code).unwrap();
             let mut scope = rhai::Scope::new();
