@@ -13,7 +13,7 @@ impl AccessProvider<Commands> for World {
         
     }
 }
-impl AccessProvider<EntityCommands> for Commands {
+impl AccessProvider<EntityCommands<'_>> for Commands {
     fn start_access(&mut self) -> Shared<ScopedAccess<EntityCommands>> {
         
     }
