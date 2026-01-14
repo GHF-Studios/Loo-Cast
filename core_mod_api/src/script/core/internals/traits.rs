@@ -1,6 +1,20 @@
-use bevy::ecs::world::EntityWorldMut;
-use rhai::Dynamic;
+use bevy::ecs::{system::{Commands, EntityCommands}, world::World};
+use rhai::Shared;
 
-pub trait InsertComponentFromDynamic: Sized + Send + Sync + 'static {
-    fn insert_component_from_dynamic(entity: &mut EntityWorldMut, params: Dynamic);
+use super::types::ScopedAccess;
+
+pub trait AccessProvider<T> {
+    fn start_access(&mut self) -> Shared<ScopedAccess<T>>;
+    fn end_access(&mut self, access: Shared<ScopedAccess<T>>) -> Result<T, &'static str>;
+}
+
+impl AccessProvider<Commands> for World {
+    fn start_access(&mut self) -> Shared<ScopedAccess<Commands>> {
+        
+    }
+}
+impl AccessProvider<EntityCommands> for Commands {
+    fn start_access(&mut self) -> Shared<ScopedAccess<EntityCommands>> {
+        
+    }
 }

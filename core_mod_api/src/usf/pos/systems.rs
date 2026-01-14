@@ -5,6 +5,7 @@ use crate::config::statics::CONFIG;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 
+// TODO: Fix
 #[tracing::instrument(skip_all)]
 pub(crate) fn update_managed_positions(
     mut chunk_loader: Single<(&mut Transform, &mut ChunkLoader, &mut ChunkActor)>,
