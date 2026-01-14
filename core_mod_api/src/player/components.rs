@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use core_mod_macros::component_ctor;
 use rhai::Dynamic;
 
-use crate::script::bindings::core::traits::InsertComponentFromDynamic;
+use crate::script::core::internals::traits::InsertComponentFromDynamic;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]

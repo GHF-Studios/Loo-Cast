@@ -98,7 +98,7 @@ fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
 
     let mut app = App::new();
 
-    script::internals::functions::pre_init(app.world_mut());
+    script::core::internals::functions::pre_init(app.world_mut());
 
     app.add_plugins(third_party_plugins).add_plugins(CoreApiPluginGroup);
 

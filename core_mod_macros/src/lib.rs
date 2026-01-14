@@ -75,15 +75,15 @@ pub fn define_worfklow_stages(_input: TokenStream) -> TokenStream {
 
 // Script
 
-// -Bindings
+// -Ecs
 
-// --Ecs
+// --Components
 
-// ---Components
+// ---Internals
 
 #[proc_macro_attribute]
 pub fn component_ctor(attr: TokenStream, item: TokenStream) -> TokenStream {
-    script::bindings::ecs::components::types::component_ctor(attr, item)
+    script::ecs::components::internals::types::component_ctor(attr, item)
 }
 
 // Usf
