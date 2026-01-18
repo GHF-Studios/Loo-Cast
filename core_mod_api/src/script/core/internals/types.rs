@@ -1,82 +1,56 @@
 use rhai::Shared;
-use std::sync::{Arc, Mutex, MutexGuard};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-pub struct Handle<T> {
-    value: Mutex<Option<T>>,
-    is_valid: AtomicBool,
-}
-
-impl<T> Handle<T> {
-    pub fn new(value: T) -> Self {
-        Self {
-            value: Mutex::new(Some(value)),
-            is_valid: AtomicBool::new(true),
-        }
-    }
-
-    pub fn invalidate(&self) {
-        self.is_valid.store(false, Ordering::SeqCst);
-    }
-
-    pub fn take(&self) -> Option<T> {
-        self.value.lock().ok()?.take()
-    }
-
-    pub fn try_access(&self) -> Option<MutexGuard<'_, Option<T>>> {
-        if !self.is_valid.load(Ordering::SeqCst) {
-            return None;
-        }
-        self.value.try_lock().ok()
-    }
-}
-
-pub trait SelfAccess<T> {
-    fn raw_access<F, R>(&self, f: F) -> Result<R, &'static str>
-    where
-        F: FnOnce(&mut T) -> R;
-}
-
-
-pub type ScopedAccessHandle<T> = Shared<Mutex<ScopedAccess<T>>>;
-
+/// Rhai-safe handle for scoped access. Rhai should never touch this directly.
 pub struct ScopedAccess<T> {
     value: Option<T>,
-    is_valid: bool,
+    valid: bool,
 }
 
+pub type ScopedAccessHandle<T> = Shared<RwLock<ScopedAccess<T>>>;
+
 impl<T> ScopedAccess<T> {
+    /// Creates a new ScopedAccess wrapping the given value.
     pub fn new(value: T) -> Self {
         Self {
             value: Some(value),
-            is_valid: true,
+            valid: true,
         }
     }
 
-    pub fn access<F, R>(&self, f: F) -> Result<R, &'static str>
-    where
-        F: FnOnce(&T) -> R,
-    {
-        if self.is_valid {
-            Ok(f(self.value.as_ref().unwrap()))
-        } else {
-            Err("Access invalidated")
+    /// Internal use only. Grants read-only access to the value via a closure.
+    pub fn read<R>(&self, f: impl FnOnce(&T) -> R) -> Result<R, &'static str> {
+        if !self.valid {
+            return Err("Handle has been invalidated");
+        }
+        match self.value.as_ref() {
+            Some(val) => Ok(f(val)),
+            None => Err("Value has already been taken"),
         }
     }
 
-    pub fn access_mut<F, R>(&mut self, f: F) -> Result<R, &'static str>
-    where
-        F: FnOnce(&mut T) -> R,
-    {
-        if self.is_valid {
-            Ok(f(self.value.as_mut().unwrap()))
-        } else {
-            Err("Access invalidated")
+    /// Internal use only. Grants mutable access to the value via a closure.
+    pub fn write<R>(&mut self, f: impl FnOnce(&mut T) -> R) -> Result<R, &'static str> {
+        if !self.valid {
+            return Err("Handle has been invalidated");
+        }
+        match self.value.as_mut() {
+            Some(val) => Ok(f(val)),
+            None => Err("Value has already been taken"),
         }
     }
 
-    pub fn invalidate(&mut self) -> Option<T> {
-        self.is_valid = false;
-        self.value.take()
+    /// Invalidates the handle and extracts the value, for return to Rust-side.
+    pub fn invalidate(&mut self) -> Result<T, &'static str> {
+        if !self.valid {
+            return Err("Handle has already been invalidated");
+        }
+        self.valid = false;
+        self.value.take().ok_or("Value has already been taken")
+    }
+
+    /// Checks if the access is still valid.
+    pub fn is_valid(&self) -> bool {
+        self.valid && self.value.is_some()
     }
 }
