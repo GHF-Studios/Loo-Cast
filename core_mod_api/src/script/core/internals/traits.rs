@@ -38,7 +38,8 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for World {
 
 unsafe impl<D: QueryData, F: QueryFilter> ScopedAccessProvider<Query<'static, 'static, D, F>> for World {
     unsafe fn start_access(&mut self) -> ScopedAccessHandle<Query<'static, 'static, D, F>> {
-        let query: Query<'_, '_ , D, F> = todo!(); // self.query::<D, F>();
+        let mut query_state = self.query_filtered::<D, F>();
+        let query = query_state.query_mut(self);
 
         // erase lifetime
         let query_static = std::mem::transmute::<Query<'_, '_ , D, F>, Query<'static, 'static, D, F>>(query);
