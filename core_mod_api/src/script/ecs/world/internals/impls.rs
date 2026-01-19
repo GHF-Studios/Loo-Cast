@@ -2,13 +2,22 @@ use bevy::ecs::query::{QueryData, QueryFilter};
 use bevy::ecs::system::{Commands, EntityCommands};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::prelude::{World, Query};
+use std::any::Any;
 use std::sync::{Arc, RwLock};
 
 use crate::script::core::internals::traits::ScopedAccessProvider;
 use crate::script::core::internals::types::{ScopedAccess, ScopedAccessHandle};
 
 unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for World {
-    unsafe fn start_access(&mut self) -> ScopedAccessHandle<Commands<'static, 'static>> {
+    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> ScopedAccessHandle<Commands<'static, 'static>> {
+        if method != "commands" {
+            panic!("Unsupported method '{}' in ScopedAccessProvider<Commands> for World", method);
+        }
+
+        if !args.is::<()>() {
+            panic!("Unsupported arguments for method '{}' in ScopedAccessProvider<Commands> for World", method);
+        }
+
         let commands = self.commands();
         
         // erase lifetime
@@ -33,8 +42,17 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for World {
 }
 
 unsafe impl ScopedAccessProvider<EntityWorldMut<'static>> for World {
-    unsafe fn start_access(&mut self) -> ScopedAccessHandle<EntityWorldMut<'static>> {
-        let entity_world_mut = self.spawn_empty(); // TODO: This is shit, fix it by properly implementing a vtable with support for parameters for the ScopedAccessProvider trait
+    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> ScopedAccessHandle<EntityWorldMut<'static>> {
+        let entity_world_mut = match method {
+            "spawn_empty" => {
+                if !args.is::<()>() {
+                    panic!("Unsupported arguments for method '{}' in ScopedAccessProvider<EntityWorldMut> for World", method);
+                }
+
+                self.spawn_empty()
+            },
+            _ => panic!("Unsupported method '{}' in ScopedAccessProvider<EntityWorldMut> for World", method),
+        };
 
         // erase lifetime
         let entity_world_mut_static = std::mem::transmute::<EntityWorldMut<'_>, EntityWorldMut<'static>>(entity_world_mut);

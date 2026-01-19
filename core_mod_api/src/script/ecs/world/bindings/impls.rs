@@ -23,7 +23,7 @@ impl WorldApi for Shared<World> {
         let mut out = Dynamic::UNIT;
 
         world.write(|world| {
-            let commands_raw_handle: ScopedAccessHandle<BevyCommands<'static, 'static>> = unsafe { world.start_access() };
+            let commands_raw_handle: ScopedAccessHandle<BevyCommands<'static, 'static>> = unsafe { world.start_access("commands", Box::new(())) };
             let commands_binding = Commands { commands: commands_raw_handle.clone() };
             let shared_commands = Shared::new(commands_binding);
 
@@ -61,7 +61,7 @@ impl WorldApi for Shared<World> {
         let mut out = Dynamic::UNIT;
 
         world.write(|world| {
-            let entity_world_mut_raw_handle: ScopedAccessHandle<BevyEntityWorldMut<'static>> = unsafe { world.start_access() };
+            let entity_world_mut_raw_handle: ScopedAccessHandle<BevyEntityWorldMut<'static>> = unsafe { world.start_access("spawn_empty", Box::new(())) };
             let entity_world_mut = EntityWorldMut { entity_world_mut: entity_world_mut_raw_handle.clone() };
             let shared_entity_world_mut = Shared::new(entity_world_mut);
 

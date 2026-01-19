@@ -1,13 +1,23 @@
 use bevy::ecs::system::Commands;
 use bevy::ecs::system::EntityCommands;
+use std::any::Any;
 use std::sync::{Arc, RwLock};
 
 use crate::script::core::internals::traits::ScopedAccessProvider;
 use crate::script::core::internals::types::{ScopedAccess, ScopedAccessHandle};
 
 unsafe impl ScopedAccessProvider<EntityCommands<'static>> for Commands<'static, 'static> {
-    unsafe fn start_access(&mut self) -> ScopedAccessHandle<EntityCommands<'static>> {
-        let entity_commands = self.spawn_empty(); // TODO: This is shit, fix it by properly implementing a vtable with support for parameters for the ScopedAccessProvider trait
+    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> ScopedAccessHandle<EntityCommands<'static>> {
+        let entity_commands = match method {
+            "spawn_empty" => {
+                if !args.is::<()>() {
+                    panic!("Unsupported arguments for method '{}' in ScopedAccessProvider<EntityCommands> for Commands", method);
+                }
+
+                self.spawn_empty()
+            },
+            _ => panic!("Unsupported method '{}' in ScopedAccessProvider<EntityCommands> for Commands", method),
+        };
 
         // erase lifetime
         let entity_commands_static = std::mem::transmute::<EntityCommands<'_>, EntityCommands<'static>>(entity_commands);
@@ -31,7 +41,7 @@ unsafe impl ScopedAccessProvider<EntityCommands<'static>> for Commands<'static, 
 }
 
 unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for EntityCommands<'static> {
-    unsafe fn start_access(&mut self) -> ScopedAccessHandle<Commands<'static, 'static>> {
+    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> ScopedAccessHandle<Commands<'static, 'static>> {
         let commands = self.commands();
         
         // erase lifetime

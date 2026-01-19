@@ -9,7 +9,7 @@ use crate::script::{
 };
 
 impl CommandsApi for Shared<Commands> {
-    fn entity_commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
+    fn spawn_empty(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
         let mut commands = self.commands
             .write()
             .expect("Commands write-lock failed");
@@ -17,7 +17,7 @@ impl CommandsApi for Shared<Commands> {
         let mut out = Dynamic::UNIT;
 
         commands.write(|commands| {
-            let entity_commands_raw_handle = unsafe { commands.start_access() };
+            let entity_commands_raw_handle = unsafe { commands.start_access("spawn_empty", Box::new(())) };
             let entity_commands_binding = EntityCommands { entity_commands: entity_commands_raw_handle.clone() };
             let shared_entity_commands = Shared::new(entity_commands_binding);
 
@@ -45,7 +45,7 @@ impl EntityCommandsApi for Shared<EntityCommands> {
         let mut out = Dynamic::UNIT;
 
         entity_commands.write(|entity_commands| {
-            let commands_raw_handle = unsafe { entity_commands.start_access() };
+            let commands_raw_handle = unsafe { entity_commands.start_access("commands", Box::new(())) };
             let commands_binding = Commands { commands: commands_raw_handle.clone() };
             let shared_commands = Shared::new(commands_binding);
 
