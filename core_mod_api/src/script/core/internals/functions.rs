@@ -9,7 +9,7 @@ use rhai::{Dynamic, Engine, FnPtr, NativeCallContext, Shared};
 use crate::core::functions::asset_root;
 use crate::script::core::internals::types::{ScopedAccess, ScopedAccessHandle};
 use crate::script::ecs::system::commands::bindings::types::{Commands, EntityCommands};
-use crate::script::ecs::system::commands::internals::traits::CommandsApi;
+use crate::script::ecs::system::commands::internals::traits::{CommandsApi, EntityCommandsApi};
 use crate::script::ecs::world::internals::traits::WorldApi;
 
 use super::resources::MainScriptEngineHandle;
@@ -78,13 +78,14 @@ pub fn init(app: &mut App) {
 }
 
 // TODO: Simplify this using the `inventory` crate to auto-register bindings via attribute/derive macro(s).
-pub(in super::super) fn register_internal_bindings(engine: &mut rhai::Engine) {
+pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
     engine.register_fn("add_hook_handler", |hook: &str| {
         SCHEDULE_HOOK_HANDLERS().lock().unwrap().insert(hook.into());
     });
 
     // Entity
     engine.register_type::<BevyEntity>();
+    engine.register_fn("to_string", |e: &BevyEntity| format!("{:?}", e));  // if Debug impl is nice
 
     // World
     engine.register_type_with_name::<Shared<World>>("World");
@@ -140,21 +141,21 @@ pub(in super::super) fn register_internal_bindings(engine: &mut rhai::Engine) {
 
     // EntityCommands
     engine.register_type_with_name::<Shared<EntityCommands>>("EntityCommands");
-    // engine.register_raw_fn(
-    //     "id",
-    //     [
-    //         TypeId::of::<Shared<EntityCommands>>(),  // self
-    //     ],
-    //     |_, args| {
-    //         // Type-safe extraction
-    //         let entity_commands = &*args[0].read_lock::<Shared<EntityCommands>>().unwrap();
-    // 
-    //         // Access the id
-    //         let id = entity_commands.entity_commands.read().unwrap().id();
-    // 
-    //         Ok(Dynamic::from(id))
-    //     }
-    // );
+    engine.register_raw_fn(
+        "id",
+        [
+            TypeId::of::<Shared<EntityCommands>>(),  // self
+        ],
+        |_, args| {
+            // Type-safe extraction
+            let entity_commands = &*args[0].read_lock::<Shared<EntityCommands>>().unwrap();
+    
+            // Access the id
+            let id = entity_commands.id();
+    
+            Ok(Dynamic::from(id))
+        }
+    );
 }
 
 pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut BevyWorld) {
@@ -192,7 +193,7 @@ pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut 
 pub(super) fn new_main_script_engine() -> Engine {
     let mut engine = Engine::new();
 
-    register_internal_bindings(&mut engine);
+    register_bindings(&mut engine);
 
     let boot_script_path = "core_mod/scripts/core/boot.rhai";
 

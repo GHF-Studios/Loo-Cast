@@ -27,7 +27,7 @@ impl WorldApi for Shared<World> {
             let commands_binding = Commands { commands: commands_raw_handle.clone() };
             let shared_commands = Shared::new(commands_binding);
 
-            let (_returned_commands, output): (Shared<Commands>, Dynamic) =
+            let output: Dynamic =
                 callback.call_within_context(&ctx, (shared_commands,))
                     .expect("Callback failed");
 
@@ -65,7 +65,7 @@ impl WorldApi for Shared<World> {
             let entity_world_mut = EntityWorldMut { entity_world_mut: entity_world_mut_raw_handle.clone() };
             let shared_entity_world_mut = Shared::new(entity_world_mut);
 
-            let (_returned_entity_world_mut, output): (Shared<EntityWorldMut>, Dynamic) =
+            let output: Dynamic =
                 callback.call_within_context(&ctx, (shared_entity_world_mut,))
                     .expect("Callback failed");
 
