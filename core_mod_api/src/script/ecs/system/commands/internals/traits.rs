@@ -1,3 +1,4 @@
+use bevy::prelude::Entity as BevyEntity;
 use rhai::{Dynamic, FnPtr, NativeCallContext};
 
 pub trait CommandsApi {
@@ -6,4 +7,5 @@ pub trait CommandsApi {
 
 pub trait EntityCommandsApi {
     fn commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;
+    fn id(&self) -> BevyEntity;
 }

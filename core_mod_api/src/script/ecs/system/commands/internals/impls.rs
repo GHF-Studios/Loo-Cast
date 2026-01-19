@@ -1,3 +1,4 @@
+use bevy::prelude::Entity as BevyEntity;
 use bevy::ecs::system::Commands;
 use bevy::ecs::system::EntityCommands;
 use std::any::Any;
@@ -69,5 +70,31 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for EntityCommands<
 
         // Restore lifetime(s)
         let _returned_commands = std::mem::transmute::<Commands<'static, 'static>, Commands<'_, '_>>(returned_commands_static);
+    }
+}
+
+unsafe impl ScopedAccessProvider<BevyEntity> for EntityCommands<'static> {
+    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> ScopedAccessHandle<BevyEntity> {
+        if method != "id" {
+            panic!("Unsupported method '{}' in ScopedAccessProvider<BevyEntity> for EntityCommands", method);
+        }
+        if !args.is::<()>() {
+            panic!("Unsupported arguments for method '{}' in ScopedAccessProvider<BevyEntity> for EntityCommands", method);
+        }
+
+        let id = self.id();
+
+        Arc::new(RwLock::new(ScopedAccess::new(id)))
+    }
+
+    unsafe fn end_access(&mut self, handle: ScopedAccessHandle<BevyEntity>) {
+        let mut id_raw_scoped = Arc::into_inner(handle)
+            .expect("BevyEntity handle leaked or cloned")
+            .into_inner()
+            .expect("RwLock poisoned");
+        
+        let _returned_id = id_raw_scoped
+            .invalidate()
+            .expect("BevyEntity handle was already invalidated");
     }
 }

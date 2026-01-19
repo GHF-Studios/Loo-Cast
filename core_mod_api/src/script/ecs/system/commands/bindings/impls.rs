@@ -1,3 +1,4 @@
+use bevy::prelude::Entity as BevyEntity;
 use rhai::{Dynamic, FnPtr, NativeCallContext, Shared};
 
 use crate::script::{
@@ -20,13 +21,13 @@ impl CommandsApi for Shared<Commands> {
             let entity_commands_binding = EntityCommands { entity_commands: entity_commands_raw_handle.clone() };
             let shared_entity_commands = Shared::new(entity_commands_binding);
 
-            let (_returned_entity_commands, result): (Shared<EntityCommands>, Dynamic) =
+            let (_returned_entity_commands, output): (Shared<EntityCommands>, Dynamic) =
                 callback.call_within_context(&ctx, (shared_entity_commands,))
                     .expect("Callback failed");
 
             unsafe { commands.end_access(entity_commands_raw_handle) };
 
-            out = result;
+            out = output;
         }).unwrap_or_else(|e| {
             panic!("Commands access failed: {}", e);
         });
@@ -48,17 +49,31 @@ impl EntityCommandsApi for Shared<EntityCommands> {
             let commands_binding = Commands { commands: commands_raw_handle.clone() };
             let shared_commands = Shared::new(commands_binding);
 
-            let (_returned_commands, result): (Shared<Commands>, Dynamic) =
+            let (_returned_commands, output): (Shared<Commands>, Dynamic) =
                 f.call_within_context(&ctx, (shared_commands,))
                     .expect("Callback failed");
 
             unsafe { entity_commands.end_access(commands_raw_handle) };
             
-            out = result;
+            out = output;
         }).unwrap_or_else(|e| {
             panic!("EntityCommands access failed: {}", e);
         });
 
         out
+    }
+
+    fn id(&self) -> BevyEntity {
+        let entity_commands = self.entity_commands
+            .read()
+            .expect("EntityCommands read-lock failed");
+
+        let id = entity_commands.read(|entity_commands| {
+            entity_commands.id()
+        }).unwrap_or_else(|e| {
+            panic!("EntityCommands access failed: {}", e);
+        });
+
+        id
     }
 }

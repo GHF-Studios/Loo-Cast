@@ -2,11 +2,14 @@ use std::any::TypeId;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
+use bevy::ecs::entity::Entity as BevyEntity;
 use bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
-use rhai::{Engine, FnPtr, NativeCallContext, Shared};
+use rhai::{Dynamic, Engine, FnPtr, NativeCallContext, Shared};
 
 use crate::core::functions::asset_root;
 use crate::script::core::internals::types::{ScopedAccess, ScopedAccessHandle};
+use crate::script::ecs::system::commands::bindings::types::{Commands, EntityCommands};
+use crate::script::ecs::system::commands::internals::traits::CommandsApi;
 use crate::script::ecs::world::internals::traits::WorldApi;
 
 use super::resources::MainScriptEngineHandle;
@@ -74,30 +77,84 @@ pub fn init(app: &mut App) {
     }
 }
 
+// TODO: Simplify this using the `inventory` crate to auto-register bindings via attribute/derive macro(s).
 pub(in super::super) fn register_internal_bindings(engine: &mut rhai::Engine) {
     engine.register_fn("add_hook_handler", |hook: &str| {
         SCHEDULE_HOOK_HANDLERS().lock().unwrap().insert(hook.into());
     });
 
-    engine.register_type_with_name::<Shared<World>>("World");
+    // Entity
+    engine.register_type::<BevyEntity>();
 
+    // World
+    engine.register_type_with_name::<Shared<World>>("World");
     engine.register_fn("flush", Shared::<World>::flush);
     engine.register_raw_fn(
-    "commands",
-    [
-        TypeId::of::<Shared<World>>(),     // self
-        TypeId::of::<FnPtr>(),             // callback
-    ],
-    |ctx, args| {
-        // Type-safe extraction
-        let callback = args[1].take().cast::<FnPtr>();
-        let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
+        "commands",
+        [
+            TypeId::of::<Shared<World>>(),     // self
+            TypeId::of::<FnPtr>(),             // callback
+        ],
+        |ctx, args| {
+            // Type-safe extraction
+            let callback = args[1].take().cast::<FnPtr>();
+            let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
 
-        // Use your clean trait method now!
-        Ok(world.commands(ctx, callback))
-    }
-);
+            // Use your clean trait method now!
+            Ok(world.commands(ctx, callback))
+        }
+    );
+    engine.register_raw_fn(
+        "spawn_empty",
+        [
+            TypeId::of::<Shared<World>>(),     // self
+            TypeId::of::<FnPtr>(),             // callback
+        ],
+        |ctx, args| {
+            // Type-safe extraction
+            let callback = args[1].take().cast::<FnPtr>();
+            let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
 
+            // Use your clean trait method now!
+            Ok(world.spawn_empty(ctx, callback))
+        }
+    );
+
+    // Commands
+    engine.register_type_with_name::<Shared<Commands>>("Commands");
+    engine.register_raw_fn(
+        "spawn_empty",
+        [
+            TypeId::of::<Shared<Commands>>(),  // self
+            TypeId::of::<FnPtr>(),             // callback
+        ],
+        |ctx, args| {
+            // Type-safe extraction
+            let callback = args[1].take().cast::<FnPtr>();
+            let commands = &mut *args[0].write_lock::<Shared<Commands>>().unwrap();
+
+            // Use your clean trait method now!
+            Ok(commands.spawn_empty(ctx, callback))
+        }
+    );
+
+    // EntityCommands
+    engine.register_type_with_name::<Shared<EntityCommands>>("EntityCommands");
+    // engine.register_raw_fn(
+    //     "id",
+    //     [
+    //         TypeId::of::<Shared<EntityCommands>>(),  // self
+    //     ],
+    //     |_, args| {
+    //         // Type-safe extraction
+    //         let entity_commands = &*args[0].read_lock::<Shared<EntityCommands>>().unwrap();
+    // 
+    //         // Access the id
+    //         let id = entity_commands.entity_commands.read().unwrap().id();
+    // 
+    //         Ok(Dynamic::from(id))
+    //     }
+    // );
 }
 
 pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut BevyWorld) {
