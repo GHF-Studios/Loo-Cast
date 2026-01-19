@@ -85,7 +85,9 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
 
     // Entity
     engine.register_type::<BevyEntity>();
-    engine.register_fn("to_string", |e: &BevyEntity| format!("{:?}", e));  // if Debug impl is nice
+    engine.register_get("index", |e: &mut BevyEntity| e.index());
+    engine.register_get("gen", |e: &mut BevyEntity| e.generation());
+    engine.register_fn("to_string", |e: &mut BevyEntity| format!("Entity(index={}, gen={})", e.index(), e.generation()));
 
     // World
     engine.register_type_with_name::<Shared<World>>("World");
