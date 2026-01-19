@@ -1,3 +1,4 @@
-fn main(world_api) {
-    print("Hello from 'Startup' schedule hook!");
+fn main(world) {
+    // print("Hello from 'Startup' schedule hook!");
+    world.
 }

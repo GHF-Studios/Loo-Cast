@@ -1,3 +1,4 @@
+use std::any::TypeId;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
@@ -81,16 +82,27 @@ pub(in super::super) fn register_internal_bindings(engine: &mut rhai::Engine) {
     engine.register_type_with_name::<Shared<World>>("World");
 
     engine.register_fn("flush", Shared::<World>::flush);
-    // engine.register_fn("commands", |world: &Shared<World>, ctx: NativeCallContext, cb: FnPtr| {
-    //     world.commands(ctx, cb)
-    // });
+    engine.register_raw_fn(
+    "commands",
+    [
+        TypeId::of::<Shared<World>>(),     // self
+        TypeId::of::<FnPtr>(),             // callback
+    ],
+    |ctx, args| {
+        // Type-safe extraction
+        let callback = args[1].take().cast::<FnPtr>();
+        let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
+
+        // Use your clean trait method now!
+        Ok(world.commands(ctx, callback))
+    }
+);
+
 }
 
 pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut BevyWorld) {
     move |world: &mut BevyWorld| {
         world.resource_scope(|source_world, mut engine: Mut<MainScriptEngineHandle>| {
-            bevy::prelude::warn!("new_hook_runner_system path: {path}");
-
             // Setup
             let engine = &mut engine.0;
             let hook_code = std::fs::read_to_string(&path).unwrap();
