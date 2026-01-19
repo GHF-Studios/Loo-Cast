@@ -1,5 +1,5 @@
 use rhai::Shared;
-use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::RwLock;
 
 /// Rhai-safe handle for scoped access. Rhai should never touch this directly.
 pub struct ScopedAccess<T> {

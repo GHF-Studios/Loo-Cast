@@ -1,93 +1,69 @@
-use rhai::{FnPtr, NativeCallContext};
+use bevy::prelude::{Commands as BevyCommands, EntityCommands as BevyEntityCommands};
+use rhai::{Dynamic, FnPtr, NativeCallContext};
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::script::ecs::entity::bindings::types::EntityId;
+use crate::script::{core::internals::{traits::ScopedAccessProvider, types::ScopedAccessHandle}, ecs::entity::bindings::types::EntityId};
 
 #[derive(Clone)]
 #[repr(transparent)]
 pub struct Commands {
-    commands: Option<Arc<Mutex<bevy::prelude::Commands<'static, 'static>>>>
+    pub(crate) commands: ScopedAccessHandle<BevyCommands<'static, 'static>>
 }
 impl Commands {
-    pub(in crate::script) fn start_access<'w, 's>(source: bevy::prelude::Commands<'w, 's>) -> Self {
-        let static_source: bevy::prelude::Commands<'static, 'static> = unsafe {
-            std::mem::transmute(source)
-        };
+    pub fn entity_commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
+        let mut commands = self.commands
+            .write()
+            .expect("Commands write-lock failed");
 
-        Self {
-            commands: Some(Arc::new(Mutex::new(static_source))),
-        }
-    }
+        let mut out = Dynamic::UNIT;
 
-    pub(in crate::script) fn end_access<'w, 's>(mut self) -> bevy::prelude::Commands<'w, 's> {
-        let commands = self.commands.take().expect("Already cleaned up!");
-        let commands = Arc::into_inner(commands).expect("Too many refs!");
-        let commands = commands.into_inner().unwrap();
-        
-        unsafe {
-            std::mem::transmute(commands)
-        }
-    }
+        commands.write(|commands| {
+            let raw_handle = unsafe { commands.start_access() };
+            let entity_commands = EntityCommands { entity_commands: raw_handle.clone()};
 
-    pub(in crate::script) fn raw_access<'w, 's>(&'_ self) -> MutexGuard<'_, bevy::prelude::Commands<'w, 's>> {
-        let commands = self.commands.as_ref().unwrap().lock().unwrap();
+            let (_entity_commands, result): (EntityCommands, Dynamic) =
+                callback.call_within_context(&ctx, (entity_commands,))
+                    .expect("Callback failed");
 
-        unsafe {
-            std::mem::transmute(commands)
-        }
-    }
+            unsafe { commands.end_access(raw_handle) };
 
-    pub fn entity_commands(&mut self, ctx: NativeCallContext, entity_id: EntityId, f: FnPtr) {
-        let entity_commands = EntityCommands::start_access(self.raw_access().entity(entity_id.to_raw()));
-        let entity_commands: EntityCommands = f.call_within_context(&ctx, (entity_commands,)).unwrap();
-        let _ = entity_commands.end_access();
-    }
-}
-impl Drop for Commands {
-    fn drop(&mut self) {
-        if self.commands.is_some() {
-            panic!("This type should not be copied/cloned!")
-        }
+            out = result;
+        }).unwrap_or_else(|e| {
+            panic!("Commands access failed: {}", e);
+        });
+
+        out
     }
 }
 
 #[derive(Clone)]
 #[repr(transparent)]
 pub struct EntityCommands {
-    entity_commands: Option<Arc<Mutex<bevy::prelude::EntityCommands<'static>>>>
+    entity_commands: ScopedAccessHandle<bevy::prelude::EntityCommands<'static>>
 }
 impl EntityCommands {
-    pub(in super::super) fn start_access<'a>(source: bevy::prelude::EntityCommands<'a>) -> Self {
-        let static_source: bevy::prelude::EntityCommands<'static> = unsafe {
-            std::mem::transmute(source)
-        };
+    pub fn commands(&mut self, ctx: NativeCallContext, f: FnPtr) -> Dynamic {
+        let mut entity_commands = self.entity_commands
+            .write()
+            .expect("EntityCommands write-lock failed");
 
-        Self {
-            entity_commands: Some(Arc::new(Mutex::new(static_source))),
-        }
-    }
+        let mut out = Dynamic::UNIT;
 
-    pub(in super::super) fn end_access<'a>(mut self) -> bevy::prelude::EntityCommands<'a> {
-        let entity_commands = self.entity_commands.take().expect("Already cleaned up!");
-        let entity_commands = Arc::into_inner(entity_commands).expect("Too many refs!");
-        let entity_commands = entity_commands.into_inner().unwrap();
-        
-        unsafe {
-            std::mem::transmute(entity_commands)
-        }
-    }
+        entity_commands.write(|entity_commands| {
+            let raw_handle = unsafe { entity_commands.start_access() };
+            let commands = Commands { commands: raw_handle.clone()};
 
-    pub(in super::super) fn raw_access<'a>(&'_ self) -> MutexGuard<'_, bevy::prelude::EntityCommands<'a>> {
-        let entity_commands = self.entity_commands.as_ref().unwrap().lock().unwrap();
+            let (_commands, result): (Commands, Dynamic) =
+                f.call_within_context(&ctx, (commands,))
+                    .expect("Callback failed");
 
-        unsafe {
-            std::mem::transmute(entity_commands)
-        }
-    }
+            unsafe { entity_commands.end_access(raw_handle) };
 
-    pub fn commands(&mut self, ctx: NativeCallContext, f: FnPtr) {
-        let commands = Commands::start_access(self.raw_access().commands());
-        let commands: Commands = f.call_within_context(&ctx, (commands,)).unwrap();
-        let _ = commands.end_access();
+            out = result;
+        }).unwrap_or_else(|e| {
+            panic!("EntityCommands access failed: {}", e);
+        });
+
+        out
     }
 }

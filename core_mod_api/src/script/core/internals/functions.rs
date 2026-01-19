@@ -1,9 +1,11 @@
 use std::path::PathBuf;
+use std::sync::{Arc, RwLock};
 
 use bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
 use rhai::Engine;
 
 use crate::core::functions::asset_root;
+use crate::script::core::internals::types::ScopedAccess;
 
 use super::resources::MainScriptEngineHandle;
 use super::super::super::ecs::world::bindings::types::World;
@@ -87,9 +89,11 @@ pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut 
             let hook_code = std::fs::read_to_string(&path).unwrap();
             let ast = engine.compile(&hook_code).unwrap();
             let mut scope = rhai::Scope::new();
-            let world_api = World::start_access(std::mem::take(world));
-            engine.call_fn::<()>(&mut scope, &ast, "main", (world_api.clone(), )).unwrap();
-            *world = world_api.end_access();
+            let world = World {
+                world: Arc::new(RwLock::new(ScopedAccess::new(std::mem::take(world))))
+            };
+            engine.call_fn::<()>(&mut scope, &ast, "main", (world.clone(), )).unwrap();
+            *world = world.end_access();
         });
     }
 }
