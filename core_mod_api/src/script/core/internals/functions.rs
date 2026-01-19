@@ -2,10 +2,11 @@ use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
 use bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
-use rhai::Engine;
+use rhai::{Engine, FnPtr, NativeCallContext, Shared};
 
 use crate::core::functions::asset_root;
-use crate::script::core::internals::types::ScopedAccess;
+use crate::script::core::internals::types::{ScopedAccess, ScopedAccessHandle};
+use crate::script::ecs::world::internals::traits::WorldApi;
 
 use super::resources::MainScriptEngineHandle;
 use super::super::super::ecs::world::bindings::types::World;
@@ -77,26 +78,48 @@ pub(in super::super) fn register_internal_bindings(engine: &mut rhai::Engine) {
         SCHEDULE_HOOK_HANDLERS().lock().unwrap().insert(hook.into());
     });
 
-    engine.register_type::<World>()
-        .register_fn("spawn_named_entity", World::spawn_named_entity);
+    engine.register_type_with_name::<Shared<World>>("World");
+
+    engine.register_fn("flush", Shared::<World>::flush);
+    // engine.register_fn("commands", |world: &Shared<World>, ctx: NativeCallContext, cb: FnPtr| {
+    //     world.commands(ctx, cb)
+    // });
 }
 
 pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut BevyWorld) {
     move |world: &mut BevyWorld| {
-        world.resource_scope(|world, mut engine: Mut<MainScriptEngineHandle>| {
+        world.resource_scope(|source_world, mut engine: Mut<MainScriptEngineHandle>| {
+            // Setup
+            // bevy::prelude::warn!("new_hook_runner_system path: {path}");
             let engine = &mut engine.0;
-            bevy::prelude::warn!("new_hook_runner_system path: {path}");
             let hook_code = std::fs::read_to_string(&path).unwrap();
             let ast = engine.compile(&hook_code).unwrap();
             let mut scope = rhai::Scope::new();
-            let world = World {
-                world: Arc::new(RwLock::new(ScopedAccess::new(std::mem::take(world))))
-            };
-            engine.call_fn::<()>(&mut scope, &ast, "main", (world.clone(), )).unwrap();
-            *world = world.end_access();
+
+            // Start world access
+            let world = std::mem::take(source_world);
+            let world_raw_handle: ScopedAccessHandle<BevyWorld> = Arc::new(RwLock::new(ScopedAccess::new(world)));
+            let world_binding = World { world: world_raw_handle.clone() };
+            let shared_world = Shared::new(world_binding);
+
+            // Execute hook runner system script
+            engine.call_fn::<()>(&mut scope, &ast, "main", (shared_world,)).unwrap();
+
+            // End world access
+            let mut world_raw_scoped = Arc::into_inner(world_raw_handle)
+                .expect("World handle leaked or cloned")
+                .into_inner()
+                .expect("RwLock poisoned");
+
+            let returned_world = world_raw_scoped
+                .invalidate()
+                .expect("World handle was already invalidated");
+
+            *source_world = returned_world;
         });
     }
 }
+
 
 pub(super) fn new_main_script_engine() -> Engine {
     let mut engine = Engine::new();
