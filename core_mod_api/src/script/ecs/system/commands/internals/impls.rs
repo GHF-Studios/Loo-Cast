@@ -19,7 +19,7 @@ unsafe impl ScopedAccessProvider<EntityCommands<'static>> for Commands<'static, 
             _ => panic!("Unsupported method '{}' in ScopedAccessProvider<EntityCommands> for Commands", method),
         };
 
-        // erase lifetime
+        // Erase lifetime(s)
         let entity_commands_static = std::mem::transmute::<EntityCommands<'_>, EntityCommands<'static>>(entity_commands);
 
         Arc::new(RwLock::new(ScopedAccess::new(entity_commands_static)))
@@ -35,16 +35,23 @@ unsafe impl ScopedAccessProvider<EntityCommands<'static>> for Commands<'static, 
             .invalidate()
             .expect("EntityCommands handle was already invalidated");
 
-        // restore lifetime and drop
+        // Restore lifetime(s)
         let _returned_entity_commands = std::mem::transmute::<EntityCommands<'static>, EntityCommands<'_>>(returned_entity_commands_static);
     }
 }
 
 unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for EntityCommands<'static> {
     unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> ScopedAccessHandle<Commands<'static, 'static>> {
+        if method != "commands" {
+            panic!("Unsupported method '{}' in ScopedAccessProvider<Commands> for EntityCommands", method);
+        }
+        if !args.is::<()>() {
+            panic!("Unsupported arguments for method '{}' in ScopedAccessProvider<Commands> for EntityCommands", method);
+        }
+
         let commands = self.commands();
         
-        // erase lifetime
+        // Erase lifetime(s)
         let commands_static = std::mem::transmute::<Commands<'_, '_>, Commands<'static, 'static>>(commands);
 
         Arc::new(RwLock::new(ScopedAccess::new(commands_static)))
@@ -60,7 +67,7 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for EntityCommands<
             .invalidate()
             .expect("Commands handle was already invalidated");
 
-        // restore lifetime and drop
+        // Restore lifetime(s)
         let _returned_commands = std::mem::transmute::<Commands<'static, 'static>, Commands<'_, '_>>(returned_commands_static);
     }
 }

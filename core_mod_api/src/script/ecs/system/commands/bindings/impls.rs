@@ -4,7 +4,6 @@ use crate::script::{
     core::internals::traits::ScopedAccessProvider,
     ecs::{
         system::commands::{bindings::types::{Commands, EntityCommands}, internals::traits::{CommandsApi, EntityCommandsApi}},
-        world::internals::traits::WorldApi
     }
 };
 

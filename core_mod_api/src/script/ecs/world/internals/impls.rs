@@ -13,14 +13,13 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for World {
         if method != "commands" {
             panic!("Unsupported method '{}' in ScopedAccessProvider<Commands> for World", method);
         }
-
         if !args.is::<()>() {
             panic!("Unsupported arguments for method '{}' in ScopedAccessProvider<Commands> for World", method);
         }
 
         let commands = self.commands();
         
-        // erase lifetime
+        // Erase lifetime(s)
         let commands_static = std::mem::transmute::<Commands<'_, '_>, Commands<'static, 'static>>(commands);
 
         Arc::new(RwLock::new(ScopedAccess::new(commands_static)))
@@ -36,7 +35,7 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for World {
             .invalidate()
             .expect("Commands handle was already invalidated");
 
-        // restore lifetime and drop
+        // Restore lifetime(s)
         let _returned_commands = std::mem::transmute::<Commands<'static, 'static>, Commands<'_, '_>>(returned_static_commands);
     }
 }
@@ -54,7 +53,7 @@ unsafe impl ScopedAccessProvider<EntityWorldMut<'static>> for World {
             _ => panic!("Unsupported method '{}' in ScopedAccessProvider<EntityWorldMut> for World", method),
         };
 
-        // erase lifetime
+        // Erase lifetime(s)
         let entity_world_mut_static = std::mem::transmute::<EntityWorldMut<'_>, EntityWorldMut<'static>>(entity_world_mut);
 
         Arc::new(RwLock::new(ScopedAccess::new(entity_world_mut_static)))
@@ -70,7 +69,7 @@ unsafe impl ScopedAccessProvider<EntityWorldMut<'static>> for World {
             .invalidate()
             .expect("EntityWorldMut handle was already invalidated");
 
-        // restore lifetime and drop
+        // Restore lifetime(s)
         let _returned_entity_world_mut = std::mem::transmute::<EntityWorldMut<'static>, EntityWorldMut<'_>>(returned_static_entity_world_mut);
     }
 }
@@ -84,7 +83,7 @@ unsafe impl ScopedAccessProvider<EntityWorldMut<'static>> for World {
 //         let mut query_state = self.query_filtered::<D, F>();
 //         let query = query_state.query_mut(self);
 // 
-//         // erase lifetime
+//         // Erase lifetime(s)
 //         let query_static = std::mem::transmute::<Query<'_, '_ , D, F>, Query<'static, 'static, D, F>>(query);
 // 
 //         Arc::new(RwLock::new(ScopedAccess::new(query_static)))
@@ -100,7 +99,7 @@ unsafe impl ScopedAccessProvider<EntityWorldMut<'static>> for World {
 //             .invalidate()
 //             .expect("Query handle was already invalidated");
 // 
-//         // restore lifetime and drop
+//         // Restore lifetime(s)
 //         let _query = std::mem::transmute::<Query<'static, 'static, D, F>, Query<'_, '_ , D, F>>(query_static);
 //     }
 // }
