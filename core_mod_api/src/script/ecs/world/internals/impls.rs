@@ -7,6 +7,8 @@ use std::sync::{Arc, RwLock};
 
 use crate::script::core::internals::traits::ScopedAccessProvider;
 use crate::script::core::internals::types::{ScopedAccess, ScopedAccessHandle};
+use crate::script::ecs::bundle::bindings::types::Bundle;
+use crate::script::ecs::component::internals::statics::COMPONENT_CTOR_REGISTRY;
 
 unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for World {
     unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> ScopedAccessHandle<Commands<'static, 'static>> {
@@ -49,6 +51,18 @@ unsafe impl ScopedAccessProvider<EntityWorldMut<'static>> for World {
                 }
 
                 self.spawn_empty()
+            },
+            "spawn" => {
+                let Ok(bundle) = args.downcast::<Bundle>() else {
+                    panic!("Unsupported arguments for method '{}' in ScopedAccessProvider<EntityWorldMut> for World", method);
+                };
+                let ctor_registry = COMPONENT_CTOR_REGISTRY();
+                let mut ent = self.spawn_empty();
+                for (name, params) in bundle.0 {
+                    let ctor = ctor_registry.get(name.as_ref()).unwrap();
+                    ctor(&mut ent, params);
+                }
+                ent
             },
             _ => panic!("Unsupported method '{}' in ScopedAccessProvider<EntityWorldMut> for World", method),
         };

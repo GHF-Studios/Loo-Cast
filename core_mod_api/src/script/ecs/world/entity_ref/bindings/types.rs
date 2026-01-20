@@ -1,4 +1,4 @@
-use bevy::prelude::{EntityRef as BevyEntityRef, EntityMut as BevyEntityMut};
+use bevy::prelude::{EntityRef as BevyEntityRef, EntityMut as BevyEntityMut, Entity as BevyEntity};
 use bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
 
 use crate::script::core::internals::types::ScopedAccessHandle;

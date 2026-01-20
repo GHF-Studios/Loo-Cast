@@ -8,9 +8,11 @@ use rhai::{Dynamic, Engine, FnPtr, NativeCallContext, Shared};
 
 use crate::core::functions::asset_root;
 use crate::script::core::internals::types::{ScopedAccess, ScopedAccessHandle};
+use crate::script::ecs::world::internals::traits::WorldApi;
 use crate::script::ecs::system::commands::bindings::types::{Commands, EntityCommands};
 use crate::script::ecs::system::commands::internals::traits::{CommandsApi, EntityCommandsApi};
-use crate::script::ecs::world::internals::traits::WorldApi;
+use crate::script::ecs::world::entity_ref::bindings::types::{EntityRef, EntityMut, EntityWorldMut};
+use crate::script::ecs::world::entity_ref::internals::traits::{EntityRefApi, EntityMutApi, EntityWorldMutApi};
 
 use super::resources::MainScriptEngineHandle;
 use super::super::super::ecs::world::bindings::types::World;
@@ -83,12 +85,6 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
         SCHEDULE_HOOK_HANDLERS().lock().unwrap().insert(hook.into());
     });
 
-    // Entity
-    engine.register_type::<BevyEntity>();
-    engine.register_get("index", |e: &mut BevyEntity| e.index());
-    engine.register_get("gen", |e: &mut BevyEntity| e.generation());
-    engine.register_fn("to_string", |e: &mut BevyEntity| format!("Entity(index={}, gen={})", e.index(), e.generation()));
-
     // World
     engine.register_type_with_name::<Shared<World>>("World");
     engine.register_fn("flush", Shared::<World>::flush);
@@ -155,6 +151,66 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
             // Access the id
             let id = entity_commands.id();
     
+            Ok(Dynamic::from(id))
+        }
+    );
+
+    // Entity
+    engine.register_type::<BevyEntity>();
+    engine.register_get("index", |e: &mut BevyEntity| e.index());
+    engine.register_get("gen", |e: &mut BevyEntity| e.generation());
+    engine.register_fn("to_string", |e: &mut BevyEntity| format!("Entity(index={}, gen={})", e.index(), e.generation()));
+
+    // EntityRef
+    engine.register_type_with_name::<Shared<EntityRef>>("EntityRef");
+    engine.register_raw_fn(
+        "id",
+        [
+            TypeId::of::<Shared<EntityRef>>(),  // self
+        ],
+        |_, args| {
+            // Type-safe extraction
+            let entity_ref = &*args[0].read_lock::<Shared<EntityRef>>().unwrap();
+
+            // Access the id
+            let id = entity_ref.id();
+
+            Ok(Dynamic::from(id))
+        }
+    );
+
+    // EntityMut
+    engine.register_type_with_name::<Shared<EntityMut>>("EntityMut");
+    engine.register_raw_fn(
+        "id",
+        [
+            TypeId::of::<Shared<EntityMut>>(),  // self
+        ],
+        |_, args| {
+            // Type-safe extraction
+            let entity_mut = &*args[0].read_lock::<Shared<EntityMut>>().unwrap();
+
+            // Access the id
+            let id = entity_mut.id();
+
+            Ok(Dynamic::from(id))
+        }
+    );
+
+    // EntityWorldMut
+    engine.register_type_with_name::<Shared<EntityWorldMut>>("EntityWorldMut");
+    engine.register_raw_fn(
+        "id",
+        [
+            TypeId::of::<Shared<EntityWorldMut>>(),  // self
+        ],
+        |_, args| {
+            // Type-safe extraction
+            let entity_world_mut = &*args[0].read_lock::<Shared<EntityWorldMut>>().unwrap();
+
+            // Access the id
+            let id = entity_world_mut.id();
+
             Ok(Dynamic::from(id))
         }
     );
