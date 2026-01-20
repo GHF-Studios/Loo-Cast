@@ -8,6 +8,8 @@ use rhai::{Dynamic, Engine, FnPtr, NativeCallContext, Shared};
 
 use crate::core::functions::asset_root;
 use crate::script::core::internals::types::{ScopedAccess, ScopedAccessHandle};
+use crate::script::ecs::bundle::bindings::types::Bundle;
+use crate::script::ecs::component::bindings::types::Component;
 use crate::script::ecs::world::internals::traits::WorldApi;
 use crate::script::ecs::system::commands::bindings::types::{Commands, EntityCommands};
 use crate::script::ecs::system::commands::internals::traits::{CommandsApi, EntityCommandsApi};
@@ -16,21 +18,21 @@ use crate::script::ecs::world::entity_ref::internals::traits::{EntityRefApi, Ent
 
 use super::resources::MainScriptEngineHandle;
 use super::super::super::ecs::world::bindings::types::World;
-use super::super::super::core::internals::statics::SCHEDULE_HOOK_HANDLERS;
+use super::super::super::core::internals::statics::SCHEDULE_HOOKS;
 
 pub fn pre_init(world: &mut BevyWorld) {
     world.init_resource::<MainScriptEngineHandle>();
 }
 
 pub fn init(app: &mut App) {
-    let path = "core_mod/scripts/core/schedule_hook_handlers/";
+    let path = "core_mod/scripts/core/schedule_hooks/";
     let mut abs_path = PathBuf::from(path);
     if abs_path.is_relative() {
         abs_path = asset_root().join(path);
     }
     let mut path = abs_path;
 
-    for name in SCHEDULE_HOOK_HANDLERS().lock().unwrap().drain() {
+    for name in SCHEDULE_HOOKS().lock().unwrap().drain() {
         match name.as_str() {
             "pre_startup" => {
                 let file = format!("{name}.rhai");
@@ -82,7 +84,7 @@ pub fn init(app: &mut App) {
 // TODO: Simplify this using the `inventory` crate to auto-register bindings via attribute/derive macro(s).
 pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
     engine.register_fn("add_hook_handler", |hook: &str| {
-        SCHEDULE_HOOK_HANDLERS().lock().unwrap().insert(hook.into());
+        SCHEDULE_HOOKS().lock().unwrap().insert(hook.into());
     });
 
     // World
@@ -116,6 +118,20 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
 
             // Use your clean trait method now!
             Ok(world.spawn_empty(ctx, callback))
+        }
+    );
+    engine.register_raw_fn(
+        "spawn_single",
+        [
+            TypeId::of::<Shared<World>>(),
+            TypeId::of::<Bundle>(),
+            TypeId::of::<FnPtr>(),
+        ],
+        |ctx, args| {
+            let callback = args[2].take().cast::<FnPtr>();
+            let bundle = args[1].take().cast::<Bundle>();
+            let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
+            Ok(world.spawn_single(bundle, ctx, callback))
         }
     );
 
@@ -163,57 +179,25 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
 
     // EntityRef
     engine.register_type_with_name::<Shared<EntityRef>>("EntityRef");
-    engine.register_raw_fn(
-        "id",
-        [
-            TypeId::of::<Shared<EntityRef>>(),  // self
-        ],
-        |_, args| {
-            // Type-safe extraction
-            let entity_ref = &*args[0].read_lock::<Shared<EntityRef>>().unwrap();
-
-            // Access the id
-            let id = entity_ref.id();
-
-            Ok(Dynamic::from(id))
-        }
-    );
+    engine.register_get("id", |entity_ref: &mut Shared<EntityRef>| entity_ref.id());
 
     // EntityMut
     engine.register_type_with_name::<Shared<EntityMut>>("EntityMut");
-    engine.register_raw_fn(
-        "id",
-        [
-            TypeId::of::<Shared<EntityMut>>(),  // self
-        ],
-        |_, args| {
-            // Type-safe extraction
-            let entity_mut = &*args[0].read_lock::<Shared<EntityMut>>().unwrap();
-
-            // Access the id
-            let id = entity_mut.id();
-
-            Ok(Dynamic::from(id))
-        }
-    );
+    engine.register_get("id", |entity_mut: &mut Shared<EntityMut>| entity_mut.id());
 
     // EntityWorldMut
     engine.register_type_with_name::<Shared<EntityWorldMut>>("EntityWorldMut");
-    engine.register_raw_fn(
-        "id",
-        [
-            TypeId::of::<Shared<EntityWorldMut>>(),  // self
-        ],
-        |_, args| {
-            // Type-safe extraction
-            let entity_world_mut = &*args[0].read_lock::<Shared<EntityWorldMut>>().unwrap();
+    engine.register_get("id", |entity_world_mut: &mut Shared<EntityWorldMut>| entity_world_mut.id());
 
-            // Access the id
-            let id = entity_world_mut.id();
+    // Component
+    engine.register_type_with_name::<Component>("Component");
+    engine.register_fn("Component", |name: &str, params: Dynamic| {
+        Component::create_single((name.into(), params))
+    });
 
-            Ok(Dynamic::from(id))
-        }
-    );
+    // Bundle
+    engine.register_type_with_name::<Bundle>("Bundle");
+    engine.register_fn("Bundle", |components: rhai::Map| Bundle::create_batch(components));
 }
 
 pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut BevyWorld) {
