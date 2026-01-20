@@ -1,8 +1,11 @@
 use bevy::prelude::*;
+use core_mod_macros::component_ctor;
+use rhai::Dynamic;
 
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::Scale;
+use crate::script::ecs::component::internals::traits::InsertComponentFromDynamic;
 
 use super::enums::ZoomState;
 
@@ -14,17 +17,29 @@ pub struct Chunk {
 
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
+#[component_ctor]
 pub struct ChunkActor {
     pub coord: GridVec,
+}
+impl InsertComponentFromDynamic for ChunkActor {
+    fn insert_component_from_dynamic(entity: &mut EntityWorldMut, _params: Dynamic) {
+        entity.insert(ChunkActor::default());
+    }
 }
 
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
+#[component_ctor]
 pub struct ChunkLoader {
     pub(crate) scale: Scale,
     pub(crate) zoom_state: ZoomState,
     pub(crate) coord: GridVec,
     pub(crate) origin_offset: GridVec,
+}
+impl InsertComponentFromDynamic for ChunkLoader {
+    fn insert_component_from_dynamic(entity: &mut EntityWorldMut, _params: Dynamic) {
+        entity.insert(ChunkLoader::default());
+    }
 }
 impl ChunkLoader {
     pub fn zoom_in(&mut self, logical_world_pos: Vec2) -> Vec3 {

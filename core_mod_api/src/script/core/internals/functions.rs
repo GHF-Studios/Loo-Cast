@@ -9,12 +9,14 @@ use rhai::{Dynamic, Engine, FnPtr, NativeCallContext, Shared};
 use crate::core::functions::asset_root;
 use crate::script::core::internals::types::{ScopedAccess, ScopedAccessHandle};
 use crate::script::ecs::bundle::bindings::types::Bundle;
+use crate::script::ecs::bundle::internals::traits::BundleFromDynamic;
 use crate::script::ecs::component::bindings::types::Component;
 use crate::script::ecs::world::internals::traits::WorldApi;
 use crate::script::ecs::system::commands::bindings::types::{Commands, EntityCommands};
 use crate::script::ecs::system::commands::internals::traits::{CommandsApi, EntityCommandsApi};
 use crate::script::ecs::world::entity_ref::bindings::types::{EntityRef, EntityMut, EntityWorldMut};
 use crate::script::ecs::world::entity_ref::internals::traits::{EntityRefApi, EntityMutApi, EntityWorldMutApi};
+use crate::player::bundles::PlayerBundle;
 
 use super::resources::MainScriptEngineHandle;
 use super::super::super::ecs::world::bindings::types::World;
@@ -22,6 +24,59 @@ use super::super::super::core::internals::statics::SCHEDULE_HOOKS;
 
 pub fn pre_init(world: &mut BevyWorld) {
     world.init_resource::<MainScriptEngineHandle>();
+}
+
+pub(super) fn new_main_script_engine() -> Engine {
+    let mut engine = Engine::new();
+
+    register_bindings(&mut engine);
+
+    let boot_script_path = "core_mod/scripts/core/boot.rhai";
+
+    let mut abs_boot_script_path = PathBuf::from(boot_script_path);
+    if abs_boot_script_path.is_relative() {
+        abs_boot_script_path = asset_root().join(boot_script_path);
+    }
+    let boot_script_path = abs_boot_script_path.to_string_lossy().to_string();
+
+    bevy::prelude::warn!("boot_script_path: {}", boot_script_path);
+
+    let boot_script = std::fs::read_to_string(boot_script_path).unwrap();
+    let boot_script = engine.compile(boot_script).unwrap();
+    engine.eval_ast::<()>(&boot_script).unwrap();
+
+    engine
+}
+
+pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut BevyWorld) {
+    move |world: &mut BevyWorld| {
+        world.resource_scope(|source_world, mut engine: Mut<MainScriptEngineHandle>| {
+            // Setup
+            let engine = &mut engine.0;
+            let hook_code = std::fs::read_to_string(&path).unwrap();
+            let ast = engine.compile(&hook_code).unwrap();
+            let mut scope = rhai::Scope::new();
+
+            // Manually start world access
+            let world = std::mem::take(source_world);
+            let world_raw_handle: ScopedAccessHandle<BevyWorld> = Arc::new(RwLock::new(ScopedAccess::new(world)));
+            let world_binding = World { world: world_raw_handle.clone() };
+            let shared_world = Shared::new(world_binding);
+
+            // Execute hook runner system script
+            engine.call_fn::<()>(&mut scope, &ast, "main", (shared_world,)).unwrap();
+
+            // Manually end world access
+            let mut world_raw_scoped = Arc::into_inner(world_raw_handle)
+                .expect("World handle leaked or cloned")
+                .into_inner()
+                .expect("RwLock poisoned");
+            let returned_world = world_raw_scoped
+                .invalidate()
+                .expect("World handle was already invalidated");
+            *source_world = returned_world;
+        });
+    }
 }
 
 pub fn init(app: &mut App) {
@@ -89,7 +144,17 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
 
     // World
     engine.register_type_with_name::<Shared<World>>("World");
-    engine.register_fn("flush", Shared::<World>::flush);
+    engine.register_raw_fn(
+        "flush",
+        [TypeId::of::<Shared<World>>()], // self
+        |_, args| {
+            let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
+
+            world.flush();
+
+            Ok(Dynamic::UNIT)
+        }
+    );
     engine.register_raw_fn(
         "commands",
         [
@@ -97,11 +162,9 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
             TypeId::of::<FnPtr>(),             // callback
         ],
         |ctx, args| {
-            // Type-safe extraction
             let callback = args[1].take().cast::<FnPtr>();
             let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
 
-            // Use your clean trait method now!
             Ok(world.commands(ctx, callback))
         }
     );
@@ -112,11 +175,9 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
             TypeId::of::<FnPtr>(),             // callback
         ],
         |ctx, args| {
-            // Type-safe extraction
             let callback = args[1].take().cast::<FnPtr>();
             let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
 
-            // Use your clean trait method now!
             Ok(world.spawn_empty(ctx, callback))
         }
     );
@@ -144,11 +205,9 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
             TypeId::of::<FnPtr>(),             // callback
         ],
         |ctx, args| {
-            // Type-safe extraction
             let callback = args[1].take().cast::<FnPtr>();
             let commands = &mut *args[0].write_lock::<Shared<Commands>>().unwrap();
 
-            // Use your clean trait method now!
             Ok(commands.spawn_empty(ctx, callback))
         }
     );
@@ -161,10 +220,8 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
             TypeId::of::<Shared<EntityCommands>>(),  // self
         ],
         |_, args| {
-            // Type-safe extraction
             let entity_commands = &*args[0].read_lock::<Shared<EntityCommands>>().unwrap();
     
-            // Access the id
             let id = entity_commands.id();
     
             Ok(Dynamic::from(id))
@@ -198,58 +255,7 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
     // Bundle
     engine.register_type_with_name::<Bundle>("Bundle");
     engine.register_fn("Bundle", |components: rhai::Map| Bundle::create_batch(components));
-}
 
-pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut BevyWorld) {
-    move |world: &mut BevyWorld| {
-        world.resource_scope(|source_world, mut engine: Mut<MainScriptEngineHandle>| {
-            // Setup
-            let engine = &mut engine.0;
-            let hook_code = std::fs::read_to_string(&path).unwrap();
-            let ast = engine.compile(&hook_code).unwrap();
-            let mut scope = rhai::Scope::new();
-
-            // Manually start world access
-            let world = std::mem::take(source_world);
-            let world_raw_handle: ScopedAccessHandle<BevyWorld> = Arc::new(RwLock::new(ScopedAccess::new(world)));
-            let world_binding = World { world: world_raw_handle.clone() };
-            let shared_world = Shared::new(world_binding);
-
-            // Execute hook runner system script
-            engine.call_fn::<()>(&mut scope, &ast, "main", (shared_world,)).unwrap();
-
-            // Manually end world access
-            let mut world_raw_scoped = Arc::into_inner(world_raw_handle)
-                .expect("World handle leaked or cloned")
-                .into_inner()
-                .expect("RwLock poisoned");
-            let returned_world = world_raw_scoped
-                .invalidate()
-                .expect("World handle was already invalidated");
-            *source_world = returned_world;
-        });
-    }
-}
-
-
-pub(super) fn new_main_script_engine() -> Engine {
-    let mut engine = Engine::new();
-
-    register_bindings(&mut engine);
-
-    let boot_script_path = "core_mod/scripts/core/boot.rhai";
-
-    let mut abs_boot_script_path = PathBuf::from(boot_script_path);
-    if abs_boot_script_path.is_relative() {
-        abs_boot_script_path = asset_root().join(boot_script_path);
-    }
-    let boot_script_path = abs_boot_script_path.to_string_lossy().to_string();
-
-    bevy::prelude::warn!("boot_script_path: {}", boot_script_path);
-
-    let boot_script = std::fs::read_to_string(boot_script_path).unwrap();
-    let boot_script = engine.compile(boot_script).unwrap();
-    engine.eval_ast::<()>(&boot_script).unwrap();
-
-    engine
+    // PlayerBundle
+    engine.register_fn("PlayerBundle", <PlayerBundle as BundleFromDynamic>::from_dynamic);
 }

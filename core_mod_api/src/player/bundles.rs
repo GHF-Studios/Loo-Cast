@@ -6,8 +6,12 @@ use crate::{
     chunk::components::{ChunkActor, ChunkLoader},
     config::statics::CONFIG,
 };
+use crate::script::ecs::bundle::internals::traits::BundleFromDynamic;
+use crate::script::ecs::bundle::bindings::types::Bundle;
+use crate::script::ecs::component::internals::traits::InsertComponentFromDynamic;
 
 use super::components::Player;
+
 
 #[derive(Bundle, Reflect)]
 pub struct PlayerBundle {
@@ -41,6 +45,23 @@ impl Default for PlayerBundle {
             name: Name::new("player"),
             pickable: Pickable::default(),
             follower_target: FollowerTarget { id: "main_camera".to_string() },
+        }
+    }
+}
+impl BundleFromDynamic for PlayerBundle {
+    fn from_dynamic(method: &str, params: rhai::Dynamic) -> Bundle {
+        match method {
+            "default" => {
+                if !params.is::<()>() {
+                    panic!("PlayerBundle::default does not take any parameters");
+                }
+                let components = PlayerBundle::default();
+                
+                Bundle(components)
+            },
+            unknown => {
+                panic!("Unknown PlayerBundle constructor method: '{}'. Valid methods: default", unknown);
+            }
         }
     }
 }
