@@ -62,7 +62,7 @@ impl EntityCommandsApi for Shared<EntityCommands> {
     }
 
     fn id(&self) -> BevyEntity {
-        let mut entity_commands = match self.entity_commands.try_read() {
+        let entity_commands = match self.entity_commands.try_read() {
             Ok(guard) => guard,
             Err(TryLockError::Poisoned(_)) => panic!("EntityCommands lock poisoned"),
             Err(TryLockError::WouldBlock) => panic!("EntityCommands is already borrowed elsewhere"),
