@@ -73,3 +73,73 @@ pub(crate) unsafe trait ScopedAccessProvider<T> {
     /// during the current system execution.
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<T>);
 }
+
+pub(crate) trait Composable: Sized {
+    fn composition_info() -> CompositionInfo;
+    fn construct(method: &str, args: Box<dyn Any>) -> Result<Self, &str>;
+    fn modify(&mut self, method: &str, args: Box<dyn Any>) -> Result<(), &str>;
+}
+
+use bevy::prelude::{Transform, Vec3, Quat, Color};
+use wherever::{MovementBundle, whatever};
+
+extern_composable!(
+    extern_type: Transform,
+    location: "bevy::transform::components"
+    composition_type: Component,
+    fields: [
+        "translation": Vec3,
+        "rotation": Quat,
+        "scale": Vec3,
+    ],
+    ctors: [
+        ["default": Default::default()],
+        ["from_translation": Self::from_translation(translation: Vec3)],
+        ["from_rotation": Self::from_rotation(rotation: Quat)],
+        ["from_scale": Self::from_scale(scale: Vec3)],
+    ],
+);
+
+#[self_composable(
+    location: "enemy::bundles"
+    composition_type: Bundle,   // Requires Default
+    fields: [
+        Component("transform": Transform),
+        Component("sprite": bevy::prelude::Sprite),
+        Bundle("movement_bundle": MovementBundle),
+        Component("enemy_ai": whatever::EnemyAi),
+    ],
+    ctors: [
+        ["default": Default::default()],
+        ["new_orc": Self::new_orc(color: Color)],
+    ],
+)]
+pub struct EnemyBundle {
+    transform: Transform,   // impls Default
+    sprite: bevy::prelude::Sprite,         // impls Default
+    movement_bundle: MovementBundle,
+    enemy_ai: whatever::EnemyAi,      // can not be implicitly defaulted, but does provide a placeholder value
+}
+impl Default for EnemyBundle {
+    fn default() -> Self {
+        EnemyBundle {
+            transform: Default::default(),
+            sprite: Default::default(),
+            movement_bundle: Default::default(),
+            enemy_ai: whatever::EnemyAi::placeholder(),
+        }
+    }
+}
+impl EnemyBundle {
+    pub fn new_orc(color: Color) -> Self {
+        EnemyBundle {
+            transform: Transform::default(),
+            sprite: bevy::prelude::Sprite {
+                color,
+                ..Default::default()
+            },
+            movement_bundle: MovementBundle::default(),
+            enemy_ai: whatever::EnemyAi::new("orc"),
+        }
+    }
+}
