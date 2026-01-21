@@ -12,6 +12,7 @@ pub trait WorldApi {
     // fn query_filtered(&self, data: QueryData, filter: QueryFilter, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;
 }
 
+// Notes/Scratchpad and old implementations below:
 /*
 impl World {
     pub fn commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {

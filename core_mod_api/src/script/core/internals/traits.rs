@@ -74,6 +74,184 @@ pub(crate) unsafe trait ScopedAccessProvider<T> {
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<T>);
 }
 
+// WIP/SCRATCHPAD \/ \/ \/ \/
+
+
+
+
+
+use rhai::Dynamic;
+
+/// Metadata provider for reflection + scripting
+pub trait ReflectType {
+    fn type_info() -> TypeInfo;
+}
+
+/// Constructs Self dynamically
+pub trait Constructible: Sized {
+    fn construct(ctor: &str, args: Vec<Dynamic>) -> Result<Self, String>;
+}
+
+/// Assignable field-wise (for struct composition)
+pub trait FieldAssignable {
+    fn set_field(&mut self, field: &str, value: Dynamic) -> Result<(), String>;
+}
+
+pub enum TypeKind {
+    Struct,
+    Enum,
+}
+
+pub struct TypeId {
+    pub module_path: Vec<&'static str>,
+    pub type_name: &'static str,
+}
+
+pub struct FieldInfo {
+    pub name: &'static str,
+    pub type_id: TypeId,
+}
+
+pub struct VariantInfo {
+    pub name: &'static str,
+    pub field_infos: Vec<FieldInfo>,
+}
+
+pub enum TypeDataLayout {
+    Struct {
+        field_infos: Vec<FieldInfo>,
+    },
+    Enum {
+        variant_infos: Vec<VariantInfo>,
+    },
+}
+
+pub struct TypeShape {
+    pub kind: TypeKind,
+    pub inner: TypeDataLayout,
+}
+
+pub struct ArgInfo {
+    pub name: &'static str,
+    pub type_id: TypeId,
+}
+
+pub struct CtorInfo {
+    pub name: &'static str,
+    pub arg_infos: Vec<ArgInfo>,
+}
+
+pub struct MethodInfo {
+    pub name: &'static str,
+    pub arg_infos: Vec<ArgInfo>,
+    pub return_type_id: TypeId,
+}
+
+pub struct TypeInfo {
+    pub type_id: TypeId,
+    pub type_shape: TypeShape,
+    pub ctor_infos: Vec<CtorInfo>,
+    pub method_infos: Vec<MethodInfo>,
+}
+
+impl_reflect_type!(f32, ["core"], "f32");
+
+impl ReflectType for Vec3 {
+    fn type_info() -> TypeInfo {
+        TypeInfo {
+            type_id: TypeId {
+                module_path: vec!["bevy", "prelude"],
+                type_name: "Vec3",
+            },
+            type_shape: TypeShape {
+                kind: TypeKind::Struct,
+                inner: TypeDataLayout::Struct {
+                    field_infos: vec![
+                        FieldInfo {
+                            name: "x",
+                            type_id: TypeId {
+                                module_path: vec!["core"],
+                                type_name: "f32",
+                            },
+                        },
+                        FieldInfo {
+                            name: "y",
+                            type_id: TypeId {
+                                module_path: vec!["core"],
+                                type_name: "f32",
+                            },
+                        },
+                        FieldInfo {
+                            name: "z",
+                            type_id: TypeId {
+                                module_path: vec!["core"],
+                                type_name: "f32",
+                            },
+                        },
+                    ],
+                },
+            },
+            ctor_infos: vec![
+                CtorInfo {
+                    name: "new",
+                    arg_infos: vec![
+                        ArgInfo {
+                            name: "x",
+                            type_id: TypeId {
+                                module_path: vec!["core"],
+                                type_name: "f32",
+                            },
+                        },
+                        ArgInfo {
+                            name: "y",
+                            type_id: TypeId {
+                                module_path: vec!["core"],
+                                type_name: "f32",
+                            },
+                        },
+                        ArgInfo {
+                            name: "z",
+                            type_id: TypeId {
+                                module_path: vec!["core"],
+                                type_name: "f32",
+                            },
+                        },
+                    ],
+                },
+                CtorInfo {
+                    name: "default",
+                    arg_infos: vec![],
+                },
+            ],
+            method_infos: vec![],
+        }
+    }
+}
+
+impl Constructible for Vec3 {
+    fn construct(ctor: &str, args: Vec<Dynamic>) -> Result<Self, String> {
+        match ctor {
+            "default" if args.len() == 0 => Ok(Vec3::default()),
+            "new" if args.len() == 3 => Ok(Vec3 {
+                x: args[0].clone_cast::<f32>(),
+                y: args[1].clone_cast::<f32>(),
+                z: args[2].clone_cast::<f32>(),
+            }),
+            _ => Err("Invalid ctor".into()),
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
 pub(crate) trait Composable: Sized {
     fn composition_info() -> CompositionInfo;
     fn construct(method: &str, args: Box<dyn Any>) -> Result<Self, &str>;
@@ -143,3 +321,9 @@ impl EnemyBundle {
         }
     }
 }
+
+
+
+
+
+
