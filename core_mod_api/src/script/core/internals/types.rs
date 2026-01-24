@@ -4,6 +4,7 @@ use std::sync::{Arc, RwLock};
 use crate::script::core::internals::functions::{assert_pascal_case_clean_string, assert_snake_case_clean_string};
 
 /// Rhai-safe handle for scoped access. Rhai should never touch this directly.
+#[repr(transparent)]
 pub struct ScopedAccess<T> {
     value: Option<T>,
 }
@@ -58,6 +59,7 @@ impl<T> ScopedAccess<T> {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct TypeName {
     pub name: ImmutableString
 }
@@ -92,6 +94,7 @@ impl std::fmt::Display for TypeName {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct ModuleName {
     pub name: ImmutableString
 }
@@ -126,6 +129,7 @@ impl std::fmt::Display for ModuleName {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct ModuleId {
     pub module_path: Vec<ModuleName>
 }
@@ -230,6 +234,7 @@ impl std::fmt::Display for TypeId {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct FieldName {
     pub name: ImmutableString,
 }
@@ -264,6 +269,7 @@ impl std::fmt::Display for FieldName {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct VariantName {
     pub name: ImmutableString,
 }
@@ -298,6 +304,7 @@ impl std::fmt::Display for VariantName {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct ArgName {
     pub name: ImmutableString,
 }
@@ -332,6 +339,7 @@ impl std::fmt::Display for ArgName {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct CtorName {
     pub name: ImmutableString,
 }
@@ -366,6 +374,7 @@ impl std::fmt::Display for CtorName {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct MethodName {
     pub name: ImmutableString,
 }
@@ -447,7 +456,64 @@ pub struct VariantInfo {
     pub name: VariantName,
     pub field_infos: Vec<FieldInfo>,
 }
+impl VariantInfo {
+    pub fn new(name: impl Into<VariantName>, fields: Vec<impl Into<FieldInfo>>) -> Self {
+        VariantInfo {
+            name: name.into(),
+            field_infos: fields.into_iter().map(|f| f.into()).collect(),
+        }
+    }
+}
+impl From<ImmutableString> for VariantInfo {
+    fn from(variant_signature: ImmutableString) -> Self {
+        let parts: Vec<&str> = variant_signature.splitn(2, '(').collect();
 
+        if parts.len() != 2 || !variant_signature.ends_with(')') {
+            panic!("VariantInfo strings must be in the format 'VariantName(field1: Type1, field2: Type2)', got '{}'", variant_signature);
+        }
+
+        let name = VariantName::from(ImmutableString::from(parts[0].trim()));
+        let fields_str = &parts[1][..parts[1].len() - 1]; // Remove the trailing ')'
+        let field_infos: Vec<FieldInfo> = if fields_str.trim().is_empty() {
+            Vec::new()
+        } else {
+            fields_str
+                .split(',')
+                .map(|s| FieldInfo::from(ImmutableString::from(s.trim())))
+                .collect()
+        };
+
+        VariantInfo {
+            name,
+            field_infos,
+        }
+    }
+}
+impl From<VariantInfo> for ImmutableString {
+    fn from(variant_info: VariantInfo) -> Self {
+        let field_signatures: Vec<ImmutableString> = variant_info
+            .field_infos
+            .into_iter()
+            .map(|fi| fi.into())
+            .collect();
+
+        ImmutableString::from(format!("{} {{ {} }}", variant_info.name.name, field_signatures.join(", ")))
+    }
+}
+impl std::fmt::Debug for VariantInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let variant_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", variant_signature)
+    }
+}
+impl std::fmt::Display for VariantInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let variant_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", variant_signature)
+    }
+}
+
+/// Not intended to be constructed directly. See TypeInfo
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum TypeDataInfo {
     Struct {
@@ -457,17 +523,119 @@ pub enum TypeDataInfo {
         variant_infos: Vec<VariantInfo>,
     },
 }
+impl From<TypeDataInfo> for ImmutableString {
+    fn from(type_data_info: TypeDataInfo) -> Self {
+        match type_data_info {
+            TypeDataInfo::Struct { field_infos } => {
+                let field_signatures: Vec<ImmutableString> = field_infos
+                    .into_iter()
+                    .map(|fi| fi.into())
+                    .collect();
 
+                ImmutableString::from(format!(
+                    "Struct {{\n\t{}\n}}",
+                    field_signatures.join(",\n\t")
+                ))
+            }
+            TypeDataInfo::Enum { variant_infos } => {
+                let variant_signatures: Vec<ImmutableString> = variant_infos
+                    .into_iter()
+                    .map(|vi| vi.into())
+                    .collect();
+
+                ImmutableString::from(format!(
+                    "Enum {{\n\t{}\n}}",
+                    variant_signatures.join(",\n\t")
+                ))
+            }
+        }
+    }
+}
+impl std::fmt::Debug for TypeDataInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let type_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", type_signature)
+    }
+}
+impl std::fmt::Display for TypeDataInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let type_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", type_signature)
+    }
+}
+
+/// Not intended to be constructed directly. See TypeInfo
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum TypeKindInfo {
+pub enum TypeFormInfo {
     Struct,
     Enum,
 }
+impl From<TypeFormInfo> for ImmutableString {
+    fn from(type_form_info: TypeFormInfo) -> Self {
+        match type_form_info {
+            TypeFormInfo::Struct => ImmutableString::from("Struct"),
+            TypeFormInfo::Enum => ImmutableString::from("Enum"),
+        }
+    }
+}
+impl std::fmt::Debug for TypeFormInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let type_form_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", type_form_signature)
+    }
+}
+impl std::fmt::Display for TypeFormInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let type_form_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", type_form_signature)
+    }
+}
 
+/// Not intended to be constructed directly. See TypeInfo
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TypeLayoutInfo {
-    pub inner: TypeDataInfo,
-    pub kind: TypeKindInfo,
+    pub data_info: TypeDataInfo,
+    pub form_info: TypeFormInfo,
+}
+impl From<TypeLayoutInfo> for ImmutableString {
+    fn from(type_layout_info: TypeLayoutInfo) -> Self {
+        match type_layout_info.data_info {
+            TypeDataInfo::Struct { field_infos } => {
+                let field_signatures: Vec<ImmutableString> = field_infos
+                    .into_iter()
+                    .map(|fi| fi.into())
+                    .collect();
+
+                ImmutableString::from(format!(
+                    "Struct {{\n\t{}\n}}",
+                    field_signatures.join(",\n\t")
+                ))
+            }
+            TypeDataInfo::Enum { variant_infos } => {
+                let variant_signatures: Vec<ImmutableString> = variant_infos
+                    .into_iter()
+                    .map(|vi| vi.into())
+                    .collect();
+
+                ImmutableString::from(format!(
+                    "Enum {{\n\t{}\n}}",
+                    variant_signatures.join(",\n\t")
+                ))
+            }
+        }
+    }
+}
+impl std::fmt::Debug for TypeLayoutInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let type_layout_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", type_layout_signature)
+    }
+}
+impl std::fmt::Display for TypeLayoutInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let type_layout_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", type_layout_signature)
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -475,27 +643,194 @@ pub struct ArgInfo {
     pub name: ArgName,
     pub type_id: TypeId,
 }
+impl ArgInfo {
+    pub fn new(name: impl Into<ArgName>, type_path: impl Into<TypeId>) -> Self {
+        ArgInfo {
+            name: name.into(),
+            type_id: type_path.into(),
+        }
+    }
+}
+impl From<ImmutableString> for ArgInfo {
+    fn from(arg_signature: ImmutableString) -> Self {
+        let parts: Vec<&str> = arg_signature.split(": ").collect();
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+        ArgInfo {
+            name: ArgName::from(ImmutableString::from(parts[0])),
+            type_id: TypeId::from(ImmutableString::from(parts[1])),
+        }
+    }
+}
+impl From<ArgInfo> for ImmutableString {
+    fn from(arg_info: ArgInfo) -> Self {
+        let type_path: ImmutableString = arg_info.type_id.into();
+
+        ImmutableString::from(format!("{}: {}", arg_info.name.name, type_path))
+    }
+}
+impl std::fmt::Debug for ArgInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let arg_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", arg_signature)
+    }
+}
+impl std::fmt::Display for ArgInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let arg_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", arg_signature)
+    }
+}
+
+#[derive(Clone, Eq)]
 pub struct CtorInfo {
     pub name: CtorName,
     pub arg_infos: Vec<ArgInfo>,
     pub fn_ptr: fn(Vec<rhai::Dynamic>) -> rhai::Dynamic,
 }
+impl PartialEq for CtorInfo {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.arg_infos == other.arg_infos
+    }
+}
+impl std::hash::Hash for CtorInfo {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        self.arg_infos.hash(state);
+    }
+}
+impl From<CtorInfo> for ImmutableString {
+    fn from(ctor_info: CtorInfo) -> Self {
+        let arg_signatures: Vec<ImmutableString> = ctor_info
+            .arg_infos
+            .into_iter()
+            .map(|ai| ai.into())
+            .collect();
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+        ImmutableString::from(format!(
+            "ctor {}({})",
+            ctor_info.name.name,
+            arg_signatures.join(", ")
+        ))
+    }
+}
+impl std::fmt::Debug for CtorInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let ctor_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", ctor_signature)
+    }
+}
+impl std::fmt::Display for CtorInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let ctor_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", ctor_signature)
+    }
+}
+
+#[derive(Clone, Eq)]
 pub struct MethodInfo {
     pub name: MethodName,
     pub arg_infos: Vec<ArgInfo>,
     pub return_type_id: TypeId,
     pub fn_ptr: fn(Vec<rhai::Dynamic>) -> rhai::Dynamic,
 }
+impl PartialEq for MethodInfo {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.arg_infos == other.arg_infos && self.return_type_id == other.return_type_id
+    }
+}
+impl std::hash::Hash for MethodInfo {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        self.arg_infos.hash(state);
+        self.return_type_id.hash(state);
+    }
+}
+impl From<MethodInfo> for ImmutableString {
+    fn from(method_info: MethodInfo) -> Self {
+        let arg_signatures: Vec<ImmutableString> = method_info
+            .arg_infos
+            .into_iter()
+            .map(|ai| ai.into())
+            .collect();
+        let return_type_path: ImmutableString = method_info.return_type_id.into();
+
+        ImmutableString::from(format!(
+            "fn {}({}) -> {}",
+            method_info.name.name,
+            arg_signatures.join(", "),
+            return_type_path
+        ))
+    }
+}
+impl std::fmt::Debug for MethodInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let method_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", method_signature)
+    }
+}
+impl std::fmt::Display for MethodInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let method_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", method_signature)
+    }
+}
 
 inventory::collect!(TypeInfo);
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TypeInfo {
     pub type_id: TypeId,
-    pub type_shape: TypeLayoutInfo,
+    pub type_layout_info: TypeLayoutInfo,
     pub ctor_infos: Vec<CtorInfo>,
     pub method_infos: Vec<MethodInfo>,
+}
+// Full custom pretty-printer with newlines and identation, essentially should look as close to a 1:1 to a C header file, but for rust
+impl From<TypeInfo> for ImmutableString {
+    fn from(type_info: TypeInfo) -> Self {
+        let type_name: ImmutableString = type_info.type_id.type_name.into();
+        let module_path: ImmutableString = type_info.type_id.module_id.into();
+        let type_form: ImmutableString = type_info.type_layout_info.form_info.into();
+        let type_layout_signature: ImmutableString = type_info.type_layout_info.into();
+
+        let ctor_signatures: Vec<ImmutableString> = type_info
+            .ctor_infos
+            .into_iter()
+            .map(|ci| ci.into())
+            .collect();
+
+        let method_signatures: Vec<ImmutableString> = type_info
+            .method_infos
+            .into_iter()
+            .map(|mi| mi.into())
+            .collect();
+
+        ImmutableString::from(format!(
+            "{} {} in '{}' {{\n\t{}\n\n\tconstructors:\n\t\t{}\n\n\tmethods:\n\t\t{}\n}}",
+            type_form,
+            type_name,
+            module_path,
+            type_layout_signature.replace("\n", "\n\t"),
+            if ctor_signatures.is_empty() {
+                String::from("/* none */")
+            } else {
+                ctor_signatures.join(",\n\t\t")
+            },
+            if method_signatures.is_empty() {
+                String::from("/* none */")
+            } else {
+                method_signatures.join(",\n\t\t")
+            },
+        ))
+    }
+}
+impl std::fmt::Debug for TypeInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let type_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", type_signature)
+    }
+}
+impl std::fmt::Display for TypeInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let type_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", type_signature)
+    }
 }

@@ -79,11 +79,11 @@ pub(crate) unsafe trait ScopedAccessProvider<T> {
 }
 
 pub trait EngineExt {
-    fn register_type_from_type_info(&mut self, fully_qualified_type_path: impl Into<TypeId>) -> &mut Self;
+    fn enable_type_binding(&mut self, fully_qualified_type_path: impl Into<TypeId>) -> &mut Self;
 }
 
 impl EngineExt for Engine {
-    fn register_type_from_type_info(&mut self, fully_qualified_type_path: impl Into<TypeId>) -> &mut Self {
+    fn enable_type_binding(&mut self, fully_qualified_type_path: impl Into<TypeId>) -> &mut Self {
         let type_id: TypeId = fully_qualified_type_path.into();
 
         if let Some(type_info) = TYPE_REGISTRY().get(&type_id) {
@@ -92,7 +92,7 @@ impl EngineExt for Engine {
                     "{}_{}",
                     type_id.to_string().replace("::", "_"),
                     ctor_info.name
-                );
+                ); // TODO: Fix this temporary solution to me not understanding rhai Modules well enough to properly implement them, with a proper modularized member-naming system
                 self.register_fn(fully_qualified_name, ctor_info.fn_ptr);
             }
         } else {
