@@ -783,42 +783,75 @@ pub struct TypeInfo {
     pub ctor_infos: Vec<CtorInfo>,
     pub method_infos: Vec<MethodInfo>,
 }
-// Full custom pretty-printer with newlines and identation, essentially should look as close to a 1:1 to a C header file, but for rust
+impl From<ImmutableString> for TypeInfo {
+    fn from(type_signature: ImmutableString) -> Self {
+        // panic!("TypeInfo cannot be constructed from a string directly. Use the inventory system to register types.");
+    }
+}
 impl From<TypeInfo> for ImmutableString {
     fn from(type_info: TypeInfo) -> Self {
-        let type_name: ImmutableString = type_info.type_id.type_name.into();
-        let module_path: ImmutableString = type_info.type_id.module_id.into();
-        let type_form: ImmutableString = type_info.type_layout_info.form_info.into();
-        let type_layout_signature: ImmutableString = type_info.type_layout_info.into();
+        let type_name: ImmutableString = type_info.type_id.type_name.clone().into();
+        let module_path: ImmutableString = type_info.type_id.module_id.clone().into();
 
-        let ctor_signatures: Vec<ImmutableString> = type_info
-            .ctor_infos
-            .into_iter()
-            .map(|ci| ci.into())
-            .collect();
+        let header = format!(
+            "#[module = \"{}\"]",
+            module_path
+        );
 
-        let method_signatures: Vec<ImmutableString> = type_info
-            .method_infos
-            .into_iter()
-            .map(|mi| mi.into())
-            .collect();
+        let layout = match type_info.type_layout_info.data_info {
+            TypeDataInfo::Struct { field_infos } => {
+                let fields = field_infos
+                    .into_iter()
+                    .map(|f| format!("    {},", ImmutableString::from(f)))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+            
+                format!(
+                    "struct {} {{\n{}\n}}",
+                    type_name, fields
+                )
+            }
+            TypeDataInfo::Enum { variant_infos } => {
+                let variants = variant_infos
+                    .into_iter()
+                    .map(|v| format!("    {},", ImmutableString::from(v)))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+            
+                format!(
+                    "enum {} {{\n{}\n}}",
+                    type_name, variants
+                )
+            }
+        };
+
+        let impl_block = if type_info.ctor_infos.is_empty() && type_info.method_infos.is_empty() {
+            String::new()
+        } else {
+            let ctor_lines = type_info.ctor_infos.into_iter().map(|c| {
+                format!("    ctor {};", ImmutableString::from(c))
+            });
+        
+            let method_lines = type_info.method_infos.into_iter().map(|m| {
+                format!("    fn {};", ImmutableString::from(m))
+            });
+        
+            let body = ctor_lines
+                .chain(method_lines)
+                .collect::<Vec<_>>()
+                .join("\n");
+        
+            format!(
+                "\n\nimpl {} {{\n{}\n}}",
+                type_name, body
+            )
+        };
 
         ImmutableString::from(format!(
-            "{} {} in '{}' {{\n\t{}\n\n\tconstructors:\n\t\t{}\n\n\tmethods:\n\t\t{}\n}}",
-            type_form,
-            type_name,
-            module_path,
-            type_layout_signature.replace("\n", "\n\t"),
-            if ctor_signatures.is_empty() {
-                String::from("/* none */")
-            } else {
-                ctor_signatures.join(",\n\t\t")
-            },
-            if method_signatures.is_empty() {
-                String::from("/* none */")
-            } else {
-                method_signatures.join(",\n\t\t")
-            },
+            "{}\n{}\n{}",
+            header,
+            layout,
+            impl_block
         ))
     }
 }
