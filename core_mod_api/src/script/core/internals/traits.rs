@@ -4,7 +4,7 @@ use rhai::Engine;
 use std::any::Any;
 
 use crate::script::core::internals::{
-    statics::TYPE_REGISTRY,
+    statics::{TYPE_REGISTRY, CTOR_REGISTRY, METHOD_REGISTRY, STATIC_FUNCTION_REGISTRY},
     types::{ScopedAccessHandle, TypeId, TypeInfo}
 };
 
@@ -84,30 +84,57 @@ pub trait EngineExt {
 
 impl EngineExt for Engine {
     fn enable_type_binding(&mut self, fully_qualified_type_path: impl Into<TypeId>) -> &mut Self {
+        fn format_function_name(type_id: &TypeId, func_name: &impl std::fmt::Display) -> String {
+            format!(
+                "{}_{}",
+                type_id.to_string().replace("::", "_"),
+                func_name
+            )
+        }
+
         let type_id: TypeId = fully_qualified_type_path.into();
 
         let Some(type_info) = TYPE_REGISTRY().get(&type_id) else {
             panic!("Type '{}' not found in TYPE_REGISTRY", type_id);
         };
 
+        // -- Register constructors --
         for ctor_id in &type_info.ctor_ids {
-            // TODO: Fix this temporary solution to me not understanding rhai Modules well enough to properly implement them, with a proper modularized member-naming system
-            let ctor_path = format!(
-                "{}_{}",
-                type_id.to_string().replace("::", "_"),
-                ctor_id.sig.name
-            );
+            let ctor_name = format_function_name(&type_id, &ctor_id.sig.name);
 
-            let Some(ctor_ptr) = CTOR_REGISTRY().get(&ctor_id.sig) else {
-                panic!("Ctor '{}' not found in CTOR_REGISTRY", ctor_path);
-            };
-            
-            self.register_fn(ctor_path, ctor_id.fn_ptr);
+            if let Some(&ctor_fn) = CTOR_REGISTRY().get(&ctor_id.sig) {
+                self.register_fn(ctor_name, ctor_fn);
+            } else {
+                panic!("Constructor not found in CTOR_REGISTRY: {}", ctor_id.sig);
+            }
+        }
+
+        // -- Register methods --
+        for method_id in &type_info.method_ids {
+            let method_name = format_function_name(&type_id, &method_id.sig.name);
+
+            if let Some(&method_fn) = METHOD_REGISTRY().get(&method_id.sig) {
+                self.register_fn(method_name, method_fn);
+            } else {
+                panic!("Method not found in METHOD_REGISTRY: {}", method_id.sig);
+            }
+        }
+
+        // -- Register static functions --
+        for static_fn_id in &type_info.static_function_ids {
+            let static_fn_name = format_function_name(&type_id, &static_fn_id.sig.name);
+
+            if let Some(&static_fn) = STATIC_FUNCTION_REGISTRY().get(&static_fn_id.sig) {
+                self.register_fn(static_fn_name, static_fn);
+            } else {
+                panic!("Static function not found in STATIC_FUNCTION_REGISTRY: {}", static_fn_id.sig);
+            }
         }
 
         self
     }
 }
+
 
 // WIP/SCRATCHPAD \/ \/ \/ \/
 
