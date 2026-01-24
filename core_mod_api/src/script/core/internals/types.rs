@@ -494,6 +494,41 @@ impl std::fmt::Display for MethodName {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct StaticFunctionName {
+    pub name: ImmutableString,
+}
+impl StaticFunctionName {
+    pub fn new(name: impl Into<StaticFunctionName>) -> Self {
+        name.into()
+    }
+}
+impl From<ImmutableString> for StaticFunctionName {
+    fn from(name: ImmutableString) -> Self {
+        assert_snake_case_clean_string(&name, "StaticFunctionName");
+
+        StaticFunctionName {
+            name,
+        }
+    }
+}
+impl From<StaticFunctionName> for ImmutableString {
+    fn from(static_function_name: StaticFunctionName) -> Self {
+        static_function_name.name
+    }
+}
+impl std::fmt::Debug for StaticFunctionName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+impl std::fmt::Display for StaticFunctionName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct FieldInfo {
     pub name: FieldName,
     pub type_id: TypeId,
@@ -796,46 +831,34 @@ impl std::fmt::Display for FunctionOrigin {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct StaticFunctionSignature {
-    pub name: CtorName,
-    pub arg_infos: Vec<ArgInfo>,
-    pub return_type_id: TypeId,
-}
-impl From<StaticFunctionSignature> for ImmutableString {
-    fn from(static_fn_sig: StaticFunctionSignature) -> Self {
-        let arg_signatures: Vec<ImmutableString> = static_fn_sig
-            .arg_infos
-            .into_iter()
-            .map(|ai| ai.into())
-            .collect();
-        let return_type_path: ImmutableString = static_fn_sig.return_type_id.into();
-
-        ImmutableString::from(format!(
-            "fn {}({}) -> {}",
-            static_fn_sig.name.name,
-            arg_signatures.join(", "),
-            return_type_path
-        ))
-    }
-}
-impl std::fmt::Debug for StaticFunctionSignature {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let fn_signature: ImmutableString = self.clone().into();
-        write!(f, "{}", fn_signature)
-    }
-}
-impl std::fmt::Display for StaticFunctionSignature {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let fn_signature: ImmutableString = self.clone().into();
-        write!(f, "{}", fn_signature)
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct CtorSignature {
     pub name: CtorName,
     pub arg_infos: Vec<ArgInfo>,
 }
+impl From<ImmutableString> for CtorSignature {
+    fn from(src: ImmutableString) -> Self {
+        let src = src.trim();
+        let open_paren = src.find('(').expect("missing '(' in constructor signature");
+        let close_paren = src.rfind(')').expect("missing ')' in constructor signature");
+
+        let name = &src[..open_paren].trim();
+        let args = &src[open_paren + 1..close_paren];
+
+        let arg_infos = if args.is_empty() {
+            Vec::new()
+        } else {
+            args.split(',')
+                .map(|arg| ArgInfo::from(ImmutableString::from(arg.trim())))
+                .collect()
+        };
+
+        CtorSignature {
+            name: CtorName::from(ImmutableString::from(*name)),
+            arg_infos,
+        }
+    }
+}
+
 impl From<CtorSignature> for ImmutableString {
     fn from(ctor_sig: CtorSignature) -> Self {
         let arg_signatures: Vec<ImmutableString> = ctor_sig
@@ -870,6 +893,39 @@ pub struct MethodSignature {
     pub arg_infos: Vec<ArgInfo>,
     pub return_type_id: TypeId,
 }
+impl From<ImmutableString> for MethodSignature {
+    fn from(src: ImmutableString) -> Self {
+        let src = src.trim();
+
+        let parts: Vec<&str> = src.split("->").map(str::trim).collect();
+        if parts.len() != 2 {
+            panic!("method signature must contain '->'");
+        }
+
+        let decl_part = parts[0];
+        let return_type_str = parts[1];
+
+        let open_paren = decl_part.find('(').expect("missing '(' in method signature");
+        let close_paren = decl_part.rfind(')').expect("missing ')' in method signature");
+
+        let name = &decl_part[..open_paren].trim();
+        let args = &decl_part[open_paren + 1..close_paren];
+
+        let arg_infos = if args.is_empty() {
+            Vec::new()
+        } else {
+            args.split(',')
+                .map(|arg| ArgInfo::from(ImmutableString::from(arg.trim())))
+                .collect()
+        };
+
+        MethodSignature {
+            name: MethodName::from(ImmutableString::from(*name)),
+            arg_infos,
+            return_type_id: TypeId::from(ImmutableString::from(return_type_str)),
+        }
+    }
+}
 impl From<MethodSignature> for ImmutableString {
     fn from(method_sig: MethodSignature) -> Self {
         let arg_signatures: Vec<ImmutableString> = method_sig
@@ -901,29 +957,68 @@ impl std::fmt::Display for MethodSignature {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct StaticFunctionId {
-    pub sig: StaticFunctionSignature,
-    pub origin: FunctionOrigin,
+pub struct StaticFunctionSignature {
+    pub name: StaticFunctionName,
+    pub arg_infos: Vec<ArgInfo>,
+    pub return_type_id: TypeId,
 }
-impl From<StaticFunctionId> for ImmutableString {
-    fn from(id: StaticFunctionId) -> Self {
-        let sig: ImmutableString = id.sig.into();
-        let origin: ImmutableString = id.origin.clone().into();
+impl From<ImmutableString> for StaticFunctionSignature {
+    fn from(src: ImmutableString) -> Self {
+        let src = src.trim();
+
+        let parts: Vec<&str> = src.split("->").map(str::trim).collect();
+        if parts.len() != 2 {
+            panic!("static function signature must contain '->'");
+        }
+
+        let decl_part = parts[0];
+        let return_type_str = parts[1];
+
+        let open_paren = decl_part.find('(').expect("missing '(' in static fn signature");
+        let close_paren = decl_part.rfind(')').expect("missing ')' in static fn signature");
+
+        let name = &decl_part[..open_paren].trim();
+        let args = &decl_part[open_paren + 1..close_paren];
+
+        let arg_infos = if args.is_empty() {
+            Vec::new()
+        } else {
+            args.split(',')
+                .map(|arg| ArgInfo::from(ImmutableString::from(arg.trim())))
+                .collect()
+        };
+
+        StaticFunctionSignature {
+            name: StaticFunctionName::from(ImmutableString::from(*name)),
+            arg_infos,
+            return_type_id: TypeId::from(ImmutableString::from(return_type_str)),
+        }
+    }
+}
+impl From<StaticFunctionSignature> for ImmutableString {
+    fn from(static_fn_sig: StaticFunctionSignature) -> Self {
+        let arg_signatures: Vec<ImmutableString> = static_fn_sig
+            .arg_infos
+            .into_iter()
+            .map(|ai| ai.into())
+            .collect();
+        let return_type_path: ImmutableString = static_fn_sig.return_type_id.into();
 
         ImmutableString::from(format!(
-            "{}{}",
-            sig,
-            origin
+            "fn {}({}) -> {}",
+            static_fn_sig.name.name,
+            arg_signatures.join(", "),
+            return_type_path
         ))
     }
 }
-impl std::fmt::Debug for StaticFunctionId {
+impl std::fmt::Debug for StaticFunctionSignature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let fn_signature: ImmutableString = self.clone().into();
         write!(f, "{}", fn_signature)
     }
 }
-impl std::fmt::Display for StaticFunctionId {
+impl std::fmt::Display for StaticFunctionSignature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let fn_signature: ImmutableString = self.clone().into();
         write!(f, "{}", fn_signature)
@@ -990,17 +1085,203 @@ impl std::fmt::Display for MethodId {
     }
 }
 
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct StaticFunctionId {
+    pub sig: StaticFunctionSignature,
+    pub origin: FunctionOrigin,
+}
+impl From<StaticFunctionId> for ImmutableString {
+    fn from(id: StaticFunctionId) -> Self {
+        let sig: ImmutableString = id.sig.into();
+        let origin: ImmutableString = id.origin.clone().into();
+
+        ImmutableString::from(format!(
+            "{}{}",
+            sig,
+            origin
+        ))
+    }
+}
+impl std::fmt::Debug for StaticFunctionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let fn_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", fn_signature)
+    }
+}
+impl std::fmt::Display for StaticFunctionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let fn_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", fn_signature)
+    }
+}
+
 inventory::collect!(TypeInfo);
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TypeInfo {
     pub type_id: TypeId,
     pub type_layout_info: TypeLayoutInfo,
-    pub static_function_ids: Vec<StaticFunctionId>,
     pub ctor_ids: Vec<CtorId>,
     pub method_ids: Vec<MethodId>,
+    pub static_function_ids: Vec<StaticFunctionId>,
 }
 impl From<ImmutableString> for TypeInfo {
-    fn from(type_signature: ImmutableString) -> Self {
+    fn from(input: ImmutableString) -> Self {
+        fn parse_module_line(line: &str) -> &str {
+            if !line.starts_with("#[module =") {
+                panic!("expected #[module = \"...\"]");
+            }
+            line.split('"').nth(1).expect("invalid module syntax")
+        }
+
+        fn parse_type_declaration<'a>(
+            line: &'a str,
+            lines: &mut impl Iterator<Item = &'a str>,
+        ) -> (TypeFormInfo, &'a str, Vec<&'a str>) {
+            let tokens: Vec<&str> = line.split_whitespace().collect();
+            if tokens.len() < 2 {
+                panic!("invalid type declaration");
+            }
+
+            let kind = tokens[0];
+            let name = tokens[1];
+
+            let mut body = Vec::new();
+            for line in lines {
+                if line == "}" {
+                    break;
+                }
+                body.push(line);
+            }
+
+            match kind {
+                "struct" => (TypeFormInfo::Struct, name, body),
+                "enum" => (TypeFormInfo::Enum, name, body),
+                _ => panic!("unknown type form: {}", kind),
+            }
+        }
+
+        fn parse_fields(lines: Vec<&str>) -> Vec<FieldInfo> {
+            lines
+                .into_iter()
+                .map(|line| {
+                    let line = line.trim_end_matches(',');
+                    FieldInfo::from(ImmutableString::from(line))
+                })
+                .collect()
+        }
+
+        fn parse_variants(lines: Vec<&str>) -> Vec<VariantInfo> {
+            lines
+                .into_iter()
+                .map(|line| {
+                    let line = line.trim_end_matches(',');
+                    VariantInfo::from(ImmutableString::from(line))
+                })
+                .collect()
+        }
+
+        fn parse_ctor_id(line: &str, type_id: &TypeId) -> CtorId {
+            let line = line.strip_prefix("ctor ").unwrap();
+            let (sig, origin) = split_origin(line);
+            CtorId {
+                sig: CtorSignature::from(ImmutableString::from(sig)),
+                origin,
+            }
+        }
+
+        fn parse_method_id(line: &str, type_id: &TypeId) -> MethodId {
+            let line = line.strip_prefix("fn ").unwrap();
+            let (sig, origin) = split_origin(line);
+            MethodId {
+                sig: MethodSignature::from(ImmutableString::from(sig)),
+                origin,
+            }
+        }
+
+        fn parse_static_fn_id(line: &str, type_id: &TypeId) -> StaticFunctionId {
+            let line = line.strip_prefix("static fn ").unwrap();
+            let (sig, origin) = split_origin(line);
+            StaticFunctionId {
+                sig: StaticFunctionSignature::from(ImmutableString::from(sig)),
+                origin,
+            }
+        }
+
+        fn split_origin(entry: &str) -> (&str, FunctionOrigin) {
+            if let Some((sig, trait_part)) = entry.split_once(" via ") {
+                let trait_id = TraitId::from(ImmutableString::from(trait_part.trim()));
+                (sig.trim(), FunctionOrigin::ViaTrait { trait_id })
+            } else {
+                (entry.trim(), FunctionOrigin::Inherent)
+            }
+        }
+
+        let input = input.as_str().replace("\r\n", "\n");
+        let mut lines = input.lines().map(str::trim).peekable();
+
+        let module_line = lines
+            .next()
+            .expect("expected #[module = \"...\"] line");
+
+        let module_path = parse_module_line(module_line);
+        let module_id = ModuleId::from(ImmutableString::from(module_path));
+
+        let decl_line = lines
+            .next()
+            .expect("expected type declaration line");
+
+        let (form_info, type_name, data_lines) = parse_type_declaration(decl_line, &mut lines);
+        let type_id = TypeId::from(ImmutableString::from(format!("{}::{}", module_path, type_name)));
+
+        let data_info = match form_info {
+            TypeFormInfo::Struct => {
+                let fields = parse_fields(data_lines);
+                TypeDataInfo::Struct { field_infos: fields }
+            }
+            TypeFormInfo::Enum => {
+                let variants = parse_variants(data_lines);
+                TypeDataInfo::Enum { variant_infos: variants }
+            }
+        };
+
+        let mut ctor_ids = Vec::new();
+        let mut method_ids = Vec::new();
+        let mut static_function_ids = Vec::new();
+
+        while let Some(line) = lines.next() {
+            if line.starts_with("impl ") {
+                // Consume "impl TypeName {"
+                assert!(line.ends_with("{"));
+
+                while let Some(entry) = lines.next() {
+                    let entry = entry.trim_end_matches(';').trim();
+                    if entry == "}" {
+                        break;
+                    }
+
+                    if entry.starts_with("ctor ") {
+                        ctor_ids.push(parse_ctor_id(entry, &type_id));
+                    } else if entry.starts_with("fn ") {
+                        method_ids.push(parse_method_id(entry, &type_id));
+                    } else if entry.starts_with("static fn ") {
+                        static_function_ids.push(parse_static_fn_id(entry, &type_id));
+                    } else {
+                        panic!("unknown impl entry: {}", entry);
+                    }
+                }
+            }
+        }
+
+        TypeInfo {
+            type_id,
+            type_layout_info: TypeLayoutInfo {
+                data_info,
+                form_info,
+            },
+            ctor_ids,
+            method_ids,
+            static_function_ids,
+        }
     }
 }
 impl From<TypeInfo> for ImmutableString {
