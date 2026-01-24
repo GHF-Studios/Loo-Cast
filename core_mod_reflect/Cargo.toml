@@ -1,0 +1,6 @@
+[package]
+name = "core_mod_reflect"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]

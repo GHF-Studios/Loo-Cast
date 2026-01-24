@@ -2182,6 +2182,7 @@ dependencies = [
  "bytemuck",
  "console-subscriber",
  "core_mod_macros",
+ "core_mod_reflect",
  "crossbeam",
  "crossbeam-channel",
  "dashmap",
@@ -2223,6 +2224,7 @@ dependencies = [
 name = "core_mod_macros"
 version = "0.1.0"
 dependencies = [
+ "core_mod_reflect",
  "heck 0.4.1",
  "paste",
  "proc-macro2",
@@ -2230,6 +2232,10 @@ dependencies = [
  "syn",
  "thiserror 2.0.16",
 ]
+
+[[package]]
+name = "core_mod_reflect"
+version = "0.1.0"
 
 [[package]]
 name = "coreaudio-rs"
