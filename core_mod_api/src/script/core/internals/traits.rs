@@ -5,7 +5,7 @@ use std::any::Any;
 
 use crate::script::core::internals::{
     statics::TYPE_REGISTRY,
-    types::{ModuleId, ModuleName, ModulePath, ScopedAccessHandle, TypeId, TypeInfo, TypeName}
+    types::{ScopedAccessHandle, TypeId, TypeInfo}
 };
 
 /// Provides read-only, non-mutating access to a value of type `T` from `Self`,
@@ -79,67 +79,26 @@ pub(crate) unsafe trait ScopedAccessProvider<T> {
 }
 
 pub trait EngineExt {
-    fn register_type_from_type_info(&mut self, fully_qualified_type_path: impl IntoTypeId) -> &mut Self;
+    fn register_type_from_type_info(&mut self, fully_qualified_type_path: impl Into<TypeId>) -> &mut Self;
 }
 
 impl EngineExt for Engine {
-    fn register_type_from_type_info(&mut self, fully_qualified_type_path: impl IntoTypeId) -> &mut Self {
+    fn register_type_from_type_info(&mut self, fully_qualified_type_path: impl Into<TypeId>) -> &mut Self {
         let type_id: TypeId = fully_qualified_type_path.into();
 
         if let Some(type_info) = TYPE_REGISTRY().get(&type_id) {
             for ctor_info in &type_info.ctor_infos {
-                let fully_qualified_name = format!("{}_{}", fully_qualified_type_path, ctor_info.name);
-                self.register_fn(ctor_info.name, ctor_info.fn_ptr);
+                let fully_qualified_name = format!(
+                    "{}_{}",
+                    type_id.to_string().replace("::", "_"),
+                    ctor_info.name
+                );
+                self.register_fn(fully_qualified_name, ctor_info.fn_ptr);
             }
         } else {
-            panic!("Type '{}' not found in TYPE_REGISTRY", fully_qualified_type_path);
+            panic!("Type '{}' not found in TYPE_REGISTRY", type_id);
         }
         self
-    }
-}
-
-pub trait IntoTypeName: Sized + Into<TypeName> {
-    fn into_type_name(self) -> TypeName;
-}
-impl IntoTypeName for ImmutableString {
-    fn into_type_name(self) -> TypeName {
-        TypeName::from(self)
-    }
-}
-
-pub trait IntoModuleName: Sized + Into<ModuleName> {
-    fn into_module_name(self) -> ModuleName;
-}
-impl IntoModuleName for ImmutableString {
-    fn into_module_name(self) -> ModuleName {
-        ModuleName::from(self)
-    }
-}
-
-pub trait IntoModuleId: Sized + Into<ModuleId> {
-    fn into_module_id(self) -> ModuleId;
-}
-impl IntoModuleId for ImmutableString {
-    fn into_module_id(self) -> ModuleId {
-        ModuleId::from(self)
-    }
-}
-
-pub trait IntoModulePath: Sized + Into<ModulePath> {
-    fn into_module_path(self) -> ModulePath;
-}
-impl IntoModulePath for ImmutableString {
-    fn into_module_path(self) -> ModulePath {
-        ModulePath::from(self)
-    }
-}
-
-pub trait IntoTypeId: Sized + Into<TypeId> {
-    fn into_type_id(self) -> TypeId;
-}
-impl IntoTypeId for ImmutableString {
-    fn into_type_id(self) -> TypeId {
-        TypeId::from(self)
     }
 }
 
@@ -149,7 +108,7 @@ impl IntoTypeId for ImmutableString {
 
 
 
-use rhai::{Dynamic, ImmutableString};
+use rhai::Dynamic;
 
 /// Metadata provider for reflection + scripting
 pub trait ReflectType {
