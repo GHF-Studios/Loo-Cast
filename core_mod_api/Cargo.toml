@@ -92,3 +92,4 @@ radsort = "0.1"
 wgpu = "24.0.5"
 rhai = { version = "1.23.6", features = ["sync", "internals", "unchecked"] }
 inventory = "0.3.21"
+heck = "0.4"

@@ -5,13 +5,10 @@ use std::sync::Arc;
 
 use super::types::{ComponentCtorEntry, ComponentCtorFn, ComponentId};
 
-export_static!(self, crate::core_mod_api::script::component::bindings::statics::COMPONENT_CTOR_REGISTRY:
-    Lazy<HashMap<ComponentId, ComponentCtorFn>> =
-    Lazy::new(|| {
-        let mut m: HashMap<ComponentId, ComponentCtorFn> = Default::default();
-        for entry in inventory::iter::<ComponentCtorEntry> {
-            m.insert(Arc::from(entry.name), entry.ctor);
-        }
-        m
-    })
-);
+export_static!(self, crate::core_mod_api::script::component::bindings::statics::COMPONENT_CTOR_REGISTRY: Lazy<HashMap<ComponentId, ComponentCtorFn>> = Lazy::new(|| {
+    let mut m: HashMap<ComponentId, ComponentCtorFn> = Default::default();
+    for entry in inventory::iter::<ComponentCtorEntry> {
+        m.insert(Arc::from(entry.name), entry.ctor);
+    }
+    m
+}));

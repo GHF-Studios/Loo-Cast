@@ -57,7 +57,7 @@ impl BundleFromDynamic for PlayerBundle {
                 }
                 let components = PlayerBundle::default();
                 
-                Bundle(components)
+                Bundle(todo!())
             },
             unknown => {
                 panic!("Unknown PlayerBundle constructor method: '{}'. Valid methods: default", unknown);

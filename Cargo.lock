@@ -2190,6 +2190,7 @@ dependencies = [
  "egui_dock",
  "futures",
  "glam 0.27.0",
+ "heck 0.4.1",
  "image",
  "inventory",
  "iyes_perf_ui",

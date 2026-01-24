@@ -1,8 +1,12 @@
 #![allow(clippy::missing_safety_doc)]
 
+use rhai::Engine;
 use std::any::Any;
 
-use crate::script::core::internals::types::ScopedAccessHandle;
+use crate::script::core::internals::{
+    statics::TYPE_REGISTRY,
+    types::{ModuleId, ModuleName, ModulePath, ScopedAccessHandle, TypeId, TypeInfo, TypeName}
+};
 
 /// Provides read-only, non-mutating access to a value of type `T` from `Self`,
 /// typically used to expose internal state to external systems (e.g., scripting).
@@ -74,13 +78,78 @@ pub(crate) unsafe trait ScopedAccessProvider<T> {
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<T>);
 }
 
+pub trait EngineExt {
+    fn register_type_from_type_info(&mut self, fully_qualified_type_path: impl IntoTypeId) -> &mut Self;
+}
+
+impl EngineExt for Engine {
+    fn register_type_from_type_info(&mut self, fully_qualified_type_path: impl IntoTypeId) -> &mut Self {
+        let type_id: TypeId = fully_qualified_type_path.into();
+
+        if let Some(type_info) = TYPE_REGISTRY().get(&type_id) {
+            for ctor_info in &type_info.ctor_infos {
+                let fully_qualified_name = format!("{}_{}", fully_qualified_type_path, ctor_info.name);
+                self.register_fn(ctor_info.name, ctor_info.fn_ptr);
+            }
+        } else {
+            panic!("Type '{}' not found in TYPE_REGISTRY", fully_qualified_type_path);
+        }
+        self
+    }
+}
+
+pub trait IntoTypeName: Sized + Into<TypeName> {
+    fn into_type_name(self) -> TypeName;
+}
+impl IntoTypeName for ImmutableString {
+    fn into_type_name(self) -> TypeName {
+        TypeName::from(self)
+    }
+}
+
+pub trait IntoModuleName: Sized + Into<ModuleName> {
+    fn into_module_name(self) -> ModuleName;
+}
+impl IntoModuleName for ImmutableString {
+    fn into_module_name(self) -> ModuleName {
+        ModuleName::from(self)
+    }
+}
+
+pub trait IntoModuleId: Sized + Into<ModuleId> {
+    fn into_module_id(self) -> ModuleId;
+}
+impl IntoModuleId for ImmutableString {
+    fn into_module_id(self) -> ModuleId {
+        ModuleId::from(self)
+    }
+}
+
+pub trait IntoModulePath: Sized + Into<ModulePath> {
+    fn into_module_path(self) -> ModulePath;
+}
+impl IntoModulePath for ImmutableString {
+    fn into_module_path(self) -> ModulePath {
+        ModulePath::from(self)
+    }
+}
+
+pub trait IntoTypeId: Sized + Into<TypeId> {
+    fn into_type_id(self) -> TypeId;
+}
+impl IntoTypeId for ImmutableString {
+    fn into_type_id(self) -> TypeId {
+        TypeId::from(self)
+    }
+}
+
 // WIP/SCRATCHPAD \/ \/ \/ \/
 
 
 
 
 
-use rhai::Dynamic;
+use rhai::{Dynamic, ImmutableString};
 
 /// Metadata provider for reflection + scripting
 pub trait ReflectType {
@@ -97,150 +166,6 @@ pub trait FieldAssignable {
     fn set_field(&mut self, field: &str, value: Dynamic) -> Result<(), String>;
 }
 
-pub enum TypeKind {
-    Struct,
-    Enum,
-}
-
-pub struct TypeId {
-    pub module_path: Vec<&'static str>,
-    pub type_name: &'static str,
-}
-
-pub struct FieldInfo {
-    pub name: &'static str,
-    pub type_id: TypeId,
-}
-
-pub struct VariantInfo {
-    pub name: &'static str,
-    pub field_infos: Vec<FieldInfo>,
-}
-
-pub enum TypeDataLayout {
-    Struct {
-        field_infos: Vec<FieldInfo>,
-    },
-    Enum {
-        variant_infos: Vec<VariantInfo>,
-    },
-}
-
-pub struct TypeShape {
-    pub kind: TypeKind,
-    pub inner: TypeDataLayout,
-}
-
-pub struct ArgInfo {
-    pub name: &'static str,
-    pub type_id: TypeId,
-}
-
-pub struct CtorInfo {
-    pub name: &'static str,
-    pub arg_infos: Vec<ArgInfo>,
-}
-
-pub struct MethodInfo {
-    pub name: &'static str,
-    pub arg_infos: Vec<ArgInfo>,
-    pub return_type_id: TypeId,
-}
-
-pub struct TypeInfo {
-    pub type_id: TypeId,
-    pub type_shape: TypeShape,
-    pub ctor_infos: Vec<CtorInfo>,
-    pub method_infos: Vec<MethodInfo>,
-}
-
-impl_reflect_type!(f32, ["core"], "f32");
-
-impl ReflectType for Vec3 {
-    fn type_info() -> TypeInfo {
-        TypeInfo {
-            type_id: TypeId {
-                module_path: vec!["bevy", "prelude"],
-                type_name: "Vec3",
-            },
-            type_shape: TypeShape {
-                kind: TypeKind::Struct,
-                inner: TypeDataLayout::Struct {
-                    field_infos: vec![
-                        FieldInfo {
-                            name: "x",
-                            type_id: TypeId {
-                                module_path: vec!["core"],
-                                type_name: "f32",
-                            },
-                        },
-                        FieldInfo {
-                            name: "y",
-                            type_id: TypeId {
-                                module_path: vec!["core"],
-                                type_name: "f32",
-                            },
-                        },
-                        FieldInfo {
-                            name: "z",
-                            type_id: TypeId {
-                                module_path: vec!["core"],
-                                type_name: "f32",
-                            },
-                        },
-                    ],
-                },
-            },
-            ctor_infos: vec![
-                CtorInfo {
-                    name: "new",
-                    arg_infos: vec![
-                        ArgInfo {
-                            name: "x",
-                            type_id: TypeId {
-                                module_path: vec!["core"],
-                                type_name: "f32",
-                            },
-                        },
-                        ArgInfo {
-                            name: "y",
-                            type_id: TypeId {
-                                module_path: vec!["core"],
-                                type_name: "f32",
-                            },
-                        },
-                        ArgInfo {
-                            name: "z",
-                            type_id: TypeId {
-                                module_path: vec!["core"],
-                                type_name: "f32",
-                            },
-                        },
-                    ],
-                },
-                CtorInfo {
-                    name: "default",
-                    arg_infos: vec![],
-                },
-            ],
-            method_infos: vec![],
-        }
-    }
-}
-
-impl Constructible for Vec3 {
-    fn construct(ctor: &str, args: Vec<Dynamic>) -> Result<Self, String> {
-        match ctor {
-            "default" if args.len() == 0 => Ok(Vec3::default()),
-            "new" if args.len() == 3 => Ok(Vec3 {
-                x: args[0].clone_cast::<f32>(),
-                y: args[1].clone_cast::<f32>(),
-                z: args[2].clone_cast::<f32>(),
-            }),
-            _ => Err("Invalid ctor".into()),
-        }
-    }
-}
 
 
 
@@ -252,75 +177,176 @@ impl Constructible for Vec3 {
 
 
 
-pub(crate) trait Composable: Sized {
-    fn composition_info() -> CompositionInfo;
-    fn construct(method: &str, args: Box<dyn Any>) -> Result<Self, &str>;
-    fn modify(&mut self, method: &str, args: Box<dyn Any>) -> Result<(), &str>;
-}
 
-use bevy::prelude::{Transform, Vec3, Quat, Color};
-use wherever::{MovementBundle, whatever};
 
-extern_composable!(
-    extern_type: Transform,
-    location: "bevy::transform::components"
-    composition_type: Component,
-    fields: [
-        "translation": Vec3,
-        "rotation": Quat,
-        "scale": Vec3,
-    ],
-    ctors: [
-        ["default": Default::default()],
-        ["from_translation": Self::from_translation(translation: Vec3)],
-        ["from_rotation": Self::from_rotation(rotation: Quat)],
-        ["from_scale": Self::from_scale(scale: Vec3)],
-    ],
-);
 
-#[self_composable(
-    location: "enemy::bundles"
-    composition_type: Bundle,   // Requires Default
-    fields: [
-        Component("transform": Transform),
-        Component("sprite": bevy::prelude::Sprite),
-        Bundle("movement_bundle": MovementBundle),
-        Component("enemy_ai": whatever::EnemyAi),
-    ],
-    ctors: [
-        ["default": Default::default()],
-        ["new_orc": Self::new_orc(color: Color)],
-    ],
-)]
-pub struct EnemyBundle {
-    transform: Transform,   // impls Default
-    sprite: bevy::prelude::Sprite,         // impls Default
-    movement_bundle: MovementBundle,
-    enemy_ai: whatever::EnemyAi,      // can not be implicitly defaulted, but does provide a placeholder value
-}
-impl Default for EnemyBundle {
-    fn default() -> Self {
-        EnemyBundle {
-            transform: Default::default(),
-            sprite: Default::default(),
-            movement_bundle: Default::default(),
-            enemy_ai: whatever::EnemyAi::placeholder(),
-        }
-    }
-}
-impl EnemyBundle {
-    pub fn new_orc(color: Color) -> Self {
-        EnemyBundle {
-            transform: Transform::default(),
-            sprite: bevy::prelude::Sprite {
-                color,
-                ..Default::default()
-            },
-            movement_bundle: MovementBundle::default(),
-            enemy_ai: whatever::EnemyAi::new("orc"),
-        }
-    }
-}
+// impl_reflect_type!(f32, ["core"], "f32");
+// 
+// impl ReflectType for Vec3 {
+//     fn type_info() -> TypeInfo {
+//         TypeInfo {
+//             type_id: TypeId {
+//                 module_path: vec!["bevy", "prelude"],
+//                 type_name: "Vec3",
+//             },
+//             type_shape: TypeShape {
+//                 kind: TypeKind::Struct,
+//                 inner: TypeDataLayout::Struct {
+//                     field_infos: vec![
+//                         FieldInfo {
+//                             name: "x",
+//                             type_id: TypeId {
+//                                 module_path: vec!["core"],
+//                                 type_name: "f32",
+//                             },
+//                         },
+//                         FieldInfo {
+//                             name: "y",
+//                             type_id: TypeId {
+//                                 module_path: vec!["core"],
+//                                 type_name: "f32",
+//                             },
+//                         },
+//                         FieldInfo {
+//                             name: "z",
+//                             type_id: TypeId {
+//                                 module_path: vec!["core"],
+//                                 type_name: "f32",
+//                             },
+//                         },
+//                     ],
+//                 },
+//             },
+//             ctor_infos: vec![
+//                 CtorInfo {
+//                     name: "new",
+//                     arg_infos: vec![
+//                         ArgInfo {
+//                             name: "x",
+//                             type_id: TypeId {
+//                                 module_path: vec!["core"],
+//                                 type_name: "f32",
+//                             },
+//                         },
+//                         ArgInfo {
+//                             name: "y",
+//                             type_id: TypeId {
+//                                 module_path: vec!["core"],
+//                                 type_name: "f32",
+//                             },
+//                         },
+//                         ArgInfo {
+//                             name: "z",
+//                             type_id: TypeId {
+//                                 module_path: vec!["core"],
+//                                 type_name: "f32",
+//                             },
+//                         },
+//                     ],
+//                 },
+//                 CtorInfo {
+//                     name: "default",
+//                     arg_infos: vec![],
+//                 },
+//             ],
+//             method_infos: vec![],
+//         }
+//     }
+// }
+// 
+// impl Constructible for Vec3 {
+//     fn construct(ctor: &str, args: Vec<Dynamic>) -> Result<Self, String> {
+//         match ctor {
+//             "default" if args.len() == 0 => Ok(Vec3::default()),
+//             "new" if args.len() == 3 => Ok(Vec3 {
+//                 x: args[0].clone_cast::<f32>(),
+//                 y: args[1].clone_cast::<f32>(),
+//                 z: args[2].clone_cast::<f32>(),
+//             }),
+//             _ => Err("Invalid ctor".into()),
+//         }
+//     }
+// }
+
+
+
+
+
+
+
+
+
+
+
+// pub(crate) trait Composable: Sized {
+//     fn composition_info() -> CompositionInfo;
+//     fn construct(method: &str, args: Box<dyn Any>) -> Result<Self, &str>;
+//     fn modify(&mut self, method: &str, args: Box<dyn Any>) -> Result<(), &str>;
+// }
+// 
+// use bevy::prelude::{Transform, Vec3, Quat, Color};
+// use wherever::{MovementBundle, whatever};
+// 
+// extern_composable!(
+//     extern_type: Transform,
+//     location: "bevy::transform::components"
+//     composition_type: Component,
+//     fields: [
+//         "translation": Vec3,
+//         "rotation": Quat,
+//         "scale": Vec3,
+//     ],
+//     ctors: [
+//         ["default": Default::default()],
+//         ["from_translation": Self::from_translation(translation: Vec3)],
+//         ["from_rotation": Self::from_rotation(rotation: Quat)],
+//         ["from_scale": Self::from_scale(scale: Vec3)],
+//     ],
+// );
+// 
+// #[self_composable(
+//     location: "enemy::bundles"
+//     composition_type: Bundle,   // Requires Default
+//     fields: [
+//         Component("transform": Transform),
+//         Component("sprite": bevy::prelude::Sprite),
+//         Bundle("movement_bundle": MovementBundle),
+//         Component("enemy_ai": whatever::EnemyAi),
+//     ],
+//     ctors: [
+//         ["default": Default::default()],
+//         ["new_orc": Self::new_orc(color: Color)],
+//     ],
+// )]
+// pub struct EnemyBundle {
+//     transform: Transform,   // impls Default
+//     sprite: bevy::prelude::Sprite,         // impls Default
+//     movement_bundle: MovementBundle,
+//     enemy_ai: whatever::EnemyAi,      // can not be implicitly defaulted, but does provide a placeholder value
+// }
+// impl Default for EnemyBundle {
+//     fn default() -> Self {
+//         EnemyBundle {
+//             transform: Default::default(),
+//             sprite: Default::default(),
+//             movement_bundle: Default::default(),
+//             enemy_ai: whatever::EnemyAi::placeholder(),
+//         }
+//     }
+// }
+// impl EnemyBundle {
+//     pub fn new_orc(color: Color) -> Self {
+//         EnemyBundle {
+//             transform: Transform::default(),
+//             sprite: bevy::prelude::Sprite {
+//                 color,
+//                 ..Default::default()
+//             },
+//             movement_bundle: MovementBundle::default(),
+//             enemy_ai: whatever::EnemyAi::new("orc"),
+//         }
+//     }
+// }
 
 
 

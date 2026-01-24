@@ -142,6 +142,8 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
         SCHEDULE_HOOKS().lock().unwrap().insert(hook.into());
     });
 
+    // Core
+
     // World
     engine.register_type_with_name::<Shared<World>>("World");
     engine.register_raw_fn(
