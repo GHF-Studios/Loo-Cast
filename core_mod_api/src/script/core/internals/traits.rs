@@ -86,18 +86,25 @@ impl EngineExt for Engine {
     fn enable_type_binding(&mut self, fully_qualified_type_path: impl Into<TypeId>) -> &mut Self {
         let type_id: TypeId = fully_qualified_type_path.into();
 
-        if let Some(type_info) = TYPE_REGISTRY().get(&type_id) {
-            for ctor_info in &type_info.ctor_infos {
-                let fully_qualified_name = format!(
-                    "{}_{}",
-                    type_id.to_string().replace("::", "_"),
-                    ctor_info.name
-                ); // TODO: Fix this temporary solution to me not understanding rhai Modules well enough to properly implement them, with a proper modularized member-naming system
-                self.register_fn(fully_qualified_name, ctor_info.fn_ptr);
-            }
-        } else {
+        let Some(type_info) = TYPE_REGISTRY().get(&type_id) else {
             panic!("Type '{}' not found in TYPE_REGISTRY", type_id);
+        };
+
+        for ctor_id in &type_info.ctor_ids {
+            // TODO: Fix this temporary solution to me not understanding rhai Modules well enough to properly implement them, with a proper modularized member-naming system
+            let ctor_path = format!(
+                "{}_{}",
+                type_id.to_string().replace("::", "_"),
+                ctor_id.sig.name
+            );
+
+            let Some(ctor_ptr) = CTOR_REGISTRY().get(&ctor_id.sig) else {
+                panic!("Ctor '{}' not found in CTOR_REGISTRY", ctor_path);
+            };
+            
+            self.register_fn(ctor_path, ctor_id.fn_ptr);
         }
+
         self
     }
 }

@@ -3,14 +3,13 @@ use std::sync::{Arc, RwLock};
 
 use crate::script::core::internals::functions::{assert_pascal_case_clean_string, assert_snake_case_clean_string};
 
+pub type ScopedAccessHandle<T> = Shared<RwLock<ScopedAccess<T>>>;
+
 /// Rhai-safe handle for scoped access. Rhai should never touch this directly.
 #[repr(transparent)]
 pub struct ScopedAccess<T> {
     value: Option<T>,
 }
-
-pub type ScopedAccessHandle<T> = Shared<RwLock<ScopedAccess<T>>>;
-
 impl<T> ScopedAccess<T> {
     /// Creates a new ScopedAccess wrapping the given value.
     pub fn new(value: T) -> Self {
@@ -88,6 +87,41 @@ impl std::fmt::Debug for TypeName {
     }
 }
 impl std::fmt::Display for TypeName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct TraitName {
+    pub name: ImmutableString
+}
+impl TraitName {
+    pub fn new(name: impl Into<TraitName>) -> Self {
+        name.into()
+    }
+}
+impl From<ImmutableString> for TraitName {
+    fn from(name: ImmutableString) -> Self {
+        assert_pascal_case_clean_string(&name, "TraitName");
+
+        TraitName {
+            name,
+        }
+    }
+}
+impl From<TraitName> for ImmutableString {
+    fn from(trait_name: TraitName) -> Self {
+        trait_name.name
+    }
+}
+impl std::fmt::Debug for TraitName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+impl std::fmt::Display for TraitName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.name)
     }
@@ -227,6 +261,57 @@ impl std::fmt::Debug for TypeId {
     }
 }
 impl std::fmt::Display for TypeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let full_path: ImmutableString = self.clone().into();
+        write!(f, "{}", full_path)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct TraitId {
+    pub module_id: ModuleId,
+    pub trait_name: TraitName,
+}
+impl TraitId {
+    pub fn new(trait_path: impl Into<TraitId>) -> Self {
+        trait_path.into()
+    }
+}
+impl From<ImmutableString> for TraitId {
+    fn from(full_path: ImmutableString) -> Self {
+        if full_path.is_empty() {
+            panic!("TraitId strings must not be empty");
+        }
+
+        let parts: Vec<&str> = full_path.rsplitn(2, "::").collect();
+        if parts.len() != 2 {
+            panic!("TraitId strings must be in the format 'module_id::TraitName', got '{}'", full_path);
+        }
+
+        let trait_name = TraitName::new(ImmutableString::from(parts[0]));
+        let module_id = ModuleId::from(ImmutableString::from(parts[1]));
+
+        TraitId {
+            module_id,
+            trait_name,
+        }
+    }
+}
+impl From<TraitId> for ImmutableString {
+    fn from(trait_id: TraitId) -> Self {
+        let module_path: ImmutableString = trait_id.module_id.into();
+        let trait_name: ImmutableString = trait_id.trait_name.into();
+
+        ImmutableString::from(format!("{}::{}", module_path, trait_name))
+    }
+}
+impl std::fmt::Debug for TraitId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let full_path: ImmutableString = self.clone().into();
+        write!(f, "{}", full_path)
+    }
+}
+impl std::fmt::Display for TraitId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let full_path: ImmutableString = self.clone().into();
         write!(f, "{}", full_path)
@@ -681,26 +766,79 @@ impl std::fmt::Display for ArgInfo {
     }
 }
 
-#[derive(Clone, Eq)]
-pub struct CtorInfo {
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub enum FunctionOrigin {
+    Inherent,
+    ViaTrait { trait_id: TraitId },
+}
+impl From<FunctionOrigin> for ImmutableString {
+    fn from(function_origin: FunctionOrigin) -> Self {
+        match function_origin {
+            FunctionOrigin::Inherent => ImmutableString::new(),
+            FunctionOrigin::ViaTrait { trait_id } => {
+                let trait_path: ImmutableString = trait_id.into();
+                ImmutableString::from(format!(" via {}", trait_path))
+            }
+        }
+    }
+}
+impl std::fmt::Debug for FunctionOrigin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let origin_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", origin_signature)
+    }
+}
+impl std::fmt::Display for FunctionOrigin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let origin_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", origin_signature)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct StaticFunctionSignature {
     pub name: CtorName,
     pub arg_infos: Vec<ArgInfo>,
-    pub fn_ptr: fn(Vec<rhai::Dynamic>) -> rhai::Dynamic,
+    pub return_type_id: TypeId,
 }
-impl PartialEq for CtorInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name && self.arg_infos == other.arg_infos
+impl From<StaticFunctionSignature> for ImmutableString {
+    fn from(static_fn_sig: StaticFunctionSignature) -> Self {
+        let arg_signatures: Vec<ImmutableString> = static_fn_sig
+            .arg_infos
+            .into_iter()
+            .map(|ai| ai.into())
+            .collect();
+        let return_type_path: ImmutableString = static_fn_sig.return_type_id.into();
+
+        ImmutableString::from(format!(
+            "fn {}({}) -> {}",
+            static_fn_sig.name.name,
+            arg_signatures.join(", "),
+            return_type_path
+        ))
     }
 }
-impl std::hash::Hash for CtorInfo {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
-        self.arg_infos.hash(state);
+impl std::fmt::Debug for StaticFunctionSignature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let fn_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", fn_signature)
     }
 }
-impl From<CtorInfo> for ImmutableString {
-    fn from(ctor_info: CtorInfo) -> Self {
-        let arg_signatures: Vec<ImmutableString> = ctor_info
+impl std::fmt::Display for StaticFunctionSignature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let fn_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", fn_signature)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct CtorSignature {
+    pub name: CtorName,
+    pub arg_infos: Vec<ArgInfo>,
+}
+impl From<CtorSignature> for ImmutableString {
+    fn from(ctor_sig: CtorSignature) -> Self {
+        let arg_signatures: Vec<ImmutableString> = ctor_sig
             .arg_infos
             .into_iter()
             .map(|ai| ai.into())
@@ -708,67 +846,144 @@ impl From<CtorInfo> for ImmutableString {
 
         ImmutableString::from(format!(
             "ctor {}({})",
-            ctor_info.name.name,
+            ctor_sig.name.name,
             arg_signatures.join(", ")
         ))
     }
 }
-impl std::fmt::Debug for CtorInfo {
+impl std::fmt::Debug for CtorSignature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ctor_signature: ImmutableString = self.clone().into();
         write!(f, "{}", ctor_signature)
     }
 }
-impl std::fmt::Display for CtorInfo {
+impl std::fmt::Display for CtorSignature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ctor_signature: ImmutableString = self.clone().into();
         write!(f, "{}", ctor_signature)
     }
 }
 
-#[derive(Clone, Eq)]
-pub struct MethodInfo {
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MethodSignature {
     pub name: MethodName,
     pub arg_infos: Vec<ArgInfo>,
     pub return_type_id: TypeId,
-    pub fn_ptr: fn(Vec<rhai::Dynamic>) -> rhai::Dynamic,
 }
-impl PartialEq for MethodInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name && self.arg_infos == other.arg_infos && self.return_type_id == other.return_type_id
-    }
-}
-impl std::hash::Hash for MethodInfo {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
-        self.arg_infos.hash(state);
-        self.return_type_id.hash(state);
-    }
-}
-impl From<MethodInfo> for ImmutableString {
-    fn from(method_info: MethodInfo) -> Self {
-        let arg_signatures: Vec<ImmutableString> = method_info
+impl From<MethodSignature> for ImmutableString {
+    fn from(method_sig: MethodSignature) -> Self {
+        let arg_signatures: Vec<ImmutableString> = method_sig
             .arg_infos
             .into_iter()
             .map(|ai| ai.into())
             .collect();
-        let return_type_path: ImmutableString = method_info.return_type_id.into();
+        let return_type_path: ImmutableString = method_sig.return_type_id.into();
 
         ImmutableString::from(format!(
             "fn {}({}) -> {}",
-            method_info.name.name,
+            method_sig.name.name,
             arg_signatures.join(", "),
             return_type_path
         ))
     }
 }
-impl std::fmt::Debug for MethodInfo {
+impl std::fmt::Debug for MethodSignature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let method_signature: ImmutableString = self.clone().into();
         write!(f, "{}", method_signature)
     }
 }
-impl std::fmt::Display for MethodInfo {
+impl std::fmt::Display for MethodSignature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let method_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", method_signature)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct StaticFunctionId {
+    pub sig: StaticFunctionSignature,
+    pub origin: FunctionOrigin,
+}
+impl From<StaticFunctionId> for ImmutableString {
+    fn from(id: StaticFunctionId) -> Self {
+        let sig: ImmutableString = id.sig.into();
+        let origin: ImmutableString = id.origin.clone().into();
+
+        ImmutableString::from(format!(
+            "{}{}",
+            sig,
+            origin
+        ))
+    }
+}
+impl std::fmt::Debug for StaticFunctionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let fn_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", fn_signature)
+    }
+}
+impl std::fmt::Display for StaticFunctionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let fn_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", fn_signature)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct CtorId {
+    pub sig: CtorSignature,
+    pub origin: FunctionOrigin,
+}
+impl From<CtorId> for ImmutableString {
+    fn from(id: CtorId) -> Self {
+        let sig: ImmutableString = id.sig.into();
+        let origin: ImmutableString = id.origin.clone().into();
+
+        ImmutableString::from(format!(
+            "{}{}",
+            sig,
+            origin
+        ))
+    }
+}
+impl std::fmt::Debug for CtorId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let ctor_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", ctor_signature)
+    }
+}
+impl std::fmt::Display for CtorId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let ctor_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", ctor_signature)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MethodId {
+    pub sig: MethodSignature,
+    pub origin: FunctionOrigin,
+}
+impl From<MethodId> for ImmutableString {
+    fn from(id: MethodId) -> Self {
+        let sig: ImmutableString = id.sig.into();
+        let origin: ImmutableString = id.origin.clone().into();
+
+        ImmutableString::from(format!(
+            "{}{}",
+            sig,
+            origin
+        ))
+    }
+}
+impl std::fmt::Debug for MethodId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let method_signature: ImmutableString = self.clone().into();
+        write!(f, "{}", method_signature)
+    }
+}
+impl std::fmt::Display for MethodId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let method_signature: ImmutableString = self.clone().into();
         write!(f, "{}", method_signature)
@@ -780,12 +995,12 @@ inventory::collect!(TypeInfo);
 pub struct TypeInfo {
     pub type_id: TypeId,
     pub type_layout_info: TypeLayoutInfo,
-    pub ctor_infos: Vec<CtorInfo>,
-    pub method_infos: Vec<MethodInfo>,
+    pub static_function_ids: Vec<StaticFunctionId>,
+    pub ctor_ids: Vec<CtorId>,
+    pub method_ids: Vec<MethodId>,
 }
 impl From<ImmutableString> for TypeInfo {
     fn from(type_signature: ImmutableString) -> Self {
-        // panic!("TypeInfo cannot be constructed from a string directly. Use the inventory system to register types.");
     }
 }
 impl From<TypeInfo> for ImmutableString {
@@ -825,19 +1040,24 @@ impl From<TypeInfo> for ImmutableString {
             }
         };
 
-        let impl_block = if type_info.ctor_infos.is_empty() && type_info.method_infos.is_empty() {
+        let impl_block = if type_info.ctor_ids.is_empty() && type_info.method_ids.is_empty() && type_info.static_function_ids.is_empty() {
             String::new()
         } else {
-            let ctor_lines = type_info.ctor_infos.into_iter().map(|c| {
+            let ctor_lines = type_info.ctor_ids.into_iter().map(|c| {
                 format!("    ctor {};", ImmutableString::from(c))
             });
         
-            let method_lines = type_info.method_infos.into_iter().map(|m| {
+            let method_lines = type_info.method_ids.into_iter().map(|m| {
                 format!("    fn {};", ImmutableString::from(m))
+            });
+
+            let static_function_lines = type_info.static_function_ids.into_iter().map(|m| {
+                format!("    static fn {};", ImmutableString::from(m))
             });
         
             let body = ctor_lines
                 .chain(method_lines)
+                .chain(static_function_lines)
                 .collect::<Vec<_>>()
                 .join("\n");
         
