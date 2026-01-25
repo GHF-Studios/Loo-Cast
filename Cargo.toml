@@ -4,7 +4,7 @@ members = [
   "core_mod_api",
   "core_mod_macros",
   "core_mod",
-  "core_mod_reflect",
+  "core_mod_core",
   "base_mod",
   "base_mod_api",
   "base_mod_macros",

@@ -11,7 +11,7 @@ allow_premium_box = []
 
 [dependencies]
 core_mod_macros = { path = "../core_mod_macros" }
-core_mod_reflect = { path = "../core_mod_reflect" }
+core_mod_core = { path = "../core_mod_core" }
 bevy = { version = "0.16.1", default-features = false, features = [
     "std",
     "async_executor",
