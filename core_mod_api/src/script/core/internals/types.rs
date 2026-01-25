@@ -1,11 +1,10 @@
-use rhai::{ImmutableString, Shared};
-use std::sync::{Arc, RwLock};
+use rhai::{Dynamic, ImmutableString, Shared};
+use std::sync::RwLock;
 
 use crate::script::core::internals::functions::{assert_pascal_case_clean_string, assert_snake_case_clean_string};
 
 pub type ScopedAccessHandle<T> = Shared<RwLock<ScopedAccess<T>>>;
 
-/// Rhai-safe handle for scoped access. Rhai should never touch this directly.
 #[repr(transparent)]
 pub struct ScopedAccess<T> {
     value: Option<T>,
@@ -633,7 +632,6 @@ impl std::fmt::Display for VariantInfo {
     }
 }
 
-/// Not intended to be constructed directly. See TypeInfo
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum TypeDataInfo {
     Struct {
@@ -684,7 +682,6 @@ impl std::fmt::Display for TypeDataInfo {
     }
 }
 
-/// Not intended to be constructed directly. See TypeInfo
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TypeFormInfo {
     Struct,
@@ -711,7 +708,6 @@ impl std::fmt::Display for TypeFormInfo {
     }
 }
 
-/// Not intended to be constructed directly. See TypeInfo
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TypeLayoutInfo {
     pub data_info: TypeDataInfo,
@@ -858,7 +854,6 @@ impl From<ImmutableString> for CtorSignature {
         }
     }
 }
-
 impl From<CtorSignature> for ImmutableString {
     fn from(ctor_sig: CtorSignature) -> Self {
         let arg_signatures: Vec<ImmutableString> = ctor_sig
@@ -1115,6 +1110,60 @@ impl std::fmt::Display for StaticFunctionId {
     }
 }
 
+inventory::collect!(CtorRegistryEntry);
+#[derive(Clone)]
+pub struct CtorRegistryEntry {
+    pub id: CtorId,
+    pub fn_ptr: fn(Vec<Dynamic>) -> Dynamic,
+}
+impl PartialEq for CtorRegistryEntry {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+impl Eq for CtorRegistryEntry {}
+impl std::hash::Hash for CtorRegistryEntry {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+inventory::collect!(MethodRegistryEntry);
+#[derive(Clone)]
+pub struct MethodRegistryEntry {
+    pub id: MethodId,
+    pub fn_ptr: fn(Vec<Dynamic>) -> Dynamic,
+}
+impl PartialEq for MethodRegistryEntry {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+impl Eq for MethodRegistryEntry {}
+impl std::hash::Hash for MethodRegistryEntry {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+inventory::collect!(StaticFunctionRegistryEntry);
+#[derive(Clone)]
+pub struct StaticFunctionRegistryEntry {
+    pub id: StaticFunctionId,
+    pub fn_ptr: fn(Vec<Dynamic>) -> Dynamic,
+}
+impl PartialEq for StaticFunctionRegistryEntry {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+impl Eq for StaticFunctionRegistryEntry {}
+impl std::hash::Hash for StaticFunctionRegistryEntry {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
 inventory::collect!(TypeInfo);
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TypeInfo {
@@ -1180,7 +1229,7 @@ impl From<ImmutableString> for TypeInfo {
                 .collect()
         }
 
-        fn parse_ctor_id(line: &str, type_id: &TypeId) -> CtorId {
+        fn parse_ctor_id(line: &str) -> CtorId {
             let line = line.strip_prefix("ctor ").unwrap();
             let (sig, origin) = split_origin(line);
             CtorId {
@@ -1189,7 +1238,7 @@ impl From<ImmutableString> for TypeInfo {
             }
         }
 
-        fn parse_method_id(line: &str, type_id: &TypeId) -> MethodId {
+        fn parse_method_id(line: &str) -> MethodId {
             let line = line.strip_prefix("fn ").unwrap();
             let (sig, origin) = split_origin(line);
             MethodId {
@@ -1198,7 +1247,7 @@ impl From<ImmutableString> for TypeInfo {
             }
         }
 
-        fn parse_static_fn_id(line: &str, type_id: &TypeId) -> StaticFunctionId {
+        fn parse_static_fn_id(line: &str) -> StaticFunctionId {
             let line = line.strip_prefix("static fn ").unwrap();
             let (sig, origin) = split_origin(line);
             StaticFunctionId {
@@ -1222,17 +1271,12 @@ impl From<ImmutableString> for TypeInfo {
         let module_line = lines
             .next()
             .expect("expected #[module = \"...\"] line");
-
         let module_path = parse_module_line(module_line);
-        let module_id = ModuleId::from(ImmutableString::from(module_path));
 
         let decl_line = lines
             .next()
             .expect("expected type declaration line");
-
         let (form_info, type_name, data_lines) = parse_type_declaration(decl_line, &mut lines);
-        let type_id = TypeId::from(ImmutableString::from(format!("{}::{}", module_path, type_name)));
-
         let data_info = match form_info {
             TypeFormInfo::Struct => {
                 let fields = parse_fields(data_lines);
@@ -1244,10 +1288,15 @@ impl From<ImmutableString> for TypeInfo {
             }
         };
 
+        let type_id = TypeId::from(ImmutableString::from(format!("{}::{}", module_path, type_name)));
+        let type_layout_info = TypeLayoutInfo {
+            data_info,
+            form_info,
+        };
+
         let mut ctor_ids = Vec::new();
         let mut method_ids = Vec::new();
         let mut static_function_ids = Vec::new();
-
         while let Some(line) = lines.next() {
             if line.starts_with("impl ") {
                 // Consume "impl TypeName {"
@@ -1260,11 +1309,11 @@ impl From<ImmutableString> for TypeInfo {
                     }
 
                     if entry.starts_with("ctor ") {
-                        ctor_ids.push(parse_ctor_id(entry, &type_id));
+                        ctor_ids.push(parse_ctor_id(entry));
                     } else if entry.starts_with("fn ") {
-                        method_ids.push(parse_method_id(entry, &type_id));
+                        method_ids.push(parse_method_id(entry));
                     } else if entry.starts_with("static fn ") {
-                        static_function_ids.push(parse_static_fn_id(entry, &type_id));
+                        static_function_ids.push(parse_static_fn_id(entry));
                     } else {
                         panic!("unknown impl entry: {}", entry);
                     }
@@ -1274,10 +1323,7 @@ impl From<ImmutableString> for TypeInfo {
 
         TypeInfo {
             type_id,
-            type_layout_info: TypeLayoutInfo {
-                data_info,
-                form_info,
-            },
+            type_layout_info,
             ctor_ids,
             method_ids,
             static_function_ids,

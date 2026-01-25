@@ -102,10 +102,10 @@ impl EngineExt for Engine {
         for ctor_id in &type_info.ctor_ids {
             let ctor_name = format_function_name(&type_id, &ctor_id.sig.name);
 
-            if let Some(&ctor_fn) = CTOR_REGISTRY().get(&ctor_id.sig) {
+            if let Some(&ctor_fn) = CTOR_REGISTRY().get(ctor_id) {
                 self.register_fn(ctor_name, ctor_fn);
             } else {
-                panic!("Constructor not found in CTOR_REGISTRY: {}", ctor_id.sig);
+                panic!("Constructor '{}' not found in CTOR_REGISTRY", ctor_id.sig);
             }
         }
 
@@ -113,10 +113,10 @@ impl EngineExt for Engine {
         for method_id in &type_info.method_ids {
             let method_name = format_function_name(&type_id, &method_id.sig.name);
 
-            if let Some(&method_fn) = METHOD_REGISTRY().get(&method_id.sig) {
+            if let Some(&method_fn) = METHOD_REGISTRY().get(method_id) {
                 self.register_fn(method_name, method_fn);
             } else {
-                panic!("Method not found in METHOD_REGISTRY: {}", method_id.sig);
+                panic!("Method '{}' not found in METHOD_REGISTRY", method_id.sig);
             }
         }
 
@@ -124,10 +124,10 @@ impl EngineExt for Engine {
         for static_fn_id in &type_info.static_function_ids {
             let static_fn_name = format_function_name(&type_id, &static_fn_id.sig.name);
 
-            if let Some(&static_fn) = STATIC_FUNCTION_REGISTRY().get(&static_fn_id.sig) {
+            if let Some(&static_fn) = STATIC_FUNCTION_REGISTRY().get(static_fn_id) {
                 self.register_fn(static_fn_name, static_fn);
             } else {
-                panic!("Static function not found in STATIC_FUNCTION_REGISTRY: {}", static_fn_id.sig);
+                panic!("Static '{}' function not found in STATIC_FUNCTION_REGISTRY", static_fn_id.sig);
             }
         }
 
