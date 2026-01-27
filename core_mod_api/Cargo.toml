@@ -14,6 +14,7 @@ core_mod_macros = { path = "../core_mod_macros" }
 core_mod_core = { path = "../core_mod_core" }
 
 heck = { workspace = true }
+inventory = { workspace = true }
 paste = { workspace = true }
 rhai = { workspace = true }
 
@@ -95,4 +96,3 @@ dashmap = "6.1.0"
 parking_lot = "0.12.1"
 radsort = "0.1"
 wgpu = "24.0.5"
-inventory = "0.3.21"

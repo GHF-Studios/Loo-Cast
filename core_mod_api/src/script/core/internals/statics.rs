@@ -1,10 +1,16 @@
+
+use core_mod_core::reflection::{
+    ids::TypeId,
+    function_ids::{CtorId, MethodId, StaticFunctionId},
+    registry::{CtorRegistryEntry, MethodRegistryEntry, StaticFunctionRegistryEntry},
+    type_info::TypeInfo,
+};
 use core_mod_macros::export_static;
 use once_cell::sync::Lazy;
 use rhai::Dynamic;
 use std::collections::{HashSet, HashMap};
 use std::sync::Mutex;
 
-use crate::script::core::internals::types::{CtorRegistryEntry, CtorId, MethodRegistryEntry, MethodId, StaticFunctionRegistryEntry, StaticFunctionId, TypeId, TypeInfo};
 
 export_static!(self, crate::core_mod_api::script::core::internals::statics::SCHEDULE_HOOKS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
 export_static!(self, crate::core_mod_api::script::core::internals::statics::TYPE_REGISTRY: Lazy<HashMap<TypeId, &'static TypeInfo>> = Lazy::new(|| {

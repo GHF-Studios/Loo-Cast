@@ -1,13 +1,12 @@
 use bevy::ecs::entity::Entity as BevyEntity;
 use bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
-use heck::{ToPascalCase, ToSnakeCase};
+use core_mod_core::reflection::access::{ScopedAccess, ScopedAccessHandle};
 use rhai::{Dynamic, Engine, FnPtr, ImmutableString, NativeCallContext, Shared};
 use std::any::TypeId;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
 use crate::core::functions::asset_root;
-use crate::script::core::internals::types::{ScopedAccess, ScopedAccessHandle};
 use crate::script::ecs::bundle::bindings::types::Bundle;
 use crate::script::ecs::bundle::internals::traits::BundleFromDynamic;
 use crate::script::ecs::component::bindings::types::Component;
@@ -260,50 +259,4 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
 
     // PlayerBundle
     engine.register_fn("PlayerBundle", <PlayerBundle as BundleFromDynamic>::from_dynamic);
-}
-
-
-pub fn assert_pascal_case_clean_string(s: &ImmutableString, string_type_name: &'static str) {
-    if s.is_empty() {
-        panic!("{string_type_name} strings must not be empty");
-    }
-
-    if s.chars().any(|c| c.is_whitespace()) {
-        panic!("{string_type_name} strings must not contain whitespace, found '{}'", s);
-    }
-
-    if s.chars().any(|c| !c.is_ascii_alphanumeric()) {
-        panic!("{string_type_name} strings must be alphanumeric ASCII, found '{}'", s);
-    }
-
-    if s.chars().next().unwrap().is_ascii_digit() {
-        panic!("{string_type_name} strings must not start with a digit, found '{}'", s);
-    }
-
-    if s != s.to_pascal_case() {
-        panic!("{string_type_name}s must be in 'PascalCase' format, found '{}'", s);
-    }
-}
-
-
-pub fn assert_snake_case_clean_string(s: &ImmutableString, string_type_name: &'static str) {
-    if s.is_empty() {
-        panic!("{string_type_name} strings must not be empty");
-    }
-
-    if s.chars().any(|c| c.is_whitespace()) {
-        panic!("{string_type_name} strings must not contain whitespace, found '{}'", s);
-    }
-
-    if s.chars().any(|c| !c.is_ascii_alphanumeric() && c != '_') {
-        panic!("{string_type_name} strings must be alphanumeric ASCII or underscores, found '{}'", s);
-    }
-
-    if s.chars().next().unwrap().is_ascii_digit() {
-        panic!("{string_type_name} strings must not start with a digit, found '{}'", s);
-    }
-
-    if s != s.to_snake_case() {
-        panic!("{string_type_name}s must be in 'snake_case' format, found '{}'", s);
-    }
 }

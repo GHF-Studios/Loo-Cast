@@ -1,4 +1,4 @@
-use rhai::{Dynamic, ImmutableString, Shared};
+use rhai::Shared;
 use std::sync::RwLock;
 
 pub type ScopedAccessHandle<T> = Shared<RwLock<ScopedAccess<T>>>;

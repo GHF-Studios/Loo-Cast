@@ -2,10 +2,11 @@ use std::sync::TryLockError;
 
 use bevy::prelude::Commands as BevyCommands;
 use bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
+use core_mod_core::reflection::access::ScopedAccessHandle;
 use rhai::{Dynamic, FnPtr, NativeCallContext, Shared};
 
 use crate::script::{
-    core::internals::{traits::ScopedAccessProvider, types::ScopedAccessHandle},
+    core::internals::traits::ScopedAccessProvider,
     ecs::{
         bundle::bindings::types::Bundle, system::commands::bindings::types::Commands, world::{
             bindings::types::World,

@@ -1,7 +1,8 @@
 use bevy::prelude::Commands as BevyCommands;
+use core_mod_core::reflection::access::ScopedAccessHandle;
 use rhai::{Dynamic, FnPtr, NativeCallContext};
 
-use crate::script::core::internals::{traits::ScopedAccessProvider, types::ScopedAccessHandle};
+use crate::script::core::internals::traits::ScopedAccessProvider;
 
 #[repr(transparent)]
 pub struct Commands {

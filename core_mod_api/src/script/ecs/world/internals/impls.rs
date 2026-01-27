@@ -2,11 +2,11 @@ use bevy::ecs::query::{QueryData, QueryFilter};
 use bevy::ecs::system::{Commands, EntityCommands};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::prelude::{World, Query};
+use core_mod_core::reflection::access::{ScopedAccess, ScopedAccessHandle};
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 
 use crate::script::core::internals::traits::ScopedAccessProvider;
-use crate::script::core::internals::types::{ScopedAccess, ScopedAccessHandle};
 use crate::script::ecs::bundle::bindings::types::Bundle;
 use crate::script::ecs::component::internals::statics::COMPONENT_CTOR_REGISTRY;
 

@@ -2224,6 +2224,8 @@ dependencies = [
 name = "core_mod_core"
 version = "0.1.0"
 dependencies = [
+ "heck 0.4.1",
+ "inventory",
  "rhai",
 ]
 
@@ -2236,7 +2238,6 @@ dependencies = [
  "paste",
  "proc-macro2",
  "quote",
- "rhai",
  "syn",
  "thiserror 2.0.16",
 ]
