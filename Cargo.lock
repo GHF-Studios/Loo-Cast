@@ -2223,6 +2223,9 @@ dependencies = [
 [[package]]
 name = "core_mod_core"
 version = "0.1.0"
+dependencies = [
+ "rhai",
+]
 
 [[package]]
 name = "core_mod_macros"
@@ -2233,6 +2236,7 @@ dependencies = [
  "paste",
  "proc-macro2",
  "quote",
+ "rhai",
  "syn",
  "thiserror 2.0.16",
 ]

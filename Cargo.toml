@@ -11,6 +11,12 @@ members = [
   "bevy_consumable_event",
 ]
 
+[workspace.dependencies]
+heck = "0.4"
+rhai = { version = "1.23.6", features = ["sync", "internals", "unchecked"] }
+paste = "1.0.15"
+thiserror = "2.0.12"
+
 [profile.dev]
 opt-level = 1
 debug = false
