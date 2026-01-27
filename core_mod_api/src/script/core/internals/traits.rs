@@ -56,7 +56,7 @@ pub(crate) trait WriteAccessProvider<T: Clone> {
 /// non-aliasing borrow for the lifetime of that access, and that `end_access` reliably releases it.
 ///
 /// Violating these guarantees may result in **undefined behavior**, including use-after-free or aliasing mutable borrows.
-/// # Design rationale:
+/// # "Design rationale":
 /// This trait provides unsafe, dynamic, lifetime-erased access across a constrained, synchronous borrow window.
 /// Because Bevy controls world borrowing tightly, ScopedAccessHandle<T> must act like a scoped guard.
 /// That means the full access cycle (start -> use -> end) MUST complete within a single ECS system frame.
