@@ -48,6 +48,11 @@ impl Default for PlayerBundle {
         }
     }
 }
+impl PlayerBundle {
+    pub fn test_print(&self) {
+        println!("PlayerBundle test_print method successfully called!");
+    }
+}
 impl BundleFromDynamic for PlayerBundle {
     fn from_dynamic(method: &str, params: rhai::Dynamic) -> Bundle {
         match method {

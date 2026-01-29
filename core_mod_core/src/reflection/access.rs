@@ -1,6 +1,8 @@
 use rhai::Shared;
 use std::sync::RwLock;
 
+use crate::reflection::ids::TypeId;
+
 pub type ScopedAccessHandle<T> = Shared<RwLock<ScopedAccess<T>>>;
 
 #[repr(transparent)]
@@ -52,4 +54,29 @@ impl<T> ScopedAccess<T> {
     pub fn is_valid(&self) -> bool {
         self.value.is_some()
     }
+}
+
+
+// 1. REPL/Console
+// 2. Make Modules work
+// 3. Implement these borrow kinds
+// 4. Implement automatic bindgen and bindreg
+
+// Vision: PlayerBundle.default(())
+
+enum BorrowKind {
+    CloneOnMove,                        // Is the inner value. Native rhai clone semantics via T: Clone
+    TemporallyScopedExclusiveMut,       // Cannot extract the inner value. Exclusive mutable transient borrow via ScopedAccessHandle aka rhai::Shared<RwLock<ScopedAccess<T>>>; temporarily erases any lifetimes of T; safely, via runtime checks. ScopedAccess also has multiple generic impls for both zero, one, and two lifetimes to be ignored. Support for more can be easily added on demand.
+    PersistentSharedRef,                // Can extract the inner value if no other strong Arc/"rhai::Shared" pointers are alive. Shared immutable ownership via rhai::Shared<T>
+    PersistentSharedMut,                // Can extract the inner value if no other strong Arc/"rhai::Shared" pointers are alive. Shared mutable ownership via rhai::Shared<RwLock<>>
+}
+
+struct TypeRef {
+    kind: BorrowKind,
+    typ: TypeIdOrSelf,  // Either real TypeId or Self
+}
+
+enum TypeIdOrSelf {
+    Concrete(TypeId),
+    Self_,
 }

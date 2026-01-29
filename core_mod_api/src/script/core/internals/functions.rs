@@ -137,11 +137,10 @@ pub fn init(app: &mut App) {
 
 // TODO: Simplify this using the `inventory` crate to auto-register bindings via attribute/derive macro(s).
 pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
+    // Core
     engine.register_fn("add_hook_handler", |hook: &str| {
         SCHEDULE_HOOKS().lock().unwrap().insert(hook.into());
     });
-
-    // Core
 
     // World
     engine.register_type_with_name::<Shared<World>>("World");
@@ -257,6 +256,44 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
     engine.register_type_with_name::<Bundle>("Bundle");
     engine.register_fn("Bundle", |components: rhai::Map| Bundle::create_batch(components));
 
-    // PlayerBundle
-    engine.register_fn("PlayerBundle", <PlayerBundle as BundleFromDynamic>::from_dynamic);
+    
+
+    // OLD
+
+
+    register_player_bindings(engine);
+}
+
+fn register_player_bindings(engine: &mut rhai::Engine) {
+    // Level 0
+    let mut player_module = rhai::Module::new();
+    // Level 1
+    let mut bundles_module = rhai::Module::new();
+    // Level 2
+    let mut player_bundle_module = rhai::Module::new();
+
+    // Types 
+    bundles_module.set_custom_type::<ScopedAccessHandle<PlayerBundle>>("PlayerBundle");
+
+    // Constructors
+    rhai::FuncRegistration::new("new_default").set_into_module(&mut player_bundle_module, || -> ScopedAccessHandle<PlayerBundle> {
+        Shared::new(RwLock::new(ScopedAccess::new(PlayerBundle::default())))
+    });
+    rhai::FuncRegistration::new("from_dynamic").set_into_module(&mut player_bundle_module, |method: &str, params: Dynamic| -> ScopedAccessHandle<PlayerBundle> {
+        Shared::new(RwLock::new(ScopedAccess::new(<PlayerBundle as BundleFromDynamic>::from_dynamic(method, params))))
+    });
+
+    // Methods
+    engine.register_fn("test_print", |b: ScopedAccessHandle<PlayerBundle>| {
+        b.read().unwrap().read(|b| b.test_print()).unwrap();
+    });
+
+    // Level 2
+    player_bundle_module.set_id("PlayerBundle");
+    // Level 1
+    bundles_module.set_id("bundles").set_sub_module("PlayerBundle", player_bundle_module);
+    // Level 0
+    player_module.set_id("player").set_sub_module("bundles", bundles_module);
+
+    engine.register_static_module("player", Arc::new(player_module));
 }
