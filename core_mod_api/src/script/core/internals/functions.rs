@@ -1,6 +1,6 @@
 use bevy::ecs::entity::Entity as BevyEntity;
 use bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
-use core_mod_core::reflection::access::{ScopedAccess, ScopedAccessHandle};
+use core_mod_core::reflection::access::{ScopedAccess, ScopedAccessHandle, ScopedAccessHandleExt, ScopedAccessReadGuard, ScopedAccessWriteGuard};
 use core_mod_core::reflection::ids::{GetTraitId, GetTypeId};
 use rhai::{Dynamic, Engine, FnPtr, ImmutableString, NativeCallContext, Shared};
 use std::any::TypeId;
@@ -22,7 +22,7 @@ use crate::player::bundles::PlayerBundle;
 
 use super::resources::MainScriptEngineHandle;
 use super::super::super::ecs::world::bindings::types::World;
-use super::super::super::core::internals::statics::SCHEDULE_HOOKS;
+use super::super::super::core::internals::statics::{SCHEDULE_HOOKS, TRAIT_OBJECT_VTABLE_USE_REF, TRAIT_OBJECT_VTABLE_USE_MUT, TRAIT_OBJECT_VTABLE_USE_OWNED};
 
 pub fn pre_init(world: &mut BevyWorld) {
     world.init_resource::<MainScriptEngineHandle>();
@@ -278,19 +278,55 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
     // TODO: Register traits and associate types with the traits they implement
 
     // Stuff that most definitely doesn't belong here
-    trait ScopedAccessHandleExt<T> {
-        fn new(value: T) -> Self;
-        fn into_inner(self) -> T;
+    use core_mod_core::reflection::ids::TypeId as RhaiTypeId;
+    use core_mod_core::reflection::ids::TraitId as RhaiTraitId;
+
+    struct TraitObject<T: GetTraitId> {
+        pub value: Dynamic,
+        pub _phantom_data: PhantomData<T>,
     }
-    impl<T> ScopedAccessHandleExt<T> for ScopedAccessHandle<T> {
-        fn new(value: T) -> Self {
-            Shared::new(RwLock::new(ScopedAccess::new(value)))
+    impl<T: GetTraitId> TraitObject<T> {
+        fn assert_safety(&self, instance_type_id: &str) -> (RhaiTypeId, RhaiTraitId) {
+            let instance_type_id = RhaiTypeId::new(ImmutableString::from(instance_type_id));
+            let instance_type_info = TYPE_REGISTRY().get(&instance_type_id).unwrap_or_else(|| panic!("Unknown instance type '{instance_type_id}'"));
+            let trait_id = RhaiTraitId::new(ImmutableString::from(T::TRAIT_ID));
+            
+            if !instance_type_info.implemented_trait_ids.contains(&trait_id) {
+                panic!("Instance type '{instance_type_id}' does not implement the trait '{trait_id}'")
+            }
+
+            (instance_type_id, trait_id)
         }
 
-        fn into_inner(self) -> T {
-            let bundle = Arc::into_inner(self).expect("The bundle is referenced elsewhere; cannot take the inner value!");
-            let mut bundle = bundle.into_inner().unwrap();
-            bundle.invalidate().unwrap()
+        fn as_ref<I: 'static>(self) -> ScopedAccessReadGuard<'static, I> {
+            let handle = self.value.cast::<ScopedAccessHandle<I>>();
+            ScopedAccessHandleExt::as_ref(handle)
+        }
+
+        fn as_mut<I: 'static>(self) -> ScopedAccessWriteGuard<'static, I> {
+            let mut handle = self.value.cast::<ScopedAccessHandle<I>>();
+            ScopedAccessHandleExt::as_mut(handle)
+        }
+
+        fn into_inner<I: 'static>(self) -> I {
+            self.value.cast::<ScopedAccessHandle<I>>().into_inner()
+        }
+
+        pub fn use_ref(&self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {}
+        
+        pub fn use_mut(&mut self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {}
+
+        pub fn use_owned(self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {
+            let (instance_type_id, trait_id) = self.assert_safety(instance_type_id);
+            let instance = self.into_inner();
+            let vtable = TRAIT_OBJECT_VTABLE_USE_REF().get(&trait_id);
+            let func = vtable.get(method).unwrap();
+
+            func(params)
+
+            // entity.insert(bundle);
+
+            Dynamic::from(())
         }
     }
 
@@ -298,31 +334,9 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
         fn new(self) -> TraitObject<T>;
     }
 
-    struct TraitObject<T: GetTraitId> {
-        pub value: Dynamic,
-        pub _phantom_data: PhantomData<T>,
-    }
-
     struct BundleTrait;
     impl GetTraitId for BundleTrait {
         const TRAIT_ID: &'static str = "ecs::bundle::Bundle";
-    }
-    impl<T: GetTraitId> TraitObject<T> {
-        pub fn use_consume(self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {
-            use core_mod_core::reflection::ids::TypeId as RhaiTypeId;
-            use core_mod_core::reflection::ids::TraitId as RhaiTraitId;
-
-            let instance_type_id = RhaiTypeId::new(instance_type_id.into());
-            let instance_type_info = TYPE_REGISTRY().get(&instance_type_id).unwrap_or_else(|| panic!("Unknown instance type '{instance_type_id}'"));
-            let trait_id = RhaiTraitId::new(ImmutableString::from(T::TRAIT_ID));
-            
-            if !instance_type_info.implemented_trait_ids.contains(&trait_id) {
-                panic!("Instance type '{instance_type_id}' does not implement the trait '{trait_id}'")
-            }
-            
-            let bundle = self.value.cast::<ScopedAccessHandle<PlayerBundle>>().into_inner();
-            entity.insert(bundle);
-        }
     }
 
     // Impls

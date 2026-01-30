@@ -2,10 +2,10 @@ use rhai::ImmutableString;
 
 use super::names::{ModuleName, TypeName, TraitName};
 
-pub trait GetTypeId {
+pub trait GetTypeId: Sized + 'static {
     const TYPE_ID: &'static str;
 }
-pub trait GetTraitId: Sized {
+pub trait GetTraitId: Sized + 'static {
     const TRAIT_ID: &'static str;
 }
 

@@ -10,9 +10,11 @@ use std::sync::Mutex;
 
 
 export_static!(self, crate::core_mod_api::script::core::internals::statics::SCHEDULE_HOOKS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
+
 export_static!(self, crate::core_mod_api::script::core::internals::statics::TYPE_REGISTRY: Lazy<HashMap<TypeId, &'static TypeInfo>> = Lazy::new(|| {
     inventory::iter::<TypeInfo>.into_iter().map(|entry| (entry.type_id.clone(), entry)).collect()
 }));
+
 export_static!(self, crate::core_mod_api::script::core::internals::statics::CTOR_REGISTRY: Lazy<HashMap<CtorId, fn(Vec<Dynamic>) -> Dynamic>> = Lazy::new(|| {
     inventory::iter::<CtorRegistryEntry>.into_iter().map(|entry| (entry.id.clone(), entry.fn_ptr)).collect()
 }));
@@ -21,4 +23,26 @@ export_static!(self, crate::core_mod_api::script::core::internals::statics::METH
 }));
 export_static!(self, crate::core_mod_api::script::core::internals::statics::STATIC_FUNCTION_REGISTRY: Lazy<HashMap<StaticFunctionId, fn(Vec<Dynamic>) -> Dynamic>> = Lazy::new(|| {
     inventory::iter::<StaticFunctionRegistryEntry>.into_iter().map(|entry| (entry.id.clone(), entry.fn_ptr)).collect()
+}));
+
+export_static!(self, crate::core_mod_api::script::component::bindings::statics::TRAIT_OBJECT_VTABLE_USE_REF: Lazy<HashMap<ComponentId, ComponentCtorFn>> = Lazy::new(|| {
+    let mut m: HashMap<ComponentId, ComponentCtorFn> = Default::default();
+    for entry in inventory::iter::<ComponentCtorEntry> {
+        m.insert(Arc::from(entry.name), entry.ctor);
+    }
+    m
+}));
+export_static!(self, crate::core_mod_api::script::component::bindings::statics::TRAIT_OBJECT_VTABLE_USE_MUT: Lazy<HashMap<ComponentId, ComponentCtorFn>> = Lazy::new(|| {
+    let mut m: HashMap<ComponentId, ComponentCtorFn> = Default::default();
+    for entry in inventory::iter::<ComponentCtorEntry> {
+        m.insert(Arc::from(entry.name), entry.ctor);
+    }
+    m
+}));
+export_static!(self, crate::core_mod_api::script::component::bindings::statics::TRAIT_OBJECT_VTABLE_USE_OWNED: Lazy<HashMap<ComponentId, ComponentCtorFn>> = Lazy::new(|| {
+    let mut m: HashMap<ComponentId, ComponentCtorFn> = Default::default();
+    for entry in inventory::iter::<ComponentCtorEntry> {
+        m.insert(Arc::from(entry.name), entry.ctor);
+    }
+    m
 }));
