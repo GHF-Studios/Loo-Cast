@@ -2,6 +2,13 @@ use rhai::ImmutableString;
 
 use super::names::{ModuleName, TypeName, TraitName};
 
+pub trait GetTypeId {
+    const TYPE_ID: &'static str;
+}
+pub trait GetTraitId: Sized {
+    const TRAIT_ID: &'static str;
+}
+
 #[derive(Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ModuleId {
@@ -64,6 +71,10 @@ pub struct TypeId {
 impl TypeId {
     pub fn new(type_path: impl Into<TypeId>) -> Self {
         type_path.into()
+    }
+
+    pub fn of<T: GetTypeId>() -> Self {
+        Self::new(ImmutableString::from(<T as GetTypeId>::TYPE_ID))
     }
 }
 impl From<ImmutableString> for TypeId {

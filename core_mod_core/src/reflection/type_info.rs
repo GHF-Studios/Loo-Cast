@@ -1,5 +1,7 @@
 use rhai::ImmutableString;
 
+use crate::reflection::names::TypeName;
+
 use super::{
     function_ids::{CtorId, MethodId, StaticFunctionId},
     ids::{TraitId, TypeId},
@@ -9,9 +11,11 @@ use super::{
 
 inventory::collect!(TypeInfo);
 #[derive(Clone, PartialEq, Eq, Hash)]
+// TODO: Change all Vec<SomeId> in reflection to HashSet<SomeId>
 pub struct TypeInfo {
     pub type_id: TypeId,
     pub type_layout_info: TypeLayoutInfo,
+    pub implemented_trait_ids: Vec<TraitId>,
     pub ctor_ids: Vec<CtorId>,
     pub method_ids: Vec<MethodId>,
     pub static_function_ids: Vec<StaticFunctionId>,
@@ -28,14 +32,26 @@ impl From<ImmutableString> for TypeInfo {
         fn parse_type_declaration<'a>(
             line: &'a str,
             lines: &mut impl Iterator<Item = &'a str>,
-        ) -> (TypeFormInfo, &'a str, Vec<&'a str>) {
+        ) -> (TypeFormInfo, TypeName, Vec<TraitId>, Vec<&'a str>) {
             let tokens: Vec<&str> = line.split_whitespace().collect();
             if tokens.len() < 2 {
                 panic!("invalid type declaration");
             }
 
             let kind = tokens[0];
-            let name = tokens[1];
+            let name_and_traits = tokens[1..].join(" ");
+            let name_and_traits: Vec<&str> = name_and_traits.split(':').map(str::trim).collect();
+            let name = TypeName::new(ImmutableString::from(name_and_traits[0]));
+            let implemented_trait_ids = if name_and_traits.len() == 2 {
+                name_and_traits[1]
+                    .split('+')
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .map(|s| TraitId::from(ImmutableString::from(s)))
+                    .collect()
+            } else {
+                Vec::new()
+            };
 
             let mut body = Vec::new();
             for line in lines {
@@ -46,8 +62,8 @@ impl From<ImmutableString> for TypeInfo {
             }
 
             match kind {
-                "struct" => (TypeFormInfo::Struct, name, body),
-                "enum" => (TypeFormInfo::Enum, name, body),
+                "struct" => (TypeFormInfo::Struct, name, implemented_trait_ids, body),
+                "enum" => (TypeFormInfo::Enum, name, implemented_trait_ids, body),
                 _ => panic!("unknown type form: {}", kind),
             }
         }
@@ -119,7 +135,7 @@ impl From<ImmutableString> for TypeInfo {
         let decl_line = lines
             .next()
             .expect("expected type declaration line");
-        let (form_info, type_name, data_lines) = parse_type_declaration(decl_line, &mut lines);
+        let (form_info, type_name, implemented_trait_ids, data_lines) = parse_type_declaration(decl_line, &mut lines);
         let data_info = match form_info {
             TypeFormInfo::Struct => {
                 let fields = parse_fields(data_lines);
@@ -167,6 +183,7 @@ impl From<ImmutableString> for TypeInfo {
         TypeInfo {
             type_id,
             type_layout_info,
+            implemented_trait_ids,
             ctor_ids,
             method_ids,
             static_function_ids,
@@ -183,6 +200,19 @@ impl From<TypeInfo> for ImmutableString {
             module_path
         );
 
+        let traits = {
+            let traits = type_info.implemented_trait_ids
+                .into_iter()
+                .map(|t| format!("{}", ImmutableString::from(t)))
+                .collect::<Vec<_>>()
+                .join(" + ");
+
+            if !traits.is_empty() {
+                format!(": {traits}")
+            } else {
+                String::new()
+            }
+        };
         let layout = match type_info.type_layout_info.data_info {
             TypeDataInfo::Struct { field_infos } => {
                 let fields = field_infos
@@ -192,8 +222,8 @@ impl From<TypeInfo> for ImmutableString {
                     .join("\n");
             
                 format!(
-                    "struct {} {{\n{}\n}}",
-                    type_name, fields
+                    "struct {}{} {{\n{}\n}}",
+                    type_name, traits, fields
                 )
             }
             TypeDataInfo::Enum { variant_infos } => {
@@ -204,8 +234,8 @@ impl From<TypeInfo> for ImmutableString {
                     .join("\n");
             
                 format!(
-                    "enum {} {{\n{}\n}}",
-                    type_name, variants
+                    "enum {}{} {{\n{}\n}}",
+                    type_name, traits, variants
                 )
             }
         };

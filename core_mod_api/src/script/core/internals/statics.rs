@@ -1,9 +1,6 @@
 
 use core_mod_core::reflection::{
-    ids::TypeId,
-    function_ids::{CtorId, MethodId, StaticFunctionId},
-    registry::{CtorRegistryEntry, MethodRegistryEntry, StaticFunctionRegistryEntry},
-    type_info::TypeInfo,
+    function_ids::{CtorId, MethodId, StaticFunctionId}, ids::{TraitId, TypeId}, registry::{CtorRegistryEntry, MethodRegistryEntry, StaticFunctionRegistryEntry}, type_info::TypeInfo
 };
 use core_mod_macros::export_static;
 use once_cell::sync::Lazy;
