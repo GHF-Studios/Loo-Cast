@@ -281,6 +281,10 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
     use core_mod_core::reflection::ids::TypeId as RhaiTypeId;
     use core_mod_core::reflection::ids::TraitId as RhaiTraitId;
 
+    trait ToTraitObject<T: GetTraitId>: Sized {
+        fn new(self) -> TraitObject<T>;
+    }
+    
     struct TraitObject<T: GetTraitId> {
         pub value: Dynamic,
         pub _phantom_data: PhantomData<T>,
@@ -328,10 +332,6 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
 
             func(instance, params)
         }
-    }
-
-    trait ToTraitObject<T: GetTraitId>: Sized {
-        fn new(self) -> TraitObject<T>;
     }
 
     struct BundleTrait;
