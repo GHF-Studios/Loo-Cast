@@ -298,35 +298,35 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
             (instance_type_id, trait_id)
         }
 
-        fn as_ref<I: 'static>(self) -> ScopedAccessReadGuard<'static, I> {
-            let handle = self.value.cast::<ScopedAccessHandle<I>>();
-            ScopedAccessHandleExt::as_ref(handle)
-        }
-
-        fn as_mut<I: 'static>(self) -> ScopedAccessWriteGuard<'static, I> {
-            let mut handle = self.value.cast::<ScopedAccessHandle<I>>();
-            ScopedAccessHandleExt::as_mut(handle)
-        }
-
-        fn into_inner<I: 'static>(self) -> I {
-            self.value.cast::<ScopedAccessHandle<I>>().into_inner()
-        }
-
-        pub fn use_ref(&self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {}
-        
-        pub fn use_mut(&mut self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {}
-
-        pub fn use_owned(self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {
+        pub fn use_ref<I: Clone + 'static>(&self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {
             let (instance_type_id, trait_id) = self.assert_safety(instance_type_id);
-            let instance = self.into_inner();
+            let instance_handle = self.value.read_lock::<ScopedAccessHandle<I>>().unwrap();
+            let instance_guard = ScopedAccessHandleExt::as_ref(&*instance_handle);
+            let instance_ref = &*instance_guard;
             let vtable = TRAIT_OBJECT_VTABLE_USE_REF().get(&trait_id);
             let func = vtable.get(method).unwrap();
 
-            func(params)
+            func(instance_ref, params)
+        }
+        
+        pub fn use_mut<I: Clone + 'static>(&mut self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {
+            let (instance_type_id, trait_id) = self.assert_safety(instance_type_id);
+            let mut instance_handle = self.value.write_lock::<ScopedAccessHandle<I>>().unwrap();
+            let instance_guard = ScopedAccessHandleExt::as_mut(&mut *instance_handle);
+            let instance_mut = &mut *instance_guard;
+            let vtable = TRAIT_OBJECT_VTABLE_USE_MUT().get(&trait_id);
+            let func = vtable.get(method).unwrap();
 
-            // entity.insert(bundle);
+            func(instance_mut, params)
+        }
 
-            Dynamic::from(())
+        pub fn use_owned<I: Clone + 'static>(self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {
+            let (instance_type_id, trait_id) = self.assert_safety(instance_type_id);
+            let instance = self.value.cast::<ScopedAccessHandle<I>>().into_inner();
+            let vtable = TRAIT_OBJECT_VTABLE_USE_OWNED().get(&trait_id);
+            let func = vtable.get(method).unwrap();
+
+            func(instance, params)
         }
     }
 

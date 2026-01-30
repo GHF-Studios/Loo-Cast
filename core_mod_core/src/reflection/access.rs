@@ -5,8 +5,8 @@ use crate::reflection::ids::TypeId;
 
 pub trait ScopedAccessHandleExt<'lock, T: 'lock> {
     fn new(value: T) -> Self;
-    fn as_ref(self) -> ScopedAccessReadGuard<'lock, T>;
-    fn as_mut(self) -> ScopedAccessWriteGuard<'lock, T>;
+    fn as_ref(&'lock self) -> ScopedAccessReadGuard<'lock, T>;
+    fn as_mut(&'lock mut self) -> ScopedAccessWriteGuard<'lock, T>;
     fn into_inner(self) -> T;
 }
 impl<'lock, T: 'lock> ScopedAccessHandleExt<'lock, T> for ScopedAccessHandle<T> {
@@ -14,11 +14,11 @@ impl<'lock, T: 'lock> ScopedAccessHandleExt<'lock, T> for ScopedAccessHandle<T> 
         Shared::new(RwLock::new(ScopedAccess::new(value)))
     }
 
-    fn as_ref(self) -> ScopedAccessReadGuard<'lock, T> {
+    fn as_ref(&'lock self) -> ScopedAccessReadGuard<'lock, T> {
         ScopedAccessReadGuard::new(self.read().unwrap())
     }
 
-    fn as_mut(self) -> ScopedAccessWriteGuard<'lock, T> {
+    fn as_mut(&'lock mut self) -> ScopedAccessWriteGuard<'lock, T> {
         ScopedAccessWriteGuard::new(self.write().unwrap())
     }
 
@@ -154,6 +154,7 @@ impl<T> ScopedAccess<T> {
 
 // Vision: PlayerBundle.default(())
 
+// Scratchpad/WIP
 enum BorrowKind {
     CloneOnMove,                        // Is the inner value. Native rhai clone semantics via T: Clone
     TemporallyScopedExclusiveMut,       // Cannot extract the inner value. Exclusive mutable transient borrow via ScopedAccessHandle aka rhai::Shared<RwLock<ScopedAccess<T>>>; temporarily erases any lifetimes of T; safely, via runtime checks. ScopedAccess also has multiple generic impls for both zero, one, and two lifetimes to be ignored. Support for more can be easily added on demand.
