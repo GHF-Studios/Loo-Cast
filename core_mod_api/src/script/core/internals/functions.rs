@@ -272,6 +272,24 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
     // Level 2
     let mut player_bundle_module = rhai::Module::new();
 
+    // TODO: Register traits and associate types with the traits they implement
+
+    // Traits
+    trait TraitObject<T: Sized> {}
+
+    unsafe trait ToTraitObject<T: TraitObject<Self>>: Sized {
+        fn new(self) -> T;
+    }
+
+    // Impls
+    impl TraitObject<PlayerBundle> for Bundle {}
+
+    unsafe impl ToTraitObject<Bundle> for PlayerBundle {
+        fn new(self) -> Bundle {
+            todo!()
+        }
+    }
+
     // Types 
     bundles_module.set_custom_type::<ScopedAccessHandle<PlayerBundle>>("PlayerBundle");
 
@@ -279,8 +297,18 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
     rhai::FuncRegistration::new("new_default").set_into_module(&mut player_bundle_module, || -> ScopedAccessHandle<PlayerBundle> {
         Shared::new(RwLock::new(ScopedAccess::new(PlayerBundle::default())))
     });
+    rhai::FuncRegistration::new("to_generic_object").set_into_module(&mut player_bundle_module, |trait_id: &str, bundle: ScopedAccessHandle<PlayerBundle>| {
+        let bundle = bundle.write().unwrap().invalidate().unwrap();
+
+        match trait_id {
+            "ecs::bundle::Bundle" => {
+                let b: Bundle = bundle.new();
+                Dynamic::from(b)
+            }
+        }
+    });
     rhai::FuncRegistration::new("from_dynamic").set_into_module(&mut player_bundle_module, |method: &str, params: Dynamic| -> ScopedAccessHandle<PlayerBundle> {
-        Shared::new(RwLock::new(ScopedAccess::new(<PlayerBundle as BundleFromDynamic>::from_dynamic(method, params))))
+        Shared::new(RwLock::new(ScopedAccess::new(<PlayerBundle as BundleFromDynamic>::from_dynamic(method, params).resolve_type())))
     });
 
     // Methods

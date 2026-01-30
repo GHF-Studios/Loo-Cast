@@ -1,4 +1,4 @@
-use rhai::Map;
+use rhai::{Dynamic, Map};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -6,7 +6,7 @@ use crate::script::ecs::component::internals::types::{ComponentCtorParams, Compo
 
 #[derive(Clone)]
 #[repr(transparent)]
-pub struct Bundle(pub(crate) HashMap<ComponentId, ComponentCtorParams>);
+pub struct Bundle(pub(crate) HashMap<ComponentId, Dynamic>);
 impl Bundle {
     pub fn create_batch(components: Map) -> Self {
         let raw_components = components.into_iter().map(|(name, params)| {
