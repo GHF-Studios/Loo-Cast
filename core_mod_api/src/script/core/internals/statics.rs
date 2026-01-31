@@ -25,7 +25,7 @@ export_static!(self, crate::core_mod_api::script::core::internals::statics::STAT
     inventory::iter::<StaticFunctionRegistryEntry>.into_iter().map(|entry| (entry.id.clone(), entry.fn_ptr)).collect()
 }));
 
-export_static!(self, crate::core_mod_api::script::component::bindings::statics::TRAIT_OBJECT_VTABLE_USE_REF: Lazy<HashMap<ComponentId, ComponentCtorFn>> = Lazy::new(|| {
+export_static!(self, crate::core_mod_api::script::component::bindings::statics::TRAIT_OBJECT_VTABLE_USE_REF: Lazy<HashMap<ComponentId, HashMap<ComponentCtorFn>>> = Lazy::new(|| {
     let mut m: HashMap<ComponentId, ComponentCtorFn> = Default::default();
     for entry in inventory::iter::<ComponentCtorEntry> {
         m.insert(Arc::from(entry.name), entry.ctor);

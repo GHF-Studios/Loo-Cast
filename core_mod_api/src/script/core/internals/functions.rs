@@ -1,7 +1,7 @@
 use bevy::ecs::entity::Entity as BevyEntity;
 use bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
 use core_mod_core::reflection::access::{ScopedAccess, ScopedAccessHandle, ScopedAccessHandleExt, ScopedAccessReadGuard, ScopedAccessWriteGuard};
-use core_mod_core::reflection::ids::{GetTraitId, GetTypeId};
+use core_mod_core::reflection::ids::{Trait, GetTypeId};
 use rhai::{Dynamic, Engine, FnPtr, ImmutableString, NativeCallContext, Shared};
 use std::any::TypeId;
 use std::marker::PhantomData;
@@ -281,15 +281,14 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
     use core_mod_core::reflection::ids::TypeId as RhaiTypeId;
     use core_mod_core::reflection::ids::TraitId as RhaiTraitId;
 
-    trait ToTraitObject<T: GetTraitId>: Sized {
-        fn new(self) -> TraitObject<T>;
+    pub trait ToTraitObject<T: Trait>: Sized {
+        fn cast_to(self) -> TraitObject<T>;
+        fn cast_from(obj: TraitObject<T>) -> Self;
     }
     
-    struct TraitObject<T: GetTraitId> {
-        pub value: Dynamic,
-        pub _phantom_data: PhantomData<T>,
-    }
-    impl<T: GetTraitId> TraitObject<T> {
+    #[repr(transparent)]
+    pub struct TraitObject<T: Trait>(Dynamic, PhantomData<T>);
+    impl<T: Trait> TraitObject<T> {
         fn assert_safety(&self, instance_type_id: &str) -> (RhaiTypeId, RhaiTraitId) {
             let instance_type_id = RhaiTypeId::new(ImmutableString::from(instance_type_id));
             let instance_type_info = TYPE_REGISTRY().get(&instance_type_id).unwrap_or_else(|| panic!("Unknown instance type '{instance_type_id}'"));
@@ -304,9 +303,11 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
 
         pub fn use_ref<I: Clone + 'static>(&self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {
             let (instance_type_id, trait_id) = self.assert_safety(instance_type_id);
-            let instance_handle = self.value.read_lock::<ScopedAccessHandle<I>>().unwrap();
+
+            let instance_handle = self.0.read_lock::<ScopedAccessHandle<I>>().unwrap();
             let instance_guard = ScopedAccessHandleExt::as_ref(&*instance_handle);
             let instance_ref = &*instance_guard;
+
             let vtable = TRAIT_OBJECT_VTABLE_USE_REF().get(&trait_id);
             let func = vtable.get(method).unwrap();
 
@@ -315,9 +316,11 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
         
         pub fn use_mut<I: Clone + 'static>(&mut self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {
             let (instance_type_id, trait_id) = self.assert_safety(instance_type_id);
-            let mut instance_handle = self.value.write_lock::<ScopedAccessHandle<I>>().unwrap();
+
+            let mut instance_handle = self.0.write_lock::<ScopedAccessHandle<I>>().unwrap();
             let instance_guard = ScopedAccessHandleExt::as_mut(&mut *instance_handle);
             let instance_mut = &mut *instance_guard;
+
             let vtable = TRAIT_OBJECT_VTABLE_USE_MUT().get(&trait_id);
             let func = vtable.get(method).unwrap();
 
@@ -326,7 +329,9 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
 
         pub fn use_owned<I: Clone + 'static>(self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {
             let (instance_type_id, trait_id) = self.assert_safety(instance_type_id);
-            let instance = self.value.cast::<ScopedAccessHandle<I>>().into_inner();
+
+            let instance = self.0.cast::<ScopedAccessHandle<I>>().into_inner();
+
             let vtable = TRAIT_OBJECT_VTABLE_USE_OWNED().get(&trait_id);
             let func = vtable.get(method).unwrap();
 
@@ -335,17 +340,23 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
     }
 
     struct BundleTrait;
-    impl GetTraitId for BundleTrait {
+    impl Trait for BundleTrait {
         const TRAIT_ID: &'static str = "ecs::bundle::Bundle";
     }
+
+    #[repr(transparent)]
+    pub struct BundleTraitObject(pub TraitObject<BundleTrait>);
 
     // Impls
     impl GetTypeId for PlayerBundle {
         const TYPE_ID: &'static str = "player::bundles::PlayerBundle";
     }
     impl ToTraitObject<BundleTrait> for ScopedAccessHandle<PlayerBundle> {
-        fn new(self) -> TraitObject<BundleTrait> {
-            TraitObject { value: Dynamic::from(self), _phantom_data: PhantomData }
+        fn cast_to(self) -> TraitObject<BundleTrait> {
+            TraitObject(Dynamic::from(self), PhantomData)
+        }
+        fn cast_from(obj: TraitObject<BundleTrait>) -> Self {
+            obj.value.cast()
         }
     }
 
@@ -356,19 +367,18 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
     rhai::FuncRegistration::new("new_default").set_into_module(&mut player_bundle_module, || -> ScopedAccessHandle<PlayerBundle> {
         Shared::new(RwLock::new(ScopedAccess::new(PlayerBundle::default())))
     });
-    rhai::FuncRegistration::new("to_trait_object").set_into_module(&mut player_bundle_module, |trait_id: &str, bundle: ScopedAccessHandle<PlayerBundle>| {
-        let bundle = bundle.write().unwrap().invalidate().unwrap();
-
-        match trait_id {
-            "ecs::bundle::Bundle" => {
-                let b: TraitObject<BundleTrait> = bundle.new();
-                Dynamic::from(b)
-            }
-        }
-    });
-    rhai::FuncRegistration::new("from_dynamic").set_into_module(&mut player_bundle_module, |method: &str, params: Dynamic| -> ScopedAccessHandle<PlayerBundle> {
-        ScopedAccessHandle::new(<PlayerBundle as BundleFromDynamic>::from_dynamic(method, params).resolve_type())
-    });
+    // rhai::FuncRegistration::new("to_trait_object").set_into_module(&mut player_bundle_module, |trait_id: &str, bundle: ScopedAccessHandle<PlayerBundle>| {
+    // 
+    //     match trait_id {
+    //         "ecs::bundle::Bundle" => {
+    //             let b: TraitObject<BundleTrait> = bundle.cast_to();
+    //             Dynamic::from(b)
+    //         }
+    //     }
+    // });
+    // rhai::FuncRegistration::new("from_dynamic").set_into_module(&mut player_bundle_module, |method: &str, params: Dynamic| -> ScopedAccessHandle<PlayerBundle> {
+    //     ScopedAccessHandle::new(<PlayerBundle as BundleFromDynamic>::from_dynamic(method, params).resolve_type())
+    // });
 
     // Methods
     engine.register_fn("test_print", |b: ScopedAccessHandle<PlayerBundle>| {

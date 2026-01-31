@@ -8,6 +8,7 @@ default = [
     "allow_premium_box"
 ]
 allow_premium_box = []
+bevy_dynamic_linking = ["bevy/dynamic_linking"]
 
 [dependencies]
 core_mod_macros = { path = "../core_mod_macros" }

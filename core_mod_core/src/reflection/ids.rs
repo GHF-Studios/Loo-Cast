@@ -5,7 +5,7 @@ use super::names::{ModuleName, TypeName, TraitName};
 pub trait GetTypeId: Sized + 'static {
     const TYPE_ID: &'static str;
 }
-pub trait GetTraitId: Sized + 'static {
+pub trait Trait: Sized + 'static {
     const TRAIT_ID: &'static str;
 }
 

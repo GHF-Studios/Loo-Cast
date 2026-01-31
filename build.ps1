@@ -37,10 +37,14 @@ $buildTargetDir = "$workspaceRoot\build\$BuildProfile"
 # Join excludes into one string
 $excludeArgs = $modCrates | ForEach-Object { "--exclude $_" } | Out-String
 $excludeArgs = $excludeArgs -replace "\r?\n", " "  # flatten line breaks
+$extraFeatures = ""
+if ($BuildProfile -ne "release") {
+    $extraFeatures = "--features bevy_dynamic_linking"
+}
 
 # Build the non-mod part of the workspace
 Write-Host "Building main executable..."
-Invoke-Expression "cargo build $cargoArgs --workspace $excludeArgs"
+Invoke-Expression "cargo build $cargoArgs --workspace $excludeArgs $extraFeatures"
 
 # Build mods separately with required features
 foreach ($crate in $modCrates) {

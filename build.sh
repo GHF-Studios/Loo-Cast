@@ -49,8 +49,13 @@ for crate in "${mod_crates[@]}"; do
   exclude_args+=(--exclude "$crate")
 done
 
+extra_features=""
+if [[ "$BUILD_PROFILE" != "release" ]]; then
+  extra_features="--features bevy_dynamic_linking"
+fi
+
 echo "Building main executable..."
-cargo build $cargo_args --workspace "${exclude_args[@]}"
+cargo build $cargo_args --workspace "${exclude_args[@]}" $extra_features
 
 # Build mod crates separately
 for crate in "${mod_crates[@]}"; do
