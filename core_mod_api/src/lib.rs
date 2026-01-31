@@ -6,6 +6,9 @@ pub use bevy_consumable_event;
 pub use core_mod_macros;
 
 pub use anymap;
+#[cfg(debug_assertions)]
+#[allow(unused_imports)]
+pub use bevy_dylib;
 pub use bevy;
 pub use bevy_egui;
 pub use bevy_inspector_egui;

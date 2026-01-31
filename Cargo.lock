@@ -533,6 +533,7 @@ version = "0.1.0"
 dependencies = [
  "base_mod_api",
  "base_mod_macros",
+ "core_mod_core_macros",
 ]
 
 [[package]]
@@ -2188,6 +2189,7 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "bevy_consumable_event",
+ "bevy_dylib",
  "bevy_egui",
  "bevy_rapier2d",
  "bytemuck",

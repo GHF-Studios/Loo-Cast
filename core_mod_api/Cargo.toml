@@ -98,3 +98,6 @@ dashmap = "6.1.0"
 parking_lot = "0.12.1"
 radsort = "0.1"
 wgpu = "24.0.5"
+
+[target.'cfg(debug_assertions)'.dependencies]
+bevy_dylib = "0.16.1"

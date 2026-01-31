@@ -24,4 +24,9 @@ if [[ ! -x "$exe_path" ]]; then
   exit 1
 fi
 
+# Add dynamic lib path for dev builds
+if [[ "$BUILD_PROFILE" == "dev" || "$BUILD_PROFILE" == "fastdev" ]]; then
+  export LD_LIBRARY_PATH="$(pwd)/target/debug/deps:$(rustc --print target-libdir):$LD_LIBRARY_PATH"
+fi
+
 "$exe_path"
