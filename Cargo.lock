@@ -2192,6 +2192,7 @@ dependencies = [
  "bytemuck",
  "console-subscriber",
  "core_mod_core",
+ "core_mod_core_macros",
  "core_mod_macros",
  "crossbeam",
  "crossbeam-channel",
@@ -2234,9 +2235,24 @@ dependencies = [
 name = "core_mod_core"
 version = "0.1.0"
 dependencies = [
+ "core_mod_core_macros",
  "heck 0.4.1",
  "inventory",
+ "once_cell",
+ "paste",
  "rhai",
+]
+
+[[package]]
+name = "core_mod_core_macros"
+version = "0.1.0"
+dependencies = [
+ "heck 0.4.1",
+ "paste",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "thiserror 2.0.16",
 ]
 
 [[package]]

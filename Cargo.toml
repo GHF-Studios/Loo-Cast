@@ -1,21 +1,26 @@
 [workspace]
 members = [
   "core_engine",
-  "core_mod_api",
-  "core_mod_macros",
+  
+  "bevy_consumable_event",
+
   "core_mod",
+  "core_mod_api",
   "core_mod_core",
+  "core_mod_macros",
+  "core_mod_core_macros",
+
   "base_mod",
   "base_mod_api",
   "base_mod_macros",
-  "bevy_consumable_event",
 ]
 
 [workspace.dependencies]
 heck = "0.4"
 inventory = "0.3.21"
-rhai = { version = "1.23.6", features = ["sync", "internals", "unchecked"] }
+once_cell = "1.20.3"
 paste = "1.0.15"
+rhai = { version = "1.23.6", features = ["sync", "internals", "unchecked"] }
 thiserror = "2.0.12"
 
 [profile.dev]

@@ -6,7 +6,6 @@ mod define_composite_workflow;
 mod define_workflow_mod;
 #[allow(non_snake_case)]
 mod define_workflow_mod_OLD;
-mod global_statics;
 mod register_workflow_mods;
 mod script;
 mod usf;
@@ -106,21 +105,4 @@ pub fn scale_type_generic_match(input: TokenStream) -> TokenStream {
 pub fn scale_factor_exponent_dynamic_match(input: TokenStream) -> TokenStream {
     let scale_factor_exponent_dynamic_match = parse_macro_input!(input as ScaleFactorExponentDynamicMatch);
     scale_factor_exponent_dynamic_match.generate().into()
-}
-
-// Global statics
-
-#[proc_macro]
-pub fn export_static(input: TokenStream) -> TokenStream {
-    global_statics::export_static(input)
-}
-
-#[proc_macro]
-pub fn import_static(input: TokenStream) -> TokenStream {
-    global_statics::import_static(input)
-}
-
-#[proc_macro]
-pub fn api_initializer(input: TokenStream) -> TokenStream {
-    global_statics::api_initializer(input)
 }

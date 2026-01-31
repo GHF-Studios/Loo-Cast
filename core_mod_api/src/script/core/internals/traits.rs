@@ -5,10 +5,9 @@ use core_mod_core::reflection::{
     type_info::TypeInfo,
 };
 use core_mod_core::reflection::access::ScopedAccessHandle;
+use core_mod_core::reflection::internals::statics::{TYPE_REGISTRY, CTOR_REGISTRY, METHOD_REGISTRY, STATIC_FUNCTION_REGISTRY};
 use rhai::Engine;
 use std::any::Any;
-
-use crate::script::core::internals::statics::{TYPE_REGISTRY, CTOR_REGISTRY, METHOD_REGISTRY, STATIC_FUNCTION_REGISTRY};
 
 /// Provides read-only, non-mutating access to a value of type `T` from `Self`,
 /// typically used to expose internal state to external systems (e.g., scripting).

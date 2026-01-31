@@ -1,15 +1,17 @@
 use bevy::ecs::entity::Entity as BevyEntity;
 use bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
 use core_mod_core::reflection::access::{ScopedAccess, ScopedAccessHandle, ScopedAccessHandleExt, ScopedAccessReadGuard, ScopedAccessWriteGuard};
-use core_mod_core::reflection::ids::{Trait, GetTypeId};
+use core_mod_core::reflection::ids::{StaticTraitId, TypeId};
+use core_mod_core::reflection::internals::statics::{TYPE_REGISTRY, SCHEDULE_HOOKS, TRAIT_OBJECT_VTABLE_REGISTRY};
+use core_mod_core::reflection::internals::traits::{GetTypeId, ToTraitObject, Trait};
+use core_mod_core::reflection::traits::StaticTraitObject;
 use rhai::{Dynamic, Engine, FnPtr, ImmutableString, NativeCallContext, Shared};
-use std::any::TypeId;
+use std::any::TypeId as RustTypeId;
 use std::marker::PhantomData;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
 use crate::core::functions::asset_root;
-use crate::script::core::internals::statics::TYPE_REGISTRY;
 use crate::script::ecs::bundle::bindings::types::Bundle;
 use crate::script::ecs::bundle::internals::traits::BundleFromDynamic;
 use crate::script::ecs::component::bindings::types::Component;
@@ -22,7 +24,6 @@ use crate::player::bundles::PlayerBundle;
 
 use super::resources::MainScriptEngineHandle;
 use super::super::super::ecs::world::bindings::types::World;
-use super::super::super::core::internals::statics::{SCHEDULE_HOOKS, TRAIT_OBJECT_VTABLE_USE_REF, TRAIT_OBJECT_VTABLE_USE_MUT, TRAIT_OBJECT_VTABLE_USE_OWNED};
 
 pub fn pre_init(world: &mut BevyWorld) {
     world.init_resource::<MainScriptEngineHandle>();
@@ -149,7 +150,7 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
     engine.register_type_with_name::<Shared<World>>("World");
     engine.register_raw_fn(
         "flush",
-        [TypeId::of::<Shared<World>>()], // self
+        [RustTypeId::of::<Shared<World>>()], // self
         |_, args| {
             let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
 
@@ -161,8 +162,8 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
     engine.register_raw_fn(
         "commands",
         [
-            TypeId::of::<Shared<World>>(),     // self
-            TypeId::of::<FnPtr>(),             // callback
+            RustTypeId::of::<Shared<World>>(),     // self
+            RustTypeId::of::<FnPtr>(),             // callback
         ],
         |ctx, args| {
             let callback = args[1].take().cast::<FnPtr>();
@@ -174,8 +175,8 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
     engine.register_raw_fn(
         "spawn_empty",
         [
-            TypeId::of::<Shared<World>>(),     // self
-            TypeId::of::<FnPtr>(),             // callback
+            RustTypeId::of::<Shared<World>>(),     // self
+            RustTypeId::of::<FnPtr>(),             // callback
         ],
         |ctx, args| {
             let callback = args[1].take().cast::<FnPtr>();
@@ -187,9 +188,9 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
     engine.register_raw_fn(
         "spawn_single",
         [
-            TypeId::of::<Shared<World>>(),
-            TypeId::of::<Bundle>(),
-            TypeId::of::<FnPtr>(),
+            RustTypeId::of::<Shared<World>>(),
+            RustTypeId::of::<Bundle>(),
+            RustTypeId::of::<FnPtr>(),
         ],
         |ctx, args| {
             let callback = args[2].take().cast::<FnPtr>();
@@ -204,8 +205,8 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
     engine.register_raw_fn(
         "spawn_empty",
         [
-            TypeId::of::<Shared<Commands>>(),  // self
-            TypeId::of::<FnPtr>(),             // callback
+            RustTypeId::of::<Shared<Commands>>(),  // self
+            RustTypeId::of::<FnPtr>(),             // callback
         ],
         |ctx, args| {
             let callback = args[1].take().cast::<FnPtr>();
@@ -220,7 +221,7 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
     engine.register_raw_fn(
         "id",
         [
-            TypeId::of::<Shared<EntityCommands>>(),  // self
+            RustTypeId::of::<Shared<EntityCommands>>(),  // self
         ],
         |_, args| {
             let entity_commands = &*args[0].read_lock::<Shared<EntityCommands>>().unwrap();
@@ -277,76 +278,6 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
 
     // TODO: Register traits and associate types with the traits they implement
 
-    // Stuff that most definitely doesn't belong here
-    use core_mod_core::reflection::ids::TypeId as RhaiTypeId;
-    use core_mod_core::reflection::ids::{StaticTraitId, DynamicTraitId};
-
-    pub trait ToTraitObject<T: Trait>: Sized {
-        fn cast_to(self) -> StaticTraitObject<T>;
-        fn cast_from(obj: StaticTraitObject<T>) -> Self;
-    }
-
-    #[repr(transparent)]
-    pub struct StaticTraitObject<T: Trait>((Dynamic, StaticTraitId<T>));
-    impl<T: Trait> StaticTraitObject<T> {
-        fn assert_safety(&self, instance_type_id: &str) -> (RhaiTypeId, StaticTraitId<T>) {
-            let instance_type_id = RhaiTypeId::new(ImmutableString::from(instance_type_id));
-            let instance_type_info = TYPE_REGISTRY().get(&instance_type_id).unwrap_or_else(|| panic!("Unknown instance type '{instance_type_id}'"));
-            let trait_id = StaticTraitId::new();
-            
-            if !instance_type_info.implemented_trait_ids.contains(&trait_id.id) {
-                panic!("Instance type '{instance_type_id}' does not implement the trait '{trait_id}'")
-            }
-
-            (instance_type_id, trait_id)
-        }
-
-        pub fn use_ref<I: Clone + 'static>(&self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {
-            let (instance_type_id, trait_id) = self.assert_safety(instance_type_id);
-
-            let instance_handle = self.0.0.read_lock::<ScopedAccessHandle<I>>().unwrap();
-            let instance_guard = ScopedAccessHandleExt::as_ref(&*instance_handle);
-            let instance_ref = &*instance_guard;
-
-            let vtable = TRAIT_OBJECT_VTABLE_USE_REF().get(&trait_id);
-            let func = vtable.get(method).unwrap();
-
-            func(instance_ref, params)
-        }
-        
-        pub fn use_mut<I: Clone + 'static>(&mut self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {
-            let (instance_type_id, trait_id) = self.assert_safety(instance_type_id);
-
-            let mut instance_handle = self.0.0.write_lock::<ScopedAccessHandle<I>>().unwrap();
-            let instance_guard = ScopedAccessHandleExt::as_mut(&mut *instance_handle);
-            let instance_mut = &mut *instance_guard;
-
-            let vtable = TRAIT_OBJECT_VTABLE_USE_MUT().get(&trait_id);
-            let func = vtable.get(method).unwrap();
-
-            func(instance_mut, params)
-        }
-
-        pub fn use_owned<I: Clone + 'static>(self, instance_type_id: &str, method: &str, params: Dynamic) -> Dynamic {
-            let (instance_type_id, trait_id) = self.assert_safety(instance_type_id);
-
-            let instance = self.0.0.cast::<ScopedAccessHandle<I>>().into_inner();
-
-            let vtable = TRAIT_OBJECT_VTABLE_USE_OWNED().get(&trait_id);
-            let func = vtable.get(method).unwrap();
-
-            func(instance, params)
-        }
-    }
-
-    #[repr(transparent)]
-    pub struct DynamicTraitObject((Dynamic, DynamicTraitId));
-    impl<T: Trait> From<StaticTraitObject<T>> for DynamicTraitObject {
-        fn from(value: StaticTraitObject<T>) -> Self {
-            Self((value.0.0, value.0.1.id))
-        }
-    }
-
     // Stuff that also shouldn't be here
     #[derive(Clone, PartialEq, Eq, Hash)]
     struct BundleTrait;
@@ -362,11 +293,15 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
     }
     impl ToTraitObject<BundleTrait> for ScopedAccessHandle<PlayerBundle> {
         fn cast_to(self) -> StaticTraitObject<BundleTrait> {
-            StaticTraitObject((Dynamic::from(self), StaticTraitId::new()))
+            StaticTraitObject {
+                value: Dynamic::from(self),
+                trait_id: StaticTraitId::new(),
+                instance_type_id: TypeId::of::<PlayerBundle>(),
+            }
         }
 
         fn cast_from(obj: StaticTraitObject<BundleTrait>) -> Self {
-            obj.0.0.cast()
+            obj.value.cast()
         }
     }
 

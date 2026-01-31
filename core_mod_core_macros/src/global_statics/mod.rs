@@ -12,23 +12,17 @@ pub fn export_static(input: TokenStream) -> TokenStream {
     let ident = static_path.path.segments.last().unwrap().ident.clone();
     let mangled = Ident::new(&mangle_path(&static_path), static_path.span());
 
-    let core_path = if is_self {
-        quote! { crate }
-    } else {
-        quote! { ::core_mod_api }
-    };
-
     quote! {
         #[allow(non_upper_case_globals)]
-        #[no_mangle]
-        pub static #mangled: #core_path::once_cell::sync::Lazy<#ty> = #core_path::once_cell::sync::Lazy::new(|| #init);
+        #[unsafe(no_mangle)]
+        pub static #mangled: once_cell::sync::Lazy<#ty> = once_cell::sync::Lazy::new(|| #init);
 
         paste::paste! {
             #[allow(non_snake_case)]
-            #[no_mangle]
+            #[unsafe(no_mangle)]
             pub extern "C" fn [<#mangled _init>]() {
                 // println!("Calling init for {}", #mangled_string);
-                #core_path::once_cell::sync::Lazy::force(&#mangled);
+                once_cell::sync::Lazy::force(&#mangled);
             }
         }
 
@@ -45,17 +39,11 @@ pub fn import_static(input: TokenStream) -> TokenStream {
     let ident = path.path.segments.last().unwrap().ident.clone();
     let mangled = Ident::new(&mangle_path(&path), path.path.span());
 
-    let core_path = if is_self {
-        quote! { crate }
-    } else {
-        quote! { ::core_mod_api }
-    };
-
     quote! {
         extern "C" {
             #[allow(non_upper_case_globals)]
-            #[no_mangle]
-            static #mangled: #core_path::once_cell::sync::Lazy<#ty>;
+            #[unsafe(no_mangle)]
+            static #mangled: once_cell::sync::Lazy<#ty>;
         }
 
         #[allow(non_snake_case)]
@@ -113,7 +101,7 @@ pub fn api_initializer(input: TokenStream) -> TokenStream {
 
     quote! {
         #[cfg(feature = "init_api")]
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub extern "C" fn #symbol_ident() {
             println!(#log_msg);
             unsafe {

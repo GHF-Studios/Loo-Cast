@@ -2,14 +2,10 @@ use rhai::ImmutableString;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
-use super::names::{ModuleName, TypeName, TraitName};
-
-pub trait GetTypeId: Sized + 'static {
-    const TYPE_ID: &'static str;
-}
-pub trait Trait: Clone + PartialEq + Eq + Hash + Sized + 'static {
-    const TRAIT_ID: &'static str;
-}
+use super::{
+    internals::traits::{Trait, GetTypeId},
+    names::{ModuleName, TypeName, TraitName}
+};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
