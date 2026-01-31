@@ -2,12 +2,25 @@ use bevy::ecs::world::EntityWorldMut;
 use rhai::Dynamic;
 use std::sync::Arc;
 
-pub type ComponentId = Arc<str>;
-pub type ComponentCtorParams = Dynamic;
-pub type TraitObjectUseRefFn = fn(&mut EntityWorldMut, Dynamic);
+pub type TraitObjectUseParams = Dynamic;
+pub type TraitObjectUseRefFn<T> = fn(&T, Dynamic) -> Dynamic;
+pub type TraitObjectUseMutFn<T> = fn(&mut T, Dynamic) -> Dynamic;
+pub type TraitObjectUseOwnedFn<T> = fn(T, Dynamic) -> Dynamic;
 
-inventory::collect!(ComponentCtorEntry);
-pub struct ComponentCtorEntry {
+inventory::collect!(TraitObjectUseRefEntry);
+pub struct TraitObjectUseRefEntry<T> {
     pub name: &'static str,
-    pub ctor: ComponentCtorFn,
+    pub ctor: TraitObjectUseRefFn,
+}
+
+inventory::collect!(TraitObjectUseRefEntry);
+pub struct TraitObjectUseRefEntry<T> {
+    pub name: &'static str,
+    pub ctor: TraitObjectUseRefFn,
+}
+
+inventory::collect!(TraitObjectUseRefEntry);
+pub struct TraitObjectUseRefEntry<T> {
+    pub name: &'static str,
+    pub ctor: TraitObjectUseRefFn,
 }

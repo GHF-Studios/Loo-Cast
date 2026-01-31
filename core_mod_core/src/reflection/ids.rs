@@ -1,11 +1,13 @@
 use rhai::ImmutableString;
+use std::hash::Hash;
+use std::marker::PhantomData;
 
 use super::names::{ModuleName, TypeName, TraitName};
 
 pub trait GetTypeId: Sized + 'static {
     const TYPE_ID: &'static str;
 }
-pub trait Trait: Sized + 'static {
+pub trait Trait: Clone + PartialEq + Eq + Hash + Sized + 'static {
     const TRAIT_ID: &'static str;
 }
 
@@ -119,16 +121,40 @@ impl std::fmt::Display for TypeId {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct TraitId {
+pub struct StaticTraitId<T: Trait> {
+    pub id: DynamicTraitId,
+    pub _phantom: PhantomData<T>,
+}
+impl<T: Trait> StaticTraitId<T> {
+    pub fn new() -> Self {
+        Self {
+            id: DynamicTraitId::new(ImmutableString::from(T::TRAIT_ID)),
+            _phantom: PhantomData,
+        }
+    }
+}
+impl<T: Trait> std::fmt::Debug for StaticTraitId<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.id)
+    }
+}
+impl<T: Trait> std::fmt::Display for StaticTraitId<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct DynamicTraitId {
     pub module_id: ModuleId,
     pub trait_name: TraitName,
 }
-impl TraitId {
-    pub fn new(trait_path: impl Into<TraitId>) -> Self {
+impl DynamicTraitId {
+    pub fn new(trait_path: impl Into<DynamicTraitId>) -> Self {
         trait_path.into()
     }
 }
-impl From<ImmutableString> for TraitId {
+impl From<ImmutableString> for DynamicTraitId {
     fn from(full_path: ImmutableString) -> Self {
         if full_path.is_empty() {
             panic!("TraitId strings must not be empty");
@@ -142,27 +168,27 @@ impl From<ImmutableString> for TraitId {
         let trait_name = TraitName::new(ImmutableString::from(parts[0]));
         let module_id = ModuleId::from(ImmutableString::from(parts[1]));
 
-        TraitId {
+        DynamicTraitId {
             module_id,
             trait_name,
         }
     }
 }
-impl From<TraitId> for ImmutableString {
-    fn from(trait_id: TraitId) -> Self {
+impl From<DynamicTraitId> for ImmutableString {
+    fn from(trait_id: DynamicTraitId) -> Self {
         let module_path: ImmutableString = trait_id.module_id.into();
         let trait_name: ImmutableString = trait_id.trait_name.into();
 
         ImmutableString::from(format!("{}::{}", module_path, trait_name))
     }
 }
-impl std::fmt::Debug for TraitId {
+impl std::fmt::Debug for DynamicTraitId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let full_path: ImmutableString = self.clone().into();
         write!(f, "{}", full_path)
     }
 }
-impl std::fmt::Display for TraitId {
+impl std::fmt::Display for DynamicTraitId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let full_path: ImmutableString = self.clone().into();
         write!(f, "{}", full_path)

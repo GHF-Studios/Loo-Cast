@@ -1,6 +1,8 @@
 use rhai::ImmutableString;
 
-use super::{ids::{TraitId, TypeId}, names::{ArgName, CtorName, MethodName, StaticFunctionName}};
+use crate::reflection::ids::DynamicTraitId;
+
+use super::{ids::TypeId, names::{ArgName, CtorName, MethodName, StaticFunctionName}};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct ArgInfo {
@@ -48,7 +50,7 @@ impl std::fmt::Display for ArgInfo {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum FunctionOrigin {
     Inherent,
-    ViaTrait { trait_id: TraitId },
+    ViaTrait { trait_id: DynamicTraitId },
 }
 impl From<FunctionOrigin> for ImmutableString {
     fn from(function_origin: FunctionOrigin) -> Self {

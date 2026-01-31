@@ -1,10 +1,10 @@
 use rhai::ImmutableString;
 
-use crate::reflection::names::TypeName;
+use crate::reflection::{ids::DynamicTraitId, names::TypeName};
 
 use super::{
     function_ids::{CtorId, MethodId, StaticFunctionId},
-    ids::{TraitId, TypeId},
+    ids::{StaticTraitId, TypeId},
     layout::{FieldInfo, TypeDataInfo, TypeFormInfo, TypeLayoutInfo, VariantInfo},
     signatures::{CtorSignature, FunctionOrigin, MethodSignature, StaticFunctionSignature}
 };
@@ -15,7 +15,7 @@ inventory::collect!(TypeInfo);
 pub struct TypeInfo {
     pub type_id: TypeId,
     pub type_layout_info: TypeLayoutInfo,
-    pub implemented_trait_ids: Vec<TraitId>,
+    pub implemented_trait_ids: Vec<DynamicTraitId>,
     pub ctor_ids: Vec<CtorId>,
     pub method_ids: Vec<MethodId>,
     pub static_function_ids: Vec<StaticFunctionId>,
@@ -32,7 +32,7 @@ impl From<ImmutableString> for TypeInfo {
         fn parse_type_declaration<'a>(
             line: &'a str,
             lines: &mut impl Iterator<Item = &'a str>,
-        ) -> (TypeFormInfo, TypeName, Vec<TraitId>, Vec<&'a str>) {
+        ) -> (TypeFormInfo, TypeName, Vec<DynamicTraitId>, Vec<&'a str>) {
             let tokens: Vec<&str> = line.split_whitespace().collect();
             if tokens.len() < 2 {
                 panic!("invalid type declaration");
@@ -47,7 +47,7 @@ impl From<ImmutableString> for TypeInfo {
                     .split('+')
                     .map(str::trim)
                     .filter(|s| !s.is_empty())
-                    .map(|s| TraitId::from(ImmutableString::from(s)))
+                    .map(|s| DynamicTraitId::from(ImmutableString::from(s)))
                     .collect()
             } else {
                 Vec::new()
@@ -117,7 +117,7 @@ impl From<ImmutableString> for TypeInfo {
 
         fn split_origin(entry: &str) -> (&str, FunctionOrigin) {
             if let Some((sig, trait_part)) = entry.split_once(" via ") {
-                let trait_id = TraitId::from(ImmutableString::from(trait_part.trim()));
+                let trait_id = DynamicTraitId::from(ImmutableString::from(trait_part.trim()));
                 (sig.trim(), FunctionOrigin::ViaTrait { trait_id })
             } else {
                 (entry.trim(), FunctionOrigin::Inherent)
