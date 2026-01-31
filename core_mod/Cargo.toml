@@ -13,5 +13,6 @@ bevy_dynamic_linking = ["core_mod_api/bevy_dynamic_linking"]
 
 [dependencies]
 core_mod_api = { path = "../core_mod_api" }
+core_mod_core_macros = { path = "../core_mod_core_macros" }
 core_mod_macros = { path = "../core_mod_macros" }
 paste = "1.0.15"

@@ -1,7 +1,8 @@
 pub use core_mod_api;
+pub use core_mod_core_macros;
 pub use core_mod_macros;
 
-use core_mod_macros::api_initializer;
+use core_mod_core_macros::api_initializer;
 
 api_initializer!(
     "core_mod_api",

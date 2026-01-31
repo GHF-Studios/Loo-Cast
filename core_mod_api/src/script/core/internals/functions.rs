@@ -287,7 +287,6 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
 
     #[repr(transparent)]
     pub struct BundleTraitObject(pub StaticTraitObject<BundleTrait>);
-
     impl GetTypeId for PlayerBundle {
         const TYPE_ID: &'static str = "player::bundles::PlayerBundle";
     }

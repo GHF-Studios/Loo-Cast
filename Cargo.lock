@@ -2175,6 +2175,7 @@ name = "core_mod"
 version = "0.1.0"
 dependencies = [
  "core_mod_api",
+ "core_mod_core_macros",
  "core_mod_macros",
  "paste",
 ]
