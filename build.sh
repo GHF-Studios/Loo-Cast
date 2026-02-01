@@ -55,12 +55,12 @@ if [[ "$BUILD_PROFILE" != "release" ]]; then
 fi
 
 echo "Building main executable..."
-cargo build $cargo_args --workspace "${exclude_args[@]}" $extra_features
+cargo +nightly build $cargo_args --workspace "${exclude_args[@]}" $extra_features
 
 # Build mod crates separately
 for crate in "${mod_crates[@]}"; do
   echo "Building mod crate: $crate with init_api feature..."
-  cargo build $cargo_args --manifest-path "$crate/Cargo.toml" --features init_api
+  cargo +nightly build $cargo_args --manifest-path "$crate/Cargo.toml" --features init_api
 done
 
 ########## COPY ENGINE EXECUTABLES ##########

@@ -44,12 +44,12 @@ if ($BuildProfile -ne "release") {
 
 # Build the non-mod part of the workspace
 Write-Host "Building main executable..."
-Invoke-Expression "cargo build $cargoArgs --workspace $excludeArgs $extraFeatures"
+Invoke-Expression "cargo +nightly build $cargoArgs --workspace $excludeArgs $extraFeatures"
 
 # Build mods separately with required features
 foreach ($crate in $modCrates) {
     Write-Host "Building mod crate: $crate with init_api feature..."
-    cargo build $cargoArgs --manifest-path "$crate/Cargo.toml" --features init_api
+    cargo +nightly build $cargoArgs --manifest-path "$crate/Cargo.toml" --features init_api
 }
 
 ########## COPY ENGINE EXECUTABLES ##########
