@@ -18,29 +18,31 @@ pub(super) fn handle_selection(
             continue;
         }
 
-        if message.target == NO_HIT_SENTINEL {
+        let target = message.event_target();
+
+        if target == NO_HIT_SENTINEL {
             warn!("Clicked on empty space; clearing selection.");
             selected.clear();
             continue;
         }
 
-        if selectable_query.get(message.target).is_err() {
-            warn!("Tried to select non-existent/incompatible entity: {:?}", message.target);
+        if selectable_query.get(target).is_err() {
+            warn!("Tried to select non-existent/incompatible entity: {:?}", target);
             continue;
         }
 
-        warn!("Selecting entity: {:?}", message.target);
+        warn!("Selecting entity: {:?}", target);
 
         let ctrl = keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight);
 
         if ctrl {
-            if selected.contains(message.target) {
-                selected.retain(|e| e != message.target);
+            if selected.contains(target) {
+                selected.retain(|e| e != target);
             } else {
-                selected.select_maybe_add(message.target, true);
+                selected.select_maybe_add(target, true);
             }
         } else {
-            selected.select_replace(message.target);
+            selected.select_replace(target);
         }
     }
 }

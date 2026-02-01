@@ -30,9 +30,9 @@ pub struct SpawnChunkState {
 pub struct MainAccess<'w, 's> {
     pub commands: Commands<'w, 's>,
     pub chunk_query: Query<'w, 's, &'static Chunk>,
-    pub chunk_loader_query: Single<'w, &'static ChunkLoader>,
+    pub chunk_loader_query: Single<'w, 's, &'static ChunkLoader>,
     pub chunk_manager: ResMut<'w, ChunkManager>,
-    pub camera_transform: Single<'w, &'static Transform, With<MainCamera>>,
+    pub camera_transform: Single<'w, 's, &'static Transform, With<MainCamera>>,
 }
 
 pub struct Input {

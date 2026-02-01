@@ -1,5 +1,8 @@
 use bevy::{
-    ecs::component::{ComponentHook, Mutable, StorageType},
+    ecs::{
+        component::{Mutable, StorageType},
+        lifecycle::ComponentHook,
+    },
     prelude::*,
 };
 

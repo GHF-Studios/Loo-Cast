@@ -43,7 +43,7 @@ bevy = { version = "0.18.0", default-features = false, features = [
     "bevy_picking",
     "bevy_render",
     "bevy_scene",
-    "bevy_sprite",
+    "bevy_sprite_render",
     # "bevy_sprite_picking_backend",
     "bevy_state",
     "bevy_text",
@@ -67,11 +67,11 @@ bevy = { version = "0.18.0", default-features = false, features = [
 ] }
 bevy_egui = { version = "0.39.0" }
 bevy-inspector-egui = "0.36.0"
-bevy_rapier2d = { version = "0.32.0", features = ["debug-render-2d", "serde-serialize"] }
+# bevy_rapier2d = { version = "0.32.0", features = ["debug-render-2d", "serde-serialize"] } # Stuck on bevy 0.17.3
 bevy_consumable_message = { path = "../bevy_consumable_message" }
 egui = "0.33.3"
 egui_dock = "0.18.0"
-iyes_perf_ui = "0.5"
+# iyes_perf_ui = "0.5" # Stuck on bevy 0.16.0
 rand = "0.8.5"
 noise = "0.9"
 image = "0.25.1"
@@ -101,4 +101,4 @@ uuid = { version = "1.12.0", features = ["v4"] }
 dashmap = "6.1.0"
 parking_lot = "0.12.1"
 radsort = "0.1"
-wgpu = "24.0.5"
+wgpu = "27.0.1"

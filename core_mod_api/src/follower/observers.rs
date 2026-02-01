@@ -3,10 +3,10 @@ use bevy::prelude::*;
 use super::components::{Follower, FollowerTarget};
 
 pub(crate) fn observe_on_add_follower(
-    trigger: Trigger<OnAdd, Follower>,
+    trigger: On<Add, Follower>,
     mut param_set: ParamSet<(Query<(Entity, &mut Follower)>, Query<(Entity, &FollowerTarget, &Transform)>)>,
 ) {
-    let follower_entity = trigger.target();
+    let follower_entity = trigger.event_target();
 
     let mut follower_query = param_set.p0();
     let follow_id = match follower_query.get_mut(follower_entity) {

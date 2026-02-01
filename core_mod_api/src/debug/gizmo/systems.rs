@@ -101,7 +101,7 @@ pub(super) fn move_selected_with_gizmo(
             continue;
         }
 
-        if let Ok((gizmo_arrow, _)) = gizmo_parts.get(message.target) {
+        if let Ok((gizmo_arrow, _)) = gizmo_parts.get(message.event_target()) {
             let axis = match gizmo_arrow.axis {
                 Axis2D::X => Vec3::X,
                 Axis2D::Y => Vec3::Y,

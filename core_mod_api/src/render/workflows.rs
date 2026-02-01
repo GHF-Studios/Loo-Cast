@@ -6,8 +6,7 @@ define_workflow_mod_OLD! {
         SpawnCameras, timeout_secs: 5.0, timeout_mode: RealTime {
             user_imports: {
                 use bevy::prelude::{Commands, Res, ResMut, Camera2d, Vec2, Name, Camera};
-                use bevy::math::FloatOrd;
-                use bevy::render::view::RenderLayers;
+                use bevy::camera::visibility::RenderLayers;
                 use bevy_egui::EguiRenderOutput;
                 use bevy::render::render_resource::{
                     Buffer, TextureView, TextureDescriptor, Extent3d,
@@ -76,7 +75,7 @@ define_workflow_mod_OLD! {
                                 },
                                 RenderTarget::Image(ImageRenderTarget {
                                     handle: game_view_render_target.handle.clone(),
-                                    scale_factor: FloatOrd(1.0),
+                                    scale_factor: 1.0,
                                 }),
                                 RenderLayers::layer(1),
                             ));
@@ -89,7 +88,7 @@ define_workflow_mod_OLD! {
                                 },
                                 RenderTarget::Image(ImageRenderTarget {
                                     handle: game_view_render_target.handle.clone(),
-                                    scale_factor: FloatOrd(1.0),
+                                    scale_factor: 1.0,
                                 }),
                                 MainCamera,
                                 RenderLayers::default(),

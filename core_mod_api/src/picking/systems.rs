@@ -6,7 +6,7 @@ use bevy::picking::backend::prelude::*;
 use bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerId, PointerInput, PointerLocation, PointerPress};
 use bevy::prelude::*;
 use bevy::camera::{ImageRenderTarget, RenderTarget};
-use bevy::window::{PrimaryWindow, WindowEvent as WindowMessage};
+use bevy::window::{PrimaryWindow, WindowEvent};
 
 use crate::core::types::{Diegetic, Meta, OntologicalContext};
 use crate::reflect::functions::get_struct_field_mut;
@@ -49,7 +49,7 @@ pub(super) fn spawn_mouse_pointers(mut commands: Commands, game_view_render_targ
 
 #[tracing::instrument(skip_all)]
 pub(super) fn mouse_pick_messages(
-    mut window_messages: MessageReader<WindowMessage>,
+    mut window_events: MessageReader<WindowEvent>,
     mut pointer_message_writer: MessageWriter<PointerInput>,
     mut cursor_last: Local<Vec2>,
     mut pointers: Query<(&PointerId, &mut PointerLocation, &mut PointerPress)>,
@@ -57,7 +57,7 @@ pub(super) fn mouse_pick_messages(
     debug_suite_ui_state: Res<PrimaryWindowUiState>,
     game_view_render_target: Res<GameViewRenderTarget>,
 ) {
-    if window_messages.is_empty() {
+    if window_events.is_empty() {
         return;
     }
 
@@ -74,11 +74,11 @@ pub(super) fn mouse_pick_messages(
         return;
     }
 
-    let mut pointer_messages: Vec<PointerInput> = Vec::with_capacity(window_messages.len());
+    let mut pointer_messages: Vec<PointerInput> = Vec::with_capacity(window_events.len());
 
-    for window_message in window_messages.read() {
-        match window_message {
-            WindowMessage::CursorMoved(message) => {
+    for window_event in window_events.read() {
+        match window_event {
+            WindowEvent::CursorMoved(message) => {
                 let location = Location {
                     target: match RenderTarget::Image(ImageRenderTarget {
                         handle: game_view_render_target.handle.clone(),
@@ -98,7 +98,7 @@ pub(super) fn mouse_pick_messages(
                 pointer_messages.push(PointerInput::new(META_MOUSE_POINTER_ID, location, action));
                 *cursor_last = message.position;
             }
-            WindowMessage::MouseButtonInput(input) => {
+            WindowEvent::MouseButtonInput(input) => {
                 let location = Location {
                     target: match RenderTarget::Image(ImageRenderTarget {
                         handle: game_view_render_target.handle.clone(),
@@ -124,7 +124,7 @@ pub(super) fn mouse_pick_messages(
                 pointer_messages.push(PointerInput::new(DIEGETIC_MOUSE_POINTER_ID, location.clone(), action));
                 pointer_messages.push(PointerInput::new(META_MOUSE_POINTER_ID, location, action));
             }
-            WindowMessage::MouseWheel(message) => {
+            WindowEvent::MouseWheel(message) => {
                 let MouseWheel { unit, x, y, window: _ } = *message;
                 let location = Location {
                     target: match RenderTarget::Image(ImageRenderTarget {

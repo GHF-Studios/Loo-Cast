@@ -12,7 +12,7 @@ impl Plugin for PickingPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SpritePickingSettings>()
             .add_systems(Startup, spawn_mouse_pointers)
-            .add_systems(First, mouse_pick_messages.in_set(PickSet::Input))
+            .add_systems(First, mouse_pick_messages.in_set(PickingSystems::Input))
             .add_systems(
                 PreUpdate,
                 (
@@ -21,7 +21,7 @@ impl Plugin for PickingPlugin {
                     // log_hits::<crate::core::types::Meta>,
                 )
                     .chain()
-                    .in_set(PickSet::Backend),
+                    .in_set(PickingSystems::Backend),
             )
             .register_type::<SpritePickingMode>()
             .register_type::<SpritePickingSettings>();

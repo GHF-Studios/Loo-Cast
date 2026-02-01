@@ -8,11 +8,11 @@ define_workflow_mod_OLD! {
                 use bevy::prelude::{Handle, Shader, Res, ResMut, Assets};
                 use bevy::ecs::system::SystemState;
                 use bevy::render::render_resource::{
-                    BindGroupLayout, CachedComputePipelineId,
+                    BindGroupLayoutDescriptor, CachedComputePipelineId,
                     PipelineCache, BindGroupLayoutEntry, ShaderStages,
                     BindingType, StorageTextureAccess, TextureFormat,
                     TextureViewDimension, BufferBindingType, PushConstantRange,
-                    CachedPipelineState, Pipeline, ComputePipelineDescriptor
+                    CachedPipelineState, Pipeline, ComputePipelineDescriptor,
                 };
                 use bevy::render::render_asset::RenderAssets;
                 use bevy::render::renderer::RenderDevice;
@@ -92,14 +92,14 @@ define_workflow_mod_OLD! {
                         struct State {
                             shader_name: &'static str,
                             shader_handle: Handle<Shader>,
-                            bind_group_layout: BindGroupLayout,
+                            bind_group_layout_descriptor: BindGroupLayoutDescriptor,
                             pipeline_id: CachedComputePipelineId,
                         }
                         struct Output {
                             shader_name: &'static str,
                             shader_handle: Handle<Shader>,
                             pipeline_id: CachedComputePipelineId,
-                            bind_group_layout: BindGroupLayout,
+                            bind_group_layout_descriptor: BindGroupLayoutDescriptor,
                         }
                         enum Error {
                             ExpectedComputePipelineGotRenderPipeline {
@@ -120,8 +120,8 @@ define_workflow_mod_OLD! {
                             let render_device = render_access.render_device;
                             let pipeline_cache = render_access.pipeline_cache;
 
-                            let bind_group_layout = render_device.create_bind_group_layout(
-                                None,
+                            let bind_group_layout_descriptor = BindGroupLayoutDescriptor::new(
+                                "",
                                 &[
                                     // Texture buffer
                                     BindGroupLayoutEntry {
@@ -150,10 +150,10 @@ define_workflow_mod_OLD! {
 
                             let pipeline_id = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
                                 label: None,
-                                layout: vec![bind_group_layout.clone()],
+                                layout: vec![bind_group_layout_descriptor.clone()],
                                 shader: shader_handle.clone(),
                                 shader_defs: vec![],
-                                entry_point: "main".into(),
+                                entry_point: Some("main".into()),
                                 push_constant_ranges: vec![PushConstantRange {
                                     stages: ShaderStages::COMPUTE,
                                     range: 0..4,
@@ -161,12 +161,12 @@ define_workflow_mod_OLD! {
                                 zero_initialize_workgroup_memory: false
                             });
 
-                            Ok(State { shader_name, shader_handle, bind_group_layout, pipeline_id })
+                            Ok(State { shader_name, shader_handle, bind_group_layout_descriptor, pipeline_id })
                         }
                         fn RunRenderWhile |state, render_access| -> Result<Outcome<State, Output>, Error> {
                             let shader_name = state.shader_name;
                             let shader_handle = state.shader_handle.clone();
-                            let bind_group_layout = state.bind_group_layout.clone();
+                            let bind_group_layout_descriptor = state.bind_group_layout_descriptor.clone();
                             let pipeline_id = state.pipeline_id;
 
                             let pipeline_cache = render_access.pipeline_cache;
@@ -191,7 +191,7 @@ define_workflow_mod_OLD! {
                                             shader_name,
                                             shader_handle,
                                             pipeline_id,
-                                            bind_group_layout
+                                            bind_group_layout_descriptor
                                         }))
                                     }
                                 },
@@ -209,21 +209,21 @@ define_workflow_mod_OLD! {
                             shader_name: &'static str,
                             shader_handle: Handle<Shader>,
                             pipeline_id: CachedComputePipelineId,
-                            bind_group_layout: BindGroupLayout,
+                            bind_group_layout_descriptor: BindGroupLayoutDescriptor,
                         }
                     ],
                     core_functions: [
                         fn RunEcs |input, main_access| {
                             let shader_name = input.shader_name;
                             let shader_handle = input.shader_handle;
-                            let bind_group_layout = input.bind_group_layout;
+                            let bind_group_layout_descriptor = input.bind_group_layout_descriptor;
                             let pipeline_id = input.pipeline_id;
 
                             let mut shader_registry = main_access.shader_registry;
 
                             shader_registry.shaders.insert(shader_name.to_string(), shader_handle);
                             shader_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
-                            shader_registry.bind_group_layouts.insert(shader_name.to_string(), bind_group_layout);
+                            shader_registry.bind_group_layout_descriptors.insert(shader_name.to_string(), bind_group_layout_descriptor);
                         }
                     ]
                 }
@@ -234,7 +234,7 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use bevy::prelude::{Handle, Res, ResMut, Assets, Image};
                 use bevy::render::render_resource::{
-                    CachedComputePipelineId, BindGroupLayout,
+                    CachedComputePipelineId, BindGroupLayout, BindGroupLayoutDescriptor,
                     Buffer, TextureView, TextureDescriptor, Extent3d,
                     TextureDimension, TextureFormat, TextureUsages,
                     BufferDescriptor, BufferInitDescriptor, BufferUsages, CommandEncoderDescriptor,
@@ -268,7 +268,7 @@ define_workflow_mod_OLD! {
                 pub struct BatchedGeneratorParams {
                     pub shader_name: &'static str,
                     pub pipeline_id: CachedComputePipelineId,
-                    pub bind_group_layout: BindGroupLayout,
+                    pub bind_group_layout_descriptor: BindGroupLayoutDescriptor,
                     pub texture_size: u32,
                     pub texture_handles: Vec<Handle<Image>>,
                     pub param_buffers: Vec<Buffer>,
@@ -277,7 +277,7 @@ define_workflow_mod_OLD! {
                 pub struct PreparedBatchedGenerator {
                     pub shader_name: &'static str,
                     pub pipeline_id: CachedComputePipelineId,
-                    pub bind_group_layout: BindGroupLayout,
+                    pub bind_group_layout_descriptor: BindGroupLayoutDescriptor,
                     pub texture_size: u32,
                     pub texture_handles: Vec<Handle<Image>>,
                     pub texture_views: Vec<TextureView>,
@@ -315,7 +315,7 @@ define_workflow_mod_OLD! {
                             let shader_registry = main_access.shader_registry;
 
                             let pipeline_id = *shader_registry.pipelines.get(shader_name).unwrap_or_else(|| unreachable!("Pipeline for shader '{}' not found", shader_name));
-                            let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name).unwrap_or_else(|| unreachable!("BindGroupLayout for shader '{}' not found", shader_name)).clone();
+                            let bind_group_layout_descriptor = shader_registry.bind_group_layout_descriptors.get(shader_name).unwrap_or_else(|| unreachable!("BindGroupLayout for shader '{}' not found", shader_name)).clone();
 
                             let mut texture_handles = Vec::new();
                             let mut param_buffers = Vec::new();
@@ -358,7 +358,7 @@ define_workflow_mod_OLD! {
                                 params: BatchedGeneratorParams {
                                     shader_name,
                                     pipeline_id,
-                                    bind_group_layout,
+                                    bind_group_layout_descriptor,
                                     texture_size: input.texture_size,
                                     texture_handles,
                                     param_buffers,
@@ -404,7 +404,7 @@ define_workflow_mod_OLD! {
                                 prepared: PreparedBatchedGenerator {
                                     shader_name: state.params.shader_name,
                                     pipeline_id: state.params.pipeline_id,
-                                    bind_group_layout: state.params.bind_group_layout,
+                                    bind_group_layout_descriptor: state.params.bind_group_layout_descriptor,
                                     texture_size: state.params.texture_size,
                                     texture_handles: state.params.texture_handles,
                                     texture_views,
@@ -434,7 +434,8 @@ define_workflow_mod_OLD! {
                             let prepared = &input.prepared;
                             let render_device = render_access.render_device;
                             let queue = render_access.queue;
-                            let pipeline = render_access.pipeline_cache
+                            let pipeline_cache = render_access.pipeline_cache;
+                            let pipeline = pipeline_cache
                                 .get_compute_pipeline(prepared.pipeline_id)
                                 .expect("Pipeline missing");
 
@@ -443,7 +444,7 @@ define_workflow_mod_OLD! {
                             for (view, buffer) in prepared.texture_views.iter().zip(&prepared.param_buffers) {
                                 let bind_group = render_device.create_bind_group(
                                     Some("Compute Bind Group"),
-                                    &prepared.bind_group_layout,
+                                    &pipeline_cache.get_bind_group_layout(&prepared.bind_group_layout_descriptor),
                                     &[
                                         BindGroupEntry { binding: 0, resource: BindingResource::TextureView(view) },
                                         BindGroupEntry { binding: 1, resource: buffer.as_entire_binding() },
@@ -520,7 +521,7 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use bevy::prelude::{Handle, Res, ResMut, Assets, Image};
                 use bevy::render::render_resource::{
-                    CachedComputePipelineId, BindGroupLayout, TextureView,
+                    CachedComputePipelineId, BindGroupLayout, BindGroupLayoutDescriptor, TextureView,
                     Buffer, BufferInitDescriptor, BufferUsages, BindingResource,
                     TextureDescriptor, Extent3d, TextureDimension, TextureFormat, TextureUsages,
                     TexelCopyBufferInfo, TexelCopyBufferLayout,
@@ -533,6 +534,7 @@ define_workflow_mod_OLD! {
                 use bevy::render::texture::GpuImage;
                 use crossbeam_channel::Receiver;
                 use std::num::NonZeroU32;
+                use std::time::Duration;
 
                 use crate::config::statics::CONFIG;
                 use crate::gpu::resources::ShaderRegistry;
@@ -545,7 +547,7 @@ define_workflow_mod_OLD! {
                 pub struct PreparedRenderExecutorInput {
                     pub shader_name: &'static str,
                     pub pipeline_id: CachedComputePipelineId,
-                    pub bind_group_layout: BindGroupLayout,
+                    pub bind_group_layout_descriptor: BindGroupLayoutDescriptor,
                     pub texture_handles: Vec<Handle<Image>>,
                     pub param_buffers: Vec<Buffer>,
                     pub readback_buffers: Vec<Buffer>,
@@ -555,7 +557,7 @@ define_workflow_mod_OLD! {
                 pub struct ChunkRenderExecutor {
                     pub shader_name: &'static str,
                     pub pipeline_id: CachedComputePipelineId,
-                    pub bind_group_layout: BindGroupLayout,
+                    pub bind_group_layout_descriptor: BindGroupLayoutDescriptor,
                     pub texture_handles: Vec<Handle<Image>>,
                     pub param_buffers: Vec<Buffer>,
                     pub readback_buffers: Vec<Buffer>,
@@ -614,7 +616,7 @@ define_workflow_mod_OLD! {
 
                             let pipeline_id = *shader_registry.pipelines.get(shader_name)
                                 .unwrap_or_else(|| unreachable!("Pipeline for shader '{}' not found", shader_name));
-                            let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name)
+                            let bind_group_layout_descriptor = shader_registry.bind_group_layout_descriptors.get(shader_name)
                                 .unwrap_or_else(|| unreachable!("BindGroupLayout for shader '{}' not found", shader_name))
                                 .clone();
 
@@ -644,7 +646,7 @@ define_workflow_mod_OLD! {
                                 params: PreparedRenderExecutorInput {
                                     shader_name,
                                     pipeline_id,
-                                    bind_group_layout: bind_group_layout.clone(),
+                                    bind_group_layout_descriptor,
                                     texture_handles,
                                     param_buffers,
                                     readback_buffers,
@@ -693,7 +695,7 @@ define_workflow_mod_OLD! {
                                 render_executor: ChunkRenderExecutor {
                                     shader_name: state.params.shader_name,
                                     pipeline_id: state.params.pipeline_id,
-                                    bind_group_layout: state.params.bind_group_layout,
+                                    bind_group_layout_descriptor: state.params.bind_group_layout_descriptor,
                                     texture_handles: state.params.texture_handles,
                                     param_buffers: state.params.param_buffers,
                                     readback_buffers: state.params.readback_buffers,
@@ -727,11 +729,14 @@ define_workflow_mod_OLD! {
 
                             let mut render_executor = input.render_executor;
 
-                            let pipeline = render_access.pipeline_cache
+                            let pipeline_cache = render_access.pipeline_cache;
+                            let render_device = render_access.render_device;
+
+                            let pipeline = pipeline_cache
                                 .get_compute_pipeline(render_executor.pipeline_id)
                                 .expect("Pipeline not ready");
 
-                            let mut encoder = render_access.render_device.create_command_encoder(&CommandEncoderDescriptor {
+                            let mut encoder = render_device.create_command_encoder(&CommandEncoderDescriptor {
                                 label: Some("DispatchChunkTextures Encoder"),
                             });
 
@@ -746,9 +751,9 @@ define_workflow_mod_OLD! {
                             let mut gpu_image_infos = Vec::with_capacity(big_loop_len);
 
                             for (((view, buffer), readback_buffer), handle) in big_loop_iter {
-                                let bind_group = render_access.render_device.create_bind_group(
+                                let bind_group = render_device.create_bind_group(
                                     Some("ChunkRender BindGroup"),
-                                    &render_executor.bind_group_layout,
+                                    &pipeline_cache.get_bind_group_layout(&render_executor.bind_group_layout_descriptor),
                                     &[
                                         BindGroupEntry {
                                             binding: 0,
@@ -921,7 +926,7 @@ define_workflow_mod_OLD! {
                                     }
                                 });
 
-                                main_access.render_device.poll(wgpu::Maintain::Wait);
+                                main_access.render_device.poll(wgpu::PollType::Wait { submission_index: None, timeout: Some(Duration::from_secs(1)) });
                                 receiver.recv().unwrap();
 
                                 let data = slice.get_mapped_range().to_vec();

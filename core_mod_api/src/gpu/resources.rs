@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy::render::render_resource::{BindGroupLayout, CachedComputePipelineId};
+use bevy::render::render_resource::{BindGroupLayoutDescriptor, CachedComputePipelineId};
 use std::collections::HashMap;
 
 #[derive(Resource, Reflect, Default)]
@@ -9,5 +9,5 @@ pub struct ShaderRegistry {
     #[reflect(ignore)]
     pub pipelines: HashMap<String, CachedComputePipelineId>,
     #[reflect(ignore)]
-    pub bind_group_layouts: HashMap<String, BindGroupLayout>,
+    pub bind_group_layout_descriptors: HashMap<String, BindGroupLayoutDescriptor>,
 }

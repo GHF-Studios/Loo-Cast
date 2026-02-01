@@ -5,7 +5,7 @@ use crate::ConsumableMessages;
 
 /// Extension trait for `bevy_app::App` to automatically add consumable messages.
 pub trait ConsumableMessageApp {
-    /// Adds a consumable message type of `E`.
+    /// Adds a consumable message type of `M`.
     ///
     /// These messages are cleared at the start of each frame. Reads occuring
     /// *before* an message writer will **never** see the messages it produces.
@@ -15,9 +15,9 @@ pub trait ConsumableMessageApp {
     /// other system can read that click. If a click gets to the end of the frame
     /// without being consumed, no UI elements need it, so the message should be
     /// discarded.
-    fn add_consumable_message<E: Message>(&mut self) -> &mut Self;
+    fn add_consumable_message<M: Message>(&mut self) -> &mut Self;
 
-    /// Adds a "persistent" consumable message type of `E`.
+    /// Adds a "persistent" consumable message type of `M`.
     ///
     /// Only consumed messages are cleared at the start of each frame. This allows
     /// users to consume messages whenever they want, even several frames after the
@@ -28,35 +28,35 @@ pub trait ConsumableMessageApp {
     /// the line at any time, but they can only be served at 1 customer per
     /// second. One system would write customer messages at a random rate, and
     /// another system would consume an message whenever a timer goes off.
-    fn add_persistent_consumable_message<E: Message>(&mut self) -> &mut Self;
+    fn add_persistent_consumable_message<M: Message>(&mut self) -> &mut Self;
 }
 
 impl ConsumableMessageApp for App {
-    fn add_consumable_message<E: Message>(&mut self) -> &mut Self {
-        self.init_resource::<ConsumableMessages<E>>().add_systems(First, clear_all_messages::<E>)
+    fn add_consumable_message<M: Message>(&mut self) -> &mut Self {
+        self.init_resource::<ConsumableMessages<M>>().add_systems(First, clear_all_messages::<M>)
     }
 
-    fn add_persistent_consumable_message<E: Message>(&mut self) -> &mut Self {
-        self.init_resource::<ConsumableMessages<E>>().add_systems(First, clear_consumed_messages::<E>)
+    fn add_persistent_consumable_message<M: Message>(&mut self) -> &mut Self {
+        self.init_resource::<ConsumableMessages<M>>().add_systems(First, clear_consumed_messages::<M>)
     }
 }
 
 impl ConsumableMessageApp for SubApp {
-    fn add_consumable_message<E: Message>(&mut self) -> &mut Self {
-        self.init_resource::<ConsumableMessages<E>>().add_systems(First, clear_all_messages::<E>)
+    fn add_consumable_message<M: Message>(&mut self) -> &mut Self {
+        self.init_resource::<ConsumableMessages<M>>().add_systems(First, clear_all_messages::<M>)
     }
 
-    fn add_persistent_consumable_message<E: Message>(&mut self) -> &mut Self {
-        self.init_resource::<ConsumableMessages<E>>().add_systems(First, clear_consumed_messages::<E>)
+    fn add_persistent_consumable_message<M: Message>(&mut self) -> &mut Self {
+        self.init_resource::<ConsumableMessages<M>>().add_systems(First, clear_consumed_messages::<M>)
     }
 }
 
-/// A system for clearing all messages of type `E`.
-fn clear_all_messages<E: Message>(mut messages: ResMut<ConsumableMessages<E>>) {
+/// A system for clearing all messages of type `M`.
+fn clear_all_messages<M: Message>(mut messages: ResMut<ConsumableMessages<M>>) {
     messages.clear();
 }
 
-/// A system for clearing just the consumed messages of type `E`.
-fn clear_consumed_messages<E: Message>(mut messages: ResMut<ConsumableMessages<E>>) {
+/// A system for clearing just the consumed messages of type `M`.
+fn clear_consumed_messages<M: Message>(mut messages: ResMut<ConsumableMessages<M>>) {
     messages.clear_consumed();
 }

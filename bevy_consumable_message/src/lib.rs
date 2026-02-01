@@ -65,29 +65,29 @@ pub use app::ConsumableMessageApp;
 /// assert_eq!(messages.read().count(), 0);
 /// ```
 #[derive(Resource)]
-pub struct ConsumableMessages<E: Message> {
+pub struct ConsumableMessages<M: Message> {
     /// The messages in the buffer. `None` implies that the message there was
     /// consumed. `Some` means that the message has not been consumed yet.
-    messages: Vec<Option<E>>,
+    messages: Vec<Option<M>>,
 }
 
-// Derived Default impl would incorrectly require E: Default
-impl<E: Message> Default for ConsumableMessages<E> {
+// Derived Default impl would incorrectly require M: Default
+impl<M: Message> Default for ConsumableMessages<M> {
     fn default() -> Self {
         Self { messages: Default::default() }
     }
 }
 
-impl<E: Message> ConsumableMessages<E> {
+impl<M: Message> ConsumableMessages<M> {
     /// "Sends" `message` by writing it to the buffer. [`read`] can then read the
     /// message.
-    pub fn send(&mut self, message: E) {
+    pub fn send(&mut self, message: M) {
         self.messages.push(Some(message));
     }
 
     /// Sends a list of `messages` all at once, which can later be [`read`]. This is
     /// more efficient than sending each message individually.
-    pub fn send_batch(&mut self, messages: impl IntoIterator<Item = E>) {
+    pub fn send_batch(&mut self, messages: impl IntoIterator<Item = M>) {
         self.extend(messages);
     }
 
@@ -95,13 +95,13 @@ impl<E: Message> ConsumableMessages<E> {
     /// struct.
     pub fn send_default(&mut self)
     where
-        E: Default,
+        M: Default,
     {
         self.send(Default::default())
     }
 
     /// Reads the unconsumed messages stored in self.
-    pub fn read(&mut self) -> ConsumableMessageIterator<'_, E> {
+    pub fn read(&mut self) -> ConsumableMessageIterator<'_, M> {
         ConsumableMessageIterator { iter: self.messages.iter_mut() }
     }
 
@@ -118,43 +118,43 @@ impl<E: Message> ConsumableMessages<E> {
     }
 }
 
-impl<E: Message> Extend<E> for ConsumableMessages<E> {
+impl<M: Message> Extend<M> for ConsumableMessages<M> {
     fn extend<I>(&mut self, iter: I)
     where
-        I: IntoIterator<Item = E>,
+        I: IntoIterator<Item = M>,
     {
         self.messages.extend(iter.into_iter().map(|message| Some(message)));
     }
 }
 
 /// Mutable borrow of a consumable message.
-pub struct Consume<'messages, E> {
+pub struct Consume<'messages, M> {
     /// The message itself.
-    message: &'messages mut Option<E>,
+    message: &'messages mut Option<M>,
 }
 
-impl<'messages, E> Deref for Consume<'messages, E> {
-    type Target = E;
+impl<'messages, M> Deref for Consume<'messages, M> {
+    type Target = M;
 
     fn deref(&self) -> &Self::Target {
         self.message.as_ref().expect("The message has not been consumed yet.")
     }
 }
 
-impl<'messages, E> DerefMut for Consume<'messages, E> {
+impl<'messages, M> DerefMut for Consume<'messages, M> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.message.as_mut().expect("The message has not been consumed yet.")
     }
 }
 
-impl<'messages, E> Consume<'messages, E> {
+impl<'messages, M> Consume<'messages, M> {
     /// Consumes the message.
-    pub fn consume(self) -> E {
+    pub fn consume(self) -> M {
         self.message.take().expect("The message has not been consumed until now.")
     }
 }
 
-/// Sends consumable messages of type `E`.
+/// Sends consumable messages of type `M`.
 ///
 /// # Usage
 ///
@@ -173,21 +173,21 @@ impl<'messages, E> Consume<'messages, E> {
 /// bevy_ecs::system::assert_is_system(my_system);
 /// ```
 #[derive(SystemParam)]
-pub struct ConsumableMessageWriter<'w, E: Message> {
+pub struct ConsumableMessageWriter<'w, M: Message> {
     /// The messages to write to.
-    messages: ResMut<'w, ConsumableMessages<E>>,
+    messages: ResMut<'w, ConsumableMessages<M>>,
 }
 
-impl<'w, E: Message> ConsumableMessageWriter<'w, E> {
+impl<'w, M: Message> ConsumableMessageWriter<'w, M> {
     /// "Sends" `message` by writing it to the buffer. [`ConsumableMessageReader`] can
     /// then read the message.
-    pub fn send(&mut self, message: E) {
+    pub fn send(&mut self, message: M) {
         self.messages.send(message);
     }
 
     /// Sends a list of `messages` all at once, which can later be [`read`]. This is
     /// more efficient than sending each message individually.
-    pub fn send_batch(&mut self, messages: impl IntoIterator<Item = E>) {
+    pub fn send_batch(&mut self, messages: impl IntoIterator<Item = M>) {
         self.messages.send_batch(messages);
     }
 
@@ -195,13 +195,13 @@ impl<'w, E: Message> ConsumableMessageWriter<'w, E> {
     /// struct.
     pub fn send_default(&mut self)
     where
-        E: Default,
+        M: Default,
     {
         self.messages.send_default()
     }
 }
 
-/// Reads (and possibly consumes) messages of type `E`.
+/// Reads (and possibly consumes) messages of type `M`.
 ///
 /// # Usage
 ///
@@ -223,19 +223,19 @@ impl<'w, E: Message> ConsumableMessageWriter<'w, E> {
 /// bevy_ecs::system::assert_is_system(my_system);
 /// ```
 #[derive(SystemParam)]
-pub struct ConsumableMessageReader<'w, E: Message> {
+pub struct ConsumableMessageReader<'w, M: Message> {
     /// The messages to read from.
-    messages: ResMut<'w, ConsumableMessages<E>>,
+    messages: ResMut<'w, ConsumableMessages<M>>,
 }
 
-impl<'w, E: Message> ConsumableMessageReader<'w, E> {
+impl<'w, M: Message> ConsumableMessageReader<'w, M> {
     /// Reads the unconsumed messages.
-    pub fn read(&mut self) -> ConsumableMessageIterator<'_, E> {
+    pub fn read(&mut self) -> ConsumableMessageIterator<'_, M> {
         self.messages.read()
     }
 
     /// Reads all unconsumed messages, consuming them all along the way.
-    pub fn read_and_consume_all(&mut self) -> impl Iterator<Item = E> + '_ {
+    pub fn read_and_consume_all(&mut self) -> impl Iterator<Item = M> + '_ {
         // TODO: The lifetime bounds of this function are wrong. Rust 2024 edition
         // fixes this, but for now, this will most likely be fine.
         self.messages.read().map(|message| message.consume())
@@ -244,13 +244,13 @@ impl<'w, E: Message> ConsumableMessageReader<'w, E> {
 
 /// An iterator over the unconsumed messages.
 #[derive(Debug)]
-pub struct ConsumableMessageIterator<'w, E: Message> {
+pub struct ConsumableMessageIterator<'w, M: Message> {
     /// The iterator being wrapped.
-    iter: IterMut<'w, Option<E>>,
+    iter: IterMut<'w, Option<M>>,
 }
 
-impl<'w, E: Message> Iterator for ConsumableMessageIterator<'w, E> {
-    type Item = Consume<'w, E>;
+impl<'w, M: Message> Iterator for ConsumableMessageIterator<'w, M> {
+    type Item = Consume<'w, M>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|message| message.is_some()).map(|message| Consume { message })

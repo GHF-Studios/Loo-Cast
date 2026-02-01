@@ -1,15 +1,15 @@
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::{prelude::*, camera::visibility::RenderLayers};
 use bevy_egui::{
     egui::{self, ScrollArea},
     EguiContexts,
 };
-use iyes_perf_ui::{
-    entries::{
-        diagnostics::{PerfUiEntryFPS, PerfUiEntryFPSAverage},
-        PerfUiSystemEntries,
-    },
-    prelude::{PerfUiEntryEntityCount, PerfUiRoot},
-};
+// use iyes_perf_ui::{
+//     entries::{
+//         diagnostics::{PerfUiEntryFPS, PerfUiEntryFPSAverage},
+//         PerfUiSystemEntries,
+//     },
+//     prelude::{PerfUiEntryEntityCount, PerfUiRoot},
+// };
 
 use super::components::DebugObjectComponent;
 use super::types::DebugObjectMovement;
@@ -18,40 +18,40 @@ use crate::{
     logging::resources::LogRegistry,
     render::{
         components::UiCamera,
-        custom_perf_ui_entries::{cursor_position::PerfUiCursorPosEntries, player_position::PerfUiPlayerPosEntries},
+        // custom_perf_ui_entries::{cursor_position::PerfUiCursorPosEntries, player_position::PerfUiPlayerPosEntries},
         resources::PrimaryWindowUiState,
     },
 };
 
-#[tracing::instrument(skip_all)]
-pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Commands, ui_camera_query: Query<Entity, With<UiCamera>>) {
-    let ui_camera_entity = match ui_camera_query.single() {
-        Ok(entity) => entity,
-        Err(err) => {
-            panic!("Failed to get UiCamera entity for Perf UI setup: {}", err);
-        }
-    };
-
-    if !*has_spawned {
-        *has_spawned = true;
-        commands.spawn((
-            UiTargetCamera(ui_camera_entity),
-            PerfUiRoot {
-                fontsize_label: 16.0,
-                fontsize_value: 16.0,
-                values_col_width: 256.0,
-                ..Default::default()
-            },
-            PerfUiEntryFPS::default(),
-            PerfUiEntryFPSAverage::default(),
-            PerfUiSystemEntries::default(),
-            PerfUiEntryEntityCount::default(),
-            PerfUiPlayerPosEntries::default(),
-            PerfUiCursorPosEntries::default(),
-            RenderLayers::layer(1),
-        ));
-    }
-}
+// #[tracing::instrument(skip_all)]
+// pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Commands, ui_camera_query: Query<Entity, With<UiCamera>>) {
+//     let ui_camera_entity = match ui_camera_query.single() {
+//         Ok(entity) => entity,
+//         Err(err) => {
+//             panic!("Failed to get UiCamera entity for Perf UI setup: {}", err);
+//         }
+//     };
+// 
+//     if !*has_spawned {
+//         *has_spawned = true;
+//         commands.spawn((
+//             UiTargetCamera(ui_camera_entity),
+//             PerfUiRoot {
+//                 fontsize_label: 16.0,
+//                 fontsize_value: 16.0,
+//                 values_col_width: 256.0,
+//                 ..Default::default()
+//             },
+//             PerfUiEntryFPS::default(),
+//             PerfUiEntryFPSAverage::default(),
+//             PerfUiSystemEntries::default(),
+//             PerfUiEntryEntityCount::default(),
+//             // PerfUiPlayerPosEntries::default(),
+//             // PerfUiCursorPosEntries::default(),
+//             RenderLayers::layer(1),
+//         ));
+//     }
+// }
 
 #[tracing::instrument(skip_all)]
 pub(super) fn debug_object_movement_system(time: Res<Time<Virtual>>, mut query: Query<(&mut Transform, &DebugObjectComponent)>) {
