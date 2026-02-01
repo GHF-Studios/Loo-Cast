@@ -12,7 +12,6 @@ use crate::script::ecs::component::internals::traits::InsertComponentFromDynamic
 
 use super::components::Player;
 
-
 #[derive(Bundle, Reflect)]
 pub struct PlayerBundle {
     pub chunk_actor: ChunkActor,
