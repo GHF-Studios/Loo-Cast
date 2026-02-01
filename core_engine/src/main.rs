@@ -84,9 +84,9 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
         .add(SystemInformationDiagnosticsPlugin)
         // Ui Plugins
         .add(EguiPlugin::default())
-        // .add(PerfUiPlugin) // Disabled cause iyes_perf_ui is stuck on bevy 0.16.0
+        // .add(PerfUiPlugin) // TODO: Disabled cause iyes_perf_ui is stuck on bevy 0.16.0
         // Physics Plugins
-        // .add(RapierPhysicsPlugin::<NoUserData>::default()) // Disabled cause bevy_rapier2d is stuck on bevy 0.17.0
+        // .add(RapierPhysicsPlugin::<NoUserData>::default()) // TODO: Disabled cause bevy_rapier2d is stuck on bevy 0.17.0
         // Picking Plugins
         .add_group(
             DefaultPickingPlugins

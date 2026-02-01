@@ -3,6 +3,7 @@ use bevy_egui::{
     egui::{self, ScrollArea},
     EguiContexts,
 };
+// TODO: Disabled cause iyes_perf_ui is stuck on bevy 0.16.0
 // use iyes_perf_ui::{
 //     entries::{
 //         diagnostics::{PerfUiEntryFPS, PerfUiEntryFPSAverage},
@@ -23,6 +24,7 @@ use crate::{
     },
 };
 
+// TODO: Disabled cause iyes_perf_ui is stuck on bevy 0.16.0
 // #[tracing::instrument(skip_all)]
 // pub(super) fn perf_ui_startup(mut has_spawned: Local<bool>, mut commands: Commands, ui_camera_query: Query<Entity, With<UiCamera>>) {
 //     let ui_camera_entity = match ui_camera_query.single() {

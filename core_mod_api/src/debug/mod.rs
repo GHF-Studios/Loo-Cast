@@ -13,7 +13,7 @@ use selection::SelectionPlugin;
 use systems::{
     debug_object_movement_system,
     log_registry_debug_ui,
-    // perf_ui_startup,
+    // perf_ui_startup, // TODO: Disabled cause iyes_perf_ui is stuck on bevy 0.16.0
     toggle_debug_suite_ui_system
 };
 use types::{DebugObjectMovement, DebugSuiteTab, InspectorSelection, StepConfig, StepMode};
@@ -27,7 +27,7 @@ impl Plugin for DebugPlugin {
             .add_plugins(DefaultInspectorConfigPlugin)
             .add_plugins(GizmoPlugin)
             .add_plugins(SelectionPlugin)
-            // .add_systems(Startup, perf_ui_startup)
+            // .add_systems(Startup, perf_ui_startup) // TODO: Disabled cause iyes_perf_ui is stuck on bevy 0.16.0
             .add_systems(
                 Update,
                 (
