@@ -5,13 +5,13 @@ pub mod systems;
 use bevy::picking::backend::prelude::*;
 use bevy::prelude::*;
 use resources::{SpritePickingMode, SpritePickingSettings};
-use systems::{mouse_pick_messages, spawn_mouse_pointers, sprite_picking_backend};
+use systems::{mouse_pick_messages, set_default_settings, spawn_mouse_pointers, sprite_picking_backend};
 
 pub(crate) struct PickingPlugin;
 impl Plugin for PickingPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SpritePickingSettings>()
-            .add_systems(Startup, spawn_mouse_pointers)
+            .add_systems(Startup, (set_default_settings, spawn_mouse_pointers).chain())
             .add_systems(First, mouse_pick_messages.in_set(PickingSystems::Input))
             .add_systems(
                 PreUpdate,

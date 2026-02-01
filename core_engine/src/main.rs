@@ -9,9 +9,19 @@ use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin,
 use bevy::log::{error, info, info_span, LogPlugin};
 use bevy::prelude::*;
 use bevy::window::PresentMode;
+
+use bevy::gizmos::config::GizmoConfigStore;
+use bevy::render::view::ColorGradingSection;
+use bevy::render::view::ColorGradingGlobal;
+use bevy::light::AmbientLight;
+use bevy::light::PointLight;
+use bevy::light::DirectionalLight;
+use bevy::light::cluster::ClusterConfig;
+use bevy::camera::Camera3dDepthLoadOp;
+
 use bevy_egui::EguiPlugin;
-use bevy_rapier2d::prelude::*;
-use iyes_perf_ui::prelude::*;
+// use bevy_rapier2d::prelude::*;
+// use iyes_perf_ui::prelude::*;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::{EnvFilter, Layer};
@@ -32,7 +42,7 @@ fn setup_tracing() {
 
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_timer(ShortTime)
-        .with_span_messages(FmtSpan::ENTER | FmtSpan::CLOSE)
+        .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
         .with_ansi(true)
         .with_filter(EnvFilter::new(CONFIG().get::<&'static str>("core/cli_log_filter")));
 
@@ -70,26 +80,18 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
         .set(ImagePlugin::default_nearest())
         // Diagnostics Plugins
         .add(FrameTimeDiagnosticsPlugin::default())
-        .add(EntityCountDiagnosticsPlugin)
+        .add(EntityCountDiagnosticsPlugin::default())
         .add(SystemInformationDiagnosticsPlugin)
         // Ui Plugins
         .add(EguiPlugin::default())
-        .add(PerfUiPlugin)
+        // .add(PerfUiPlugin) // Disabled cause iyes_perf_ui is stuck on bevy 0.16.0
         // Physics Plugins
-        .add(RapierPhysicsPlugin::<NoUserData>::default())
+        // .add(RapierPhysicsPlugin::<NoUserData>::default()) // Disabled cause bevy_rapier2d is stuck on bevy 0.17.0
         // Picking Plugins
         .add_group(
             DefaultPickingPlugins
-                .set(bevy::picking::input::PointerInputPlugin {
-                    is_touch_enabled: false,
-                    is_mouse_enabled: false,
-                })
-                .set(bevy::picking::PickingPlugin {
-                    is_enabled: true,
-                    is_input_enabled: true,
-                    is_hover_enabled: true,
-                    is_window_picking_enabled: false,
-                }),
+                .set(bevy::picking::input::PointerInputPlugin)
+                .set(bevy::picking::PickingPlugin),
         )
 }
 
@@ -99,6 +101,16 @@ fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
     let mut app = App::new();
 
     script::core::internals::functions::pre_init(app.world_mut());
+
+    app
+        .register_type::<GizmoConfigStore>()
+        .register_type::<ColorGradingSection>()
+        .register_type::<ColorGradingGlobal>()
+        .register_type::<AmbientLight>()
+        .register_type::<PointLight>()
+        .register_type::<DirectionalLight>()
+        .register_type::<ClusterConfig>()
+        .register_type::<Camera3dDepthLoadOp>();
 
     app.add_plugins(third_party_plugins).add_plugins(CoreApiPluginGroup);
 

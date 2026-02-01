@@ -2,7 +2,9 @@ use bevy::ecs::query::QuerySingleError;
 use bevy::input::mouse::MouseWheel;
 use bevy::input::ButtonState;
 use bevy::math::FloatOrd;
+use bevy::picking::PickingSettings;
 use bevy::picking::backend::prelude::*;
+use bevy::picking::input::PointerInputSettings;
 use bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerId, PointerInput, PointerLocation, PointerPress};
 use bevy::prelude::*;
 use bevy::camera::{ImageRenderTarget, RenderTarget};
@@ -17,6 +19,20 @@ use crate::render::{
 
 use super::constants::{DIEGETIC_MOUSE_POINTER_ID, META_MOUSE_POINTER_ID, NO_HIT_SENTINEL};
 use super::resources::{SpritePickingMode, SpritePickingSettings};
+
+pub(super) fn set_default_settings(mut pointer_input_settings: ResMut<PointerInputSettings>, mut picking_settings: ResMut<PickingSettings>) {
+    *pointer_input_settings = PointerInputSettings {
+        is_touch_enabled: false,
+        is_mouse_enabled: false,
+    };
+
+    *picking_settings = PickingSettings {
+        is_enabled: true,
+        is_input_enabled: true,
+        is_hover_enabled: true,
+        is_window_picking_enabled: false,
+    };
+}
 
 // TODO: Impl properly
 pub(super) fn spawn_mouse_pointers(mut commands: Commands, game_view_render_target: Res<GameViewRenderTarget>) {

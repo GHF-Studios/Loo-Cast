@@ -23,7 +23,8 @@ use crate::{core::run_conditions::run_after_startup_finished, time::run_conditio
 pub(crate) struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(DefaultInspectorConfigPlugin)
+        app
+            .add_plugins(DefaultInspectorConfigPlugin)
             .add_plugins(GizmoPlugin)
             .add_plugins(SelectionPlugin)
             // .add_systems(Startup, perf_ui_startup)
