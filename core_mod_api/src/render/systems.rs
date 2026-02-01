@@ -47,7 +47,7 @@ pub(super) fn pre_setup_phase_0(mut commands: Commands, mut images: ResMut<Asset
 
 pub(super) fn pre_setup_phase_1(mut commands: Commands, mut egui_textures: ResMut<bevy_egui::EguiUserTextures>) {
     let (image_handle, size) = super::functions::get_reserved_game_view_render_target();
-    let texture_id = egui_textures.add_image(image_handle.clone_weak());
+    let texture_id = egui_textures.add_image(bevy_egui::EguiTextureHandle::Weak(image_handle.id()));
 
     commands.insert_resource(GameViewRenderTarget {
         handle: image_handle,
