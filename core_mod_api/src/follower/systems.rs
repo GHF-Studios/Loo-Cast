@@ -2,25 +2,25 @@ use bevy::prelude::*;
 use std::collections::HashMap;
 
 use super::components::{Follower, FollowerTarget};
-use super::events::FollowerTargetLifecycleEvent;
+use super::messages::FollowerTargetLifecycleMessage;
 
 pub(crate) fn update_follower_system(
-    mut follower_target_lifecycle_event_reader: EventReader<FollowerTargetLifecycleEvent>,
+    mut follower_target_lifecycle_message_reader: MessageReader<FollowerTargetLifecycleMessage>,
     mut param_set: ParamSet<(Query<(Entity, &mut Transform, &mut Follower)>, Query<(&FollowerTarget, &Transform)>)>,
     time: Res<Time<Virtual>>,
 ) {
-    process_lifecycle_events(&mut follower_target_lifecycle_event_reader, &mut param_set.p0());
+    process_lifecycle_messages(&mut follower_target_lifecycle_message_reader, &mut param_set.p0());
     let targets = collect_target_positions(&mut param_set.p1());
     update_followers(&mut param_set.p0(), &targets, &time);
 }
 
-fn process_lifecycle_events(events: &mut EventReader<FollowerTargetLifecycleEvent>, followers_query: &mut Query<(Entity, &mut Transform, &mut Follower)>) {
-    for event in events.read() {
-        match event {
-            FollowerTargetLifecycleEvent::Add { follow_id, followed_entity } => {
+fn process_lifecycle_messages(messages: &mut MessageReader<FollowerTargetLifecycleMessage>, followers_query: &mut Query<(Entity, &mut Transform, &mut Follower)>) {
+    for message in messages.read() {
+        match message {
+            FollowerTargetLifecycleMessage::Add { follow_id, followed_entity } => {
                 assign_follower(followers_query, follow_id, followed_entity);
             }
-            FollowerTargetLifecycleEvent::Remove { follow_id, .. } => {
+            FollowerTargetLifecycleMessage::Remove { follow_id, .. } => {
                 unassign_follower(followers_query, follow_id);
             }
         }

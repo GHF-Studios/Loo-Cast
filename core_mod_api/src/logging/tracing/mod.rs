@@ -14,7 +14,7 @@ impl Plugin for TracingPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (flush_span_event_buffer_system, flush_log_event_buffer_system).run_if(run_after_startup_finished),
+            (flush_span_message_buffer_system, flush_log_message_buffer_system).run_if(run_after_startup_finished),
         )
         .register_type::<LogTreeTracingLayer>();
     }

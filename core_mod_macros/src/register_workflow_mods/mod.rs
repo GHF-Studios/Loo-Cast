@@ -110,94 +110,94 @@ impl WorkflowMods {
             .collect();
 
         let workflow_modules_items = quote! {
-            pub trait FillWorkflowStageEcsBufferEventMarker: std::any::Any + Send {}
-            pub trait FillWorkflowStageRenderBufferEventMarker: std::any::Any + Send {}
-            pub trait FillWorkflowStageAsyncBufferEventMarker: std::any::Any + Send {}
-            pub trait FillWorkflowStageEcsWhileBufferEventMarker: std::any::Any + Send {}
-            pub trait FillWorkflowStageRenderWhileBufferEventMarker: std::any::Any + Send {}
+            pub trait FillWorkflowStageEcsBufferMessageMarker: std::any::Any + Send {}
+            pub trait FillWorkflowStageRenderBufferMessageMarker: std::any::Any + Send {}
+            pub trait FillWorkflowStageAsyncBufferMessageMarker: std::any::Any + Send {}
+            pub trait FillWorkflowStageEcsWhileBufferMessageMarker: std::any::Any + Send {}
+            pub trait FillWorkflowStageRenderWhileBufferMessageMarker: std::any::Any + Send {}
 
-            pub trait AnyFillWorkflowStageEcsBufferEventMarker: std::any::Any + Send {
+            pub trait AnyFillWorkflowStageEcsBufferMessageMarker: std::any::Any + Send {
                 fn as_any(self: Box<Self>) -> Box<dyn std::any::Any>;
             }
-            pub trait AnyFillWorkflowStageRenderBufferEventMarker: std::any::Any + Send {
+            pub trait AnyFillWorkflowStageRenderBufferMessageMarker: std::any::Any + Send {
                 fn as_any(self: Box<Self>) -> Box<dyn std::any::Any>;
             }
-            pub trait AnyFillWorkflowStageAsyncBufferEventMarker: std::any::Any + Send {
+            pub trait AnyFillWorkflowStageAsyncBufferMessageMarker: std::any::Any + Send {
                 fn as_any(self: Box<Self>) -> Box<dyn std::any::Any>;
             }
-            pub trait AnyFillWorkflowStageEcsWhileBufferEventMarker: std::any::Any + Send {
+            pub trait AnyFillWorkflowStageEcsWhileBufferMessageMarker: std::any::Any + Send {
                 fn as_any(self: Box<Self>) -> Box<dyn std::any::Any>;
             }
-            pub trait AnyFillWorkflowStageRenderWhileBufferEventMarker: std::any::Any + Send {
+            pub trait AnyFillWorkflowStageRenderWhileBufferMessageMarker: std::any::Any + Send {
                 fn as_any(self: Box<Self>) -> Box<dyn std::any::Any>;
-            }
-
-            impl<T: FillWorkflowStageEcsBufferEventMarker> AnyFillWorkflowStageEcsBufferEventMarker for T {
-                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
-                    self
-                }
-            }
-            impl<T: FillWorkflowStageRenderBufferEventMarker> AnyFillWorkflowStageRenderBufferEventMarker for T {
-                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
-                    self
-                }
-            }
-            impl<T: FillWorkflowStageAsyncBufferEventMarker> AnyFillWorkflowStageAsyncBufferEventMarker for T {
-                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
-                    self
-                }
-            }
-            impl<T: FillWorkflowStageEcsWhileBufferEventMarker> AnyFillWorkflowStageEcsWhileBufferEventMarker for T {
-                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
-                    self
-                }
-            }
-            impl<T: FillWorkflowStageRenderWhileBufferEventMarker> AnyFillWorkflowStageRenderWhileBufferEventMarker for T {
-                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
-                    self
-                }
             }
 
-            pub trait DynFillWorkflowStageEcsBufferEventSender: dyn_clone::DynClone + Send + Sync {
+            impl<T: FillWorkflowStageEcsBufferMessageMarker> AnyFillWorkflowStageEcsBufferMessageMarker for T {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+                    self
+                }
+            }
+            impl<T: FillWorkflowStageRenderBufferMessageMarker> AnyFillWorkflowStageRenderBufferMessageMarker for T {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+                    self
+                }
+            }
+            impl<T: FillWorkflowStageAsyncBufferMessageMarker> AnyFillWorkflowStageAsyncBufferMessageMarker for T {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+                    self
+                }
+            }
+            impl<T: FillWorkflowStageEcsWhileBufferMessageMarker> AnyFillWorkflowStageEcsWhileBufferMessageMarker for T {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+                    self
+                }
+            }
+            impl<T: FillWorkflowStageRenderWhileBufferMessageMarker> AnyFillWorkflowStageRenderWhileBufferMessageMarker for T {
+                fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+                    self
+                }
+            }
+
+            pub trait DynFillWorkflowStageEcsBufferMessageSender: dyn_clone::DynClone + Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
                 fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageEcs, stage_buffer: Option<crate::utils::premium_box::AnySendSyncPremiumBox>);
                 fn as_any_ref(&self) -> &dyn std::any::Any;
             }
-            pub trait DynFillWorkflowStageRenderBufferEventSender: dyn_clone::DynClone + Send + Sync {
+            pub trait DynFillWorkflowStageRenderBufferMessageSender: dyn_clone::DynClone + Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
                 fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageRender, stage_buffer: Option<crate::utils::premium_box::AnySendSyncPremiumBox>);
                 fn as_any_ref(&self) -> &dyn std::any::Any;
             }
-            pub trait DynFillWorkflowStageAsyncBufferEventSender: dyn_clone::DynClone + Send + Sync {
+            pub trait DynFillWorkflowStageAsyncBufferMessageSender: dyn_clone::DynClone + Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
                 fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageAsync, stage_buffer: Option<crate::utils::premium_box::AnySendSyncPremiumBox>);
                 fn as_any_ref(&self) -> &dyn std::any::Any;
             }
-            pub trait DynFillWorkflowStageEcsWhileBufferEventSender: dyn_clone::DynClone + Send + Sync {
+            pub trait DynFillWorkflowStageEcsWhileBufferMessageSender: dyn_clone::DynClone + Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
                 fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageEcsWhile, stage_buffer: Option<crate::utils::premium_box::AnySendSyncPremiumBox>);
                 fn as_any_ref(&self) -> &dyn std::any::Any;
             }
-            pub trait DynFillWorkflowStageRenderWhileBufferEventSender: dyn_clone::DynClone + Send + Sync {
+            pub trait DynFillWorkflowStageRenderWhileBufferMessageSender: dyn_clone::DynClone + Send + Sync {
                 fn module_name(&self) -> &'static str;
                 fn workflow_name(&self) -> &'static str;
                 fn stage_index(&self) -> usize;
                 fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageRenderWhile, stage_buffer: Option<crate::utils::premium_box::AnySendSyncPremiumBox>);
                 fn as_any_ref(&self) -> &dyn std::any::Any;
             }
-            dyn_clone::clone_trait_object!(DynFillWorkflowStageEcsBufferEventSender);
-            dyn_clone::clone_trait_object!(DynFillWorkflowStageRenderBufferEventSender);
-            dyn_clone::clone_trait_object!(DynFillWorkflowStageAsyncBufferEventSender);
-            dyn_clone::clone_trait_object!(DynFillWorkflowStageEcsWhileBufferEventSender);
-            dyn_clone::clone_trait_object!(DynFillWorkflowStageRenderWhileBufferEventSender);
+            dyn_clone::clone_trait_object!(DynFillWorkflowStageEcsBufferMessageSender);
+            dyn_clone::clone_trait_object!(DynFillWorkflowStageRenderBufferMessageSender);
+            dyn_clone::clone_trait_object!(DynFillWorkflowStageAsyncBufferMessageSender);
+            dyn_clone::clone_trait_object!(DynFillWorkflowStageEcsWhileBufferMessageSender);
+            dyn_clone::clone_trait_object!(DynFillWorkflowStageRenderWhileBufferMessageSender);
 
             #[derive(Clone, Debug)]
             pub struct WorkflowModuleMetadata {
@@ -215,23 +215,23 @@ impl WorkflowMods {
             pub enum WorkflowStageMetadata {
                 Ecs {
                     name: &'static str,
-                    sender: Box<dyn DynFillWorkflowStageEcsBufferEventSender>
+                    sender: Box<dyn DynFillWorkflowStageEcsBufferMessageSender>
                 },
                 Render {
                     name: &'static str,
-                    sender: Box<dyn DynFillWorkflowStageRenderBufferEventSender>
+                    sender: Box<dyn DynFillWorkflowStageRenderBufferMessageSender>
                 },
                 Async {
                     name: &'static str,
-                    sender: Box<dyn DynFillWorkflowStageAsyncBufferEventSender>
+                    sender: Box<dyn DynFillWorkflowStageAsyncBufferMessageSender>
                 },
                 EcsWhile {
                     name: &'static str,
-                    sender: Box<dyn DynFillWorkflowStageEcsWhileBufferEventSender>
+                    sender: Box<dyn DynFillWorkflowStageEcsWhileBufferMessageSender>
                 },
                 RenderWhile {
                     name: &'static str,
-                    sender: Box<dyn DynFillWorkflowStageRenderWhileBufferEventSender>
+                    sender: Box<dyn DynFillWorkflowStageRenderWhileBufferMessageSender>
                 },
             }
             impl std::fmt::Debug for WorkflowStageMetadata {

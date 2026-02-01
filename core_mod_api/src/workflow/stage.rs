@@ -1,7 +1,7 @@
 use bevy::prelude::Reflect;
 use crossbeam_channel::Sender;
 
-use super::events::*;
+use super::messages::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
 pub enum StageSignature {
@@ -84,7 +84,7 @@ impl Stage {
         }
     }
 
-    pub fn get_wait_sender(&self) -> Option<Sender<StageWaitEvent>> {
+    pub fn get_wait_sender(&self) -> Option<Sender<StageWaitMessage>> {
         match self {
             Stage::Ecs(_) => None,
             Stage::Render(_) => None,
@@ -94,7 +94,7 @@ impl Stage {
         }
     }
 
-    pub fn get_completion_sender(&self) -> Sender<StageCompletionEvent> {
+    pub fn get_completion_sender(&self) -> Sender<StageCompletionMessage> {
         match self {
             Stage::Ecs(stage) => stage.completion_sender.clone(),
             Stage::Render(stage) => stage.completion_sender.clone(),
@@ -104,7 +104,7 @@ impl Stage {
         }
     }
 
-    pub fn get_failure_sender(&self) -> Option<Sender<StageFailureEvent>> {
+    pub fn get_failure_sender(&self) -> Option<Sender<StageFailureMessage>> {
         match self {
             Stage::Ecs(stage) => stage.failure_sender.clone(),
             Stage::Render(stage) => stage.failure_sender.clone(),
@@ -124,14 +124,14 @@ pub struct StageEcs {
                 &'static str,
                 &'static str,
                 Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                Sender<StageCompletionEvent>,
-                Option<Sender<StageFailureEvent>>,
+                Sender<StageCompletionMessage>,
+                Option<Sender<StageFailureMessage>>,
             ) -> Box<dyn FnOnce(StageEcs) + Send + Sync>
             + Send
             + Sync,
     >,
-    pub completion_sender: Sender<StageCompletionEvent>,
-    pub failure_sender: Option<Sender<StageFailureEvent>>,
+    pub completion_sender: Sender<StageCompletionMessage>,
+    pub failure_sender: Option<Sender<StageFailureMessage>>,
 }
 
 pub struct StageRender {
@@ -143,14 +143,14 @@ pub struct StageRender {
                 &'static str,
                 &'static str,
                 Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                Sender<StageCompletionEvent>,
-                Option<Sender<StageFailureEvent>>,
+                Sender<StageCompletionMessage>,
+                Option<Sender<StageFailureMessage>>,
             ) -> Box<dyn FnOnce(StageRender) + Send + Sync>
             + Send
             + Sync,
     >,
-    pub completion_sender: Sender<StageCompletionEvent>,
-    pub failure_sender: Option<Sender<StageFailureEvent>>,
+    pub completion_sender: Sender<StageCompletionMessage>,
+    pub failure_sender: Option<Sender<StageFailureMessage>>,
 }
 
 pub struct StageAsync {
@@ -162,14 +162,14 @@ pub struct StageAsync {
                 &'static str,
                 &'static str,
                 Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                Sender<StageCompletionEvent>,
-                Option<Sender<StageFailureEvent>>,
+                Sender<StageCompletionMessage>,
+                Option<Sender<StageFailureMessage>>,
             ) -> Box<dyn FnOnce(StageAsync) + Send + Sync>
             + Send
             + Sync,
     >,
-    pub completion_sender: Sender<StageCompletionEvent>,
-    pub failure_sender: Option<Sender<StageFailureEvent>>,
+    pub completion_sender: Sender<StageCompletionMessage>,
+    pub failure_sender: Option<Sender<StageFailureMessage>>,
 }
 
 pub struct StageEcsWhile {
@@ -181,8 +181,8 @@ pub struct StageEcsWhile {
                 &'static str,
                 &'static str,
                 Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                Sender<StageSetupEvent>,
-                Option<Sender<StageFailureEvent>>,
+                Sender<StageSetupMessage>,
+                Option<Sender<StageFailureMessage>>,
             ) -> Box<dyn FnOnce(StageEcsWhile) + Send + Sync>
             + Send
             + Sync,
@@ -192,17 +192,17 @@ pub struct StageEcsWhile {
                 &'static str,
                 &'static str,
                 Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                Sender<StageWaitEvent>,
-                Sender<StageCompletionEvent>,
-                Option<Sender<StageFailureEvent>>,
+                Sender<StageWaitMessage>,
+                Sender<StageCompletionMessage>,
+                Option<Sender<StageFailureMessage>>,
             ) -> Box<dyn FnOnce(StageEcsWhile) + Send + Sync>
             + Send
             + Sync,
     >,
-    pub setup_sender: Sender<StageSetupEvent>,
-    pub wait_sender: Sender<StageWaitEvent>,
-    pub completion_sender: Sender<StageCompletionEvent>,
-    pub failure_sender: Option<Sender<StageFailureEvent>>,
+    pub setup_sender: Sender<StageSetupMessage>,
+    pub wait_sender: Sender<StageWaitMessage>,
+    pub completion_sender: Sender<StageCompletionMessage>,
+    pub failure_sender: Option<Sender<StageFailureMessage>>,
 }
 
 pub struct StageRenderWhile {
@@ -214,8 +214,8 @@ pub struct StageRenderWhile {
                 &'static str,
                 &'static str,
                 Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                Sender<StageSetupEvent>,
-                Option<Sender<StageFailureEvent>>,
+                Sender<StageSetupMessage>,
+                Option<Sender<StageFailureMessage>>,
             ) -> Box<dyn FnOnce(StageRenderWhile) + Send + Sync>
             + Send
             + Sync,
@@ -225,15 +225,15 @@ pub struct StageRenderWhile {
                 &'static str,
                 &'static str,
                 Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                Sender<StageWaitEvent>,
-                Sender<StageCompletionEvent>,
-                Option<Sender<StageFailureEvent>>,
+                Sender<StageWaitMessage>,
+                Sender<StageCompletionMessage>,
+                Option<Sender<StageFailureMessage>>,
             ) -> Box<dyn FnOnce(StageRenderWhile) + Send + Sync>
             + Send
             + Sync,
     >,
-    pub setup_sender: Sender<StageSetupEvent>,
-    pub wait_sender: Sender<StageWaitEvent>,
-    pub completion_sender: Sender<StageCompletionEvent>,
-    pub failure_sender: Option<Sender<StageFailureEvent>>,
+    pub setup_sender: Sender<StageSetupMessage>,
+    pub wait_sender: Sender<StageWaitMessage>,
+    pub completion_sender: Sender<StageCompletionMessage>,
+    pub failure_sender: Option<Sender<StageFailureMessage>>,
 }

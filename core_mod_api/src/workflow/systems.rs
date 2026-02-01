@@ -3,11 +3,11 @@ use std::collections::VecDeque;
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use bevy::render::MainWorld;
-use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
+use bevy_consumable_message::{ConsumableMessageReader, ConsumableMessageWriter};
 
 use crate::{config::statics::CONFIG, utils::premium_box::AnySendSyncPremiumBox, workflow::response::*};
 
-use super::{channels::*, events::*, instance::*, resources::*, stage::Stage, types::*};
+use super::{channels::*, messages::*, instance::*, resources::*, stage::Stage, types::*};
 
 pub(super) fn extract_render_stage_buffer_system(world: &mut World) {
     let mut main_world = SystemState::<ResMut<MainWorld>>::new(world).get_mut(world);
@@ -231,18 +231,18 @@ pub(super) fn send_render_while_stages_to_render_while_buffers_system(mut buffer
     }
 }
 
-/// Note: We actually convert the event from 'setup' to 'wait', seeing as the event handler logic from post-setup is identical to that of post-run
-pub(super) fn stage_setup_relay_system(stage_event_receiver: Res<StageSetupEventReceiver>, mut stage_event_writer: ConsumableEventWriter<StageWaitEvent>) {
-    while let Ok(StageSetupEvent {
+/// Note: We actually convert the message from 'setup' to 'wait', seeing as the message handler logic from post-setup is identical to that of post-run
+pub(super) fn stage_setup_relay_system(stage_message_receiver: Res<StageSetupMessageReceiver>, mut stage_message_writer: ConsumableMessageWriter<StageWaitMessage>) {
+    while let Ok(StageSetupMessage {
         ty,
         module_name,
         workflow_name,
         current_stage,
         stage_return,
         stage_state,
-    }) = stage_event_receiver.0.try_recv()
+    }) = stage_message_receiver.0.try_recv()
     {
-        stage_event_writer.send(StageWaitEvent {
+        stage_message_writer.send(StageWaitMessage {
             ty,
             module_name,
             workflow_name,
@@ -252,17 +252,17 @@ pub(super) fn stage_setup_relay_system(stage_event_receiver: Res<StageSetupEvent
         });
     }
 }
-pub(super) fn stage_wait_relay_system(stage_event_receiver: Res<StageWaitEventReceiver>, mut stage_event_writer: ConsumableEventWriter<StageWaitEvent>) {
-    while let Ok(StageWaitEvent {
+pub(super) fn stage_wait_relay_system(stage_message_receiver: Res<StageWaitMessageReceiver>, mut stage_message_writer: ConsumableMessageWriter<StageWaitMessage>) {
+    while let Ok(StageWaitMessage {
         ty,
         module_name,
         workflow_name,
         current_stage,
         stage_return,
         stage_state,
-    }) = stage_event_receiver.0.try_recv()
+    }) = stage_message_receiver.0.try_recv()
     {
-        stage_event_writer.send(StageWaitEvent {
+        stage_message_writer.send(StageWaitMessage {
             ty,
             module_name,
             workflow_name,
@@ -273,19 +273,19 @@ pub(super) fn stage_wait_relay_system(stage_event_receiver: Res<StageWaitEventRe
     }
 }
 pub(super) fn stage_completion_relay_system(
-    stage_event_receiver: Res<StageCompletionEventReceiver>,
-    mut stage_event_writer: ConsumableEventWriter<StageCompletionEvent>,
+    stage_message_receiver: Res<StageCompletionMessageReceiver>,
+    mut stage_message_writer: ConsumableMessageWriter<StageCompletionMessage>,
 ) {
-    while let Ok(StageCompletionEvent {
+    while let Ok(StageCompletionMessage {
         ty,
         module_name,
         workflow_name,
         current_stage,
         stage_output,
         stage_return,
-    }) = stage_event_receiver.0.try_recv()
+    }) = stage_message_receiver.0.try_recv()
     {
-        stage_event_writer.send(StageCompletionEvent {
+        stage_message_writer.send(StageCompletionMessage {
             ty,
             module_name,
             workflow_name,
@@ -296,19 +296,19 @@ pub(super) fn stage_completion_relay_system(
     }
 }
 pub(super) fn stage_failure_relay_system(
-    stage_event_receiver: Res<StageFailureEventReceiver>,
-    mut stage_event_writer: ConsumableEventWriter<StageFailureEvent>,
+    stage_message_receiver: Res<StageFailureMessageReceiver>,
+    mut stage_message_writer: ConsumableMessageWriter<StageFailureMessage>,
 ) {
-    while let Ok(StageFailureEvent {
+    while let Ok(StageFailureMessage {
         ty,
         module_name,
         workflow_name,
         current_stage,
         stage_error,
         stage_return,
-    }) = stage_event_receiver.0.try_recv()
+    }) = stage_message_receiver.0.try_recv()
     {
-        stage_event_writer.send(StageFailureEvent {
+        stage_message_writer.send(StageFailureMessage {
             ty,
             module_name,
             workflow_name,
@@ -804,14 +804,14 @@ pub(super) fn workflow_request_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>,
         Res<WorkflowTypeModuleRegistry>,
-        ConsumableEventWriter<StageInitializationEvent>,
+        ConsumableMessageWriter<StageInitializationMessage>,
     )> = SystemState::new(world);
     let (mut workflow_map, workflow_type_module_registry, _) = system_state.get_mut(world);
 
     // TODO: MINOR: Duplicate to other relevant places: Rely less on std::mem::take/replace and more on optional resource queries
     let mut stolen_workflow_map = std::mem::take(&mut *workflow_map);
 
-    let mut stage_initialization_events = Vec::new();
+    let mut stage_initialization_messages = Vec::new();
 
     for (module_name, workflows) in stolen_workflow_map.map.iter_mut() {
         for (workflow_name, instance) in workflows.iter_mut() {
@@ -828,7 +828,7 @@ pub(super) fn workflow_request_system(world: &mut World) {
                         stage_completed: false,
                     };
 
-                    stage_initialization_events.push(StageInitializationEvent {
+                    stage_initialization_messages.push(StageInitializationMessage {
                         module_name,
                         workflow_name,
                         stage_input: input,
@@ -841,12 +841,12 @@ pub(super) fn workflow_request_system(world: &mut World) {
         }
     }
 
-    let (mut workflow_map, _, mut stage_initialization_event_writer) = system_state.get_mut(world);
+    let (mut workflow_map, _, mut stage_initialization_message_writer) = system_state.get_mut(world);
 
     *workflow_map = stolen_workflow_map;
 
-    for event in stage_initialization_events {
-        stage_initialization_event_writer.send(event);
+    for message in stage_initialization_messages {
+        stage_initialization_message_writer.send(message);
     }
 }
 
@@ -859,7 +859,7 @@ pub(super) fn workflow_initialization_system(world: &mut World) {
         ResMut<AsyncStageBuffer>,
         ResMut<EcsWhileStageBuffer>,
         ResMut<RenderWhileStageBuffer>,
-        ConsumableEventReader<StageInitializationEvent>,
+        ConsumableMessageReader<StageInitializationMessage>,
     )> = SystemState::new(world);
     let (
         mut workflow_map,
@@ -869,15 +869,15 @@ pub(super) fn workflow_initialization_system(world: &mut World) {
         mut async_stage_buffer,
         mut ecs_while_stage_buffer,
         mut render_while_stage_buffer,
-        mut stage_initialization_event_reader,
+        mut stage_initialization_message_reader,
     ) = system_state.get_mut(world);
 
-    for event in stage_initialization_event_reader.read() {
-        let event = event.consume();
+    for message in stage_initialization_message_reader.read() {
+        let message = message.consume();
 
-        let module_name = event.module_name;
-        let workflow_name = event.workflow_name;
-        let stage_input = event.stage_input;
+        let module_name = message.module_name;
+        let workflow_name = message.workflow_name;
+        let stage_input = message.stage_input;
 
         let workflow_instance = if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
@@ -933,17 +933,17 @@ pub(super) fn workflow_wait_handling_system(world: &mut World) {
         ResMut<WorkflowMap>,
         ResMut<EcsWhileStageBuffer>,
         ResMut<RenderWhileStageBuffer>,
-        ConsumableEventReader<StageWaitEvent>,
+        ConsumableMessageReader<StageWaitMessage>,
     )> = SystemState::new(world);
-    let (mut workflow_map, mut ecs_while_stage_buffer, mut render_while_stage_buffer, mut stage_wait_event_reader) = system_state.get_mut(world);
+    let (mut workflow_map, mut ecs_while_stage_buffer, mut render_while_stage_buffer, mut stage_wait_message_reader) = system_state.get_mut(world);
 
-    for event in stage_wait_event_reader.read() {
-        let event = event.consume();
-        let module_name = event.module_name;
-        let workflow_name = event.workflow_name;
-        let current_stage = event.current_stage;
-        let stage_return = event.stage_return;
-        let stage_state = event.stage_state;
+    for message in stage_wait_message_reader.read() {
+        let message = message.consume();
+        let module_name = message.module_name;
+        let workflow_name = message.workflow_name;
+        let current_stage = message.current_stage;
+        let stage_return = message.stage_return;
+        let stage_state = message.stage_state;
 
         let workflow_instance = if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
@@ -1004,7 +1004,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
         ResMut<AsyncStageBuffer>,
         ResMut<EcsWhileStageBuffer>,
         ResMut<RenderWhileStageBuffer>,
-        ConsumableEventReader<StageCompletionEvent>,
+        ConsumableMessageReader<StageCompletionMessage>,
     )> = SystemState::new(world);
     let (
         mut workflow_map,
@@ -1014,19 +1014,19 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
         mut async_stage_buffer,
         mut ecs_while_stage_buffer,
         mut render_while_stage_buffer,
-        mut stage_completion_event_reader,
+        mut stage_completion_message_reader,
     ) = system_state.get_mut(world);
 
     let mut intermediate_stage_completions = Vec::new();
     let mut final_stage_completions = Vec::new();
 
-    for event in stage_completion_event_reader.read() {
-        let event = event.consume();
-        let module_name = event.module_name;
-        let workflow_name = event.workflow_name;
-        let current_stage = event.current_stage;
-        let stage_output = event.stage_output;
-        let stage = event.stage_return;
+    for message in stage_completion_message_reader.read() {
+        let message = message.consume();
+        let module_name = message.module_name;
+        let workflow_name = message.workflow_name;
+        let current_stage = message.current_stage;
+        let stage_output = message.stage_output;
+        let stage = message.stage_return;
 
         if let Some(workflows) = workflow_map.map.get_mut(module_name) {
             if let Some(instance) = workflows.get_mut(workflow_name) {
@@ -1042,7 +1042,7 @@ pub(super) fn workflow_completion_handling_system(world: &mut World) {
                     } => {
                         if current_stage != *other_current_stage {
                             unreachable!(
-                                "Unexpected workflow state. Completion event is at stage '{}', but the workflow instance is at stage '{}'",
+                                "Unexpected workflow state. Completion message is at stage '{}', but the workflow instance is at stage '{}'",
                                 current_stage, other_current_stage
                             );
                         }
@@ -1247,19 +1247,19 @@ pub(super) fn workflow_failure_handling_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<WorkflowMap>,
         ResMut<WorkflowTypeModuleRegistry>,
-        ConsumableEventReader<StageFailureEvent>,
+        ConsumableMessageReader<StageFailureMessage>,
     )> = SystemState::new(world);
-    let (mut workflow_map, mut workflow_type_module_registry, mut stage_failure_event_reader) = system_state.get_mut(world);
+    let (mut workflow_map, mut workflow_type_module_registry, mut stage_failure_message_reader) = system_state.get_mut(world);
 
     let mut stage_failures = Vec::new();
 
-    for event in stage_failure_event_reader.read() {
-        let event = event.consume();
-        let module_name = event.module_name;
-        let workflow_name = event.workflow_name;
-        let current_stage = event.current_stage;
-        let stage_error = event.stage_error;
-        let stage = event.stage_return;
+    for message in stage_failure_message_reader.read() {
+        let message = message.consume();
+        let module_name = message.module_name;
+        let workflow_name = message.workflow_name;
+        let current_stage = message.current_stage;
+        let stage_error = message.stage_error;
+        let stage = message.stage_return;
 
         let workflow_type = workflow_type_module_registry.get_workflow_type_mut(module_name, workflow_name).unwrap();
 

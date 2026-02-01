@@ -87,7 +87,7 @@ pub(super) fn update_gizmo_visibility_and_position(
 }
 
 pub(super) fn move_selected_with_gizmo(
-    mut drag_events: EventReader<Pointer<Drag>>,
+    mut drag_messages: MessageReader<Pointer<Drag>>,
     mut transforms: Query<&mut Transform>,
     gizmo_parts: Query<(&GizmoArrow, &GlobalTransform)>,
     debug_suite_ui_state: Res<PrimaryWindowUiState>,
@@ -96,19 +96,19 @@ pub(super) fn move_selected_with_gizmo(
 ) {
     let selected = &debug_suite_ui_state.selected_entities;
 
-    for event in drag_events.read() {
-        if event.pointer_id != META_MOUSE_POINTER_ID {
+    for message in drag_messages.read() {
+        if message.pointer_id != META_MOUSE_POINTER_ID {
             continue;
         }
 
-        if let Ok((gizmo_arrow, _)) = gizmo_parts.get(event.target) {
+        if let Ok((gizmo_arrow, _)) = gizmo_parts.get(message.target) {
             let axis = match gizmo_arrow.axis {
                 Axis2D::X => Vec3::X,
                 Axis2D::Y => Vec3::Y,
             };
 
             let delta = axis
-                * event.delta.dot(axis.truncate().normalize_or_zero())
+                * message.delta.dot(axis.truncate().normalize_or_zero())
                 * fixed_time.delta_secs()
                 * CONFIG().get::<f32>("debug/gizmo/drag_speed")
                 * zoom_factor.0;

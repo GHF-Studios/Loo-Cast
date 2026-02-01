@@ -557,7 +557,6 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        use bevy::prelude::Condition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -696,7 +695,6 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        use bevy::prelude::Condition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -807,7 +805,6 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        use bevy::prelude::Condition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -954,7 +951,6 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        use bevy::prelude::Condition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -1066,7 +1062,6 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        use bevy::prelude::Condition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -1213,7 +1208,6 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        use bevy::prelude::Condition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -1328,7 +1322,6 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        use bevy::prelude::Condition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -1479,7 +1472,6 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        use bevy::prelude::Condition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;

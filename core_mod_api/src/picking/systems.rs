@@ -5,8 +5,8 @@ use bevy::math::FloatOrd;
 use bevy::picking::backend::prelude::*;
 use bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerId, PointerInput, PointerLocation, PointerPress};
 use bevy::prelude::*;
-use bevy::render::camera::{ImageRenderTarget, RenderTarget};
-use bevy::window::{PrimaryWindow, WindowEvent};
+use bevy::camera::{ImageRenderTarget, RenderTarget};
+use bevy::window::{PrimaryWindow, WindowEvent as WindowMessage};
 
 use crate::core::types::{Diegetic, Meta, OntologicalContext};
 use crate::reflect::functions::get_struct_field_mut;
@@ -23,9 +23,9 @@ pub(super) fn spawn_mouse_pointers(mut commands: Commands, game_view_render_targ
     commands.spawn((
         DIEGETIC_MOUSE_POINTER_ID,
         PointerLocation::new(Location {
-            target: bevy::render::camera::NormalizedRenderTarget::Image(ImageRenderTarget {
+            target: bevy::camera::NormalizedRenderTarget::Image(ImageRenderTarget {
                 handle: game_view_render_target.handle.clone(),
-                scale_factor: FloatOrd(1.0),
+                scale_factor: 1.0,
             }),
             // TODO: Actually compute this
             position: Vec2::ZERO,
@@ -36,9 +36,9 @@ pub(super) fn spawn_mouse_pointers(mut commands: Commands, game_view_render_targ
     commands.spawn((
         META_MOUSE_POINTER_ID,
         PointerLocation::new(Location {
-            target: bevy::render::camera::NormalizedRenderTarget::Image(ImageRenderTarget {
+            target: bevy::camera::NormalizedRenderTarget::Image(ImageRenderTarget {
                 handle: game_view_render_target.handle.clone(),
-                scale_factor: FloatOrd(1.0),
+                scale_factor: 1.0,
             }),
             // TODO: Actually compute this
             position: Vec2::ZERO,
@@ -48,16 +48,16 @@ pub(super) fn spawn_mouse_pointers(mut commands: Commands, game_view_render_targ
 }
 
 #[tracing::instrument(skip_all)]
-pub(super) fn mouse_pick_events(
-    mut window_events: EventReader<WindowEvent>,
-    mut pointer_event_writer: EventWriter<PointerInput>,
+pub(super) fn mouse_pick_messages(
+    mut window_messages: MessageReader<WindowMessage>,
+    mut pointer_message_writer: MessageWriter<PointerInput>,
     mut cursor_last: Local<Vec2>,
     mut pointers: Query<(&PointerId, &mut PointerLocation, &mut PointerPress)>,
     primary_window: Query<(Entity, &Window), With<PrimaryWindow>>,
     debug_suite_ui_state: Res<PrimaryWindowUiState>,
     game_view_render_target: Res<GameViewRenderTarget>,
 ) {
-    if window_events.is_empty() {
+    if window_messages.is_empty() {
         return;
     }
 
@@ -74,35 +74,35 @@ pub(super) fn mouse_pick_events(
         return;
     }
 
-    let mut pointer_events: Vec<PointerInput> = Vec::with_capacity(window_events.len());
+    let mut pointer_messages: Vec<PointerInput> = Vec::with_capacity(window_messages.len());
 
-    for window_event in window_events.read() {
-        match window_event {
-            WindowEvent::CursorMoved(event) => {
+    for window_message in window_messages.read() {
+        match window_message {
+            WindowMessage::CursorMoved(message) => {
                 let location = Location {
                     target: match RenderTarget::Image(ImageRenderTarget {
                         handle: game_view_render_target.handle.clone(),
-                        scale_factor: FloatOrd(1.0),
+                        scale_factor: 1.0,
                     })
                     .normalize(Some(primary_window_entity))
                     {
                         Some(target) => target,
                         None => continue,
                     },
-                    position: event.position,
+                    position: message.position,
                 };
                 let action = PointerAction::Move {
-                    delta: event.position - *cursor_last,
+                    delta: message.position - *cursor_last,
                 };
-                pointer_events.push(PointerInput::new(DIEGETIC_MOUSE_POINTER_ID, location.clone(), action));
-                pointer_events.push(PointerInput::new(META_MOUSE_POINTER_ID, location, action));
-                *cursor_last = event.position;
+                pointer_messages.push(PointerInput::new(DIEGETIC_MOUSE_POINTER_ID, location.clone(), action));
+                pointer_messages.push(PointerInput::new(META_MOUSE_POINTER_ID, location, action));
+                *cursor_last = message.position;
             }
-            WindowEvent::MouseButtonInput(input) => {
+            WindowMessage::MouseButtonInput(input) => {
                 let location = Location {
                     target: match RenderTarget::Image(ImageRenderTarget {
                         handle: game_view_render_target.handle.clone(),
-                        scale_factor: FloatOrd(1.0),
+                        scale_factor: 1.0,
                     })
                     .normalize(Some(primary_window_entity))
                     {
@@ -121,15 +121,15 @@ pub(super) fn mouse_pick_events(
                     ButtonState::Pressed => PointerAction::Press(button),
                     ButtonState::Released => PointerAction::Release(button),
                 };
-                pointer_events.push(PointerInput::new(DIEGETIC_MOUSE_POINTER_ID, location.clone(), action));
-                pointer_events.push(PointerInput::new(META_MOUSE_POINTER_ID, location, action));
+                pointer_messages.push(PointerInput::new(DIEGETIC_MOUSE_POINTER_ID, location.clone(), action));
+                pointer_messages.push(PointerInput::new(META_MOUSE_POINTER_ID, location, action));
             }
-            WindowEvent::MouseWheel(event) => {
-                let MouseWheel { unit, x, y, window: _ } = *event;
+            WindowMessage::MouseWheel(message) => {
+                let MouseWheel { unit, x, y, window: _ } = *message;
                 let location = Location {
                     target: match RenderTarget::Image(ImageRenderTarget {
                         handle: game_view_render_target.handle.clone(),
-                        scale_factor: FloatOrd(1.0),
+                        scale_factor: 1.0,
                     })
                     .normalize(Some(primary_window_entity))
                     {
@@ -139,18 +139,18 @@ pub(super) fn mouse_pick_events(
                     position: *cursor_last,
                 };
                 let action = PointerAction::Scroll { x, y, unit };
-                pointer_events.push(PointerInput::new(DIEGETIC_MOUSE_POINTER_ID, location.clone(), action));
-                pointer_events.push(PointerInput::new(META_MOUSE_POINTER_ID, location, action));
+                pointer_messages.push(PointerInput::new(DIEGETIC_MOUSE_POINTER_ID, location.clone(), action));
+                pointer_messages.push(PointerInput::new(META_MOUSE_POINTER_ID, location, action));
             }
             _ => {}
         }
     }
 
-    for event in pointer_events.into_iter() {
-        match event.action {
+    for message in pointer_messages.into_iter() {
+        match message.action {
             PointerAction::Press(ref button) => {
                 pointers.iter_mut().for_each(|(pointer_id, _, mut pointer)| {
-                    if *pointer_id == event.pointer_id {
+                    if *pointer_id == message.pointer_id {
                         match button {
                             // We utilize reflection here because the `PointerPress` struct was never meant to be directly mutable outside of Bevy Picking's internal systems (But I don't care hehe)
                             PointerButton::Primary => *get_struct_field_mut(&mut *pointer, "primary") = true,
@@ -162,7 +162,7 @@ pub(super) fn mouse_pick_events(
             }
             PointerAction::Release(ref button) => {
                 pointers.iter_mut().for_each(|(pointer_id, _, mut pointer)| {
-                    if *pointer_id == event.pointer_id {
+                    if *pointer_id == message.pointer_id {
                         match button {
                             // Same as above
                             PointerButton::Primary => *get_struct_field_mut(&mut *pointer, "primary") = false,
@@ -174,15 +174,15 @@ pub(super) fn mouse_pick_events(
             }
             PointerAction::Move { .. } => {
                 pointers.iter_mut().for_each(|(id, mut pointer, _)| {
-                    if *id == event.pointer_id {
-                        pointer.location = Some(event.location.to_owned());
+                    if *id == message.pointer_id {
+                        pointer.location = Some(message.location.to_owned());
                     }
                 });
             }
             _ => {}
         }
 
-        pointer_event_writer.write(event);
+        pointer_message_writer.write(message);
     }
 }
 
@@ -197,7 +197,7 @@ pub(super) fn sprite_picking_backend(
     settings: Res<SpritePickingSettings>,
     game_view_render_target: Res<GameViewRenderTarget>,
     primary_window_ui_state: Res<PrimaryWindowUiState>,
-    mut output: EventWriter<PointerHits>,
+    mut output: MessageWriter<PointerHits>,
 ) {
     let any_meta_hits = sprite_picking_backend_inner::<Meta>(
         &pointers,
@@ -237,7 +237,7 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
     settings: &Res<SpritePickingSettings>,
     game_view_render_target: &Res<GameViewRenderTarget>,
     primary_window_ui_state: &Res<PrimaryWindowUiState>,
-    output: &mut EventWriter<PointerHits>,
+    output: &mut MessageWriter<PointerHits>,
 ) -> bool {
     let (pointer_id, location) = match pointers.iter().find(|(p_id, _)| **p_id == OC::pointer_id()) {
         Some((pointer, pointer_location)) => match pointer_location.location().map(|loc| (pointer, loc)) {
@@ -375,7 +375,9 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
                 return None;
             };
 
-            let sprite_size = sprite.custom_size.unwrap_or(Vec2::ONE) * image.size().as_vec2() * sprite.rect.unwrap_or_default().size();
+            let sprite_size = sprite.custom_size.unwrap_or(Vec2::ONE)
+                * image.size().as_vec2()
+                * sprite.rect.unwrap_or_default().size();
 
             let cursor_pos_sprite_pixel = cursor_pos_sprite;
 
@@ -387,7 +389,12 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
             //     cursor_pos_sprite
             // );
 
-            let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(cursor_pos_sprite_pixel, images, texture_atlas_layout) else {
+            let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(
+                cursor_pos_sprite_pixel,
+                bevy::sprite::Anchor(Vec2::ZERO),
+                images,
+                texture_atlas_layout
+            ) else {
                 // warn!("Cursor position '{}' outside sprite bounds", cursor_pos_sprite_pixel);
                 return None;
             };

@@ -6,8 +6,8 @@ use crate::{
     workflow::stage::{StageEcs, StageSignature},
 };
 
-#[derive(Event, Reflect)]
-pub struct StageInitializationEvent {
+#[derive(Message, Reflect)]
+pub struct StageInitializationMessage {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub stage_input: Option<AnySendSyncPremiumBox>,
@@ -25,8 +25,8 @@ fn placeholder_stage() -> Stage {
     })
 }
 
-#[derive(Event, Reflect)]
-pub struct StageSetupEvent {
+#[derive(Message, Reflect)]
+pub struct StageSetupMessage {
     pub ty: StageType,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
@@ -36,8 +36,8 @@ pub struct StageSetupEvent {
     pub stage_state: Option<AnySendSyncPremiumBox>,
 }
 
-#[derive(Event, Reflect)]
-pub struct StageWaitEvent {
+#[derive(Message, Reflect)]
+pub struct StageWaitMessage {
     pub ty: StageType,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
@@ -47,8 +47,8 @@ pub struct StageWaitEvent {
     pub stage_state: Option<AnySendSyncPremiumBox>,
 }
 
-#[derive(Event, Reflect)]
-pub struct StageCompletionEvent {
+#[derive(Message, Reflect)]
+pub struct StageCompletionMessage {
     pub ty: StageType,
     pub module_name: &'static str,
     pub workflow_name: &'static str,
@@ -58,8 +58,8 @@ pub struct StageCompletionEvent {
     pub stage_output: Option<AnySendSyncPremiumBox>,
 }
 
-#[derive(Event, Reflect)]
-pub struct StageFailureEvent {
+#[derive(Message, Reflect)]
+pub struct StageFailureMessage {
     pub ty: StageType,
     pub module_name: &'static str,
     pub workflow_name: &'static str,

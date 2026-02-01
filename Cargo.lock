@@ -1107,11 +1107,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_consumable_event"
-version = "0.6.0"
+name = "bevy_consumable_message"
+version = "0.1.0"
 dependencies = [
- "bevy_app 0.16.1",
- "bevy_ecs 0.16.1",
+ "bevy_app 0.18.0",
+ "bevy_ecs 0.18.0",
 ]
 
 [[package]]
@@ -4145,7 +4145,7 @@ dependencies = [
  "anymap",
  "bevy 0.18.0",
  "bevy-inspector-egui",
- "bevy_consumable_event",
+ "bevy_consumable_message",
  "bevy_dylib",
  "bevy_egui",
  "bevy_rapier2d",

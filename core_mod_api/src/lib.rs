@@ -2,7 +2,7 @@
 #![allow(clippy::too_many_arguments)]
 #![warn(clippy::large_stack_frames)]
 
-pub use bevy_consumable_event;
+pub use bevy_consumable_message;
 pub use core_mod_macros;
 
 pub use anymap;

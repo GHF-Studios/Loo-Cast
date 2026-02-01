@@ -4,7 +4,7 @@ pub mod resources;
 pub mod systems;
 
 pub mod custom_egui_widgets;
-pub mod custom_perf_ui_entries;
+// pub mod custom_perf_ui_entries;
 pub mod workflows;
 
 use bevy::prelude::*;
@@ -21,8 +21,9 @@ use crate::core::{components::Meta, run_conditions::run_after_startup_finished};
 pub(crate) struct RenderPlugin;
 impl Plugin for RenderPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(custom_egui_widgets::CustomEguiWidgetsPlugin)
-            .add_plugins(custom_perf_ui_entries::CustomPerfUiEntriesPlugin)
+        app
+            .add_plugins(custom_egui_widgets::CustomEguiWidgetsPlugin)
+            // .add_plugins(custom_perf_ui_entries::CustomPerfUiEntriesPlugin)
             .init_resource::<PrimaryWindowUiState>()
             .init_resource::<PrimaryWindowUiDockState>()
             .insert_resource(ClearColor(Color::srgb(0.0, 0.0, 0.0)))

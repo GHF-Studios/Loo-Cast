@@ -147,7 +147,7 @@ impl Default for PerfUiEntryCursorPointerPos {
 impl PerfUiEntry for PerfUiEntryCursorPointerPos {
     type SystemParam = (
         Local<'static, Option<Vec2>>,
-        EventReader<'static, 'static, Pointer<Move>>,
+        MessageReader<'static, 'static, Pointer<Move>>,
         Query<'static, 'static, &'static Window, With<PrimaryWindow>>,
         Res<'static, PrimaryWindowUiState>,
     );
@@ -162,15 +162,15 @@ impl PerfUiEntry for PerfUiEntryCursorPointerPos {
     }
 
     fn update_value(&self, sys_params: &mut <Self::SystemParam as SystemParam>::Item<'_, '_>) -> Option<Self::Value> {
-        let (ref mut previous_position, ref mut pointer_move_events, ref window_query, ref primary_window_ui_state) = sys_params;
+        let (ref mut previous_position, ref mut pointer_move_messages, ref window_query, ref primary_window_ui_state) = sys_params;
 
         let window = window_query.single().ok()?;
 
         let window_size = window.physical_size();
         let window_size_vec2 = Vec2::new(window_size.x as f32, window_size.y as f32);
 
-        **previous_position = if let Some(event) = pointer_move_events.read().last() {
-            let current_position = event.pointer_location.position;
+        **previous_position = if let Some(message) = pointer_move_messages.read().last() {
+            let current_position = message.pointer_location.position;
             let viewport_rect = primary_window_ui_state.viewport_rect_precision_proxy?;
 
             if viewport_rect.contains(egui::Pos2 {

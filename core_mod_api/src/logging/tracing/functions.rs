@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use tracing::{Event, Subscriber};
+use tracing::{Message, Subscriber};
 use tracing_subscriber::{layer::Context, registry::LookupSpan};
 
 use crate::core::functions::now_since_start_ns;
@@ -33,15 +33,15 @@ where
     }
 }
 
-pub(super) fn extract_log_identity<S>(event: &Event<'_>, ctx: &Context<'_, S>) -> (LogId, LogEntry, SpanPath, ModulePath, PhysicalStoragePath)
+pub(super) fn extract_log_identity<S>(message: &Message<'_>, ctx: &Context<'_, S>) -> (LogId, LogEntry, SpanPath, ModulePath, PhysicalStoragePath)
 where
     S: Subscriber + for<'lookup> LookupSpan<'lookup>,
 {
     let log_id = LogId::new();
     let ts = now_since_start_ns();
-    let metadata = event.metadata();
+    let metadata = message.metadata();
     let lvl: LogLevel = (*metadata.level()).into();
-    let msg = extract_message(event);
+    let msg = extract_message(message);
     let entry = LogEntry { ts, lvl, msg, metadata };
 
     let span_path = span_path_from_ctx(ctx);
@@ -50,10 +50,10 @@ where
     (log_id, entry, span_path, module_path, physical_path)
 }
 
-fn extract_message(event: &Event<'_>) -> Arc<str> {
+fn extract_message(message: &Message<'_>) -> Arc<str> {
     let mut msg = None;
 
-    event.record(&mut |field: &tracing::field::Field, value: &dyn std::fmt::Debug| {
+    message.record(&mut |field: &tracing::field::Field, value: &dyn std::fmt::Debug| {
         if field.name() == "message" {
             msg = Some(Arc::from(format!("{:?}", value)));
         }

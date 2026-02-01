@@ -32,7 +32,7 @@ fn setup_tracing() {
 
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_timer(ShortTime)
-        .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
+        .with_span_messages(FmtSpan::ENTER | FmtSpan::CLOSE)
         .with_ansi(true)
         .with_filter(EnvFilter::new(CONFIG().get::<&'static str>("core/cli_log_filter")));
 

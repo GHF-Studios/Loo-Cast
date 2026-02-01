@@ -1,5 +1,5 @@
 use bevy::prelude::Reflect;
-use tracing::{span::Attributes, span::Id, Event};
+use tracing::{span::Attributes, span::Id, Message};
 use tracing_subscriber::{
     layer::{Context, Layer},
     registry::LookupSpan,
@@ -27,8 +27,8 @@ where
         SPAN_EVENT_BUFFER().push(span_path);
     }
 
-    fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
-        let (log_id, log_entry, span_path, module_path, physical_path) = extract_log_identity(event, &ctx);
+    fn on_message(&self, message: &Message<'_>, ctx: Context<'_, S>) {
+        let (log_id, log_entry, span_path, module_path, physical_path) = extract_log_identity(message, &ctx);
         LOG_EVENT_BUFFER().push((log_id, log_entry, span_path, module_path, physical_path));
     }
 }

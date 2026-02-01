@@ -6,7 +6,7 @@ use tokio::sync::{
     Mutex, MutexGuard,
 };
 
-use super::events::*;
+use super::messages::*;
 use super::request::*;
 use super::response::*;
 
@@ -49,16 +49,16 @@ pub(super) struct WorkflowResponseIOSender(pub UnboundedSender<TypedWorkflowResp
 pub(super) struct WorkflowResponseIOESender(pub UnboundedSender<TypedWorkflowResponseOE>);
 
 // --- Stage Channels ---
-static STAGE_SETUP_SENDER: OnceLock<Sender<StageSetupEvent>> = OnceLock::new();
-static STAGE_WAIT_SENDER: OnceLock<Sender<StageWaitEvent>> = OnceLock::new();
-static STAGE_COMPLETION_SENDER: OnceLock<Sender<StageCompletionEvent>> = OnceLock::new();
-static STAGE_FAILURE_SENDER: OnceLock<Sender<StageFailureEvent>> = OnceLock::new();
+static STAGE_SETUP_SENDER: OnceLock<Sender<StageSetupMessage>> = OnceLock::new();
+static STAGE_WAIT_SENDER: OnceLock<Sender<StageWaitMessage>> = OnceLock::new();
+static STAGE_COMPLETION_SENDER: OnceLock<Sender<StageCompletionMessage>> = OnceLock::new();
+static STAGE_FAILURE_SENDER: OnceLock<Sender<StageFailureMessage>> = OnceLock::new();
 
 pub(super) fn initialize_stage_channels() -> (
-    Receiver<StageSetupEvent>,
-    Receiver<StageWaitEvent>,
-    Receiver<StageCompletionEvent>,
-    Receiver<StageFailureEvent>,
+    Receiver<StageSetupMessage>,
+    Receiver<StageWaitMessage>,
+    Receiver<StageCompletionMessage>,
+    Receiver<StageFailureMessage>,
 ) {
     let (setup_sender, setup_receiver) = unbounded();
     let (wait_sender, wait_receiver) = unbounded();
@@ -73,16 +73,16 @@ pub(super) fn initialize_stage_channels() -> (
     (setup_receiver, wait_receiver, completion_receiver, failure_receiver)
 }
 
-pub fn get_stage_setup_sender() -> Sender<StageSetupEvent> {
+pub fn get_stage_setup_sender() -> Sender<StageSetupMessage> {
     STAGE_SETUP_SENDER.get().expect("Setup sender not initialized!").clone()
 }
-pub fn get_stage_wait_sender() -> Sender<StageWaitEvent> {
+pub fn get_stage_wait_sender() -> Sender<StageWaitMessage> {
     STAGE_WAIT_SENDER.get().expect("Wait sender not initialized!").clone()
 }
-pub fn get_stage_completion_sender() -> Sender<StageCompletionEvent> {
+pub fn get_stage_completion_sender() -> Sender<StageCompletionMessage> {
     STAGE_COMPLETION_SENDER.get().expect("Completion sender not initialized!").clone()
 }
-pub fn get_stage_failure_sender() -> Sender<StageFailureEvent> {
+pub fn get_stage_failure_sender() -> Sender<StageFailureMessage> {
     STAGE_FAILURE_SENDER.get().expect("Failure sender not initialized!").clone()
 }
 

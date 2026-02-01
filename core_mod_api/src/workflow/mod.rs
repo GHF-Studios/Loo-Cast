@@ -1,6 +1,6 @@
 pub mod channels;
 pub mod composite_workflow_context;
-pub mod events;
+pub mod messages;
 pub mod functions;
 pub mod resources;
 pub mod statics;
@@ -17,10 +17,10 @@ use bevy::{
     prelude::*,
     render::{Render, RenderApp},
 };
-use bevy_consumable_event::ConsumableEventApp;
+use bevy_consumable_message::ConsumableMessageApp;
 use channels::*;
 use composite_workflow_context::*;
-use events::*;
+use messages::*;
 use instance::*;
 use request::*;
 use resources::*;
@@ -78,10 +78,10 @@ pub(crate) struct WorkflowPlugin;
 impl Plugin for WorkflowPlugin {
     fn build(&self, app: &mut App) {
         let (setup_receiver, wait_receiver, completion_receiver, failure_receiver) = initialize_stage_channels();
-        let setup_receiver = StageSetupEventReceiver(setup_receiver);
-        let wait_receiver = StageWaitEventReceiver(wait_receiver);
-        let completion_receiver = StageCompletionEventReceiver(completion_receiver);
-        let failure_receiver = StageFailureEventReceiver(failure_receiver);
+        let setup_receiver = StageSetupMessageReceiver(setup_receiver);
+        let wait_receiver = StageWaitMessageReceiver(wait_receiver);
+        let completion_receiver = StageCompletionMessageReceiver(completion_receiver);
+        let failure_receiver = StageFailureMessageReceiver(failure_receiver);
 
         let (workflow_request_receiver, workflow_response_sender) = initialize_channels();
         let (workflow_request_e_receiver, workflow_response_e_sender) = initialize_e_channels();
@@ -92,16 +92,16 @@ impl Plugin for WorkflowPlugin {
         let (workflow_request_io_receiver, workflow_response_io_sender) = initialize_io_channels();
         let (workflow_request_ioe_receiver, workflow_response_ioe_sender) = initialize_ioe_channels();
 
-        app.add_event::<StageInitializationEvent>()
-            .add_event::<StageSetupEvent>()
-            .add_event::<StageWaitEvent>()
-            .add_event::<StageCompletionEvent>()
-            .add_event::<StageFailureEvent>()
-            .add_persistent_consumable_event::<StageInitializationEvent>()
-            .add_persistent_consumable_event::<StageSetupEvent>()
-            .add_persistent_consumable_event::<StageWaitEvent>()
-            .add_persistent_consumable_event::<StageCompletionEvent>()
-            .add_persistent_consumable_event::<StageFailureEvent>()
+        app.add_message::<StageInitializationMessage>()
+            .add_message::<StageSetupMessage>()
+            .add_message::<StageWaitMessage>()
+            .add_message::<StageCompletionMessage>()
+            .add_message::<StageFailureMessage>()
+            .add_persistent_consumable_message::<StageInitializationMessage>()
+            .add_persistent_consumable_message::<StageSetupMessage>()
+            .add_persistent_consumable_message::<StageWaitMessage>()
+            .add_persistent_consumable_message::<StageCompletionMessage>()
+            .add_persistent_consumable_message::<StageFailureMessage>()
             .insert_resource(WorkflowTypeModuleRegistry::default())
             .insert_resource(WorkflowRequestBuffer::default())
             .insert_resource(WorkflowMap::default())
@@ -174,7 +174,7 @@ impl Plugin for WorkflowPlugin {
             .register_type::<ContextKey>()
             .register_type::<CompositeWorkflowContext>()
             .register_type::<ScopedCompositeWorkflowContext>()
-            .register_type::<StageInitializationEvent>()
+            .register_type::<StageInitializationMessage>()
             .register_type::<WorkflowCallback>()
             .register_type::<WorkflowInstance>()
             .register_type::<TypedWorkflowInstance>()

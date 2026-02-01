@@ -173,7 +173,7 @@ pub(super) fn primary_window_ui_system(world: &mut World) {
 #[tracing::instrument(skip_all)]
 pub(super) fn main_camera_zoom_system(
     mut projection_query: Query<&mut Projection, With<Camera>>,
-    mut scroll_event_reader: EventReader<MouseWheel>,
+    mut scroll_message_reader: MessageReader<MouseWheel>,
     input_mode: Res<State<InputMode>>,
     time: Res<Time<Real>>,
     virtual_paused: Res<VirtualPaused>,
@@ -184,14 +184,14 @@ pub(super) fn main_camera_zoom_system(
     let base_zoom_speed = CONFIG().get::<f32>("camera/base_zoom_speed");
 
     if !input_mode.is_game() || virtual_paused.0 {
-        scroll_event_reader.clear();
+        scroll_message_reader.clear();
         return;
     }
 
-    for event in scroll_event_reader.read() {
-        let scroll_delta = match event.unit {
-            MouseScrollUnit::Line => -event.y,
-            MouseScrollUnit::Pixel => event.y * -0.01,
+    for message in scroll_message_reader.read() {
+        let scroll_delta = match message.unit {
+            MouseScrollUnit::Line => -message.y,
+            MouseScrollUnit::Pixel => message.y * -0.01,
         };
         let zoom_speed = base_zoom_speed * zoom_factor.0;
         zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_secs()).clamp(min_zoom, max_zoom);

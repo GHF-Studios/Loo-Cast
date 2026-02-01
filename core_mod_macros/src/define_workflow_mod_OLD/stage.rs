@@ -633,8 +633,8 @@ impl TypedStage<Ecs> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcs
@@ -647,7 +647,7 @@ impl TypedStage<Ecs> {
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::Ecs,
                                     module_name,
                                     workflow_name,
@@ -655,7 +655,7 @@ impl TypedStage<Ecs> {
                                     stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                     stage_output: Some(output),
                                 }) {
-                                    unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("Ecs response handler error: Completion message send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
@@ -664,11 +664,11 @@ impl TypedStage<Ecs> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::Ecs,
                                     module_name,
                                     workflow_name,
@@ -676,7 +676,7 @@ impl TypedStage<Ecs> {
                                     stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("Ecs response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("Ecs response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -691,8 +691,8 @@ impl TypedStage<Ecs> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcs
@@ -710,7 +710,7 @@ impl TypedStage<Ecs> {
                                     };
                                     let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
-                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                         ty: crate::workflow::stage::StageType::Ecs,
                                         module_name,
                                         workflow_name,
@@ -718,7 +718,7 @@ impl TypedStage<Ecs> {
                                         stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                         stage_output: Some(boxed_response),
                                     }) {
-                                        unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
+                                        unreachable!("Ecs response handler error: Completion message send error: {}", send_err);
                                     }
                                 }
                                 Err(error) => {
@@ -727,11 +727,11 @@ impl TypedStage<Ecs> {
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
                                         None => {
-                                            unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                            unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                         ty: crate::workflow::stage::StageType::Ecs,
                                         module_name,
                                         workflow_name,
@@ -739,7 +739,7 @@ impl TypedStage<Ecs> {
                                         stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                         stage_error: error,
                                     }) {
-                                        unreachable!("Ecs response handler error: Failure event send error: {}", send_err);
+                                        unreachable!("Ecs response handler error: Failure message send error: {}", send_err);
                                     }
                                 }
                             }
@@ -760,8 +760,8 @@ impl TypedStage<Ecs> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcs
@@ -771,7 +771,7 @@ impl TypedStage<Ecs> {
                         #stage_output_transmutation
                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                             ty: crate::workflow::stage::StageType::Ecs,
                             module_name,
                             workflow_name,
@@ -779,7 +779,7 @@ impl TypedStage<Ecs> {
                             stage_return: crate::workflow::stage::Stage::Ecs(stage),
                             stage_output: Some(output),
                         }) {
-                            unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
+                            unreachable!("Ecs response handler error: Completion message send error: {}", send_err);
                         }
                     })
                 })}
@@ -792,8 +792,8 @@ impl TypedStage<Ecs> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcs,
@@ -808,7 +808,7 @@ impl TypedStage<Ecs> {
                             };
                             let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
-                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                            if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                 ty: crate::workflow::stage::StageType::Ecs,
                                 module_name,
                                 workflow_name,
@@ -816,7 +816,7 @@ impl TypedStage<Ecs> {
                                 stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                 stage_output: Some(boxed_response),
                             }) {
-                                unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
+                                unreachable!("Ecs response handler error: Completion message send error: {}", send_err);
                             }
                         })
                     })}
@@ -832,8 +832,8 @@ impl TypedStage<Ecs> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcs
@@ -850,7 +850,7 @@ impl TypedStage<Ecs> {
                                 };
                                 let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-[E]"));
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::Ecs,
                                     module_name,
                                     workflow_name,
@@ -858,7 +858,7 @@ impl TypedStage<Ecs> {
                                     stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                     stage_output: Some(boxed_response),
                                 }) {
-                                    unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("Ecs response handler error: Completion message send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
@@ -867,11 +867,11 @@ impl TypedStage<Ecs> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::Ecs,
                                     module_name,
                                     workflow_name,
@@ -879,7 +879,7 @@ impl TypedStage<Ecs> {
                                     stage_return: crate::workflow::stage::Stage::Ecs(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("Ecs response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("Ecs response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -894,8 +894,8 @@ impl TypedStage<Ecs> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcs
@@ -906,7 +906,7 @@ impl TypedStage<Ecs> {
                         };
                         let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse"));
 
-                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                             ty: crate::workflow::stage::StageType::Ecs,
                             module_name,
                             workflow_name,
@@ -914,7 +914,7 @@ impl TypedStage<Ecs> {
                             stage_return: crate::workflow::stage::Stage::Ecs(stage),
                             stage_output: Some(boxed_response),
                         }) {
-                            unreachable!("Ecs response handler error: Completion event send error: {}", send_err);
+                            unreachable!("Ecs response handler error: Completion message send error: {}", send_err);
                         }
                     })
                 })}
@@ -1063,8 +1063,8 @@ impl TypedStage<Render> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRender
@@ -1077,7 +1077,7 @@ impl TypedStage<Render> {
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::Render,
                                     module_name,
                                     workflow_name,
@@ -1085,7 +1085,7 @@ impl TypedStage<Render> {
                                     stage_return: crate::workflow::stage::Stage::Render(stage),
                                     stage_output: Some(output),
                                 }) {
-                                    unreachable!("Render response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("Render response handler error: Completion message send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
@@ -1094,11 +1094,11 @@ impl TypedStage<Render> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::Render,
                                     module_name,
                                     workflow_name,
@@ -1106,7 +1106,7 @@ impl TypedStage<Render> {
                                     stage_return: crate::workflow::stage::Stage::Render(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("Render response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("Render response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -1121,8 +1121,8 @@ impl TypedStage<Render> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRender
@@ -1140,7 +1140,7 @@ impl TypedStage<Render> {
                                     };
                                     let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
-                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                         ty: crate::workflow::stage::StageType::Render,
                                         module_name,
                                         workflow_name,
@@ -1148,7 +1148,7 @@ impl TypedStage<Render> {
                                         stage_return: crate::workflow::stage::Stage::Render(stage),
                                         stage_output: Some(boxed_response),
                                     }) {
-                                        unreachable!("Render response handler error: Completion event send error: {}", send_err);
+                                        unreachable!("Render response handler error: Completion message send error: {}", send_err);
                                     }
                                 }
                                 Err(error) => {
@@ -1157,11 +1157,11 @@ impl TypedStage<Render> {
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
                                         None => {
-                                            unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                            unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                         ty: crate::workflow::stage::StageType::Render,
                                         module_name,
                                         workflow_name,
@@ -1169,7 +1169,7 @@ impl TypedStage<Render> {
                                         stage_return: crate::workflow::stage::Stage::Render(stage),
                                         stage_error: error,
                                     }) {
-                                        unreachable!("Render response handler error: Failure event send error: {}", send_err);
+                                        unreachable!("Render response handler error: Failure message send error: {}", send_err);
                                     }
                                 }
                             }
@@ -1190,8 +1190,8 @@ impl TypedStage<Render> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRender
@@ -1201,7 +1201,7 @@ impl TypedStage<Render> {
                         #stage_output_transmutation
                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                             ty: crate::workflow::stage::StageType::Render,
                             module_name,
                             workflow_name,
@@ -1209,7 +1209,7 @@ impl TypedStage<Render> {
                             stage_return: crate::workflow::stage::Stage::Render(stage),
                             stage_output: Some(output),
                         }) {
-                            unreachable!("Render response handler error: Completion event send error: {}", send_err);
+                            unreachable!("Render response handler error: Completion message send error: {}", send_err);
                         }
                     })
                 })}
@@ -1222,8 +1222,8 @@ impl TypedStage<Render> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRender,
@@ -1238,7 +1238,7 @@ impl TypedStage<Render> {
                             };
                             let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
-                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                            if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                 ty: crate::workflow::stage::StageType::Render,
                                 module_name,
                                 workflow_name,
@@ -1246,7 +1246,7 @@ impl TypedStage<Render> {
                                 stage_return: crate::workflow::stage::Stage::Render(stage),
                                 stage_output: Some(boxed_response),
                             }) {
-                                unreachable!("Render response handler error: Completion event send error: {}", send_err);
+                                unreachable!("Render response handler error: Completion message send error: {}", send_err);
                             }
                         })
                     })}
@@ -1262,8 +1262,8 @@ impl TypedStage<Render> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRender
@@ -1280,7 +1280,7 @@ impl TypedStage<Render> {
                                 };
                                 let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-[E]"));
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::Render,
                                     module_name,
                                     workflow_name,
@@ -1288,7 +1288,7 @@ impl TypedStage<Render> {
                                     stage_return: crate::workflow::stage::Stage::Render(stage),
                                     stage_output: Some(boxed_response),
                                 }) {
-                                    unreachable!("Render response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("Render response handler error: Completion message send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
@@ -1297,11 +1297,11 @@ impl TypedStage<Render> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::Render,
                                     module_name,
                                     workflow_name,
@@ -1309,7 +1309,7 @@ impl TypedStage<Render> {
                                     stage_return: crate::workflow::stage::Stage::Render(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("Render response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("Render response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -1324,8 +1324,8 @@ impl TypedStage<Render> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRender
@@ -1336,7 +1336,7 @@ impl TypedStage<Render> {
                         };
                         let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse"));
 
-                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                             ty: crate::workflow::stage::StageType::Render,
                             module_name,
                             workflow_name,
@@ -1344,7 +1344,7 @@ impl TypedStage<Render> {
                             stage_return: crate::workflow::stage::Stage::Render(stage),
                             stage_output: Some(boxed_response),
                         }) {
-                            unreachable!("Render response handler error: Completion event send error: {}", send_err);
+                            unreachable!("Render response handler error: Completion message send error: {}", send_err);
                         }
                     })
                 })}
@@ -1493,8 +1493,8 @@ impl TypedStage<Async> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageAsync
@@ -1507,7 +1507,7 @@ impl TypedStage<Async> {
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::Async,
                                     module_name,
                                     workflow_name,
@@ -1515,7 +1515,7 @@ impl TypedStage<Async> {
                                     stage_return: crate::workflow::stage::Stage::Async(stage),
                                     stage_output: Some(output),
                                 }) {
-                                    unreachable!("Async response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("Async response handler error: Completion message send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
@@ -1524,11 +1524,11 @@ impl TypedStage<Async> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::Async,
                                     module_name,
                                     workflow_name,
@@ -1536,7 +1536,7 @@ impl TypedStage<Async> {
                                     stage_return: crate::workflow::stage::Stage::Async(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("Async response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("Async response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -1551,8 +1551,8 @@ impl TypedStage<Async> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageAsync
@@ -1570,7 +1570,7 @@ impl TypedStage<Async> {
                                     };
                                     let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
-                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                         ty: crate::workflow::stage::StageType::Async,
                                         module_name,
                                         workflow_name,
@@ -1578,7 +1578,7 @@ impl TypedStage<Async> {
                                         stage_return: crate::workflow::stage::Stage::Async(stage),
                                         stage_output: Some(boxed_response),
                                     }) {
-                                        unreachable!("Async response handler error: Completion event send error: {}", send_err);
+                                        unreachable!("Async response handler error: Completion message send error: {}", send_err);
                                     }
                                 }
                                 Err(error) => {
@@ -1587,11 +1587,11 @@ impl TypedStage<Async> {
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
                                         None => {
-                                            unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                            unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                         ty: crate::workflow::stage::StageType::Async,
                                         module_name,
                                         workflow_name,
@@ -1599,7 +1599,7 @@ impl TypedStage<Async> {
                                         stage_return: crate::workflow::stage::Stage::Async(stage),
                                         stage_error: error,
                                     }) {
-                                        unreachable!("Async response handler error: Failure event send error: {}", send_err);
+                                        unreachable!("Async response handler error: Failure message send error: {}", send_err);
                                     }
                                 }
                             }
@@ -1620,8 +1620,8 @@ impl TypedStage<Async> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageAsync
@@ -1631,7 +1631,7 @@ impl TypedStage<Async> {
                         #stage_output_transmutation
                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                             ty: crate::workflow::stage::StageType::Async,
                             module_name,
                             workflow_name,
@@ -1639,7 +1639,7 @@ impl TypedStage<Async> {
                             stage_return: crate::workflow::stage::Stage::Async(stage),
                             stage_output: Some(output),
                         }) {
-                            unreachable!("Async response handler error: Completion event send error: {}", send_err);
+                            unreachable!("Async response handler error: Completion message send error: {}", send_err);
                         }
                     })
                 })}
@@ -1652,8 +1652,8 @@ impl TypedStage<Async> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageAsync,
@@ -1668,7 +1668,7 @@ impl TypedStage<Async> {
                             };
                             let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
-                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                            if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                 ty: crate::workflow::stage::StageType::Async,
                                 module_name,
                                 workflow_name,
@@ -1676,7 +1676,7 @@ impl TypedStage<Async> {
                                 stage_return: crate::workflow::stage::Stage::Async(stage),
                                 stage_output: Some(boxed_response),
                             }) {
-                                unreachable!("Async response handler error: Completion event send error: {}", send_err);
+                                unreachable!("Async response handler error: Completion message send error: {}", send_err);
                             }
                         })
                     })}
@@ -1692,8 +1692,8 @@ impl TypedStage<Async> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageAsync
@@ -1710,7 +1710,7 @@ impl TypedStage<Async> {
                                 };
                                 let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-[E]"));
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::Async,
                                     module_name,
                                     workflow_name,
@@ -1718,7 +1718,7 @@ impl TypedStage<Async> {
                                     stage_return: crate::workflow::stage::Stage::Async(stage),
                                     stage_output: Some(boxed_response),
                                 }) {
-                                    unreachable!("Async response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("Async response handler error: Completion message send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
@@ -1727,11 +1727,11 @@ impl TypedStage<Async> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::Async,
                                     module_name,
                                     workflow_name,
@@ -1739,7 +1739,7 @@ impl TypedStage<Async> {
                                     stage_return: crate::workflow::stage::Stage::Async(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("Async response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("Async response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -1754,8 +1754,8 @@ impl TypedStage<Async> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageAsync
@@ -1766,7 +1766,7 @@ impl TypedStage<Async> {
                         };
                         let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse"));
 
-                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                             ty: crate::workflow::stage::StageType::Async,
                             module_name,
                             workflow_name,
@@ -1774,7 +1774,7 @@ impl TypedStage<Async> {
                             stage_return: crate::workflow::stage::Stage::Async(stage),
                             stage_output: Some(boxed_response),
                         }) {
-                            unreachable!("Async response handler error: Completion event send error: {}", send_err);
+                            unreachable!("Async response handler error: Completion message send error: {}", send_err);
                         }
                     })
                 })}
@@ -1931,8 +1931,8 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::messages::StageSetupMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>,
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
@@ -1944,7 +1944,7 @@ impl TypedStage<EcsWhile> {
                             Ok(state) => {
                                 let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                                if let Err(send_err) = setup_sender.send(crate::workflow::messages::StageSetupMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -1952,7 +1952,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_state: state,
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Setup event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Setup message send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
@@ -1961,11 +1961,11 @@ impl TypedStage<EcsWhile> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("EcsWhile response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("EcsWhile response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -1973,7 +1973,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -1986,8 +1986,8 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::messages::StageSetupMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
@@ -1996,7 +1996,7 @@ impl TypedStage<EcsWhile> {
                         let state: #this_stage_state_type_path = response.into_inner();
                         let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                        if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                        if let Err(send_err) = setup_sender.send(crate::workflow::messages::StageSetupMessage {
                             ty: crate::workflow::stage::StageType::EcsWhile,
                             module_name,
                             workflow_name,
@@ -2004,7 +2004,7 @@ impl TypedStage<EcsWhile> {
                             stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                             stage_state: state,
                         }) {
-                            unreachable!("EcsWhile response handler error: Setup event send error: {}", send_err);
+                            unreachable!("EcsWhile response handler error: Setup message send error: {}", send_err);
                         }
                     })
                 })}
@@ -2014,8 +2014,8 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::messages::StageSetupMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>,
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
@@ -2025,7 +2025,7 @@ impl TypedStage<EcsWhile> {
 
                         match result {
                             Ok(_) => {
-                                if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                                if let Err(send_err) = setup_sender.send(crate::workflow::messages::StageSetupMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2033,7 +2033,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(None),
                                     stage_state: None,
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Setup event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Setup message send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
@@ -2042,11 +2042,11 @@ impl TypedStage<EcsWhile> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("EcsWhile response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("EcsWhile response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2054,7 +2054,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(None),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -2066,13 +2066,13 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     _response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::messages::StageSetupMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
                     | {
-                        if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                        if let Err(send_err) = setup_sender.send(crate::workflow::messages::StageSetupMessage {
                             ty: crate::workflow::stage::StageType::EcsWhile,
                             module_name,
                             workflow_name,
@@ -2080,7 +2080,7 @@ impl TypedStage<EcsWhile> {
                             stage_return: crate::workflow::stage::Stage::EcsWhile(None),
                             stage_state: None,
                         }) {
-                            unreachable!("EcsWhile response handler error: Setup event send error: {}", send_err);
+                            unreachable!("EcsWhile response handler error: Setup message send error: {}", send_err);
                         }
                     })
                 })}
@@ -2105,9 +2105,9 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
@@ -2121,7 +2121,7 @@ impl TypedStage<EcsWhile> {
                                     crate::workflow::types::Outcome::Wait(state) => {
                                         let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
@@ -2129,14 +2129,14 @@ impl TypedStage<EcsWhile> {
                                             stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_state: state,
                                         }) {
-                                            unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                            unreachable!("EcsWhile response handler error: Wait message send error: {}", send_err);
                                         }
                                     },
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
                                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
@@ -2144,7 +2144,7 @@ impl TypedStage<EcsWhile> {
                                             stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_output: Some(output),
                                         }) {
-                                            unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                            unreachable!("EcsWhile response handler error: Completion message send error: {}", send_err);
                                         }
                                     }
                                 }
@@ -2155,11 +2155,11 @@ impl TypedStage<EcsWhile> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2167,7 +2167,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -2183,9 +2183,9 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile,
@@ -2199,7 +2199,7 @@ impl TypedStage<EcsWhile> {
                                         crate::workflow::types::Outcome::Wait(state) => {
                                             let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                            if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                                 ty: crate::workflow::stage::StageType::EcsWhile,
                                                 module_name,
                                                 workflow_name,
@@ -2207,7 +2207,7 @@ impl TypedStage<EcsWhile> {
                                                 stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                                 stage_state: state,
                                             }) {
-                                                unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                                unreachable!("EcsWhile response handler error: Wait message send error: {}", send_err);
                                             }
                                         },
                                         crate::workflow::types::Outcome::Done(output) => {
@@ -2219,7 +2219,7 @@ impl TypedStage<EcsWhile> {
                                             };
                                             let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
-                                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                                 ty: crate::workflow::stage::StageType::EcsWhile,
                                                 module_name,
                                                 workflow_name,
@@ -2227,7 +2227,7 @@ impl TypedStage<EcsWhile> {
                                                 stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                                 stage_output: Some(boxed_response),
                                             }) {
-                                                unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                                unreachable!("EcsWhile response handler error: Completion message send error: {}", send_err);
                                             }
                                         }
                                     }
@@ -2238,11 +2238,11 @@ impl TypedStage<EcsWhile> {
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
                                         None => {
-                                            unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                            unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                         ty: crate::workflow::stage::StageType::EcsWhile,
                                         module_name,
                                         workflow_name,
@@ -2250,7 +2250,7 @@ impl TypedStage<EcsWhile> {
                                         stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                         stage_error: error,
                                     }) {
-                                        unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
+                                        unreachable!("EcsWhile response handler error: Failure message send error: {}", send_err);
                                     }
                                 }
                             }
@@ -2272,9 +2272,9 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
@@ -2286,7 +2286,7 @@ impl TypedStage<EcsWhile> {
                             crate::workflow::types::Outcome::Wait(state) => {
                                 let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2294,14 +2294,14 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_state: state,
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Wait message send error: {}", send_err);
                                 }
                             },
                             crate::workflow::types::Outcome::Done(output) => {
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2309,7 +2309,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_output: Some(output),
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Completion message send error: {}", send_err);
                                 }
                             }
                         }
@@ -2325,9 +2325,9 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile,
@@ -2339,7 +2339,7 @@ impl TypedStage<EcsWhile> {
                                 crate::workflow::types::Outcome::Wait(state) => {
                                     let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                    if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                    if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                         ty: crate::workflow::stage::StageType::EcsWhile,
                                         module_name,
                                         workflow_name,
@@ -2347,7 +2347,7 @@ impl TypedStage<EcsWhile> {
                                         stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                         stage_state: state,
                                     }) {
-                                        unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                        unreachable!("EcsWhile response handler error: Wait message send error: {}", send_err);
                                     }
                                 }
                                 crate::workflow::types::Outcome::Done(output) => {
@@ -2359,7 +2359,7 @@ impl TypedStage<EcsWhile> {
                                     };
                                     let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
-                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                         ty: crate::workflow::stage::StageType::EcsWhile,
                                         module_name,
                                         workflow_name,
@@ -2367,7 +2367,7 @@ impl TypedStage<EcsWhile> {
                                         stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                         stage_output: Some(boxed_response),
                                     }) {
-                                        unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                        unreachable!("EcsWhile response handler error: Completion message send error: {}", send_err);
                                     }
                                 }
                             }
@@ -2386,9 +2386,9 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
@@ -2402,7 +2402,7 @@ impl TypedStage<EcsWhile> {
                                     crate::workflow::types::Outcome::Wait(state) => {
                                         let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
@@ -2410,7 +2410,7 @@ impl TypedStage<EcsWhile> {
                                             stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_state: state,
                                         }) {
-                                            unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                            unreachable!("EcsWhile response handler error: Wait message send error: {}", send_err);
                                         }
                                     }
                                     crate::workflow::types::Outcome::Done(_) => {
@@ -2421,7 +2421,7 @@ impl TypedStage<EcsWhile> {
                                         };
                                         let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-[E]"));
 
-                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
@@ -2429,7 +2429,7 @@ impl TypedStage<EcsWhile> {
                                             stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_output: Some(boxed_response),
                                         }) {
-                                            unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                            unreachable!("EcsWhile response handler error: Completion message send error: {}", send_err);
                                         }
                                     }
                                 }
@@ -2440,11 +2440,11 @@ impl TypedStage<EcsWhile> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2452,7 +2452,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -2468,9 +2468,9 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
@@ -2482,7 +2482,7 @@ impl TypedStage<EcsWhile> {
                             crate::workflow::types::Outcome::Wait(state) => {
                                 let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2490,7 +2490,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_state: state,
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Wait message send error: {}", send_err);
                                 }
                             }
                             crate::workflow::types::Outcome::Done(_) => {
@@ -2500,7 +2500,7 @@ impl TypedStage<EcsWhile> {
                                 };
                                 let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse"));
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2508,7 +2508,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_output: Some(boxed_response),
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Completion message send error: {}", send_err);
                                 }
                             }
                         }
@@ -2526,9 +2526,9 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
@@ -2540,7 +2540,7 @@ impl TypedStage<EcsWhile> {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(_) => {
-                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
@@ -2548,14 +2548,14 @@ impl TypedStage<EcsWhile> {
                                             stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_state: None,
                                         }) {
-                                            unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                            unreachable!("EcsWhile response handler error: Wait message send error: {}", send_err);
                                         }
                                     },
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
                                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
@@ -2563,7 +2563,7 @@ impl TypedStage<EcsWhile> {
                                             stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_output: Some(output),
                                         }) {
-                                            unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                            unreachable!("EcsWhile response handler error: Completion message send error: {}", send_err);
                                         }
                                     }
                                 }
@@ -2574,11 +2574,11 @@ impl TypedStage<EcsWhile> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2586,7 +2586,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -2601,9 +2601,9 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile,
@@ -2615,7 +2615,7 @@ impl TypedStage<EcsWhile> {
                                 Ok(outcome) => {
                                     match outcome {
                                         crate::workflow::types::Outcome::Wait(_) => {
-                                            if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                                 ty: crate::workflow::stage::StageType::EcsWhile,
                                                 module_name,
                                                 workflow_name,
@@ -2623,7 +2623,7 @@ impl TypedStage<EcsWhile> {
                                                 stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                                 stage_state: None,
                                             }) {
-                                                unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                                unreachable!("EcsWhile response handler error: Wait message send error: {}", send_err);
                                             }
                                         },
                                         crate::workflow::types::Outcome::Done(output) => {
@@ -2635,7 +2635,7 @@ impl TypedStage<EcsWhile> {
                                             };
                                             let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
-                                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                                 ty: crate::workflow::stage::StageType::EcsWhile,
                                                 module_name,
                                                 workflow_name,
@@ -2643,7 +2643,7 @@ impl TypedStage<EcsWhile> {
                                                 stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                                 stage_output: Some(boxed_response),
                                             }) {
-                                                unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                                unreachable!("EcsWhile response handler error: Completion message send error: {}", send_err);
                                             }
                                         }
                                     }
@@ -2654,11 +2654,11 @@ impl TypedStage<EcsWhile> {
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
                                         None => {
-                                            unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                            unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                         ty: crate::workflow::stage::StageType::EcsWhile,
                                         module_name,
                                         workflow_name,
@@ -2666,7 +2666,7 @@ impl TypedStage<EcsWhile> {
                                         stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                         stage_error: error,
                                     }) {
-                                        unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
+                                        unreachable!("EcsWhile response handler error: Failure message send error: {}", send_err);
                                     }
                                 }
                             }
@@ -2687,9 +2687,9 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
@@ -2699,7 +2699,7 @@ impl TypedStage<EcsWhile> {
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(_) => {
-                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2707,7 +2707,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_state: None,
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Wait message send error: {}", send_err);
                                 }
                             },
                             crate::workflow::types::Outcome::Done(_) => {
@@ -2715,7 +2715,7 @@ impl TypedStage<EcsWhile> {
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2723,7 +2723,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_output: Some(output),
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Completion message send error: {}", send_err);
                                 }
                             },
                         }
@@ -2738,9 +2738,9 @@ impl TypedStage<EcsWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageEcsWhile,
@@ -2750,7 +2750,7 @@ impl TypedStage<EcsWhile> {
 
                             match outcome {
                                 crate::workflow::types::Outcome::Wait(_) => {
-                                    if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                    if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                         ty: crate::workflow::stage::StageType::EcsWhile,
                                         module_name,
                                         workflow_name,
@@ -2758,7 +2758,7 @@ impl TypedStage<EcsWhile> {
                                         stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                         stage_state: None,
                                     }) {
-                                        unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                        unreachable!("EcsWhile response handler error: Wait message send error: {}", send_err);
                                     }
                                 }
                                 crate::workflow::types::Outcome::Done(output) => {
@@ -2770,7 +2770,7 @@ impl TypedStage<EcsWhile> {
                                     };
                                     let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
-                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                         ty: crate::workflow::stage::StageType::EcsWhile,
                                         module_name,
                                         workflow_name,
@@ -2778,7 +2778,7 @@ impl TypedStage<EcsWhile> {
                                         stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                         stage_output: Some(boxed_response),
                                     }) {
-                                        unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                        unreachable!("EcsWhile response handler error: Completion message send error: {}", send_err);
                                     }
                                 }
                             }
@@ -2796,8 +2796,8 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
@@ -2809,7 +2809,7 @@ impl TypedStage<EcsWhile> {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(_) => {
-                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
@@ -2817,7 +2817,7 @@ impl TypedStage<EcsWhile> {
                                             stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_state: None,
                                         }) {
-                                            unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                            unreachable!("EcsWhile response handler error: Wait message send error: {}", send_err);
                                         }
                                     }
                                     crate::workflow::types::Outcome::Done(_) => {
@@ -2828,7 +2828,7 @@ impl TypedStage<EcsWhile> {
                                         };
                                         let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-[E]"));
 
-                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                             ty: crate::workflow::stage::StageType::EcsWhile,
                                             module_name,
                                             workflow_name,
@@ -2836,7 +2836,7 @@ impl TypedStage<EcsWhile> {
                                             stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                             stage_output: Some(boxed_response),
                                         }) {
-                                            unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                            unreachable!("EcsWhile response handler error: Completion message send error: {}", send_err);
                                         }
                                     }
                                 }
@@ -2847,11 +2847,11 @@ impl TypedStage<EcsWhile> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2859,7 +2859,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -2874,9 +2874,9 @@ impl TypedStage<EcsWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageEcsWhile
@@ -2886,7 +2886,7 @@ impl TypedStage<EcsWhile> {
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(_) => {
-                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2894,7 +2894,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_state: None,
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Wait event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Wait message send error: {}", send_err);
                                 }
                             }
                             crate::workflow::types::Outcome::Done(_) => {
@@ -2904,7 +2904,7 @@ impl TypedStage<EcsWhile> {
                                 };
                                 let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse"));
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::EcsWhile,
                                     module_name,
                                     workflow_name,
@@ -2912,7 +2912,7 @@ impl TypedStage<EcsWhile> {
                                     stage_return: crate::workflow::stage::Stage::EcsWhile(stage),
                                     stage_output: Some(boxed_response),
                                 }) {
-                                    unreachable!("EcsWhile response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("EcsWhile response handler error: Completion message send error: {}", send_err);
                                 }
                             }
                         }
@@ -3085,8 +3085,8 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>,
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::messages::StageSetupMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>,
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
@@ -3098,7 +3098,7 @@ impl TypedStage<RenderWhile> {
                             Ok(state) => {
                                 let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                                if let Err(send_err) = setup_sender.send(crate::workflow::messages::StageSetupMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -3106,7 +3106,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_state: state,
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Setup event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Setup message send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
@@ -3115,11 +3115,11 @@ impl TypedStage<RenderWhile> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("RenderWhile response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("RenderWhile response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -3127,7 +3127,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -3140,8 +3140,8 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::messages::StageSetupMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
@@ -3152,7 +3152,7 @@ impl TypedStage<RenderWhile> {
 
                         let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                        if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                        if let Err(send_err) = setup_sender.send(crate::workflow::messages::StageSetupMessage {
                             ty: crate::workflow::stage::StageType::RenderWhile,
                             module_name,
                             workflow_name,
@@ -3160,7 +3160,7 @@ impl TypedStage<RenderWhile> {
                             stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                             stage_state: state,
                         }) {
-                            unreachable!("RenderWhile response handler error: Setup event send error: {}", send_err);
+                            unreachable!("RenderWhile response handler error: Setup message send error: {}", send_err);
                         }
                     })
                 })}
@@ -3170,8 +3170,8 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::messages::StageSetupMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
@@ -3181,7 +3181,7 @@ impl TypedStage<RenderWhile> {
 
                         match result {
                             Ok(_) => {
-                                if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                                if let Err(send_err) = setup_sender.send(crate::workflow::messages::StageSetupMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -3189,7 +3189,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_state: None,
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Setup event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Setup message send error: {}", send_err);
                                 }
                             }
                             Err(error) => {
@@ -3198,11 +3198,11 @@ impl TypedStage<RenderWhile> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("RenderWhile response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("RenderWhile response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -3210,7 +3210,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -3222,8 +3222,8 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    setup_sender: crossbeam_channel::Sender<crate::workflow::events::StageSetupEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    setup_sender: crossbeam_channel::Sender<crate::workflow::messages::StageSetupMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
@@ -3231,7 +3231,7 @@ impl TypedStage<RenderWhile> {
                         let response = response.expect("RenderWhile stages must have a response");
                         let state = Some(response);
 
-                        if let Err(send_err) = setup_sender.send(crate::workflow::events::StageSetupEvent {
+                        if let Err(send_err) = setup_sender.send(crate::workflow::messages::StageSetupMessage {
                             ty: crate::workflow::stage::StageType::RenderWhile,
                             module_name,
                             workflow_name,
@@ -3239,7 +3239,7 @@ impl TypedStage<RenderWhile> {
                             stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                             stage_state: state,
                         }) {
-                            unreachable!("RenderWhile response handler error: Setup event send error: {}", send_err);
+                            unreachable!("RenderWhile response handler error: Setup message send error: {}", send_err);
                         }
                     })
                 })}
@@ -3264,9 +3264,9 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
@@ -3280,7 +3280,7 @@ impl TypedStage<RenderWhile> {
                                     crate::workflow::types::Outcome::Wait(state) => {
                                         let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
@@ -3288,14 +3288,14 @@ impl TypedStage<RenderWhile> {
                                             stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_state: state,
                                         }) {
-                                            unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                            unreachable!("RenderWhile response handler error: Wait message send error: {}", send_err);
                                         }
                                     },
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
                                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
@@ -3303,7 +3303,7 @@ impl TypedStage<RenderWhile> {
                                             stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_output: Some(output),
                                         }) {
-                                            unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                            unreachable!("RenderWhile response handler error: Completion message send error: {}", send_err);
                                         }
                                     }
                                 }
@@ -3314,11 +3314,11 @@ impl TypedStage<RenderWhile> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -3326,7 +3326,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -3342,9 +3342,9 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile,
@@ -3358,7 +3358,7 @@ impl TypedStage<RenderWhile> {
                                         crate::workflow::types::Outcome::Wait(state) => {
                                             let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                            if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                                 ty: crate::workflow::stage::StageType::RenderWhile,
                                                 module_name,
                                                 workflow_name,
@@ -3366,7 +3366,7 @@ impl TypedStage<RenderWhile> {
                                                 stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                                 stage_state: state,
                                             }) {
-                                                unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                                unreachable!("RenderWhile response handler error: Wait message send error: {}", send_err);
                                             }
                                         },
                                         crate::workflow::types::Outcome::Done(output) => {
@@ -3378,7 +3378,7 @@ impl TypedStage<RenderWhile> {
                                             };
                                             let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
-                                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                                 ty: crate::workflow::stage::StageType::RenderWhile,
                                                 module_name,
                                                 workflow_name,
@@ -3386,7 +3386,7 @@ impl TypedStage<RenderWhile> {
                                                 stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                                 stage_output: Some(boxed_response),
                                             }) {
-                                                unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                                unreachable!("RenderWhile response handler error: Completion message send error: {}", send_err);
                                             }
                                         }
                                     }
@@ -3397,11 +3397,11 @@ impl TypedStage<RenderWhile> {
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
                                         None => {
-                                            unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                            unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                         ty: crate::workflow::stage::StageType::RenderWhile,
                                         module_name,
                                         workflow_name,
@@ -3409,7 +3409,7 @@ impl TypedStage<RenderWhile> {
                                         stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                         stage_error: error,
                                     }) {
-                                        unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
+                                        unreachable!("RenderWhile response handler error: Failure message send error: {}", send_err);
                                     }
                                 }
                             }
@@ -3431,9 +3431,9 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
@@ -3445,7 +3445,7 @@ impl TypedStage<RenderWhile> {
                             crate::workflow::types::Outcome::Wait(state) => {
                                 let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -3453,14 +3453,14 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_state: state,
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Wait message send error: {}", send_err);
                                 }
                             },
                             crate::workflow::types::Outcome::Done(output) => {
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -3468,7 +3468,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_output: Some(output),
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Completion message send error: {}", send_err);
                                 }
                             }
                         }
@@ -3484,9 +3484,9 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile,
@@ -3498,7 +3498,7 @@ impl TypedStage<RenderWhile> {
                                 crate::workflow::types::Outcome::Wait(state) => {
                                     let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                    if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                    if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                         ty: crate::workflow::stage::StageType::RenderWhile,
                                         module_name,
                                         workflow_name,
@@ -3506,7 +3506,7 @@ impl TypedStage<RenderWhile> {
                                         stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                         stage_state: state,
                                     }) {
-                                        unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                        unreachable!("RenderWhile response handler error: Wait message send error: {}", send_err);
                                     }
                                 }
                                 crate::workflow::types::Outcome::Done(output) => {
@@ -3518,7 +3518,7 @@ impl TypedStage<RenderWhile> {
                                     };
                                     let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
-                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                         ty: crate::workflow::stage::StageType::RenderWhile,
                                         module_name,
                                         workflow_name,
@@ -3526,7 +3526,7 @@ impl TypedStage<RenderWhile> {
                                         stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                         stage_output: Some(boxed_response),
                                     }) {
-                                        unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                        unreachable!("RenderWhile response handler error: Completion message send error: {}", send_err);
                                     }
                                 }
                             }
@@ -3545,9 +3545,9 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
@@ -3561,7 +3561,7 @@ impl TypedStage<RenderWhile> {
                                     crate::workflow::types::Outcome::Wait(state) => {
                                         let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
@@ -3569,7 +3569,7 @@ impl TypedStage<RenderWhile> {
                                             stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_state: state,
                                         }) {
-                                            unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                            unreachable!("RenderWhile response handler error: Wait message send error: {}", send_err);
                                         }
                                     }
                                     crate::workflow::types::Outcome::Done(_) => {
@@ -3580,7 +3580,7 @@ impl TypedStage<RenderWhile> {
                                         };
                                         let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-[E]"));
 
-                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
@@ -3588,7 +3588,7 @@ impl TypedStage<RenderWhile> {
                                             stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_output: Some(boxed_response),
                                         }) {
-                                            unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                            unreachable!("RenderWhile response handler error: Completion message send error: {}", send_err);
                                         }
                                     }
                                 }
@@ -3599,11 +3599,11 @@ impl TypedStage<RenderWhile> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -3611,7 +3611,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -3627,9 +3627,9 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
@@ -3641,7 +3641,7 @@ impl TypedStage<RenderWhile> {
                             crate::workflow::types::Outcome::Wait(state) => {
                                 let state = Some(crate::utils::premium_box::AnySendSyncPremiumBox::new(state, #state_type_name.to_string()));
 
-                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -3649,7 +3649,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_state: state,
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Wait message send error: {}", send_err);
                                 }
                             }
                             crate::workflow::types::Outcome::Done(_) => {
@@ -3659,7 +3659,7 @@ impl TypedStage<RenderWhile> {
                                 };
                                 let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse"));
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -3667,7 +3667,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_output: Some(boxed_response),
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Completion message send error: {}", send_err);
                                 }
                             }
                         }
@@ -3685,9 +3685,9 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
@@ -3699,7 +3699,7 @@ impl TypedStage<RenderWhile> {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(_) => {
-                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
@@ -3707,14 +3707,14 @@ impl TypedStage<RenderWhile> {
                                             stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_state: None,
                                         }) {
-                                            unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                            unreachable!("RenderWhile response handler error: Wait message send error: {}", send_err);
                                         }
                                     },
                                     crate::workflow::types::Outcome::Done(output) => {
                                         #stage_output_transmutation
                                         let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
@@ -3722,7 +3722,7 @@ impl TypedStage<RenderWhile> {
                                             stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_output: Some(output),
                                         }) {
-                                            unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                            unreachable!("RenderWhile response handler error: Completion message send error: {}", send_err);
                                         }
                                     }
                                 }
@@ -3733,11 +3733,11 @@ impl TypedStage<RenderWhile> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -3745,7 +3745,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -3760,9 +3760,9 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile,
@@ -3774,7 +3774,7 @@ impl TypedStage<RenderWhile> {
                                 Ok(outcome) => {
                                     match outcome {
                                         crate::workflow::types::Outcome::Wait(_) => {
-                                            if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                            if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                                 ty: crate::workflow::stage::StageType::RenderWhile,
                                                 module_name,
                                                 workflow_name,
@@ -3782,7 +3782,7 @@ impl TypedStage<RenderWhile> {
                                                 stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                                 stage_state: None,
                                             }) {
-                                                unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                                unreachable!("RenderWhile response handler error: Wait message send error: {}", send_err);
                                             }
                                         },
                                         crate::workflow::types::Outcome::Done(output) => {
@@ -3794,7 +3794,7 @@ impl TypedStage<RenderWhile> {
                                             };
                                             let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O[E]"));
 
-                                            if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                            if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                                 ty: crate::workflow::stage::StageType::RenderWhile,
                                                 module_name,
                                                 workflow_name,
@@ -3802,7 +3802,7 @@ impl TypedStage<RenderWhile> {
                                                 stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                                 stage_output: Some(boxed_response),
                                             }) {
-                                                unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                                unreachable!("RenderWhile response handler error: Completion message send error: {}", send_err);
                                             }
                                         }
                                     }
@@ -3813,11 +3813,11 @@ impl TypedStage<RenderWhile> {
                                     let failure_sender = match failure_sender {
                                         Some(failure_sender) => failure_sender,
                                         None => {
-                                            unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                            unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                         }
                                     };
 
-                                    if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                    if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                         ty: crate::workflow::stage::StageType::RenderWhile,
                                         module_name,
                                         workflow_name,
@@ -3825,7 +3825,7 @@ impl TypedStage<RenderWhile> {
                                         stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                         stage_error: error,
                                     }) {
-                                        unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
+                                        unreachable!("RenderWhile response handler error: Failure message send error: {}", send_err);
                                     }
                                 }
                             }
@@ -3846,9 +3846,9 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
@@ -3858,7 +3858,7 @@ impl TypedStage<RenderWhile> {
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(_) => {
-                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -3866,7 +3866,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_state: None,
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Wait message send error: {}", send_err);
                                 }
                             },
                             crate::workflow::types::Outcome::Done(_) => {
@@ -3874,7 +3874,7 @@ impl TypedStage<RenderWhile> {
                                 #stage_output_transmutation
                                 let output = crate::utils::premium_box::AnySendSyncPremiumBox::new(output, #output_type_name.to_string());
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -3882,7 +3882,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_output: Some(output),
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Completion message send error: {}", send_err);
                                 }
                             },
                         }
@@ -3897,9 +3897,9 @@ impl TypedStage<RenderWhile> {
                         module_name: &'static str,
                         workflow_name: &'static str,
                         response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                        wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                        completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                        wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                        completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                        _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                     | {
                         Box::new(move |
                             stage: crate::workflow::stage::StageRenderWhile,
@@ -3909,7 +3909,7 @@ impl TypedStage<RenderWhile> {
 
                             match outcome {
                                 crate::workflow::types::Outcome::Wait(_) => {
-                                    if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                    if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                         ty: crate::workflow::stage::StageType::RenderWhile,
                                         module_name,
                                         workflow_name,
@@ -3917,7 +3917,7 @@ impl TypedStage<RenderWhile> {
                                         stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                         stage_state: None,
                                     }) {
-                                        unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                        unreachable!("RenderWhile response handler error: Wait message send error: {}", send_err);
                                     }
                                 }
                                 crate::workflow::types::Outcome::Done(output) => {
@@ -3929,7 +3929,7 @@ impl TypedStage<RenderWhile> {
                                     };
                                     let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-O"));
 
-                                    if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                    if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                         ty: crate::workflow::stage::StageType::RenderWhile,
                                         module_name,
                                         workflow_name,
@@ -3937,7 +3937,7 @@ impl TypedStage<RenderWhile> {
                                         stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                         stage_output: Some(boxed_response),
                                     }) {
-                                        unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                        unreachable!("RenderWhile response handler error: Completion message send error: {}", send_err);
                                     }
                                 }
                             }
@@ -3955,8 +3955,8 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
@@ -3968,7 +3968,7 @@ impl TypedStage<RenderWhile> {
                             Ok(outcome) => {
                                 match outcome {
                                     crate::workflow::types::Outcome::Wait(_) => {
-                                        if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                        if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
@@ -3976,7 +3976,7 @@ impl TypedStage<RenderWhile> {
                                             stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_state: None,
                                         }) {
-                                            unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                            unreachable!("RenderWhile response handler error: Wait message send error: {}", send_err);
                                         }
                                     }
                                     crate::workflow::types::Outcome::Done(_) => {
@@ -3987,7 +3987,7 @@ impl TypedStage<RenderWhile> {
                                         };
                                         let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse-[E]"));
 
-                                        if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                        if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                             ty: crate::workflow::stage::StageType::RenderWhile,
                                             module_name,
                                             workflow_name,
@@ -3995,7 +3995,7 @@ impl TypedStage<RenderWhile> {
                                             stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                             stage_output: Some(boxed_response),
                                         }) {
-                                            unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                            unreachable!("RenderWhile response handler error: Completion message send error: {}", send_err);
                                         }
                                     }
                                 }
@@ -4006,11 +4006,11 @@ impl TypedStage<RenderWhile> {
                                 let failure_sender = match failure_sender {
                                     Some(failure_sender) => failure_sender,
                                     None => {
-                                        unreachable!("Ecs response handler error: Failure event send error: No failure sender provided");
+                                        unreachable!("Ecs response handler error: Failure message send error: No failure sender provided");
                                     }
                                 };
 
-                                if let Err(send_err) = failure_sender.send(crate::workflow::events::StageFailureEvent {
+                                if let Err(send_err) = failure_sender.send(crate::workflow::messages::StageFailureMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -4018,7 +4018,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_error: error,
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Failure event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Failure message send error: {}", send_err);
                                 }
                             }
                         }
@@ -4033,9 +4033,9 @@ impl TypedStage<RenderWhile> {
                     module_name: &'static str,
                     workflow_name: &'static str,
                     response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
-                    wait_sender: crossbeam_channel::Sender<crate::workflow::events::StageWaitEvent>,
-                    completion_sender: crossbeam_channel::Sender<crate::workflow::events::StageCompletionEvent>,
-                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::events::StageFailureEvent>>
+                    wait_sender: crossbeam_channel::Sender<crate::workflow::messages::StageWaitMessage>,
+                    completion_sender: crossbeam_channel::Sender<crate::workflow::messages::StageCompletionMessage>,
+                    _failure_sender: Option<crossbeam_channel::Sender<crate::workflow::messages::StageFailureMessage>>
                 | {
                     Box::new(move |
                         stage: crate::workflow::stage::StageRenderWhile
@@ -4045,7 +4045,7 @@ impl TypedStage<RenderWhile> {
 
                         match outcome {
                             crate::workflow::types::Outcome::Wait(_) => {
-                                if let Err(send_err) = wait_sender.send(crate::workflow::events::StageWaitEvent {
+                                if let Err(send_err) = wait_sender.send(crate::workflow::messages::StageWaitMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -4053,7 +4053,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_state: None,
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Wait event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Wait message send error: {}", send_err);
                                 }
                             }
                             crate::workflow::types::Outcome::Done(_) => {
@@ -4063,7 +4063,7 @@ impl TypedStage<RenderWhile> {
                                 };
                                 let boxed_response = crate::utils::premium_box::AnySendSyncPremiumBox::new(response, format!("{module_name}::{workflow_name}::TypedResponse"));
 
-                                if let Err(send_err) = completion_sender.send(crate::workflow::events::StageCompletionEvent {
+                                if let Err(send_err) = completion_sender.send(crate::workflow::messages::StageCompletionMessage {
                                     ty: crate::workflow::stage::StageType::RenderWhile,
                                     module_name,
                                     workflow_name,
@@ -4071,7 +4071,7 @@ impl TypedStage<RenderWhile> {
                                     stage_return: crate::workflow::stage::Stage::RenderWhile(stage),
                                     stage_output: Some(boxed_response),
                                 }) {
-                                    unreachable!("RenderWhile response handler error: Completion event send error: {}", send_err);
+                                    unreachable!("RenderWhile response handler error: Completion message send error: {}", send_err);
                                 }
                             }
                         }

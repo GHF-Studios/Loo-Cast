@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::utils::premium_box::AnySendSyncPremiumBox;
 
-use super::{events::*, instance::*, stage::*, types::*};
+use super::{messages::*, instance::*, stage::*, types::*};
 
 #[derive(Resource, Reflect, Default)]
 #[reflect(Resource)]
@@ -140,15 +140,15 @@ pub(super) struct RenderWhileStageBuffer(#[reflect(ignore)] pub Vec<(&'static st
 #[reflect(Resource)]
 pub(super) struct AsyncStageBuffer(#[reflect(ignore)] pub Vec<(&'static str, &'static str, usize, StageAsync, Option<AnySendSyncPremiumBox>)>);
 
-// --- Stage Event Receivers ---
+// --- Stage Message Receivers ---
 #[derive(Resource)]
-pub(super) struct StageSetupEventReceiver(pub Receiver<StageSetupEvent>);
+pub(super) struct StageSetupMessageReceiver(pub Receiver<StageSetupMessage>);
 #[derive(Resource)]
-pub(super) struct StageWaitEventReceiver(pub Receiver<StageWaitEvent>);
+pub(super) struct StageWaitMessageReceiver(pub Receiver<StageWaitMessage>);
 #[derive(Resource)]
-pub(super) struct StageCompletionEventReceiver(pub Receiver<StageCompletionEvent>);
+pub(super) struct StageCompletionMessageReceiver(pub Receiver<StageCompletionMessage>);
 #[derive(Resource)]
-pub(super) struct StageFailureEventReceiver(pub Receiver<StageFailureEvent>);
+pub(super) struct StageFailureMessageReceiver(pub Receiver<StageFailureMessage>);
 
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]

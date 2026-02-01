@@ -13,7 +13,7 @@ define_workflow_mod_OLD! {
                     Buffer, TextureView, TextureDescriptor, Extent3d,
                     TextureDimension, TextureFormat, TextureUsages,
                 };
-                use bevy::render::camera::{RenderTarget, ImageRenderTarget};
+                use bevy::camera::{RenderTarget, ImageRenderTarget};
                 use bevy::window::WindowRef;
                 use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
 
@@ -61,9 +61,9 @@ define_workflow_mod_OLD! {
                                 Camera2d,
                                 Camera {
                                     order: 2,
-                                    target: RenderTarget::Window(WindowRef::Primary),
                                     ..Default::default()
                                 },
+                                RenderTarget::Window(WindowRef::Primary),
                                 PrimaryEguiContext,
                                 EguiRenderOutput::default(),
                             ));
@@ -72,12 +72,12 @@ define_workflow_mod_OLD! {
                                 Camera2d,
                                 Camera {
                                     order: 1,
-                                    target: RenderTarget::Image(ImageRenderTarget {
-                                        handle: game_view_render_target.handle.clone(),
-                                        scale_factor: FloatOrd(1.0),
-                                    }),
                                     ..Default::default()
                                 },
+                                RenderTarget::Image(ImageRenderTarget {
+                                    handle: game_view_render_target.handle.clone(),
+                                    scale_factor: FloatOrd(1.0),
+                                }),
                                 RenderLayers::layer(1),
                             ));
                             commands.entity(main_camera_entity).insert((
@@ -85,12 +85,12 @@ define_workflow_mod_OLD! {
                                 Camera2d,
                                 Camera {
                                     order: 0,
-                                    target: RenderTarget::Image(ImageRenderTarget {
-                                        handle: game_view_render_target.handle.clone(),
-                                        scale_factor: FloatOrd(1.0),
-                                    }),
                                     ..Default::default()
                                 },
+                                RenderTarget::Image(ImageRenderTarget {
+                                    handle: game_view_render_target.handle.clone(),
+                                    scale_factor: FloatOrd(1.0),
+                                }),
                                 MainCamera,
                                 RenderLayers::default(),
                                 ChunkActor::default(),

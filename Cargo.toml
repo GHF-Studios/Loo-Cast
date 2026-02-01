@@ -3,7 +3,7 @@ resolver = "3"
 members = [
   "core_engine",
   
-  "bevy_consumable_event",
+  "bevy_consumable_message",
 
   "core_mod",
   "core_mod_api",
