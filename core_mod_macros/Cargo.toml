@@ -7,8 +7,6 @@ edition = "2024"
 proc-macro = true
 
 [dependencies]
-core_mod_core = { path = "../core_mod_core" }
-
 heck = { workspace = true }
 paste = { workspace = true }
 thiserror = { workspace = true }

@@ -1,11 +1,11 @@
 #![allow(clippy::missing_safety_doc)]
 
-use core_mod_core::reflection::{
+use crate::reflection::{
     ids::TypeId,
     type_info::TypeInfo,
 };
-use core_mod_core::reflection::access::ScopedAccessHandle;
-use core_mod_core::reflection::internals::statics::{TYPE_REGISTRY, CTOR_REGISTRY, METHOD_REGISTRY, STATIC_FUNCTION_REGISTRY};
+use crate::reflection::access::ScopedAccessHandle;
+use crate::reflection::internals::statics::{TYPE_REGISTRY, CTOR_REGISTRY, METHOD_REGISTRY, STATIC_FUNCTION_REGISTRY};
 use rhai::Engine;
 use std::any::Any;
 

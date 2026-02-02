@@ -1,10 +1,10 @@
 use crate::bevy::ecs::entity::Entity as BevyEntity;
 use crate::bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
-use core_mod_core::reflection::access::{ScopedAccess, ScopedAccessHandle, ScopedAccessHandleExt, ScopedAccessReadGuard, ScopedAccessWriteGuard};
-use core_mod_core::reflection::ids::{StaticTraitId, TypeId};
-use core_mod_core::reflection::internals::statics::{TYPE_REGISTRY, SCHEDULE_HOOKS, TRAIT_OBJECT_VTABLE_REGISTRY};
-use core_mod_core::reflection::internals::traits::{GetTypeId, ToTraitObject, Trait};
-use core_mod_core::reflection::traits::StaticTraitObject;
+use crate::reflection::access::{ScopedAccess, ScopedAccessHandle, ScopedAccessHandleExt, ScopedAccessReadGuard, ScopedAccessWriteGuard};
+use crate::reflection::ids::{StaticTraitId, TypeId};
+use crate::reflection::internals::statics::{TYPE_REGISTRY, SCHEDULE_HOOKS, TRAIT_OBJECT_VTABLE_REGISTRY};
+use crate::reflection::internals::traits::{GetTypeId, ToTraitObject, Trait};
+use crate::reflection::traits::StaticTraitObject;
 use rhai::{Dynamic, Engine, FnPtr, ImmutableString, NativeCallContext, Shared};
 use std::any::TypeId as RustTypeId;
 use std::marker::PhantomData;

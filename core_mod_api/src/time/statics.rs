@@ -1,4 +1,4 @@
-use core_mod_core_macros::export_static;
+use core_mod_macros::export_static;
 use std::sync::atomic::AtomicU64;
 use std::sync::Mutex;
 

@@ -1,6 +1,6 @@
 use rhai::ImmutableString;
 
-use crate::utils::{assert_pascal_case_clean_string, assert_snake_case_clean_string};
+use crate::utils::string::{assert_pascal_case_clean_string, assert_snake_case_clean_string};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]

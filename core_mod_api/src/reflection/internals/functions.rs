@@ -1,6 +1,6 @@
 use crate::bevy::reflect::Reflect;
 
-pub fn get_struct_field_ref<'a, T, F>(target: &'a T, field: &str) -> &'a F
+pub(crate) fn get_struct_field_ref<'a, T, F>(target: &'a T, field: &str) -> &'a F
 where
     T: Reflect,
     F: Reflect + 'static,
@@ -8,7 +8,7 @@ where
     get_struct_field_ref_inner(target, field).expect("Failed to get struct field")
 }
 
-pub fn get_struct_field_mut<'a, T, F>(target: &'a mut T, field: &str) -> &'a mut F
+pub(crate) fn get_struct_field_mut<'a, T, F>(target: &'a mut T, field: &str) -> &'a mut F
 where
     T: Reflect,
     F: Reflect + 'static,

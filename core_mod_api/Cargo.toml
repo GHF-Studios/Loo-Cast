@@ -10,9 +10,7 @@ default = [
 allow_premium_box = []
 
 [dependencies]
-core_mod_core_macros = { path = "../core_mod_core_macros" }
 core_mod_macros = { path = "../core_mod_macros" }
-core_mod_core = { path = "../core_mod_core" }
 
 heck = { workspace = true }
 inventory = { workspace = true }

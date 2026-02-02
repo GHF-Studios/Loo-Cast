@@ -512,7 +512,6 @@ version = "0.1.0"
 dependencies = [
  "base_mod_api",
  "base_mod_macros",
- "core_mod_core_macros",
 ]
 
 [[package]]
@@ -2335,7 +2334,6 @@ name = "core_mod"
 version = "0.1.0"
 dependencies = [
  "core_mod_api",
- "core_mod_core_macros",
  "core_mod_macros",
  "paste",
 ]
@@ -2351,8 +2349,6 @@ dependencies = [
  "bevy_egui",
  "bytemuck",
  "console-subscriber",
- "core_mod_core",
- "core_mod_core_macros",
  "core_mod_macros",
  "crossbeam",
  "crossbeam-channel",
@@ -2391,34 +2387,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "core_mod_core"
-version = "0.1.0"
-dependencies = [
- "core_mod_core_macros",
- "heck 0.4.1",
- "inventory",
- "once_cell",
- "paste",
- "rhai",
-]
-
-[[package]]
-name = "core_mod_core_macros"
-version = "0.1.0"
-dependencies = [
- "heck 0.4.1",
- "paste",
- "proc-macro2",
- "quote",
- "syn",
- "thiserror 2.0.16",
-]
-
-[[package]]
 name = "core_mod_macros"
 version = "0.1.0"
 dependencies = [
- "core_mod_core",
  "heck 0.4.1",
  "paste",
  "proc-macro2",

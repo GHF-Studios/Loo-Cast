@@ -14,7 +14,5 @@ allow_premium_box = ["base_mod_api/allow_premium_box"]
 crate-type = ["cdylib"]
 
 [dependencies]
-core_mod_core_macros = { path = "../core_mod_core_macros" }
-
 base_mod_api = { path = "../base_mod_api" }
 base_mod_macros = { path = "../base_mod_macros" }

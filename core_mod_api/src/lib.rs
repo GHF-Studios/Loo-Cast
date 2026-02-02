@@ -73,7 +73,7 @@ pub mod input;
 pub mod logging;
 pub mod picking;
 pub mod player;
-pub mod reflect;
+pub mod reflection;
 pub mod render;
 pub mod script;
 pub mod time;

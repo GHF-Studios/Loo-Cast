@@ -1,5 +1,5 @@
 use crate::bevy::prelude::World as BevyWorld;
-use core_mod_core::reflection::access::ScopedAccessHandle;
+use crate::reflection::access::ScopedAccessHandle;
 
 #[repr(transparent)]
 pub struct World {

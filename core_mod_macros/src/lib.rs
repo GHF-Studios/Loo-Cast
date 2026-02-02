@@ -6,6 +6,7 @@ mod define_composite_workflow;
 mod define_workflow_mod;
 #[allow(non_snake_case)]
 mod define_workflow_mod_OLD;
+mod global_statics;
 mod register_workflow_mods;
 mod script;
 mod usf;
@@ -23,6 +24,23 @@ use usf::scale::{
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse_macro_input;
+
+// Global statics
+
+#[proc_macro]
+pub fn export_static(input: TokenStream) -> TokenStream {
+    global_statics::export_static(input)
+}
+
+#[proc_macro]
+pub fn import_static(input: TokenStream) -> TokenStream {
+    global_statics::import_static(input)
+}
+
+#[proc_macro]
+pub fn api_initializer(input: TokenStream) -> TokenStream {
+    global_statics::api_initializer(input)
+}
 
 // Workflow
 

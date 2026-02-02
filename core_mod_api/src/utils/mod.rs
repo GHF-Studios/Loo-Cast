@@ -1,5 +1,6 @@
 pub mod premium_box;
 pub mod progress;
+pub mod string;
 
 use crate::bevy::prelude::*;
 
