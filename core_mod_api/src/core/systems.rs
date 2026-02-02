@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 
 use crate::workflow::functions::handle_composite_workflow_return_later;

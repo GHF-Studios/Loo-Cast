@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use std::any::Any;
 use std::fmt::Debug;
 use std::panic::Location;

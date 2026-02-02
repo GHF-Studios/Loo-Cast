@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 use crate::follower::components::FollowerTarget;
 use crate::usf::scale::Scale;

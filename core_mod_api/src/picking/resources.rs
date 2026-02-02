@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 /// How should the [`SpritePickingPlugin`] handle picking and how should it handle transparent pixels
 #[derive(Debug, Clone, Copy, Reflect)]

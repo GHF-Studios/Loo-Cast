@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 use super::functions::new_main_script_engine;
 

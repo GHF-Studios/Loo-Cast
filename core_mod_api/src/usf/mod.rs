@@ -5,7 +5,7 @@ pub mod pos;
 pub mod scale;
 pub mod systems;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 pub(crate) struct UsfPlugin;
 impl Plugin for UsfPlugin {

@@ -1,6 +1,6 @@
 pub mod tri_checkbox;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 pub(crate) struct CustomEguiWidgetsPlugin;
 impl Plugin for CustomEguiWidgetsPlugin {

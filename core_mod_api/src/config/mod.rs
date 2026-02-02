@@ -2,7 +2,7 @@ pub mod statics;
 pub mod structs;
 pub mod types;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use structs::Config;
 use types::ConfigValue;
 

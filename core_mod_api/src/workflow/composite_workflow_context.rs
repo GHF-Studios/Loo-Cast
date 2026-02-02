@@ -1,4 +1,4 @@
-use bevy::prelude::Reflect;
+use crate::bevy::prelude::Reflect;
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use std::any::TypeId;

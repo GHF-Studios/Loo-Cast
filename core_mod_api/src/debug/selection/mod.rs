@@ -1,6 +1,6 @@
 pub mod systems;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use systems::handle_selection;
 
 use crate::core::run_conditions::run_after_startup_finished;

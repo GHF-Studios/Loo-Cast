@@ -1,4 +1,4 @@
-use bevy::reflect::Reflect;
+use crate::bevy::reflect::Reflect;
 
 pub fn get_struct_field_ref<'a, T, F>(target: &'a T, field: &str) -> &'a F
 where

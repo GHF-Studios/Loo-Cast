@@ -1,4 +1,4 @@
-use bevy::{asset::ReflectAsset, prelude::*, reflect::TypeRegistry};
+use crate::bevy::{asset::ReflectAsset, prelude::*, reflect::TypeRegistry};
 
 use crate::debug::types::InspectorSelection;
 

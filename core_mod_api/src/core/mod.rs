@@ -9,7 +9,7 @@ pub mod types;
 
 pub mod workflows;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 use systems::startup_system;
 use types::{Diegetic, Meta, ShortTime};

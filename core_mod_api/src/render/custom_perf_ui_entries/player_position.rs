@@ -1,5 +1,5 @@
-use bevy::ecs::system::SystemParam;
-use bevy::prelude::*;
+use crate::bevy::ecs::system::SystemParam;
+use crate::bevy::prelude::*;
 use iyes_perf_ui::{entry::PerfUiEntry, ui::root::PerfUiRoot, utils::next_sort_key};
 
 use crate::chunk::components::ChunkActor;

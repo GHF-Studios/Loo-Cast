@@ -1,4 +1,4 @@
-use bevy::ecs::world::World;
+use crate::bevy::ecs::world::World;
 use crossbeam_channel::Sender;
 
 use super::types::Outcome;

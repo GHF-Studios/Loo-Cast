@@ -273,9 +273,9 @@ impl WorkflowMods {
             #workflow_modules_metadata
 
             pub struct WorkflowPlugins;
-            impl bevy::prelude::PluginGroup for WorkflowPlugins {
-                fn build(self) -> bevy::app::PluginGroupBuilder {
-                    let plugin_group_builder = bevy::app::PluginGroupBuilder::start::<Self>()
+            impl crate::bevy::prelude::PluginGroup for WorkflowPlugins {
+                fn build(self) -> crate::bevy::app::PluginGroupBuilder {
+                    let plugin_group_builder = crate::bevy::app::PluginGroupBuilder::start::<Self>()
                         #(#plugin_addition_literals)*;
 
                     initialize_workflow_modules_metadata();

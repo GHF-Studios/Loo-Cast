@@ -1,4 +1,4 @@
-use bevy::ecs::world::EntityWorldMut;
+use crate::bevy::ecs::world::EntityWorldMut;
 use rhai::Dynamic;
 
 use super::super::bindings::types::Component;

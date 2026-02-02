@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
 use egui::TextureId;
 use egui_dock::{DockState, NodeIndex};

@@ -7,7 +7,7 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnChunks, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
-                use bevy::prelude::ResMut;
+                use crate::bevy::prelude::ResMut;
 
                 use crate::chunk::workflows::external::spawn_chunks::{
                     MainAccess as ValidateAndSpawnAndWaitMainAccess,
@@ -75,7 +75,7 @@ define_workflow_mod_OLD! {
 
         DespawnChunks, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
-                use bevy::prelude::ResMut;
+                use crate::bevy::prelude::ResMut;
 
                 use crate::chunk::workflows::external::despawn_chunks::{
                     MainAccess as FindAndDespawnAndWaitMainAccess,

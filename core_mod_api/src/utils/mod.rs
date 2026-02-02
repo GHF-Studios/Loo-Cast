@@ -1,7 +1,7 @@
 pub mod premium_box;
 pub mod progress;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 pub(crate) struct UtilsPlugin;
 impl Plugin for UtilsPlugin {

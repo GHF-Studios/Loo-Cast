@@ -1,7 +1,7 @@
 pub mod tests;
 pub mod types;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use bevy_inspector_egui::inspector_egui_impls::InspectorEguiImpl;
 
 use types::GridVec;

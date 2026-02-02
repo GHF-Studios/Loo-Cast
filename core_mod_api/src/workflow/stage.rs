@@ -1,4 +1,4 @@
-use bevy::prelude::Reflect;
+use crate::bevy::prelude::Reflect;
 use crossbeam_channel::Sender;
 
 use super::messages::*;

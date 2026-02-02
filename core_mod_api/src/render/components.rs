@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]

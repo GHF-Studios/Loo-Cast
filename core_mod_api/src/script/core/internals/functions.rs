@@ -1,5 +1,5 @@
-use bevy::ecs::entity::Entity as BevyEntity;
-use bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
+use crate::bevy::ecs::entity::Entity as BevyEntity;
+use crate::bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
 use core_mod_core::reflection::access::{ScopedAccess, ScopedAccessHandle, ScopedAccessHandleExt, ScopedAccessReadGuard, ScopedAccessWriteGuard};
 use core_mod_core::reflection::ids::{StaticTraitId, TypeId};
 use core_mod_core::reflection::internals::statics::{TYPE_REGISTRY, SCHEDULE_HOOKS, TRAIT_OBJECT_VTABLE_REGISTRY};
@@ -42,7 +42,7 @@ pub(super) fn new_main_script_engine() -> Engine {
     }
     let boot_script_path = abs_boot_script_path.to_string_lossy().to_string();
 
-    bevy::prelude::warn!("boot_script_path: {}", boot_script_path);
+    crate::bevy::prelude::warn!("boot_script_path: {}", boot_script_path);
 
     let boot_script = std::fs::read_to_string(boot_script_path).unwrap();
     let boot_script = engine.compile(boot_script).unwrap();

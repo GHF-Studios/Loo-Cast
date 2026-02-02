@@ -1,4 +1,4 @@
-use bevy::prelude::Reflect;
+use crate::bevy::prelude::Reflect;
 use tracing::{span::Attributes, span::Id, Event};
 use tracing_subscriber::{
     layer::{Context, Layer},

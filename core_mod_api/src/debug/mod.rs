@@ -5,7 +5,7 @@ pub mod selection;
 pub mod systems;
 pub mod types;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use components::DebugObjectComponent;
 use gizmo::GizmoPlugin;

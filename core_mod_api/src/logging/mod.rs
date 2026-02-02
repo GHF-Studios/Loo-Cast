@@ -7,7 +7,7 @@ pub mod types;
 pub mod tracing;
 pub mod ui;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 use resources::LogRegistry;
 use types::*;

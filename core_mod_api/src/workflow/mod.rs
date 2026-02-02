@@ -13,7 +13,7 @@ pub mod request;
 pub mod response;
 pub mod stage;
 
-use bevy::{
+use crate::bevy::{
     prelude::*,
     render::{Render, RenderApp},
 };
@@ -39,7 +39,7 @@ macro_rules! workflow_stage_util {
 #[macro_export]
 macro_rules! workflow_stage_core_types_util {
     () => {
-        use bevy::ecs::system::SystemParam;
+        use crate::bevy::ecs::system::SystemParam;
 
         use super::super::super::imports::*;
         use super::super::super::user_items::*;
@@ -50,7 +50,7 @@ macro_rules! workflow_stage_core_types_util {
 #[macro_export]
 macro_rules! workflow_stage_core_functions_util {
     () => {
-        use bevy::ecs::system::SystemParam;
+        use crate::bevy::ecs::system::SystemParam;
 
         use super::super::super::imports::*;
         use super::super::super::user_items::*;
@@ -62,7 +62,7 @@ macro_rules! workflow_stage_core_functions_util {
 macro_rules! workflow_imports_util {
     () => {
         pub use super::user_items::*;
-        pub use bevy::prelude::World;
+        pub use crate::bevy::prelude::World;
         pub use $crate::workflow::types::{Outcome, Outcome::Done, Outcome::Wait};
     };
 }

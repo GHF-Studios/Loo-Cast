@@ -3,7 +3,7 @@ pub mod resources;
 pub mod systems;
 pub mod types;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use resources::LogViewerState;
 use systems::show_log_viewer_ui;
 use types::SelectionMode;

@@ -1,5 +1,5 @@
-use bevy::picking::pointer::PointerId;
-use bevy::prelude::*;
+use crate::bevy::picking::pointer::PointerId;
+use crate::bevy::prelude::*;
 use uuid::Uuid;
 
 pub const DIEGETIC_MOUSE_POINTER_ID: PointerId = PointerId::Custom(Uuid::from_u128(0u128));

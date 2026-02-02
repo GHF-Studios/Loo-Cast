@@ -1,5 +1,5 @@
-use bevy::prelude::*;
-use bevy::render::render_resource::{BindGroupLayoutDescriptor, CachedComputePipelineId};
+use crate::bevy::prelude::*;
+use crate::bevy::render::render_resource::{BindGroupLayoutDescriptor, CachedComputePipelineId};
 use std::collections::HashMap;
 
 #[derive(Resource, Reflect, Default)]

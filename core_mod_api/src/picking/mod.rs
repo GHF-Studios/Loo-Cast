@@ -2,8 +2,8 @@ pub mod constants;
 pub mod resources;
 pub mod systems;
 
-use bevy::picking::backend::prelude::*;
-use bevy::prelude::*;
+use crate::bevy::picking::backend::prelude::*;
+use crate::bevy::prelude::*;
 use resources::{SpritePickingMode, SpritePickingSettings};
 use systems::{mouse_pick_messages, set_default_settings, spawn_mouse_pointers, sprite_picking_backend};
 

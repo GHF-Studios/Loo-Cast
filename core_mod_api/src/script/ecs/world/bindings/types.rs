@@ -1,4 +1,4 @@
-use bevy::prelude::World as BevyWorld;
+use crate::bevy::prelude::World as BevyWorld;
 use core_mod_core::reflection::access::ScopedAccessHandle;
 
 #[repr(transparent)]

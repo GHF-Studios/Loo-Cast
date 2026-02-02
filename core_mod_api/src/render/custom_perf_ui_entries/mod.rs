@@ -1,7 +1,7 @@
 pub mod cursor_position;
 pub mod player_position;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use cursor_position::{PerfUiEntryCursorPointerPos, PerfUiEntryCursorUnitPos, PerfUiEntryCursorWindowPos, PerfUiEntryViewportRect};
 use iyes_perf_ui::PerfUiAppExt;
 use player_position::{PerfUiEntryPlayerGridPos, PerfUiEntryPlayerUnitPos};

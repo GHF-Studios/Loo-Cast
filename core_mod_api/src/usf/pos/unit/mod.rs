@@ -1,7 +1,7 @@
 pub mod tests;
 pub mod types;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 use types::UnitVec;
 

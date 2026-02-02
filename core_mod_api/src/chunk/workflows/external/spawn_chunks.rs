@@ -1,5 +1,5 @@
 // Imports
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 use crate::chunk::{
     components::{Chunk, ChunkLoader},
@@ -26,7 +26,7 @@ pub struct SpawnChunkState {
 }
 
 // Core Types
-#[derive(bevy::ecs::system::SystemParam)]
+#[derive(crate::bevy::ecs::system::SystemParam)]
 pub struct MainAccess<'w, 's> {
     pub commands: Commands<'w, 's>,
     pub chunk_query: Query<'w, 's, &'static Chunk>,

@@ -7,7 +7,7 @@ pub mod custom_egui_widgets;
 // pub mod custom_perf_ui_entries;
 pub mod workflows;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use bevy_egui::EguiPrimaryContextPass;
 use components::{MainCamera, RenderProxy, RenderProxyHandle, UiCamera};
 use resources::{PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor};

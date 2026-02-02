@@ -1,4 +1,4 @@
-use bevy::{
+use crate::bevy::{
     prelude::*,
     window::{PrimaryWindow, WindowMode},
 };

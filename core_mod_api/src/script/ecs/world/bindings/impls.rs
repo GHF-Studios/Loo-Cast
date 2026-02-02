@@ -1,7 +1,7 @@
 use std::sync::TryLockError;
 
-use bevy::prelude::Commands as BevyCommands;
-use bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
+use crate::bevy::prelude::Commands as BevyCommands;
+use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
 use core_mod_core::reflection::access::ScopedAccessHandle;
 use rhai::{Dynamic, FnPtr, NativeCallContext, Shared};
 

@@ -2,7 +2,7 @@ pub mod components;
 pub mod systems;
 pub mod types;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use components::{GizmoArrow, GizmoRoot};
 use systems::{move_selected_with_gizmo, setup, update_gizmo_visibility_and_position};
 use types::Axis2D;

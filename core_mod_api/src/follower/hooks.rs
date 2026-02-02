@@ -1,4 +1,4 @@
-use bevy::ecs::{lifecycle::HookContext, world::DeferredWorld};
+use crate::bevy::ecs::{lifecycle::HookContext, world::DeferredWorld};
 
 use super::{components::FollowerTarget, messages::FollowerTargetLifecycleMessage};
 

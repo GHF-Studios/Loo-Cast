@@ -3,7 +3,7 @@ pub mod resources;
 
 pub mod workflows;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use resources::ShaderRegistry;
 
 pub(crate) struct GpuPlugin;

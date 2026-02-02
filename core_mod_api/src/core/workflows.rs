@@ -5,7 +5,7 @@ define_workflow_mod_OLD! {
     workflows: [
         FinishStartup, timeout_secs: 1.0, timeout_mode: RealTime {
             user_imports: {
-                use bevy::prelude::Commands;
+                use crate::bevy::prelude::Commands;
 
                 use crate::core::resources::StartupFinished;
             },

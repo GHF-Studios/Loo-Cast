@@ -278,12 +278,12 @@ pub trait FieldAssignable {
 //     fn modify(&mut self, method: &str, args: Box<dyn Any>) -> Result<(), &str>;
 // }
 // 
-// use bevy::prelude::{Transform, Vec3, Quat, Color};
+// use crate::bevy::prelude::{Transform, Vec3, Quat, Color};
 // use wherever::{MovementBundle, whatever};
 // 
 // extern_composable!(
 //     extern_type: Transform,
-//     location: "bevy::transform::components"
+//     location: "crate::bevy::transform::components"
 //     composition_type: Component,
 //     fields: [
 //         "translation": Vec3,
@@ -303,7 +303,7 @@ pub trait FieldAssignable {
 //     composition_type: Bundle,   // Requires Default
 //     fields: [
 //         Component("transform": Transform),
-//         Component("sprite": bevy::prelude::Sprite),
+//         Component("sprite": crate::bevy::prelude::Sprite),
 //         Bundle("movement_bundle": MovementBundle),
 //         Component("enemy_ai": whatever::EnemyAi),
 //     ],
@@ -314,7 +314,7 @@ pub trait FieldAssignable {
 // )]
 // pub struct EnemyBundle {
 //     transform: Transform,   // impls Default
-//     sprite: bevy::prelude::Sprite,         // impls Default
+//     sprite: crate::bevy::prelude::Sprite,         // impls Default
 //     movement_bundle: MovementBundle,
 //     enemy_ai: whatever::EnemyAi,      // can not be implicitly defaulted, but does provide a placeholder value
 // }
@@ -332,7 +332,7 @@ pub trait FieldAssignable {
 //     pub fn new_orc(color: Color) -> Self {
 //         EnemyBundle {
 //             transform: Transform::default(),
-//             sprite: bevy::prelude::Sprite {
+//             sprite: crate::bevy::prelude::Sprite {
 //                 color,
 //                 ..Default::default()
 //             },

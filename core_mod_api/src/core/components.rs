@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use std::marker::PhantomData;
 
 /// A generic marker component to indicate that an entity's ownership of a certain component should be considered "meta" by certain systems which need to be split into "diegetic" and "meta" operational modes.

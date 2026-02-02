@@ -1,6 +1,6 @@
 use std::sync::TryLockError;
 
-use bevy::prelude::Entity as BevyEntity;
+use crate::bevy::prelude::Entity as BevyEntity;
 use rhai::{Dynamic, FnPtr, NativeCallContext, Shared};
 
 use crate::script::{

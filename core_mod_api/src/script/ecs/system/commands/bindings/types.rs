@@ -1,4 +1,4 @@
-use bevy::prelude::Commands as BevyCommands;
+use crate::bevy::prelude::Commands as BevyCommands;
 use core_mod_core::reflection::access::ScopedAccessHandle;
 use rhai::{Dynamic, FnPtr, NativeCallContext};
 
@@ -11,5 +11,5 @@ pub struct Commands {
 
 #[repr(transparent)]
 pub struct EntityCommands {
-    pub(crate) entity_commands: ScopedAccessHandle<bevy::prelude::EntityCommands<'static>>
+    pub(crate) entity_commands: ScopedAccessHandle<crate::bevy::prelude::EntityCommands<'static>>
 }

@@ -2,7 +2,7 @@ pub mod bundles;
 pub mod components;
 pub mod systems;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use bundles::PlayerBundle;
 use components::Player;
 use systems::update_player_system;

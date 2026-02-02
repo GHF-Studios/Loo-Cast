@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 use crate::chunk::components::ChunkLoader;
 use crate::config::statics::CONFIG;

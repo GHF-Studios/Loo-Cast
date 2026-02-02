@@ -8,7 +8,7 @@ pub mod types;
 
 pub mod workflows;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use components::{Chunk, ChunkActor, ChunkLoader};
 use enums::ZoomState;
 use errors::{DespawnError, SpawnError};

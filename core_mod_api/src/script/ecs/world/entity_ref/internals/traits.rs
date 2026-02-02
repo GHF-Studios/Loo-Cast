@@ -1,4 +1,4 @@
-use bevy::prelude::Entity as BevyEntity;
+use crate::bevy::prelude::Entity as BevyEntity;
 use rhai::{Array, Dynamic, FnPtr, NativeCallContext};
 
 use crate::script::ecs::{bundle::bindings::types::Bundle, world::entity_ref::bindings::types::EntityRef};

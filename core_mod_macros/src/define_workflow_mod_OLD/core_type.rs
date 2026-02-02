@@ -295,14 +295,14 @@ impl CoreType<MainAccess> {
             CoreType::Struct(item, _) => {
                 let item = item.to_token_stream();
                 quote! {
-                    #[derive(bevy::ecs::system::SystemParam)]
+                    #[derive(crate::bevy::ecs::system::SystemParam)]
                     #item
                 }
             }
             CoreType::Enum(item, _) => {
                 let item = item.to_token_stream();
                 quote! {
-                    #[derive(bevy::ecs::system::SystemParam)]
+                    #[derive(crate::bevy::ecs::system::SystemParam)]
                     #item
                 }
             }
@@ -316,14 +316,14 @@ impl CoreType<RenderAccess> {
             CoreType::Struct(item, _) => {
                 let item = item.to_token_stream();
                 quote! {
-                    #[derive(bevy::ecs::system::SystemParam)]
+                    #[derive(crate::bevy::ecs::system::SystemParam)]
                     #item
                 }
             }
             CoreType::Enum(item, _) => {
                 let item = item.to_token_stream();
                 quote! {
-                    #[derive(bevy::ecs::system::SystemParam)]
+                    #[derive(crate::bevy::ecs::system::SystemParam)]
                     #item
                 }
             }

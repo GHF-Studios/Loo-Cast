@@ -82,7 +82,7 @@ pub mod utils;
 pub mod window;
 pub mod workflow;
 
-use bevy::{app::PluginGroupBuilder, prelude::*};
+use crate::bevy::{app::PluginGroupBuilder, prelude::*};
 use core_mod_macros::register_workflow_mods;
 
 use chunk::ChunkPlugin;

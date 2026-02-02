@@ -1,5 +1,5 @@
-use bevy::prelude::Entity;
-use bevy::ecs::world::{EntityRef, EntityMut, EntityWorldMut};
+use crate::bevy::prelude::Entity;
+use crate::bevy::ecs::world::{EntityRef, EntityMut, EntityWorldMut};
 use core_mod_core::reflection::access::{ScopedAccess, ScopedAccessHandle};
 use rhai::Shared;
 use std::any::Any;

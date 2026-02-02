@@ -1,7 +1,7 @@
 pub mod states;
 pub mod systems;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use states::InputMode;
 use systems::toggle_input_mode;
 

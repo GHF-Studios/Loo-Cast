@@ -1,5 +1,5 @@
-use bevy::prelude::{EntityRef as BevyEntityRef, EntityMut as BevyEntityMut, Entity as BevyEntity};
-use bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
+use crate::bevy::prelude::{EntityRef as BevyEntityRef, EntityMut as BevyEntityMut, Entity as BevyEntity};
+use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
 use core_mod_core::reflection::access::ScopedAccessHandle;
 
 #[repr(transparent)]

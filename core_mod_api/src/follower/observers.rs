@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 use super::components::{Follower, FollowerTarget};
 

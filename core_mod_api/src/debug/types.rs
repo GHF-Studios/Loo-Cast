@@ -1,10 +1,10 @@
 use std::any::TypeId;
 
-use bevy::asset::UntypedAssetId;
-use bevy::ecs::reflect::AppTypeRegistry;
-use bevy::ecs::world::World;
-use bevy::prelude::*;
-use bevy::state::state::State;
+use crate::bevy::asset::UntypedAssetId;
+use crate::bevy::ecs::reflect::AppTypeRegistry;
+use crate::bevy::ecs::world::World;
+use crate::bevy::prelude::*;
+use crate::bevy::state::state::State;
 use bevy_inspector_egui::bevy_inspector::by_type_id::{ui_for_asset, ui_for_resource};
 use bevy_inspector_egui::bevy_inspector::hierarchy::hierarchy_ui;
 use bevy_inspector_egui::bevy_inspector::{ui_for_entities_shared_components, ui_for_entity_with_children};

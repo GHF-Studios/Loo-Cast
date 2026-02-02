@@ -4,7 +4,7 @@ pub mod hooks;
 pub mod observers;
 pub mod systems;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use components::{Follower, FollowerTarget};
 use messages::FollowerTargetLifecycleMessage;
 use observers::observe_on_add_follower;

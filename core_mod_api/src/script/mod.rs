@@ -2,7 +2,7 @@ pub mod core;
 pub mod ecs;
 pub mod usf;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 pub(crate) struct ScriptPlugin;
 impl Plugin for ScriptPlugin {

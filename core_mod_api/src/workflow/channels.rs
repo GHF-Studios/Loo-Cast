@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use std::sync::OnceLock;
 use tokio::sync::{

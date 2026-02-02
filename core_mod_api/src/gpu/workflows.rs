@@ -5,17 +5,17 @@ define_workflow_mod_OLD! {
     workflows: [
         SetupTextureGenerator, timeout_secs: 1.0, timeout_mode: RealTime {
             user_imports: {
-                use bevy::prelude::{Handle, Shader, Res, ResMut, Assets};
-                use bevy::ecs::system::SystemState;
-                use bevy::render::render_resource::{
+                use crate::bevy::prelude::{Handle, Shader, Res, ResMut, Assets};
+                use crate::bevy::ecs::system::SystemState;
+                use crate::bevy::render::render_resource::{
                     BindGroupLayoutDescriptor, CachedComputePipelineId,
                     PipelineCache, BindGroupLayoutEntry, ShaderStages,
                     BindingType, StorageTextureAccess, TextureFormat,
                     TextureViewDimension, BufferBindingType, PushConstantRange,
                     CachedPipelineState, Pipeline, ComputePipelineDescriptor,
                 };
-                use bevy::render::render_asset::RenderAssets;
-                use bevy::render::renderer::RenderDevice;
+                use crate::bevy::render::render_asset::RenderAssets;
+                use crate::bevy::render::renderer::RenderDevice;
                 use std::num::NonZeroU64;
                 use std::path::PathBuf;
 
@@ -232,20 +232,20 @@ define_workflow_mod_OLD! {
 
         GenerateTextures, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
-                use bevy::prelude::{Handle, Res, ResMut, Assets, Image};
-                use bevy::render::render_resource::{
+                use crate::bevy::prelude::{Handle, Res, ResMut, Assets, Image};
+                use crate::bevy::render::render_resource::{
                     CachedComputePipelineId, BindGroupLayout, BindGroupLayoutDescriptor,
                     Buffer, TextureView, TextureDescriptor, Extent3d,
                     TextureDimension, TextureFormat, TextureUsages,
                     BufferDescriptor, BufferInitDescriptor, BufferUsages, CommandEncoderDescriptor,
                     ComputePassDescriptor, BindGroupEntry, BindingResource
                 };
-                use bevy::ecs::system::SystemState;
-                use bevy::render::render_asset::RenderAssets;
-                use bevy::image::ImageSampler;
-                use bevy::render::texture::GpuImage;
-                use bevy::render::renderer::{RenderDevice, RenderQueue};
-                use bevy::render::render_resource::PipelineCache;
+                use crate::bevy::ecs::system::SystemState;
+                use crate::bevy::render::render_asset::RenderAssets;
+                use crate::bevy::image::ImageSampler;
+                use crate::bevy::render::texture::GpuImage;
+                use crate::bevy::render::renderer::{RenderDevice, RenderQueue};
+                use crate::bevy::render::render_resource::PipelineCache;
                 use crossbeam_channel::Receiver;
 
                 use crate::config::statics::CONFIG;
@@ -519,19 +519,19 @@ define_workflow_mod_OLD! {
 
         GenerateChunkTextures, timeout_secs: 1.0, timeout_mode: VirtualTime {
             user_imports: {
-                use bevy::prelude::{Handle, Res, ResMut, Assets, Image};
-                use bevy::render::render_resource::{
+                use crate::bevy::prelude::{Handle, Res, ResMut, Assets, Image};
+                use crate::bevy::render::render_resource::{
                     CachedComputePipelineId, BindGroupLayout, BindGroupLayoutDescriptor, TextureView,
                     Buffer, BufferInitDescriptor, BufferUsages, BindingResource,
                     TextureDescriptor, Extent3d, TextureDimension, TextureFormat, TextureUsages,
                     TexelCopyBufferInfo, TexelCopyBufferLayout,
                     CommandEncoderDescriptor, ComputePassDescriptor, BindGroupEntry,
                 };
-                use bevy::render::renderer::{RenderDevice, RenderQueue};
-                use bevy::render::render_asset::RenderAssets;
-                use bevy::image::ImageSampler;
-                use bevy::render::render_resource::PipelineCache;
-                use bevy::render::texture::GpuImage;
+                use crate::bevy::render::renderer::{RenderDevice, RenderQueue};
+                use crate::bevy::render::render_asset::RenderAssets;
+                use crate::bevy::image::ImageSampler;
+                use crate::bevy::render::render_resource::PipelineCache;
+                use crate::bevy::render::texture::GpuImage;
                 use crossbeam_channel::Receiver;
                 use std::num::NonZeroU32;
                 use std::time::Duration;

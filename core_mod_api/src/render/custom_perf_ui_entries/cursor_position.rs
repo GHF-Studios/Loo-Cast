@@ -1,6 +1,6 @@
-use bevy::ecs::system::SystemParam;
-use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
+use crate::bevy::ecs::system::SystemParam;
+use crate::bevy::prelude::*;
+use crate::bevy::window::PrimaryWindow;
 use iyes_perf_ui::{entry::PerfUiEntry, ui::root::PerfUiRoot, utils::next_sort_key};
 
 use crate::render::components::MainCamera;

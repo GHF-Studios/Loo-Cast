@@ -1,5 +1,5 @@
-use bevy::prelude::*;
-use bevy::reflect::Reflect;
+use crate::bevy::prelude::*;
+use crate::bevy::reflect::Reflect;
 use bevy_inspector_egui::inspector_egui_impls::InspectorPrimitive;
 use bevy_inspector_egui::reflect_inspector::InspectorUi;
 use egui::{Id, Ui};

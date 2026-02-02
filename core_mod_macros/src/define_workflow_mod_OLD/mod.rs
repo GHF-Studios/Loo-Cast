@@ -89,7 +89,7 @@ impl WorkflowModule {
 
         let workflow_module_declaration = quote! {
             pub mod #module_ident {
-                use bevy::prelude::*;
+                use crate::bevy::prelude::*;
 
                 pub const NAME: &str = #module_name;
 
@@ -354,8 +354,8 @@ impl Workflow {
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_stages_to_ecs_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system)#run_condition)
-                                .add_systems(bevy::prelude::Update, (stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system)#run_condition)
+                                .add_systems(crate::bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_stages_to_ecs_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system)#run_condition)
+                                .add_systems(crate::bevy::prelude::Update, (stages::#workflow_stage_module_ident::core_functions::poll_ecs_stage_buffer_system)#run_condition)
                             }
                         );
                     }
@@ -371,8 +371,8 @@ impl Workflow {
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_stages_to_render_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system)#run_condition)
-                                .add_systems(bevy::render::Render, (stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system)#run_condition)
+                                .add_systems(crate::bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_stages_to_render_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system)#run_condition)
+                                .add_systems(crate::bevy::render::Render, (stages::#workflow_stage_module_ident::core_functions::poll_render_stage_buffer_system)#run_condition)
                             }
                         );
                     }
@@ -388,8 +388,8 @@ impl Workflow {
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_async_stages_to_async_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system)#run_condition)
-                                .add_systems(bevy::prelude::Update, (stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system)#run_condition)
+                                .add_systems(crate::bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_async_stages_to_async_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system)#run_condition)
+                                .add_systems(crate::bevy::prelude::Update, (stages::#workflow_stage_module_ident::core_functions::poll_async_stage_buffer_system)#run_condition)
                             }
                         );
                     }
@@ -405,8 +405,8 @@ impl Workflow {
                             quote! {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_while_stages_to_ecs_while_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system)#run_condition)
-                                .add_systems(bevy::prelude::Update, (stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system)#run_condition)
+                                .add_systems(crate::bevy::prelude::Update, stages::#workflow_stage_module_ident::core_types::receive_ecs_while_stages_to_ecs_while_buffers_system.before(stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system)#run_condition)
+                                .add_systems(crate::bevy::prelude::Update, (stages::#workflow_stage_module_ident::core_functions::poll_ecs_while_stage_buffer_system)#run_condition)
                             }
                         );
                     }
@@ -423,10 +423,10 @@ impl Workflow {
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::RenderWhileWorkflowStateExtractShard::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::StageBuffer::default())
                                 .insert_resource(stages::#workflow_stage_module_ident::core_types::take_fill_workflow_stage_buffer_receiver())
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::split_render_while_workflow_state_extract_system.before(stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system)#run_condition)
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)#run_condition)
-                                .add_systems(bevy::render::Render, (stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)#run_condition)
-                                .add_systems(bevy::render::Render, stages::#workflow_stage_module_ident::core_types::fuse_render_while_workflow_state_extract_shards_system.after(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)#run_condition)
+                                .add_systems(crate::bevy::render::Render, stages::#workflow_stage_module_ident::core_types::split_render_while_workflow_state_extract_system.before(stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system)#run_condition)
+                                .add_systems(crate::bevy::render::Render, stages::#workflow_stage_module_ident::core_types::receive_render_while_stage_to_render_while_buffer_system.before(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)#run_condition)
+                                .add_systems(crate::bevy::render::Render, (stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)#run_condition)
+                                .add_systems(crate::bevy::render::Render, stages::#workflow_stage_module_ident::core_types::fuse_render_while_workflow_state_extract_shards_system.after(stages::#workflow_stage_module_ident::core_functions::poll_render_while_stage_buffer_system)#run_condition)
                             }
                         );
                     }
@@ -444,19 +444,19 @@ impl Workflow {
                 (false, false) => {
                     quote! {
                         pub(crate) struct #workflow_plugin_ident;
-                        impl bevy::prelude::Plugin for #workflow_plugin_ident {
-                            fn build(&self, app: &mut bevy::prelude::App) {}
+                        impl crate::bevy::prelude::Plugin for #workflow_plugin_ident {
+                            fn build(&self, app: &mut crate::bevy::prelude::App) {}
                         }
                     }
                 }
                 (false, true) => {
                     quote! {
                         pub(crate) struct #workflow_plugin_ident;
-                        impl bevy::prelude::Plugin for #workflow_plugin_ident {
-                            fn build(&self, app: &mut bevy::prelude::App) {
-                                use bevy::prelude::IntoScheduleConfigs;
+                        impl crate::bevy::prelude::Plugin for #workflow_plugin_ident {
+                            fn build(&self, app: &mut crate::bevy::prelude::App) {
+                                use crate::bevy::prelude::IntoScheduleConfigs;
 
-                                let render_app = app.sub_app_mut(bevy::render::RenderApp);
+                                let render_app = app.sub_app_mut(crate::bevy::render::RenderApp);
                                 render_app
                                     #(#workflow_stage_render_plugin_usage_literals)*;
                             }
@@ -466,9 +466,9 @@ impl Workflow {
                 (true, false) => {
                     quote! {
                         pub(crate) struct #workflow_plugin_ident;
-                        impl bevy::prelude::Plugin for #workflow_plugin_ident {
-                            fn build(&self, app: &mut bevy::prelude::App) {
-                                use bevy::prelude::IntoScheduleConfigs;
+                        impl crate::bevy::prelude::Plugin for #workflow_plugin_ident {
+                            fn build(&self, app: &mut crate::bevy::prelude::App) {
+                                use crate::bevy::prelude::IntoScheduleConfigs;
 
                                 app
                                     #(#workflow_stage_ecs_plugin_usage_literals)*;
@@ -479,14 +479,14 @@ impl Workflow {
                 (true, true) => {
                     quote! {
                         pub(crate) struct #workflow_plugin_ident;
-                        impl bevy::prelude::Plugin for #workflow_plugin_ident {
-                            fn build(&self, app: &mut bevy::prelude::App) {
-                                use bevy::prelude::IntoScheduleConfigs;
+                        impl crate::bevy::prelude::Plugin for #workflow_plugin_ident {
+                            fn build(&self, app: &mut crate::bevy::prelude::App) {
+                                use crate::bevy::prelude::IntoScheduleConfigs;
 
                                 app
                                     #(#workflow_stage_ecs_plugin_usage_literals)*;
 
-                                let render_app = app.sub_app_mut(bevy::render::RenderApp);
+                                let render_app = app.sub_app_mut(crate::bevy::render::RenderApp);
                                 render_app
                                     #(#workflow_stage_render_plugin_usage_literals)*;
                             }
@@ -558,7 +558,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         
-                        use bevy::prelude::SystemCondition;
+                        use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -698,7 +698,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         
-                        use bevy::prelude::SystemCondition;
+                        use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -810,7 +810,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         
-                        use bevy::prelude::SystemCondition;
+                        use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -958,7 +958,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         
-                        use bevy::prelude::SystemCondition;
+                        use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -1071,7 +1071,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         
-                        use bevy::prelude::SystemCondition;
+                        use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -1219,7 +1219,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         
-                        use bevy::prelude::SystemCondition;
+                        use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -1335,7 +1335,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         
-                        use bevy::prelude::SystemCondition;
+                        use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;
@@ -1487,7 +1487,7 @@ impl Workflow {
                 quote! {
                     pub mod #workflow_ident {
                         
-                        use bevy::prelude::SystemCondition;
+                        use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
                         use crate::core::run_conditions::run_after_startup_finished;

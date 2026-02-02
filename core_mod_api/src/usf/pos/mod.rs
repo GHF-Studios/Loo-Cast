@@ -6,7 +6,7 @@ pub mod unit;
 
 pub mod systems;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use systems::{apply_new_origin_offset_system, realign_origin_offset_system, sync_logical_from_transform_system, update_managed_positions};
 
 use crate::core::run_conditions::run_after_startup_finished;
@@ -39,7 +39,7 @@ impl Plugin for PosPlugin {
 macro_rules! grid_extent {
     ([$first:expr $(, $rest:expr)*]) => {
         {
-            use bevy::math::IVec2;
+            use crate::bevy::math::IVec2;
             use crate::usf::pos::grid::types::GridVec;
 
             let stack = vec![IVec2::from($first) $(, IVec2::from($rest))*];
@@ -52,7 +52,7 @@ macro_rules! grid_extent {
 macro_rules! subgrid_extent {
     ([$first:expr $(, $rest:expr)*]: $sub:expr) => {
         {
-            use bevy::math::IVec2;
+            use crate::bevy::math::IVec2;
             use crate::usf::pos::subgrid::types::SubgridVec;
 
             let stack = vec![IVec2::from($first) $(, IVec2::from($rest))*];
@@ -65,7 +65,7 @@ macro_rules! subgrid_extent {
 macro_rules! unit_extent {
     ([$first:expr $(, $rest:expr)*]: $unit:expr) => {{
         {
-            use bevy::math::{IVec2, Vec2};
+            use crate::bevy::math::{IVec2, Vec2};
             use crate::usf::pos::unit::types::UnitVec;
 
             let stack = vec![IVec2::from($first) $(, IVec2::from($rest))*];

@@ -1,14 +1,14 @@
-use bevy::ecs::query::QuerySingleError;
-use bevy::input::mouse::MouseWheel;
-use bevy::input::ButtonState;
-use bevy::math::FloatOrd;
-use bevy::picking::PickingSettings;
-use bevy::picking::backend::prelude::*;
-use bevy::picking::input::PointerInputSettings;
-use bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerId, PointerInput, PointerLocation, PointerPress};
-use bevy::prelude::*;
-use bevy::camera::{ImageRenderTarget, RenderTarget};
-use bevy::window::{PrimaryWindow, WindowEvent};
+use crate::bevy::ecs::query::QuerySingleError;
+use crate::bevy::input::mouse::MouseWheel;
+use crate::bevy::input::ButtonState;
+use crate::bevy::math::FloatOrd;
+use crate::bevy::picking::PickingSettings;
+use crate::bevy::picking::backend::prelude::*;
+use crate::bevy::picking::input::PointerInputSettings;
+use crate::bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerId, PointerInput, PointerLocation, PointerPress};
+use crate::bevy::prelude::*;
+use crate::bevy::camera::{ImageRenderTarget, RenderTarget};
+use crate::bevy::window::{PrimaryWindow, WindowEvent};
 
 use crate::core::types::{Diegetic, Meta, OntologicalContext};
 use crate::reflect::functions::get_struct_field_mut;
@@ -39,7 +39,7 @@ pub(super) fn spawn_mouse_pointers(mut commands: Commands, game_view_render_targ
     commands.spawn((
         DIEGETIC_MOUSE_POINTER_ID,
         PointerLocation::new(Location {
-            target: bevy::camera::NormalizedRenderTarget::Image(ImageRenderTarget {
+            target: crate::bevy::camera::NormalizedRenderTarget::Image(ImageRenderTarget {
                 handle: game_view_render_target.handle.clone(),
                 scale_factor: 1.0,
             }),
@@ -52,7 +52,7 @@ pub(super) fn spawn_mouse_pointers(mut commands: Commands, game_view_render_targ
     commands.spawn((
         META_MOUSE_POINTER_ID,
         PointerLocation::new(Location {
-            target: bevy::camera::NormalizedRenderTarget::Image(ImageRenderTarget {
+            target: crate::bevy::camera::NormalizedRenderTarget::Image(ImageRenderTarget {
                 handle: game_view_render_target.handle.clone(),
                 scale_factor: 1.0,
             }),
@@ -407,7 +407,7 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
 
             let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(
                 cursor_pos_sprite_pixel,
-                bevy::sprite::Anchor(Vec2::ZERO),
+                crate::bevy::sprite::Anchor(Vec2::ZERO),
                 images,
                 texture_atlas_layout
             ) else {

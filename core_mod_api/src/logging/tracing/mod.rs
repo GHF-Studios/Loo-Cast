@@ -2,7 +2,7 @@ pub mod functions;
 pub mod systems;
 pub mod types;
 
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 
 use systems::*;
 use types::LogTreeTracingLayer;

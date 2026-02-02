@@ -1,4 +1,4 @@
-use bevy::prelude::{error, warn};
+use crate::bevy::prelude::{error, warn};
 use futures::FutureExt;
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};

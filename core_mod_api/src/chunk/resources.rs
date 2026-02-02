@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
 
 use crate::config::statics::CONFIG;

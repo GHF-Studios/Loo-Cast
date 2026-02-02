@@ -608,7 +608,7 @@ impl TypedStage<Ecs> {
 
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
-                    use bevy::prelude::*;
+                    use crate::bevy::prelude::*;
 
                     #core_types
                 }
@@ -1038,7 +1038,7 @@ impl TypedStage<Render> {
 
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
-                    use bevy::prelude::*;
+                    use crate::bevy::prelude::*;
 
                     #core_types
                 }
@@ -1468,7 +1468,7 @@ impl TypedStage<Async> {
 
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
-                    use bevy::prelude::*;
+                    use crate::bevy::prelude::*;
 
                     #core_types
                 }
@@ -1911,7 +1911,7 @@ impl TypedStage<EcsWhile> {
 
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
-                    use bevy::prelude::*;
+                    use crate::bevy::prelude::*;
 
                     #core_types
                 }
@@ -3065,7 +3065,7 @@ impl TypedStage<RenderWhile> {
 
                 pub mod core_types {
                     use super::super::super::workflow_imports::*;
-                    use bevy::prelude::*;
+                    use crate::bevy::prelude::*;
 
                     #core_types
                 }

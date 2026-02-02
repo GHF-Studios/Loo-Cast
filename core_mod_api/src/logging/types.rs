@@ -1,4 +1,4 @@
-use bevy::prelude::Reflect;
+use crate::bevy::prelude::Reflect;
 use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;

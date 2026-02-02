@@ -1,4 +1,4 @@
-use bevy::prelude::{IVec2, Reflect, Vec2, Vec3};
+use crate::bevy::prelude::{IVec2, Reflect, Vec2, Vec3};
 
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::{DynScale, Scale};

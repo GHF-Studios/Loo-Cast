@@ -6,8 +6,8 @@ pub mod statics;
 pub mod systems;
 pub mod types;
 
-use bevy::prelude::*;
-use bevy::render::RenderApp;
+use crate::bevy::prelude::*;
+use crate::bevy::render::RenderApp;
 use resources::{TimeInfo, VirtualPaused};
 use systems::{
     configure_virtual_time, extract_game_time_info, extract_virtual_paused, post_update_game_time_info, sync_elapsed_virtual_time, sync_virtual_paused,

@@ -1,7 +1,7 @@
-use bevy::ecs::query::{QueryData, QueryFilter};
-use bevy::ecs::system::{Commands, EntityCommands};
-use bevy::ecs::world::EntityWorldMut;
-use bevy::prelude::{World, Query};
+use crate::bevy::ecs::query::{QueryData, QueryFilter};
+use crate::bevy::ecs::system::{Commands, EntityCommands};
+use crate::bevy::ecs::world::EntityWorldMut;
+use crate::bevy::prelude::{World, Query};
 use core_mod_core::reflection::access::{ScopedAccess, ScopedAccessHandle};
 use std::any::Any;
 use std::sync::{Arc, RwLock};

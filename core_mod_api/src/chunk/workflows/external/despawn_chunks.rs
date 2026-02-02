@@ -1,5 +1,5 @@
 // Imports
-use bevy::prelude::{Commands, Entity, Query, ResMut};
+use crate::bevy::prelude::{Commands, Entity, Query, ResMut};
 
 use crate::chunk::{components::Chunk, resources::ChunkManager};
 use crate::usf::pos::grid::types::GridVec;
@@ -21,7 +21,7 @@ pub struct DespawnChunkState {
 }
 
 // Core Types
-#[derive(bevy::ecs::system::SystemParam)]
+#[derive(crate::bevy::ecs::system::SystemParam)]
 pub struct MainAccess<'w, 's> {
     pub commands: Commands<'w, 's>,
     pub chunk_query: Query<'w, 's, (Entity, &'static Chunk)>,

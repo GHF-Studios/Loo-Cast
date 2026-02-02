@@ -1,4 +1,4 @@
-use bevy::prelude::Entity as BevyEntity;
+use crate::bevy::prelude::Entity as BevyEntity;
 use rhai::{Dynamic, FnPtr, NativeCallContext};
 
 pub trait CommandsApi {

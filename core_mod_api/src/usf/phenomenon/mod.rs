@@ -1,4 +1,4 @@
-use bevy::prelude::Entity;
+use crate::bevy::prelude::Entity;
 
 use crate::usf::scale::Scale;
 

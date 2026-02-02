@@ -1,6 +1,6 @@
-use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
-use bevy::prelude::*;
-use bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
+use crate::bevy::input::mouse::{MouseScrollUnit, MouseWheel};
+use crate::bevy::prelude::*;
+use crate::bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 
 use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
 use crate::config::statics::CONFIG;
