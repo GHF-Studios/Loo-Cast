@@ -39,7 +39,7 @@ $excludeArgs = $modCrates | ForEach-Object { "--exclude $_" } | Out-String
 $excludeArgs = $excludeArgs -replace "\r?\n", " "  # flatten line breaks
 $extraFeatures = ""
 if ($BuildProfile -ne "release") {
-    $extraFeatures = "--features bevy_dynamic_linking"
+    # $extraFeatures = "--features bevy_dynamic_linking"
 }
 
 # Build the non-mod part of the workspace

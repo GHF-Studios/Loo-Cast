@@ -51,7 +51,7 @@ done
 
 extra_features=""
 if [[ "$BUILD_PROFILE" != "release" ]]; then
-  extra_features="--features bevy_dynamic_linking"
+  # extra_features="--features bevy_dynamic_linking"
 fi
 
 echo "Building main executable..."

@@ -8,10 +8,6 @@ default = [
     "allow_premium_box"
 ]
 allow_premium_box = []
-bevy_dynamic_linking = ["bevy/dynamic_linking"]
-
-[target.'cfg(debug_assertions)'.dependencies]
-bevy_dylib = "0.18.0"
 
 [dependencies]
 core_mod_core_macros = { path = "../core_mod_core_macros" }

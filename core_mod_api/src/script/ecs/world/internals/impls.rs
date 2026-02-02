@@ -60,7 +60,6 @@ unsafe impl ScopedAccessProvider<EntityWorldMut<'static>> for World {
                 let ctor_registry = COMPONENT_CTOR_REGISTRY();
                 let mut ent = self.spawn_empty();
                 let bundle = Arc::into_inner(*bundle).unwrap();
-                bundle.
                 for (name, params) in bundle.0 {
                     let ctor = ctor_registry.get(name.as_ref()).unwrap();
                     ctor(&mut ent, params);
