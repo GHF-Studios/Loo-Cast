@@ -1,13 +1,13 @@
+use std::any::Any;
+use std::sync::{Arc, RwLock};
+use rhai::Shared;
+
 use crate::bevy::ecs::query::{QueryData, QueryFilter};
 use crate::bevy::ecs::system::{Commands, EntityCommands};
 use crate::bevy::ecs::world::EntityWorldMut;
 use crate::bevy::prelude::{World, Query};
 use crate::reflection::access::{ScopedAccess, ScopedAccessHandle};
-use std::any::Any;
-use std::sync::{Arc, RwLock};
-use rhai::Shared;
-
-use crate::script::core::internals::traits::ScopedAccessProvider;
+use crate::reflection::internals::traits::ScopedAccessProvider;
 use crate::script::ecs::bundle::bindings::types::Bundle;
 use crate::script::ecs::component::internals::statics::COMPONENT_CTOR_REGISTRY;
 

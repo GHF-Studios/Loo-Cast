@@ -1,33 +1,340 @@
-use crate::bevy::reflect::Reflect;
+use crate::bevy::ecs::entity::Entity as BevyEntity;
+use crate::bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
+use crate::reflection::access::{ScopedAccess, ScopedAccessHandle, ScopedAccessHandleExt, ScopedAccessReadGuard, ScopedAccessWriteGuard};
+use crate::reflection::ids::{StaticTraitId, TypeId};
+use crate::reflection::internals::statics::{TYPE_REGISTRY, SCHEDULE_HOOKS, TRAIT_OBJECT_VTABLE_REGISTRY};
+use crate::reflection::internals::traits::{GetTypeId, ToTraitObject, Trait};
+use crate::reflection::traits::StaticTraitObject;
+use rhai::{Dynamic, Engine, FnPtr, ImmutableString, NativeCallContext, Shared};
+use std::any::TypeId as RustTypeId;
+use std::marker::PhantomData;
+use std::path::PathBuf;
+use std::sync::{Arc, RwLock};
 
-pub(crate) fn get_struct_field_ref<'a, T, F>(target: &'a T, field: &str) -> &'a F
-where
-    T: Reflect,
-    F: Reflect + 'static,
-{
-    get_struct_field_ref_inner(target, field).expect("Failed to get struct field")
+use crate::core::functions::asset_root;
+use crate::script::ecs::bundle::bindings::types::Bundle;
+use crate::script::ecs::bundle::internals::traits::BundleFromDynamic;
+use crate::script::ecs::component::bindings::types::Component;
+use crate::script::ecs::world::bindings::types::World;
+use crate::script::ecs::world::internals::traits::WorldApi;
+use crate::script::ecs::system::commands::bindings::types::{Commands, EntityCommands};
+use crate::script::ecs::system::commands::internals::traits::{CommandsApi, EntityCommandsApi};
+use crate::script::ecs::world::entity_ref::bindings::types::{EntityRef, EntityMut, EntityWorldMut};
+use crate::script::ecs::world::entity_ref::internals::traits::{EntityRefApi, EntityMutApi, EntityWorldMutApi};
+use crate::player::bundles::PlayerBundle;
+
+use super::resources::MainScriptEngineHandle;
+
+pub fn pre_init(world: &mut BevyWorld) {
+    world.init_resource::<MainScriptEngineHandle>();
 }
 
-pub(crate) fn get_struct_field_mut<'a, T, F>(target: &'a mut T, field: &str) -> &'a mut F
-where
-    T: Reflect,
-    F: Reflect + 'static,
-{
-    get_struct_field_mut_inner(target, field).expect("Failed to get mutable struct field")
+pub(super) fn new_main_script_engine() -> Engine {
+    let mut engine = Engine::new();
+
+    register_bindings(&mut engine);
+
+    let boot_script_path = "core_mod/scripts/core/boot.rhai";
+
+    let mut abs_boot_script_path = PathBuf::from(boot_script_path);
+    if abs_boot_script_path.is_relative() {
+        abs_boot_script_path = asset_root().join(boot_script_path);
+    }
+    let boot_script_path = abs_boot_script_path.to_string_lossy().to_string();
+
+    crate::bevy::prelude::warn!("boot_script_path: {}", boot_script_path);
+
+    let boot_script = std::fs::read_to_string(boot_script_path).unwrap();
+    let boot_script = engine.compile(boot_script).unwrap();
+    engine.eval_ast::<()>(&boot_script).unwrap();
+
+    engine
 }
 
-fn get_struct_field_ref_inner<'a, T, F>(target: &'a T, field: &str) -> Option<&'a F>
-where
-    T: Reflect,
-    F: Reflect + 'static,
-{
-    target.reflect_ref().as_struct().ok()?.field(field)?.try_downcast_ref::<F>()
+pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut BevyWorld) {
+    move |world: &mut BevyWorld| {
+        world.resource_scope(|source_world, mut engine: Mut<MainScriptEngineHandle>| {
+            // Setup
+            let engine = &mut engine.0;
+            let hook_code = std::fs::read_to_string(&path).unwrap();
+            let ast = engine.compile(&hook_code).unwrap();
+            let mut scope = rhai::Scope::new();
+
+            // Manually start world access
+            let world = std::mem::take(source_world);
+            let world_raw_handle: ScopedAccessHandle<BevyWorld> = Arc::new(RwLock::new(ScopedAccess::new(world)));
+            let world_binding = World { world: world_raw_handle.clone() };
+            let shared_world = Shared::new(world_binding);
+
+            // Execute hook runner system script
+            engine.call_fn::<()>(&mut scope, &ast, "main", (shared_world,)).unwrap();
+
+            // Manually end world access
+            let mut world_raw_scoped = Arc::into_inner(world_raw_handle)
+                .expect("World handle leaked or cloned")
+                .into_inner()
+                .expect("RwLock poisoned");
+            let returned_world = world_raw_scoped
+                .invalidate()
+                .expect("World handle was already invalidated");
+            *source_world = returned_world;
+        });
+    }
 }
 
-fn get_struct_field_mut_inner<'a, T, F>(target: &'a mut T, field: &str) -> Option<&'a mut F>
-where
-    T: Reflect,
-    F: Reflect + 'static,
-{
-    target.reflect_mut().as_struct().ok()?.field_mut(field)?.try_downcast_mut::<F>()
+pub fn init(app: &mut App) {
+    let path = "core_mod/scripts/core/schedule_hooks/";
+    let mut abs_path = PathBuf::from(path);
+    if abs_path.is_relative() {
+        abs_path = asset_root().join(path);
+    }
+    let mut path = abs_path;
+
+    for name in SCHEDULE_HOOKS().lock().unwrap().drain() {
+        match name.as_str() {
+            "pre_startup" => {
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(PreStartup, new_hook_runner_system(file_path.display().to_string()));
+            }
+            "startup" => {
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(Startup, new_hook_runner_system(file_path.display().to_string()));
+            }
+            "post_startup" => {
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(PostStartup, new_hook_runner_system(file_path.display().to_string()));
+            }
+            "first" => {
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(First, new_hook_runner_system(file_path.display().to_string()));
+            }
+            "pre_update" => {
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(PreUpdate, new_hook_runner_system(file_path.display().to_string()));
+            }
+            "update" => {
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(Update, new_hook_runner_system(file_path.display().to_string()));
+            }
+            "post_update" => {
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(PostUpdate, new_hook_runner_system(file_path.display().to_string()));
+            }
+            "last" => {
+                let file = format!("{name}.rhai");
+                let file_path = path.join(file);
+                app.add_systems(Last, new_hook_runner_system(file_path.display().to_string()));
+            }
+            unknown => {
+                panic!("Schedule name '{unknown}' is not known!");
+            }
+        }
+    }
+}
+
+// TODO: Simplify this using the `inventory` crate to auto-register bindings via attribute/derive macro(s).
+pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
+    // Core
+    engine.register_fn("add_hook_handler", |hook: &str| {
+        SCHEDULE_HOOKS().lock().unwrap().insert(hook.into());
+    });
+
+    // World
+    engine.register_type_with_name::<Shared<World>>("World");
+    engine.register_raw_fn(
+        "flush",
+        [RustTypeId::of::<Shared<World>>()], // self
+        |_, args| {
+            let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
+
+            world.flush();
+
+            Ok(Dynamic::UNIT)
+        }
+    );
+    engine.register_raw_fn(
+        "commands",
+        [
+            RustTypeId::of::<Shared<World>>(),     // self
+            RustTypeId::of::<FnPtr>(),             // callback
+        ],
+        |ctx, args| {
+            let callback = args[1].take().cast::<FnPtr>();
+            let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
+
+            Ok(world.commands(ctx, callback))
+        }
+    );
+    engine.register_raw_fn(
+        "spawn_empty",
+        [
+            RustTypeId::of::<Shared<World>>(),     // self
+            RustTypeId::of::<FnPtr>(),             // callback
+        ],
+        |ctx, args| {
+            let callback = args[1].take().cast::<FnPtr>();
+            let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
+
+            Ok(world.spawn_empty(ctx, callback))
+        }
+    );
+    engine.register_raw_fn(
+        "spawn_single",
+        [
+            RustTypeId::of::<Shared<World>>(),
+            RustTypeId::of::<Shared<Bundle>>(),
+            RustTypeId::of::<FnPtr>(),
+        ],
+        |ctx, args| {
+            let callback = args[2].take().cast::<FnPtr>();
+            let bundle = args[1].take().cast::<Shared<Bundle>>();
+            let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
+            Ok(world.spawn_single(bundle, ctx, callback))
+        }
+    );
+
+    // Commands
+    engine.register_type_with_name::<Shared<Commands>>("Commands");
+    engine.register_raw_fn(
+        "spawn_empty",
+        [
+            RustTypeId::of::<Shared<Commands>>(),  // self
+            RustTypeId::of::<FnPtr>(),             // callback
+        ],
+        |ctx, args| {
+            let callback = args[1].take().cast::<FnPtr>();
+            let commands = &mut *args[0].write_lock::<Shared<Commands>>().unwrap();
+
+            Ok(commands.spawn_empty(ctx, callback))
+        }
+    );
+
+    // EntityCommands
+    engine.register_type_with_name::<Shared<EntityCommands>>("EntityCommands");
+    engine.register_raw_fn(
+        "id",
+        [
+            RustTypeId::of::<Shared<EntityCommands>>(),  // self
+        ],
+        |_, args| {
+            let entity_commands = &*args[0].read_lock::<Shared<EntityCommands>>().unwrap();
+    
+            let id = entity_commands.id();
+    
+            Ok(Dynamic::from(id))
+        }
+    );
+
+    // Entity
+    engine.register_type::<BevyEntity>();
+    engine.register_get("index", |e: &mut BevyEntity| e.index());
+    engine.register_get("gen", |e: &mut BevyEntity| e.generation());
+    engine.register_fn("to_string", |e: &mut BevyEntity| format!("Entity(index={}, gen={})", e.index(), e.generation()));
+
+    // EntityRef
+    engine.register_type_with_name::<Shared<EntityRef>>("EntityRef");
+    engine.register_get("id", |entity_ref: &mut Shared<EntityRef>| entity_ref.id());
+
+    // EntityMut
+    engine.register_type_with_name::<Shared<EntityMut>>("EntityMut");
+    engine.register_get("id", |entity_mut: &mut Shared<EntityMut>| entity_mut.id());
+
+    // EntityWorldMut
+    engine.register_type_with_name::<Shared<EntityWorldMut>>("EntityWorldMut");
+    engine.register_get("id", |entity_world_mut: &mut Shared<EntityWorldMut>| entity_world_mut.id());
+
+    // Component
+    engine.register_type_with_name::<Component>("Component");
+    engine.register_fn("Component", |name: &str, params: Dynamic| {
+        Component::create_single((name.into(), params))
+    });
+
+    // Bundle
+    engine.register_type_with_name::<Bundle>("Bundle");
+    engine.register_fn("Bundle", |components: rhai::Map| Bundle::create_batch(components));
+
+    
+
+    // OLD
+
+
+    register_player_bindings(engine);
+}
+
+fn register_player_bindings(engine: &mut rhai::Engine) {
+    // Level 0
+    let mut player_module = rhai::Module::new();
+    // Level 1
+    let mut bundles_module = rhai::Module::new();
+    // Level 2
+    let mut player_bundle_module = rhai::Module::new();
+
+    // TODO: Register traits and associate types with the traits they implement
+
+    // Stuff that also shouldn't be here
+    #[derive(Clone, PartialEq, Eq, Hash)]
+    struct BundleTrait;
+    impl Trait for BundleTrait {
+        const TRAIT_ID: &'static str = "ecs::bundle::Bundle";
+    }
+
+    #[repr(transparent)]
+    pub struct BundleTraitObject(pub StaticTraitObject<BundleTrait>);
+    impl GetTypeId for PlayerBundle {
+        const TYPE_ID: &'static str = "player::bundles::PlayerBundle";
+    }
+    impl ToTraitObject<BundleTrait> for ScopedAccessHandle<PlayerBundle> {
+        fn cast_to(self) -> StaticTraitObject<BundleTrait> {
+            StaticTraitObject {
+                value: Dynamic::from(self),
+                trait_id: StaticTraitId::new(),
+                instance_type_id: TypeId::of::<PlayerBundle>(),
+            }
+        }
+
+        fn cast_from(obj: StaticTraitObject<BundleTrait>) -> Self {
+            obj.value.cast()
+        }
+    }
+
+    // Types
+    bundles_module.set_custom_type::<ScopedAccessHandle<PlayerBundle>>("PlayerBundle");
+
+    // Constructors
+    rhai::FuncRegistration::new("new_default").set_into_module(&mut player_bundle_module, || -> ScopedAccessHandle<PlayerBundle> {
+        Shared::new(RwLock::new(ScopedAccess::new(PlayerBundle::default())))
+    });
+    // rhai::FuncRegistration::new("to_trait_object").set_into_module(&mut player_bundle_module, |trait_id: &str, bundle: ScopedAccessHandle<PlayerBundle>| {
+    // 
+    //     match trait_id {
+    //         "ecs::bundle::Bundle" => {
+    //             let b: TraitObject<BundleTrait> = bundle.cast_to();
+    //             Dynamic::from(b)
+    //         }
+    //     }
+    // });
+    // rhai::FuncRegistration::new("from_dynamic").set_into_module(&mut player_bundle_module, |method: &str, params: Dynamic| -> ScopedAccessHandle<PlayerBundle> {
+    //     ScopedAccessHandle::new(<PlayerBundle as BundleFromDynamic>::from_dynamic(method, params).resolve_type())
+    // });
+
+    // Methods
+    engine.register_fn("test_print", |b: ScopedAccessHandle<PlayerBundle>| {
+        b.read().unwrap().read(|b| b.test_print()).unwrap();
+    });
+
+    // Level 2
+    player_bundle_module.set_id("PlayerBundle");
+    // Level 1
+    bundles_module.set_id("bundles").set_sub_module("PlayerBundle", player_bundle_module);
+    // Level 0
+    player_module.set_id("player").set_sub_module("bundles", bundles_module);
+
+    engine.register_static_module("player", Arc::new(player_module));
 }

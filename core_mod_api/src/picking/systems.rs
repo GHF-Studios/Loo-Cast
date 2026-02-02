@@ -11,7 +11,7 @@ use crate::bevy::camera::{ImageRenderTarget, RenderTarget};
 use crate::bevy::window::{PrimaryWindow, WindowEvent};
 
 use crate::core::types::{Diegetic, Meta, OntologicalContext};
-use crate::reflection::internals::functions::get_struct_field_mut;
+use crate::reflection::utils::functions::get_struct_field_mut;
 use crate::render::{
     components::MainCamera,
     resources::{GameViewRenderTarget, PrimaryWindowUiState},

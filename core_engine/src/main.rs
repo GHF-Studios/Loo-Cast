@@ -100,7 +100,7 @@ fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
 
     let mut app = App::new();
 
-    script::core::internals::functions::pre_init(app.world_mut());
+    reflection::internals::functions::pre_init(app.world_mut());
 
     app
         .register_type::<GizmoConfigStore>()

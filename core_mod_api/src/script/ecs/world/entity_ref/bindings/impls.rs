@@ -1,12 +1,12 @@
 use std::sync::TryLockError;
 
-use crate::bevy::prelude::Entity as BevyEntity;
-
+use crate::bevy::ecs::entity::Entity as BevyEntity;
+use crate::reflection::internals::traits::ReadAccessProvider;
 use crate::script::{
-    core::internals::traits::ReadAccessProvider, ecs::world::entity_ref::{
-            bindings::types::{EntityMut, EntityRef, EntityWorldMut},
-            internals::traits::{EntityMutApi, EntityRefApi, EntityWorldMutApi}
-        }
+    ecs::world::entity_ref::{
+        bindings::types::{EntityMut, EntityRef, EntityWorldMut},
+        internals::traits::{EntityMutApi, EntityRefApi, EntityWorldMutApi}
+    }
 };
 
 impl EntityRefApi for EntityRef {

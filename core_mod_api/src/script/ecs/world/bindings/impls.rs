@@ -1,12 +1,12 @@
+use rhai::{Dynamic, FnPtr, NativeCallContext, Shared};
 use std::sync::TryLockError;
 
 use crate::bevy::prelude::Commands as BevyCommands;
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
 use crate::reflection::access::ScopedAccessHandle;
-use rhai::{Dynamic, FnPtr, NativeCallContext, Shared};
+use crate::reflection::internals::traits::ScopedAccessProvider;
 
 use crate::script::{
-    core::internals::traits::ScopedAccessProvider,
     ecs::{
         bundle::bindings::types::Bundle, system::commands::bindings::types::Commands, world::{
             bindings::types::World,

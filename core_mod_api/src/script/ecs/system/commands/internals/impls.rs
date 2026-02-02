@@ -2,10 +2,10 @@ use crate::bevy::prelude::Entity as BevyEntity;
 use crate::bevy::ecs::system::Commands;
 use crate::bevy::ecs::system::EntityCommands;
 use crate::reflection::access::{ScopedAccess, ScopedAccessHandle};
+use crate::reflection::internals::traits::ScopedAccessProvider;
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 
-use crate::script::core::internals::traits::ScopedAccessProvider;
 
 unsafe impl ScopedAccessProvider<EntityCommands<'static>> for Commands<'static, 'static> {
     unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> ScopedAccessHandle<EntityCommands<'static>> {

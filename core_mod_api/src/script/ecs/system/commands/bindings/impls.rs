@@ -1,14 +1,9 @@
+use rhai::{Dynamic, FnPtr, NativeCallContext, Shared};
 use std::sync::TryLockError;
 
 use crate::bevy::prelude::Entity as BevyEntity;
-use rhai::{Dynamic, FnPtr, NativeCallContext, Shared};
-
-use crate::script::{
-    core::internals::traits::ScopedAccessProvider,
-    ecs::{
-        system::commands::{bindings::types::{Commands, EntityCommands}, internals::traits::{CommandsApi, EntityCommandsApi}},
-    }
-};
+use crate::reflection::internals::traits::ScopedAccessProvider;
+use crate::script::ecs::system::commands::{bindings::types::{Commands, EntityCommands}, internals::traits::{CommandsApi, EntityCommandsApi}};
 
 impl CommandsApi for Shared<Commands> {
     fn spawn_empty(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {

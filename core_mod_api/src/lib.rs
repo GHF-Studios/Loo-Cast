@@ -6,6 +6,9 @@ pub use bevy_consumable_message;
 pub use core_mod_macros;
 
 pub use anymap;
+#[cfg(debug_assertions)]
+#[allow(unused_imports)]
+pub use bevy_dylib;
 pub use bevy;
 pub use bevy_egui;
 pub use bevy_inspector_egui;
@@ -95,8 +98,8 @@ use input::InputPlugin;
 use logging::LogPlugin;
 use picking::PickingPlugin;
 use player::PlayerPlugin;
+use reflection::internals::ReflectionPlugin;
 use render::RenderPlugin;
-use script::ScriptPlugin;
 use time::TimePlugin;
 use usf::UsfPlugin;
 use utils::UtilsPlugin;
@@ -118,8 +121,8 @@ impl PluginGroup for CoreApiPluginGroup {
             .add(LogPlugin)
             .add(PickingPlugin)
             .add(PlayerPlugin)
+            .add(ReflectionPlugin)
             .add(RenderPlugin)
-            .add(ScriptPlugin)
             .add(TimePlugin)
             .add(UsfPlugin)
             .add(UtilsPlugin)
