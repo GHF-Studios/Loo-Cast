@@ -5,6 +5,7 @@ use bevy::prelude::{World, Query};
 use core_mod_core::reflection::access::{ScopedAccess, ScopedAccessHandle};
 use std::any::Any;
 use std::sync::{Arc, RwLock};
+use rhai::Shared;
 
 use crate::script::core::internals::traits::ScopedAccessProvider;
 use crate::script::ecs::bundle::bindings::types::Bundle;
@@ -53,11 +54,13 @@ unsafe impl ScopedAccessProvider<EntityWorldMut<'static>> for World {
                 self.spawn_empty()
             },
             "spawn" => {
-                let Ok(bundle) = args.downcast::<Bundle>() else {
+                let Ok(bundle) = args.downcast::<Shared<Bundle>>() else {
                     panic!("Unsupported arguments for method '{}' in ScopedAccessProvider<EntityWorldMut> for World", method);
                 };
                 let ctor_registry = COMPONENT_CTOR_REGISTRY();
                 let mut ent = self.spawn_empty();
+                let bundle = Arc::into_inner(*bundle).unwrap();
+                bundle.
                 for (name, params) in bundle.0 {
                     let ctor = ctor_registry.get(name.as_ref()).unwrap();
                     ctor(&mut ent, params);

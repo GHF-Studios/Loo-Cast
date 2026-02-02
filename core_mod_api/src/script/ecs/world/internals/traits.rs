@@ -1,4 +1,4 @@
-use rhai::{Array, Dynamic, FnPtr, NativeCallContext};
+use rhai::{Array, Dynamic, FnPtr, NativeCallContext, Shared};
 
 use crate::script::ecs::bundle::bindings::types::Bundle;
 
@@ -6,7 +6,7 @@ pub trait WorldApi {
     fn commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;
     fn flush(&self);
     fn spawn_empty(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;
-    fn spawn_single(&self, bundle: Bundle, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;
+    fn spawn_single(&self, bundle: Shared<Bundle>, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;
     // fn spawn_batch(&self, bundles: Array, ctx: NativeCallContext, callback: FnPtr) -> Array;
     // fn query(&self, data: QueryData, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;
     // fn query_filtered(&self, data: QueryData, filter: QueryFilter, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;

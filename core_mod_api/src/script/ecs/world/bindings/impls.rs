@@ -79,7 +79,7 @@ impl WorldApi for Shared<World> {
         })
     }
 
-    fn spawn_single(&self, bundle: Bundle, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
+    fn spawn_single(&self, bundle: Shared<Bundle>, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
         let mut world = match self.world.try_write() {
             Ok(guard) => guard,
             Err(TryLockError::Poisoned(_)) => panic!("World lock poisoned"),

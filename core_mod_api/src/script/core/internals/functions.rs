@@ -189,12 +189,12 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
         "spawn_single",
         [
             RustTypeId::of::<Shared<World>>(),
-            RustTypeId::of::<Bundle>(),
+            RustTypeId::of::<Shared<Bundle>>(),
             RustTypeId::of::<FnPtr>(),
         ],
         |ctx, args| {
             let callback = args[2].take().cast::<FnPtr>();
-            let bundle = args[1].take().cast::<Bundle>();
+            let bundle = args[1].take().cast::<Shared<Bundle>>();
             let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
             Ok(world.spawn_single(bundle, ctx, callback))
         }

@@ -1,7 +1,7 @@
 fn main(world) {
     print("Hello from 'Startup' schedule hook!");
 
-    let player_bundle = player::bundles::PlayerBundle::new_default().to_generic_object("ecs::bundle::Bundle");
+    let player_bundle = player::bundles::PlayerBundle::new_default();
     player_bundle.test_print();
 
     world.spawn_single(player_bundle, |ent_world_mut| {
