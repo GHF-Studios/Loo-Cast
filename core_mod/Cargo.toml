@@ -9,7 +9,6 @@ default = [
 ]
 init_api = []
 allow_premium_box = ["core_mod_api/allow_premium_box"]
-bevy_dynamic_linking = ["core_mod_api/bevy_dynamic_linking"]
 
 [dependencies]
 core_mod_api = { path = "../core_mod_api" }

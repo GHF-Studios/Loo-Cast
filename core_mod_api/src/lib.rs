@@ -44,7 +44,7 @@ pub use bevy_consumable_message;
 pub use core_mod_macros;
 
 pub use anymap;
-#[cfg(debug_assertions)]
+#[cfg(all(debug_assertions, not(target_os = "windows")))]
 #[allow(unused_imports)]
 pub use bevy_dylib;
 pub use bevy;

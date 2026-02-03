@@ -27,7 +27,7 @@ if ($BuildProfile -eq "release") {
     $cargoArgs  = ""
     $targetName = "debug"
 } else {
-    $cargoArgs  = "--profile $BuildProfile"
+    $cargoArgs  = "--profile=$BuildProfile"
     $targetName = $BuildProfile
 }
 
