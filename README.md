@@ -9,6 +9,11 @@
 
 ---
 
+## AI usage notice
+Generative AI tools such as ChatGPT, GitHub Copilot, and GitHub Copilot Chat have been used to assist in the creation of code and documentation within this repository. While these tools can enhance productivity, all content generated with their assistance has been reviewed and validated by a human to ensure accuracy and quality. Still, inconsistencies or errors are bound to turn up from time to time, so please report any issues you find if you feel like it <3
+
+---
+
 ## Quick links
 
 - 📚 Docs: `docs/` (TOC in `docs/README.md`)
@@ -83,4 +88,4 @@ See `docs/Crates.md` for more details.
 
 ---
 
-[^engine_vs_gameplay_assets_note]: Note: Almost all scripts should likely be gameplay-related and thus belong in `base_mod/assets/scripts/` instead. 
+[^engine_vs_gameplay_assets_note]: Note: Almost all scripts should likely be gameplay-related and thus belong in `base_mod/assets/scripts/` instead; it is very rare for scripts to be engine-related!
