@@ -1,19 +1,20 @@
-# Loo Cast 🚀
+# Loo Cast — Project Overview 🚀
 
-**Loo Cast** is a work-in-progress project that is two things at once:
-- **Engine** — a runtime intended to simulate a scale-aware, contextual world (ECS + modular runtime logic).
-- **Game / Mod** — a gameplay layer built as a mod on top of the engine that explores narrative and simulation possibilities.
+**Loo Cast** is a work-in-progress repository that contains both an engine and a game mod built in Rust.
 
-> Status: WIP — docs and systems are actively evolving. See the `docs/` folder for detailed reference.
+- **Engine**: a runtime for scale-aware simulation (ECS + modular runtime logic).
+- **Gameplay (base mod)**: a mod built on top of the engine that provides scripts, configs, and content.
+
+> Status: Active development. Docs and architecture are evolving — see `docs/` for curated references and `documents/` for long-form design notes.
 
 ---
 
 ## Quick links
 
-- 📚 Docs: `docs/` (Architecture, Concepts, Building, Modding, Crates, Contributing)
-- 🧩 Crates: see `docs/Crates.md` for a quick reference of workspace crates
+- 📚 Docs: `docs/` (TOC in `docs/README.md`)
+- 🧩 Crates: `docs/Crates.md` (differentiates code vs canonical assets)
 - ⚙️ Build & Run: `./build.ps1` / `./build.sh` and `./run.ps1` / `./run.sh`
-- 📝 Notes & design docs: `documents/`
+- 📝 Design notes: `documents/`
 
 ---
 
@@ -37,25 +38,49 @@ Build artifacts (mods & assets) are placed under `build/<profile>/`.
 
 ---
 
-## High-level overview 🔧
+## High-level structure 🔧
 
-- The repository is a Cargo workspace. Key crates include the engine (`core_engine`), a core mod (`core_mod` + `core_mod_api`) and a gameplay mod (`base_mod` + `base_mod_api`).
-- Mods are built as dynamic libraries (see `base_mod` crate) and loaded by the engine at runtime.
-- Most architectural notes and design discussions live in `documents/` — the `docs/` pages are shorter, curated references.
+- Repository is a Cargo workspace. Key responsibilities are intentionally split:
+  - **`core_mod_api`** — code-only crate: typed APIs, plugin groups, workflows.
+  - **`core_mod`** — canonical assets & initialization: configs, scripts-as-assets, models, shaders, and default data.
+  - **`base_mod` / `base_mod_api`** — gameplay assets and scripting wrappers (rhai bindings).
+  - **`core_mod_macros` / `base_mod_macros`** — procedural macros used internally.
+- Engine loads built mods at runtime; see `core_engine` for the runtime composition.
+
+---
+
+## Canonical asset locations 📁
+
+- `core_mod/assets/configs/` — engine-related configuration files.
+- `core_mod/assets/scripts/` — engine-related scripts[^engine_vs_gameplay_assets_note].
+- `core_mod/assets/*MY_ASSET_TYPE*/` - other engine-related assets of any kind, e.g.: shaders, models, textures, sound files, etc.
+- `base_mod/assets/*MY_ASSET_TYPE*/` — gameplay-related configs, scripts, shaders, models, textures, sound files, etc..
+
+For conventions and guidelines, see `docs/Assets.md`.
+
+---
+
+## Guidelines for docs 📖
+
+- Prefer short, navigable docs in `docs/` and keep long-form history and design notes in `documents/`.
 
 ---
 
 ## Crate summary (short) 🧬
 
-| Crate                      | Purpose                                      |
+| Crate                      | Purpose & focus                             |
 |----------------------------|----------------------------------------------|
-| `core_engine`              | Main engine binary (entry point)             |
-| `core_mod`                 | Built-in core mod; bundles APIs & assets     |
-| `core_mod_api`             | API surface for engine + mods                |
-| `core_mod_macros`          | Macros used by core crates                   |
-| `base_mod`                 | Gameplay mod (cdylib)                        |
-| `base_mod_api`             | API for gameplay features & mods             |
-| `base_mod_macros`          | Macros for base gameplay                     |
-| `bevy_consumable_message`  | Custom bevy plugin used by the project       |
+| `core_engine`              | Runtime binary: composes Bevy plugins & runs app loop. |
+| `core_mod`                 | Canonical assets & built-in data; provides init hook for statics. |
+| `core_mod_api`             | Code-only API surface: plugins, types, workflows. |
+| `core_mod_macros`          | Procedural macros used by core crates. |
+| `base_mod`                 | Gameplay mod bundle (scripts, configs, assets). |
+| `base_mod_api`             | Scripting bindings (rhai wrappers) for gameplay. |
+| `base_mod_macros`          | Helpers for generating scripting wrappers. |
+| `bevy_consumable_message`  | Small reusable Bevy message utility. |
 
-See `docs/Crates.md` for more details and pointers.
+See `docs/Crates.md` for more details.
+
+---
+
+[^engine_vs_gameplay_assets_note]: Note: Almost all scripts should likely be gameplay-related and thus belong in `base_mod/assets/scripts/` instead. 

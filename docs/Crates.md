@@ -1,31 +1,17 @@
 # Crates
 
-Overview
+This workspace is organized into a set of focused crates. The table below explains each crate's *responsibility* and clarifies whether it is primarily **code** or **canonical assets**.
 
-This workspace uses multiple crates each with a focused responsibility. Below is a concise listing; see workspace `Cargo.toml` and each crate's README for details.
+| Crate | Primary focus | Notes |
+|---|---:|---|
+| `core_engine` | Code (binary) | Engine entrypoint — composes Bevy plugins, registers `CoreApiPluginGroup`, initializes `core_mod` and runs the app loop. See `core_engine/README.md`.
+| `core_mod` | Code (Entrypoint/Init) + Assets (Engine) | Engine-related data & assets (primarily configs, shaders, and occasionally rhai-scripts). Exposes an init hook used to register statics. See `core_mod/README.md`.
+| `core_mod_api` | Code (EngineAPI) | Internal API surface: types, plugin groups, workflows, ecs systems, etc. Code-only; No assets of any kind. See `core_mod_api/README.md`.
+| `core_mod_macros` | Code (macros) | Procedural macros: workflows, global statics helpers, USF utilities, etc..
+| `base_mod` | Code (Entrypoint/Init) + Assets (Gameplay) | Gameplay content: scripts, configs, models, etc.; and initialization glue (cdylib). See `base_mod/README.md`.
+| `base_mod_api` | Code (Rhai-Binds) | Rhai-Scripting wrappers/bindings for gameplay scripts to utilize; No assets of any kind. See `base_mod_api/README.md`.
+| `base_mod_macros` | Code (macros) | Macros to reduce boilerplate for script-bindings on the rust-side.
+| `bevy_consumable_message` | Code (utils) | Small Bevy utility crate used across the workspace.
 
-Key crates
 
-- `core_engine` — The executable entrypoint and main runtime loop.
-- `core_mod` — Core game logic and shared gameplay utilities.
-- `core_mod_api` — API types and interfaces exposed to mods.
-- `core_mod_macros` — Procedural macros used across core crates.
-- `base_mod` — Example or base content mod that ships with the project.
-- `base_mod_api` — API for base mods and utilities.
-- `bevy_consumable_message` — Example app/lib using Bevy; tooling for message flows.
-
-Workspace dependencies
-
-- `serde`, `bevy`, `anyhow`, and similar common crates are used across crates (check `Cargo.toml` files).
-
-Adding a new crate
-
-- Create the crate: `cargo new my_crate --lib` or `cargo new my_mod --lib`.
-- Add it to the workspace `Cargo.toml` under `members`.
-- If publishing as a mod: make it a `cdylib` with suitable `crate-type` in `Cargo.toml` and export the expected hooks.
-
-TODO:
-- Add a full table with paths and license info.
-- Document the exact semantic boundaries and API stability guarantees.
-
-See also: `README.md` and `docs/Modding.md` for mod packaging details.
+See also: `README.md`, `docs/Assets.md` and `docs/Modding.md`.
