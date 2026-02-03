@@ -28,15 +28,13 @@ Generative AI tools such as ChatGPT, GitHub Copilot, and GitHub Copilot Chat hav
 Windows (PowerShell):
 
 ```powershell
-./build.ps1 [dev|fastdev|release]
-./run.ps1 [profile]
+./build.ps1 [dev|fastdev|release]; ./run.ps1 [profile]
 ```
 
 Linux / macOS:
 
 ```bash
-./build.sh [dev|fastdev|release]
-./run.sh [profile]
+./build.sh [dev|fastdev|release]; ./run.sh [profile]
 ```
 
 Build artifacts (mods & assets) are placed under `build/<profile>/`.
@@ -50,7 +48,7 @@ Build artifacts (mods & assets) are placed under `build/<profile>/`.
   - **`core_mod`** — canonical assets & initialization: configs, scripts-as-assets, models, shaders, and default data.
   - **`base_mod` / `base_mod_api`** — gameplay assets and scripting wrappers (rhai bindings).
   - **`core_mod_macros` / `base_mod_macros`** — procedural macros used internally.
-- Engine loads built mods at runtime; see `core_engine` for the runtime composition.
+  - **`core_engine`** — runtime binary: loads all mods, register all plugins and plugin groups of all mods, and launches the bevy app.
 
 ---
 
