@@ -5,7 +5,10 @@ This folder contains curated, short-form documentation for common development ta
 Quick links
 
 - `Architecture.md` — engine & mod composition
-- `Concepts.md` — high-level USF concepts and terms
+- `Usf.md` — high-level USF concepts and terms
+- `Bevy.md` — how Bevy is used (viewport & host)
+- `Ecs.md` — ECS concepts and repo-specific usage
+- `Scripting.md` — Rhai scripting overview and hook system
 - `Building.md` — build & run instructions, profiles, tips
 - `Crates.md` — workspace crate responsibilities (code vs assets and engine/runtime vs game/gameplay)
 - `Modding.md` — how to structure a mod and where to put assets

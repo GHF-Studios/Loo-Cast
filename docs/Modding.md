@@ -11,12 +11,11 @@ Structure
 Features & API
 
 - The engine expects exported hooks such as `init_api` that register systems, assets, or event listeners.
-- Use `core_mod_api` / `base_mod_api` types for safe interop with the engine.
+- Use `core_mod_api` / `base_mod_api` types for safe interop with the engine/game respectively.
 
 Loading & discovery
 
-- Engine loads mods from configured mod directories at startup or dynamically when requested.
-- Metadata files (TODO: define filename and fields) help the engine determine load order and dependencies.
+- Engine loads mods from configured mod directories at startup and dynamically for whatever mods are present. (I think?)
 
 Testing & tips
 
@@ -24,7 +23,6 @@ Testing & tips
 - Keep mod APIs small and stable; use feature flags for optional capabilities.
 
 TODO:
+- Metadata files (TODO: define filename and fields) help the engine determine load order and dependencies.
 - Document the exact hook signatures and metadata schema.
 - Add example mod template and a step-by-step guide (link to `base_mod/`).
-
-See: `docs/Crates.md` and `README.md` for more on packaging and runtime.
