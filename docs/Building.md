@@ -1,4 +1,4 @@
-# Building & Running 🔧
+# Building & Running
 
 ## Quick commands
 
@@ -15,7 +15,7 @@
 
 ---
 
-## Profiles & artifact layout ✅
+## Profiles & artifact layout
 
 - `dev` — Cargo's debug build. Used for standard local debugging.
 - `fastdev` — A custom fast iteration profile.

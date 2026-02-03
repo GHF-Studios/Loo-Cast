@@ -1,4 +1,4 @@
-# Loo Cast — Project Overview 🚀
+# Loo Cast — Project Overview
 
 **Loo Cast** is a work-in-progress repository that contains both an engine and a game mod built in Rust.
 
@@ -16,14 +16,14 @@ Generative AI tools such as ChatGPT, GitHub Copilot, and GitHub Copilot Chat hav
 
 ## Quick links
 
-- 📚 Docs: `docs/` (TOC in `docs/README.md`)
-- 🧩 Crates: `docs/Crates.md` (differentiates code vs canonical assets)
-- ⚙️ Build & Run: `./build.ps1` / `./build.sh` and `./run.ps1` / `./run.sh`
-- 📝 Design notes: `documents/`
+- Docs: `docs/` (TOC in `docs/README.md`)
+- Crates: `docs/Crates.md` (differentiates code vs canonical assets)
+- Build & Run: `./build.ps1` / `./build.sh` and `./run.ps1` / `./run.sh`
+- Design notes: `documents/` (Inadvisable to visit at the present time; WIP!)
 
 ---
 
-## Quick start 🛠️
+## Quick start
 
 Windows (PowerShell):
 
@@ -43,7 +43,7 @@ Build artifacts (mods & assets) are placed under `build/<profile>/`.
 
 ---
 
-## High-level structure 🔧
+## High-level structure
 
 - Repository is a Cargo workspace. Key responsibilities are intentionally split:
   - **`core_mod_api`** — code-only crate: typed APIs, plugin groups, workflows.
@@ -54,7 +54,7 @@ Build artifacts (mods & assets) are placed under `build/<profile>/`.
 
 ---
 
-## Canonical asset locations 📁
+## Canonical asset locations
 
 - `core_mod/assets/configs/` — engine-related configuration files.
 - `core_mod/assets/scripts/` — engine-related scripts[^engine_vs_gameplay_assets_note].
@@ -65,13 +65,13 @@ For conventions and guidelines, see `docs/Assets.md`.
 
 ---
 
-## Guidelines for docs 📖
+## Guidelines for docs
 
 - Prefer short, navigable docs in `docs/` and keep long-form history and design notes in `documents/`.
 
 ---
 
-## Crate summary (short) 🧬
+## Crate summary (short)
 
 | Crate                      | Purpose & focus                             |
 |----------------------------|----------------------------------------------|

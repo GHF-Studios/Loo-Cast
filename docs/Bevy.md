@@ -1,4 +1,4 @@
-# Bevy — Viewport & Host 🎯
+# Bevy — Viewport & Host
 
 **Purpose:** Describe how Bevy is used in this project as the renderer/viewport and as the application host.
 

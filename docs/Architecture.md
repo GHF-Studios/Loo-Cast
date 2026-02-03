@@ -1,4 +1,4 @@
-# Architecture — Engine & Mod Composition 🏗️
+# Architecture — Engine & Mod Composition
 
 ## High-level summary
 

@@ -1,4 +1,4 @@
-# Scripting — Rhai-based scripting & schedule hooks 🛠️
+# Scripting — Rhai-based scripting & schedule hooks
 
 **Overview**
 - This project uses Rhai as the embedded scripting language for gameplay logic and light orchestration.

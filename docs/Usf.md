@@ -1,4 +1,4 @@
-# USF — Core concepts (Universal Simulation Framework) 🔍
+# USF — Core concepts (Universal Simulation Framework)
 
 This document replaces `Concepts.md` and captures the core terminology used across the project.
 

@@ -1,4 +1,4 @@
-# ECS — What it is & how we use it 🧩
+# ECS — What it is & how we use it
 
 **Quick overview**
 - ECS = Entities (identifiers), Components (data), Systems (logic). Systems operate on component data through queries and run in schedules/stages.
