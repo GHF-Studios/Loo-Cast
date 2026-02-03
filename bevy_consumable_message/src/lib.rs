@@ -1,3 +1,12 @@
+//! bevy_consumable_message
+//!
+//! Lightweight utility crate that provides a consumable message collection and convenient
+//! SystemParams for Bevy ECS. Messages can be read multiple times but consumed only once — a
+//! small pattern useful for ordered, single-consumption events.
+//!
+//! The crate is compact and intended for internal reuse across workspace crates, but its types
+//! are also generally useful as local utilities.
+
 use std::{
     ops::{Deref, DerefMut},
     slice::IterMut,
