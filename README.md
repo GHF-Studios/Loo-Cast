@@ -59,7 +59,7 @@ Build artifacts (mods & assets) are placed under `build/<profile>/`.
 - `core_mod/assets/configs/` — engine-related configuration files.
 - `core_mod/assets/scripts/` — engine-related scripts[^engine_vs_gameplay_assets_note].
 - `core_mod/assets/*MY_ASSET_TYPE*/` - other engine-related assets of any kind, e.g.: shaders, models, textures, sound files, etc.
-- `base_mod/assets/*MY_ASSET_TYPE*/` — gameplay-related configs, scripts, shaders, models, textures, sound files, etc..
+- `base_mod/assets/*MY_ASSET_TYPE*/` — gameplay-related configs, scripts, shaders, models, textures, sound files, etc.
 
 For conventions and guidelines, see `docs/Assets.md`.
 
