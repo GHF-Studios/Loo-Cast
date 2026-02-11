@@ -1,3 +1,14 @@
+//! core_mod_macros
+//!
+//! Procedural macros used by the core crates: workflow definitions, global statics helpers, USF
+//! scale utilities, and script-related helpers. These macros are implementation details for
+//! in-repo tooling and are focused on making core code concise and declarative.
+//!
+//! Guidance
+//! - Treat macros as "internal-first" — keep input syntax documented in the macro modules and
+//!   cover important cases with unit tests and examples.
+//! - Avoid promising public stability unless a macro is explicitly designed for external use.
+
 extern crate proc_macro;
 
 mod composite_workflow;

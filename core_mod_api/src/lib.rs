@@ -2,11 +2,49 @@
 #![allow(clippy::too_many_arguments)]
 #![warn(clippy::large_stack_frames)]
 
+//! core_mod_api
+//!
+//! The `core_mod_api` crate defines the internal API surface and the core plugin set used by the
+//! engine and first-party mods. Its goal is to be a concise, repository-focused contract for
+//! engine authors and mod developers working inside this codebase — not a public, stable SDK for
+//! external projects (yet).
+//!
+//! Purpose
+//! - Provide the primary plugin composition (`CoreApiPluginGroup`) and well-typed interfaces that
+//!   the engine and bundled mods use to interoperate.
+//! - Re-export commonly-used dependencies and provide shared utilities and types to reduce
+//!   friction across workspace crates.
+//!
+//! Intended audience & stability
+//! - This crate is primarily for internal use by contributors to the engine and official mods.
+//! - Treat public items as "internal-first": document intended stability and avoid promising
+//!   external backward-compat guarantees unless explicitly marked.
+//!
+//! Structure, scope & assets
+//! - Modules are organized around runtime subsystems: `chunk`, `config`, `core`, `debug`, `gpu`,
+//!   `input`, `logging`, `picking`, `player`, `reflection`, `render`, `script`, `time`, `usf`,
+//!   `utils`, `window`, and `workflow`.
+//! - The crate registers workflows and plugin groups; see `CoreApiPluginGroup` and the
+//!   `register_workflow_mods!` invocation for the canonical composition approach used by the
+//!   engine.
+//! - This crate is *code-only*. Canonical assets (configuration files, scripts-as-assets, models,
+//!   shaders, and other data) live in the companion `core_mod` crate — `core_mod_api` should not
+//!   contain asset files.
+//!
+//! Documentation style guidance
+//! - Keep the crate-level doc focused and short, with links to per-module docs for detail.
+//! - Prefer architectural notes and design discussions in `documents/` (longform) and `docs/`
+//!   (curated reference). Avoid long usage examples here until the API is intentionally
+//!   stabilized for external consumption.
+//! - When adding public APIs, include a concise module-level doc explaining intent, lifecycle
+//!   guarantees, and any invariants callers must respect.
+
+
 pub use bevy_consumable_message;
 pub use core_mod_macros;
 
 pub use anymap;
-#[cfg(debug_assertions)]
+#[cfg(all(debug_assertions, not(target_os = "windows")))]
 #[allow(unused_imports)]
 pub use bevy_dylib;
 pub use bevy;

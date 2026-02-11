@@ -25,7 +25,7 @@ elif [[ "$BUILD_PROFILE" == "dev" ]]; then
   cargo_args=""
   target_name="debug"
 else
-  cargo_args="--profile $BUILD_PROFILE"
+  cargo_args="--profile=$BUILD_PROFILE"
 fi
 
 target_dir="$workspace_root/target/$target_name"

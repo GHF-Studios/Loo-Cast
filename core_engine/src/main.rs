@@ -1,3 +1,12 @@
+//! core_engine
+//!
+//! The engine executable and runtime entry point. `core_engine` composes third-party Bevy plugins,
+//! registers the `CoreApiPluginGroup`, initializes the `core_mod` assets and statics, and runs the
+//! application loop used for development and testing.
+//!
+//! Use the repository build scripts (`build.ps1` / `build.sh`) to build and run the binary. For
+//! in-depth design notes see `documents/` and `docs/`.
+
 use core_mod::*;
 use core_mod_api::config::statics::CONFIG;
 use core_mod_api::core::types::ShortTime;
