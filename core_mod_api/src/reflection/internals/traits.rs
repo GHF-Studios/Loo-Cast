@@ -4,6 +4,7 @@ use std::hash::Hash;
 
 use crate::reflection::traits::StaticTraitObject;
 
+
 pub trait GetTypeId: Sized + 'static {
     const TYPE_ID: &'static str;
 }

@@ -4,6 +4,7 @@ use std::sync::TryLockError;
 use crate::bevy::prelude::Commands as BevyCommands;
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
 use crate::reflection::access::ScopedAccessHandle;
+use crate::reflection::internals::managed_traits::BundleTraitObject;
 use crate::reflection::internals::traits::ScopedAccessProvider;
 
 use crate::script::{
@@ -18,7 +19,7 @@ use crate::script::{
 
 impl WorldApi for Shared<World> {
     fn commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
-        let mut world = match self.world.try_write() {
+        let mut world = match self.world.0.try_write() {
             Ok(guard) => guard,
             Err(TryLockError::Poisoned(_)) => panic!("World lock poisoned"),
             Err(TryLockError::WouldBlock) => panic!("World is already borrowed elsewhere"),
@@ -42,7 +43,7 @@ impl WorldApi for Shared<World> {
     }
 
     fn flush(&self) {
-        let mut world = match self.world.try_write() {
+        let mut world = match self.world.0.try_write() {
             Ok(guard) => guard,
             Err(TryLockError::Poisoned(_)) => panic!("World lock poisoned"),
             Err(TryLockError::WouldBlock) => panic!("World is already borrowed elsewhere"),
@@ -56,7 +57,7 @@ impl WorldApi for Shared<World> {
     }
 
     fn spawn_empty(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
-        let mut world = match self.world.try_write() {
+        let mut world = match self.world.0.try_write() {
             Ok(guard) => guard,
             Err(TryLockError::Poisoned(_)) => panic!("World lock poisoned"),
             Err(TryLockError::WouldBlock) => panic!("World is already borrowed elsewhere"),
@@ -79,8 +80,8 @@ impl WorldApi for Shared<World> {
         })
     }
 
-    fn spawn_single(&self, bundle: Shared<Bundle>, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
-        let mut world = match self.world.try_write() {
+    fn spawn_single(&self, bundle: Shared<BundleTraitObject>, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
+        let mut world = match self.world.0.try_write() {
             Ok(guard) => guard,
             Err(TryLockError::Poisoned(_)) => panic!("World lock poisoned"),
             Err(TryLockError::WouldBlock) => panic!("World is already borrowed elsewhere"),

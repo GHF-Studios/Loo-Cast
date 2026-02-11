@@ -1,5 +1,5 @@
 use rhai::Shared;
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::{ops::{Deref, DerefMut}, sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard}};
 
 use crate::reflection::ids::TypeId;
 
@@ -11,24 +11,30 @@ pub trait ScopedAccessHandleExt<'lock, T: 'lock> {
 }
 impl<'lock, T: 'lock> ScopedAccessHandleExt<'lock, T> for ScopedAccessHandle<T> {
     fn new(value: T) -> Self {
-        Shared::new(RwLock::new(ScopedAccess::new(value)))
+        ScopedAccessHandle(Shared::new(RwLock::new(ScopedAccess::new(value))))
     }
 
     fn as_ref(&'lock self) -> ScopedAccessReadGuard<'lock, T> {
-        ScopedAccessReadGuard::new(self.read().unwrap())
+        ScopedAccessReadGuard::new(self.0.read().unwrap())
     }
 
     fn as_mut(&'lock mut self) -> ScopedAccessWriteGuard<'lock, T> {
-        ScopedAccessWriteGuard::new(self.write().unwrap())
+        ScopedAccessWriteGuard::new(self.0.write().unwrap())
     }
 
     fn into_inner(self) -> T {
-        let bundle = Arc::into_inner(self).expect("The bundle is referenced elsewhere; cannot take the inner value!");
+        let bundle = Arc::into_inner(self.0).expect("The bundle is referenced elsewhere; cannot take the inner value!");
         let mut bundle = bundle.into_inner().unwrap();
         bundle.invalidate().unwrap()
     }
 }
-pub type ScopedAccessHandle<T> = Shared<RwLock<ScopedAccess<T>>>;
+
+pub struct ScopedAccessHandle<T>(pub Shared<RwLock<ScopedAccess<T>>>);
+impl<T> Clone for ScopedAccessHandle<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
 
 pub struct ScopedAccessReadGuard<'lock, T: 'lock> {
     pub inner: RwLockReadGuard<'lock, ScopedAccess<T>>

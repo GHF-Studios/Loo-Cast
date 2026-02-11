@@ -7,7 +7,7 @@ use crate::script::ecs::system::commands::{bindings::types::{Commands, EntityCom
 
 impl CommandsApi for Shared<Commands> {
     fn spawn_empty(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
-        let mut commands = match self.commands.try_write() {
+        let mut commands = match self.commands.0.try_write() {
             Ok(guard) => guard,
             Err(TryLockError::Poisoned(_)) => panic!("Commands lock poisoned"),
             Err(TryLockError::WouldBlock) => panic!("Commands is already borrowed elsewhere"),
@@ -33,7 +33,7 @@ impl CommandsApi for Shared<Commands> {
 
 impl EntityCommandsApi for Shared<EntityCommands> {
     fn commands(&self, ctx: NativeCallContext, f: FnPtr) -> Dynamic {
-        let mut entity_commands = match self.entity_commands.try_write() {
+        let mut entity_commands = match self.entity_commands.0.try_write() {
             Ok(guard) => guard,
             Err(TryLockError::Poisoned(_)) => panic!("EntityCommands lock poisoned"),
             Err(TryLockError::WouldBlock) => panic!("EntityCommands is already borrowed elsewhere"),
@@ -57,7 +57,7 @@ impl EntityCommandsApi for Shared<EntityCommands> {
     }
 
     fn id(&self) -> BevyEntity {
-        let entity_commands = match self.entity_commands.try_read() {
+        let entity_commands = match self.entity_commands.0.try_read() {
             Ok(guard) => guard,
             Err(TryLockError::Poisoned(_)) => panic!("EntityCommands lock poisoned"),
             Err(TryLockError::WouldBlock) => panic!("EntityCommands is already borrowed elsewhere"),

@@ -23,11 +23,11 @@ unsafe impl ScopedAccessProvider<EntityCommands<'static>> for Commands<'static, 
         // Erase lifetime(s)
         let entity_commands_static = std::mem::transmute::<EntityCommands<'_>, EntityCommands<'static>>(entity_commands);
 
-        Arc::new(RwLock::new(ScopedAccess::new(entity_commands_static)))
+        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(entity_commands_static))))
     }
 
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<EntityCommands<'static>>) {
-        let mut entity_commands_raw_scoped = Arc::into_inner(handle)
+        let mut entity_commands_raw_scoped = Arc::into_inner(handle.0)
             .expect("EntityCommands handle leaked or cloned")
             .into_inner()
             .expect("RwLock poisoned");
@@ -55,11 +55,11 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for EntityCommands<
         // Erase lifetime(s)
         let commands_static = std::mem::transmute::<Commands<'_, '_>, Commands<'static, 'static>>(commands);
 
-        Arc::new(RwLock::new(ScopedAccess::new(commands_static)))
+        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(commands_static))))
     }
 
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<Commands<'static, 'static>>) {
-        let mut commands_raw_scoped = Arc::into_inner(handle)
+        let mut commands_raw_scoped = Arc::into_inner(handle.0)
             .expect("Commands handle leaked or cloned")
             .into_inner()
             .expect("RwLock poisoned");
@@ -84,11 +84,11 @@ unsafe impl ScopedAccessProvider<BevyEntity> for EntityCommands<'static> {
 
         let id = self.id();
 
-        Arc::new(RwLock::new(ScopedAccess::new(id)))
+        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(id))))
     }
 
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<BevyEntity>) {
-        let mut id_raw_scoped = Arc::into_inner(handle)
+        let mut id_raw_scoped = Arc::into_inner(handle.0)
             .expect("BevyEntity handle leaked or cloned")
             .into_inner()
             .expect("RwLock poisoned");
