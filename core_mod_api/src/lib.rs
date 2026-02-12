@@ -104,6 +104,7 @@ pub use uuid;
 //pub mod traits;
 
 // Modules
+pub mod access;
 pub mod chunk;
 pub mod config;
 pub mod core;
