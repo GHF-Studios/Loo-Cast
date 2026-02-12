@@ -208,78 +208,24 @@ impl<T> AccessCell<T> {
         }
     }
 
-    pub unsafe fn read(&self) -> ReadGuard<T> {
+    pub fn read(&self) -> ReadGuard<T> {
         let inner = unsafe { &mut *self.ptr };
-        match inner.access_state.load() {
-            AccessState::Available => {
-                inner.access_state.store(AccessState::Reading { ref_count: 1 });
-            },
-            AccessState::Reading { ref_count: n } => {
-                inner.access_state.store(AccessState::Reading { ref_count: n + 1 });
-            },
-            AccessState::Writing => panic!("AccessCell: cannot read; cell is already in use(write)!"),
-            AccessState::Taken => panic!("AccessCell: cannot read; cell is not available anymore!"),
-        }
-        ReadGuard { cell: *self }
     }
 
-    pub unsafe fn write(&self) -> WriteGuard<T> {
+    pub fn write(&self) -> WriteGuard<T> {
         let inner = unsafe { &mut *self.ptr };
-        match inner.access_state.load() {
-            AccessState::Available => {
-                inner.access_state.store(AccessState::Writing);
-            },
-            AccessState::Reading { ref_count: _ } => panic!("AccessCell: cannot write; cell is already in use(read)!"),
-            AccessState::Writing => panic!("AccessCell: cannot write: cell is already in use(write)!"),
-            AccessState::Taken => panic!("AccessCell: cannot write; cell is not available anymore!"),
-        }
-        WriteGuard { cell: *self }
     }
 
-    pub unsafe fn take(&self) -> T {
+    pub fn take(&self) -> T {
         let inner = unsafe { &mut *self.ptr };
-        match inner.access_state.load() {
-            AccessState::Available => {
-                inner.access_state.store(AccessState::Taken);
-                inner.value.take().expect("AccessCell: value already taken")
-            },
-            AccessState::Reading { ref_count: _ } => panic!("AccessCell: cannot take; cell is already in use(read)!"),
-            AccessState::Writing => panic!("AccessCell: cannot take: cell is already in use(write)!"),
-            AccessState::Taken => panic!("AccessCell: cannot take; cell is not available anymore!"),
-        }
     }
 
-    unsafe fn release_read(&self) {
+    fn release_read(&self, guard: ReadGuard<T>) {
         let inner = unsafe { &mut *self.ptr };
-        match inner.access_state.load() {
-            AccessState::Reading { ref_count: n } if n > 1 => {
-                inner.access_state.store(AccessState::Reading { ref_count: n - 1 });
-            }
-            AccessState::Reading { ref_count: _ } => {
-                inner.access_state.store(AccessState::Available);
-            }
-            _ => panic!("AccessCell: mismatched read release"),
-        }
     }
 
-    unsafe fn release_write(&self) {
+    fn release_write(&self, guard: WriteGuard<T>) {
         let inner = unsafe { &mut *self.ptr };
-        match inner.access_state.load() {
-            AccessState::Writing => {
-                inner.access_state.store(AccessState::Available);
-            }
-            _ => panic!("AccessCell: mismatched write release"),
-        }
-    }
-
-    unsafe fn get_ref(&self) -> &T {
-        let inner = unsafe { &*self.ptr };
-        inner.value.as_ref().expect("AccessCell: value taken")
-    }
-
-    unsafe fn get_mut(&self) -> &mut T {
-        let inner = unsafe { &mut *self.ptr };
-        inner.value.as_mut().expect("AccessCell: value taken")
     }
 }
 
@@ -292,7 +238,7 @@ impl<T> Drop for AccessCell<T> {
 }
 
 pub struct ReadGuard<T> {
-    cell: AccessCell<T>,
+    ptr: *mut AccessCellInner<T>,
 }
 
 impl<T> Deref for ReadGuard<T> {
@@ -303,15 +249,8 @@ impl<T> Deref for ReadGuard<T> {
     }
 }
 
-impl<T> ReadGuard<T> {
-    pub fn release(self) {
-        unsafe { self.cell.release_read() };
-        mem::forget(self);
-    }
-}
-
 pub struct WriteGuard<T> {
-    cell: AccessCell<T>,
+    ptr: *mut AccessCellInner<T>,
 }
 
 impl<T> Deref for WriteGuard<T> {
@@ -325,12 +264,5 @@ impl<T> Deref for WriteGuard<T> {
 impl<T> DerefMut for WriteGuard<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.cell.get_mut() }
-    }
-}
-
-impl<T> WriteGuard<T> {
-    pub fn release(self) {
-        unsafe { self.cell.release_write() };
-        mem::forget(self);
     }
 }
