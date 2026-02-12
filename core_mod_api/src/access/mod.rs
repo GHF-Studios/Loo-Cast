@@ -1,5 +1,5 @@
 use std::{
-    cell::Cell,
+    cell::{Cell, UnsafeCell},
     mem,
     ops::{Deref, DerefMut},
     sync::atomic::{AtomicBool, Ordering},
@@ -66,7 +66,7 @@ impl AtomicAccessState {
         }
     }
 
-    pub fn get_state(&self) -> AccessState {
+    pub fn load(&self) -> AccessState {
         match self.inner.get() {
             Self::TAKEN => AccessState::Taken,
             Self::AVAILABLE => AccessState::Available,
@@ -74,6 +74,16 @@ impl AtomicAccessState {
             n if n >= Self::READING_BASE => AccessState::Reading { ref_count: n - Self::READING_BASE },
             _ => unreachable!(),
         }
+    }
+
+    pub fn store(&self, value: AccessState) {
+        let new_value = match value {
+            AccessState::Taken => Self::TAKEN,
+            AccessState::Available => Self::AVAILABLE,
+            AccessState::Writing => Self::WRITING,
+            AccessState::Reading { ref_count } => Self::READING_BASE + ref_count - 1
+        };
+        self.inner.set(new_value);
     }
 
     pub fn start_read(&self) -> Result<(), AccessStartReadError> {
@@ -178,8 +188,8 @@ impl AtomicAccessState {
 
 #[repr(C)]
 struct AccessCellInner<T> {
-    access_state: AccessState,
-    value: Option<T>,
+    access_state: AtomicAccessState,
+    value: UnsafeCell<Option<T>>,
 }
 
 #[derive(Clone)]
@@ -190,8 +200,8 @@ pub struct AccessCell<T> {
 impl<T> AccessCell<T> {
     pub fn new(value: T) -> Self {
         let inner = Box::new(AccessCellInner {
-            access_state: AccessState::Available,
-            value: Some(value),
+            access_state: AtomicAccessState::new_available(),
+            value: UnsafeCell::new(Some(value)),
         });
         Self {
             ptr: Box::into_raw(inner),
@@ -200,12 +210,12 @@ impl<T> AccessCell<T> {
 
     pub unsafe fn read(&self) -> ReadGuard<T> {
         let inner = unsafe { &mut *self.ptr };
-        match inner.access_state {
+        match inner.access_state.load() {
             AccessState::Available => {
-                inner.access_state = AccessState::Reading(1);
+                inner.access_state.store(AccessState::Reading { ref_count: 1 });
             },
-            AccessState::Reading(n) => {
-                inner.access_state = AccessState::Reading(n + 1);
+            AccessState::Reading { ref_count: n } => {
+                inner.access_state.store(AccessState::Reading { ref_count: n + 1 });
             },
             AccessState::Writing => panic!("AccessCell: cannot read; cell is already in use(write)!"),
             AccessState::Taken => panic!("AccessCell: cannot read; cell is not available anymore!"),
@@ -215,11 +225,11 @@ impl<T> AccessCell<T> {
 
     pub unsafe fn write(&self) -> WriteGuard<T> {
         let inner = unsafe { &mut *self.ptr };
-        match inner.access_state {
+        match inner.access_state.load() {
             AccessState::Available => {
-                inner.access_state = AccessState::Writing;
+                inner.access_state.store(AccessState::Writing);
             },
-            AccessState::Reading(_) => panic!("AccessCell: cannot write; cell is already in use(read)!"),
+            AccessState::Reading { ref_count: _ } => panic!("AccessCell: cannot write; cell is already in use(read)!"),
             AccessState::Writing => panic!("AccessCell: cannot write: cell is already in use(write)!"),
             AccessState::Taken => panic!("AccessCell: cannot write; cell is not available anymore!"),
         }
@@ -228,12 +238,12 @@ impl<T> AccessCell<T> {
 
     pub unsafe fn take(&self) -> T {
         let inner = unsafe { &mut *self.ptr };
-        match inner.access_state {
+        match inner.access_state.load() {
             AccessState::Available => {
-                inner.access_state = AccessState::Taken;
+                inner.access_state.store(AccessState::Taken);
                 inner.value.take().expect("AccessCell: value already taken")
             },
-            AccessState::Reading(_) => panic!("AccessCell: cannot take; cell is already in use(read)!"),
+            AccessState::Reading { ref_count: _ } => panic!("AccessCell: cannot take; cell is already in use(read)!"),
             AccessState::Writing => panic!("AccessCell: cannot take: cell is already in use(write)!"),
             AccessState::Taken => panic!("AccessCell: cannot take; cell is not available anymore!"),
         }
@@ -241,12 +251,12 @@ impl<T> AccessCell<T> {
 
     unsafe fn release_read(&self) {
         let inner = unsafe { &mut *self.ptr };
-        match inner.access_state {
-            AccessState::Reading(n) if n > 1 => {
-                inner.access_state = AccessState::Reading(n - 1);
+        match inner.access_state.load() {
+            AccessState::Reading { ref_count: n } if n > 1 => {
+                inner.access_state.store(AccessState::Reading { ref_count: n - 1 });
             }
-            AccessState::Reading(_) => {
-                inner.access_state = AccessState::Available;
+            AccessState::Reading { ref_count: _ } => {
+                inner.access_state.store(AccessState::Available);
             }
             _ => panic!("AccessCell: mismatched read release"),
         }
@@ -254,9 +264,9 @@ impl<T> AccessCell<T> {
 
     unsafe fn release_write(&self) {
         let inner = unsafe { &mut *self.ptr };
-        match inner.access_state {
+        match inner.access_state.load() {
             AccessState::Writing => {
-                inner.access_state = AccessState::Available;
+                inner.access_state.store(AccessState::Available);
             }
             _ => panic!("AccessCell: mismatched write release"),
         }
