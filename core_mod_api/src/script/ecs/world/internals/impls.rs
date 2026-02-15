@@ -7,9 +7,9 @@ use crate::bevy::ecs::system::{Commands, EntityCommands};
 use crate::bevy::ecs::world::EntityWorldMut;
 use crate::bevy::prelude::{World, Query};
 use crate::player::bundles::PlayerBundle;
-use crate::reflection::access::{ScopedAccess, ScopedAccessHandle};
 use crate::reflection::internals::managed_traits::{BundleTrait, BundleTraitObject};
 use crate::reflection::internals::traits::{ScopedAccessProvider, ToTraitObject};
+use crate::script::access::{ScopedAccess, ScopedAccessHandle};
 use crate::script::ecs::bundle::bindings::types::Bundle;
 use crate::script::ecs::component::internals::statics::COMPONENT_CTOR_REGISTRY;
 

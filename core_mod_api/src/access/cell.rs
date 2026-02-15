@@ -230,22 +230,49 @@ impl<M: AccessCellMode, T> AccessCell<M, T> {
     }
 
     pub fn start_read(&self) -> AccessCellReadGuard<T> {
-        let inner = unsafe { self.inner() };
-        
-        // Atomically make sure that we can do the thing, and mark the access_state as if we had already done the thing
-        match inner.access_state.start_read() {
-            Ok(_) => {
-                // Actually do the thing, now that we are sure we are allowed to and that no one else is attempting anything
-                AccessCellReadGuard {
-                    ptr: self.ptr,
-                    invalidated: false,
-                }
-            },
+        match self.try_start_read() {
+            Ok(guard) => guard,
             Err(e) => panic!("Failed to start read access: {e:?}!"),
         }
     }
 
-    pub fn end_read(&self, mut guard: AccessCellReadGuard<T>) {
+    pub fn end_read(&self, guard: AccessCellReadGuard<T>) {
+        match self.try_end_read(guard) {
+            Ok(_) => {},
+            Err(e) => panic!("Failed to end read access: {e:?}!"),
+        }
+    }
+
+    pub fn start_write(&self) -> AccessCellWriteGuard<T> {
+        match self.try_start_write() {
+            Ok(guard) => guard,
+            Err(e) => panic!("Failed to start write access: {e:?}!"),
+        }
+    }
+
+    pub fn end_write(&self, guard: AccessCellWriteGuard<T>) {
+        match self.try_end_write(guard) {
+            Ok(_) => {},
+            Err(e) => panic!("Failed to end write access: {e:?}!"),
+        }
+    }
+
+    pub fn try_start_read(&self) -> Result<AccessCellReadGuard<T>, AccessCellStartReadError> {
+        let inner = unsafe { self.inner() };
+        
+        inner.access_state
+            // Atomically make sure that we can do the thing, and mark the access_state as if we had already done the thing
+            .start_read()
+            // Actually do the thing, now that we are sure we are allowed to and that no one else is attempting anything
+            .map(|_| {
+                AccessCellReadGuard {
+                    ptr: self.ptr,
+                    invalidated: false,
+                }
+            })
+    }
+
+    pub fn try_end_read(&self, mut guard: AccessCellReadGuard<T>) -> Result<(), AccessCellEndReadError> {
         let inner = unsafe { self.inner() };
 
         // Atomically make sure that we can do the thing, and mark the access_state as if we had already done the thing
@@ -254,28 +281,29 @@ impl<M: AccessCellMode, T> AccessCell<M, T> {
                 // Actually do the thing, now that we are sure we are allowed to and that no one else is attempting anything
                 guard.invalidated = true;
                 drop(guard); // Nice and explicit
+                Ok(())
             },
-            Err(e) => panic!("Failed to end read access: {:?}", e),
+            Err(e) => Err(e),
         }
     }
 
-    pub fn start_write(&self) -> AccessCellWriteGuard<T> {
+    pub fn try_start_write(&self) -> Result<AccessCellWriteGuard<T>, AccessCellStartWriteError> {
         let inner = unsafe { self.inner() };
 
         // Atomically make sure that we can do the thing, and mark the access_state as if we had already done the thing
         match inner.access_state.start_write() {
             Ok(_) => {
                 // Actually do the thing, now that we are sure we are allowed to and that no one else is attempting anything
-                AccessCellWriteGuard {
+                Ok(AccessCellWriteGuard {
                     ptr: self.ptr,
                     invalidated: false,
-                }
+                })
             },
-            Err(e) => panic!("Failed to start write access: {:?}", e),
+            Err(e) => Err(e),
         }
     }
 
-    pub fn end_write(&self, mut guard: AccessCellWriteGuard<T>) {
+    pub fn try_end_write(&self, mut guard: AccessCellWriteGuard<T>) -> Result<(), AccessCellEndWriteError> {
         let inner = unsafe { self.inner() };
 
         // Atomically make sure that we can do the thing, and mark the access_state as if we had already done the thing
@@ -284,8 +312,9 @@ impl<M: AccessCellMode, T> AccessCell<M, T> {
                 // Actually do the thing, now that we are sure we are allowed to and that no one else is attempting anything
                 guard.invalidated = true;
                 drop(guard); // Nice and explicit
+                Ok(())
             },
-            Err(e) => panic!("Failed to end write access: {:?}", e),
+            Err(e) => Err(e),
         }
     }
 
@@ -335,7 +364,6 @@ impl<T> Deref for AccessCellReadGuard<T> {
     }
 }
 
-// Not sure yet if this impl makes a ton of sense
 impl<T> Drop for AccessCellReadGuard<T> {
     fn drop(&mut self) {
         if !self.invalidated {
@@ -373,7 +401,6 @@ impl<T> DerefMut for AccessCellWriteGuard<T> {
     }
 }
 
-// Not sure yet if this impl makes a ton of sense
 impl<T> Drop for AccessCellWriteGuard<T> {
     fn drop(&mut self) {
         if !self.invalidated {

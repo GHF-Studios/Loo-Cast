@@ -3,9 +3,9 @@ use std::sync::TryLockError;
 
 use crate::bevy::prelude::Commands as BevyCommands;
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
-use crate::reflection::access::ScopedAccessHandle;
 use crate::reflection::internals::managed_traits::BundleTraitObject;
 use crate::reflection::internals::traits::ScopedAccessProvider;
+use crate::script::access::ScopedAccessHandle;
 
 use crate::script::{
     ecs::{

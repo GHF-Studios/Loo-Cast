@@ -1,8 +1,8 @@
 use crate::bevy::prelude::Entity as BevyEntity;
 use crate::bevy::ecs::system::Commands;
 use crate::bevy::ecs::system::EntityCommands;
-use crate::reflection::access::{ScopedAccess, ScopedAccessHandle};
 use crate::reflection::internals::traits::ScopedAccessProvider;
+use crate::script::access::{ScopedAccess, ScopedAccessHandle};
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 

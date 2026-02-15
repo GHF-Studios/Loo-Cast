@@ -1,6 +1,6 @@
 use rhai::Dynamic;
 
-use crate::{player::bundles::PlayerBundle, reflection::{access::ScopedAccessHandle, ids::{StaticTraitId, TypeId}, internals::traits::{ToTraitObject, Trait}, traits::StaticTraitObject}};
+use crate::{player::bundles::PlayerBundle, reflection::{ids::{StaticTraitId, TypeId}, internals::traits::{ToTraitObject, Trait}, traits::StaticTraitObject}, script::access::ScopedAccessHandle};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct BundleTrait;

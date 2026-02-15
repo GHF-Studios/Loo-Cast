@@ -4,8 +4,8 @@ use std::sync::{Arc, RwLock};
 
 use crate::bevy::prelude::Entity;
 use crate::bevy::ecs::world::{EntityRef, EntityMut, EntityWorldMut};
-use crate::reflection::access::{ScopedAccess, ScopedAccessHandle};
 use crate::reflection::internals::traits::{ReadAccessProvider, ScopedAccessProvider};
+use crate::script::access::{ScopedAccess, ScopedAccessHandle};
 
 impl ReadAccessProvider<Entity> for EntityRef<'static> {
     fn access(&self, method: &str, args: Box<dyn Any>) -> Entity {

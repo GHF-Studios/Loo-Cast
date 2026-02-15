@@ -22,8 +22,8 @@ use crate::reflection::{
     ids::TypeId,
     type_info::TypeInfo,
 };
-use crate::reflection::access::ScopedAccessHandle;
 use crate::reflection::internals::statics::{TYPE_REGISTRY, CTOR_REGISTRY, METHOD_REGISTRY, STATIC_FUNCTION_REGISTRY};
+use crate::script::access::ScopedAccessHandle;
 use rhai::Engine;
 use std::any::Any;
 
@@ -95,6 +95,31 @@ pub(crate) unsafe trait ScopedAccessProvider<T> {
     /// This must only be called with a handle previously returned by `start_access`
     /// during the current system execution.
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<T>);
+}
+
+pub trait ScriptType {
+    fn register_type(engine: &mut Engine);
+}
+pub trait ScriptTypeOwned: ScriptType {
+}
+pub trait ScriptTypeClone: ScriptType {
+}
+pub trait ScriptTypePersistentRef: ScriptType {
+}
+pub trait ScriptTypePersistentMut: ScriptType {
+}
+/// Like a PersistentRef, but backs a rust-native immutable borrow *with* lifetimes, aka it implements runtime-checks against use-after-free's and aliasing issues; 
+pub trait ScriptTypeScopedRef: ScriptType {
+}
+pub trait ScriptTypeScopedMut: ScriptType {
+}
+
+pub trait ScriptFunction {
+    fn register_function(engine: &mut Engine);
+}
+
+pub trait ScriptModule {
+    fn register_module(engine: &mut Engine);
 }
 
 pub trait EngineExt {

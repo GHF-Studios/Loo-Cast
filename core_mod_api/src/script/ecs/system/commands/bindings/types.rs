@@ -1,5 +1,5 @@
 use crate::bevy::prelude::Commands as BevyCommands;
-use crate::reflection::access::ScopedAccessHandle;
+use crate::script::access::ScopedAccessHandle;
 use rhai::{Dynamic, FnPtr, NativeCallContext};
 
 use crate::reflection::internals::traits::ScopedAccessProvider;

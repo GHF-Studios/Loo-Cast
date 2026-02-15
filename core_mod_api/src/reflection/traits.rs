@@ -1,9 +1,9 @@
 use rhai::{Dynamic, ImmutableString};
 
-use crate::reflection::access::{ScopedAccessHandle, ScopedAccessHandleExt};
 use crate::reflection::ids::{TypeId, StaticTraitId, DynamicTraitId};
 use crate::reflection::internals::statics::{TRAIT_OBJECT_VTABLE_REGISTRY, TYPE_REGISTRY};
 use crate::reflection::internals::traits::Trait;
+use crate::script::access::{ScopedAccessHandle, ScopedAccessHandleExt};
 
 pub type TraitObjectUseRefFn = fn(Dynamic, &str, Dynamic) -> Dynamic;
 pub type TraitObjectUseMutFn = fn(Dynamic, &str, Dynamic) -> Dynamic;

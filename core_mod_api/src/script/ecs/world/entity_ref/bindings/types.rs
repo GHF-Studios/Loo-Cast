@@ -1,6 +1,6 @@
 use crate::bevy::prelude::{EntityRef as BevyEntityRef, EntityMut as BevyEntityMut, Entity as BevyEntity};
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
-use crate::reflection::access::ScopedAccessHandle;
+use crate::script::access::ScopedAccessHandle;
 
 #[repr(transparent)]
 pub struct EntityRef {
