@@ -121,7 +121,7 @@ pub mod shop {
                 fn name(&self) -> &'static str { "test_function" }
             }
             impl crate::reflection::internals::traits::ModuleAssociatedFunction for __TestFunction__ {
-                fn get_func_registrator(&self) -> impl Fn(&mut rhai::Module) {
+                fn get_registrator(&self) -> impl Fn(&mut rhai::Module) {
                     let name = crate::reflection::internals::traits::Function::name(self);
                     move |parent_module: &mut rhai::Module| {
                         rhai::FuncRegistration::new(name)
@@ -135,7 +135,7 @@ pub mod shop {
                 fn name(&self) -> &'static str { "verify_price" }
             }
             impl crate::reflection::internals::traits::TypeAssociatedFunction for __VerifyPrice__ {
-                fn get_func_registrator(&self) -> impl Fn(&mut rhai::Module) {
+                fn get_registrator(&self) -> impl Fn(&mut rhai::Module) {
                     let name = crate::reflection::internals::traits::Function::name(self);
                     move |parent_module: &mut rhai::Module| {
                         rhai::FuncRegistration::new(name)
@@ -149,7 +149,7 @@ pub mod shop {
                 fn name(&self) -> &'static str { "new" }
             }
             impl crate::reflection::internals::traits::ConstructorFunction for __New__ {
-                fn get_func_registrator(&self) -> impl Fn(&mut rhai::Module) {
+                fn get_registrator(&self) -> impl Fn(&mut rhai::Module) {
                     let name = crate::reflection::internals::traits::Function::name(self);
                     move |parent_module: &mut rhai::Module| {
                         rhai::FuncRegistration::new(name)
@@ -163,7 +163,7 @@ pub mod shop {
                 fn name(&self) -> &'static str { "name" }
             }
             impl crate::reflection::internals::traits::MethodFunction for __Name__ {
-                fn get_func_registrator(&self) -> impl Fn(&mut rhai::Engine) {
+                fn get_registrator(&self) -> impl Fn(&mut rhai::Engine) {
                     let name = crate::reflection::internals::traits::Function::name(self);
                     move |engine: &mut rhai::Engine| {
                         engine.register_fn(name, SexShopProduct::name);
@@ -175,7 +175,7 @@ pub mod shop {
                 fn name(&self) -> &'static str { "price_usd" }
             }
             impl crate::reflection::internals::traits::MethodFunction for __PriceUsd__ {
-                fn get_func_registrator(&self) -> impl Fn(&mut rhai::Engine) {
+                fn get_registrator(&self) -> impl Fn(&mut rhai::Engine) {
                     let name = crate::reflection::internals::traits::Function::name(self);
                     move |engine: &mut rhai::Engine| {
                         engine.register_fn(name, SexShopProduct::price_usd);
@@ -339,31 +339,31 @@ pub trait Function {
     fn name(&self) -> &'static str;
 }
 pub trait ModuleAssociatedFunction: Function {
-    fn get_func_registrator(&self) -> impl Fn(&mut rhai::Module);
+    fn get_registrator(&self) -> impl Fn(&mut rhai::Module);
 
     fn register_module_associated_function(&self, parent_module: &mut rhai::Module) {
-        (self.get_func_registrator())(parent_module);
+        (self.get_registrator())(parent_module);
     }
 }
 pub trait TypeAssociatedFunction: Function {
-    fn get_func_registrator(&self) -> impl Fn(&mut rhai::Module);
+    fn get_registrator(&self) -> impl Fn(&mut rhai::Module);
 
     fn register_type_associated_function(&self, parent_module: &mut rhai::Module) {
-        (self.get_func_registrator())(parent_module);
+        (self.get_registrator())(parent_module);
     }
 }
 pub trait ConstructorFunction: Function {
-    fn get_func_registrator(&self) -> impl Fn(&mut rhai::Module);
+    fn get_registrator(&self) -> impl Fn(&mut rhai::Module);
 
     fn register_constructor_function(&self, parent_module: &mut rhai::Module) {
-        (self.get_func_registrator())(parent_module);
+        (self.get_registrator())(parent_module);
     }
 }
 pub trait MethodFunction: Function {
-    fn get_func_registrator(&self) -> impl Fn(&mut rhai::Engine);
+    fn get_registrator(&self) -> impl Fn(&mut rhai::Engine);
 
     fn register_method_function(&self, engine: &mut rhai::Engine) {
-        (self.get_func_registrator())(engine);
+        (self.get_registrator())(engine);
     }
 }
 
