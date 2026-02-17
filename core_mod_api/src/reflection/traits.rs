@@ -2,7 +2,7 @@ use rhai::{Dynamic, ImmutableString};
 
 use crate::reflection::ids::{TypeId, StaticTraitId, DynamicTraitId};
 use crate::reflection::internals::statics::{TRAIT_OBJECT_VTABLE_REGISTRY, TYPE_REGISTRY};
-use crate::reflection::internals::traits::Trait;
+use crate::reflection::internals::traits::GetTraitId;
 use crate::script::access::{ScopedAccessHandle, ScopedAccessHandleExt};
 
 pub type TraitObjectUseRefFn = fn(Dynamic, &str, Dynamic) -> Dynamic;
@@ -30,7 +30,7 @@ pub struct TraitTypeEntry {
     pub value: TraitTypeVTables,
 }
 
-pub struct StaticTraitObject<T: Trait> {
+pub struct StaticTraitObject<T: GetTraitId> {
     pub value: Dynamic, 
     pub trait_id: StaticTraitId<T>,
     pub instance_type_id: TypeId,
@@ -101,7 +101,7 @@ impl DynamicTraitObject {
         (vtable.use_owned)(self.value, method, params)
     }
 }
-impl<T: Trait> From<StaticTraitObject<T>> for DynamicTraitObject {
+impl<T: GetTraitId> From<StaticTraitObject<T>> for DynamicTraitObject {
     fn from(value: StaticTraitObject<T>) -> Self {
         Self {
             value: value.value,

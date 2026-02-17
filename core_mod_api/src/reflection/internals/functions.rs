@@ -3,7 +3,7 @@ use crate::bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, Po
 use crate::reflection::ids::{StaticTraitId, TypeId};
 use crate::reflection::internals::managed_traits::{BundleTrait, BundleTraitObject};
 use crate::reflection::internals::statics::{TYPE_REGISTRY, SCHEDULE_HOOKS, TRAIT_OBJECT_VTABLE_REGISTRY};
-use crate::reflection::internals::traits::{GetTypeId, ToTraitObject, Trait};
+use crate::reflection::internals::traits::{GetTypeId, ToTraitObject, GetTraitId};
 use crate::reflection::traits::StaticTraitObject;
 use crate::script::access::{ScopedAccess, ScopedAccessHandle, ScopedAccessHandleExt, ScopedAccessReadGuard, ScopedAccessWriteGuard};
 use rhai::{Dynamic, Engine, FnPtr, ImmutableString, NativeCallContext, Shared};

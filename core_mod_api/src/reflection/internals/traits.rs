@@ -1,6 +1,8 @@
 #![allow(clippy::missing_safety_doc)]
 
+use rhai::{RhaiNativeFunc, Shared, Variant};
 use std::hash::Hash;
+use std::sync::Arc;
 
 use crate::reflection::traits::StaticTraitObject;
 
@@ -9,10 +11,10 @@ pub trait GetTypeId: Sized + 'static {
     const TYPE_ID: &'static str;
 }
 
-pub trait Trait: Clone + PartialEq + Eq + Hash + Sized + 'static {
+pub trait GetTraitId: Clone + PartialEq + Eq + Hash + Sized + 'static {
     const TRAIT_ID: &'static str;
 }
-pub trait ToTraitObject<T: Trait>: Sized {
+pub trait ToTraitObject<T: GetTraitId>: Sized {
     fn cast_to(self) -> StaticTraitObject<T>;
     fn cast_from(obj: StaticTraitObject<T>) -> Self;
 }
@@ -24,7 +26,6 @@ use crate::reflection::{
 };
 use crate::reflection::internals::statics::{TYPE_REGISTRY, CTOR_REGISTRY, METHOD_REGISTRY, STATIC_FUNCTION_REGISTRY};
 use crate::script::access::ScopedAccessHandle;
-use rhai::Engine;
 use std::any::Any;
 
 /// Provides read-only, non-mutating access to a value of type `T` from `Self`,
@@ -97,36 +98,317 @@ pub(crate) unsafe trait ScopedAccessProvider<T> {
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<T>);
 }
 
-pub trait ScriptType {
-    fn register_type(engine: &mut Engine);
+
+// Example shit
+pub mod shop {
+    pub mod divisions {
+        pub mod sex {
+            pub struct __SexShopProduct__;
+            impl crate::reflection::internals::traits::Type for __SexShopProduct__ {
+                const NAME: &'static str = "SexShopProduct";
+            }
+            impl crate::reflection::internals::traits::MethodFunctionContainer for __SexShopProduct__ {
+                fn method_functions() -> Vec<Box<dyn crate::reflection::internals::traits::MethodFunction>> {
+                    vec![
+                        Box::new(__Name__) as Box<dyn crate::reflection::internals::traits::MethodFunction>,
+                        Box::new(__PriceUsd__) as Box<dyn crate::reflection::internals::traits::MethodFunction>
+                    ]
+                }
+            }
+
+            pub struct __TestFunction__;
+            impl crate::reflection::internals::traits::Function for __TestFunction__ {
+                fn name(&self) -> &'static str { "test_function" }
+            }
+            impl crate::reflection::internals::traits::ModuleAssociatedFunction for __TestFunction__ {
+                fn get_func_registrator(&self) -> impl Fn(&mut rhai::Module) {
+                    let name = crate::reflection::internals::traits::Function::name(self);
+                    move |parent_module: &mut rhai::Module| {
+                        rhai::FuncRegistration::new(name)
+                            .set_into_module(parent_module, test_function);
+                    }
+                }
+            }
+
+            pub struct __VerifyPrice__;
+            impl crate::reflection::internals::traits::Function for __VerifyPrice__ {
+                fn name(&self) -> &'static str { "verify_price" }
+            }
+            impl crate::reflection::internals::traits::TypeAssociatedFunction for __VerifyPrice__ {
+                fn get_func_registrator(&self) -> impl Fn(&mut rhai::Module) {
+                    let name = crate::reflection::internals::traits::Function::name(self);
+                    move |parent_module: &mut rhai::Module| {
+                        rhai::FuncRegistration::new(name)
+                            .set_into_module(parent_module, SexShopProduct::verify_price);
+                    }
+                }
+            }
+
+            pub struct __New__;
+            impl crate::reflection::internals::traits::Function for __New__ {
+                fn name(&self) -> &'static str { "new" }
+            }
+            impl crate::reflection::internals::traits::ConstructorFunction for __New__ {
+                fn get_func_registrator(&self) -> impl Fn(&mut rhai::Module) {
+                    let name = crate::reflection::internals::traits::Function::name(self);
+                    move |parent_module: &mut rhai::Module| {
+                        rhai::FuncRegistration::new(name)
+                            .set_into_module(parent_module, SexShopProduct::new);
+                    }
+                }
+            }
+
+            pub struct __Name__;
+            impl crate::reflection::internals::traits::Function for __Name__ {
+                fn name(&self) -> &'static str { "name" }
+            }
+            impl crate::reflection::internals::traits::MethodFunction for __Name__ {
+                fn get_func_registrator(&self) -> impl Fn(&mut rhai::Engine) {
+                    let name = crate::reflection::internals::traits::Function::name(self);
+                    move |engine: &mut rhai::Engine| {
+                        engine.register_fn(name, SexShopProduct::name);
+                    }
+                }
+            }
+            pub struct __PriceUsd__;
+            impl crate::reflection::internals::traits::Function for __PriceUsd__ {
+                fn name(&self) -> &'static str { "price_usd" }
+            }
+            impl crate::reflection::internals::traits::MethodFunction for __PriceUsd__ {
+                fn get_func_registrator(&self) -> impl Fn(&mut rhai::Engine) {
+                    let name = crate::reflection::internals::traits::Function::name(self);
+                    move |engine: &mut rhai::Engine| {
+                        engine.register_fn(name, SexShopProduct::price_usd);
+                    }
+                }
+            }
+            
+            #[derive(Clone)]
+            pub struct SexShopProduct {
+                name: &'static str,
+                price_usd: f32,
+            }
+            impl SexShopProduct {
+                pub fn new(name: &'static str, price_usd: f32) -> Self { Self { name, price_usd } }
+
+                pub fn name(&self) -> &'static str { self.name }
+
+                pub fn price_usd(&self) -> f32 { self.price_usd }
+
+                pub fn verify_price(price_usd: f32) -> Result<(), ()> {
+                    if price_usd >= 0.0 { Ok(()) } else { Err(()) }
+                }
+            }
+
+            pub fn test_function() {
+                println!("Big paling sound!")
+            }
+        }
+    }
 }
-pub trait ScriptTypeOwned: ScriptType {
+
+
+
+
+
+
+// Module
+pub trait TopLevelModule: Sized + SubModuleContainer + TraitContainer + TypeContainer + ModuleAssociatedFunctionContainer {
+    /// Format: "snake_case"
+    const NAME: &'static str;
+
+    fn register_top_level_module(self, engine: &mut rhai::Engine) {
+        let mut top_level_module = rhai::Module::new();
+        top_level_module.set_id(Self::NAME);
+
+        for sub_module in Self::sub_modules().into_iter() {
+            sub_module.register_sub_module(engine, &mut top_level_module);
+        }
+
+        for trait_ in Self::traits().into_iter() {
+            trait_.register_trait(&mut top_level_module);
+        }
+
+        for (type_, type_module) in Self::types().into_iter() {
+            type_.register_type(engine, &mut top_level_module);
+            type_module.register_type_associated_module(&mut top_level_module);
+        }
+
+        for module_associated_function in Self::module_associated_functions().into_iter() {
+            module_associated_function.register_module_associated_function(&mut top_level_module);
+        }
+
+        engine.register_static_module(Self::NAME, Arc::new(top_level_module));
+    }
 }
-pub trait ScriptTypeClone: ScriptType {
+pub trait SubModule: Sized + SubModuleContainer + TraitContainer + TypeContainer + ModuleAssociatedFunctionContainer {
+    /// Format: "snake_case"
+    const NAME: &'static str;
+
+    fn register_sub_module(self, engine: &mut rhai::Engine, parent_module: &mut rhai::Module) {
+        let mut origin_sub_module = rhai::Module::new();
+        origin_sub_module.set_id(Self::NAME);
+
+        for sub_module in Self::sub_modules().into_iter() {
+            sub_module.register_sub_module(engine, &mut origin_sub_module);
+        }
+
+        for trait_ in Self::traits().into_iter() {
+            trait_.register_trait(&mut origin_sub_module);
+        }
+
+        for (type_, type_module) in Self::types().into_iter() {
+            type_.register_type(engine, &mut origin_sub_module);
+            type_module.register_type_associated_module(&mut origin_sub_module);
+        }
+
+        for module_associated_function in Self::module_associated_functions().into_iter() {
+            module_associated_function.register_module_associated_function(&mut origin_sub_module);
+        }
+
+        parent_module.set_sub_module(Self::NAME, origin_sub_module);
+    }
 }
-pub trait ScriptTypePersistentRef: ScriptType {
+pub trait TypeAssociatedModule: Sized + TypeAssociatedFunctionContainer + ConstructorFunctionContainer {
+    /// Format: "PascalCase"
+    const NAME: &'static str;
+
+    fn register_type_associated_module(self, parent_module: &mut rhai::Module) {
+        let mut type_module = rhai::Module::new();
+        type_module.set_id(Self::NAME);
+
+        for type_associated_function in Self::type_associated_functions().into_iter() {
+            type_associated_function.register_type_associated_function(&mut type_module);
+        }
+
+        for constructor_function in Self::constructor_functions().into_iter() {
+            constructor_function.register_constructor_function(&mut type_module);
+        }
+
+        parent_module.set_sub_module(Self::NAME, type_module);
+    }
 }
-pub trait ScriptTypePersistentMut: ScriptType {
+
+
+
+// Trait
+pub trait TraitObject: Sized {
+    /// Format: "PascalCase"
+    const NAME: &'static str;
 }
+pub trait Trait: Sized {
+    /// Format: "PascalCase"
+    const NAME: &'static str;
+
+    type ObjectType: TraitObject;
+
+    fn register_trait(self, parent_module: &mut rhai::Module) {
+        parent_module.set_custom_type::<Self>(Self::NAME);
+        parent_module.set_custom_type::<Self::ObjectType>(Self::ObjectType::NAME);
+    }
+}
+
+
+
+// Type
+pub trait Type: Sized + MethodFunctionContainer {
+    /// Format: "PascalCase"
+    const NAME: &'static str;
+
+    fn register_type(self, engine: &mut rhai::Engine, parent_module: &mut rhai::Module) {
+        parent_module.set_custom_type::<ScopedAccessHandle<Self>>(Self::NAME);
+
+        for method_function in Self::method_functions().into_iter() {
+            method_function.register_method_function(engine);
+        }
+    }
+}
+pub trait TypeOwn: Type {}
+pub trait TypeClone: Type {}
+pub trait TypePersistentRef: Type {}
+pub trait TypePersistentMut: Type {}
 /// Like a PersistentRef, but backs a rust-native immutable borrow *with* lifetimes, aka it implements runtime-checks against use-after-free's and aliasing issues; 
-pub trait ScriptTypeScopedRef: ScriptType {
+pub trait TypeScopedRef: Type {}
+pub trait TypeScopedMut: Type {}
+
+
+
+// Function
+pub trait Function {
+    /// Format: "snake_case"
+    fn name(&self) -> &'static str;
 }
-pub trait ScriptTypeScopedMut: ScriptType {
+pub trait ModuleAssociatedFunction: Function {
+    fn get_func_registrator(&self) -> impl Fn(&mut rhai::Module);
+
+    fn register_module_associated_function(&self, parent_module: &mut rhai::Module) {
+        (self.get_func_registrator())(parent_module);
+    }
+}
+pub trait TypeAssociatedFunction: Function {
+    fn get_func_registrator(&self) -> impl Fn(&mut rhai::Module);
+
+    fn register_type_associated_function(&self, parent_module: &mut rhai::Module) {
+        (self.get_func_registrator())(parent_module);
+    }
+}
+pub trait ConstructorFunction: Function {
+    fn get_func_registrator(&self) -> impl Fn(&mut rhai::Module);
+
+    fn register_constructor_function(&self, parent_module: &mut rhai::Module) {
+        (self.get_func_registrator())(parent_module);
+    }
+}
+pub trait MethodFunction: Function {
+    fn get_func_registrator(&self) -> impl Fn(&mut rhai::Engine);
+
+    fn register_method_function(&self, engine: &mut rhai::Engine) {
+        (self.get_func_registrator())(engine);
+    }
 }
 
-pub trait ScriptFunction {
-    fn register_function(engine: &mut Engine);
+
+
+// Container
+pub trait SubModuleContainer {
+    fn sub_modules() -> Vec<impl SubModule>;
+}
+pub trait TraitContainer {
+    fn traits() -> Vec<impl Trait>;
+}
+pub trait TypeContainer {
+    fn types() -> Vec<(impl Type, impl TypeAssociatedModule)>;
+}
+pub trait ModuleAssociatedFunctionContainer {
+    fn module_associated_functions() -> Vec<Box<dyn ModuleAssociatedFunction>>;
+}
+pub trait TypeAssociatedFunctionContainer {
+    fn type_associated_functions() -> Vec<Box<dyn TypeAssociatedFunction>>;
+}
+pub trait ConstructorFunctionContainer {
+    fn constructor_functions() -> Vec<Box<dyn ConstructorFunction>>;
+}
+pub trait MethodFunctionContainer {
+    fn method_functions() -> Vec<Box<dyn MethodFunction>>;
 }
 
-pub trait ScriptModule {
-    fn register_module(engine: &mut Engine);
-}
+
+
+
+
+
+
+
+
+
+
+
 
 pub trait EngineExt {
     fn enable_type_binding(&mut self, fully_qualified_type_path: impl Into<TypeId>) -> &mut Self;
 }
 
-impl EngineExt for Engine {
+impl EngineExt for rhai::Engine {
     fn enable_type_binding(&mut self, fully_qualified_type_path: impl Into<TypeId>) -> &mut Self {
         fn format_function_name(type_id: &TypeId, func_name: &impl std::fmt::Display) -> String {
             format!(

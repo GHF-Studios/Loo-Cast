@@ -3,7 +3,7 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 
 use super::{
-    internals::traits::{Trait, GetTypeId},
+    internals::traits::{GetTraitId, GetTypeId},
     names::{ModuleName, TypeName, TraitName}
 };
 
@@ -117,11 +117,11 @@ impl std::fmt::Display for TypeId {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct StaticTraitId<T: Trait> {
+pub struct StaticTraitId<T: GetTraitId> {
     pub id: DynamicTraitId,
     pub _phantom: PhantomData<T>,
 }
-impl<T: Trait> StaticTraitId<T> {
+impl<T: GetTraitId> StaticTraitId<T> {
     pub fn new() -> Self {
         Self {
             id: DynamicTraitId::new(ImmutableString::from(T::TRAIT_ID)),
@@ -129,12 +129,12 @@ impl<T: Trait> StaticTraitId<T> {
         }
     }
 }
-impl<T: Trait> std::fmt::Debug for StaticTraitId<T> {
+impl<T: GetTraitId> std::fmt::Debug for StaticTraitId<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.id)
     }
 }
-impl<T: Trait> std::fmt::Display for StaticTraitId<T> {
+impl<T: GetTraitId> std::fmt::Display for StaticTraitId<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.id)
     }
