@@ -2,8 +2,6 @@
 #![allow(clippy::too_many_arguments)]
 #![warn(clippy::large_stack_frames)]
 
-#![feature(generic_const_exprs)]
-
 //! core_mod_api
 //!
 //! The `core_mod_api` crate defines the internal API surface and the core plugin set used by the
@@ -118,6 +116,7 @@ pub mod logging;
 pub mod picking;
 pub mod player;
 pub mod reflection;
+pub mod reflection_NEW;
 pub mod render;
 pub mod script;
 pub mod time;

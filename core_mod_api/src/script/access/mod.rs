@@ -1,41 +1,44 @@
 use rhai::Shared;
-use std::{ops::{Deref, DerefMut}, sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard}};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::reflection::ids::TypeId;
 
+#[deprecated]
 pub trait ScopedAccessHandleExt<'lock, T: 'lock> {
-    fn new(value: T) -> Self;
-    fn as_ref(&'lock self) -> ScopedAccessReadGuard<'lock, T>;
-    fn as_mut(&'lock mut self) -> ScopedAccessWriteGuard<'lock, T>;
-    fn into_inner(self) -> T;
+    fn new(value: Box<T>) -> Self;
+    fn as_ref(&'lock self) -> ScopedAccessReadGuard<'lock, Box<T>>;
+    fn as_mut(&'lock mut self) -> ScopedAccessWriteGuard<'lock, Box<T>>;
+    fn into_inner(self) -> Box<T>;
 }
 impl<'lock, T: 'lock> ScopedAccessHandleExt<'lock, T> for ScopedAccessHandle<T> {
-    fn new(value: T) -> Self {
+    fn new(value: Box<T>) -> Self {
         ScopedAccessHandle(Shared::new(RwLock::new(ScopedAccess::new(value))))
     }
 
-    fn as_ref(&'lock self) -> ScopedAccessReadGuard<'lock, T> {
+    fn as_ref(&'lock self) -> ScopedAccessReadGuard<'lock, Box<T>> {
         ScopedAccessReadGuard::new(self.0.read().unwrap())
     }
 
-    fn as_mut(&'lock mut self) -> ScopedAccessWriteGuard<'lock, T> {
+    fn as_mut(&'lock mut self) -> ScopedAccessWriteGuard<'lock, Box<T>> {
         ScopedAccessWriteGuard::new(self.0.write().unwrap())
     }
 
-    fn into_inner(self) -> T {
+    fn into_inner(self) -> Box<T> {
         let bundle = Arc::into_inner(self.0).expect("The bundle is referenced elsewhere; cannot take the inner value!");
         let mut bundle = bundle.into_inner().unwrap();
         bundle.invalidate().unwrap()
     }
 }
 
-pub struct ScopedAccessHandle<T>(pub Shared<RwLock<ScopedAccess<T>>>);
+#[deprecated]
+pub struct ScopedAccessHandle<T: ?Sized>(pub Shared<RwLock<ScopedAccess<Box<T>>>>);
 impl<T> Clone for ScopedAccessHandle<T> {
     fn clone(&self) -> Self {
         Self(self.0.clone())
     }
 }
 
+#[deprecated]
 pub struct ScopedAccessReadGuard<'lock, T: 'lock> {
     pub inner: RwLockReadGuard<'lock, ScopedAccess<T>>
 }
@@ -56,6 +59,7 @@ impl<'lock, T: 'lock> std::ops::Deref for ScopedAccessReadGuard<'lock, T> {
     }
 }
 
+#[deprecated]
 pub struct ScopedAccessWriteGuard<'lock, T: 'lock> {
     pub inner: RwLockWriteGuard<'lock, ScopedAccess<T>>
 }
@@ -85,6 +89,7 @@ impl<'lock, T: 'lock> std::ops::DerefMut for ScopedAccessWriteGuard<'lock, T> {
     }
 }
 
+#[deprecated]
 #[repr(transparent)]
 pub struct ScopedAccess<T> {
     value: Option<T>,

@@ -63,7 +63,7 @@ pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut 
 
             // Manually start world access
             let world = std::mem::take(source_world);
-            let world_raw_handle = ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(world))));
+            let world_raw_handle = ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(Box::new(world)))));
             let world_binding = World { world: world_raw_handle.clone() };
             let shared_world = Shared::new(world_binding);
 
@@ -78,7 +78,7 @@ pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut 
             let returned_world = world_raw_scoped
                 .invalidate()
                 .expect("World handle was already invalidated");
-            *source_world = returned_world;
+            *source_world = *returned_world;
         });
     }
 }
@@ -301,7 +301,7 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
     });
     // Ctor
     rhai::FuncRegistration::new("new_default").set_into_module(&mut player_bundle_module, || -> ScopedAccessHandle<PlayerBundle> {
-        ScopedAccessHandle(Shared::new(RwLock::new(ScopedAccess::new(PlayerBundle::default()))))
+        ScopedAccessHandle(Shared::new(RwLock::new(ScopedAccess::new(Box::new(PlayerBundle::default())))))
     });
 
     // Constructors

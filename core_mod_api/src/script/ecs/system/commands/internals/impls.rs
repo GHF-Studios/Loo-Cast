@@ -21,9 +21,11 @@ unsafe impl ScopedAccessProvider<EntityCommands<'static>> for Commands<'static, 
         };
 
         // Erase lifetime(s)
-        let entity_commands_static = std::mem::transmute::<EntityCommands<'_>, EntityCommands<'static>>(entity_commands);
+        let entity_commands_static = unsafe {
+            std::mem::transmute::<EntityCommands<'_>, EntityCommands<'static>>(entity_commands)
+        };
 
-        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(entity_commands_static))))
+        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(Box::new(entity_commands_static)))))
     }
 
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<EntityCommands<'static>>) {
@@ -37,7 +39,9 @@ unsafe impl ScopedAccessProvider<EntityCommands<'static>> for Commands<'static, 
             .expect("EntityCommands handle was already invalidated");
 
         // Restore lifetime(s)
-        let _returned_entity_commands = std::mem::transmute::<EntityCommands<'static>, EntityCommands<'_>>(returned_entity_commands_static);
+        let _returned_entity_commands = unsafe {
+            std::mem::transmute::<EntityCommands<'static>, EntityCommands<'_>>(*returned_entity_commands_static)
+        };
     }
 }
 
@@ -53,9 +57,11 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for EntityCommands<
         let commands = self.commands();
         
         // Erase lifetime(s)
-        let commands_static = std::mem::transmute::<Commands<'_, '_>, Commands<'static, 'static>>(commands);
+        let commands_static = unsafe {
+            std::mem::transmute::<Commands<'_, '_>, Commands<'static, 'static>>(commands)
+        };
 
-        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(commands_static))))
+        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(Box::new(commands_static)))))
     }
 
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<Commands<'static, 'static>>) {
@@ -69,7 +75,9 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for EntityCommands<
             .expect("Commands handle was already invalidated");
 
         // Restore lifetime(s)
-        let _returned_commands = std::mem::transmute::<Commands<'static, 'static>, Commands<'_, '_>>(returned_commands_static);
+        let _returned_commands = unsafe {
+            std::mem::transmute::<Commands<'static, 'static>, Commands<'_, '_>>(*returned_commands_static)
+        };
     }
 }
 
@@ -84,7 +92,7 @@ unsafe impl ScopedAccessProvider<BevyEntity> for EntityCommands<'static> {
 
         let id = self.id();
 
-        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(id))))
+        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(Box::new(id)))))
     }
 
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<BevyEntity>) {

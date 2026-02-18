@@ -25,9 +25,11 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for World {
         let commands = self.commands();
         
         // Erase lifetime(s)
-        let commands_static = std::mem::transmute::<Commands<'_, '_>, Commands<'static, 'static>>(commands);
+        let commands_static = unsafe {
+            std::mem::transmute::<Commands<'_, '_>, Commands<'static, 'static>>(commands)
+        };
 
-        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(commands_static))))
+        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(Box::new(commands_static)))))
     }
 
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<Commands<'static, 'static>>) {
@@ -41,7 +43,9 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for World {
             .expect("Commands handle was already invalidated");
 
         // Restore lifetime(s)
-        let _returned_commands = std::mem::transmute::<Commands<'static, 'static>, Commands<'_, '_>>(returned_static_commands);
+        let _returned_commands = unsafe {
+            std::mem::transmute::<Commands<'static, 'static>, Commands<'_, '_>>(*returned_static_commands)
+        };
     }
 }
 
@@ -65,16 +69,18 @@ unsafe impl ScopedAccessProvider<EntityWorldMut<'static>> for World {
                 let bundle: ScopedAccessHandle<PlayerBundle> = ToTraitObject::<BundleTrait>::cast_from(bundle.0);
                 let mut bundle = Arc::into_inner(bundle.0).unwrap().into_inner().unwrap();
                 let bundle = bundle.invalidate().unwrap();
-                ent.insert(bundle);
+                ent.insert(*bundle);
                 ent
             },
             _ => panic!("Unsupported method '{}' in ScopedAccessProvider<EntityWorldMut> for World", method),
         };
 
         // Erase lifetime(s)
-        let entity_world_mut_static = std::mem::transmute::<EntityWorldMut<'_>, EntityWorldMut<'static>>(entity_world_mut);
+        let entity_world_mut_static = unsafe {
+            std::mem::transmute::<EntityWorldMut<'_>, EntityWorldMut<'static>>(entity_world_mut)
+        };
 
-        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(entity_world_mut_static))))
+        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(Box::new(entity_world_mut_static)))))
     }
 
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<EntityWorldMut<'static>>) {
@@ -88,7 +94,9 @@ unsafe impl ScopedAccessProvider<EntityWorldMut<'static>> for World {
             .expect("EntityWorldMut handle was already invalidated");
 
         // Restore lifetime(s)
-        let _returned_entity_world_mut = std::mem::transmute::<EntityWorldMut<'static>, EntityWorldMut<'_>>(returned_static_entity_world_mut);
+        let _returned_entity_world_mut = unsafe {
+            std::mem::transmute::<EntityWorldMut<'static>, EntityWorldMut<'_>>(*returned_static_entity_world_mut)
+        };
     }
 }
 
