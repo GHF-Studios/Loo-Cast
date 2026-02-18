@@ -7,11 +7,16 @@ use std::sync::Arc;
 use crate::reflection::traits::StaticTraitObject;
 
 
+// TODO: Consolidate Type::name() into here as TYPE_NAME similarly to GetTraitId
+// TODO: Add string-format documentation or newtype with invariant-enforcing on construction
 pub trait GetTypeId: Sized + 'static {
     const TYPE_ID: &'static str;
 }
 
+// TODO: Add string-format documentation or newtype with invariant-enforcing on construction
 pub trait GetTraitId: Clone + PartialEq + Eq + Hash + Sized + 'static {
+    const TRAIT_NAME: &'static str;
+    const TRAIT_OBJECT_NAME: &'static str;
     const TRAIT_ID: &'static str;
 }
 pub trait ToTraitObject<T: GetTraitId>: Sized {
@@ -98,31 +103,160 @@ pub(crate) unsafe trait ScopedAccessProvider<T> {
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<T>);
 }
 
+// Experimental Example shit
+pub struct __Shop__;
+impl SubModuleContainer for __Shop__ {
+    fn sub_modules(&self) -> Vec<Box<dyn SubModule>> {
+        vec![
+            Box::new(shop::__Divisions__)
+        ]
+    }
+}
+impl TraitContainer for __Shop__ {
+    fn traits(&self) -> Vec<Box<dyn Trait>> {
+        vec![]
+    }
+}
+impl TypeContainer for __Shop__ {
+    fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeAssociatedModule>)> {
+        vec![]
+    }
+}
+impl ModuleAssociatedFunctionContainer for __Shop__ {
+    fn module_associated_functions(&self) -> Vec<Box<dyn ModuleAssociatedFunction>> {
+        vec![]
+    }
+}
+impl SubModule for __Shop__ {
+    fn name(&self) -> &'static str { "shop" }
+}
 
-// Example shit
 pub mod shop {
+    use crate::reflection::internals::traits::*;
+
+    pub struct __Divisions__;
+    impl SubModuleContainer for __Divisions__ {
+        fn sub_modules(&self) -> Vec<Box<dyn SubModule>> {
+            vec![
+                Box::new(divisions::__Sex__)
+            ]
+        }
+    }
+    impl TraitContainer for __Divisions__ {
+        fn traits(&self) -> Vec<Box<dyn Trait>> {
+            vec![]
+        }
+    }
+    impl TypeContainer for __Divisions__ {
+        fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeAssociatedModule>)> {
+            vec![]
+        }
+    }
+    impl ModuleAssociatedFunctionContainer for __Divisions__ {
+        fn module_associated_functions(&self) -> Vec<Box<dyn ModuleAssociatedFunction>> {
+            vec![]
+        }
+    }
+    impl SubModule for __Divisions__ {
+        fn name(&self) -> &'static str { "divisions" }
+    }
+
     pub mod divisions {
+        use crate::reflection::internals::traits::*;
+
+        pub struct __Sex__;
+        impl SubModuleContainer for __Sex__ {
+            fn sub_modules(&self) -> Vec<Box<dyn SubModule>> {
+                vec![]
+            }
+        }
+        impl TraitContainer for __Sex__ {
+            fn traits(&self) -> Vec<Box<dyn Trait>> {
+                vec![
+                    Box::new(sex::__SexShopTest__Trait__)
+                ]
+            }
+        }
+        impl TypeContainer for __Sex__ {
+            fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeAssociatedModule>)> {
+                vec![
+                    (Box::new(sex::__SexShopProduct__Type__), Box::new(sex::__SexShopProduct__TypeAssociatedModule__))
+                ]
+            }
+        }
+        impl ModuleAssociatedFunctionContainer for __Sex__ {
+            fn module_associated_functions(&self) -> Vec<Box<dyn ModuleAssociatedFunction>> {
+                vec![
+                    Box::new(sex::__TestFunction__ModuleAssociatedFunction__)
+                ]
+            }
+        }
+        impl SubModule for __Sex__ {
+            fn name(&self) -> &'static str { "sex" }
+            fn register_sub_module(&self, _engine: &mut rhai::Engine, _parent_module: &mut rhai::Module) {}
+        }
+
         pub mod sex {
-            pub struct __SexShopProduct__;
-            impl crate::reflection::internals::traits::Type for __SexShopProduct__ {
+            use crate::reflection::internals::traits::*;
+
+            #[derive(Clone, PartialEq, Eq, Hash)]
+            pub struct __SexShopTest__Trait__;
+            impl GetTraitId for __SexShopTest__Trait__ {
+                const TRAIT_NAME: &'static str = "SexShopTest";
+                const TRAIT_OBJECT_NAME: &'static str = "SexShopTestTraitObject";
+                const TRAIT_ID: &'static str = "shop::divisions::sex::SexShopTest";
+            }
+            impl Trait for __SexShopTest__Trait__ {
+                fn name(&self) -> &'static str { "SexShopTest" }
+
+                fn register_trait(&self, parent_module: &mut rhai::Module) {
+                    parent_module.set_custom_type::<__SexShopTest__Trait__>(Self::TRAIT_NAME);
+                    parent_module.set_custom_type::<__SexShopTest__TraitObject__>(Self::TRAIT_OBJECT_NAME);
+                }
+            }
+
+            #[repr(transparent)]
+            pub struct __SexShopTest__TraitObject__(pub StaticTraitObject<__SexShopTest__Trait__>);
+
+            pub struct __SexShopProduct__Type__;
+            impl Type for __SexShopProduct__Type__ {
                 fn name(&self) -> &'static str { "SexShopProduct" }
             }
-            impl crate::reflection::internals::traits::MethodFunctionContainer for __SexShopProduct__ {
-                fn method_functions(&self) -> Vec<Box<dyn crate::reflection::internals::traits::MethodFunction>> {
+            impl MethodFunctionContainer for __SexShopProduct__Type__ {
+                fn method_functions(&self) -> Vec<Box<dyn MethodFunction>> {
                     vec![
-                        Box::new(__Name__) as Box<dyn crate::reflection::internals::traits::MethodFunction>,
-                        Box::new(__PriceUsd__) as Box<dyn crate::reflection::internals::traits::MethodFunction>
+                        Box::new(__Name__MethodFunction__) as Box<dyn MethodFunction>,
+                        Box::new(__PriceUsd__MethodFunction__) as Box<dyn MethodFunction>
                     ]
                 }
             }
 
-            pub struct __TestFunction__;
-            impl crate::reflection::internals::traits::Function for __TestFunction__ {
+            pub struct __SexShopProduct__TypeAssociatedModule__;
+            impl ConstructorFunctionContainer for __SexShopProduct__TypeAssociatedModule__ {
+                fn constructor_functions(&self) -> Vec<Box<dyn ConstructorFunction>> {
+                    vec![
+                        Box::new(__New__ConstructorFunction__)
+                    ]
+                }
+            }
+            impl TypeAssociatedFunctionContainer for __SexShopProduct__TypeAssociatedModule__ {
+                fn type_associated_functions(&self) -> Vec<Box<dyn TypeAssociatedFunction>> {
+                    vec![
+                        Box::new(__VerifyPrice__TypeAssociatedFunction__)
+                    ]
+                }
+            }
+            impl TypeAssociatedModule for __SexShopProduct__TypeAssociatedModule__ {
+                fn name(&self) -> &'static str { "SexShopProduct" }
+            }
+
+            pub struct __TestFunction__ModuleAssociatedFunction__;
+            impl Function for __TestFunction__ModuleAssociatedFunction__ {
                 fn name(&self) -> &'static str { "test_function" }
             }
-            impl crate::reflection::internals::traits::ModuleAssociatedFunction for __TestFunction__ {
+            impl ModuleAssociatedFunction for __TestFunction__ModuleAssociatedFunction__ {
                 fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Module)> {
-                    let name = crate::reflection::internals::traits::Function::name(self);
+                    let name = Function::name(self);
                     let func = move |parent_module: &mut rhai::Module| {
                         rhai::FuncRegistration::new(name)
                             .set_into_module(parent_module, test_function);
@@ -131,13 +265,13 @@ pub mod shop {
                 }
             }
 
-            pub struct __VerifyPrice__;
-            impl crate::reflection::internals::traits::Function for __VerifyPrice__ {
+            pub struct __VerifyPrice__TypeAssociatedFunction__;
+            impl Function for __VerifyPrice__TypeAssociatedFunction__ {
                 fn name(&self) -> &'static str { "verify_price" }
             }
-            impl crate::reflection::internals::traits::TypeAssociatedFunction for __VerifyPrice__ {
+            impl TypeAssociatedFunction for __VerifyPrice__TypeAssociatedFunction__ {
                 fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Module)> {
-                    let name = crate::reflection::internals::traits::Function::name(self);
+                    let name = Function::name(self);
                     let func = move |parent_module: &mut rhai::Module| {
                         rhai::FuncRegistration::new(name)
                             .set_into_module(parent_module, SexShopProduct::verify_price);
@@ -146,13 +280,13 @@ pub mod shop {
                 }
             }
 
-            pub struct __New__;
-            impl crate::reflection::internals::traits::Function for __New__ {
+            pub struct __New__ConstructorFunction__;
+            impl Function for __New__ConstructorFunction__ {
                 fn name(&self) -> &'static str { "new" }
             }
-            impl crate::reflection::internals::traits::ConstructorFunction for __New__ {
+            impl ConstructorFunction for __New__ConstructorFunction__ {
                 fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Module)> {
-                    let name = crate::reflection::internals::traits::Function::name(self);
+                    let name = Function::name(self);
                     let func = move |parent_module: &mut rhai::Module| {
                         rhai::FuncRegistration::new(name)
                             .set_into_module(parent_module, SexShopProduct::new);
@@ -161,31 +295,35 @@ pub mod shop {
                 }
             }
 
-            pub struct __Name__;
-            impl crate::reflection::internals::traits::Function for __Name__ {
+            pub struct __Name__MethodFunction__;
+            impl Function for __Name__MethodFunction__ {
                 fn name(&self) -> &'static str { "name" }
             }
-            impl crate::reflection::internals::traits::MethodFunction for __Name__ {
+            impl MethodFunction for __Name__MethodFunction__ {
                 fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Engine)> {
-                    let name = crate::reflection::internals::traits::Function::name(self);
+                    let name = Function::name(self);
                     let func = move |engine: &mut rhai::Engine| {
                         engine.register_fn(name, SexShopProduct::name);
                     };
                     Box::new(func)
                 }
             }
-            pub struct __PriceUsd__;
-            impl crate::reflection::internals::traits::Function for __PriceUsd__ {
+            pub struct __PriceUsd__MethodFunction__;
+            impl Function for __PriceUsd__MethodFunction__ {
                 fn name(&self) -> &'static str { "price_usd" }
             }
-            impl crate::reflection::internals::traits::MethodFunction for __PriceUsd__ {
+            impl MethodFunction for __PriceUsd__MethodFunction__ {
                 fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Engine)> {
-                    let name = crate::reflection::internals::traits::Function::name(self);
+                    let name = Function::name(self);
                     let func = move |engine: &mut rhai::Engine| {
                         engine.register_fn(name, SexShopProduct::price_usd);
                     };
                     Box::new(func)
                 }
+            }
+
+            pub trait SexShopTest {
+                fn test();
             }
             
             #[derive(Clone)]
@@ -204,6 +342,11 @@ pub mod shop {
                     if price_usd >= 0.0 { Ok(()) } else { Err(()) }
                 }
             }
+            impl SexShopTest for SexShopProduct {
+                fn test() {
+                    println!("Small banana sound!")
+                }
+            }
 
             pub fn test_function() {
                 println!("Big paling sound!")
@@ -211,9 +354,6 @@ pub mod shop {
         }
     }
 }
-
-
-
 
 
 

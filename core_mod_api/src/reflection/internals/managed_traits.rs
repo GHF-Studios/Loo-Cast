@@ -5,6 +5,8 @@ use crate::{player::bundles::PlayerBundle, reflection::{ids::{StaticTraitId, Typ
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct BundleTrait;
 impl GetTraitId for BundleTrait {
+    const TRAIT_NAME: &'static str = "Bundle";
+    const TRAIT_OBJECT_NAME: &'static str = "BundleTraitObject";
     const TRAIT_ID: &'static str = "ecs::bundle::Bundle";
 }
 
