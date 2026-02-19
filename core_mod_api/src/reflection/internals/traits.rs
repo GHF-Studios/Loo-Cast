@@ -31,6 +31,7 @@ use crate::reflection::{
 };
 use crate::reflection::internals::statics::{TYPE_REGISTRY, CTOR_REGISTRY, METHOD_REGISTRY, STATIC_FUNCTION_REGISTRY};
 use crate::script::access::ScopedAccessHandle;
+use crate::utils::string::*;
 use std::any::Any;
 
 /// Provides read-only, non-mutating access to a value of type `T` from `Self`,
@@ -111,7 +112,7 @@ pub mod shop {
     use crate::reflection::internals::traits::*;
 
     reflect_top_level_module!(
-        namespace = shop,
+        id = shop,
         sub_modules = [divisions],
         traits = [],
         types = [],
@@ -121,6 +122,11 @@ pub mod shop {
 
 // Expanded MetaProgramming Magic (It's just a bunch of metadata)
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
+    inventory::submit!(TopLevelModuleMetadata {
+        id_thunk: || "shop".into(),
+        inner_thunk: || Box::new(__Shop__TopLevelModule__) as Box<dyn TopLevelModule>,
+    });
+
     pub struct __Shop__TopLevelModule__;
     impl SubModuleContainer for __Shop__TopLevelModule__ {
         fn sub_modules(&self) -> Vec<Box<dyn SubModule>> {
@@ -144,8 +150,8 @@ pub mod shop {
             vec![]
         }
     }
-    impl SubModule for __Shop__TopLevelModule__ {
-        fn name(&self) -> &'static str { "shop" }
+    impl TopLevelModule for __Shop__TopLevelModule__ {
+        fn name(&self) -> TopLevelModulePath { "shop".into() }
     }
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> //
 
@@ -165,6 +171,11 @@ pub mod shop {
 
 // Expanded MetaProgramming Magic (It's just a bunch of metadata)
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
+        inventory::submit!(SubModuleMetadata {
+            id_thunk: || "shop::divisions".into(),
+            inner_thunk: || Box::new(__Divisions__SubModule__) as Box<dyn SubModule>,
+        });
+
         pub struct __Divisions__SubModule__;
         impl SubModuleContainer for __Divisions__SubModule__ {
             fn sub_modules(&self) -> Vec<Box<dyn SubModule>> {
@@ -189,14 +200,14 @@ pub mod shop {
             }
         }
         impl SubModule for __Divisions__SubModule__ {
-            fn name(&self) -> &'static str { "divisions" }
+            fn id(&self) -> SubModulePath { "shop::divisions".into() }
         }
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> //
 
 // The actual end-user code
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
         pub mod sex {
-            use crate::reflection::internals::traits::*;
+            use crate::{reflection::internals::traits::*, utils::string::MethodFunctionPath};
 
             reflect_sub_module!(
                 id = shop::divisions::sex,
@@ -249,6 +260,11 @@ pub mod shop {
 
 // Expanded MetaProgramming Magic (It's just a bunch of metadata)
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
+            inventory::submit!(SubModuleMetadata {
+                id_thunk: || "shop::divisions::sex".into(),
+                inner_thunk: || Box::new(__Sex__SubModule__) as Box<dyn SubModule>,
+            });
+
             pub struct __Sex__SubModule__;
             impl SubModuleContainer for __Sex__SubModule__ {
                 fn sub_modules(&self) -> Vec<Box<dyn SubModule>> {
@@ -277,7 +293,7 @@ pub mod shop {
                 }
             }
             impl SubModule for __Sex__SubModule__ {
-                fn name(&self) -> &'static str { "sex" }
+                fn id(&self) -> SubModulePath { "shop::divisions::sex".into() }
                 fn register_sub_module(&self, _engine: &mut rhai::Engine, _parent_module: &mut rhai::Module) {}
             }
 
@@ -289,7 +305,7 @@ pub mod shop {
                 const TRAIT_ID: &'static str = "shop::divisions::sex::SexShopTest";
             }
             impl Trait for __SexShopTest__Trait__ {
-                fn name(&self) -> &'static str { "SexShopTest" }
+                fn id(&self) -> TraitPath { "shop::divisions::sex::SexShopTest".into() }
 
                 fn register_trait(&self, parent_module: &mut rhai::Module) {
                     parent_module.set_custom_type::<__SexShopTest__Trait__>(Self::TRAIT_NAME);
@@ -302,7 +318,7 @@ pub mod shop {
 
             pub struct __SexShopProduct__Type__;
             impl Type for __SexShopProduct__Type__ {
-                fn name(&self) -> &'static str { "SexShopProduct" }
+                fn id(&self) -> TypePath { "shop::divisions::sex::SexShopProduct".into() }
             }
             impl MethodFunctionContainer for __SexShopProduct__Type__ {
                 fn method_functions(&self) -> Vec<Box<dyn MethodFunction>> {
@@ -329,16 +345,15 @@ pub mod shop {
                 }
             }
             impl TypeAssociatedModule for __SexShopProduct__TypeAssociatedModule__ {
-                fn name(&self) -> &'static str { "SexShopProduct" }
+                fn id(&self) -> TypeAssociatedModulePath { "shop::divisions::sex::SexShopProduct".into() }
             }
 
             pub struct __TestFunction__ModuleAssociatedFunction__;
-            impl Function for __TestFunction__ModuleAssociatedFunction__ {
-                fn name(&self) -> &'static str { "test_function" }
-            }
+            impl Function for __TestFunction__ModuleAssociatedFunction__ {}
             impl ModuleAssociatedFunction for __TestFunction__ModuleAssociatedFunction__ {
-                fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Module)> {
-                    let name = Function::name(self);
+                fn id(&self) -> ModuleAssociatedFunctionPath { "shop::divisions::sex::test_function".into() }
+                fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)> {
+                    let name = self.id().function_name().clone();
                     let func = move |parent_module: &mut rhai::Module| {
                         rhai::FuncRegistration::new(name)
                             .set_into_module(parent_module, test_function);
@@ -348,12 +363,11 @@ pub mod shop {
             }
 
             pub struct __VerifyPrice__TypeAssociatedFunction__;
-            impl Function for __VerifyPrice__TypeAssociatedFunction__ {
-                fn name(&self) -> &'static str { "verify_price" }
-            }
+            impl Function for __VerifyPrice__TypeAssociatedFunction__ {}
             impl TypeAssociatedFunction for __VerifyPrice__TypeAssociatedFunction__ {
-                fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Module)> {
-                    let name = Function::name(self);
+                fn id(&self) -> TypeAssociatedFunctionPath { "shop::divisions::sex::SexShopProduct::verify_price".into() }
+                fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)> {
+                    let name = self.id().function_name().clone();
                     let func = move |parent_module: &mut rhai::Module| {
                         rhai::FuncRegistration::new(name)
                             .set_into_module(parent_module, SexShopProduct::verify_price);
@@ -363,12 +377,11 @@ pub mod shop {
             }
 
             pub struct __New__ConstructorFunction__;
-            impl Function for __New__ConstructorFunction__ {
-                fn name(&self) -> &'static str { "new" }
-            }
+            impl Function for __New__ConstructorFunction__ {}
             impl ConstructorFunction for __New__ConstructorFunction__ {
-                fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Module)> {
-                    let name = Function::name(self);
+                fn id(&self) -> ConstructorFunctionPath { "shop::divisions::sex::SexShopProduct::new".into() }
+                fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)> {
+                    let name = self.id().function_name().clone();
                     let func = move |parent_module: &mut rhai::Module| {
                         rhai::FuncRegistration::new(name)
                             .set_into_module(parent_module, SexShopProduct::new);
@@ -378,12 +391,11 @@ pub mod shop {
             }
 
             pub struct __Name__MethodFunction__;
-            impl Function for __Name__MethodFunction__ {
-                fn name(&self) -> &'static str { "name" }
-            }
+            impl Function for __Name__MethodFunction__ {}
             impl MethodFunction for __Name__MethodFunction__ {
-                fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Engine)> {
-                    let name = Function::name(self);
+                fn id(&self) -> MethodFunctionPath { "shop::divisions::sex::SexShopProduct::name".into() }
+                fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Engine)> {
+                    let name = self.id().function_name().clone();
                     let func = move |engine: &mut rhai::Engine| {
                         engine.register_fn(name, SexShopProduct::name);
                     };
@@ -391,12 +403,11 @@ pub mod shop {
                 }
             }
             pub struct __PriceUsd__MethodFunction__;
-            impl Function for __PriceUsd__MethodFunction__ {
-                fn name(&self) -> &'static str { "price_usd" }
-            }
+            impl Function for __PriceUsd__MethodFunction__ {}
             impl MethodFunction for __PriceUsd__MethodFunction__ {
-                fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Engine)> {
-                    let name = Function::name(self);
+                fn id(&self) -> MethodFunctionPath { "shop::divisions::sex::SexShopProduct::price_usd".into() }
+                fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Engine)> {
+                    let name = self.id().function_name().clone();
                     let func = move |engine: &mut rhai::Engine| {
                         engine.register_fn(name, SexShopProduct::price_usd);
                     };
@@ -414,14 +425,56 @@ pub mod shop {
 
 
 
+// Module Metadata
+inventory::collect!(TopLevelModuleMetadata);
+pub struct TopLevelModuleMetadata {
+    pub id_thunk: fn() -> TopLevelModulePath,
+    pub inner_thunk: fn() -> Box<dyn TopLevelModule>
+}
+inventory::collect!(SubModuleMetadata);
+pub struct SubModuleMetadata {
+    pub id_thunk: fn() -> SubModulePath,
+    pub inner_thunk: fn() -> Box<dyn SubModule>
+}
+inventory::collect!(TypeAssociatedModuleMetadata);
+pub struct TypeAssociatedModuleMetadata {
+    pub id_thunk: fn() -> TypeAssociatedModulePath,
+    pub inner_thunk: fn() -> Box<dyn TypeAssociatedModule>
+}
+
+
+
+// Trait Metadata
+inventory::collect!(TraitMetadata);
+pub struct TraitMetadata {
+    pub id_thunk: fn() -> Box<TraitPath>,
+    pub inner_thunk: fn() -> Box<dyn Trait>
+}
+inventory::collect!(TraitObjectMetadata);
+pub struct TraitObjectMetadata {
+    pub id_thunk: fn() -> Box<TraitPath>,
+    pub inner_thunk: fn() -> Box<dyn TraitObject>
+}
+
+
+
+// Type Metadata
+inventory::collect!(TypeMetadata);
+pub struct TypeMetadata {
+    pub id_thunk: fn() -> Box<TypePath>,
+    pub inner_thunk: fn() -> Box<dyn Type>
+}
+
+
+
 // Module
-pub trait TopLevelModule: SubModuleContainer + TraitContainer + TypeContainer + ModuleAssociatedFunctionContainer {
-    /// Format: "snake_case"
-    fn name(&self) -> &'static str;
+pub trait TopLevelModule: 'static + Send + Sync + SubModuleContainer + TraitContainer + TypeContainer + ModuleAssociatedFunctionContainer {
+    /// Format: "some_sort_of::path::to::my_module"
+    fn name(&self) -> TopLevelModulePath;
 
     fn register_top_level_module(&self, engine: &mut rhai::Engine) {
         let mut top_level_module = rhai::Module::new();
-        top_level_module.set_id(self.name());
+        top_level_module.set_id(self.name().module_name());
 
         for sub_module in self.sub_modules().into_iter() {
             sub_module.register_sub_module(engine, &mut top_level_module);
@@ -440,16 +493,16 @@ pub trait TopLevelModule: SubModuleContainer + TraitContainer + TypeContainer + 
             module_associated_function.register_module_associated_function(&mut top_level_module);
         }
 
-        engine.register_static_module(self.name(), Arc::new(top_level_module));
+        engine.register_static_module(self.name().module_name(), Arc::new(top_level_module));
     }
 }
-pub trait SubModule: SubModuleContainer + TraitContainer + TypeContainer + ModuleAssociatedFunctionContainer {
-    /// Format: "snake_case"
-    fn name(&self) -> &'static str;
+pub trait SubModule: 'static + Send + Sync + SubModuleContainer + TraitContainer + TypeContainer + ModuleAssociatedFunctionContainer {
+    /// Format: "some_sort_of::path::to::my_module"
+    fn id(&self) -> SubModulePath;
 
     fn register_sub_module(&self, engine: &mut rhai::Engine, parent_module: &mut rhai::Module) {
         let mut origin_sub_module = rhai::Module::new();
-        origin_sub_module.set_id(self.name());
+        origin_sub_module.set_id(self.id().module_name());
 
         for sub_module in self.sub_modules().into_iter() {
             sub_module.register_sub_module(engine, &mut origin_sub_module);
@@ -468,16 +521,16 @@ pub trait SubModule: SubModuleContainer + TraitContainer + TypeContainer + Modul
             module_associated_function.register_module_associated_function(&mut origin_sub_module);
         }
 
-        parent_module.set_sub_module(self.name(), origin_sub_module);
+        parent_module.set_sub_module(self.id().module_name(), origin_sub_module);
     }
 }
-pub trait TypeAssociatedModule: TypeAssociatedFunctionContainer + ConstructorFunctionContainer {
-    /// Format: "PascalCase"
-    fn name(&self) -> &'static str;
+pub trait TypeAssociatedModule: 'static + Send + Sync + TypeAssociatedFunctionContainer + ConstructorFunctionContainer {
+    /// Format: "some_sort_of::path::to::MyType"
+    fn id(&self) -> TypeAssociatedModulePath;
 
     fn register_type_associated_module(&self, parent_module: &mut rhai::Module) {
         let mut type_module = rhai::Module::new();
-        type_module.set_id(self.name());
+        type_module.set_id(self.id().type_name());
 
         for type_associated_function in self.type_associated_functions().into_iter() {
             type_associated_function.register_type_associated_function(&mut type_module);
@@ -487,12 +540,13 @@ pub trait TypeAssociatedModule: TypeAssociatedFunctionContainer + ConstructorFun
             constructor_function.register_constructor_function(&mut type_module);
         }
 
-        parent_module.set_sub_module(self.name(), type_module);
+        parent_module.set_sub_module(self.id().type_name(), type_module);
     }
 }
 
 
 
+// Trait
 /// # How to make a rust-trait rhai-compatible:
 /// 
 /// Say:
@@ -527,13 +581,12 @@ pub trait TypeAssociatedModule: TypeAssociatedFunctionContainer + ConstructorFun
 /// #[repr(transparent)]
 /// pub struct __Foo__TraitObject__(pub StaticTraitObject<FooTrait>);
 /// ```
-pub trait Trait {
-    /// Format: "PascalCase"
-    fn name(&self) -> &'static str;
+pub trait Trait: 'static + Send + Sync {
+    /// Format: "some_sort_of::path::to::MyTrait"
+    fn id(&self) -> TraitPath;
     fn register_trait(&self, parent_module: &mut rhai::Module);
 }
 
-// Trait
 /// # How to make a rust-trait-implementor rhai-compatible:
 /// 
 /// Say:
@@ -577,20 +630,20 @@ pub trait Trait {
 ///     }
 /// }
 /// ```
-pub trait TraitObject {
-    /// Format: "PascalCase"
-    fn name(&self) -> &'static str;
+pub trait TraitObject: 'static + Send + Sync {
+    /// Format: "some_sort_of::path::to::MyTrait"
+    fn id(&self) -> TraitPath;
 }
 
 
 
 // Type
-pub trait Type: MethodFunctionContainer {
-    /// Format: "PascalCase"
-    fn name(&self) -> &'static str;
+pub trait Type: 'static + Send + Sync + MethodFunctionContainer {
+    /// Format: "some_sort_of::path::to::MyType"
+    fn id(&self) -> TypePath;
 
     fn register_type(&self, engine: &mut rhai::Engine, parent_module: &mut rhai::Module) {
-        parent_module.set_custom_type::<ScopedAccessHandle<Self>>(self.name());
+        parent_module.set_custom_type::<ScopedAccessHandle<Self>>(self.id().type_name());
 
         for method_function in self.method_functions().into_iter() {
             method_function.register_method_function(engine);
@@ -608,33 +661,35 @@ pub trait TypeScopedMut: Type {}
 
 
 // Function
-pub trait Function {
-    /// Format: "snake_case"
-    fn name(&self) -> &'static str;
+pub trait Function: 'static + Send + Sync {
 }
 pub trait ModuleAssociatedFunction: Function {
-    fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Module)>;
+    fn id(&self) -> ModuleAssociatedFunctionPath;
+    fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)>;
 
     fn register_module_associated_function(&self, parent_module: &mut rhai::Module) {
         (self.get_registrator())(parent_module);
     }
 }
 pub trait TypeAssociatedFunction: Function {
-    fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Module)>;
+    fn id(&self) -> TypeAssociatedFunctionPath;
+    fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)>;
 
     fn register_type_associated_function(&self, parent_module: &mut rhai::Module) {
         (self.get_registrator())(parent_module);
     }
 }
 pub trait ConstructorFunction: Function {
-    fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Module)>;
+    fn id(&self) -> ConstructorFunctionPath;
+    fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)>;
 
     fn register_constructor_function(&self, parent_module: &mut rhai::Module) {
         (self.get_registrator())(parent_module);
     }
 }
 pub trait MethodFunction: Function {
-    fn get_registrator(&self) -> Box<dyn Fn(&mut rhai::Engine)>;
+    fn id(&self) -> MethodFunctionPath;
+    fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Engine)>;
 
     fn register_method_function(&self, engine: &mut rhai::Engine) {
         (self.get_registrator())(engine);
@@ -644,25 +699,25 @@ pub trait MethodFunction: Function {
 
 
 // Container
-pub trait SubModuleContainer {
+pub trait SubModuleContainer: 'static + Send + Sync {
     fn sub_modules(&self) -> Vec<Box<dyn SubModule>>;
 }
-pub trait TraitContainer {
+pub trait TraitContainer: 'static + Send + Sync {
     fn traits(&self) -> Vec<Box<dyn Trait>>;
 }
-pub trait TypeContainer {
+pub trait TypeContainer: 'static + Send + Sync {
     fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeAssociatedModule>)>;
 }
-pub trait ModuleAssociatedFunctionContainer {
+pub trait ModuleAssociatedFunctionContainer: 'static + Send + Sync {
     fn module_associated_functions(&self) -> Vec<Box<dyn ModuleAssociatedFunction>>;
 }
-pub trait TypeAssociatedFunctionContainer {
+pub trait TypeAssociatedFunctionContainer: 'static + Send + Sync {
     fn type_associated_functions(&self) -> Vec<Box<dyn TypeAssociatedFunction>>;
 }
-pub trait ConstructorFunctionContainer {
+pub trait ConstructorFunctionContainer: 'static + Send + Sync {
     fn constructor_functions(&self) -> Vec<Box<dyn ConstructorFunction>>;
 }
-pub trait MethodFunctionContainer {
+pub trait MethodFunctionContainer: 'static + Send + Sync {
     fn method_functions(&self) -> Vec<Box<dyn MethodFunction>>;
 }
 
