@@ -103,101 +103,183 @@ pub(crate) unsafe trait ScopedAccessProvider<T> {
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<T>);
 }
 
-// Experimental Example shit
-pub struct __Shop__;
-impl SubModuleContainer for __Shop__ {
-    fn sub_modules(&self) -> Vec<Box<dyn SubModule>> {
-        vec![
-            Box::new(shop::__Divisions__)
-        ]
-    }
-}
-impl TraitContainer for __Shop__ {
-    fn traits(&self) -> Vec<Box<dyn Trait>> {
-        vec![]
-    }
-}
-impl TypeContainer for __Shop__ {
-    fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeAssociatedModule>)> {
-        vec![]
-    }
-}
-impl ModuleAssociatedFunctionContainer for __Shop__ {
-    fn module_associated_functions(&self) -> Vec<Box<dyn ModuleAssociatedFunction>> {
-        vec![]
-    }
-}
-impl SubModule for __Shop__ {
-    fn name(&self) -> &'static str { "shop" }
-}
+// The vision: 
 
+// The actual end-user code
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
 pub mod shop {
     use crate::reflection::internals::traits::*;
 
-    pub struct __Divisions__;
-    impl SubModuleContainer for __Divisions__ {
+    reflect_top_level_module!(
+        namespace = shop,
+        sub_modules = [divisions],
+        traits = [],
+        types = [],
+        module_associated_functions = [],
+    );
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> //
+
+// Expanded MetaProgramming Magic (It's just a bunch of metadata)
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
+    pub struct __Shop__TopLevelModule__;
+    impl SubModuleContainer for __Shop__TopLevelModule__ {
         fn sub_modules(&self) -> Vec<Box<dyn SubModule>> {
             vec![
-                Box::new(divisions::__Sex__)
+                Box::new(divisions::__Divisions__SubModule__)
             ]
         }
     }
-    impl TraitContainer for __Divisions__ {
+    impl TraitContainer for __Shop__TopLevelModule__ {
         fn traits(&self) -> Vec<Box<dyn Trait>> {
             vec![]
         }
     }
-    impl TypeContainer for __Divisions__ {
+    impl TypeContainer for __Shop__TopLevelModule__ {
         fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeAssociatedModule>)> {
             vec![]
         }
     }
-    impl ModuleAssociatedFunctionContainer for __Divisions__ {
+    impl ModuleAssociatedFunctionContainer for __Shop__TopLevelModule__ {
         fn module_associated_functions(&self) -> Vec<Box<dyn ModuleAssociatedFunction>> {
             vec![]
         }
     }
-    impl SubModule for __Divisions__ {
-        fn name(&self) -> &'static str { "divisions" }
+    impl SubModule for __Shop__TopLevelModule__ {
+        fn name(&self) -> &'static str { "shop" }
     }
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> //
 
+// The actual end-user code
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
     pub mod divisions {
         use crate::reflection::internals::traits::*;
 
-        pub struct __Sex__;
-        impl SubModuleContainer for __Sex__ {
+        reflect_sub_module!(
+            id = shop::divisions,
+            sub_modules = [sex],
+            traits = [],
+            types = [],
+            module_associated_functions = [],
+        );
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> //
+
+// Expanded MetaProgramming Magic (It's just a bunch of metadata)
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
+        pub struct __Divisions__SubModule__;
+        impl SubModuleContainer for __Divisions__SubModule__ {
             fn sub_modules(&self) -> Vec<Box<dyn SubModule>> {
+                vec![
+                    Box::new(sex::__Sex__SubModule__)
+                ]
+            }
+        }
+        impl TraitContainer for __Divisions__SubModule__ {
+            fn traits(&self) -> Vec<Box<dyn Trait>> {
                 vec![]
             }
         }
-        impl TraitContainer for __Sex__ {
-            fn traits(&self) -> Vec<Box<dyn Trait>> {
-                vec![
-                    Box::new(sex::__SexShopTest__Trait__)
-                ]
-            }
-        }
-        impl TypeContainer for __Sex__ {
+        impl TypeContainer for __Divisions__SubModule__ {
             fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeAssociatedModule>)> {
-                vec![
-                    (Box::new(sex::__SexShopProduct__Type__), Box::new(sex::__SexShopProduct__TypeAssociatedModule__))
-                ]
+                vec![]
             }
         }
-        impl ModuleAssociatedFunctionContainer for __Sex__ {
+        impl ModuleAssociatedFunctionContainer for __Divisions__SubModule__ {
             fn module_associated_functions(&self) -> Vec<Box<dyn ModuleAssociatedFunction>> {
-                vec![
-                    Box::new(sex::__TestFunction__ModuleAssociatedFunction__)
-                ]
+                vec![]
             }
         }
-        impl SubModule for __Sex__ {
-            fn name(&self) -> &'static str { "sex" }
-            fn register_sub_module(&self, _engine: &mut rhai::Engine, _parent_module: &mut rhai::Module) {}
+        impl SubModule for __Divisions__SubModule__ {
+            fn name(&self) -> &'static str { "divisions" }
         }
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> //
 
+// The actual end-user code
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
         pub mod sex {
             use crate::reflection::internals::traits::*;
+
+            reflect_sub_module!(
+                id = shop::divisions::sex,
+                sub_modules = [],
+                traits = [SexShopTest],
+                types = [SexShopProduct],
+                module_associated_functions = [test_function],
+            );
+
+            #[reflect_trait(shop::divisions::sex::SexShopTest)]
+            pub trait SexShopTest {
+                fn test();
+            }
+            
+            #[reflect_type(shop::divisions::sex)]
+            #[derive(Clone)]
+            pub struct SexShopProduct {
+                name: &'static str,
+                price_usd: f32,
+            }
+            #[reflect_type_impl(shop::divisions::sex)]
+            impl SexShopProduct {
+                #[constructor_function]
+                pub fn new(name: &'static str, price_usd: f32) -> Self { Self { name, price_usd } }
+
+                #[method_function]
+                pub fn name(&self) -> &'static str { self.name }
+
+                #[method_function]
+                pub fn price_usd(&self) -> f32 { self.price_usd }
+
+                #[type_associated_function]
+                pub fn verify_price(price_usd: f32) -> Result<(), ()> {
+                    if price_usd >= 0.0 { Ok(()) } else { Err(()) }
+                }
+            }
+            #[reflect_trait_impl(shop::divisions::sex::SexShopTest, shop::divisions::sex::SexShopProduct)]
+            impl SexShopTest for SexShopProduct {
+                #[type_associated_function]
+                fn test() {
+                    println!("Small banana sound!")
+                }
+            }
+
+            #[reflect_module_associated_function(shop::divisions::sex::test_function)]
+            pub fn test_function() {
+                println!("Big paling sound!")
+            }
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> //
+
+// Expanded MetaProgramming Magic (It's just a bunch of metadata)
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
+            pub struct __Sex__SubModule__;
+            impl SubModuleContainer for __Sex__SubModule__ {
+                fn sub_modules(&self) -> Vec<Box<dyn SubModule>> {
+                    vec![]
+                }
+            }
+            impl TraitContainer for __Sex__SubModule__ {
+                fn traits(&self) -> Vec<Box<dyn Trait>> {
+                    vec![
+                        Box::new(__SexShopTest__Trait__)
+                    ]
+                }
+            }
+            impl TypeContainer for __Sex__SubModule__ {
+                fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeAssociatedModule>)> {
+                    vec![
+                        (Box::new(__SexShopProduct__Type__), Box::new(__SexShopProduct__TypeAssociatedModule__))
+                    ]
+                }
+            }
+            impl ModuleAssociatedFunctionContainer for __Sex__SubModule__ {
+                fn module_associated_functions(&self) -> Vec<Box<dyn ModuleAssociatedFunction>> {
+                    vec![
+                        Box::new(__TestFunction__ModuleAssociatedFunction__)
+                    ]
+                }
+            }
+            impl SubModule for __Sex__SubModule__ {
+                fn name(&self) -> &'static str { "sex" }
+                fn register_sub_module(&self, _engine: &mut rhai::Engine, _parent_module: &mut rhai::Module) {}
+            }
 
             #[derive(Clone, PartialEq, Eq, Hash)]
             pub struct __SexShopTest__Trait__;
@@ -321,39 +403,14 @@ pub mod shop {
                     Box::new(func)
                 }
             }
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> //
 
-            pub trait SexShopTest {
-                fn test();
-            }
-            
-            #[derive(Clone)]
-            pub struct SexShopProduct {
-                name: &'static str,
-                price_usd: f32,
-            }
-            impl SexShopProduct {
-                pub fn new(name: &'static str, price_usd: f32) -> Self { Self { name, price_usd } }
-
-                pub fn name(&self) -> &'static str { self.name }
-
-                pub fn price_usd(&self) -> f32 { self.price_usd }
-
-                pub fn verify_price(price_usd: f32) -> Result<(), ()> {
-                    if price_usd >= 0.0 { Ok(()) } else { Err(()) }
-                }
-            }
-            impl SexShopTest for SexShopProduct {
-                fn test() {
-                    println!("Small banana sound!")
-                }
-            }
-
-            pub fn test_function() {
-                println!("Big paling sound!")
-            }
+// The actual end-user code
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
         }
     }
 }
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> //
 
 
 
