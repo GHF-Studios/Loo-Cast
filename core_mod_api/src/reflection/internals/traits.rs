@@ -349,7 +349,6 @@ pub mod shop {
             }
 
             pub struct __TestFunction__ModuleAssociatedFunction__;
-            impl Function for __TestFunction__ModuleAssociatedFunction__ {}
             impl ModuleAssociatedFunction for __TestFunction__ModuleAssociatedFunction__ {
                 fn id(&self) -> ModuleAssociatedFunctionPath { "shop::divisions::sex::test_function".into() }
                 fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)> {
@@ -363,7 +362,6 @@ pub mod shop {
             }
 
             pub struct __VerifyPrice__TypeAssociatedFunction__;
-            impl Function for __VerifyPrice__TypeAssociatedFunction__ {}
             impl TypeAssociatedFunction for __VerifyPrice__TypeAssociatedFunction__ {
                 fn id(&self) -> TypeAssociatedFunctionPath { "shop::divisions::sex::SexShopProduct::verify_price".into() }
                 fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)> {
@@ -377,7 +375,6 @@ pub mod shop {
             }
 
             pub struct __New__ConstructorFunction__;
-            impl Function for __New__ConstructorFunction__ {}
             impl ConstructorFunction for __New__ConstructorFunction__ {
                 fn id(&self) -> ConstructorFunctionPath { "shop::divisions::sex::SexShopProduct::new".into() }
                 fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)> {
@@ -391,7 +388,6 @@ pub mod shop {
             }
 
             pub struct __Name__MethodFunction__;
-            impl Function for __Name__MethodFunction__ {}
             impl MethodFunction for __Name__MethodFunction__ {
                 fn id(&self) -> MethodFunctionPath { "shop::divisions::sex::SexShopProduct::name".into() }
                 fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Engine)> {
@@ -403,7 +399,6 @@ pub mod shop {
                 }
             }
             pub struct __PriceUsd__MethodFunction__;
-            impl Function for __PriceUsd__MethodFunction__ {}
             impl MethodFunction for __PriceUsd__MethodFunction__ {
                 fn id(&self) -> MethodFunctionPath { "shop::divisions::sex::SexShopProduct::price_usd".into() }
                 fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Engine)> {
@@ -442,8 +437,6 @@ pub struct TypeAssociatedModuleMetadata {
     pub inner_thunk: fn() -> Box<dyn TypeAssociatedModule>
 }
 
-
-
 // Trait Metadata
 inventory::collect!(TraitMetadata);
 pub struct TraitMetadata {
@@ -456,8 +449,6 @@ pub struct TraitObjectMetadata {
     pub inner_thunk: fn() -> Box<dyn TraitObject>
 }
 
-
-
 // Type Metadata
 inventory::collect!(TypeMetadata);
 pub struct TypeMetadata {
@@ -465,6 +456,27 @@ pub struct TypeMetadata {
     pub inner_thunk: fn() -> Box<dyn Type>
 }
 
+// Function Metadata
+inventory::collect!(ModuleAssociatedFunctionMetadata);
+pub struct ModuleAssociatedFunctionMetadata {
+    pub id_thunk: fn() -> Box<ModuleAssociatedFunctionPath>,
+    pub inner_thunk: fn() -> Box<dyn ModuleAssociatedFunction>
+}
+inventory::collect!(TypeAssociatedFunctionMetadata);
+pub struct TypeAssociatedFunctionMetadata {
+    pub id_thunk: fn() -> Box<TypeAssociatedFunctionPath>,
+    pub inner_thunk: fn() -> Box<dyn TypeAssociatedFunction>
+}
+inventory::collect!(ConstructorFunctionMetadata);
+pub struct ConstructorFunctionMetadata {
+    pub id_thunk: fn() -> Box<ConstructorFunctionPath>,
+    pub inner_thunk: fn() -> Box<dyn ConstructorFunction>
+}
+inventory::collect!(MethodFunctionMetadata);
+pub struct MethodFunctionMetadata {
+    pub id_thunk: fn() -> Box<MethodFunctionPath>,
+    pub inner_thunk: fn() -> Box<dyn MethodFunction>
+}
 
 
 // Module
@@ -544,8 +556,6 @@ pub trait TypeAssociatedModule: 'static + Send + Sync + TypeAssociatedFunctionCo
     }
 }
 
-
-
 // Trait
 /// # How to make a rust-trait rhai-compatible:
 /// 
@@ -586,7 +596,6 @@ pub trait Trait: 'static + Send + Sync {
     fn id(&self) -> TraitPath;
     fn register_trait(&self, parent_module: &mut rhai::Module);
 }
-
 /// # How to make a rust-trait-implementor rhai-compatible:
 /// 
 /// Say:
@@ -635,9 +644,8 @@ pub trait TraitObject: 'static + Send + Sync {
     fn id(&self) -> TraitPath;
 }
 
-
-
 // Type
+/// I think this is outdated, and the entire Type shit is not yet adapted to the new reflection paradigm, aka there are no metadata structs yet
 pub trait Type: 'static + Send + Sync + MethodFunctionContainer {
     /// Format: "some_sort_of::path::to::MyType"
     fn id(&self) -> TypePath;
@@ -658,12 +666,9 @@ pub trait TypePersistentMut: Type {}
 pub trait TypeScopedRef: Type {}
 pub trait TypeScopedMut: Type {}
 
-
-
 // Function
-pub trait Function: 'static + Send + Sync {
-}
-pub trait ModuleAssociatedFunction: Function {
+pub trait ModuleAssociatedFunction: 'static + Send + Sync {
+    /// Format: "some_sort_of::path::to::my_module_associated_function"
     fn id(&self) -> ModuleAssociatedFunctionPath;
     fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)>;
 
@@ -671,7 +676,8 @@ pub trait ModuleAssociatedFunction: Function {
         (self.get_registrator())(parent_module);
     }
 }
-pub trait TypeAssociatedFunction: Function {
+pub trait TypeAssociatedFunction: 'static + Send + Sync {
+    /// Format: "some_sort_of::path::to::SomeType::my_type_associated_function"
     fn id(&self) -> TypeAssociatedFunctionPath;
     fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)>;
 
@@ -679,7 +685,8 @@ pub trait TypeAssociatedFunction: Function {
         (self.get_registrator())(parent_module);
     }
 }
-pub trait ConstructorFunction: Function {
+pub trait ConstructorFunction: 'static + Send + Sync {
+    /// Format: "some_sort_of::path::to::SomeType::my_constructor_function"
     fn id(&self) -> ConstructorFunctionPath;
     fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)>;
 
@@ -687,7 +694,8 @@ pub trait ConstructorFunction: Function {
         (self.get_registrator())(parent_module);
     }
 }
-pub trait MethodFunction: Function {
+pub trait MethodFunction: 'static + Send + Sync {
+    /// Format: "some_sort_of::path::to::SomeType::my_method_function"
     fn id(&self) -> MethodFunctionPath;
     fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Engine)>;
 
@@ -731,7 +739,7 @@ pub trait MethodFunctionContainer: 'static + Send + Sync {
 
 
 
-
+// Outdated and old shit that might still be useful below:
 
 pub trait EngineExt {
     fn enable_type_binding(&mut self, fully_qualified_type_path: impl Into<TypeId>) -> &mut Self;
