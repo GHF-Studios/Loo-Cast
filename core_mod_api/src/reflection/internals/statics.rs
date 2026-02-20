@@ -14,6 +14,8 @@ use crate::reflection::{
     type_info::TypeInfo
 };
 
+use super::types::ReflectionRegistry;
+
 export_static!(self, crate::reflection::internals::statics::SCHEDULE_HOOKS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
 
 export_static!(self, crate::reflection::internals::statics::TYPE_REGISTRY: Lazy<HashMap<TypeId, &'static TypeInfo>> = Lazy::new(|| {
@@ -37,3 +39,5 @@ export_static!(self, crate::reflection::internals::statics::TRAIT_OBJECT_VTABLE_
     }
     m
 }));
+
+export_static!(self, crate::reflection::internals::statics::REFLECTION_REGISTRY: Lazy<ReflectionRegistry> = Lazy::new(|| ReflectionRegistry::build()));

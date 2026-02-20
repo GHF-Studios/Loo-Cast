@@ -3,6 +3,7 @@ pub mod resources;
 pub mod statics;
 pub mod managed_traits;
 pub mod traits;
+pub mod types;
 
 use crate::bevy::prelude::*;
 

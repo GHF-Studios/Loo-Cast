@@ -164,6 +164,16 @@ impl Into<ModulePath> for &'static str {
         ModulePath::parse(&ImmutableString::from(self))
     }
 }
+impl std::fmt::Debug for ModulePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
+impl std::fmt::Display for ModulePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
 
 /// Format: "snake"
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -190,6 +200,16 @@ impl TopLevelModulePath {
 impl Into<TopLevelModulePath> for &'static str {
     fn into(self) -> TopLevelModulePath {
         TopLevelModulePath::parse(&ImmutableString::from(self))
+    }
+}
+impl std::fmt::Debug for TopLevelModulePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
+impl std::fmt::Display for TopLevelModulePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
     }
 }
 
@@ -226,11 +246,21 @@ impl Into<SubModulePath> for &'static str {
         SubModulePath::parse(&ImmutableString::from(self))
     }
 }
+impl std::fmt::Debug for SubModulePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
+impl std::fmt::Display for SubModulePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
 
 /// Format: "snake::snake::Pascal"
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct TypeAssociatedModulePath(TypePath);
-impl TypeAssociatedModulePath {
+pub struct TypeProxyModulePath(TypePath);
+impl TypeProxyModulePath {
     pub fn parse(raw: &ImmutableString) -> Self {
         let type_path = TypePath::parse(raw);
         Self(type_path)
@@ -248,9 +278,19 @@ impl TypeAssociatedModulePath {
         self.0.type_name()
     }
 }
-impl Into<TypeAssociatedModulePath> for &'static str {
-    fn into(self) -> TypeAssociatedModulePath {
-        TypeAssociatedModulePath::parse(&ImmutableString::from(self))
+impl Into<TypeProxyModulePath> for &'static str {
+    fn into(self) -> TypeProxyModulePath {
+        TypeProxyModulePath::parse(&ImmutableString::from(self))
+    }
+}
+impl std::fmt::Debug for TypeProxyModulePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
+impl std::fmt::Display for TypeProxyModulePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
     }
 }
 
@@ -303,6 +343,16 @@ impl Into<TypePath> for &'static str {
         TypePath::parse(&ImmutableString::from(self))
     }
 }
+impl std::fmt::Debug for TypePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
+impl std::fmt::Display for TypePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
 
 /// Format: "snake::snake::Trait"
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -351,6 +401,16 @@ impl TraitPath {
 impl Into<TraitPath> for &'static str {
     fn into(self) -> TraitPath {
         TraitPath::parse(&ImmutableString::from(self))
+    }
+}
+impl std::fmt::Debug for TraitPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
+impl std::fmt::Display for TraitPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
     }
 }
 
@@ -404,6 +464,16 @@ impl Into<ModuleAssociatedFunctionPath> for &'static str {
         ModuleAssociatedFunctionPath::parse(&ImmutableString::from(self))
     }
 }
+impl std::fmt::Debug for ModuleAssociatedFunctionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
+impl std::fmt::Display for ModuleAssociatedFunctionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
 
 /// Format: "snake::snake::Type::snake_function"
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -442,6 +512,16 @@ impl Into<TypeAssociatedFunctionPath> for &'static str {
         TypeAssociatedFunctionPath::parse(&ImmutableString::from(self))
     }
 }
+impl std::fmt::Debug for TypeAssociatedFunctionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
+impl std::fmt::Display for TypeAssociatedFunctionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
 
 /// Format: "snake::snake::Type::snake_function"
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -478,6 +558,16 @@ impl ConstructorFunctionPath {
 impl Into<ConstructorFunctionPath> for &'static str {
     fn into(self) -> ConstructorFunctionPath {
         ConstructorFunctionPath::parse(&ImmutableString::from(self))
+    }
+}
+impl std::fmt::Debug for ConstructorFunctionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
+impl std::fmt::Display for ConstructorFunctionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
     }
 }
 
@@ -538,5 +628,15 @@ impl MethodFunctionPath {
 impl Into<MethodFunctionPath> for &'static str {
     fn into(self) -> MethodFunctionPath {
         MethodFunctionPath::parse(&ImmutableString::from(self))
+    }
+}
+impl std::fmt::Debug for MethodFunctionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
+impl std::fmt::Display for MethodFunctionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.to_string())
     }
 }

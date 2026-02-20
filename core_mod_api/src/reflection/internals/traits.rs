@@ -141,7 +141,7 @@ pub mod shop {
         }
     }
     impl TypeContainer for __Shop__TopLevelModule__ {
-        fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeAssociatedModule>)> {
+        fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeProxyModule>)> {
             vec![]
         }
     }
@@ -190,7 +190,7 @@ pub mod shop {
             }
         }
         impl TypeContainer for __Divisions__SubModule__ {
-            fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeAssociatedModule>)> {
+            fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeProxyModule>)> {
                 vec![]
             }
         }
@@ -244,7 +244,8 @@ pub mod shop {
                     if price_usd >= 0.0 { Ok(()) } else { Err(()) }
                 }
             }
-            #[reflect_trait_impl(shop::divisions::sex::SexShopTest, shop::divisions::sex::SexShopProduct)]
+            // TODO: Implement trait impl registration so we can properly do dynamic dispatch on trait objects.... I think?
+            // #[reflect_trait_impl(shop::divisions::sex::SexShopTest, shop::divisions::sex::SexShopProduct)]
             impl SexShopTest for SexShopProduct {
                 #[type_associated_function]
                 fn test() {
@@ -279,9 +280,9 @@ pub mod shop {
                 }
             }
             impl TypeContainer for __Sex__SubModule__ {
-                fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeAssociatedModule>)> {
+                fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeProxyModule>)> {
                     vec![
-                        (Box::new(__SexShopProduct__Type__), Box::new(__SexShopProduct__TypeAssociatedModule__))
+                        (Box::new(__SexShopProduct__Type__), Box::new(__SexShopProduct__TypeProxyModule__))
                     ]
                 }
             }
@@ -329,23 +330,23 @@ pub mod shop {
                 }
             }
 
-            pub struct __SexShopProduct__TypeAssociatedModule__;
-            impl ConstructorFunctionContainer for __SexShopProduct__TypeAssociatedModule__ {
+            pub struct __SexShopProduct__TypeProxyModule__;
+            impl ConstructorFunctionContainer for __SexShopProduct__TypeProxyModule__ {
                 fn constructor_functions(&self) -> Vec<Box<dyn ConstructorFunction>> {
                     vec![
                         Box::new(__New__ConstructorFunction__)
                     ]
                 }
             }
-            impl TypeAssociatedFunctionContainer for __SexShopProduct__TypeAssociatedModule__ {
+            impl TypeAssociatedFunctionContainer for __SexShopProduct__TypeProxyModule__ {
                 fn type_associated_functions(&self) -> Vec<Box<dyn TypeAssociatedFunction>> {
                     vec![
                         Box::new(__VerifyPrice__TypeAssociatedFunction__)
                     ]
                 }
             }
-            impl TypeAssociatedModule for __SexShopProduct__TypeAssociatedModule__ {
-                fn id(&self) -> TypeAssociatedModulePath { "shop::divisions::sex::SexShopProduct".into() }
+            impl TypeProxyModule for __SexShopProduct__TypeProxyModule__ {
+                fn id(&self) -> TypeProxyModulePath { "shop::divisions::sex::SexShopProduct".into() }
             }
 
             pub struct __TestFunction__ModuleAssociatedFunction__;
@@ -422,59 +423,69 @@ pub mod shop {
 
 // Module Metadata
 inventory::collect!(TopLevelModuleMetadata);
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TopLevelModuleMetadata {
     pub id_thunk: fn() -> TopLevelModulePath,
     pub inner_thunk: fn() -> Box<dyn TopLevelModule>
 }
 inventory::collect!(SubModuleMetadata);
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SubModuleMetadata {
     pub id_thunk: fn() -> SubModulePath,
     pub inner_thunk: fn() -> Box<dyn SubModule>
 }
-inventory::collect!(TypeAssociatedModuleMetadata);
-pub struct TypeAssociatedModuleMetadata {
-    pub id_thunk: fn() -> TypeAssociatedModulePath,
-    pub inner_thunk: fn() -> Box<dyn TypeAssociatedModule>
+inventory::collect!(TypeProxyModuleMetadata);
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TypeProxyModuleMetadata {
+    pub id_thunk: fn() -> TypeProxyModulePath,
+    pub inner_thunk: fn() -> Box<dyn TypeProxyModule>
 }
 
 // Trait Metadata
 inventory::collect!(TraitMetadata);
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TraitMetadata {
-    pub id_thunk: fn() -> Box<TraitPath>,
+    pub id_thunk: fn() -> TraitPath,
     pub inner_thunk: fn() -> Box<dyn Trait>
 }
 inventory::collect!(TraitObjectMetadata);
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TraitObjectMetadata {
-    pub id_thunk: fn() -> Box<TraitPath>,
+    pub id_thunk: fn() -> TraitPath,
     pub inner_thunk: fn() -> Box<dyn TraitObject>
 }
 
 // Type Metadata
 inventory::collect!(TypeMetadata);
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TypeMetadata {
-    pub id_thunk: fn() -> Box<TypePath>,
+    pub id_thunk: fn() -> TypePath,
     pub inner_thunk: fn() -> Box<dyn Type>
 }
 
 // Function Metadata
 inventory::collect!(ModuleAssociatedFunctionMetadata);
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ModuleAssociatedFunctionMetadata {
-    pub id_thunk: fn() -> Box<ModuleAssociatedFunctionPath>,
+    pub id_thunk: fn() -> ModuleAssociatedFunctionPath,
     pub inner_thunk: fn() -> Box<dyn ModuleAssociatedFunction>
 }
 inventory::collect!(TypeAssociatedFunctionMetadata);
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TypeAssociatedFunctionMetadata {
-    pub id_thunk: fn() -> Box<TypeAssociatedFunctionPath>,
+    pub id_thunk: fn() -> TypeAssociatedFunctionPath,
     pub inner_thunk: fn() -> Box<dyn TypeAssociatedFunction>
 }
 inventory::collect!(ConstructorFunctionMetadata);
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ConstructorFunctionMetadata {
-    pub id_thunk: fn() -> Box<ConstructorFunctionPath>,
+    pub id_thunk: fn() -> ConstructorFunctionPath,
     pub inner_thunk: fn() -> Box<dyn ConstructorFunction>
 }
 inventory::collect!(MethodFunctionMetadata);
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MethodFunctionMetadata {
-    pub id_thunk: fn() -> Box<MethodFunctionPath>,
+    pub id_thunk: fn() -> MethodFunctionPath,
     pub inner_thunk: fn() -> Box<dyn MethodFunction>
 }
 
@@ -498,7 +509,7 @@ pub trait TopLevelModule: 'static + Send + Sync + SubModuleContainer + TraitCont
 
         for (type_, type_module) in self.types().into_iter() {
             type_.register_type(engine, &mut top_level_module);
-            type_module.register_type_associated_module(&mut top_level_module);
+            type_module.register_type_proxy_module(&mut top_level_module);
         }
 
         for module_associated_function in self.module_associated_functions().into_iter() {
@@ -526,7 +537,7 @@ pub trait SubModule: 'static + Send + Sync + SubModuleContainer + TraitContainer
 
         for (type_, type_module) in self.types().into_iter() {
             type_.register_type(engine, &mut origin_sub_module);
-            type_module.register_type_associated_module(&mut origin_sub_module);
+            type_module.register_type_proxy_module(&mut origin_sub_module);
         }
 
         for module_associated_function in self.module_associated_functions().into_iter() {
@@ -536,11 +547,11 @@ pub trait SubModule: 'static + Send + Sync + SubModuleContainer + TraitContainer
         parent_module.set_sub_module(self.id().module_name(), origin_sub_module);
     }
 }
-pub trait TypeAssociatedModule: 'static + Send + Sync + TypeAssociatedFunctionContainer + ConstructorFunctionContainer {
+pub trait TypeProxyModule: 'static + Send + Sync + TypeAssociatedFunctionContainer + ConstructorFunctionContainer {
     /// Format: "some_sort_of::path::to::MyType"
-    fn id(&self) -> TypeAssociatedModulePath;
+    fn id(&self) -> TypeProxyModulePath;
 
-    fn register_type_associated_module(&self, parent_module: &mut rhai::Module) {
+    fn register_type_proxy_module(&self, parent_module: &mut rhai::Module) {
         let mut type_module = rhai::Module::new();
         type_module.set_id(self.id().type_name());
 
@@ -714,7 +725,7 @@ pub trait TraitContainer: 'static + Send + Sync {
     fn traits(&self) -> Vec<Box<dyn Trait>>;
 }
 pub trait TypeContainer: 'static + Send + Sync {
-    fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeAssociatedModule>)>;
+    fn types(&self) -> Vec<(Box<dyn Type>, Box<dyn TypeProxyModule>)>;
 }
 pub trait ModuleAssociatedFunctionContainer: 'static + Send + Sync {
     fn module_associated_functions(&self) -> Vec<Box<dyn ModuleAssociatedFunction>>;
