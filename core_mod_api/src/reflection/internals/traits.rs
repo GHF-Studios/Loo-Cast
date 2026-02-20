@@ -228,26 +228,23 @@ pub mod shop {
                 name: &'static str,
                 price_usd: f32,
             }
-            #[reflect_type_impl(shop::divisions::sex)]
             impl SexShopProduct {
-                #[constructor_function]
+                #[reflect_constructor_function]
                 pub fn new(name: &'static str, price_usd: f32) -> Self { Self { name, price_usd } }
 
-                #[method_function]
+                #[reflect_method_function]
                 pub fn name(&self) -> &'static str { self.name }
 
-                #[method_function]
+                #[reflect_method_function]
                 pub fn price_usd(&self) -> f32 { self.price_usd }
 
-                #[type_associated_function]
+                #[reflect_type_associated_function]
                 pub fn verify_price(price_usd: f32) -> Result<(), ()> {
                     if price_usd >= 0.0 { Ok(()) } else { Err(()) }
                 }
             }
-            // TODO: Implement trait impl registration so we can properly do dynamic dispatch on trait objects.... I think?
-            // #[reflect_trait_impl(shop::divisions::sex::SexShopTest, shop::divisions::sex::SexShopProduct)]
             impl SexShopTest for SexShopProduct {
-                #[type_associated_function]
+                #[reflect_type_associated_function]
                 fn test() {
                     println!("Small banana sound!")
                 }

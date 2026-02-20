@@ -204,12 +204,12 @@ impl Into<TopLevelModulePath> for &'static str {
 }
 impl std::fmt::Debug for TopLevelModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "TopLevelModulePath({})", self.0.to_string())
     }
 }
 impl std::fmt::Display for TopLevelModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "TopLevelModulePath({})", self.0.to_string())
     }
 }
 
@@ -248,12 +248,12 @@ impl Into<SubModulePath> for &'static str {
 }
 impl std::fmt::Debug for SubModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "SubModulePath({})", self.0.to_string())
     }
 }
 impl std::fmt::Display for SubModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "SubModulePath({})", self.0.to_string())
     }
 }
 
@@ -285,12 +285,12 @@ impl Into<TypeProxyModulePath> for &'static str {
 }
 impl std::fmt::Debug for TypeProxyModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "TypeProxyModulePath({})", self.0.to_string())
     }
 }
 impl std::fmt::Display for TypeProxyModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "TypeProxyModulePath({})", self.0.to_string())
     }
 }
 
@@ -345,12 +345,12 @@ impl Into<TypePath> for &'static str {
 }
 impl std::fmt::Debug for TypePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "TypePath({})", self.0.to_string())
     }
 }
 impl std::fmt::Display for TypePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "TypePath({})", self.0.to_string())
     }
 }
 
@@ -405,12 +405,12 @@ impl Into<TraitPath> for &'static str {
 }
 impl std::fmt::Debug for TraitPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "TraitPath({})", self.0.to_string())
     }
 }
 impl std::fmt::Display for TraitPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "TraitPath({})", self.0.to_string())
     }
 }
 
@@ -466,12 +466,12 @@ impl Into<ModuleAssociatedFunctionPath> for &'static str {
 }
 impl std::fmt::Debug for ModuleAssociatedFunctionPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "ModuleAssociatedFunctionPath({})", self.0.to_string())
     }
 }
 impl std::fmt::Display for ModuleAssociatedFunctionPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "ModuleAssociatedFunctionPath({})", self.0.to_string())
     }
 }
 
@@ -514,12 +514,12 @@ impl Into<TypeAssociatedFunctionPath> for &'static str {
 }
 impl std::fmt::Debug for TypeAssociatedFunctionPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "TypeAssociatedFunctionPath({})", self.0.to_string())
     }
 }
 impl std::fmt::Display for TypeAssociatedFunctionPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "TypeAssociatedFunctionPath({})", self.0.to_string())
     }
 }
 
@@ -562,12 +562,12 @@ impl Into<ConstructorFunctionPath> for &'static str {
 }
 impl std::fmt::Debug for ConstructorFunctionPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "ConstructorFunctionPath({})", self.0.to_string())
     }
 }
 impl std::fmt::Display for ConstructorFunctionPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "ConstructorFunctionPath({})", self.0.to_string())
     }
 }
 
@@ -632,11 +632,11 @@ impl Into<MethodFunctionPath> for &'static str {
 }
 impl std::fmt::Debug for MethodFunctionPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "MethodFunctionPath({})", self.0.to_string())
     }
 }
 impl std::fmt::Display for MethodFunctionPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "MethodFunctionPath({})", self.0.to_string())
     }
 }
