@@ -107,10 +107,20 @@ pub fn reflect_sub_module(input: TokenStream) -> TokenStream {
 pub fn reflect_trait(attr: TokenStream, item: TokenStream) -> TokenStream {
     reflection::reflect_trait(attr, item)
 }
+// TODO: WIP
+// #[proc_macro_attribute]
+// pub fn reflect_trait_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
+//     reflection::reflect_trait_impl(attr, item)
+// }
 #[proc_macro_attribute]
 pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
     reflection::reflect_type(attr, item)
 }
+// TODO: WIP
+// #[proc_macro_attribute]
+// pub fn reflect_inherent_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
+//     reflection::reflect_inherent_impl(attr, item)
+// }
 #[proc_macro_attribute]
 pub fn reflect_module_associated_function(attr: TokenStream, item: TokenStream) -> TokenStream {
     reflection::reflect_module_associated_function(attr, item)

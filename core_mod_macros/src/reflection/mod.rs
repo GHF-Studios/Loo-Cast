@@ -14,7 +14,13 @@ pub fn reflect_sub_module(input: TokenStream) -> TokenStream {
 pub fn reflect_trait(attr: TokenStream, item: TokenStream) -> TokenStream {
     item
 }
+pub fn reflect_trait_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
+    item
+}
 pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
+    item
+}
+pub fn reflect_inherent_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     item
 }
 pub fn reflect_module_associated_function(attr: TokenStream, item: TokenStream) -> TokenStream {

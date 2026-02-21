@@ -236,42 +236,42 @@ pub mod shop {
                 module_associated_functions = [test_function],
             );
 
-            #[reflect_trait(shop::divisions::sex::SexShopTest)]
+            #[reflect_trait(id = shop::divisions::sex::SexShopTest)]
             pub trait SexShopTest {
                 fn test();
             }
             
-            #[reflect_type(shop::divisions::sex)]
+            #[reflect_type(id = shop::divisions::sex::SexShopProduct)]
             #[derive(Clone)]
             pub struct SexShopProduct {
                 name: &'static str,
                 price_usd: f32,
             }
+            #[reflect_inherent_impl(id = shop::divisions::sex::SexShopProduct)]
             impl SexShopProduct {
-                #[reflect_constructor_function]
+                #[reflect_constructor_function(inherent)]
                 pub fn new(name: &'static str, price_usd: f32) -> Self { Self { name, price_usd } }
 
-                #[reflect_method_function]
+                #[reflect_method_function(inherent)]
                 pub fn name(&self) -> &'static str { self.name }
 
-                #[reflect_method_function]
+                #[reflect_method_function(inherent)]
                 pub fn price_usd(&self) -> f32 { self.price_usd }
 
-                #[reflect_type_associated_function]
+                #[reflect_type_associated_function(inherent)]
                 pub fn verify_price(price_usd: f32) -> Result<(), ()> {
                     if price_usd >= 0.0 { Ok(()) } else { Err(()) }
                 }
             }
-            #[reflect_trait_impl(shop::divisions::sex::SexShopTest)]
+            #[reflect_trait_impl(trait_id = shop::divisions::sex::SexShopTest, type_id = shop::divisions::sex::SexShopProduct)]
             impl SexShopTest for SexShopProduct {
-                #[reflect_trait_member]
-                #[reflect_type_associated_function]
+                #[reflect_type_associated_function(via_trait)]
                 fn test() {
                     println!("Small banana sound!")
                 }
             }
 
-            #[reflect_module_associated_function(shop::divisions::sex::test_function)]
+            #[reflect_module_associated_function(id = shop::divisions::sex::test_function)]
             pub fn test_function() {
                 println!("Big paling sound!")
             }
