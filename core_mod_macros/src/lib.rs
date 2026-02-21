@@ -19,6 +19,7 @@ mod define_workflow_mod;
 mod define_workflow_mod_OLD;
 mod global_statics;
 mod register_workflow_mods;
+mod reflection;
 mod script;
 mod usf;
 
@@ -42,12 +43,10 @@ use syn::parse_macro_input;
 pub fn export_static(input: TokenStream) -> TokenStream {
     global_statics::export_static(input)
 }
-
 #[proc_macro]
 pub fn import_static(input: TokenStream) -> TokenStream {
     global_statics::import_static(input)
 }
-
 #[proc_macro]
 pub fn api_initializer(input: TokenStream) -> TokenStream {
     global_statics::api_initializer(input)
@@ -60,45 +59,73 @@ pub fn composite_workflow(input: TokenStream) -> TokenStream {
     let outer_composite_workflow = parse_macro_input!(input as OuterCompositeWorkflow);
     outer_composite_workflow.generate().into()
 }
-
 #[proc_macro]
 pub fn composite_workflow_return(input: TokenStream) -> TokenStream {
     let composite_workflow_return = parse_macro_input!(input as CompositeWorkflowReturn);
     composite_workflow_return.generate().into()
 }
-
 #[proc_macro]
 pub fn define_composite_workflow(input: TokenStream) -> TokenStream {
     let inner_composite_workflow = parse_macro_input!(input as InnerCompositeWorkflow);
     inner_composite_workflow.generate().into()
 }
-
 #[proc_macro]
 #[allow(non_snake_case)]
 pub fn define_workflow_mod_OLD(input: TokenStream) -> TokenStream {
     let workflow_module = parse_macro_input!(input as WorkflowModule);
     workflow_module.generate().into()
 }
-
 #[proc_macro]
 pub fn register_workflow_mods(input: TokenStream) -> TokenStream {
     let workflow_mods = parse_macro_input!(input as WorkflowMods);
     workflow_mods.generate().into()
 }
-
 #[proc_macro]
 pub fn define_workflow_mod(_input: TokenStream) -> TokenStream {
     quote! {}.into()
 }
-
 #[proc_macro]
 pub fn define_workflow(_input: TokenStream) -> TokenStream {
     quote! {}.into()
 }
-
 #[proc_macro]
 pub fn define_worfklow_stages(_input: TokenStream) -> TokenStream {
     quote! {}.into()
+}
+
+// Reflection
+
+#[proc_macro]
+pub fn reflect_top_level_module(input: TokenStream) -> TokenStream {
+    reflection::reflect_top_level_module(input)
+}
+#[proc_macro]
+pub fn reflect_sub_module(input: TokenStream) -> TokenStream {
+    reflection::reflect_sub_module(input)
+}
+#[proc_macro_attribute]
+pub fn reflect_trait(attr: TokenStream, item: TokenStream) -> TokenStream {
+    reflection::reflect_trait(attr, item)
+}
+#[proc_macro_attribute]
+pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
+    reflection::reflect_type(attr, item)
+}
+#[proc_macro_attribute]
+pub fn reflect_module_associated_function(attr: TokenStream, item: TokenStream) -> TokenStream {
+    reflection::reflect_module_associated_function(attr, item)
+}
+#[proc_macro_attribute]
+pub fn reflect_type_associated_function(attr: TokenStream, item: TokenStream) -> TokenStream {
+    reflection::reflect_type_associated_function(attr, item)
+}
+#[proc_macro_attribute]
+pub fn reflect_constructor_function(attr: TokenStream, item: TokenStream) -> TokenStream {
+    reflection::reflect_constructor_function(attr, item)
+}
+#[proc_macro_attribute]
+pub fn reflect_method_function(attr: TokenStream, item: TokenStream) -> TokenStream {
+    reflection::reflect_method_function(attr, item)
 }
 
 // Script
@@ -123,13 +150,11 @@ pub fn configure_app_with_all_scales(input: TokenStream) -> TokenStream {
     let app_config_input = parse_macro_input!(input as AppConfigInput);
     app_config_input.generate().into()
 }
-
 #[proc_macro]
 pub fn scale_type_generic_match(input: TokenStream) -> TokenStream {
     let scale_type_generic_match = parse_macro_input!(input as ScaleTypeGenericMatch);
     scale_type_generic_match.generate().into()
 }
-
 #[proc_macro]
 pub fn scale_factor_exponent_dynamic_match(input: TokenStream) -> TokenStream {
     let scale_factor_exponent_dynamic_match = parse_macro_input!(input as ScaleFactorExponentDynamicMatch);
