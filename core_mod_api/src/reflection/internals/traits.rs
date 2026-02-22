@@ -519,6 +519,13 @@ pub mod shop {
 
 
 
+// TODO: IMPORTANT: Copy all the Box<dyn Thing> from LinkedMetadata to RawMetadata, but like change it so it doesn't link to other pieces of Metadata, 
+// so that RawMetadata can even contain the raw info that should merely be aggragated/assembled via *LinkedMetadata, 
+// but currently LinkedMetadata wrongly assumes responsibility for making sure a Thing can actually be registered;
+// that should be the job of the RawMetadata.
+
+
+
 // Module RawMetadata
 
 
