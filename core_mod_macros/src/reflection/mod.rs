@@ -11,22 +11,22 @@ pub fn reflect_top_level_module(input: TokenStream) -> TokenStream {
 pub fn reflect_sub_module(input: TokenStream) -> TokenStream {
     TokenStream::new()
 }
-pub fn reflect_trait(attr: TokenStream, item: TokenStream) -> TokenStream {
-    item
-}
-pub fn reflect_trait_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
-    item
-}
 pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
     item
 }
 pub fn reflect_inherent_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     item
 }
+pub fn reflect_trait(attr: TokenStream, item: TokenStream) -> TokenStream {
+    item
+}
+pub fn reflect_trait_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
+    item
+}
 pub fn reflect_module_associated_function(attr: TokenStream, item: TokenStream) -> TokenStream {
     item
 }
-pub fn reflect_type_associated_function(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn reflect_item_associated_function(attr: TokenStream, item: TokenStream) -> TokenStream {
     item
 }
 pub fn reflect_constructor_function(attr: TokenStream, item: TokenStream) -> TokenStream {

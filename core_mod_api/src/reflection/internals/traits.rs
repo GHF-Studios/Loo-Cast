@@ -123,8 +123,8 @@ pub mod shop {
 
 // Expanded MetaProgramming Magic (It's just a bunch of metadata)
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
-    inventory::submit!(TopLevelModuleMetadata {
-        id_thunk: || "shop".into(),
+    inventory::submit!(TopLevelModuleLinkedMetadata {
+        id_path_thunk: || "shop".into(),
         inner_thunk: || Box::new(__Shop__TopLevelModule__) as Box<dyn TopLevelModule>,
     });
 
@@ -177,8 +177,8 @@ pub mod shop {
 
 // Expanded MetaProgramming Magic (It's just a bunch of metadata)
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
-        inventory::submit!(SubModuleMetadata {
-            id_thunk: || "shop::divisions".into(),
+        inventory::submit!(SubModuleLinkedMetadata {
+            id_path_thunk: || "shop::divisions".into(),
             inner_thunk: || Box::new(__Divisions__SubModule__) as Box<dyn SubModule>,
         });
 
@@ -221,57 +221,59 @@ pub mod shop {
             use core_mod_macros::{
                 reflect_sub_module,
                 reflect_trait,
+                reflect_trait_impl,
                 reflect_type,
+                reflect_inherent_impl,
                 reflect_module_associated_function,
-                reflect_type_associated_function,
+                reflect_item_associated_function,
                 reflect_constructor_function,
                 reflect_method_function
             };
 
             reflect_sub_module!(
-                id = shop::divisions::sex,
+                id_path = shop::divisions::sex,
                 sub_modules = [],
                 traits = [SexShopTest],
                 types = [SexShopProduct],
                 module_associated_functions = [test_function],
             );
 
-            #[reflect_trait(id = shop::divisions::sex::SexShopTest)]
+            #[reflect_trait(shop::divisions::sex::SexShopTest)]
             pub trait SexShopTest {
                 fn test();
             }
             
-            #[reflect_type(id = shop::divisions::sex::SexShopProduct)]
+            #[reflect_type(shop::divisions::sex::SexShopProduct)]
             #[derive(Clone)]
             pub struct SexShopProduct {
                 name: &'static str,
                 price_usd: f32,
             }
-            #[reflect_inherent_impl(id = shop::divisions::sex::SexShopProduct)]
+            #[reflect_inherent_impl(shop::divisions::sex::SexShopProduct)]
             impl SexShopProduct {
-                #[reflect_constructor_function(inherent)]
+                #[reflect_constructor_function(shop::divisions::sex::SexShopProduct)]
                 pub fn new(name: &'static str, price_usd: f32) -> Self { Self { name, price_usd } }
 
-                #[reflect_method_function(inherent)]
+                #[reflect_method_function(shop::divisions::sex::SexShopProduct)]
                 pub fn name(&self) -> &'static str { self.name }
 
-                #[reflect_method_function(inherent)]
+                #[reflect_method_function(shop::divisions::sex::SexShopProduct)]
                 pub fn price_usd(&self) -> f32 { self.price_usd }
 
-                #[reflect_type_associated_function(inherent)]
+                #[reflect_item_associated_function(shop::divisions::sex::SexShopProduct)]
                 pub fn verify_price(price_usd: f32) -> Result<(), ()> {
                     if price_usd >= 0.0 { Ok(()) } else { Err(()) }
                 }
             }
-            #[reflect_trait_impl(trait_id = shop::divisions::sex::SexShopTest, type_id = shop::divisions::sex::SexShopProduct)]
+            #[reflect_trait_impl(<shop::divisions::sex::SexShopProduct as shop::divisions::sex::SexShopTest>)]
             impl SexShopTest for SexShopProduct {
-                #[reflect_type_associated_function(via_trait)]
+                #[reflect_item_associated_function(<shop::divisions::sex::SexShopProduct as shop::divisions::sex::SexShopTest>)]
                 fn test() {
                     println!("Small banana sound!")
                 }
             }
 
-            #[reflect_module_associated_function(id = shop::divisions::sex::test_function)]
+            #[reflect_module_associated_function(shop::divisions::sex::test_function)]
             pub fn test_function() {
                 println!("Big paling sound!")
             }
@@ -279,40 +281,40 @@ pub mod shop {
 
 // Expanded MetaProgramming Magic (It's just a bunch of metadata)
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
-            inventory::submit!(SubModuleMetadata {
-                id_thunk: || "shop::divisions::sex".into(),
+            inventory::submit!(SubModuleLinkedMetadata {
+                id_path_thunk: || "shop::divisions::sex".into(),
                 inner_thunk: || Box::new(__Sex__SubModule__) as Box<dyn SubModule>,
             });
-            inventory::submit!(TraitMetadata {
-                id_thunk: || "shop::divisions::sex::SexShopTest".into(),
+            inventory::submit!(TraitLinkedMetadata {
+                id_path_thunk: || "shop::divisions::sex::SexShopTest".into(),
                 inner_thunk: || Box::new(__SexShopTest__Trait__) as Box<dyn Trait>,
             });
-            inventory::submit!(TraitObjectMetadata {
-                id_thunk: || "shop::divisions::sex::SexShopTest".into(),
+            inventory::submit!(TraitObjectLinkedMetadata {
+                id_path_thunk: || "shop::divisions::sex::SexShopTest".into(),
                 inner_thunk: || Box::new(__SexShopTest__TraitObject__) as Box<dyn TraitObject>,
             });
-            inventory::submit!(TypeMetadata {
-                id_thunk: || "shop::divisions::sex::SexShopProduct".into(),
+            inventory::submit!(TypeLinkedMetadata {
+                id_path_thunk: || "shop::divisions::sex::SexShopProduct".into(),
                 inner_thunk: || Box::new(__SexShopProduct__Type__) as Box<dyn Type>,
             });
-            inventory::submit!(ModuleAssociatedFunctionMetadata {
-                id_thunk: || "shop::divisions::sex::test_function".into(),
+            inventory::submit!(ModuleAssociatedFunctionLinkedMetadata {
+                id_path_thunk: || "shop::divisions::sex::test_function".into(),
                 inner_thunk: || Box::new(__TestFunction__ModuleAssociatedFunction__) as Box<dyn ModuleAssociatedFunction>,
             });
-            inventory::submit!(TypeAssociatedFunctionMetadata {
-                id_thunk: || "shop::divisions::sex::verify_price".into(),
-                inner_thunk: || Box::new(__VerifyPrice__TypeAssociatedFunction__) as Box<dyn TypeAssociatedFunction>,
+            inventory::submit!(ItemAssociatedFunctionLinkedMetadata {
+                id_path_thunk: || "shop::divisions::sex::verify_price".into(),
+                inner_thunk: || Box::new(__VerifyPrice__ItemAssociatedFunction__) as Box<dyn ItemAssociatedFunction>,
             });
-            inventory::submit!(ConstructorFunctionMetadata {
-                id_thunk: || "shop::divisions::sex::new".into(),
+            inventory::submit!(ConstructorFunctionLinkedMetadata {
+                id_path_thunk: || "shop::divisions::sex::new".into(),
                 inner_thunk: || Box::new(__New__ConstructorFunction__) as Box<dyn ConstructorFunction>,
             });
-            inventory::submit!(MethodFunctionMetadata {
-                id_thunk: || "shop::divisions::sex::name".into(),
+            inventory::submit!(MethodFunctionLinkedMetadata {
+                id_path_thunk: || "shop::divisions::sex::name".into(),
                 inner_thunk: || Box::new(__Name__MethodFunction__) as Box<dyn MethodFunction>,
             });
-            inventory::submit!(MethodFunctionMetadata {
-                id_thunk: || "shop::divisions::sex::price_usd".into(),
+            inventory::submit!(MethodFunctionLinkedMetadata {
+                id_path_thunk: || "shop::divisions::sex::price_usd".into(),
                 inner_thunk: || Box::new(__PriceUsd__MethodFunction__) as Box<dyn MethodFunction>,
             });
 
@@ -413,10 +415,10 @@ pub mod shop {
                     ]
                 }
             }
-            impl TypeAssociatedFunctionContainer for __SexShopProduct__TypeProxyModule__ {
-                fn type_associated_functions(&self) -> Vec<Box<dyn TypeAssociatedFunction>> {
+            impl ItemAssociatedFunctionContainer for __SexShopProduct__TypeProxyModule__ {
+                fn item_associated_functions(&self) -> Vec<Box<dyn ItemAssociatedFunction>> {
                     vec![
-                        Box::new(__VerifyPrice__TypeAssociatedFunction__)
+                        Box::new(__VerifyPrice__ItemAssociatedFunction__)
                     ]
                 }
             }
@@ -442,12 +444,12 @@ pub mod shop {
             }
 
             #[derive(Clone, PartialEq, Eq, Hash)]
-            pub struct __VerifyPrice__TypeAssociatedFunction__;
-            impl Reflect for __VerifyPrice__TypeAssociatedFunction__ {
+            pub struct __VerifyPrice__ItemAssociatedFunction__;
+            impl Reflect for __VerifyPrice__ItemAssociatedFunction__ {
                 fn rust_module_path(&self) -> &'static str { module_path!() }
             }
-            impl TypeAssociatedFunction for __VerifyPrice__TypeAssociatedFunction__ {
-                fn id_path(&self) -> TypeAssociatedFunctionPath { "shop::divisions::sex::SexShopProduct::verify_price".into() }
+            impl ItemAssociatedFunction for __VerifyPrice__ItemAssociatedFunction__ {
+                fn id_path(&self) -> ItemAssociatedFunctionPath { "shop::divisions::sex::SexShopProduct::verify_price".into() }
                 fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)> {
                     let name = self.id_path().function_name().clone();
                     let func = move |parent_module: &mut rhai::Module| {
@@ -517,73 +519,106 @@ pub mod shop {
 
 
 
-// Module Metadata
-inventory::collect!(TopLevelModuleMetadata);
+// Module RawMetadata
+
+
+
+// Function RawMetadata
+inventory::collect!(ModuleAssociatedFunctionRawMetadata);
+#[derive(Clone)]
+pub struct ModuleAssociatedFunctionRawMetadata {
+    pub id_path: ModuleAssociatedFunctionPath,
+    pub raw_rust_module_path: &'static str,
+}
+inventory::collect!(ItemAssociatedFunctionRawMetadata);
+#[derive(Clone)]
+pub struct ItemAssociatedFunctionRawMetadata {
+    pub id: ItemAssociatedFunctionPath,
+    pub raw_rust_module_path: &'static str,
+}
+inventory::collect!(ConstructorFunctionRawMetadata);
+#[derive(Clone)]
+pub struct ConstructorFunctionRawMetadata {
+    pub id: ConstructorFunctionPath,
+    pub raw_rust_module_path: &'static str,
+}
+inventory::collect!(MethodFunctionRawMetadata);
+#[derive(Clone)]
+pub struct MethodFunctionRawMetadata {
+    pub id: MethodFunctionPath,
+    pub raw_rust_module_path: &'static str,
+}
+
+
+
+// Module LinkedMetadata
+inventory::collect!(TopLevelModuleLinkedMetadata);
 #[derive(Clone, Copy)]
-pub struct TopLevelModuleMetadata {
-    pub id_thunk: fn() -> TopLevelModulePath,
+pub struct TopLevelModuleLinkedMetadata {
+    pub id_path_thunk: fn() -> TopLevelModulePath,
     pub inner_thunk: fn() -> Box<dyn TopLevelModule>
 }
-inventory::collect!(SubModuleMetadata);
+inventory::collect!(SubModuleLinkedMetadata);
 #[derive(Clone, Copy)]
-pub struct SubModuleMetadata {
-    pub id_thunk: fn() -> SubModulePath,
+pub struct SubModuleLinkedMetadata {
+    pub id_path_thunk: fn() -> SubModulePath,
     pub inner_thunk: fn() -> Box<dyn SubModule>
 }
-inventory::collect!(TypeProxyModuleMetadata);
+inventory::collect!(TypeProxyModuleLinkedMetadata);
 #[derive(Clone, Copy)]
-pub struct TypeProxyModuleMetadata {
-    pub id_thunk: fn() -> TypeProxyModulePath,
+pub struct TypeProxyModuleLinkedMetadata {
+    pub id_path_thunk: fn() -> TypeProxyModulePath,
     pub inner_thunk: fn() -> Box<dyn TypeProxyModule>
 }
 
-// Trait Metadata
-inventory::collect!(TraitMetadata);
+// Trait LinkedMetadata
+inventory::collect!(TraitLinkedMetadata);
 #[derive(Clone, Copy)]
-pub struct TraitMetadata {
-    pub id_thunk: fn() -> TraitPath,
+pub struct TraitLinkedMetadata {
+    pub id_path_thunk: fn() -> TraitPath,
     pub inner_thunk: fn() -> Box<dyn Trait>
 }
-inventory::collect!(TraitObjectMetadata);
+inventory::collect!(TraitObjectLinkedMetadata);
 #[derive(Clone, Copy)]
-pub struct TraitObjectMetadata {
-    pub id_thunk: fn() -> TraitPath,
+pub struct TraitObjectLinkedMetadata {
+    pub id_path_thunk: fn() -> TraitPath,
     pub inner_thunk: fn() -> Box<dyn TraitObject>
 }
 
-// Type Metadata
-inventory::collect!(TypeMetadata);
+// Type LinkedMetadata
+inventory::collect!(TypeLinkedMetadata);
 #[derive(Clone, Copy)]
-pub struct TypeMetadata {
-    pub id_thunk: fn() -> TypePath,
+pub struct TypeLinkedMetadata {
+    pub id_path_thunk: fn() -> TypePath,
     pub inner_thunk: fn() -> Box<dyn Type>
 }
 
-// Function Metadata
-inventory::collect!(ModuleAssociatedFunctionMetadata);
+// Function LinkedMetadata
+inventory::collect!(ModuleAssociatedFunctionLinkedMetadata);
 #[derive(Clone, Copy)]
-pub struct ModuleAssociatedFunctionMetadata {
-    pub id_thunk: fn() -> ModuleAssociatedFunctionPath,
+pub struct ModuleAssociatedFunctionLinkedMetadata {
+    pub id_path_thunk: fn() -> ModuleAssociatedFunctionPath,
     pub inner_thunk: fn() -> Box<dyn ModuleAssociatedFunction>
 }
-inventory::collect!(TypeAssociatedFunctionMetadata);
+inventory::collect!(ItemAssociatedFunctionLinkedMetadata);
 #[derive(Clone, Copy)]
-pub struct TypeAssociatedFunctionMetadata {
-    pub id_thunk: fn() -> TypeAssociatedFunctionPath,
-    pub inner_thunk: fn() -> Box<dyn TypeAssociatedFunction>
+pub struct ItemAssociatedFunctionLinkedMetadata {
+    pub id_path_thunk: fn() -> ItemAssociatedFunctionPath,
+    pub inner_thunk: fn() -> Box<dyn ItemAssociatedFunction>
 }
-inventory::collect!(ConstructorFunctionMetadata);
+inventory::collect!(ConstructorFunctionLinkedMetadata);
 #[derive(Clone, Copy)]
-pub struct ConstructorFunctionMetadata {
-    pub id_thunk: fn() -> ConstructorFunctionPath,
+pub struct ConstructorFunctionLinkedMetadata {
+    pub id_path_thunk: fn() -> ConstructorFunctionPath,
     pub inner_thunk: fn() -> Box<dyn ConstructorFunction>
 }
-inventory::collect!(MethodFunctionMetadata);
+inventory::collect!(MethodFunctionLinkedMetadata);
 #[derive(Clone, Copy)]
-pub struct MethodFunctionMetadata {
-    pub id_thunk: fn() -> MethodFunctionPath,
+pub struct MethodFunctionLinkedMetadata {
+    pub id_path_thunk: fn() -> MethodFunctionPath,
     pub inner_thunk: fn() -> Box<dyn MethodFunction>
 }
+
 
 
 pub trait Reflect: 'static + Send + Sync {
@@ -647,7 +682,7 @@ pub trait SubModule: Reflect + SubModuleContainer + TraitContainer + TypeContain
         parent_module.set_sub_module(self.id_path().module_name(), origin_sub_module);
     }
 }
-pub trait TypeProxyModule: Reflect + TypeAssociatedFunctionContainer + ConstructorFunctionContainer {
+pub trait TypeProxyModule: Reflect + ItemAssociatedFunctionContainer + ConstructorFunctionContainer {
     /// Format: "some_sort_of::path::to::MyType"
     fn id_path(&self) -> TypeProxyModulePath;
 
@@ -655,8 +690,8 @@ pub trait TypeProxyModule: Reflect + TypeAssociatedFunctionContainer + Construct
         let mut type_module = rhai::Module::new();
         type_module.set_id(self.id_path().type_name());
 
-        for type_associated_function in self.type_associated_functions().into_iter() {
-            type_associated_function.register_type_associated_function(&mut type_module);
+        for item_associated_function in self.item_associated_functions().into_iter() {
+            item_associated_function.register_item_associated_function(&mut type_module);
         }
 
         for constructor_function in self.constructor_functions().into_iter() {
@@ -665,6 +700,11 @@ pub trait TypeProxyModule: Reflect + TypeAssociatedFunctionContainer + Construct
 
         parent_module.set_sub_module(self.id_path().type_name(), type_module);
     }
+}
+
+// Impl
+pub trait InherentImpl: Reflect {
+    fn id_path(&self) -> TraitPath;
 }
 
 // Trait
@@ -788,12 +828,12 @@ pub trait ModuleAssociatedFunction: Reflect {
         (self.get_registrator())(parent_module);
     }
 }
-pub trait TypeAssociatedFunction: Reflect {
-    /// Format: "some_sort_of::path::to::SomeType::my_type_associated_function"
-    fn id_path(&self) -> TypeAssociatedFunctionPath;
+pub trait ItemAssociatedFunction: Reflect {
+    /// Format: "some_sort_of::path::to::SomeType::my_item_associated_function"
+    fn id_path(&self) -> ItemAssociatedFunctionPath;
     fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)>;
 
-    fn register_type_associated_function(&self, parent_module: &mut rhai::Module) {
+    fn register_item_associated_function(&self, parent_module: &mut rhai::Module) {
         (self.get_registrator())(parent_module);
     }
 }
@@ -831,8 +871,8 @@ pub trait TypeContainer: Reflect {
 pub trait ModuleAssociatedFunctionContainer: Reflect {
     fn module_associated_functions(&self) -> Vec<Box<dyn ModuleAssociatedFunction>>;
 }
-pub trait TypeAssociatedFunctionContainer: Reflect {
-    fn type_associated_functions(&self) -> Vec<Box<dyn TypeAssociatedFunction>>;
+pub trait ItemAssociatedFunctionContainer: Reflect {
+    fn item_associated_functions(&self) -> Vec<Box<dyn ItemAssociatedFunction>>;
 }
 pub trait ConstructorFunctionContainer: Reflect {
     fn constructor_functions(&self) -> Vec<Box<dyn ConstructorFunction>>;
@@ -919,7 +959,7 @@ impl EngineExt for rhai::Engine {
 
 use rhai::Dynamic;
 
-/// Metadata provider for reflection + scripting
+/// LinkedMetadata provider for reflection + scripting
 pub trait ReflectType {
     fn type_info() -> TypeInfo;
 }

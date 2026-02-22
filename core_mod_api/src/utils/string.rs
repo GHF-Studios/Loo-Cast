@@ -57,7 +57,6 @@ pub enum ReflectionPathSegment {
 pub struct ReflectionPath {
     segments: Vec<ReflectionPathSegment>,
 }
-
 impl ReflectionPath {
     fn parse_with_classifier<F>(raw: &ImmutableString, mut classify: F) -> Self
     where
@@ -175,7 +174,7 @@ impl std::fmt::Display for ModulePath {
     }
 }
 
-/// Format: "snake"
+/// Format: `"snake"`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TopLevelModulePath(ModulePath);
 impl TopLevelModulePath {
@@ -213,7 +212,7 @@ impl std::fmt::Display for TopLevelModulePath {
     }
 }
 
-/// Format: "snake::snake::..."
+/// Format: `"snake::snake::..."`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct SubModulePath(ModulePath);
 impl SubModulePath {
@@ -257,7 +256,7 @@ impl std::fmt::Display for SubModulePath {
     }
 }
 
-/// Format: "snake::snake::Pascal"
+/// Format: `"snake::snake::Pascal"`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TypeProxyModulePath(TypePath);
 impl TypeProxyModulePath {
@@ -294,7 +293,7 @@ impl std::fmt::Display for TypeProxyModulePath {
     }
 }
 
-/// Format: "snake::snake::Type"
+/// Format: `"snake::snake::Type"`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TypePath(ReflectionPath);
 impl TypePath {
@@ -354,7 +353,61 @@ impl std::fmt::Display for TypePath {
     }
 }
 
-/// Format: "snake::snake::Trait"
+/// Format: `"Type::function"`
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct InherentImplFunctionPath {
+    type_path: TypePath,
+    function_name: ImmutableString,
+}
+impl InherentImplFunctionPath {
+    pub fn new(type_path: TypePath, function_name: ImmutableString) -> Self {
+        Self { type_path, function_name }
+    }
+
+    pub fn parse(raw: &ImmutableString) -> Self {
+        let parts: Vec<_> = raw.split("::").collect();
+
+        if parts.len() < 2 {
+            panic!("InherentImplFunctionPath must be `Type::function`");
+        }
+
+        let function_name = ImmutableString::from(*parts.last().unwrap());
+        let type_part = parts[..parts.len() - 1].join("::");
+
+        let type_path = TypePath::parse(&ImmutableString::from(type_part));
+
+        Self { type_path, function_name }
+    }
+
+    pub fn type_path(&self) -> &TypePath {
+        &self.type_path
+    }
+
+    pub fn function_name(&self) -> &ImmutableString {
+        &self.function_name
+    }
+
+    pub fn module_path(&self) -> ModulePath {
+        self.type_path.module_path()
+    }
+}
+impl Into<InherentImplFunctionPath> for &'static str {
+    fn into(self) -> InherentImplFunctionPath {
+        InherentImplFunctionPath::parse(&ImmutableString::from(self))
+    }
+}
+impl std::fmt::Debug for InherentImplFunctionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}::{}", self.type_path, self.function_name)
+    }
+}
+impl std::fmt::Display for InherentImplFunctionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}::{}", self.type_path, self.function_name)
+    }
+}
+
+/// Format: `"snake::snake::Trait"`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TraitPath(ReflectionPath);
 impl TraitPath {
@@ -414,7 +467,117 @@ impl std::fmt::Display for TraitPath {
     }
 }
 
-/// Format: "snake::snake::snake_function"
+/// Format: `"<Type as Trait>"`
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct TraitImplPath {
+    type_path: TypePath,
+    trait_path: TraitPath,
+}
+impl TraitImplPath {
+    pub fn new(type_path: TypePath, trait_path: TraitPath) -> Self {
+        Self { type_path, trait_path }
+    }
+
+    pub fn parse(raw: &ImmutableString) -> Self {
+        if !raw.starts_with("<") || !raw.ends_with(">") {
+            panic!("TraitImplPath must be in format `<Type as Trait>`");
+        }
+
+        let inner = &raw[1..raw.len() - 1]; // strip <>
+        let parts: Vec<_> = inner.split(" as ").collect();
+
+        if parts.len() != 2 {
+            panic!("TraitImplPath must be in format `<Type as Trait>`");
+        }
+
+        let type_path = TypePath::parse(&ImmutableString::from(parts[0]));
+        let trait_path = TraitPath::parse(&ImmutableString::from(parts[1]));
+
+        Self { type_path, trait_path }
+    }
+
+    pub fn type_path(&self) -> &TypePath {
+        &self.type_path
+    }
+
+    pub fn trait_path(&self) -> &TraitPath {
+        &self.trait_path
+    }
+}
+impl Into<TraitImplPath> for &'static str {
+    fn into(self) -> TraitImplPath {
+        TraitImplPath::parse(&ImmutableString::from(self))
+    }
+}
+impl std::fmt::Debug for TraitImplPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<{} as {}>", self.type_path, self.trait_path)
+    }
+}
+impl std::fmt::Display for TraitImplPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<{} as {}>", self.type_path, self.trait_path)
+    }
+}
+/// Format: `"<Type as Trait>::function"`
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct TraitImplFunctionPath {
+    impl_path: TraitImplPath,
+    function_name: ImmutableString,
+}
+impl TraitImplFunctionPath {
+    pub fn new(impl_path: TraitImplPath, function_name: ImmutableString) -> Self {
+        Self { impl_path, function_name }
+    }
+
+    pub fn parse(raw: &ImmutableString) -> Self {
+        let parts: Vec<_> = raw.split(">::").collect();
+
+        if parts.len() != 2 {
+            panic!("TraitImplFunctionPath must be in format `<Type as Trait>::function`");
+        }
+
+        let impl_part = format!("{}>", parts[0]);
+        let impl_path = TraitImplPath::parse(&ImmutableString::from(impl_part));
+
+        let function_name = ImmutableString::from(parts[1]);
+
+        Self { impl_path, function_name }
+    }
+
+    pub fn impl_path(&self) -> &TraitImplPath {
+        &self.impl_path
+    }
+
+    pub fn type_path(&self) -> &TypePath {
+        self.impl_path.type_path()
+    }
+
+    pub fn trait_path(&self) -> &TraitPath {
+        self.impl_path.trait_path()
+    }
+
+    pub fn function_name(&self) -> &ImmutableString {
+        &self.function_name
+    }
+}
+impl Into<TraitImplFunctionPath> for &'static str {
+    fn into(self) -> TraitImplFunctionPath {
+        TraitImplFunctionPath::parse(&ImmutableString::from(self))
+    }
+}
+impl std::fmt::Debug for TraitImplFunctionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}::{}", self.impl_path, self.function_name)
+    }
+}
+impl std::fmt::Display for TraitImplFunctionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}::{}", self.impl_path, self.function_name)
+    }
+}
+
+/// Format: `"snake::snake::snake_function"`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct ModuleAssociatedFunctionPath(ReflectionPath);
 impl ModuleAssociatedFunctionPath {
@@ -475,55 +638,69 @@ impl std::fmt::Display for ModuleAssociatedFunctionPath {
     }
 }
 
-/// Format: "snake::snake::Type::snake_function"
+/// Format: `"Type::function"` or `"<Type as Trait>::function"`
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct TypeAssociatedFunctionPath(ReflectionPath);
-impl TypeAssociatedFunctionPath {
+pub enum ItemAssociatedFunctionPath {
+    Inherent(InherentImplFunctionPath),
+    ViaTrait(TraitImplFunctionPath),
+}
+impl ItemAssociatedFunctionPath {
     pub fn parse(raw: &ImmutableString) -> Self {
-        let path = MethodFunctionPath::parse(raw);
-        Self(path.0)
+        if raw.starts_with("<") {
+            Self::ViaTrait(TraitImplFunctionPath::parse(raw))
+        } else {
+            Self::Inherent(InherentImplFunctionPath::parse(raw))
+        }
     }
 
-    pub fn as_path(&self) -> &ReflectionPath {
-        &self.0
-    }
-    
-    pub fn module_path(&self) -> ModulePath {
-        let method = MethodFunctionPath(self.0.clone());
-        method.module_path()
+    pub fn type_path(&self) -> &TypePath {
+        match self {
+            Self::Inherent(p) => p.type_path(),
+            Self::ViaTrait(p) => p.type_path(),
+        }
     }
 
-    pub fn type_name(&self) -> &ImmutableString {
-        match &self.0.segments()[self.0.segments().len() - 2] {
-            ReflectionPathSegment::Type(s) => s,
-            _ => unreachable!(),
+    pub fn trait_path(&self) -> Option<&TraitPath> {
+        match self {
+            Self::Inherent(_) => None,
+            Self::ViaTrait(p) => Some(p.trait_path()),
         }
     }
 
     pub fn function_name(&self) -> &ImmutableString {
-        match self.0.segments().last().unwrap() {
-            ReflectionPathSegment::Function(s) => s,
-            _ => unreachable!(),
+        match self {
+            Self::Inherent(p) => p.function_name(),
+            Self::ViaTrait(p) => p.function_name(),
+        }
+    }
+
+    pub fn module_path(&self) -> ModulePath {
+        self.type_path().module_path()
+    }
+}
+impl Into<ItemAssociatedFunctionPath> for &'static str {
+    fn into(self) -> ItemAssociatedFunctionPath {
+        ItemAssociatedFunctionPath::parse(&ImmutableString::from(self))
+    }
+}
+impl std::fmt::Debug for ItemAssociatedFunctionPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Inherent(p) => write!(f, "{}", p),
+            Self::ViaTrait(p) => write!(f, "{}", p),
         }
     }
 }
-impl Into<TypeAssociatedFunctionPath> for &'static str {
-    fn into(self) -> TypeAssociatedFunctionPath {
-        TypeAssociatedFunctionPath::parse(&ImmutableString::from(self))
-    }
-}
-impl std::fmt::Debug for TypeAssociatedFunctionPath {
+impl std::fmt::Display for ItemAssociatedFunctionPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "TypeAssociatedFunctionPath({})", self.0.to_string())
-    }
-}
-impl std::fmt::Display for TypeAssociatedFunctionPath {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "TypeAssociatedFunctionPath({})", self.0.to_string())
+        match self {
+            Self::Inherent(p) => write!(f, "{}", p),
+            Self::ViaTrait(p) => write!(f, "{}", p),
+        }
     }
 }
 
-/// Format: "snake::snake::Type::snake_function"
+/// Format: `"snake::snake::Type::snake_function"`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct ConstructorFunctionPath(ReflectionPath);
 impl ConstructorFunctionPath {
@@ -571,7 +748,7 @@ impl std::fmt::Display for ConstructorFunctionPath {
     }
 }
 
-/// Format: "snake::snake::Type::snake_function"
+/// Format: `"snake::snake::Type::snake_function"`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MethodFunctionPath(ReflectionPath);
 impl MethodFunctionPath {
