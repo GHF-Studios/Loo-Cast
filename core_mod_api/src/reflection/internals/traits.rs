@@ -14,16 +14,22 @@ pub trait GetTypeId: Sized + 'static {
 }
 
 // TODO: Add string-format documentation or newtype with invariant-enforcing on construction
-pub trait GetTraitName: Clone + PartialEq + Eq + Hash + Sized + 'static {
+pub trait GetTraitName: Clone + Sized + 'static {
     const TRAIT_NAME: &'static str;
 }
-pub trait GetTraitObjectName: Clone + PartialEq + Eq + Hash + Sized + 'static {
+pub trait GetTraitObjectName: Clone + Sized + 'static {
     const TRAIT_OBJECT_NAME: &'static str;
 }
-pub trait GetTraitId: Clone + PartialEq + Eq + Hash + Sized + 'static {
+pub trait DynGetTraitName: 'static {
+    fn trait_name(&self) -> &'static str;
+}
+pub trait DynGetTraitObjectName: 'static {
+    fn trait_object_name(&self) -> &'static str;
+}
+pub trait GetTraitId: Clone + Sized + 'static {
     const TRAIT_ID: &'static str;
 }
-pub trait GetTraitObjectId: Clone + PartialEq + Eq + Hash + Sized + 'static {
+pub trait GetTraitObjectId: Clone + Sized + 'static {
     const TRAIT_OBJECT_ID: &'static str;
 }
 pub trait ToTraitObject<T: GetTraitId>: Sized {
@@ -36,7 +42,7 @@ use crate::reflection::{
     ids::TypeId,
     type_info::TypeInfo,
 };
-use crate::reflection::internals::statics::{TYPE_REGISTRY, CTOR_REGISTRY, METHOD_REGISTRY, STATIC_FUNCTION_REGISTRY};
+use crate::reflection::internals::statics::{CTOR_REGISTRY, METHOD_REGISTRY, RAW_REFLECTION_METADATA, STATIC_FUNCTION_REGISTRY, TYPE_REGISTRY};
 use crate::script::access::ScopedAccessHandle;
 use crate::utils::string::*;
 use std::any::Any;
@@ -407,7 +413,7 @@ pub mod shop {
                 fn rust_module_path(&self) -> &'static str { module_path!() }
             }
             impl Type for __SexShopProduct__Type__ {
-                fn id(&self) -> TypePath { "shop::divisions::sex::SexShopProduct".into() }
+                fn id_path(&self) -> TypePath { "shop::divisions::sex::SexShopProduct".into() }
             }
             impl MethodFunctionContainer for __SexShopProduct__Type__ {
                 fn method_functions(&self) -> Vec<Box<dyn MethodFunction>> {
@@ -448,7 +454,7 @@ pub mod shop {
             }
             impl ModuleAssociatedFunction for __TestFunction__ModuleAssociatedFunction__ {
                 fn id_path(&self) -> ModuleAssociatedFunctionPath { "shop::divisions::sex::test_function".into() }
-                fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)> {
+                fn registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)> {
                     let name = self.id_path().function_name().clone();
                     let func = move |parent_module: &mut rhai::Module| {
                         rhai::FuncRegistration::new(name)
@@ -465,7 +471,7 @@ pub mod shop {
             }
             impl ItemAssociatedFunction for __VerifyPrice__ItemAssociatedFunction__ {
                 fn id_path(&self) -> ItemAssociatedFunctionPath { "shop::divisions::sex::SexShopProduct::verify_price".into() }
-                fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)> {
+                fn registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)> {
                     let name = self.id_path().function_name().clone();
                     let func = move |parent_module: &mut rhai::Module| {
                         rhai::FuncRegistration::new(name)
@@ -482,7 +488,7 @@ pub mod shop {
             }
             impl ConstructorFunction for __New__ConstructorFunction__ {
                 fn id_path(&self) -> ConstructorFunctionPath { "shop::divisions::sex::SexShopProduct::new".into() }
-                fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)> {
+                fn registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module)> {
                     let name = self.id_path().function_name().clone();
                     let func = move |parent_module: &mut rhai::Module| {
                         rhai::FuncRegistration::new(name)
@@ -499,7 +505,7 @@ pub mod shop {
             }
             impl MethodFunction for __Name__MethodFunction__ {
                 fn id_path(&self) -> MethodFunctionPath { "shop::divisions::sex::SexShopProduct::name".into() }
-                fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Engine)> {
+                fn registrator(&self) -> Box<dyn FnOnce(&mut rhai::Engine)> {
                     let name = self.id_path().function_name().clone();
                     let func = move |engine: &mut rhai::Engine| {
                         engine.register_fn(name, SexShopProduct::name);
@@ -515,7 +521,7 @@ pub mod shop {
             }
             impl MethodFunction for __PriceUsd__MethodFunction__ {
                 fn id_path(&self) -> MethodFunctionPath { "shop::divisions::sex::SexShopProduct::price_usd".into() }
-                fn get_registrator(&self) -> Box<dyn FnOnce(&mut rhai::Engine)> {
+                fn registrator(&self) -> Box<dyn FnOnce(&mut rhai::Engine)> {
                     let name = self.id_path().function_name().clone();
                     let func = move |engine: &mut rhai::Engine| {
                         engine.register_fn(name, SexShopProduct::price_usd);
@@ -534,177 +540,284 @@ pub mod shop {
 
 
 
-// TODO: IMPORTANT: Copy all the Box<dyn Thing> from LinkedMetadata to RawMetadata, but like change it so it doesn't link to other pieces of Metadata, 
-// so that RawMetadata can even contain the raw info that should merely be aggragated/assembled via *LinkedMetadata, 
+// TODO: IMPORTANT: Copy all the Box<dyn Thing> from LinkedMetadata to Metadata, but like change it so it doesn't link to other pieces of Metadata, 
+// so that Metadata can even contain the raw info that should merely be aggragated/assembled via *LinkedMetadata, 
 // but currently LinkedMetadata wrongly assumes responsibility for making sure a Thing can actually be registered;
-// that should be the job of the RawMetadata.
+// that should be the job of the Metadata.
 
 
 
-// Module RawMetadata
-inventory::collect!(TopLevelModuleRawMetadata);
+// Module Metadata
+inventory::collect!(TopLevelModuleMetadata);
 #[derive(Clone)]
-pub struct TopLevelModuleRawMetadata {
+pub struct TopLevelModuleMetadata {
     /// Primary means of identification
     pub id_path: TopLevelModulePath,
     /// Raw `module_path!()` output to verify physical locations relatively (this is NOT a *globally* unique ID)
     pub raw_rust_module_path: &'static str,
-    pub registrator: fn(&mut rhai::Engine),
-}
-impl TopLevelModule for TopLevelModuleRawMetadata {
 
+    pub traits: Vec<TraitPath>,
+    pub types: Vec<TypePath>,
+    pub inherent_impls: Vec<InherentImplPath>,
+    pub trait_impls: Vec<TraitImplPath>,
+
+    pub sub_modules: Vec<SubModulePath>,
+    pub type_proxy_modules: Vec<TypeProxyModulePath>,
+    pub module_associated_functions: Vec<ModuleAssociatedFunctionPath>,
 }
-inventory::collect!(SubModuleRawMetadata);
+impl Reflect for TopLevelModuleMetadata {
+    fn rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+}
+impl RealModule for TopLevelModuleMetadata {
+    fn traits(&self) -> Vec<TraitPath> { self.traits.clone() }
+    fn types(&self) -> Vec<TypePath> { self.types.clone() }
+    fn inherent_impls(&self) -> Vec<InherentImplPath> { self.inherent_impls.clone() }
+    fn trait_impls(&self) -> Vec<TraitImplPath> { self.trait_impls.clone() }
+}
+impl TopLevelModule for TopLevelModuleMetadata {
+    fn id_path(&self) -> TopLevelModulePath { self.id_path.clone() }
+    fn sub_modules(&self) -> Vec<SubModulePath> { self.sub_modules.clone() }
+    fn type_proxy_modules(&self) -> Vec<TypeProxyModulePath> { self.type_proxy_modules.clone() }
+    fn module_associated_functions(&self) -> Vec<ModuleAssociatedFunctionPath> { self.module_associated_functions.clone() }
+}
+inventory::collect!(SubModuleMetadata);
 #[derive(Clone)]
-pub struct SubModuleRawMetadata {
+pub struct SubModuleMetadata {
     /// Primary means of identification
     pub id_path: SubModulePath,
     /// Raw `module_path!()` output to verify physical locations relatively (this is NOT a *globally* unique ID)
     pub raw_rust_module_path: &'static str,
-    pub registrator: fn(&mut rhai::Engine, &mut rhai::Module),
-}
-impl SubModule for SubModuleRawMetadata {
 
+    pub traits: Vec<TraitPath>,
+    pub types: Vec<TypePath>,
+    pub inherent_impls: Vec<InherentImplPath>,
+    pub trait_impls: Vec<TraitImplPath>,
+
+    pub sub_modules: Vec<SubModulePath>,
+    pub type_proxy_modules: Vec<TypeProxyModulePath>,
+    pub module_associated_functions: Vec<ModuleAssociatedFunctionPath>,
 }
-inventory::collect!(TypeProxyModuleRawMetadata);
+impl Reflect for SubModuleMetadata {
+    fn rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+}
+impl RealModule for SubModuleMetadata {
+    fn traits(&self) -> Vec<TraitPath> { self.traits.clone() }
+    fn types(&self) -> Vec<TypePath> { self.types.clone() }
+    fn inherent_impls(&self) -> Vec<InherentImplPath> { self.inherent_impls.clone() }
+    fn trait_impls(&self) -> Vec<TraitImplPath> { self.trait_impls.clone() }
+}
+impl SubModule for SubModuleMetadata {
+    fn id_path(&self) -> SubModulePath { self.id_path.clone() }
+    fn sub_modules(&self) -> Vec<SubModulePath> { self.sub_modules.clone() }
+    fn type_proxy_modules(&self) -> Vec<TypeProxyModulePath> { self.type_proxy_modules.clone() }
+    fn module_associated_functions(&self) -> Vec<ModuleAssociatedFunctionPath> { self.module_associated_functions.clone() }
+}
+inventory::collect!(TypeProxyModuleMetadata);
 #[derive(Clone)]
-pub struct TypeProxyModuleRawMetadata {
+pub struct TypeProxyModuleMetadata {
     /// Primary means of identification
     pub id_path: TypeProxyModulePath,
     /// Raw `module_path!()` output to verify physical locations relatively (this is NOT a *globally* unique ID)
     pub raw_rust_module_path: &'static str,
-    pub registrator: fn(&mut rhai::Module),
-}
-impl TypeProxyModule for TypeProxyModuleRawMetadata {
 
+    pub item_associated_functions: Vec<ItemAssociatedFunctionPath>,
+    pub constructor_functions: Vec<ConstructorFunctionPath>,
+}
+impl Reflect for TypeProxyModuleMetadata {
+    fn rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+}
+impl TypeProxyModule for TypeProxyModuleMetadata {
+    fn id_path(&self) -> TypeProxyModulePath { self.id_path.clone() }
+    fn item_associated_functions(&self) -> Vec<ItemAssociatedFunctionPath> { self.item_associated_functions.clone() }
+    fn constructor_functions(&self) -> Vec<ConstructorFunctionPath> { self.constructor_functions.clone() }
 }
 
-// Trait RawMetadata
-inventory::collect!(TraitRawMetadata);
-#[derive(Clone)]
-pub struct TraitRawMetadata {
+// Trait Metadata
+inventory::collect!(TraitMetadata);
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct TraitMetadata {
     /// Primary means of identification
     pub id_path: TraitPath,
     /// Raw `module_path!()` output to verify physical locations relatively (this is NOT a *globally* unique ID)
     pub raw_rust_module_path: &'static str,
-    pub registrator: fn(&mut rhai::Module),
+    pub trait_name: &'static str,
 }
-impl Trait for TraitRawMetadata {
-
+impl Reflect for TraitMetadata {
+    fn rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
 }
-inventory::collect!(TraitObjectRawMetadata);
-#[derive(Clone)]
-pub struct TraitObjectRawMetadata {
+impl DynGetTraitName for TraitMetadata {
+    fn trait_name(&self) -> &'static str { self.trait_name.clone() }
+}
+impl Trait for TraitMetadata {
+    fn id_path(&self) -> TraitPath { self.id_path.clone() }
+}
+inventory::collect!(TraitObjectMetadata);
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct TraitObjectMetadata {
     /// Primary means of identification
     pub id_path: TraitPath,
     /// Raw `module_path!()` output to verify physical locations relatively (this is NOT a *globally* unique ID)
     pub raw_rust_module_path: &'static str,
-    pub registrator: fn(&mut rhai::Module),
+    pub trait_object_name: &'static str,
 }
-impl TraitObject for TraitObjectRawMetadata {
-
+impl Reflect for TraitObjectMetadata {
+    fn rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+}
+impl DynGetTraitObjectName for TraitObjectMetadata {
+    fn trait_object_name(&self) -> &'static str { self.trait_object_name.clone() }
+}
+impl TraitObject for TraitObjectMetadata {
+    fn id_path(&self) -> TraitPath { self.id_path.clone() }
 }
 
-// Type RawMetadata
-inventory::collect!(TypeRawMetadata);
+// Type Metadata
+inventory::collect!(TypeMetadata);
 #[derive(Clone)]
-pub struct TypeRawMetadata {
+pub struct TypeMetadata {
     /// Primary means of identification
     pub id_path: TypePath,
     /// Raw `module_path!()` output to verify physical locations relatively (this is NOT a *globally* unique ID)
     pub raw_rust_module_path: &'static str,
-    pub registrator: fn(&mut rhai::Module),
-}
-impl Type for TypeRawMetadata {
 
+    pub method_functions: Vec<MethodFunctionPath>,
+}
+impl Reflect for TypeMetadata {
+    fn rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+}
+impl Type for TypeMetadata {
+    fn id_path(&self) -> TypePath { self.id_path.clone() }
+    fn method_functions(&self) -> Vec<MethodFunctionPath> { self.method_functions.clone() }
 }
 
-// Impl RawMetadata
-inventory::collect!(InherentImplRawMetadata);
+// Impl Metadata
+inventory::collect!(InherentImplMetadata);
 #[derive(Clone)]
-pub struct InherentImplRawMetadata {
+pub struct InherentImplMetadata {
     /// Primary means of identification
     pub id_path: InherentImplPath,
     /// Raw `module_path!()` output to verify physical locations relatively (this is NOT a *globally* unique ID)
     pub raw_rust_module_path: &'static str,
-    pub registrator: fn(&mut rhai::Module),
-}
-impl InherentImpl for InherentImplRawMetadata {
 
+    pub constructor_functions: Vec<ConstructorFunctionPath>,
+    pub method_functions: Vec<MethodFunctionPath>,
 }
-inventory::collect!(TraitImplRawMetadata);
+impl Reflect for InherentImplMetadata {
+    fn rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+}
+impl InherentImpl for InherentImplMetadata {
+    fn id_path(&self) -> InherentImplPath { self.id_path.clone() }
+    fn constructor_functions(&self) -> Vec<ConstructorFunctionPath> { self.constructor_functions.clone() }
+    fn method_functions(&self) -> Vec<MethodFunctionPath> { self.method_functions.clone() }
+}
+inventory::collect!(TraitImplMetadata);
 #[derive(Clone)]
-pub struct TraitImplRawMetadata {
+pub struct TraitImplMetadata {
     /// Primary means of identification
     pub id_path: TraitImplPath,
     /// Raw `module_path!()` output to verify physical locations relatively (this is NOT a *globally* unique ID)
     pub raw_rust_module_path: &'static str,
-    pub registrator: fn(&mut rhai::Module),
+
+    pub constructor_functions: Vec<ConstructorFunctionPath>,
+    pub method_functions: Vec<MethodFunctionPath>,
 }
-impl TraitImpl for TraitImplRawMetadata {
-    
+impl Reflect for TraitImplMetadata {
+    fn rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+}
+impl TraitImpl for TraitImplMetadata {
+    fn id_path(&self) -> TraitImplPath { self.id_path.clone() }
+    fn constructor_functions(&self) -> Vec<ConstructorFunctionPath> { self.constructor_functions.clone() }
+    fn method_functions(&self) -> Vec<MethodFunctionPath> { self.method_functions.clone() }
 }
 
-// Function RawMetadata
-inventory::collect!(ModuleAssociatedFunctionRawMetadata);
+// Function Metadata
+inventory::collect!(ModuleAssociatedFunctionMetadata);
 #[derive(Clone)]
-pub struct ModuleAssociatedFunctionRawMetadata {
+pub struct ModuleAssociatedFunctionMetadata {
     /// Primary means of identification
     pub id_path: ModuleAssociatedFunctionPath,
+    /// Manual registration, which is required for functions,
+    /// because rhai does not fully expose the items involved in the trait bounds that define a rhai function.
+    pub registrator: Box<dyn FnOnce(&mut rhai::Module) + Send + Sync>,
     /// Raw `module_path!()` output to verify physical locations relatively (this is NOT a *globally* unique ID)
     pub raw_rust_module_path: &'static str,
-    pub registrator: fn(&mut rhai::Module),
 }
-impl ModuleAssociatedFunction for ModuleAssociatedFunctionRawMetadata {
-    
+impl Reflect for ModuleAssociatedFunctionMetadata {
+    fn rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
 }
-inventory::collect!(ItemAssociatedFunctionRawMetadata);
+impl ModuleAssociatedFunction for ModuleAssociatedFunctionMetadata {
+    fn id_path(&self) -> ModuleAssociatedFunctionPath { self.id_path.clone() }
+    fn registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module) + Send + Sync> { self.registrator.clone() }
+    fn register_module_associated_function(&self, parent_module: &mut rhai::Module) {
+        
+    }
+}
+inventory::collect!(ItemAssociatedFunctionMetadata);
 #[derive(Clone)]
-pub struct ItemAssociatedFunctionRawMetadata {
+pub struct ItemAssociatedFunctionMetadata {
     /// Primary means of identification
     pub id_path: ItemAssociatedFunctionPath,
+    /// Manual registration, which is required for functions,
+    /// because rhai does not fully expose the items involved in the trait bounds that define a rhai function.
+    pub registrator: Box<dyn FnOnce(&mut rhai::Module) + Send + Sync>,
     /// Raw `module_path!()` output to verify physical locations relatively (this is NOT a *globally* unique ID)
     pub raw_rust_module_path: &'static str,
-    pub registrator: fn(&mut rhai::Module),
 }
-impl ItemAssociatedFunction for ItemAssociatedFunctionRawMetadata {
-    
+impl Reflect for ItemAssociatedFunctionMetadata {
+    fn rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
 }
-inventory::collect!(ConstructorFunctionRawMetadata);
+impl ItemAssociatedFunction for ItemAssociatedFunctionMetadata {
+    fn id_path(&self) -> ItemAssociatedFunctionPath { self.id_path.clone() }
+    fn registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module) + Send + Sync> { self.registrator.clone() }
+}
+inventory::collect!(ConstructorFunctionMetadata);
 #[derive(Clone)]
-pub struct ConstructorFunctionRawMetadata {
+pub struct ConstructorFunctionMetadata {
     /// Primary means of identification
     pub id_path: ConstructorFunctionPath,
+    /// Manual registration, which is required for functions,
+    /// because rhai does not fully expose the items involved in the trait bounds that define a rhai function.
+    pub registrator: Box<dyn FnOnce(&mut rhai::Module) + Send + Sync>,
     /// Raw `module_path!()` output to verify physical locations relatively (this is NOT a *globally* unique ID)
     pub raw_rust_module_path: &'static str,
-    pub registrator: fn(&mut rhai::Module),
 }
-impl ConstructorFunction for ConstructorFunctionRawMetadata {
-    
+impl Reflect for ConstructorFunctionMetadata {
+    fn rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
 }
-inventory::collect!(MethodFunctionRawMetadata);
+impl ConstructorFunction for ConstructorFunctionMetadata {
+    fn id_path(&self) -> ConstructorFunctionPath { self.id_path.clone() }
+    fn registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module) + Send + Sync> { self.registrator.clone() }
+}
+inventory::collect!(MethodFunctionMetadata);
 #[derive(Clone)]
-pub struct MethodFunctionRawMetadata {
+pub struct MethodFunctionMetadata {
     /// Primary means of identification
     pub id_path: MethodFunctionPath,
+    /// Manual registration, which is required for functions,
+    /// because rhai does not fully expose the items involved in the trait bounds that define a rhai function.
+    pub registrator: Box<dyn FnOnce(&mut rhai::Engine) + Send + Sync>,
     /// Raw `module_path!()` output to verify physical locations relatively (this is NOT a *globally* unique ID)
     pub raw_rust_module_path: &'static str,
-    pub registrator: fn(&mut rhai::Engine),
 }
-impl MethodFunction for MethodFunctionRawMetadata {
-    
+impl Reflect for MethodFunctionMetadata {
+    fn rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+}
+impl MethodFunction for MethodFunctionMetadata {
+    fn id_path(&self) -> MethodFunctionPath { self.id_path.clone() }
+    fn registrator(&self) -> Box<dyn FnOnce(&mut rhai::Engine) + Send + Sync> { self.registrator.clone() }
 }
 
 // TODO: IMPORTANT: We just make each Trait below us also have methods to simply get an array/vec/whatever of the `*Path`s to the different sub modules, types, etc.
-// TODO: IMPORTANT: We can then default-implement all register_* methods by just getting the different collections, and potentially interpreting each item based on how the respective item's RawMetadata is structured.
+// TODO: IMPORTANT: We can then default-implement all register_* methods by just getting the different collections, and potentially interpreting each item based on how the respective item's Metadata is structured.
 
 // TODO: IMPORTANT: First step: Finish this preliminarily by properly realizing all registration functionality
 
 
+
+// Abstract primitives
 pub trait Reflect: 'static + Send + Sync {
     fn rust_module_path(&self) -> &'static str;
 }
-pub trait Module: Reflect {
+pub trait RealModule: Reflect {
     fn traits(&self) -> Vec<TraitPath>;
     fn types(&self) -> Vec<TypePath>;
     fn inherent_impls(&self) -> Vec<InherentImplPath>;
@@ -712,87 +825,109 @@ pub trait Module: Reflect {
 }
 
 // Module
-pub trait TopLevelModule: Module + SubModuleContainer + TraitContainer + TypeContainer + ModuleAssociatedFunctionContainer {
+pub trait TopLevelModule: RealModule {
     fn id_path(&self) -> TopLevelModulePath;
     fn sub_modules(&self) -> Vec<SubModulePath>;
     fn type_proxy_modules(&self) -> Vec<TypeProxyModulePath>;
     fn module_associated_functions(&self) -> Vec<ModuleAssociatedFunctionPath>;
 
     fn register_top_level_module(&self, engine: &mut rhai::Engine) {
+        let registry = RAW_REFLECTION_METADATA();
         let mut top_level_module = rhai::Module::new();
         top_level_module.set_id(self.id_path().module_name());
 
-        for sub_module in self.sub_modules().into_iter() {
+        for path in self.sub_modules().into_iter() {
+            let sub_module = registry.sub_modules.get(&path).unwrap();
             sub_module.register_sub_module(engine, &mut top_level_module);
         }
 
-        for trait_ in self.traits().into_iter() {
+        for path in self.traits().into_iter() {
+            let trait_ = registry.traits.get(&path).unwrap();
             trait_.register_trait(&mut top_level_module);
         }
 
-        for (type_, type_module) in self.types().into_iter() {
+        for path in self.types().into_iter() {
+            let type_ = registry.types.get(&path).unwrap();
             type_.register_type(engine, &mut top_level_module);
-            type_module.register_type_proxy_module(&mut top_level_module);
         }
 
-        for module_associated_function in self.module_associated_functions().into_iter() {
+        for path in self.type_proxy_modules().into_iter() {
+            let type_proxy_module = registry.type_proxy_modules.get(&path).unwrap();
+            type_proxy_module.register_type_proxy_module(&mut top_level_module);
+        }
+
+        for path in self.module_associated_functions().into_iter() {
+            let module_associated_function = registry.module_associated_functions.get(&path).unwrap();
             module_associated_function.register_module_associated_function(&mut top_level_module);
         }
 
         engine.register_static_module(self.id_path().module_name(), Arc::new(top_level_module));
     }
 }
-pub trait SubModule: Module + SubModuleContainer + TraitContainer + TypeContainer + ModuleAssociatedFunctionContainer {
+pub trait SubModule: RealModule {
     fn id_path(&self) -> SubModulePath;
     fn sub_modules(&self) -> Vec<SubModulePath>;
     fn type_proxy_modules(&self) -> Vec<TypeProxyModulePath>;
     fn module_associated_functions(&self) -> Vec<ModuleAssociatedFunctionPath>;
 
     fn register_sub_module(&self, engine: &mut rhai::Engine, parent_module: &mut rhai::Module) {
+        let registry = RAW_REFLECTION_METADATA();
         let mut origin_sub_module = rhai::Module::new();
         origin_sub_module.set_id(self.id_path().module_name());
 
-        for sub_module in self.sub_modules().into_iter() {
+        for path in self.sub_modules().into_iter() {
+            let sub_module = registry.sub_modules.get(&path).unwrap();
             sub_module.register_sub_module(engine, &mut origin_sub_module);
         }
 
-        for trait_ in self.traits().into_iter() {
+        for path in self.traits().into_iter() {
+            let trait_ = registry.traits.get(&path).unwrap();
             trait_.register_trait(&mut origin_sub_module);
         }
 
-        for (type_, type_module) in self.types().into_iter() {
+        for path in self.types().into_iter() {
+            let type_ = registry.types.get(&path).unwrap();
             type_.register_type(engine, &mut origin_sub_module);
-            type_module.register_type_proxy_module(&mut origin_sub_module);
         }
 
-        for module_associated_function in self.module_associated_functions().into_iter() {
+        for path in self.type_proxy_modules().into_iter() {
+            let type_proxy_module = registry.type_proxy_modules.get(&path).unwrap();
+            type_proxy_module.register_type_proxy_module(&mut origin_sub_module);
+        }
+
+        for path in self.module_associated_functions().into_iter() {
+            let module_associated_function = registry.module_associated_functions.get(&path).unwrap();
             module_associated_function.register_module_associated_function(&mut origin_sub_module);
         }
 
         parent_module.set_sub_module(self.id_path().module_name(), origin_sub_module);
     }
 }
-pub trait TypeProxyModule: Module + ItemAssociatedFunctionContainer + ConstructorFunctionContainer {
+pub trait TypeProxyModule: Reflect {
     fn id_path(&self) -> TypeProxyModulePath;
     fn item_associated_functions(&self) -> Vec<ItemAssociatedFunctionPath>;
+    fn constructor_functions(&self) -> Vec<ConstructorFunctionPath>;
 
     fn register_type_proxy_module(&self, parent_module: &mut rhai::Module) {
-        let mut type_module = rhai::Module::new();
-        type_module.set_id(self.id_path().type_name());
+        let registry = RAW_REFLECTION_METADATA();
+        let mut type_proxy_module = rhai::Module::new();
+        type_proxy_module.set_id(self.id_path().type_name());
 
-        for item_associated_function in self.item_associated_functions().into_iter() {
-            item_associated_function.register_item_associated_function(&mut type_module);
+        for path in self.item_associated_functions().into_iter() {
+            let item_associated_function = registry.item_associated_functions.get(&path).unwrap();
+            item_associated_function.register_item_associated_function(&mut type_proxy_module);
         }
 
-        for constructor_function in self.constructor_functions().into_iter() {
-            constructor_function.register_constructor_function(&mut type_module);
+        for path in self.constructor_functions().into_iter() {
+            let constructor_function = registry.constructor_functions.get(&path).unwrap();
+            constructor_function.register_constructor_function(&mut type_proxy_module);
         }
 
-        parent_module.set_sub_module(self.id_path().type_name(), type_module);
+        parent_module.set_sub_module(self.id_path().type_name(), type_proxy_module);
     }
 }
 
-// Trait
+// Traits
 /// # How to make a rust-trait rhai-compatible:
 /// 
 /// Say:
@@ -827,11 +962,11 @@ pub trait TypeProxyModule: Module + ItemAssociatedFunctionContainer + Constructo
 /// #[repr(transparent)]
 /// pub struct __Foo__TraitObject__(pub StaticTraitObject<FooTrait>);
 /// ```
-pub trait Trait: Reflect + GetTraitName {
+pub trait Trait: Reflect + DynGetTraitName {
     fn id_path(&self) -> TraitPath;
 
     fn register_trait(&self, parent_module: &mut rhai::Module) {
-        parent_module.set_custom_type::<Self>(Self::TRAIT_NAME);
+        parent_module.set_custom_type::<Self>(self.trait_name());
     }
 }
 /// # How to make a rust-trait-implementor rhai-compatible:
@@ -877,21 +1012,22 @@ pub trait Trait: Reflect + GetTraitName {
 ///     }
 /// }
 /// ```
-pub trait TraitObject: Reflect + GetTraitObjectName {
+pub trait TraitObject: Reflect + DynGetTraitObjectName {
     fn id_path(&self) -> TraitPath;
 
     fn register_trait_object(&self, parent_module: &mut rhai::Module) {
-        parent_module.set_custom_type::<Self>(Self::TRAIT_OBJECT_NAME);
+        parent_module.set_custom_type::<Self>(self.trait_object_name());
     }
 }
 
-// Type
+// Types
 /// I think this is outdated, and the entire Type shit is not yet adapted to the new reflection paradigm, aka there are no metadata structs yet
-pub trait Type: Reflect + MethodFunctionContainer {
-    fn id(&self) -> TypePath;
+pub trait Type: Reflect {
+    fn id_path(&self) -> TypePath;
+    fn method_functions(&self) -> Vec<MethodFunctionPath>;
 
     fn register_type(&self, engine: &mut rhai::Engine, parent_module: &mut rhai::Module) {
-        parent_module.set_custom_type::<ScopedAccessHandle<Self>>(self.id().type_name());
+        parent_module.set_custom_type::<ScopedAccessHandle<Self>>(self.id_path().type_name());
     }
 }
 pub trait TypeOwn: Type {}
@@ -902,18 +1038,22 @@ pub trait TypePersistentMut: Type {}
 pub trait TypeScopedRef: Type {}
 pub trait TypeScopedMut: Type {}
 
-// Impl
+// Impls
 pub trait InherentImpl: Reflect {
     fn id_path(&self) -> InherentImplPath;
     fn constructor_functions(&self) -> Vec<ConstructorFunctionPath>;
     fn method_functions(&self) -> Vec<MethodFunctionPath>;
+
     fn register_inherent_impl(&self, engine: &mut rhai::Engine, type_proxy_module: &mut rhai::Module) {
-        
-        for constructor_function in self.constructor_functions().into_iter() {
-            constructor_function.register_constructor_function(engine);
+        let registry = RAW_REFLECTION_METADATA();
+
+        for path in self.constructor_functions().into_iter() {
+            let constructor_function = registry.constructor_functions.get(&path).unwrap();
+            constructor_function.register_constructor_function(type_proxy_module);
         }
 
-        for method_function in self.method_functions().into_iter() {
+        for path in self.method_functions().into_iter() {
+            let method_function = registry.method_functions.get(&path).unwrap();
             method_function.register_method_function(engine);
         }
     }
@@ -923,50 +1063,54 @@ pub trait TraitImpl: Reflect {
     fn id_path(&self) -> TraitImplPath;
     fn constructor_functions(&self) -> Vec<ConstructorFunctionPath>;
     fn method_functions(&self) -> Vec<MethodFunctionPath>;
-    fn register_trait_impl(&self, type_proxy_module: &mut rhai::Module);
+
+    fn register_trait_impl(&self, engine: &mut rhai::Engine, type_proxy_module: &mut rhai::Module) {
+        let registry = RAW_REFLECTION_METADATA();
+
+        for path in self.constructor_functions().into_iter() {
+            let constructor_function = registry.constructor_functions.get(&path).unwrap();
+            constructor_function.register_constructor_function(type_proxy_module);
+        }
+
+        for path in self.method_functions().into_iter() {
+            let method_function = registry.method_functions.get(&path).unwrap();
+            method_function.register_method_function(engine);
+        }
+    }
 }
 
-// Function
+// Functions
 pub trait ModuleAssociatedFunction: Reflect {
     fn id_path(&self) -> ModuleAssociatedFunctionPath;
-    fn register_module_associated_function(&self, parent_module: &mut rhai::Module);
+    fn registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module) + Send + Sync>;
+
+    fn register_module_associated_function(&self, parent_module: &mut rhai::Module) {
+        (self.registrator())(parent_module);
+    }
 }
 pub trait ItemAssociatedFunction: Reflect {
     fn id_path(&self) -> ItemAssociatedFunctionPath;
-    fn register_item_associated_function(&self, type_proxy_module: &mut rhai::Module);
+    fn registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module) + Send + Sync>;
+
+    fn register_item_associated_function(&self, type_proxy_module: &mut rhai::Module) {
+        (self.registrator())(type_proxy_module);
+    }
 }
 pub trait ConstructorFunction: Reflect {
     fn id_path(&self) -> ConstructorFunctionPath;
-    fn register_constructor_function(&self, parent_module: &mut rhai::Module);
+    fn registrator(&self) -> Box<dyn FnOnce(&mut rhai::Module) + Send + Sync>;
+
+    fn register_constructor_function(&self, parent_module: &mut rhai::Module) {
+        (self.registrator())(parent_module);
+    }
 }
 pub trait MethodFunction: Reflect {
     fn id_path(&self) -> MethodFunctionPath;
-    fn register_method_function(&self, engine: &mut rhai::Engine);
-}
+    fn registrator(&self) -> Box<dyn FnOnce(&mut rhai::Engine) + Send + Sync>;
 
-
-
-// Container
-pub trait SubModuleContainer: Reflect {
-    fn sub_modules(&self) -> Vec<SubModulePath>;
-}
-pub trait TraitContainer: Reflect {
-    fn traits(&self) -> Vec<TraitPath>;
-}
-pub trait TypeContainer: Reflect {
-    fn types(&self) -> Vec<(TypePath, TypeProxyModulePath)>;
-}
-pub trait ModuleAssociatedFunctionContainer: Reflect {
-    fn module_associated_functions(&self) -> Vec<ModuleAssociatedFunctionPath>;
-}
-pub trait ItemAssociatedFunctionContainer: Reflect {
-    fn item_associated_functions(&self) -> Vec<ItemAssociatedFunctionPath>;
-}
-pub trait ConstructorFunctionContainer: Reflect {
-    fn constructor_functions(&self) -> Vec<ConstructorFunctionPath>;
-}
-pub trait MethodFunctionContainer: Reflect {
-    fn method_functions(&self) -> Vec<MethodFunctionPath>;
+    fn register_method_function(&self, engine: &mut rhai::Engine) {
+        (self.registrator())(engine);
+    }
 }
 
 
