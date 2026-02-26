@@ -2,7 +2,7 @@ use crate::bevy::ecs::entity::Entity as BevyEntity;
 use crate::bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
 use crate::reflection::ids::{StaticTraitId, TypeId};
 use crate::reflection::internals::managed_traits::{BundleTrait, BundleTraitObject};
-use crate::reflection::internals::statics::{TYPE_REGISTRY, SCHEDULE_HOOKS, TRAIT_OBJECT_VTABLE_REGISTRY};
+use crate::reflection::internals::statics::{REFLECTION_REGISTRY, SCHEDULE_HOOKS, TRAIT_OBJECT_VTABLE_REGISTRY, TYPE_REGISTRY};
 use crate::reflection::internals::traits::{GetTypeId, ToTraitObject, GetTraitId};
 use crate::reflection::traits::StaticTraitObject;
 use crate::script::access::{ScopedAccess, ScopedAccessHandle, ScopedAccessHandleExt, ScopedAccessReadGuard, ScopedAccessWriteGuard};
@@ -142,6 +142,10 @@ pub fn init(app: &mut App) {
 
 // TODO: Simplify this using the `inventory` crate to auto-register bindings via attribute/derive macro(s).
 pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
+    for top_level_module in REFLECTION_REGISTRY().top_level_modules.values() {
+        top_level_module.register_top_level_module(engine);
+    }
+
     // Core
     engine.register_fn("add_hook_handler", |hook: &str| {
         SCHEDULE_HOOKS().lock().unwrap().insert(hook.into());

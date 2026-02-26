@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::{reflection::internals::traits::*, utils::string::*};
 
-pub struct ReflectionRegistry {
+pub struct RawReflectionMetadata {
     pub top_level_modules: HashMap<TopLevelModulePath, Box<dyn TopLevelModule + 'static>>,
     pub sub_modules: HashMap<SubModulePath, Box<dyn SubModule + 'static>>,
     pub type_proxy_modules: HashMap<TypeProxyModulePath, Box<dyn TypeProxyModule + 'static>>,
@@ -13,8 +13,13 @@ pub struct ReflectionRegistry {
     pub constructor_functions: HashMap<ConstructorFunctionPath, Box<dyn ConstructorFunction + 'static>>,
     pub method_functions: HashMap<MethodFunctionPath, Box<dyn MethodFunction + 'static>>,
 }
-impl ReflectionRegistry {
+impl RawReflectionMetadata {
     pub fn build() -> Self {
+        let mut top_level_modules_raw: HashSet<TopLevelModulePath> = inventory::iter::<TopLevelModuleRawMetadata>
+            .into_iter()
+            .map(|d| d.id_path.clone())
+            .collect();
+
         // Module
         let mut top_level_modules: HashMap<TopLevelModulePath, Box<dyn TopLevelModule + 'static>> = Default::default();
         for linked_metadata in inventory::iter::<TopLevelModuleLinkedMetadata> {

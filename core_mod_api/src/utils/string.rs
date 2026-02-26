@@ -353,6 +353,12 @@ impl std::fmt::Display for TypePath {
     }
 }
 
+/// Format: `"Type"`
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct InherentImplPath {
+    type_path: TypePath
+}
+
 /// Format: `"Type::function"`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct InherentImplFunctionPath {
@@ -519,6 +525,7 @@ impl std::fmt::Display for TraitImplPath {
         write!(f, "<{} as {}>", self.type_path, self.trait_path)
     }
 }
+
 /// Format: `"<Type as Trait>::function"`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TraitImplFunctionPath {
