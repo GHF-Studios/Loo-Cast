@@ -4,6 +4,8 @@
 
 #![feature(const_trait_impl)]
 #![feature(const_destruct)]
+#![feature(fn_traits)]
+#![feature(unboxed_closures)]
 
 //! core_mod_api
 //!

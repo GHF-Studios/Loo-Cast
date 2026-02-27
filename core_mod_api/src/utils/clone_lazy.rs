@@ -1,29 +1,22 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::OnceLock;
+
+use crate::utils::clone_closure::{ApplyCloneClosure, CloneClosure};
 
 #[derive(Clone)]
-pub struct CloneLazy<T: Clone> {
-    inner: Arc<Inner<T>>,
-}
-
-struct Inner<T: Clone> {
+pub struct CloneLazy<T> {
     cell: OnceLock<T>,
-    init: fn() -> T,
+    init: CloneClosure<(), (), T, fn((), ()) -> T>,
 }
 
 impl<T: Clone> CloneLazy<T> {
-    pub fn new(init: fn() -> T) -> Self {
+    pub const fn new(init: CloneClosure<(), (), T, fn((), ()) -> T>) -> Self {
         Self {
-            inner: Arc::new(Inner {
-                cell: OnceLock::new(),
-                init,
-            }),
+            cell: OnceLock::new(),
+            init,
         }
     }
 
     pub fn get(&self) -> T {
-        self.inner
-            .cell
-            .get_or_init(self.inner.init)
-            .clone()
+        self.cell.get_or_init(|| self.init.clone().apply(()) ).clone()
     }
 }
