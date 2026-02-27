@@ -3,6 +3,7 @@
 #![warn(clippy::large_stack_frames)]
 
 #![feature(const_trait_impl)]
+#![feature(const_destruct)]
 
 //! core_mod_api
 //!

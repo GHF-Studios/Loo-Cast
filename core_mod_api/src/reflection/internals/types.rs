@@ -1,17 +1,17 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{reflection::internals::traits::*, utils::string::*};
+use crate::{reflection::internals::traits::*, utils::{clone_lazy::CloneLazy, string::*}};
 
 pub struct RawReflectionMetadata {
-    pub top_level_modules: HashMap<TopLevelModulePath, TopLevelModuleMetadata>,
-    pub sub_modules: HashMap<SubModulePath, SubModuleMetadata>,
-    pub type_proxy_modules: HashMap<TypeProxyModulePath, TypeProxyModuleMetadata>,
-    pub traits: HashMap<TraitPath, (TraitMetadata, TraitObjectMetadata)>,
-    pub types: HashMap<TypePath, TypeMetadata>,
-    pub module_associated_functions: HashMap<ModuleAssociatedFunctionPath, ModuleAssociatedFunctionMetadata>,
-    pub item_associated_functions: HashMap<ItemAssociatedFunctionPath, ItemAssociatedFunctionMetadata>,
-    pub constructor_functions: HashMap<ConstructorFunctionPath, ConstructorFunctionMetadata>,
-    pub method_functions: HashMap<MethodFunctionPath, MethodFunctionMetadata>,
+    pub top_level_modules: HashMap<TopLevelModulePath, CloneLazy<TopLevelModuleMetadata>>,
+    pub sub_modules: HashMap<SubModulePath, CloneLazy<SubModuleMetadata>>,
+    pub type_proxy_modules: HashMap<TypeProxyModulePath, CloneLazy<TypeProxyModuleMetadata>>,
+    pub traits: HashMap<TraitPath, CloneLazy<(TraitMetadata, TraitObjectMetadata)>>,
+    pub types: HashMap<TypePath, CloneLazy<TypeMetadata>>,
+    pub module_associated_functions: HashMap<ModuleAssociatedFunctionPath, CloneLazy<ModuleAssociatedFunctionMetadata>>,
+    pub item_associated_functions: HashMap<ItemAssociatedFunctionPath, CloneLazy<ItemAssociatedFunctionMetadata>>,
+    pub constructor_functions: HashMap<ConstructorFunctionPath, CloneLazy<ConstructorFunctionMetadata>>,
+    pub method_functions: HashMap<MethodFunctionPath, CloneLazy<MethodFunctionMetadata>>,
 }
 impl RawReflectionMetadata {
     pub fn build() -> Self {
