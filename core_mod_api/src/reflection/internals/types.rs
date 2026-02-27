@@ -3,15 +3,15 @@ use std::collections::{HashMap, HashSet};
 use crate::{reflection::internals::traits::*, utils::string::*};
 
 pub struct RawReflectionMetadata {
-    pub top_level_modules: HashMap<TopLevelModulePath, Box<dyn TopLevelModule + 'static>>,
-    pub sub_modules: HashMap<SubModulePath, Box<dyn SubModule + 'static>>,
-    pub type_proxy_modules: HashMap<TypeProxyModulePath, Box<dyn TypeProxyModule + 'static>>,
-    pub traits: HashMap<TraitPath, (Box<dyn Trait + 'static>, Box<dyn TraitObject + 'static>)>,
-    pub types: HashMap<TypePath, Box<dyn Type + 'static>>,
-    pub module_associated_functions: HashMap<ModuleAssociatedFunctionPath, Box<dyn ModuleAssociatedFunction + 'static>>,
-    pub item_associated_functions: HashMap<ItemAssociatedFunctionPath, Box<dyn ItemAssociatedFunction + 'static>>,
-    pub constructor_functions: HashMap<ConstructorFunctionPath, Box<dyn ConstructorFunction + 'static>>,
-    pub method_functions: HashMap<MethodFunctionPath, Box<dyn MethodFunction + 'static>>,
+    pub top_level_modules: HashMap<TopLevelModulePath, TopLevelModuleMetadata>,
+    pub sub_modules: HashMap<SubModulePath, SubModuleMetadata>,
+    pub type_proxy_modules: HashMap<TypeProxyModulePath, TypeProxyModuleMetadata>,
+    pub traits: HashMap<TraitPath, (TraitMetadata, TraitObjectMetadata)>,
+    pub types: HashMap<TypePath, TypeMetadata>,
+    pub module_associated_functions: HashMap<ModuleAssociatedFunctionPath, ModuleAssociatedFunctionMetadata>,
+    pub item_associated_functions: HashMap<ItemAssociatedFunctionPath, ItemAssociatedFunctionMetadata>,
+    pub constructor_functions: HashMap<ConstructorFunctionPath, ConstructorFunctionMetadata>,
+    pub method_functions: HashMap<MethodFunctionPath, MethodFunctionMetadata>,
 }
 impl RawReflectionMetadata {
     pub fn build() -> Self {
@@ -21,24 +21,24 @@ impl RawReflectionMetadata {
             .collect();
 
         // Module
-        let mut top_level_modules: HashMap<TopLevelModulePath, Box<dyn TopLevelModule + 'static>> = Default::default();
-        for linked_metadata in inventory::iter::<TopLevelModuleLinkedMetadata> {
+        let mut top_level_modules: HashMap<TopLevelModulePath, Box<dyn TopLevelModuleConstDynMetadata + 'static>> = Default::default();
+        for linked_metadata in inventory::iter::<TopLevelModuleMetadata> {
             let id_path = (linked_metadata.id_path_thunk)();
             let inner = (linked_metadata.inner_thunk)();
             if top_level_modules.insert(id_path.clone(), inner).is_some() {
                 panic!("Duplicate top level module '{id_path}'!")
             }
         }
-        let mut sub_modules: HashMap<SubModulePath, Box<dyn SubModule + 'static>> = Default::default();
-        for linked_metadata in inventory::iter::<SubModuleLinkedMetadata> {
+        let mut sub_modules: HashMap<SubModulePath, Box<dyn SubModuleConstDynMetadata + 'static>> = Default::default();
+        for linked_metadata in inventory::iter::<SubModuleMetadata> {
             let id_path = (linked_metadata.id_path_thunk)();
             let inner = (linked_metadata.inner_thunk)();
             if sub_modules.insert(id_path.clone(), inner).is_some() {
                 panic!("Duplicate top level module '{id_path}'!")
             }
         }
-        let mut type_proxy_modules: HashMap<TypeProxyModulePath, Box<dyn TypeProxyModule + 'static>> = Default::default();
-        for linked_metadata in inventory::iter::<TypeProxyModuleLinkedMetadata> {
+        let mut type_proxy_modules: HashMap<TypeProxyModulePath, Box<dyn TypeProxyModuleConstDynMetadata + 'static>> = Default::default();
+        for linked_metadata in inventory::iter::<TypeProxyModuleMetadata> {
             let id_path = (linked_metadata.id_path_thunk)();
             let inner = (linked_metadata.inner_thunk)();
             if type_proxy_modules.insert(id_path.clone(), inner).is_some() {
@@ -47,9 +47,9 @@ impl RawReflectionMetadata {
         }
         
         // Trait
-        let mut traits_raw: HashMap<TraitPath, Box<dyn Trait>> = Default::default();
-        let mut trait_objects_raw: HashMap<TraitPath, Box<dyn TraitObject>> = Default::default();
-        for linked_metadata in inventory::iter::<TraitLinkedMetadata> {
+        let mut traits_raw: HashMap<TraitPath, Box<dyn TraitConstDynMetadata>> = Default::default();
+        let mut trait_objects_raw: HashMap<TraitPath, Box<dyn TraitObjectConstDynMetadata>> = Default::default();
+        for linked_metadata in inventory::iter::<TraitMetadata> {
             let id_path = (linked_metadata.id_path_thunk)();
             let inner = (linked_metadata.inner_thunk)();
         
@@ -57,7 +57,7 @@ impl RawReflectionMetadata {
                 panic!("Duplicate trait '{id_path}'!");
             }
         }
-        for linked_metadata in inventory::iter::<TraitObjectLinkedMetadata> {
+        for linked_metadata in inventory::iter::<TraitObjectMetadata> {
             let id_path = (linked_metadata.id_path_thunk)();
             let inner = (linked_metadata.inner_thunk)();
         
@@ -67,7 +67,7 @@ impl RawReflectionMetadata {
         }
         let mut traits: HashMap<
             TraitPath,
-            (Box<dyn Trait>, Box<dyn TraitObject>)
+            (Box<dyn TraitConstDynMetadata>, Box<dyn TraitObjectConstDynMetadata>)
         > = HashMap::with_capacity(traits_raw.len());
         for (id_path, trait_inner) in traits_raw {
             let trait_object_inner = trait_objects_raw
@@ -85,8 +85,8 @@ impl RawReflectionMetadata {
         }
         
         // Type
-        let mut types: HashMap<TypePath, Box<dyn Type + 'static>> = Default::default();
-        for linked_metadata in inventory::iter::<TypeLinkedMetadata> {
+        let mut types: HashMap<TypePath, Box<dyn TypeConstDynMetadata + 'static>> = Default::default();
+        for linked_metadata in inventory::iter::<TypeMetadata> {
             let id_path = (linked_metadata.id_path_thunk)();
             let inner = (linked_metadata.inner_thunk)();
             if types.insert(id_path.clone(), inner).is_some() {
@@ -95,32 +95,32 @@ impl RawReflectionMetadata {
         }
         
         // Function
-        let mut module_associated_functions: HashMap<ModuleAssociatedFunctionPath, Box<dyn ModuleAssociatedFunction + 'static>> = Default::default();
-        for linked_metadata in inventory::iter::<ModuleAssociatedFunctionLinkedMetadata> {
+        let mut module_associated_functions: HashMap<ModuleAssociatedFunctionPath, Box<dyn ModuleAssociatedFunctionConstDynMetadata + 'static>> = Default::default();
+        for linked_metadata in inventory::iter::<ModuleAssociatedFunctionMetadata> {
             let id_path = (linked_metadata.id_path_thunk)();
             let inner = (linked_metadata.inner_thunk)();
             if module_associated_functions.insert(id_path.clone(), inner).is_some() {
                 panic!("Duplicate top level module '{id_path}'!")
             }
         }
-        let mut item_associated_functions: HashMap<ItemAssociatedFunctionPath, Box<dyn ItemAssociatedFunction + 'static>> = Default::default();
-        for linked_metadata in inventory::iter::<ItemAssociatedFunctionLinkedMetadata> {
+        let mut item_associated_functions: HashMap<ItemAssociatedFunctionPath, Box<dyn ItemAssociatedFunctionConstDynMetadata + 'static>> = Default::default();
+        for linked_metadata in inventory::iter::<ItemAssociatedFunctionMetadata> {
             let id_path = (linked_metadata.id_path_thunk)();
             let inner = (linked_metadata.inner_thunk)();
             if item_associated_functions.insert(id_path.clone(), inner).is_some() {
                 panic!("Duplicate top level module '{id_path}'!")
             }
         }
-        let mut constructor_functions: HashMap<ConstructorFunctionPath, Box<dyn ConstructorFunction + 'static>> = Default::default();
-        for linked_metadata in inventory::iter::<ConstructorFunctionLinkedMetadata> {
+        let mut constructor_functions: HashMap<ConstructorFunctionPath, Box<dyn ConstructorFunctionConstDynMetadata + 'static>> = Default::default();
+        for linked_metadata in inventory::iter::<ConstructorFunctionMetadata> {
             let id_path = (linked_metadata.id_path_thunk)();
             let inner = (linked_metadata.inner_thunk)();
             if constructor_functions.insert(id_path.clone(), inner).is_some() {
                 panic!("Duplicate top level module '{id_path}'!")
             }
         }
-        let mut method_functions: HashMap<MethodFunctionPath, Box<dyn MethodFunction + 'static>> = Default::default();
-        for linked_metadata in inventory::iter::<MethodFunctionLinkedMetadata> {
+        let mut method_functions: HashMap<MethodFunctionPath, Box<dyn MethodFunctionConstDynMetadata + 'static>> = Default::default();
+        for linked_metadata in inventory::iter::<MethodFunctionMetadata> {
             let id_path = (linked_metadata.id_path_thunk)();
             let inner = (linked_metadata.inner_thunk)();
             if method_functions.insert(id_path.clone(), inner).is_some() {

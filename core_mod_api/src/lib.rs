@@ -2,6 +2,8 @@
 #![allow(clippy::too_many_arguments)]
 #![warn(clippy::large_stack_frames)]
 
+#![feature(const_trait_impl)]
+
 //! core_mod_api
 //!
 //! The `core_mod_api` crate defines the internal API surface and the core plugin set used by the
