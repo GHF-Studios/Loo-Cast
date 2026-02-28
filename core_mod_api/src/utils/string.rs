@@ -282,6 +282,11 @@ impl Into<TypeProxyModulePath> for &'static str {
         TypeProxyModulePath::parse(&ImmutableString::from(self))
     }
 }
+impl Into<TypePath> for TypeProxyModulePath {
+    fn into(self) -> TypePath {
+        self.0.clone()
+    }
+}
 impl std::fmt::Debug for TypeProxyModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "TypeProxyModulePath({})", self.0.to_string())
@@ -342,6 +347,16 @@ impl Into<TypePath> for &'static str {
         TypePath::parse(&ImmutableString::from(self))
     }
 }
+impl Into<TypeProxyModulePath> for TypePath {
+    fn into(self) -> TypeProxyModulePath {
+        TypeProxyModulePath(self.clone())
+    }
+}
+impl Into<InherentImplPath> for TypePath {
+    fn into(self) -> InherentImplPath {
+        InherentImplPath { type_path: self }
+    }
+}
 impl std::fmt::Debug for TypePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "TypePath({})", self.0.to_string())
@@ -357,6 +372,21 @@ impl std::fmt::Display for TypePath {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct InherentImplPath {
     type_path: TypePath
+}
+impl Into<TypePath> for InherentImplPath {
+    fn into(self) -> TypePath {
+        self.type_path
+    }
+}
+impl std::fmt::Debug for InherentImplPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "TypePath({})", self.type_path.0.to_string())
+    }
+}
+impl std::fmt::Display for InherentImplPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "TypePath({})", self.type_path.0.to_string())
+    }
 }
 
 /// Format: `"Type::function"`

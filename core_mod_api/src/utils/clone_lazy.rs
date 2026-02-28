@@ -1,6 +1,6 @@
 use std::sync::OnceLock;
 
-use crate::utils::clone_closure::{ApplyCloneClosure, CloneClosure};
+use crate::utils::clone_closure::CloneClosure;
 
 #[derive(Clone)]
 pub struct CloneLazy<T> {

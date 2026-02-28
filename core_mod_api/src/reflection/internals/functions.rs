@@ -144,7 +144,7 @@ pub fn init(app: &mut App) {
 pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
     // SHINY NEW THING
     for top_level_module in RAW_REFLECTION_METADATA().top_level_modules.values() {
-        top_level_module.get().register_top_level_module(engine);
+        top_level_module.register_top_level_module(engine);
     }
 
     // OLD

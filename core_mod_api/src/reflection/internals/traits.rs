@@ -142,7 +142,7 @@ pub mod shop {
 // Expanded MetaProgramming Magic (It's just a bunch of metadata)
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
     #[allow(non_upper_case_globals)]
-    static __SHOP__TOP_LEVEL_MODULE__: Lazy<TopLevelModuleMetadata> = Lazy::new(|| __Shop__TopLevelModule__.from_comptime_to_runtime(&__Shop__TopLevelModule__));
+    static __SHOP__TOP_LEVEL_MODULE__: CloneLazy<TopLevelModuleMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __Shop__TopLevelModule__.from_comptime_to_runtime(&__Shop__TopLevelModule__)));
     inventory::submit!(TopLevelModuleMetadataEntry(&__SHOP__TOP_LEVEL_MODULE__));
 
     #[allow(non_camel_case_types)]
@@ -202,7 +202,7 @@ pub mod shop {
 // Expanded MetaProgramming Magic (It's just a bunch of metadata)
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
         #[allow(non_upper_case_globals)]
-        static __DIVISIONS__SUB_MODULE__: Lazy<SubModuleMetadata> = Lazy::new(|| __Divisions__SubModule__.from_comptime_to_runtime(&__Divisions__SubModule__));
+        static __DIVISIONS__SUB_MODULE__: CloneLazy<SubModuleMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __Divisions__SubModule__.from_comptime_to_runtime(&__Divisions__SubModule__)));
         inventory::submit!(SubModuleMetadataEntry(&__DIVISIONS__SUB_MODULE__));
 
         #[allow(non_camel_case_types)]
@@ -314,31 +314,31 @@ pub mod shop {
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
 
             #[allow(non_upper_case_globals)]
-            static __SEX__SUB_MODULE__: Lazy<SubModuleMetadata> = Lazy::new(|| __Sex__SubModule__.from_comptime_to_runtime(&__Sex__SubModule__));
+            static __SEX__SUB_MODULE__: CloneLazy<SubModuleMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __Sex__SubModule__.from_comptime_to_runtime(&__Sex__SubModule__)));
             inventory::submit!(SubModuleMetadataEntry(&__SEX__SUB_MODULE__));
             #[allow(non_upper_case_globals)]
-            static __SEX_SHOP_TEST__TRAIT__: Lazy<TraitMetadata> = Lazy::new(|| __SexShopTest__Trait__.from_comptime_to_runtime(&__SexShopTest__Trait__));
+            static __SEX_SHOP_TEST__TRAIT__: CloneLazy<TraitMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __SexShopTest__Trait__.from_comptime_to_runtime(&__SexShopTest__Trait__)));
             inventory::submit!(TraitMetadataEntry(&__SEX_SHOP_TEST__TRAIT__));
             #[allow(non_upper_case_globals)]
-            static __SEX_SHOP_TEST__TRAIT_OBJECT__: Lazy<TraitObjectMetadata> = Lazy::new(|| __SexShopTest__TraitObject__.from_comptime_to_runtime(&__SexShopTest__TraitObject__));
+            static __SEX_SHOP_TEST__TRAIT_OBJECT__: CloneLazy<TraitObjectMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __SexShopTest__TraitObject__.from_comptime_to_runtime(&__SexShopTest__TraitObject__)));
             inventory::submit!(TraitObjectMetadataEntry(&__SEX_SHOP_TEST__TRAIT_OBJECT__));
             #[allow(non_upper_case_globals)]
-            static __SEX_SHOP_PRODUCT__TYPE__: Lazy<TypeMetadata> = Lazy::new(|| __SexShopProduct__Type__.from_comptime_to_runtime(&__SexShopProduct__Type__));
+            static __SEX_SHOP_PRODUCT__TYPE__: CloneLazy<TypeMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __SexShopProduct__Type__.from_comptime_to_runtime(&__SexShopProduct__Type__)));
             inventory::submit!(TypeMetadataEntry(&__SEX_SHOP_PRODUCT__TYPE__));
             #[allow(non_upper_case_globals)]
-            static __TEST_FUNCTION__MODULE_ASSOCIATED_FUNCTION__: Lazy<ModuleAssociatedFunctionMetadata> = Lazy::new(|| __TestFunction__ModuleAssociatedFunction__.from_comptime_to_runtime(&__TestFunction__ModuleAssociatedFunction__));
+            static __TEST_FUNCTION__MODULE_ASSOCIATED_FUNCTION__: CloneLazy<ModuleAssociatedFunctionMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __TestFunction__ModuleAssociatedFunction__.from_comptime_to_runtime(&__TestFunction__ModuleAssociatedFunction__)));
             inventory::submit!(ModuleAssociatedFunctionMetadataEntry(&__TEST_FUNCTION__MODULE_ASSOCIATED_FUNCTION__));
             #[allow(non_upper_case_globals)]
-            static __VERIFY_PRICE__ITEM_ASSOCIATED_FUNCTION__: Lazy<ItemAssociatedFunctionMetadata> = Lazy::new(|| __VerifyPrice__ItemAssociatedFunction__.from_comptime_to_runtime(&__VerifyPrice__ItemAssociatedFunction__));
+            static __VERIFY_PRICE__ITEM_ASSOCIATED_FUNCTION__: CloneLazy<ItemAssociatedFunctionMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __VerifyPrice__ItemAssociatedFunction__.from_comptime_to_runtime(&__VerifyPrice__ItemAssociatedFunction__)));
             inventory::submit!(ItemAssociatedFunctionMetadataEntry(&__VERIFY_PRICE__ITEM_ASSOCIATED_FUNCTION__));
             #[allow(non_upper_case_globals)]
-            static __NEW__CONSTRUCTOR_FUNCTION__: Lazy<ConstructorFunctionMetadata> = Lazy::new(|| __New__ConstructorFunction__.from_comptime_to_runtime(&__New__ConstructorFunction__));
+            static __NEW__CONSTRUCTOR_FUNCTION__: CloneLazy<ConstructorFunctionMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __New__ConstructorFunction__.from_comptime_to_runtime(&__New__ConstructorFunction__)));
             inventory::submit!(ConstructorFunctionMetadataEntry(&__NEW__CONSTRUCTOR_FUNCTION__));
             #[allow(non_upper_case_globals)]
-            static __NAME__METHOD_FUNCTION__: Lazy<MethodFunctionMetadata> = Lazy::new(|| __Name__MethodFunction__.from_comptime_to_runtime(&__Name__MethodFunction__));
+            static __NAME__METHOD_FUNCTION__: CloneLazy<MethodFunctionMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __Name__MethodFunction__.from_comptime_to_runtime(&__Name__MethodFunction__)));
             inventory::submit!(MethodFunctionMetadataEntry(&__NAME__METHOD_FUNCTION__));
             #[allow(non_upper_case_globals)]
-            static __PRICE_USD__METHOD_FUNCTION__: Lazy<MethodFunctionMetadata> = Lazy::new(|| __PriceUsd__MethodFunction__.from_comptime_to_runtime(&__PriceUsd__MethodFunction__));
+            static __PRICE_USD__METHOD_FUNCTION__: CloneLazy<MethodFunctionMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __PriceUsd__MethodFunction__.from_comptime_to_runtime(&__PriceUsd__MethodFunction__)));
             inventory::submit!(MethodFunctionMetadataEntry(&__PRICE_USD__METHOD_FUNCTION__));
 
             #[allow(non_camel_case_types)]
@@ -395,7 +395,7 @@ pub mod shop {
                 const TRAIT_OBJECT_ID: &'static str = "shop::divisions::sex::SexShopTestTraitObject";
             }
             impl TraitObjectConstDynMetadata for __SexShopTest__TraitObject__ {
-                fn id_path(&self) -> CloneLazy<TraitPath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopTestTraitObject".into())) }
+                fn id_path(&self) -> CloneLazy<TraitPath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopTest".into())) }
             }
             impl TraitObjectDynamicTypedMetadata for __SexShopTest__TraitObject__ {}
 
@@ -534,29 +534,29 @@ pub mod shop {
 
 // Metadata Entries
 inventory::collect!(TopLevelModuleMetadataEntry);
-pub struct TopLevelModuleMetadataEntry(pub &'static Lazy<TopLevelModuleMetadata>);
+pub struct TopLevelModuleMetadataEntry(pub &'static CloneLazy<TopLevelModuleMetadata>);
 inventory::collect!(SubModuleMetadataEntry);
-pub struct SubModuleMetadataEntry(pub &'static Lazy<SubModuleMetadata>);
+pub struct SubModuleMetadataEntry(pub &'static CloneLazy<SubModuleMetadata>);
 inventory::collect!(TypeProxyModuleMetadataEntry);
-pub struct TypeProxyModuleMetadataEntry(pub &'static Lazy<TypeProxyModuleMetadata>);
+pub struct TypeProxyModuleMetadataEntry(pub &'static CloneLazy<TypeProxyModuleMetadata>);
 inventory::collect!(TraitMetadataEntry);
-pub struct TraitMetadataEntry(pub &'static Lazy<TraitMetadata>);
+pub struct TraitMetadataEntry(pub &'static CloneLazy<TraitMetadata>);
 inventory::collect!(TraitObjectMetadataEntry);
-pub struct TraitObjectMetadataEntry(pub &'static Lazy<TraitObjectMetadata>);
+pub struct TraitObjectMetadataEntry(pub &'static CloneLazy<TraitObjectMetadata>);
 inventory::collect!(TypeMetadataEntry);
-pub struct TypeMetadataEntry(pub &'static Lazy<TypeMetadata>);
+pub struct TypeMetadataEntry(pub &'static CloneLazy<TypeMetadata>);
 inventory::collect!(InherentImplMetadataEntry);
-pub struct InherentImplMetadataEntry(pub &'static Lazy<InherentImplMetadata>);
+pub struct InherentImplMetadataEntry(pub &'static CloneLazy<InherentImplMetadata>);
 inventory::collect!(TraitImplMetadataEntry);
-pub struct TraitImplMetadataEntry(pub &'static Lazy<TraitImplMetadata>);
+pub struct TraitImplMetadataEntry(pub &'static CloneLazy<TraitImplMetadata>);
 inventory::collect!(ModuleAssociatedFunctionMetadataEntry);
-pub struct ModuleAssociatedFunctionMetadataEntry(pub &'static Lazy<ModuleAssociatedFunctionMetadata>);
+pub struct ModuleAssociatedFunctionMetadataEntry(pub &'static CloneLazy<ModuleAssociatedFunctionMetadata>);
 inventory::collect!(ItemAssociatedFunctionMetadataEntry);
-pub struct ItemAssociatedFunctionMetadataEntry(pub &'static Lazy<ItemAssociatedFunctionMetadata>);
+pub struct ItemAssociatedFunctionMetadataEntry(pub &'static CloneLazy<ItemAssociatedFunctionMetadata>);
 inventory::collect!(ConstructorFunctionMetadataEntry);
-pub struct ConstructorFunctionMetadataEntry(pub &'static Lazy<ConstructorFunctionMetadata>);
+pub struct ConstructorFunctionMetadataEntry(pub &'static CloneLazy<ConstructorFunctionMetadata>);
 inventory::collect!(MethodFunctionMetadataEntry);
-pub struct MethodFunctionMetadataEntry(pub &'static Lazy<MethodFunctionMetadata>);
+pub struct MethodFunctionMetadataEntry(pub &'static CloneLazy<MethodFunctionMetadata>);
 
 
 
@@ -599,28 +599,28 @@ impl TopLevelModuleMetadata {
         top_level_module.set_id(self.id_path().get().module_name());
 
         for path in self.sub_modules().get().into_iter() {
-            let sub_module = registry.sub_modules.get(&path).unwrap().get();
+            let sub_module = registry.sub_modules.get(&path).unwrap().clone();
             sub_module.register_sub_module(engine, &mut top_level_module);
         }
 
         for path in self.traits().get().into_iter() {
-            let (trait_, trait_object) = registry.traits.get(&path).unwrap().get();
+            let (trait_, trait_object) = registry.traits.get(&path).unwrap().clone();
             trait_.register_trait(&mut top_level_module);
             trait_object.register_trait_object(&mut top_level_module);
         }
 
         for path in self.types().get().into_iter() {
-            let type_ = registry.types.get(&path).unwrap().get();
+            let type_ = registry.types.get(&path).unwrap().clone();
             type_.register_type(engine, &mut top_level_module);
         }
 
         for path in self.type_proxy_modules().get().into_iter() {
-            let type_proxy_module = registry.type_proxy_modules.get(&path).unwrap().get();
+            let type_proxy_module = registry.type_proxy_modules.get(&path).unwrap().clone();
             type_proxy_module.register_type_proxy_module(&mut top_level_module);
         }
 
         for path in self.module_associated_functions().get().into_iter() {
-            let module_associated_function = registry.module_associated_functions.get(&path).unwrap().get();
+            let module_associated_function = registry.module_associated_functions.get(&path).unwrap().clone();
             module_associated_function.register_module_associated_function(&mut top_level_module);
         }
 
@@ -665,28 +665,28 @@ impl SubModuleMetadata {
         origin_sub_module.set_id(self.id_path().get().module_name());
 
         for path in self.sub_modules().get().into_iter() {
-            let sub_module = registry.sub_modules.get(&path).unwrap().get();
+            let sub_module = registry.sub_modules.get(&path).unwrap().clone();
             sub_module.register_sub_module(engine, &mut origin_sub_module);
         }
 
         for path in self.traits().get().into_iter() {
-            let (trait_, trait_object) = registry.traits.get(&path).unwrap().get();
+            let (trait_, trait_object) = registry.traits.get(&path).unwrap().clone();
             trait_.register_trait(&mut origin_sub_module);
             trait_object.register_trait_object(parent_module);
         }
 
         for path in self.types().get().into_iter() {
-            let type_ = registry.types.get(&path).unwrap().get();
+            let type_ = registry.types.get(&path).unwrap().clone();
             type_.register_type(engine, &mut origin_sub_module);
         }
 
         for path in self.type_proxy_modules().get().into_iter() {
-            let type_proxy_module = registry.type_proxy_modules.get(&path).unwrap().get();
+            let type_proxy_module = registry.type_proxy_modules.get(&path).unwrap().clone();
             type_proxy_module.register_type_proxy_module(&mut origin_sub_module);
         }
 
         for path in self.module_associated_functions().get().into_iter() {
-            let module_associated_function = registry.module_associated_functions.get(&path).unwrap().get();
+            let module_associated_function = registry.module_associated_functions.get(&path).unwrap().clone();
             module_associated_function.register_module_associated_function(&mut origin_sub_module);
         }
 
@@ -718,12 +718,12 @@ impl TypeProxyModuleMetadata {
         type_proxy_module.set_id(self.id_path().type_name());
 
         for path in self.item_associated_functions().get().into_iter() {
-            let item_associated_function = registry.item_associated_functions.get(&path).unwrap().get();
+            let item_associated_function = registry.item_associated_functions.get(&path).unwrap().clone();
             item_associated_function.register_item_associated_function(&mut type_proxy_module);
         }
 
         for path in self.constructor_functions().get().into_iter() {
-            let constructor_function = registry.constructor_functions.get(&path).unwrap().get();
+            let constructor_function = registry.constructor_functions.get(&path).unwrap().clone();
             constructor_function.register_constructor_function(&mut type_proxy_module);
         }
 
@@ -827,12 +827,12 @@ impl InherentImplMetadata {
         let registry = RAW_REFLECTION_METADATA();
 
         for path in self.constructor_functions().get().into_iter() {
-            let constructor_function = registry.constructor_functions.get(&path).unwrap().get();
+            let constructor_function = registry.constructor_functions.get(&path).unwrap().clone();
             constructor_function.register_constructor_function(type_proxy_module);
         }
 
         for path in self.method_functions().get().into_iter() {
-            let method_function = registry.method_functions.get(&path).unwrap().get();
+            let method_function = registry.method_functions.get(&path).unwrap().clone();
             method_function.register_method_function(engine);
         }
     }
@@ -860,12 +860,12 @@ impl TraitImplMetadata {
         let registry = RAW_REFLECTION_METADATA();
 
         for path in self.constructor_functions().get().into_iter() {
-            let constructor_function = registry.constructor_functions.get(&path).unwrap().get();
+            let constructor_function = registry.constructor_functions.get(&path).unwrap().clone();
             constructor_function.register_constructor_function(type_proxy_module);
         }
 
         for path in self.method_functions().get().into_iter() {
-            let method_function = registry.method_functions.get(&path).unwrap().get();
+            let method_function = registry.method_functions.get(&path).unwrap().clone();
             method_function.register_method_function(engine);
         }
     }
