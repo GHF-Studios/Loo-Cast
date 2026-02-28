@@ -292,21 +292,21 @@ pub mod shop {
                 pub fn price_usd(&self) -> f32 { self.price_usd }
 
                 #[reflect_item_associated_function(shop::divisions::sex::SexShopProduct)]
-                pub fn verify_price(price_usd: f32) -> Result<(), ()> {
-                    if price_usd >= 0.0 { Ok(()) } else { Err(()) }
+                pub fn verify_price(price_usd: f32) {
+                    if price_usd < 0.0 { panic!("Price '{}USD' could not be verified", price_usd) }
                 }
             }
             #[reflect_trait_impl(<shop::divisions::sex::SexShopProduct as shop::divisions::sex::SexShopTest>)]
             impl SexShopTest for SexShopProduct {
                 #[reflect_item_associated_function(<shop::divisions::sex::SexShopProduct as shop::divisions::sex::SexShopTest>)]
                 fn test() {
-                    println!("Small banana sound!")
+                    println!("Big paling sound!")
                 }
             }
 
             #[reflect_module_associated_function(shop::divisions::sex::test_function)]
             pub fn test_function() {
-                println!("Big paling sound!")
+                println!("Small banana sound!")
             }
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> //
 
@@ -480,7 +480,11 @@ pub mod shop {
                 fn raw_rust_module_path(&self) -> &'static str { module_path!() }
             }
             impl ConstructorFunctionConstDynMetadata for __New__ConstructorFunction__ {
-                fn id_path(&self) -> CloneLazy<ConstructorFunctionPath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct::new".into())) }
+                /// MACRO DESIGN RELATED NOTE; NOT TO BE GENERATED AS A CODE COMMENT; THIS IS A TEMPORARY META COMMENT:
+                /// `new_` and not `new` because `new` is a reserved keyword in rhai;
+                /// the macro should automatically and implicitly perform this transformation,
+                /// so on the rhai-side we can just reliably ""escape"" keywords by appending an underscore, just like in rust.
+                fn id_path(&self) -> CloneLazy<ConstructorFunctionPath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct::new_".into())) }
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, parent_module| {
                         rhai::FuncRegistration::new(name)

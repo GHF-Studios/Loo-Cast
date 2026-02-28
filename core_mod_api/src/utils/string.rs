@@ -40,6 +40,12 @@ pub fn assert_snake_case_clean_string(s: &ImmutableString, string_type_name: &'s
         panic!("{string_type_name} strings must not start with a digit, found '{}'", s);
     }
 
+    let s = if s.chars().last().unwrap() == '_' {
+        s.rsplit_once('_').unwrap().0
+    } else {
+        s.as_str()
+    };
+
     if s != s.to_snake_case() {
         panic!("{string_type_name}s must be in 'snake_case' format, found '{}'", s);
     }
