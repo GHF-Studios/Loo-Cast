@@ -104,7 +104,7 @@ where
         Self { moved, phantom_args: PhantomData, phantom_r: PhantomData, func }
     }
 
-    pub fn apply(
+    pub fn call_(
         &mut self,
         args: A,
     ) -> R
@@ -120,7 +120,7 @@ where
     type Output = R;
 
     extern "rust-call" fn call_once(mut self, args: (A,)) -> Self::Output {
-        self.apply(args.0)
+        self.call_(args.0)
     }
 }
 impl<M, A, R, F> FnMut<(A,)> for CloneClosure<M, A, R, F> 
@@ -129,6 +129,6 @@ where
     F: Clone + FnMut(M, A) -> R
 {
     extern "rust-call" fn call_mut(&mut self, args: (A,)) -> Self::Output {
-        self.apply(args.0)
+        self.call_(args.0)
     }
 }

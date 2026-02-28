@@ -890,7 +890,7 @@ impl ModuleAssociatedFunctionConstDynMetadata for ModuleAssociatedFunctionMetada
 impl ModuleAssociatedFunctionMetadata {
     pub(super) fn register_module_associated_function(mut self, parent_module: &mut rhai::Module) {
         let parent_module = unsafe { std::mem::transmute::<&mut rhai::Module, &'static mut rhai::Module>(parent_module) };
-        self.registrator.apply(parent_module);
+        self.registrator.call_(parent_module);
     }
 }
 #[derive(Clone)]
@@ -911,7 +911,7 @@ impl ItemAssociatedFunctionConstDynMetadata for ItemAssociatedFunctionMetadata {
 impl ItemAssociatedFunctionMetadata {
     pub(super) fn register_item_associated_function(mut self, type_proxy_module: &mut rhai::Module) {
         let type_proxy_module = unsafe { std::mem::transmute::<&mut rhai::Module, &'static mut rhai::Module>(type_proxy_module) };
-        self.registrator.apply(type_proxy_module);
+        self.registrator.call_(type_proxy_module);
     }
 }
 #[derive(Clone)]
@@ -932,7 +932,7 @@ impl ConstructorFunctionConstDynMetadata for ConstructorFunctionMetadata {
 impl ConstructorFunctionMetadata {
     pub(super) fn register_constructor_function(mut self, parent_module: &mut rhai::Module) {
         let parent_module = unsafe { std::mem::transmute::<&mut rhai::Module, &'static mut rhai::Module>(parent_module) };
-        self.registrator.apply(parent_module);
+        self.registrator.call_(parent_module);
     }
 }
 #[derive(Clone)]
@@ -953,7 +953,7 @@ impl MethodFunctionConstDynMetadata for MethodFunctionMetadata {
 impl MethodFunctionMetadata {
     pub(super) fn register_method_function(mut self, engine: &mut rhai::Engine) {
         let engine = unsafe { std::mem::transmute::<&mut rhai::Engine, &'static mut rhai::Engine>(engine) };
-        self.registrator.apply(engine);
+        self.registrator.call_(engine);
     }
 }
 

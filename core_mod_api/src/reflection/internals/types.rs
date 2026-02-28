@@ -15,9 +15,9 @@ pub struct RawReflectionMetadata {
 }
 impl RawReflectionMetadata {
     pub fn build() -> Self {
-        let mut top_level_modules_raw: HashSet<TopLevelModulePath> = inventory::iter::<TopLevelModuleMetadata>
+        let mut top_level_modules_raw: HashSet<TopLevelModulePath> = inventory::iter::<TopLevelModuleMetadataEntry>
             .into_iter()
-            .map(|d| d.id_path.get())
+            .map(|d| d.0.id_path.get())
             .collect();
 
         // Module

@@ -17,6 +17,6 @@ impl<T: Clone> CloneLazy<T> {
     }
 
     pub fn get(&self) -> T {
-        self.cell.get_or_init(|| self.init.clone().apply(()) ).clone()
+        self.cell.get_or_init(|| self.init.clone().call_(()) ).clone()
     }
 }
