@@ -283,7 +283,7 @@ pub mod shop {
             #[reflect_inherent_impl(shop::divisions::sex::SexShopProduct)]
             impl SexShopProduct {
                 #[reflect_constructor_function(shop::divisions::sex::SexShopProduct)]
-                pub fn new(name: &'static str, price_usd: f32) -> Self { Self { name, price_usd } }
+                pub fn new_(name: &'static str, price_usd: f32) -> Self { Self { name, price_usd } }
 
                 #[reflect_method_function(shop::divisions::sex::SexShopProduct)]
                 pub fn name(&self) -> &'static str { self.name }
@@ -326,6 +326,9 @@ pub mod shop {
             static __SEX_SHOP_PRODUCT__TYPE__: CloneLazy<TypeMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __SexShopProduct__Type__.from_comptime_to_runtime(&__SexShopProduct__Type__)));
             inventory::submit!(TypeMetadataEntry(&__SEX_SHOP_PRODUCT__TYPE__));
             #[allow(non_upper_case_globals)]
+            static __SEX_SHOP_PRODUCT__TYPE_PROXY_MODULE__: CloneLazy<TypeProxyModuleMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __SexShopProduct__TypeProxyModule__.from_comptime_to_runtime(&__SexShopProduct__TypeProxyModule__)));
+            inventory::submit!(TypeProxyModuleMetadataEntry(&__SEX_SHOP_PRODUCT__TYPE_PROXY_MODULE__));
+            #[allow(non_upper_case_globals)]
             static __TEST_FUNCTION__MODULE_ASSOCIATED_FUNCTION__: CloneLazy<ModuleAssociatedFunctionMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __TestFunction__ModuleAssociatedFunction__.from_comptime_to_runtime(&__TestFunction__ModuleAssociatedFunction__)));
             inventory::submit!(ModuleAssociatedFunctionMetadataEntry(&__TEST_FUNCTION__MODULE_ASSOCIATED_FUNCTION__));
             #[allow(non_upper_case_globals)]
@@ -356,7 +359,7 @@ pub mod shop {
             impl SubModuleConstDynMetadata for __Sex__SubModule__ {
                 fn id_path(&self) -> CloneLazy<SubModulePath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex".into())) }
                 fn sub_modules(&self) -> CloneLazy<Vec<SubModulePath>> { CloneLazy::new(CloneClosure::new((), |_, _| vec![])) }
-                fn type_proxy_modules(&self) -> CloneLazy<Vec<TypeProxyModulePath>> { CloneLazy::new(CloneClosure::new((), |_, _| vec![])) }
+                fn type_proxy_modules(&self) -> CloneLazy<Vec<TypeProxyModulePath>> { CloneLazy::new(CloneClosure::new((), |_, _| vec!["shop::divisions::sex::SexShopProduct".into()])) }
                 fn module_associated_functions(&self) -> CloneLazy<Vec<ModuleAssociatedFunctionPath>> { CloneLazy::new(CloneClosure::new((), |_, _| vec!["shop::divisions::sex::test_function".into()])) }
             }
             impl SubModuleDynamicTypedMetadata for __Sex__SubModule__ {}
@@ -431,7 +434,7 @@ pub mod shop {
             impl TypeProxyModuleConstDynMetadata for __SexShopProduct__TypeProxyModule__ {
                 fn id_path(&self) -> CloneLazy<TypeProxyModulePath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct".into())) }
                 fn item_associated_functions(&self) -> CloneLazy<Vec<ItemAssociatedFunctionPath>> {
-                    CloneLazy::new(CloneClosure::new((), |_, _| vec!["shop::divisions::sex::SexShopProduct::new".into()]))
+                    CloneLazy::new(CloneClosure::new((), |_, _| vec!["shop::divisions::sex::SexShopProduct::new_".into()]))
                 }
                 fn constructor_functions(&self) -> CloneLazy<Vec<ConstructorFunctionPath>> {
                     CloneLazy::new(CloneClosure::new((), |_, _| vec!["shop::divisions::sex::SexShopProduct::verify_price".into()]))
@@ -488,7 +491,7 @@ pub mod shop {
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, parent_module| {
                         rhai::FuncRegistration::new(name)
-                            .set_into_module(parent_module, SexShopProduct::new);
+                            .set_into_module(parent_module, SexShopProduct::new_);
                     })
                 }
             }
@@ -722,7 +725,7 @@ impl TypeProxyModuleMetadata {
         type_proxy_module.set_id(self.id_path().type_name());
 
         for path in self.item_associated_functions().get().into_iter() {
-            let item_associated_function = registry.item_associated_functions.get(&path).unwrap().clone();
+            let item_associated_function = registry.item_associated_functions.get(&path).unwrap_or_else(|| panic!("Failed to find item associated function '{}'", path)).clone();
             item_associated_function.register_item_associated_function(&mut type_proxy_module);
         }
 
@@ -936,6 +939,8 @@ impl ConstructorFunctionConstDynMetadata for ConstructorFunctionMetadata {
 impl ConstructorFunctionMetadata {
     pub(super) fn register_constructor_function(mut self, parent_module: &mut rhai::Module) {
         let parent_module = unsafe { std::mem::transmute::<&mut rhai::Module, &'static mut rhai::Module>(parent_module) };
+        let name = self.id_path.get();
+        println!("Registering '{}'", name);
         self.registrator.call_(parent_module);
     }
 }

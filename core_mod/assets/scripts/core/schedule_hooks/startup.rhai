@@ -1,7 +1,7 @@
 fn main(world) {
     print("Hello from 'Startup' schedule hook!");
 
-    // Simple but comprehensive test for the brand new scripting framework
+    // Simple but (mostly) comprehensive test for the brand new scripting framework
     let sus_item = shop::divisions::sex::SexShopProduct::new_("SuspiciouslyPenisShapedItem", 9.99);
     let name = sus_item.name();
     let price_usd = sus_item.price_usd();

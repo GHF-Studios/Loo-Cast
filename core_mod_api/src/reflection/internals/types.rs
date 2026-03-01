@@ -154,17 +154,42 @@ impl RawReflectionMetadata {
             top_level_modules,
             sub_modules,
             type_proxy_modules,
-
             traits,
             types,
-
             inherent_impls,
             trait_impls,
-
             module_associated_functions,
             item_associated_functions,
             constructor_functions,
-            method_functions
-        } 
+            method_functions,
+        }.log_contents()
+    }
+
+    pub fn log_contents(self) -> Self {
+        let top_level_modules_string = self.top_level_modules.keys().collect::<Vec<_>>();
+        let sub_modules_string = self.sub_modules.keys().collect::<Vec<_>>();
+        let type_proxy_modules_string = self.type_proxy_modules.keys().collect::<Vec<_>>();
+        let traits_string = self.traits.keys().collect::<Vec<_>>();
+        let types_string = self.types.keys().collect::<Vec<_>>();
+        let inherent_impls_string = self.inherent_impls.keys().collect::<Vec<_>>();
+        let trait_impls_string = self.trait_impls.keys().collect::<Vec<_>>();
+        let module_associated_functions_string = self.module_associated_functions.keys().collect::<Vec<_>>();
+        let item_associated_functions_string = self.item_associated_functions.keys().collect::<Vec<_>>();
+        let constructor_functions_string = self.constructor_functions.keys().collect::<Vec<_>>();
+        let method_functions_string = self.method_functions.keys().collect::<Vec<_>>();
+
+        println!("top_level_modules: {:?}", top_level_modules_string);
+        println!("sub_modules: {:?}", sub_modules_string);
+        println!("type_proxy_modules: {:?}", type_proxy_modules_string);
+        println!("traits: {:?}", traits_string);
+        println!("types: {:?}", types_string);
+        println!("inherent_impls: {:?}", inherent_impls_string);
+        println!("trait_impls: {:?}", trait_impls_string);
+        println!("module_associated_functions: {:?}", module_associated_functions_string);
+        println!("item_associated_functions: {:?}", item_associated_functions_string);
+        println!("constructor_functions: {:?}", constructor_functions_string);
+        println!("method_functions: {:?}", method_functions_string);
+
+        self
     }
 }
