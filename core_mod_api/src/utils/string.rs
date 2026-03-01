@@ -379,6 +379,16 @@ impl std::fmt::Display for TypePath {
 pub struct InherentImplPath {
     type_path: TypePath
 }
+impl InherentImplPath {
+    pub fn type_path(&self) -> &TypePath {
+        &self.type_path
+    }
+}
+impl Into<InherentImplPath> for &'static str {
+    fn into(self) -> InherentImplPath {
+        InherentImplPath { type_path: TypePath::parse(&ImmutableString::from(self)) }
+    }
+}
 impl Into<TypePath> for InherentImplPath {
     fn into(self) -> TypePath {
         self.type_path

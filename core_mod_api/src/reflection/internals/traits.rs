@@ -278,21 +278,23 @@ pub mod shop {
             #[derive(Clone)]
             pub struct SexShopProduct {
                 name: &'static str,
-                price_usd: f32,
+                price_usd: f64,
             }
             #[reflect_inherent_impl(shop::divisions::sex::SexShopProduct)]
             impl SexShopProduct {
                 #[reflect_constructor_function(shop::divisions::sex::SexShopProduct)]
-                pub fn new_(name: &'static str, price_usd: f32) -> Self { Self { name, price_usd } }
+                pub fn new_(name: &'static str, price_usd: f64) -> Self { Self { name, price_usd } }
 
+                // TODO: MAYBE FIX: &mut instead of & because rhai only recognizes methods as such if the first arg is &mut SomeType
                 #[reflect_method_function(shop::divisions::sex::SexShopProduct)]
-                pub fn name(&self) -> &'static str { self.name }
+                pub fn name(&mut self) -> &'static str { self.name }
 
+                // TODO: MAYBE FIX: &mut instead of & because rhai only recognizes methods as such if the first arg is &mut SomeType
                 #[reflect_method_function(shop::divisions::sex::SexShopProduct)]
-                pub fn price_usd(&self) -> f32 { self.price_usd }
+                pub fn price_usd(&mut self) -> f64 { self.price_usd }
 
                 #[reflect_item_associated_function(shop::divisions::sex::SexShopProduct)]
-                pub fn verify_price(price_usd: f32) {
+                pub fn verify_price(price_usd: f64) {
                     if price_usd < 0.0 { panic!("Price '{}USD' could not be verified", price_usd) }
                 }
             }
@@ -328,6 +330,12 @@ pub mod shop {
             #[allow(non_upper_case_globals)]
             static __SEX_SHOP_PRODUCT__TYPE_PROXY_MODULE__: CloneLazy<TypeProxyModuleMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __SexShopProduct__TypeProxyModule__.from_comptime_to_runtime(&__SexShopProduct__TypeProxyModule__)));
             inventory::submit!(TypeProxyModuleMetadataEntry(&__SEX_SHOP_PRODUCT__TYPE_PROXY_MODULE__));
+            #[allow(non_upper_case_globals)]
+            static __SEX_SHOP_PRODUCT__INHERENT_IMPL__: CloneLazy<InherentImplMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __SexShopProduct__InherentImpl__.from_comptime_to_runtime(&__SexShopProduct__InherentImpl__)));
+            inventory::submit!(InherentImplMetadataEntry(&__SEX_SHOP_PRODUCT__INHERENT_IMPL__));
+            #[allow(non_upper_case_globals)]
+            static __SEX_SHOP_PRODUCT__AS__SEX_SHOP_TEST__TRAIT_IMPL__: CloneLazy<TraitImplMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __SexShopProduct__as__SexShopTest__TraitImpl__.from_comptime_to_runtime(&__SexShopProduct__as__SexShopTest__TraitImpl__)));
+            inventory::submit!(TraitImplMetadataEntry(&__SEX_SHOP_PRODUCT__AS__SEX_SHOP_TEST__TRAIT_IMPL__));
             #[allow(non_upper_case_globals)]
             static __TEST_FUNCTION__MODULE_ASSOCIATED_FUNCTION__: CloneLazy<ModuleAssociatedFunctionMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __TestFunction__ModuleAssociatedFunction__.from_comptime_to_runtime(&__TestFunction__ModuleAssociatedFunction__)));
             inventory::submit!(ModuleAssociatedFunctionMetadataEntry(&__TEST_FUNCTION__MODULE_ASSOCIATED_FUNCTION__));
@@ -410,6 +418,11 @@ pub mod shop {
             }
             impl TypeConstDynMetadata for __SexShopProduct__Type__ {
                 fn id_path(&self) -> CloneLazy<TypePath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct".into())) }
+                fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> {
+                    CloneClosure::new(self.id_path().get().type_name().clone(), |name, parent_module| {
+                        parent_module.set_custom_type::<crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct>(&name);
+                    })
+                }
                 fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>> {
                     CloneLazy::new(CloneClosure::new((), |_, _| vec![
                         "shop::divisions::sex::SexShopProduct::name".into(),
@@ -434,13 +447,64 @@ pub mod shop {
             impl TypeProxyModuleConstDynMetadata for __SexShopProduct__TypeProxyModule__ {
                 fn id_path(&self) -> CloneLazy<TypeProxyModulePath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct".into())) }
                 fn item_associated_functions(&self) -> CloneLazy<Vec<ItemAssociatedFunctionPath>> {
-                    CloneLazy::new(CloneClosure::new((), |_, _| vec!["shop::divisions::sex::SexShopProduct::new_".into()]))
+                    CloneLazy::new(CloneClosure::new((), |_, _| vec!["shop::divisions::sex::SexShopProduct::verify_price".into()]))
                 }
                 fn constructor_functions(&self) -> CloneLazy<Vec<ConstructorFunctionPath>> {
-                    CloneLazy::new(CloneClosure::new((), |_, _| vec!["shop::divisions::sex::SexShopProduct::verify_price".into()]))
+                    CloneLazy::new(CloneClosure::new((), |_, _| vec!["shop::divisions::sex::SexShopProduct::new_".into()]))
+                }
+                fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>> {
+                    CloneLazy::new(CloneClosure::new((), |_, _| vec![
+                        "shop::divisions::sex::SexShopProduct::name".into(),
+                        "shop::divisions::sex::SexShopProduct::price_usd".into(),
+                    ]))
                 }
             }
             impl TypeProxyModuleDynamicTypedMetadata for __SexShopProduct__TypeProxyModule__ {}
+
+            #[allow(non_camel_case_types)]
+            #[derive(Clone, PartialEq, Eq, Hash)]
+            pub struct __SexShopProduct__InherentImpl__;
+            impl ConstDynMetadata for __SexShopProduct__InherentImpl__ {
+                fn raw_rust_module_path(&self) -> &'static str { module_path!() }
+            }
+            impl InherentImplConstDynMetadata for __SexShopProduct__InherentImpl__ {
+                fn id_path(&self) -> CloneLazy<InherentImplPath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct".into())) }
+                fn constructor_functions(&self) -> CloneLazy<Vec<ConstructorFunctionPath>> {
+                    CloneLazy::new(CloneClosure::new((), |_, _| vec!["shop::divisions::sex::SexShopProduct::new_".into()]))
+                }
+                fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>> {
+                    CloneLazy::new(CloneClosure::new((), |_, _| vec![
+                        "shop::divisions::sex::SexShopProduct::name".into(),
+                        "shop::divisions::sex::SexShopProduct::price_usd".into(),
+                    ]))
+                }
+                fn item_associated_functions(&self) -> CloneLazy<Vec<ItemAssociatedFunctionPath>> {
+                    CloneLazy::new(CloneClosure::new((), |_, _| vec![]))
+                }
+            }
+            impl InherentImplDynamicTypedMetadata for __SexShopProduct__InherentImpl__ {}
+
+            #[allow(non_camel_case_types)]
+            #[derive(Clone, PartialEq, Eq, Hash)]
+            pub struct __SexShopProduct__as__SexShopTest__TraitImpl__;
+            impl ConstDynMetadata for __SexShopProduct__as__SexShopTest__TraitImpl__ {
+                fn raw_rust_module_path(&self) -> &'static str { module_path!() }
+            }
+            impl TraitImplConstDynMetadata for __SexShopProduct__as__SexShopTest__TraitImpl__ {
+                fn id_path(&self) -> CloneLazy<TraitImplPath> { CloneLazy::new(CloneClosure::new((), |_, _| "<shop::divisions::sex::SexShopProduct as shop::divisions::sex::SexShopTest>".into())) }
+                fn constructor_functions(&self) -> CloneLazy<Vec<ConstructorFunctionPath>> {
+                    CloneLazy::new(CloneClosure::new((), |_, _| vec![]))
+                }
+                fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>> {
+                    CloneLazy::new(CloneClosure::new((), |_, _| vec![]))
+                }
+                fn item_associated_functions(&self) -> CloneLazy<Vec<ItemAssociatedFunctionPath>> {
+                    CloneLazy::new(CloneClosure::new((), |_, _| vec![
+                        "<shop::divisions::sex::SexShopProduct as shop::divisions::sex::SexShopTest>::test".into(),
+                    ]))
+                }
+            }
+            impl TraitImplDynamicTypedMetadata for __SexShopProduct__as__SexShopTest__TraitImpl__ {}
 
             #[allow(non_camel_case_types)]
             #[derive(Clone, PartialEq, Eq, Hash)]
@@ -453,7 +517,7 @@ pub mod shop {
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, parent_module| {
                         rhai::FuncRegistration::new(name)
-                            .set_into_module(parent_module, test_function);
+                            .set_into_module(parent_module, crate::reflection::internals::traits::shop::divisions::sex::test_function);
                     })
                 }
             }
@@ -470,7 +534,7 @@ pub mod shop {
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, parent_module| {
                         rhai::FuncRegistration::new(name)
-                            .set_into_module(parent_module, SexShopProduct::verify_price);
+                            .set_into_module(parent_module, crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct::verify_price);
                     })
                 }
             }
@@ -491,7 +555,7 @@ pub mod shop {
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, parent_module| {
                         rhai::FuncRegistration::new(name)
-                            .set_into_module(parent_module, SexShopProduct::new_);
+                            .set_into_module(parent_module, crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct::new_);
                     })
                 }
             }
@@ -507,7 +571,8 @@ pub mod shop {
                 fn id_path(&self) -> CloneLazy<MethodFunctionPath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct::name".into())) }
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Engine, (), fn(ImmutableString, &mut rhai::Engine)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, engine| {
-                        engine.register_fn(name, SexShopProduct::name);
+                        bevy::prelude::error!("Registering __Name__MethodFunction__");
+                        engine.register_fn(name, crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct::name);
                     })
                 }
             }
@@ -523,7 +588,8 @@ pub mod shop {
                 fn id_path(&self) -> CloneLazy<MethodFunctionPath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct::price_usd".into())) }
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Engine, (), fn(ImmutableString, &mut rhai::Engine)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, engine| {
-                        engine.register_fn(name, SexShopProduct::price_usd);
+                        bevy::prelude::error!("Registering __PriceUsd__MethodFunction__");
+                        engine.register_fn(name, crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct::price_usd);
                     })
                 }
             }
@@ -585,7 +651,7 @@ pub struct TopLevelModuleMetadata {
     pub module_associated_functions: CloneLazy<Vec<ModuleAssociatedFunctionPath>>,
 }
 impl ConstDynMetadata for TopLevelModuleMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
 }
 impl NativeModuleConstDynMetadata for TopLevelModuleMetadata {
     fn traits(&self) -> CloneLazy<Vec<TraitPath>> { self.traits.clone() }
@@ -603,7 +669,8 @@ impl TopLevelModuleMetadata {
     pub(super) fn register_top_level_module(&self, engine: &mut rhai::Engine) {
         let registry = RAW_REFLECTION_METADATA();
         let mut top_level_module = rhai::Module::new();
-        top_level_module.set_id(self.id_path().get().module_name());
+        let id_path = self.id_path().get();
+        top_level_module.set_id(id_path.module_name());
 
         for path in self.sub_modules().get().into_iter() {
             let sub_module = registry.sub_modules.get(&path).unwrap().clone();
@@ -618,12 +685,61 @@ impl TopLevelModuleMetadata {
 
         for path in self.types().get().into_iter() {
             let type_ = registry.types.get(&path).unwrap().clone();
-            type_.register_type(engine, &mut top_level_module);
+            type_.register_type(&mut top_level_module);
         }
 
-        for path in self.type_proxy_modules().get().into_iter() {
-            let type_proxy_module = registry.type_proxy_modules.get(&path).unwrap().clone();
-            type_proxy_module.register_type_proxy_module(&mut top_level_module);
+        for type_proxy_module_path in self.type_proxy_modules().get().into_iter() {
+            let type_path: TypePath = type_proxy_module_path.clone().into();
+
+            let type_proxy_module = registry
+                .type_proxy_modules
+                .get(&type_proxy_module_path)
+                .unwrap_or_else(|| panic!("Missing TypeProxyModule '{}'", type_proxy_module_path))
+                .clone();
+
+            // === Inherent Impl ===
+
+            let inherent_impl_paths: Vec<_> = self
+                .inherent_impls()
+                .get()
+                .into_iter()
+                .filter(|p| p.type_path() == &type_path)
+                .collect();
+
+            let inherent_impl = match inherent_impl_paths.len() {
+                0 => None,
+                1 => Some(
+                    registry
+                        .inherent_impls
+                        .get(&inherent_impl_paths[0])
+                        .unwrap_or_else(|| panic!("Missing InherentImpl '{}'", inherent_impl_paths[0]))
+                        .clone()
+                ),
+                _ => panic!("Multiple inherent impls for type '{}'", type_path),
+            };
+
+            // === Trait Impls ===
+
+            let trait_impls: Vec<_> = self
+                .trait_impls()
+                .get()
+                .into_iter()
+                .filter(|p| p.type_path() == &type_path)
+                .map(|p| {
+                    registry
+                        .trait_impls
+                        .get(&p)
+                        .unwrap_or_else(|| panic!("Missing TraitImpl '{}'", p))
+                        .clone()
+                })
+                .collect();
+
+            type_proxy_module.register_type_proxy_module(
+                engine,
+                &mut top_level_module,
+                inherent_impl,
+                trait_impls,
+            );
         }
 
         for path in self.module_associated_functions().get().into_iter() {
@@ -631,7 +747,7 @@ impl TopLevelModuleMetadata {
             module_associated_function.register_module_associated_function(&mut top_level_module);
         }
 
-        engine.register_static_module(self.id_path().get().module_name(), Arc::new(top_level_module));
+        engine.register_static_module(id_path.module_name(), Arc::new(top_level_module));
     }
 }
 #[derive(Clone)]
@@ -651,7 +767,7 @@ pub struct SubModuleMetadata {
     pub module_associated_functions: CloneLazy<Vec<ModuleAssociatedFunctionPath>>,
 }
 impl ConstDynMetadata for SubModuleMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
 }
 impl NativeModuleConstDynMetadata for SubModuleMetadata {
     fn traits(&self) -> CloneLazy<Vec<TraitPath>> { self.traits.clone() }
@@ -669,7 +785,8 @@ impl SubModuleMetadata {
     pub(super) fn register_sub_module(&self, engine: &mut rhai::Engine, parent_module: &mut rhai::Module) {
         let registry = RAW_REFLECTION_METADATA();
         let mut origin_sub_module = rhai::Module::new();
-        origin_sub_module.set_id(self.id_path().get().module_name());
+        let id_path = self.id_path().get();
+        origin_sub_module.set_id(id_path.module_name());
 
         for path in self.sub_modules().get().into_iter() {
             let sub_module = registry.sub_modules.get(&path).unwrap().clone();
@@ -679,17 +796,66 @@ impl SubModuleMetadata {
         for path in self.traits().get().into_iter() {
             let (trait_, trait_object) = registry.traits.get(&path).unwrap().clone();
             trait_.register_trait(&mut origin_sub_module);
-            trait_object.register_trait_object(parent_module);
+            trait_object.register_trait_object(&mut origin_sub_module);
         }
 
         for path in self.types().get().into_iter() {
             let type_ = registry.types.get(&path).unwrap().clone();
-            type_.register_type(engine, &mut origin_sub_module);
+            type_.register_type(&mut origin_sub_module);
         }
 
-        for path in self.type_proxy_modules().get().into_iter() {
-            let type_proxy_module = registry.type_proxy_modules.get(&path).unwrap().clone();
-            type_proxy_module.register_type_proxy_module(&mut origin_sub_module);
+        for type_proxy_module_path in self.type_proxy_modules().get().into_iter() {
+            let type_path: TypePath = type_proxy_module_path.clone().into();
+
+            let type_proxy_module = registry
+                .type_proxy_modules
+                .get(&type_proxy_module_path)
+                .unwrap_or_else(|| panic!("Missing TypeProxyModule '{}'", type_proxy_module_path))
+                .clone();
+
+            // === Inherent Impl ===
+
+            let inherent_impl_paths: Vec<_> = self
+                .inherent_impls()
+                .get()
+                .into_iter()
+                .filter(|p| p.type_path() == &type_path)
+                .collect();
+
+            let inherent_impl = match inherent_impl_paths.len() {
+                0 => None,
+                1 => Some(
+                    registry
+                        .inherent_impls
+                        .get(&inherent_impl_paths[0])
+                        .unwrap_or_else(|| panic!("Missing InherentImpl '{}'", inherent_impl_paths[0]))
+                        .clone()
+                ),
+                _ => panic!("Multiple inherent impls for type '{}'", type_path),
+            };
+
+            // === Trait Impls ===
+
+            let trait_impls: Vec<_> = self
+                .trait_impls()
+                .get()
+                .into_iter()
+                .filter(|p| p.type_path() == &type_path)
+                .map(|p| {
+                    registry
+                        .trait_impls
+                        .get(&p)
+                        .unwrap_or_else(|| panic!("Missing TraitImpl '{}'", p))
+                        .clone()
+                })
+                .collect();
+
+            type_proxy_module.register_type_proxy_module(
+                engine,
+                &mut origin_sub_module,
+                inherent_impl,
+                trait_impls,
+            );
         }
 
         for path in self.module_associated_functions().get().into_iter() {
@@ -697,7 +863,7 @@ impl SubModuleMetadata {
             module_associated_function.register_module_associated_function(&mut origin_sub_module);
         }
 
-        parent_module.set_sub_module(self.id_path().get().module_name(), origin_sub_module);
+        parent_module.set_sub_module(id_path.module_name(), origin_sub_module);
     }
 }
 #[derive(Clone)]
@@ -709,20 +875,31 @@ pub struct TypeProxyModuleMetadata {
 
     pub item_associated_functions: CloneLazy<Vec<ItemAssociatedFunctionPath>>,
     pub constructor_functions: CloneLazy<Vec<ConstructorFunctionPath>>,
+    pub method_functions: CloneLazy<Vec<MethodFunctionPath>>,
 }
 impl ConstDynMetadata for TypeProxyModuleMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
 }
 impl TypeProxyModuleConstDynMetadata for TypeProxyModuleMetadata {
     fn id_path(&self) -> CloneLazy<TypeProxyModulePath> { self.id_path.clone() }
     fn item_associated_functions(&self) -> CloneLazy<Vec<ItemAssociatedFunctionPath>> { self.item_associated_functions.clone() }
     fn constructor_functions(&self) -> CloneLazy<Vec<ConstructorFunctionPath>> { self.constructor_functions.clone() }
+    fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>> { self.method_functions.clone() }
 }
 impl TypeProxyModuleMetadata {
-    fn register_type_proxy_module(&self, parent_module: &mut rhai::Module) {
+    fn register_type_proxy_module(&self, engine: &mut rhai::Engine, parent_module: &mut rhai::Module, inherent_impl: Option<InherentImplMetadata>, trait_impls: Vec<TraitImplMetadata>) {
         let registry = RAW_REFLECTION_METADATA();
         let mut type_proxy_module = rhai::Module::new();
-        type_proxy_module.set_id(self.id_path().type_name());
+        let id_path = self.id_path().get();
+        type_proxy_module.set_id(id_path.type_name());
+
+        if let Some(inherent_impl) = inherent_impl {
+            inherent_impl.register_inherent_impl(engine, &mut type_proxy_module);
+        }
+        
+        for trait_impl in trait_impls {
+            trait_impl.register_trait_impl(engine, &mut type_proxy_module);
+        }
 
         for path in self.item_associated_functions().get().into_iter() {
             let item_associated_function = registry.item_associated_functions.get(&path).unwrap_or_else(|| panic!("Failed to find item associated function '{}'", path)).clone();
@@ -734,7 +911,12 @@ impl TypeProxyModuleMetadata {
             constructor_function.register_constructor_function(&mut type_proxy_module);
         }
 
-        parent_module.set_sub_module(self.id_path().type_name(), type_proxy_module);
+        for path in self.method_functions().get().into_iter() {
+            let method_function = registry.method_functions.get(&path).unwrap().clone();
+            method_function.register_method_function(engine);
+        }
+
+        parent_module.set_sub_module(id_path.type_name(), type_proxy_module);
     }
 }
 
@@ -748,10 +930,10 @@ pub struct TraitMetadata {
     pub trait_name: &'static str,
 }
 impl ConstDynMetadata for TraitMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
 }
 impl DynGetTraitName for TraitMetadata {
-    fn trait_name(&self) -> &'static str { self.trait_name.clone() }
+    fn trait_name(&self) -> &'static str { self.trait_name }
 }
 impl TraitConstDynMetadata for TraitMetadata {
     fn id_path(&self) -> CloneLazy<TraitPath> { self.id_path.clone() }
@@ -770,10 +952,10 @@ pub struct TraitObjectMetadata {
     pub trait_object_name: &'static str,
 }
 impl ConstDynMetadata for TraitObjectMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
 }
 impl DynGetTraitObjectName for TraitObjectMetadata {
-    fn trait_object_name(&self) -> &'static str { self.trait_object_name.clone() }
+    fn trait_object_name(&self) -> &'static str { self.trait_object_name }
 }
 impl TraitObjectConstDynMetadata for TraitObjectMetadata {
     fn id_path(&self) -> CloneLazy<TraitPath> { self.id_path.clone() }
@@ -791,22 +973,23 @@ pub struct TypeMetadata {
     pub id_path: CloneLazy<TypePath>,
     /// Raw `module_path!()` output to verify physical locations relatively (this is NOT a *globally* unique ID)
     pub raw_rust_module_path: &'static str,
+    pub registrator: CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)>,
 
     pub method_functions: CloneLazy<Vec<MethodFunctionPath>>,
 }
 impl ConstDynMetadata for TypeMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
 }
 impl TypeConstDynMetadata for TypeMetadata {
     fn id_path(&self) -> CloneLazy<TypePath> { self.id_path.clone() }
+    fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> { self.registrator }
+    
     fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>> { self.method_functions.clone() }
 }
 impl TypeMetadata {
-    pub(super) fn register_type(&self, engine: &mut rhai::Engine, parent_module: &mut rhai::Module) {
-        // TODO: IMPORTANT: This shit is very sketchy and we need to properly handle different types of types
-        // TODO: IMPORTANT: and not just blindly wrap every type in a ScopedAccessHandle.
-        // TODO: IMPORTANT: Also think about how to auto-register the monomorphized functions and methods and types and whatnot used to properly interact with a type container such as ScopedAccessHandle
-        parent_module.set_custom_type::<ScopedAccessHandle<Self>>(self.id_path().type_name());
+    pub(super) fn register_type(mut self, parent_module: &mut rhai::Module) {
+        let parent_module = unsafe { std::mem::transmute::<&mut rhai::Module, &'static mut rhai::Module>(parent_module) };
+        self.registrator.call_(parent_module);
     }
 }
 
@@ -820,14 +1003,16 @@ pub struct InherentImplMetadata {
 
     pub constructor_functions: CloneLazy<Vec<ConstructorFunctionPath>>,
     pub method_functions: CloneLazy<Vec<MethodFunctionPath>>,
+    pub item_associated_functions: CloneLazy<Vec<ItemAssociatedFunctionPath>>,
 }
 impl ConstDynMetadata for InherentImplMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
 }
 impl InherentImplConstDynMetadata for InherentImplMetadata {
     fn id_path(&self) -> CloneLazy<InherentImplPath> { self.id_path.clone() }
     fn constructor_functions(&self) -> CloneLazy<Vec<ConstructorFunctionPath>> { self.constructor_functions.clone() }
     fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>> { self.method_functions.clone() }
+    fn item_associated_functions(&self) -> CloneLazy<Vec<ItemAssociatedFunctionPath>> { self.item_associated_functions.clone() }
 }
 impl InherentImplMetadata {
     pub(super) fn register_inherent_impl(&self, engine: &mut rhai::Engine, type_proxy_module: &mut rhai::Module) {
@@ -842,6 +1027,11 @@ impl InherentImplMetadata {
             let method_function = registry.method_functions.get(&path).unwrap().clone();
             method_function.register_method_function(engine);
         }
+
+        for path in self.item_associated_functions().get().into_iter() {
+            let item_associated_function = registry.item_associated_functions.get(&path).unwrap().clone();
+            item_associated_function.register_item_associated_function(type_proxy_module);
+        }
     }
 }
 #[derive(Clone)]
@@ -853,14 +1043,16 @@ pub struct TraitImplMetadata {
 
     pub constructor_functions: CloneLazy<Vec<ConstructorFunctionPath>>,
     pub method_functions: CloneLazy<Vec<MethodFunctionPath>>,
+    pub item_associated_functions: CloneLazy<Vec<ItemAssociatedFunctionPath>>,
 }
 impl ConstDynMetadata for TraitImplMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
 }
 impl TraitImplConstDynMetadata for TraitImplMetadata {
     fn id_path(&self) -> CloneLazy<TraitImplPath> { self.id_path.clone() }
     fn constructor_functions(&self) -> CloneLazy<Vec<ConstructorFunctionPath>> { self.constructor_functions.clone() }
     fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>> { self.method_functions.clone() }
+    fn item_associated_functions(&self) -> CloneLazy<Vec<ItemAssociatedFunctionPath>> { self.item_associated_functions.clone() }
 }
 impl TraitImplMetadata {
     pub(super) fn register_trait_impl(&self, engine: &mut rhai::Engine, type_proxy_module: &mut rhai::Module) {
@@ -875,6 +1067,11 @@ impl TraitImplMetadata {
             let method_function = registry.method_functions.get(&path).unwrap().clone();
             method_function.register_method_function(engine);
         }
+
+        for path in self.item_associated_functions().get().into_iter() {
+            let item_associated_function = registry.item_associated_functions.get(&path).unwrap().clone();
+            item_associated_function.register_item_associated_function(type_proxy_module);
+        }
     }
 }
 
@@ -888,7 +1085,7 @@ pub struct ModuleAssociatedFunctionMetadata {
     pub registrator: CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)>,
 }
 impl ConstDynMetadata for ModuleAssociatedFunctionMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
 }
 impl ModuleAssociatedFunctionConstDynMetadata for ModuleAssociatedFunctionMetadata {
     fn id_path(&self) -> CloneLazy<ModuleAssociatedFunctionPath> { self.id_path.clone() }
@@ -909,7 +1106,7 @@ pub struct ItemAssociatedFunctionMetadata {
     pub registrator: CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)>,
 }
 impl ConstDynMetadata for ItemAssociatedFunctionMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
 }
 impl ItemAssociatedFunctionConstDynMetadata for ItemAssociatedFunctionMetadata {
     fn id_path(&self) -> CloneLazy<ItemAssociatedFunctionPath> { self.id_path.clone() }
@@ -930,7 +1127,7 @@ pub struct ConstructorFunctionMetadata {
     pub registrator: CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)>,
 }
 impl ConstDynMetadata for ConstructorFunctionMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
 }
 impl ConstructorFunctionConstDynMetadata for ConstructorFunctionMetadata {
     fn id_path(&self) -> CloneLazy<ConstructorFunctionPath> { self.id_path.clone() }
@@ -939,8 +1136,6 @@ impl ConstructorFunctionConstDynMetadata for ConstructorFunctionMetadata {
 impl ConstructorFunctionMetadata {
     pub(super) fn register_constructor_function(mut self, parent_module: &mut rhai::Module) {
         let parent_module = unsafe { std::mem::transmute::<&mut rhai::Module, &'static mut rhai::Module>(parent_module) };
-        let name = self.id_path.get();
-        println!("Registering '{}'", name);
         self.registrator.call_(parent_module);
     }
 }
@@ -953,7 +1148,7 @@ pub struct MethodFunctionMetadata {
     pub registrator: CloneClosure<ImmutableString, &'static mut rhai::Engine, (), fn(ImmutableString, &mut rhai::Engine)>,
 }
 impl ConstDynMetadata for MethodFunctionMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path.clone() }
+    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
 }
 impl MethodFunctionConstDynMetadata for MethodFunctionMetadata {
     fn id_path(&self) -> CloneLazy<MethodFunctionPath> { self.id_path.clone() }
@@ -996,6 +1191,7 @@ pub const trait TypeProxyModuleConstDynMetadata: ConstDynMetadata {
     fn id_path(&self) -> CloneLazy<TypeProxyModulePath>;
     fn item_associated_functions(&self) -> CloneLazy<Vec<ItemAssociatedFunctionPath>>;
     fn constructor_functions(&self) -> CloneLazy<Vec<ConstructorFunctionPath>>;
+    fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>>;
 }
 
 // Traits
@@ -1011,6 +1207,7 @@ pub const trait TraitObjectConstDynMetadata: ConstDynMetadata + DynGetTraitObjec
 /// AKA there is no metadata to describe the different possible variants of a Type yet
 pub const trait TypeConstDynMetadata: ConstDynMetadata {
     fn id_path(&self) -> CloneLazy<TypePath>;
+    fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)>;
     fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>>;
 }
 // pub const trait TypeOwnConstDynMetadata: TypeConstDynMetadata {}
@@ -1026,11 +1223,13 @@ pub const trait InherentImplConstDynMetadata: ConstDynMetadata {
     fn id_path(&self) -> CloneLazy<InherentImplPath>;
     fn constructor_functions(&self) -> CloneLazy<Vec<ConstructorFunctionPath>>;
     fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>>;
+    fn item_associated_functions(&self) -> CloneLazy<Vec<ItemAssociatedFunctionPath>>;
 }
 pub const trait TraitImplConstDynMetadata: ConstDynMetadata {
     fn id_path(&self) -> CloneLazy<TraitImplPath>;
     fn constructor_functions(&self) -> CloneLazy<Vec<ConstructorFunctionPath>>;
     fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>>;
+    fn item_associated_functions(&self) -> CloneLazy<Vec<ItemAssociatedFunctionPath>>;
 }
 
 // Functions
@@ -1096,6 +1295,7 @@ pub trait TypeProxyModuleDynamicTypedMetadata {
 
             item_associated_functions: const_dyn_metadata.item_associated_functions().clone(),
             constructor_functions: const_dyn_metadata.constructor_functions().clone(),
+            method_functions: const_dyn_metadata.method_functions().clone(),
         }
     }
 }
@@ -1125,6 +1325,7 @@ pub trait TypeDynamicTypedMetadata {
         TypeMetadata {
             raw_rust_module_path: const_dyn_metadata.raw_rust_module_path(),
             id_path: const_dyn_metadata.id_path().clone(),
+            registrator: const_dyn_metadata.clone().registrator(),
             
             method_functions: const_dyn_metadata.method_functions().clone(),
         }
@@ -1140,6 +1341,7 @@ pub trait InherentImplDynamicTypedMetadata {
             
             constructor_functions: const_dyn_metadata.constructor_functions().clone(),
             method_functions: const_dyn_metadata.method_functions().clone(),
+            item_associated_functions: const_dyn_metadata.item_associated_functions().clone(),
         }
     }
 }
@@ -1151,6 +1353,7 @@ pub trait TraitImplDynamicTypedMetadata {
             
             constructor_functions: const_dyn_metadata.constructor_functions().clone(),
             method_functions: const_dyn_metadata.method_functions().clone(),
+            item_associated_functions: const_dyn_metadata.item_associated_functions().clone(),
         }
     }
 }

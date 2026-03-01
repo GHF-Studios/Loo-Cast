@@ -97,6 +97,9 @@ impl RawReflectionMetadata {
         for entry in inventory::iter::<InherentImplMetadataEntry> {
             let value = entry.0.get();
             let id_path = value.id_path.get();
+            if inherent_impls.contains_key(&id_path) {
+                panic!("Duplicate inherent impl '{id_path}'!");
+            }
             if let Some(value) = inherent_impls.insert(id_path, value) {
                 let id_path = value.id_path.get();
                 panic!("Duplicate inherent impl '{id_path}'!");
