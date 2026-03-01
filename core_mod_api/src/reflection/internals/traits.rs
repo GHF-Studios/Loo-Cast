@@ -343,6 +343,9 @@ pub mod shop {
             static __VERIFY_PRICE__ITEM_ASSOCIATED_FUNCTION__: CloneLazy<ItemAssociatedFunctionMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __VerifyPrice__ItemAssociatedFunction__.from_comptime_to_runtime(&__VerifyPrice__ItemAssociatedFunction__)));
             inventory::submit!(ItemAssociatedFunctionMetadataEntry(&__VERIFY_PRICE__ITEM_ASSOCIATED_FUNCTION__));
             #[allow(non_upper_case_globals)]
+            static __TEST__ITEM_ASSOCIATED_FUNCTION__: CloneLazy<ItemAssociatedFunctionMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __Test__ItemAssociatedFunction__.from_comptime_to_runtime(&__Test__ItemAssociatedFunction__)));
+            inventory::submit!(ItemAssociatedFunctionMetadataEntry(&__TEST__ITEM_ASSOCIATED_FUNCTION__));
+            #[allow(non_upper_case_globals)]
             static __NEW__CONSTRUCTOR_FUNCTION__: CloneLazy<ConstructorFunctionMetadata> = CloneLazy::new(CloneClosure::new((), |(), ()| __New__ConstructorFunction__.from_comptime_to_runtime(&__New__ConstructorFunction__)));
             inventory::submit!(ConstructorFunctionMetadataEntry(&__NEW__CONSTRUCTOR_FUNCTION__));
             #[allow(non_upper_case_globals)]
@@ -447,7 +450,10 @@ pub mod shop {
             impl TypeProxyModuleConstDynMetadata for __SexShopProduct__TypeProxyModule__ {
                 fn id_path(&self) -> CloneLazy<TypeProxyModulePath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct".into())) }
                 fn item_associated_functions(&self) -> CloneLazy<Vec<ItemAssociatedFunctionPath>> {
-                    CloneLazy::new(CloneClosure::new((), |_, _| vec!["shop::divisions::sex::SexShopProduct::verify_price".into()]))
+                    CloneLazy::new(CloneClosure::new((), |_, _| vec![
+                        "shop::divisions::sex::SexShopProduct::verify_price".into(),
+                        "<shop::divisions::sex::SexShopProduct as shop::divisions::sex::SexShopTest>::test".into()
+                    ]))
                 }
                 fn constructor_functions(&self) -> CloneLazy<Vec<ConstructorFunctionPath>> {
                     CloneLazy::new(CloneClosure::new((), |_, _| vec!["shop::divisions::sex::SexShopProduct::new_".into()]))
@@ -542,6 +548,23 @@ pub mod shop {
 
             #[allow(non_camel_case_types)]
             #[derive(Clone, PartialEq, Eq, Hash)]
+            pub struct __Test__ItemAssociatedFunction__;
+            impl ConstDynMetadata for __Test__ItemAssociatedFunction__ {
+                fn raw_rust_module_path(&self) -> &'static str { module_path!() }
+            }
+            impl ItemAssociatedFunctionConstDynMetadata for __Test__ItemAssociatedFunction__ {
+                fn id_path(&self) -> CloneLazy<ItemAssociatedFunctionPath> { CloneLazy::new(CloneClosure::new((), |_, _| "<shop::divisions::sex::SexShopProduct as shop::divisions::sex::SexShopTest>::test".into())) }
+                fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> {
+                    CloneClosure::new(self.id_path().get().function_name().clone(), |name, parent_module| {
+                        rhai::FuncRegistration::new(name)
+                            .set_into_module(parent_module, crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct::test);
+                    })
+                }
+            }
+            impl ItemAssociatedFunctionDynamicTypedMetadata for __Test__ItemAssociatedFunction__ {}
+
+            #[allow(non_camel_case_types)]
+            #[derive(Clone, PartialEq, Eq, Hash)]
             pub struct __New__ConstructorFunction__;
             impl ConstDynMetadata for __New__ConstructorFunction__ {
                 fn raw_rust_module_path(&self) -> &'static str { module_path!() }
@@ -571,7 +594,6 @@ pub mod shop {
                 fn id_path(&self) -> CloneLazy<MethodFunctionPath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct::name".into())) }
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Engine, (), fn(ImmutableString, &mut rhai::Engine)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, engine| {
-                        bevy::prelude::error!("Registering __Name__MethodFunction__");
                         engine.register_fn(name, crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct::name);
                     })
                 }
@@ -588,7 +610,6 @@ pub mod shop {
                 fn id_path(&self) -> CloneLazy<MethodFunctionPath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct::price_usd".into())) }
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Engine, (), fn(ImmutableString, &mut rhai::Engine)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, engine| {
-                        bevy::prelude::error!("Registering __PriceUsd__MethodFunction__");
                         engine.register_fn(name, crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct::price_usd);
                     })
                 }

@@ -9,7 +9,7 @@ fn main(world) {
     let price_usd = sus_item.price_usd();
     print("Created SexShopProduct '" + name + "' for " + price_usd + "USD");
     shop::divisions::sex::SexShopProduct::verify_price(price_usd);
-    
+
     // Advanced scripting test, but for the outdated scripting "framework"
     let player_bundle = player::bundles::PlayerBundle::new_default();
     
