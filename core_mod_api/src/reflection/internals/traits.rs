@@ -16,7 +16,8 @@ pub trait GetTypeId: Sized + 'static {
     const TYPE_ID: &'static str;
 }
 
-// TODO: Add string-format documentation or newtype with invariant-enforcing on construction
+// TODO: MAJOR: REFACTOR: But where to?
+// TODO: MINOR: Add string-format documentation or newtype with invariant-enforcing on construction
 pub trait GetTraitName: Clone + Sized + 'static {
     const TRAIT_NAME: &'static str;
 }

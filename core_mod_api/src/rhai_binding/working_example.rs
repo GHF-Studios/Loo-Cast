@@ -1,13 +1,32 @@
-```rust
 // The vision: 
 
 // The actual end-user code
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
 pub mod shop {
     use core_mod_macros::reflect_top_level_module;
-    use once_cell::sync::Lazy;
 
-    use crate::{reflection::internals::traits::*, utils::clone_closure::CloneClosure};
+    use crate::{
+        rhai_binding::{
+            meta::{
+                monomorphized::{
+                   module::*,
+                },
+                generic::{
+                    abstract_primitive::ConstDynMetadata,
+                    module::*,
+                },
+                registry::*,
+            },
+            path::{
+                module_path::*,
+                trait_path::*,
+                type_path::*,
+                impl_path::*,
+                function_path::*,
+            }
+        },
+        utils::{clone_closure::CloneClosure, clone_lazy::CloneLazy}
+    };
 
     reflect_top_level_module!(
         id = shop,
@@ -65,9 +84,29 @@ pub mod shop {
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
     pub mod divisions {
         use core_mod_macros::reflect_sub_module;
-        use once_cell::sync::Lazy;
 
-        use crate::{reflection::internals::traits::*, utils::clone_closure::CloneClosure};
+        use crate::{
+            rhai_binding::{
+                meta::{
+                    monomorphized::{
+                       module::*,
+                    },
+                    generic::{
+                        abstract_primitive::ConstDynMetadata,
+                        module::*,
+                    },
+                    registry::*,
+                },
+                path::{
+                    module_path::*,
+                    trait_path::*,
+                    type_path::*,
+                    impl_path::*,
+                    function_path::*,
+                }
+            },
+            utils::{clone_closure::CloneClosure, clone_lazy::CloneLazy}
+        };
 
         reflect_sub_module!(
             id = shop::divisions,
@@ -135,10 +174,31 @@ pub mod shop {
                 reflect_constructor_function,
                 reflect_method_function
             };
-            use once_cell::sync::Lazy;
             use rhai::ImmutableString;
 
-            use crate::{reflection::internals::traits::*, utils::{clone_closure::CloneClosure}};
+            use crate::{
+                reflection::{
+                    internals::traits::*,
+                    traits::StaticTraitObject,
+                },
+                rhai_binding::{
+                    meta::{
+                        generic::{
+                            abstract_primitive::ConstDynMetadata, function::*, impl_::*, module::*, trait_::*, type_::*
+                        }, monomorphized::{
+                           function::*, impl_::*, module::*, trait_::*, type_::*
+                        }, registry::*
+                    },
+                    path::{
+                        function_path::*,
+                        impl_path::*,
+                        module_path::*,
+                        trait_path::*,
+                        type_path::*
+                    }
+                },
+                utils::{clone_closure::CloneClosure, clone_lazy::CloneLazy}
+            };
 
             reflect_sub_module!(
                 id_path = shop::divisions::sex,
@@ -187,7 +247,7 @@ pub mod shop {
 
             #[reflect_module_associated_function(shop::divisions::sex::test_function)]
             pub fn test_function() {
-                println!("Small banana sound!")
+                println!("Small vieze asbak sound!")
             }
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> //
 
@@ -302,7 +362,7 @@ pub mod shop {
                 fn id_path(&self) -> CloneLazy<TypePath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct".into())) }
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> {
                     CloneClosure::new(self.id_path().get().type_name().clone(), |name, parent_module| {
-                        parent_module.set_custom_type::<crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct>(&name);
+                        parent_module.set_custom_type::<crate::rhai_binding::working_example::shop::divisions::sex::SexShopProduct>(&name);
                     })
                 }
                 fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>> {
@@ -402,7 +462,7 @@ pub mod shop {
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, parent_module| {
                         rhai::FuncRegistration::new(name)
-                            .set_into_module(parent_module, crate::reflection::internals::traits::shop::divisions::sex::test_function);
+                            .set_into_module(parent_module, crate::rhai_binding::working_example::shop::divisions::sex::test_function);
                     })
                 }
             }
@@ -419,7 +479,7 @@ pub mod shop {
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, parent_module| {
                         rhai::FuncRegistration::new(name)
-                            .set_into_module(parent_module, crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct::verify_price);
+                            .set_into_module(parent_module, crate::rhai_binding::working_example::shop::divisions::sex::SexShopProduct::verify_price);
                     })
                 }
             }
@@ -436,7 +496,7 @@ pub mod shop {
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, parent_module| {
                         rhai::FuncRegistration::new(name)
-                            .set_into_module(parent_module, crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct::test);
+                            .set_into_module(parent_module, crate::rhai_binding::working_example::shop::divisions::sex::SexShopProduct::test);
                     })
                 }
             }
@@ -457,7 +517,7 @@ pub mod shop {
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, parent_module| {
                         rhai::FuncRegistration::new(name)
-                            .set_into_module(parent_module, crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct::new_);
+                            .set_into_module(parent_module, crate::rhai_binding::working_example::shop::divisions::sex::SexShopProduct::new_);
                     })
                 }
             }
@@ -473,7 +533,7 @@ pub mod shop {
                 fn id_path(&self) -> CloneLazy<MethodFunctionPath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct::name".into())) }
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Engine, (), fn(ImmutableString, &mut rhai::Engine)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, engine| {
-                        engine.register_fn(name, crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct::name);
+                        engine.register_fn(name, crate::rhai_binding::working_example::shop::divisions::sex::SexShopProduct::name);
                     })
                 }
             }
@@ -489,7 +549,7 @@ pub mod shop {
                 fn id_path(&self) -> CloneLazy<MethodFunctionPath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct::price_usd".into())) }
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Engine, (), fn(ImmutableString, &mut rhai::Engine)> {
                     CloneClosure::new(self.id_path().get().function_name().clone(), |name, engine| {
-                        engine.register_fn(name, crate::reflection::internals::traits::shop::divisions::sex::SexShopProduct::price_usd);
+                        engine.register_fn(name, crate::rhai_binding::working_example::shop::divisions::sex::SexShopProduct::price_usd);
                     })
                 }
             }
@@ -502,4 +562,3 @@ pub mod shop {
     }
 }
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> //
-```

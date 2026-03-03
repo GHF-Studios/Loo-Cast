@@ -4,3 +4,5 @@ pub mod internals;
 pub mod meta;
 pub mod path;
 pub mod value_semantics;
+
+pub mod working_example;

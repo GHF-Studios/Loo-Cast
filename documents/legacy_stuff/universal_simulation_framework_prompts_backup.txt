@@ -2,7 +2,7 @@ Summary: Universal Simulation Framework (USF)
 
 1. Phenomena:
 Abstract concept representing a game observation/experience.
-Essentially a unique identifier.
+Essentially a unique "object" identifier.
 
 2. Phenomena Model:
 Concrete representation of a Phenomena for a specific scale.
