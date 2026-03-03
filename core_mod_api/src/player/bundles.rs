@@ -58,7 +58,7 @@ impl GetTypeId for PlayerBundle {
     const TYPE_ID: &'static str = "player::bundles::PlayerBundle";
 }
 impl GetTypeValueSemantics for PlayerBundle {
-    const VALUE_SEMANTICS: TypeValueSemantics = TypeValueSemantics::ScopedMut;
+    const VALUE_SEMANTICS: TypeValueSemantics = TypeValueSemantics::Owned;
 }
 impl BundleFromDynamic for PlayerBundle {
     fn from_dynamic(method: &str, params: rhai::Dynamic) -> Bundle {

@@ -32,9 +32,10 @@ impl WorldApi for Shared<World> {
             let shared_commands = Shared::new(commands_binding);
 
             let output: Dynamic =
-                callback.call_within_context(&ctx, (shared_commands,))
+                callback.call_within_context(&ctx, (shared_commands.clone(),))
                     .expect("Callback failed");
 
+            drop(shared_commands);
             unsafe { world.end_access(commands_raw_handle) };
 
             output
@@ -70,9 +71,10 @@ impl WorldApi for Shared<World> {
             let shared_entity_world_mut = Shared::new(entity_world_mut);
 
             let output: Dynamic =
-                callback.call_within_context(&ctx, (shared_entity_world_mut,))
+                callback.call_within_context(&ctx, (shared_entity_world_mut.clone(),))
                     .expect("Callback failed");
 
+            drop(shared_entity_world_mut);
             unsafe { world.end_access(entity_world_mut_raw_handle) };
 
             output
@@ -81,7 +83,7 @@ impl WorldApi for Shared<World> {
         })
     }
 
-    fn spawn_single(&self, bundle: Shared<BundleTraitObject>, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
+    fn spawn_single(&self, bundle: BundleTraitObject, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
         let mut world = match self.world.0.try_write() {
             Ok(guard) => guard,
             Err(TryLockError::Poisoned(_)) => panic!("World lock poisoned"),
@@ -89,14 +91,16 @@ impl WorldApi for Shared<World> {
         };
 
         world.write(|world| {
-            let entity_world_mut_raw_handle: ScopedAccessHandle<BevyEntityWorldMut<'static>> = unsafe { world.start_access("spawn", Box::new(bundle)) };
+            let entity_world_mut_raw_handle: ScopedAccessHandle<BevyEntityWorldMut<'static>> =
+                unsafe { world.start_access("spawn", Box::new(bundle)) };
             let entity_world_mut = EntityWorldMut { entity_world_mut: entity_world_mut_raw_handle.clone() };
             let shared_entity_world_mut = Shared::new(entity_world_mut);
 
             let output: Dynamic =
-                callback.call_within_context(&ctx, (shared_entity_world_mut,))
+                callback.call_within_context(&ctx, (shared_entity_world_mut.clone(),))
                     .expect("Callback failed");
 
+            drop(shared_entity_world_mut);
             unsafe { world.end_access(entity_world_mut_raw_handle) };
 
             output

@@ -1,6 +1,5 @@
 use std::any::Any;
 use std::sync::{Arc, RwLock};
-use rhai::Shared;
 
 use crate::bevy::ecs::query::{QueryData, QueryFilter};
 use crate::bevy::ecs::system::{Commands, EntityCommands};
@@ -9,10 +8,11 @@ use crate::bevy::prelude::{World, Query};
 use crate::player::bundles::PlayerBundle;
 use crate::rhai_binding::meta::abstract_::trait_identity::ToTraitObject;
 use crate::rhai_binding::value_semantics::access_traits::ScopedAccessProvider;
+use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Persistent};
+use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
 use crate::rhai_binding::value_semantics::scoped_access::{ScopedAccess, ScopedAccessHandle};
 use crate::script::ecs::bundle::bindings::types::Bundle;
 use crate::script::ecs::bundle::internals::trait_objects::{BundleTrait, BundleTraitObject};
-use crate::script::ecs::component::internals::statics::COMPONENT_CTOR_REGISTRY;
 
 unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for World {
     unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> ScopedAccessHandle<Commands<'static, 'static>> {
@@ -34,9 +34,9 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for World {
     }
 
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<Commands<'static, 'static>>) {
-        let mut commands_raw_scoped = Arc::into_inner(handle.0)
-            .expect("Commands handle leaked or cloned")
-            .into_inner()
+        let mut commands_raw_scoped = handle
+            .0
+            .write()
             .expect("RwLock poisoned");
         
         let returned_static_commands = commands_raw_scoped
@@ -61,16 +61,30 @@ unsafe impl ScopedAccessProvider<EntityWorldMut<'static>> for World {
                 self.spawn_empty()
             },
             "spawn" => {
-                let Ok(bundle) = args.downcast::<Shared<BundleTraitObject>>() else {
+                let Ok(bundle) = args.downcast::<BundleTraitObject>() else {
                     panic!("Unsupported arguments for method '{}' in ScopedAccessProvider<EntityWorldMut> for World", method);
                 };
-                let ctor_registry = COMPONENT_CTOR_REGISTRY();
                 let mut ent = self.spawn_empty();
-                let bundle = Arc::into_inner(*bundle).unwrap();
-                let bundle: ScopedAccessHandle<PlayerBundle> = ToTraitObject::<BundleTrait>::cast_from(bundle.0);
-                let mut bundle = Arc::into_inner(bundle.0).unwrap().into_inner().unwrap();
-                let bundle = bundle.invalidate().unwrap();
-                ent.insert(*bundle);
+                let bundle = *bundle;
+                match <PlayerBundle as GetTypeValueSemantics>::VALUE_SEMANTICS {
+                    TypeValueSemantics::ScopedMut => {
+                        let bundle: ScopedAccessHandle<PlayerBundle> = ToTraitObject::<BundleTrait>::cast_from(bundle.0);
+                        let mut bundle = bundle.0.write().expect("RwLock poisoned");
+                        let bundle = bundle.invalidate().unwrap();
+                        ent.insert(*bundle);
+                    }
+                    TypeValueSemantics::Owned => {
+                        let bundle: AccessCell<Persistent, PlayerBundle> = ToTraitObject::<BundleTrait>::cast_from(bundle.0);
+                        ent.insert(bundle.take());
+                    }
+                    TypeValueSemantics::Clone
+                    | TypeValueSemantics::Ref
+                    | TypeValueSemantics::Mut
+                    | TypeValueSemantics::ScopedOwned
+                    | TypeValueSemantics::ScopedRef => {
+                        panic!("World::spawn currently supports PlayerBundle semantics: owned | scoped_mut")
+                    }
+                }
                 ent
             },
             _ => panic!("Unsupported method '{}' in ScopedAccessProvider<EntityWorldMut> for World", method),
@@ -85,9 +99,9 @@ unsafe impl ScopedAccessProvider<EntityWorldMut<'static>> for World {
     }
 
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<EntityWorldMut<'static>>) {
-        let mut entity_world_mut_raw_scoped = Arc::into_inner(handle.0)
-            .expect("EntityWorldMut handle leaked or cloned")
-            .into_inner()
+        let mut entity_world_mut_raw_scoped = handle
+            .0
+            .write()
             .expect("RwLock poisoned");
         
         let returned_static_entity_world_mut = entity_world_mut_raw_scoped

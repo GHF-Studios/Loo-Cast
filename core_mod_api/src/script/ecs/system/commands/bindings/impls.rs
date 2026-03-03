@@ -19,9 +19,10 @@ impl CommandsApi for Shared<Commands> {
             let shared_entity_commands = Shared::new(entity_commands_binding);
 
             let output: Dynamic =
-                callback.call_within_context(&ctx, (shared_entity_commands,))
+                callback.call_within_context(&ctx, (shared_entity_commands.clone(),))
                     .expect("Callback failed");
 
+            drop(shared_entity_commands);
             unsafe { commands.end_access(entity_commands_raw_handle) };
 
             output
@@ -45,9 +46,10 @@ impl EntityCommandsApi for Shared<EntityCommands> {
             let shared_commands = Shared::new(commands_binding);
 
             let output: Dynamic =
-                f.call_within_context(&ctx, (shared_commands,))
+                f.call_within_context(&ctx, (shared_commands.clone(),))
                     .expect("Callback failed");
 
+            drop(shared_commands);
             unsafe { entity_commands.end_access(commands_raw_handle) };
             
             output

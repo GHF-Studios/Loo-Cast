@@ -24,9 +24,9 @@ pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut 
                 .call_fn::<()>(&mut scope, &ast, "main", (shared_world,))
                 .unwrap();
 
-            let mut world_raw_scoped = Arc::into_inner(world_raw_handle.0)
-                .expect("World handle leaked or cloned")
-                .into_inner()
+            let mut world_raw_scoped = world_raw_handle
+                .0
+                .write()
                 .expect("RwLock poisoned");
             let returned_world = world_raw_scoped
                 .invalidate()

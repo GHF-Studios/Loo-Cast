@@ -29,9 +29,9 @@ unsafe impl ScopedAccessProvider<EntityCommands<'static>> for Commands<'static, 
     }
 
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<EntityCommands<'static>>) {
-        let mut entity_commands_raw_scoped = Arc::into_inner(handle.0)
-            .expect("EntityCommands handle leaked or cloned")
-            .into_inner()
+        let mut entity_commands_raw_scoped = handle
+            .0
+            .write()
             .expect("RwLock poisoned");
         
         let returned_entity_commands_static = entity_commands_raw_scoped
@@ -65,9 +65,9 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for EntityCommands<
     }
 
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<Commands<'static, 'static>>) {
-        let mut commands_raw_scoped = Arc::into_inner(handle.0)
-            .expect("Commands handle leaked or cloned")
-            .into_inner()
+        let mut commands_raw_scoped = handle
+            .0
+            .write()
             .expect("RwLock poisoned");
         
         let returned_commands_static = commands_raw_scoped
@@ -96,9 +96,9 @@ unsafe impl ScopedAccessProvider<BevyEntity> for EntityCommands<'static> {
     }
 
     unsafe fn end_access(&mut self, handle: ScopedAccessHandle<BevyEntity>) {
-        let mut id_raw_scoped = Arc::into_inner(handle.0)
-            .expect("BevyEntity handle leaked or cloned")
-            .into_inner()
+        let mut id_raw_scoped = handle
+            .0
+            .write()
             .expect("RwLock poisoned");
         
         let _returned_id = id_raw_scoped

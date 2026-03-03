@@ -15,14 +15,20 @@
 //! transmuted Rust-native borrows after scripting.
 
 use std::{
-    cell::{Cell, UnsafeCell}, marker::PhantomData, ops::{Deref, DerefMut}, sync::atomic::{AtomicBool, Ordering}, thread
+    cell::{Cell, UnsafeCell},
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+    thread,
 };
 
 pub trait AccessCellMode {}
 
+#[derive(Clone, Copy)]
 pub struct Persistent;
 impl AccessCellMode for Persistent {}
 
+#[derive(Clone, Copy)]
 pub struct Scoped;
 impl AccessCellMode for Scoped {}
 
@@ -203,15 +209,26 @@ impl AtomicAccessCellState {
 
 #[repr(C)]
 struct AccessCellInner<T> {
+    ref_count: AtomicUsize,
     access_state: AtomicAccessCellState,
     value: UnsafeCell<Option<T>>,
 }
 
-#[derive(Clone)]
 pub struct AccessCell<M: AccessCellMode, T> {
     ptr: *mut AccessCellInner<T>,
     _phantom: PhantomData<M>,
 }
+impl<M: AccessCellMode, T> Clone for AccessCell<M, T> {
+    fn clone(&self) -> Self {
+        unsafe { self.inner() }.ref_count.fetch_add(1, Ordering::Relaxed);
+        Self {
+            ptr: self.ptr,
+            _phantom: PhantomData,
+        }
+    }
+}
+unsafe impl<M: AccessCellMode, T: Send> Send for AccessCell<M, T> {}
+unsafe impl<M: AccessCellMode, T: Send + Sync> Sync for AccessCell<M, T> {}
 
 impl<T> AccessCell<Scoped, T> {
 }
@@ -220,6 +237,7 @@ impl<T> AccessCell<Persistent, T> {
 impl<M: AccessCellMode, T> AccessCell<M, T> {
     pub fn new(value: T) -> Self {
         let inner = Box::new(AccessCellInner {
+            ref_count: AtomicUsize::new(1),
             access_state: AtomicAccessCellState::new_available(),
             value: UnsafeCell::new(Some(value)),
         });
@@ -265,6 +283,7 @@ impl<M: AccessCellMode, T> AccessCell<M, T> {
             .start_read()
             // Actually do the thing, now that we are sure we are allowed to and that no one else is attempting anything
             .map(|_| {
+                inner.ref_count.fetch_add(1, Ordering::Relaxed);
                 AccessCellReadGuard {
                     ptr: self.ptr,
                     invalidated: false,
@@ -294,6 +313,7 @@ impl<M: AccessCellMode, T> AccessCell<M, T> {
         match inner.access_state.start_write() {
             Ok(_) => {
                 // Actually do the thing, now that we are sure we are allowed to and that no one else is attempting anything
+                inner.ref_count.fetch_add(1, Ordering::Relaxed);
                 Ok(AccessCellWriteGuard {
                     ptr: self.ptr,
                     invalidated: false,
@@ -324,12 +344,8 @@ impl<M: AccessCellMode, T> AccessCell<M, T> {
         // Atomically make sure that we can do the thing, and mark the access_state as if we had already done the thing
         match inner.access_state.take() {
             Ok(_) => {
-                // Actually do the thing, now that we are sure we are allowed to and that no one else is attempting anything
-                let inner = unsafe {
-                    *Box::from_raw(self.ptr)
-                };
-
-                inner.value.into_inner().unwrap()
+                // Move the value out; allocation lifetime is managed by handle/guard ref_count.
+                unsafe { (&mut *inner.value.get()).take().unwrap() }
             },
             Err(e) => panic!("Failed to take the inner value: {e:?}!"),
         }
@@ -342,8 +358,12 @@ impl<M: AccessCellMode, T> AccessCell<M, T> {
 
 impl<M: AccessCellMode, T> Drop for AccessCell<M, T> {
     fn drop(&mut self) {
-        unsafe {
-            drop(Box::from_raw(self.ptr));
+        let inner = unsafe { self.inner() };
+        let prev = inner.ref_count.fetch_sub(1, Ordering::AcqRel);
+        if prev == 1 {
+            unsafe {
+                drop(Box::from_raw(self.ptr));
+            }
         }
     }
 }
@@ -366,6 +386,14 @@ impl<T> Deref for AccessCellReadGuard<T> {
 
 impl<T> Drop for AccessCellReadGuard<T> {
     fn drop(&mut self) {
+        let ptr = self.ptr;
+        let prev = unsafe { (&*ptr).ref_count.fetch_sub(1, Ordering::AcqRel) };
+        if prev == 1 {
+            unsafe {
+                drop(Box::from_raw(ptr));
+            }
+        }
+
         if !self.invalidated {
             if thread::panicking() {
                 panic!("Tried to drop ReadGuard without explicitly invalidating it via `AccessCell::end_read` while unwinding! This constitutes a \"double panic\"!");
@@ -403,6 +431,14 @@ impl<T> DerefMut for AccessCellWriteGuard<T> {
 
 impl<T> Drop for AccessCellWriteGuard<T> {
     fn drop(&mut self) {
+        let ptr = self.ptr;
+        let prev = unsafe { (&*ptr).ref_count.fetch_sub(1, Ordering::AcqRel) };
+        if prev == 1 {
+            unsafe {
+                drop(Box::from_raw(ptr));
+            }
+        }
+
         if !self.invalidated {
             if thread::panicking() {
                 panic!("Tried to drop WriteGuard without explicitly invalidating it via `AccessCell::end_write` while unwinding! This constitutes a \"double panic\"!");

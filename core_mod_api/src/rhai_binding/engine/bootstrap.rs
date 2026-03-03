@@ -10,6 +10,7 @@ use crate::rhai_binding::engine::hook::new_hook_runner_system;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::SCHEDULE_HOOKS;
 use crate::rhai_binding::meta::abstract_::trait_identity::ToTraitObject;
+use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Persistent};
 use crate::rhai_binding::value_semantics::scoped_access::{ScopedAccess, ScopedAccessHandle};
 use crate::rhai_binding::value_semantics::trait_object::StaticTraitObject;
 use crate::script::ecs::bundle::bindings::types::Bundle;
@@ -140,12 +141,12 @@ fn register_legacy_bindings(engine: &mut rhai::Engine) {
         "spawn_single",
         [
             RustTypeId::of::<Shared<World>>(),
-            RustTypeId::of::<Shared<BundleTraitObject>>(),
+            RustTypeId::of::<BundleTraitObject>(),
             RustTypeId::of::<FnPtr>(),
         ],
         |ctx, args| {
             let callback = args[2].take().cast::<FnPtr>();
-            let bundle = args[1].take().cast::<Shared<BundleTraitObject>>();
+            let bundle = args[1].take().cast::<BundleTraitObject>();
             let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
             Ok(world.spawn_single(bundle, ctx, callback))
         },
@@ -181,14 +182,19 @@ fn register_legacy_bindings(engine: &mut rhai::Engine) {
     // EntityRef
     engine.register_type_with_name::<Shared<EntityRef>>("EntityRef");
     engine.register_get("id", |entity_ref: &mut Shared<EntityRef>| entity_ref.id());
+    engine.register_fn("id", |entity_ref: &mut Shared<EntityRef>| entity_ref.id());
 
     // EntityMut
     engine.register_type_with_name::<Shared<EntityMut>>("EntityMut");
     engine.register_get("id", |entity_mut: &mut Shared<EntityMut>| entity_mut.id());
+    engine.register_fn("id", |entity_mut: &mut Shared<EntityMut>| entity_mut.id());
 
     // EntityWorldMut
     engine.register_type_with_name::<Shared<EntityWorldMut>>("EntityWorldMut");
     engine.register_get("id", |entity_world_mut: &mut Shared<EntityWorldMut>| {
+        entity_world_mut.id()
+    });
+    engine.register_fn("id", |entity_world_mut: &mut Shared<EntityWorldMut>| {
         entity_world_mut.id()
     });
 
@@ -213,41 +219,68 @@ fn register_legacy_player_bindings(engine: &mut rhai::Engine) {
     let mut bundles_module = rhai::Module::new();
     let mut player_bundle_module = rhai::Module::new();
 
-    bundles_module.set_custom_type::<Shared<BundleTraitObject>>("Bundle");
+    bundles_module.set_custom_type::<BundleTraitObject>("Bundle");
     match <PlayerBundle as GetTypeValueSemantics>::VALUE_SEMANTICS {
         TypeValueSemantics::ScopedMut => {
             bundles_module.set_custom_type::<ScopedAccessHandle<PlayerBundle>>("PlayerBundle");
+
+            rhai::FuncRegistration::new("as_trait_obj").set_into_module(
+                &mut player_bundle_module,
+                |bundle: ScopedAccessHandle<PlayerBundle>, trait_id: &str| match trait_id {
+                    "ecs::bundle::Bundle" => {
+                        let b: StaticTraitObject<BundleTrait> = bundle.cast_to();
+                        BundleTraitObject(b)
+                    }
+                    unknown_trait_id => panic!("Unknown trait id: '{unknown_trait_id}'"),
+                },
+            );
+            rhai::FuncRegistration::new("new_default").set_into_module(
+                &mut player_bundle_module,
+                || -> ScopedAccessHandle<PlayerBundle> {
+                    ScopedAccessHandle(Shared::new(RwLock::new(ScopedAccess::new(Box::new(
+                        PlayerBundle::default(),
+                    )))))
+                },
+            );
+
+            engine.register_fn("test_print", |b: ScopedAccessHandle<PlayerBundle>| {
+                b.0.read().unwrap().read(|bundle| bundle.test_print()).unwrap();
+            });
         }
-        TypeValueSemantics::CloneOnMove => {
-            bundles_module.set_custom_type::<PlayerBundle>("PlayerBundle");
+        TypeValueSemantics::Owned => {
+            bundles_module.set_custom_type::<AccessCell<Persistent, PlayerBundle>>("PlayerBundle");
+
+            rhai::FuncRegistration::new("as_trait_obj").set_into_module(
+                &mut player_bundle_module,
+                |bundle: AccessCell<Persistent, PlayerBundle>, trait_id: &str| match trait_id {
+                    "ecs::bundle::Bundle" => {
+                        let b: StaticTraitObject<BundleTrait> = bundle.cast_to();
+                        BundleTraitObject(b)
+                    }
+                    unknown_trait_id => panic!("Unknown trait id: '{unknown_trait_id}'"),
+                },
+            );
+            rhai::FuncRegistration::new("new_default").set_into_module(
+                &mut player_bundle_module,
+                || -> AccessCell<Persistent, PlayerBundle> {
+                    AccessCell::new(PlayerBundle::default())
+                },
+            );
+
+            engine.register_fn("test_print", |b: AccessCell<Persistent, PlayerBundle>| {
+                let guard = b.start_read();
+                guard.test_print();
+                b.end_read(guard);
+            });
         }
-        TypeValueSemantics::PersistentRef | TypeValueSemantics::PersistentMut => {
-            panic!("Legacy PlayerBundle bindings currently support only 'scoped_mut' and 'clone_on_move'")
+        TypeValueSemantics::Clone
+        | TypeValueSemantics::Ref
+        | TypeValueSemantics::Mut
+        | TypeValueSemantics::ScopedOwned
+        | TypeValueSemantics::ScopedRef => {
+            panic!("Legacy PlayerBundle bindings currently support only 'owned' and 'scoped_mut'")
         }
     }
-
-    rhai::FuncRegistration::new("as_trait_obj").set_into_module(
-        &mut player_bundle_module,
-        |bundle: ScopedAccessHandle<PlayerBundle>, trait_id: &str| match trait_id {
-            "ecs::bundle::Bundle" => {
-                let b: StaticTraitObject<BundleTrait> = bundle.cast_to();
-                Shared::new(BundleTraitObject(b))
-            }
-            unknown_trait_id => panic!("Unknown trait id: '{unknown_trait_id}'"),
-        },
-    );
-    rhai::FuncRegistration::new("new_default").set_into_module(
-        &mut player_bundle_module,
-        || -> ScopedAccessHandle<PlayerBundle> {
-            ScopedAccessHandle(Shared::new(RwLock::new(ScopedAccess::new(Box::new(
-                PlayerBundle::default(),
-            )))))
-        },
-    );
-
-    engine.register_fn("test_print", |b: ScopedAccessHandle<PlayerBundle>| {
-        b.0.read().unwrap().read(|bundle| bundle.test_print()).unwrap();
-    });
 
     player_bundle_module.set_id("PlayerBundle");
     bundles_module

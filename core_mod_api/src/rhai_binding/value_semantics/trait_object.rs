@@ -29,6 +29,7 @@ pub struct TraitTypeEntry {
     pub value: TraitTypeVTables,
 }
 
+#[derive(Clone)]
 pub struct StaticTraitObject<T: GetTraitId> {
     pub value: Dynamic,
     pub trait_id: StaticTraitId<T>,

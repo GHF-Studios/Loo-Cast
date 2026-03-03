@@ -182,10 +182,13 @@ struct TraitImplAttr {
 
 #[derive(Clone, Copy)]
 enum ReflectTypeValueSemantics {
-    CloneOnMove,
+    Clone,
+    Owned,
+    Ref,
+    Mut,
+    ScopedOwned,
+    ScopedRef,
     ScopedMut,
-    PersistentRef,
-    PersistentMut,
 }
 
 struct ReflectTypeAttr {
@@ -196,7 +199,7 @@ struct ReflectTypeAttr {
 impl Parse for ReflectTypeAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let type_path: Path = input.parse()?;
-        let mut value_semantics = ReflectTypeValueSemantics::CloneOnMove;
+        let mut value_semantics = ReflectTypeValueSemantics::Clone;
 
         if input.peek(Token![,]) {
             input.parse::<Token![,]>()?;
@@ -210,15 +213,18 @@ impl Parse for ReflectTypeAttr {
                 "value_semantics" | "semantics" => {
                     let value: Ident = input.parse()?;
                     value_semantics = match value.to_string().as_str() {
-                        "clone_on_move" => ReflectTypeValueSemantics::CloneOnMove,
+                        "clone" | "clone_on_move" => ReflectTypeValueSemantics::Clone,
+                        "owned" | "persistent_own" => ReflectTypeValueSemantics::Owned,
+                        "ref" | "persistent_ref" => ReflectTypeValueSemantics::Ref,
+                        "mut" | "persistent_mut" => ReflectTypeValueSemantics::Mut,
+                        "scoped_owned" => ReflectTypeValueSemantics::ScopedOwned,
+                        "scoped_ref" => ReflectTypeValueSemantics::ScopedRef,
                         "scoped_mut" => ReflectTypeValueSemantics::ScopedMut,
-                        "persistent_ref" => ReflectTypeValueSemantics::PersistentRef,
-                        "persistent_mut" => ReflectTypeValueSemantics::PersistentMut,
                         other => {
                             return Err(syn::Error::new(
                                 value.span(),
                                 format!(
-                                    "Unknown value semantics '{other}'. Expected one of: clone_on_move, scoped_mut, persistent_ref, persistent_mut"
+                                    "Unknown value semantics '{other}'. Expected one of: clone, owned, ref, mut, scoped_owned, scoped_ref, scoped_mut"
                                 ),
                             ));
                         }
@@ -247,17 +253,52 @@ impl Parse for ReflectTypeAttr {
 impl ReflectTypeValueSemantics {
     fn as_tokens(self) -> TokenStream2 {
         match self {
-            ReflectTypeValueSemantics::CloneOnMove => {
-                quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::CloneOnMove }
+            ReflectTypeValueSemantics::Clone => {
+                quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::Clone }
+            }
+            ReflectTypeValueSemantics::Owned => {
+                quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::Owned }
+            }
+            ReflectTypeValueSemantics::Ref => {
+                quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::Ref }
+            }
+            ReflectTypeValueSemantics::Mut => {
+                quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::Mut }
+            }
+            ReflectTypeValueSemantics::ScopedOwned => {
+                quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::ScopedOwned }
+            }
+            ReflectTypeValueSemantics::ScopedRef => {
+                quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::ScopedRef }
             }
             ReflectTypeValueSemantics::ScopedMut => {
                 quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::ScopedMut }
             }
-            ReflectTypeValueSemantics::PersistentRef => {
-                quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::PersistentRef }
+        }
+    }
+
+    fn as_const_tokens(self) -> TokenStream2 {
+        match self {
+            ReflectTypeValueSemantics::Clone => {
+                quote! { crate::rhai_binding::value_semantics::modes::consts::CLONE }
             }
-            ReflectTypeValueSemantics::PersistentMut => {
-                quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::PersistentMut }
+            ReflectTypeValueSemantics::Owned => {
+                quote! { crate::rhai_binding::value_semantics::modes::consts::OWNED }
+            }
+            ReflectTypeValueSemantics::Ref => {
+                quote! { crate::rhai_binding::value_semantics::modes::consts::REF }
+            }
+            ReflectTypeValueSemantics::Mut => {
+                quote! { crate::rhai_binding::value_semantics::modes::consts::MUT }
+            }
+            ReflectTypeValueSemantics::ScopedOwned => {
+                quote! { crate::rhai_binding::value_semantics::modes::consts::SCOPED_OWNED }
+            }
+            ReflectTypeValueSemantics::ScopedRef => {
+                quote! { crate::rhai_binding::value_semantics::modes::consts::SCOPED_REF }
+            }
+            ReflectTypeValueSemantics::ScopedMut => {
+                quote! { crate::rhai_binding::value_semantics::modes::consts::SCOPED_MUT }
             }
         }
     }
@@ -447,6 +488,7 @@ pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
     let type_path_string = path_to_string(&type_path);
     let type_path_lit = path_lit(&type_path_string);
     let value_semantics = attr_parsed.value_semantics.as_tokens();
+    let value_semantics_const = attr_parsed.value_semantics.as_const_tokens();
 
     let item_parsed = parse_macro_input!(item as Item);
     let (item_tokens, type_ident) = match &item_parsed {
@@ -492,6 +534,8 @@ pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
         impl crate::rhai_binding::meta::abstract_::trait_identity::GetTypeId for #type_marker {
             const TYPE_ID: &'static str = #type_path_lit;
         }
+
+        impl crate::rhai_binding::value_semantics::modes::HasTypeValueSemanticsConst<{ #value_semantics_const }> for #type_ident {}
 
         impl crate::rhai_binding::meta::generic::type_::TypeConstDynMetadata for #type_marker {
             fn id_path(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::path::type_path::TypePath> {
