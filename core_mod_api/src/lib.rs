@@ -123,6 +123,7 @@ pub mod player;
 pub mod reflection;
 pub mod reflection_NEW;
 pub mod render;
+pub mod rhai_binding;
 pub mod script;
 pub mod time;
 pub mod usf;

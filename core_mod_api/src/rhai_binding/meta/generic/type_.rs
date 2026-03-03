@@ -1,0 +1,31 @@
+use rhai::ImmutableString;
+
+use crate::{rhai_binding::{meta::{generic::abstract_primitive::ConstDynMetadata, monomorphized::type_::TypeMetadata}, path::{function_path::MethodFunctionPath, type_path::TypePath}}, utils::{clone_closure::CloneClosure, clone_lazy::CloneLazy}};
+
+
+/// I think this is outdated, and the entire Type shit is not yet adapted to the new reflection paradigm,
+/// AKA there is no metadata to describe the different possible variants of a Type yet
+pub const trait TypeConstDynMetadata: ConstDynMetadata {
+    fn id_path(&self) -> CloneLazy<TypePath>;
+    fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)>;
+    fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>>;
+}
+// pub const trait TypeOwnConstDynMetadata: TypeConstDynMetadata {}
+// pub const trait TypeCloneConstDynMetadata: TypeConstDynMetadata {}
+// pub const trait TypePersistentRefConstDynMetadata: TypeConstDynMetadata {}
+// pub const trait TypePersistentMutConstDynMetadata: TypeConstDynMetadata {}
+// /// Like a PersistentRef, but backs a rust-native immutable borrow *with* lifetimes, aka it implements runtime-checks against use-after-free's and aliasing issues; 
+// pub const trait TypeScopedRefConstDynMetadata: TypeConstDynMetadata {}
+// pub const trait TypeScopedMutConstDynMetadata: TypeConstDynMetadata {}
+
+pub trait TypeDynamicTypedMetadata {
+    fn from_comptime_to_runtime<T: TypeConstDynMetadata>(&self, const_dyn_metadata: &T) -> TypeMetadata {
+        TypeMetadata {
+            raw_rust_module_path: const_dyn_metadata.raw_rust_module_path(),
+            id_path: const_dyn_metadata.id_path().clone(),
+            registrator: const_dyn_metadata.clone().registrator(),
+            
+            method_functions: const_dyn_metadata.method_functions().clone(),
+        }
+    }
+}

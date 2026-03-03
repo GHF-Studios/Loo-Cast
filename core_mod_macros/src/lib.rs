@@ -19,7 +19,7 @@ mod define_workflow_mod;
 mod define_workflow_mod_OLD;
 mod global_statics;
 mod register_workflow_mods;
-mod reflection;
+mod rhai_binding;
 mod script;
 mod usf;
 
@@ -93,56 +93,58 @@ pub fn define_worfklow_stages(_input: TokenStream) -> TokenStream {
     quote! {}.into()
 }
 
-// Reflection
+// RhaiBinding
+
+// - Reflection
 
 #[proc_macro]
 pub fn reflect_top_level_module(input: TokenStream) -> TokenStream {
-    reflection::reflect_top_level_module(input)
+    rhai_binding::reflection::reflect_top_level_module(input)
 }
 #[proc_macro]
 pub fn reflect_sub_module(input: TokenStream) -> TokenStream {
-    reflection::reflect_sub_module(input)
+    rhai_binding::reflection::reflect_sub_module(input)
 }
 #[proc_macro_attribute]
 pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
-    reflection::reflect_type(attr, item)
+    rhai_binding::reflection::reflect_type(attr, item)
 }
 #[proc_macro_attribute]
 pub fn reflect_inherent_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
-    reflection::reflect_inherent_impl(attr, item)
+    rhai_binding::reflection::reflect_inherent_impl(attr, item)
 }
 #[proc_macro_attribute]
 pub fn reflect_trait(attr: TokenStream, item: TokenStream) -> TokenStream {
-    reflection::reflect_trait(attr, item)
+    rhai_binding::reflection::reflect_trait(attr, item)
 }
 #[proc_macro_attribute]
 pub fn reflect_trait_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
-    reflection::reflect_trait_impl(attr, item)
+    rhai_binding::reflection::reflect_trait_impl(attr, item)
 }
 #[proc_macro_attribute]
 pub fn reflect_module_associated_function(attr: TokenStream, item: TokenStream) -> TokenStream {
-    reflection::reflect_module_associated_function(attr, item)
+    rhai_binding::reflection::reflect_module_associated_function(attr, item)
 }
 #[proc_macro_attribute]
 pub fn reflect_item_associated_function(attr: TokenStream, item: TokenStream) -> TokenStream {
-    reflection::reflect_item_associated_function(attr, item)
+    rhai_binding::reflection::reflect_item_associated_function(attr, item)
 }
 #[proc_macro_attribute]
 pub fn reflect_constructor_function(attr: TokenStream, item: TokenStream) -> TokenStream {
-    reflection::reflect_constructor_function(attr, item)
+    rhai_binding::reflection::reflect_constructor_function(attr, item)
 }
 #[proc_macro_attribute]
 pub fn reflect_method_function(attr: TokenStream, item: TokenStream) -> TokenStream {
-    reflection::reflect_method_function(attr, item)
+    rhai_binding::reflection::reflect_method_function(attr, item)
 }
 
 // Script
 
-// -Ecs
+// - Ecs
 
-// --Components
+// -- Components
 
-// ---Internals
+// --- Internals
 
 #[proc_macro_attribute]
 pub fn component_ctor(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -151,7 +153,7 @@ pub fn component_ctor(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 // Usf
 
-// -Scale
+// - Scale
 
 #[proc_macro]
 pub fn configure_app_with_all_scales(input: TokenStream) -> TokenStream {

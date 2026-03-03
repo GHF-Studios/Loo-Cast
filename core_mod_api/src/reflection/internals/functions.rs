@@ -2,9 +2,10 @@ use crate::bevy::ecs::entity::Entity as BevyEntity;
 use crate::bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
 use crate::reflection::ids::{StaticTraitId, TypeId};
 use crate::reflection::internals::managed_traits::{BundleTrait, BundleTraitObject};
-use crate::reflection::internals::statics::{RAW_REFLECTION_METADATA, SCHEDULE_HOOKS, TRAIT_OBJECT_VTABLE_REGISTRY, TYPE_REGISTRY};
+use crate::reflection::internals::statics::{SCHEDULE_HOOKS, TRAIT_OBJECT_VTABLE_REGISTRY, TYPE_REGISTRY};
 use crate::reflection::internals::traits::{GetTypeId, ToTraitObject, GetTraitId};
 use crate::reflection::traits::StaticTraitObject;
+use crate::rhai_binding::bind::engine_ext::EngineExt;
 use crate::script::access::{ScopedAccess, ScopedAccessHandle, ScopedAccessHandleExt, ScopedAccessReadGuard, ScopedAccessWriteGuard};
 use rhai::{Dynamic, Engine, FnPtr, ImmutableString, NativeCallContext, Shared};
 use std::any::TypeId as RustTypeId;
@@ -33,6 +34,7 @@ pub fn pre_init(world: &mut BevyWorld) {
 pub(super) fn new_main_script_engine() -> Engine {
     let mut engine = Engine::new();
 
+    engine.register_binding_graph();
     register_bindings(&mut engine);
 
     let boot_script_path = "core_mod/scripts/core/boot.rhai";
@@ -140,15 +142,9 @@ pub fn init(app: &mut App) {
     }
 }
 
-// TODO: Simplify this using the `inventory` crate to auto-register bindings via attribute/derive macro(s).
+/// DEPRECATED
+#[deprecated]
 pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
-    // SHINY NEW THING
-    for top_level_module in RAW_REFLECTION_METADATA().top_level_modules.values() {
-        top_level_module.register_top_level_module(engine);
-    }
-
-    // OLD
-
     // Core
     engine.register_fn("add_hook_handler", |hook: &str| {
         SCHEDULE_HOOKS().lock().unwrap().insert(hook.into());
@@ -270,12 +266,11 @@ pub(in super::super) fn register_bindings(engine: &mut rhai::Engine) {
 
     
 
-    // VERY OLD
-
-
     register_player_bindings(engine);
 }
 
+/// VERY DEPRECATED
+#[deprecated]
 fn register_player_bindings(engine: &mut rhai::Engine) {
     // Level 0
     let mut player_module = rhai::Module::new();
