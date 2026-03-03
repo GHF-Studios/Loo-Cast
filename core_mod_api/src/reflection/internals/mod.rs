@@ -10,6 +10,6 @@ use crate::bevy::prelude::*;
 pub(crate) struct ReflectionPlugin;
 impl Plugin for ReflectionPlugin {
     fn build(&self, app: &mut App) {
-        functions::init(app);
+        functions::build(app);
     }
 }
