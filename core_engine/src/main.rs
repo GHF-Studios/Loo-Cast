@@ -109,8 +109,6 @@ fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
 
     let mut app = App::new();
 
-    reflection::internals::functions::pre_init(app.world_mut());
-
     app
         .register_type::<GizmoConfigStore>()
         .register_type::<ColorGradingSection>()

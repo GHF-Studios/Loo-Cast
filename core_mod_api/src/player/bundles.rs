@@ -10,6 +10,7 @@ use crate::script::ecs::bundle::internals::traits::BundleFromDynamic;
 use crate::script::ecs::bundle::bindings::types::Bundle;
 use crate::script::ecs::component::internals::traits::InsertComponentFromDynamic;
 use crate::rhai_binding::meta::abstract_::trait_identity::GetTypeId;
+use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
 
 use super::components::Player;
 
@@ -55,6 +56,9 @@ impl PlayerBundle {
 }
 impl GetTypeId for PlayerBundle {
     const TYPE_ID: &'static str = "player::bundles::PlayerBundle";
+}
+impl GetTypeValueSemantics for PlayerBundle {
+    const VALUE_SEMANTICS: TypeValueSemantics = TypeValueSemantics::ScopedMut;
 }
 impl BundleFromDynamic for PlayerBundle {
     fn from_dynamic(method: &str, params: rhai::Dynamic) -> Bundle {

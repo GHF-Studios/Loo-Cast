@@ -180,6 +180,89 @@ struct TraitImplAttr {
     trait_path: Path,
 }
 
+#[derive(Clone, Copy)]
+enum ReflectTypeValueSemantics {
+    CloneOnMove,
+    ScopedMut,
+    PersistentRef,
+    PersistentMut,
+}
+
+struct ReflectTypeAttr {
+    type_path: Path,
+    value_semantics: ReflectTypeValueSemantics,
+}
+
+impl Parse for ReflectTypeAttr {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let type_path: Path = input.parse()?;
+        let mut value_semantics = ReflectTypeValueSemantics::CloneOnMove;
+
+        if input.peek(Token![,]) {
+            input.parse::<Token![,]>()?;
+        }
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+
+            match key.to_string().as_str() {
+                "value_semantics" | "semantics" => {
+                    let value: Ident = input.parse()?;
+                    value_semantics = match value.to_string().as_str() {
+                        "clone_on_move" => ReflectTypeValueSemantics::CloneOnMove,
+                        "scoped_mut" => ReflectTypeValueSemantics::ScopedMut,
+                        "persistent_ref" => ReflectTypeValueSemantics::PersistentRef,
+                        "persistent_mut" => ReflectTypeValueSemantics::PersistentMut,
+                        other => {
+                            return Err(syn::Error::new(
+                                value.span(),
+                                format!(
+                                    "Unknown value semantics '{other}'. Expected one of: clone_on_move, scoped_mut, persistent_ref, persistent_mut"
+                                ),
+                            ));
+                        }
+                    };
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!("Unknown key '{other}' in #[reflect_type(...)]"),
+                    ));
+                }
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            type_path,
+            value_semantics,
+        })
+    }
+}
+
+impl ReflectTypeValueSemantics {
+    fn as_tokens(self) -> TokenStream2 {
+        match self {
+            ReflectTypeValueSemantics::CloneOnMove => {
+                quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::CloneOnMove }
+            }
+            ReflectTypeValueSemantics::ScopedMut => {
+                quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::ScopedMut }
+            }
+            ReflectTypeValueSemantics::PersistentRef => {
+                quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::PersistentRef }
+            }
+            ReflectTypeValueSemantics::PersistentMut => {
+                quote! { crate::rhai_binding::value_semantics::modes::TypeValueSemantics::PersistentMut }
+            }
+        }
+    }
+}
+
 impl Parse for TraitImplAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         input.parse::<Token![<]>()?;
@@ -358,9 +441,12 @@ pub fn reflect_sub_module(input: TokenStream) -> TokenStream {
 }
 
 pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let type_path = parse_single_path_attr(attr);
+    let attr_parsed = syn::parse::<ReflectTypeAttr>(attr)
+        .expect("Failed to parse #[reflect_type(...)] arguments");
+    let type_path = attr_parsed.type_path;
     let type_path_string = path_to_string(&type_path);
     let type_path_lit = path_lit(&type_path_string);
+    let value_semantics = attr_parsed.value_semantics.as_tokens();
 
     let item_parsed = parse_macro_input!(item as Item);
     let (item_tokens, type_ident) = match &item_parsed {
@@ -420,6 +506,10 @@ pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             fn method_functions(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<crate::rhai_binding::path::function_path::MethodFunctionPath>> {
                 crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![]))
+            }
+
+            fn value_semantics(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::value_semantics::modes::TypeValueSemantics> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #value_semantics))
             }
         }
 

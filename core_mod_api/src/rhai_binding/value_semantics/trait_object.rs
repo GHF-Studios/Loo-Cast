@@ -1,7 +1,7 @@
 use rhai::Dynamic;
 
-use crate::reflection::internals::statics::{TRAIT_OBJECT_VTABLE_REGISTRY, TYPE_REGISTRY};
 use crate::rhai_binding::meta::abstract_::trait_identity::GetTraitId;
+use crate::rhai_binding::value_semantics::statics::{TRAIT_OBJECT_VTABLE_REGISTRY, TYPE_REGISTRY};
 use crate::rhai_binding::value_semantics::ids::{DynamicTraitId, StaticTraitId, TypeId};
 
 pub type TraitObjectUseRefFn = fn(Dynamic, &str, Dynamic) -> Dynamic;

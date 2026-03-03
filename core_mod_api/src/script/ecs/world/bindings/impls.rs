@@ -3,13 +3,14 @@ use std::sync::TryLockError;
 
 use crate::bevy::prelude::Commands as BevyCommands;
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
-use crate::reflection::internals::managed_traits::BundleTraitObject;
 use crate::rhai_binding::value_semantics::access_traits::ScopedAccessProvider;
 use crate::rhai_binding::value_semantics::scoped_access::ScopedAccessHandle;
 
 use crate::script::{
     ecs::{
-        bundle::bindings::types::Bundle, system::commands::bindings::types::Commands, world::{
+        bundle::{bindings::types::Bundle, internals::trait_objects::BundleTraitObject},
+        system::commands::bindings::types::Commands,
+        world::{
             bindings::types::World,
             entity_ref::bindings::types::EntityWorldMut,
             internals::traits::WorldApi

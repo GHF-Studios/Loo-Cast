@@ -1,4 +1,3 @@
-pub mod internals;
 pub mod utils;
 
 pub mod function_ids;

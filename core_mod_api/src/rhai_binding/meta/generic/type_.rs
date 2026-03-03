@@ -1,6 +1,6 @@
 use rhai::ImmutableString;
 
-use crate::{rhai_binding::{meta::{generic::abstract_primitive::ConstDynMetadata, monomorphized::type_::TypeMetadata}, path::{function_path::MethodFunctionPath, type_path::TypePath}}, utils::{clone_closure::CloneClosure, clone_lazy::CloneLazy}};
+use crate::{rhai_binding::{meta::{generic::abstract_primitive::ConstDynMetadata, monomorphized::type_::TypeMetadata}, path::{function_path::MethodFunctionPath, type_path::TypePath}, value_semantics::modes::TypeValueSemantics}, utils::{clone_closure::CloneClosure, clone_lazy::CloneLazy}};
 
 
 /// I think this is outdated, and the entire Type shit is not yet adapted to the new reflection paradigm,
@@ -9,6 +9,7 @@ pub const trait TypeConstDynMetadata: ConstDynMetadata {
     fn id_path(&self) -> CloneLazy<TypePath>;
     fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)>;
     fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>>;
+    fn value_semantics(&self) -> CloneLazy<TypeValueSemantics>;
 }
 // pub const trait TypeOwnConstDynMetadata: TypeConstDynMetadata {}
 // pub const trait TypeCloneConstDynMetadata: TypeConstDynMetadata {}
@@ -26,6 +27,7 @@ pub trait TypeDynamicTypedMetadata {
             registrator: const_dyn_metadata.clone().registrator(),
             
             method_functions: const_dyn_metadata.method_functions().clone(),
+            value_semantics: const_dyn_metadata.value_semantics().clone(),
         }
     }
 }

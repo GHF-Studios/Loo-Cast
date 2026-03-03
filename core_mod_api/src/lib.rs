@@ -144,8 +144,8 @@ use input::InputPlugin;
 use logging::LogPlugin;
 use picking::PickingPlugin;
 use player::PlayerPlugin;
-use reflection::internals::ReflectionPlugin;
 use render::RenderPlugin;
+use rhai_binding::engine::RhaiEnginePlugin;
 use time::TimePlugin;
 use usf::UsfPlugin;
 use utils::UtilsPlugin;
@@ -167,7 +167,7 @@ impl PluginGroup for CoreApiPluginGroup {
             .add(LogPlugin)
             .add(PickingPlugin)
             .add(PlayerPlugin)
-            .add(ReflectionPlugin)
+            .add(RhaiEnginePlugin)
             .add(RenderPlugin)
             .add(TimePlugin)
             .add(UsfPlugin)

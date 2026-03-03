@@ -1,6 +1,6 @@
 use rhai::{Array, Dynamic, FnPtr, NativeCallContext, Shared};
 
-use crate::{reflection::internals::managed_traits::BundleTraitObject, script::ecs::bundle::bindings::types::Bundle};
+use crate::script::ecs::bundle::{bindings::types::Bundle, internals::trait_objects::BundleTraitObject};
 
 pub trait WorldApi {
     fn commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;

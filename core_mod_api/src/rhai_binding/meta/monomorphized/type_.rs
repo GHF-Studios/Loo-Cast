@@ -1,6 +1,6 @@
 use rhai::ImmutableString;
 
-use crate::{rhai_binding::{meta::generic::{abstract_primitive::ConstDynMetadata, type_::TypeConstDynMetadata}, path::{function_path::MethodFunctionPath, type_path::TypePath}}, utils::{clone_closure::CloneClosure, clone_lazy::CloneLazy}};
+use crate::{rhai_binding::{meta::generic::{abstract_primitive::ConstDynMetadata, type_::TypeConstDynMetadata}, path::{function_path::MethodFunctionPath, type_path::TypePath}, value_semantics::modes::TypeValueSemantics}, utils::{clone_closure::CloneClosure, clone_lazy::CloneLazy}};
 
 #[derive(Clone)]
 pub struct TypeMetadata {
@@ -11,6 +11,7 @@ pub struct TypeMetadata {
     pub registrator: CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)>,
 
     pub method_functions: CloneLazy<Vec<MethodFunctionPath>>,
+    pub value_semantics: CloneLazy<TypeValueSemantics>,
 }
 impl ConstDynMetadata for TypeMetadata {
     fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
@@ -20,4 +21,5 @@ impl TypeConstDynMetadata for TypeMetadata {
     fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> { self.registrator }
     
     fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>> { self.method_functions.clone() }
+    fn value_semantics(&self) -> CloneLazy<TypeValueSemantics> { self.value_semantics.clone() }
 }
