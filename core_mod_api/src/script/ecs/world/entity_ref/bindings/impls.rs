@@ -1,7 +1,7 @@
 use std::sync::TryLockError;
 
 use crate::bevy::ecs::entity::Entity as BevyEntity;
-use crate::reflection::internals::traits::ReadAccessProvider;
+use crate::rhai_binding::value_semantics::access_traits::ReadAccessProvider;
 use crate::script::{
     ecs::world::entity_ref::{
         bindings::types::{EntityMut, EntityRef, EntityWorldMut},

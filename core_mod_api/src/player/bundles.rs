@@ -9,6 +9,7 @@ use crate::{
 use crate::script::ecs::bundle::internals::traits::BundleFromDynamic;
 use crate::script::ecs::bundle::bindings::types::Bundle;
 use crate::script::ecs::component::internals::traits::InsertComponentFromDynamic;
+use crate::rhai_binding::meta::abstract_::trait_identity::GetTypeId;
 
 use super::components::Player;
 
@@ -51,6 +52,9 @@ impl PlayerBundle {
     pub fn test_print(&self) {
         println!("PlayerBundle test_print method successfully called!");
     }
+}
+impl GetTypeId for PlayerBundle {
+    const TYPE_ID: &'static str = "player::bundles::PlayerBundle";
 }
 impl BundleFromDynamic for PlayerBundle {
     fn from_dynamic(method: &str, params: rhai::Dynamic) -> Bundle {

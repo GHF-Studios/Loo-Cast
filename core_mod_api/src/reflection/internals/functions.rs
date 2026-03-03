@@ -1,12 +1,14 @@
 use crate::bevy::ecs::entity::Entity as BevyEntity;
 use crate::bevy::prelude::{Mut, World as BevyWorld, App, PreStartup, Startup, PostStartup, First, PreUpdate, Update, PostUpdate, Last};
-use crate::reflection::ids::{StaticTraitId, TypeId};
 use crate::reflection::internals::managed_traits::{BundleTrait, BundleTraitObject};
 use crate::reflection::internals::statics::{SCHEDULE_HOOKS, TRAIT_OBJECT_VTABLE_REGISTRY, TYPE_REGISTRY};
-use crate::reflection::internals::traits::{GetTypeId, ToTraitObject, GetTraitId};
-use crate::reflection::traits::StaticTraitObject;
 use crate::rhai_binding::bind::engine_ext::EngineExt;
-use crate::script::access::{ScopedAccess, ScopedAccessHandle, ScopedAccessHandleExt, ScopedAccessReadGuard, ScopedAccessWriteGuard};
+use crate::rhai_binding::meta::abstract_::trait_identity::{GetTraitId, GetTypeId, ToTraitObject};
+use crate::rhai_binding::value_semantics::ids::{StaticTraitId, TypeId};
+use crate::rhai_binding::value_semantics::scoped_access::{
+    ScopedAccess, ScopedAccessHandle, ScopedAccessHandleExt, ScopedAccessReadGuard, ScopedAccessWriteGuard,
+};
+use crate::rhai_binding::value_semantics::trait_object::StaticTraitObject;
 use rhai::{Dynamic, Engine, FnPtr, ImmutableString, NativeCallContext, Shared};
 use std::any::TypeId as RustTypeId;
 use std::marker::PhantomData;
@@ -284,11 +286,6 @@ fn register_player_bindings(engine: &mut rhai::Engine) {
 
     // Stuff that also shouldn't be here
     bundles_module.set_custom_type::<Shared<BundleTraitObject>>("Bundle");
-
-    // PlayerBundle
-    impl GetTypeId for PlayerBundle {
-        const TYPE_ID: &'static str = "player::bundles::PlayerBundle";
-    }
 
     bundles_module.set_custom_type::<ScopedAccessHandle<PlayerBundle>>("PlayerBundle");
 

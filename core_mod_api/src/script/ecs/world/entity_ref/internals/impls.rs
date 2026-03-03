@@ -1,11 +1,8 @@
-use rhai::Shared;
 use std::any::Any;
-use std::sync::{Arc, RwLock};
 
 use crate::bevy::prelude::Entity;
 use crate::bevy::ecs::world::{EntityRef, EntityMut, EntityWorldMut};
-use crate::reflection::internals::traits::{ReadAccessProvider, ScopedAccessProvider};
-use crate::script::access::{ScopedAccess, ScopedAccessHandle};
+use crate::rhai_binding::value_semantics::access_traits::ReadAccessProvider;
 
 impl ReadAccessProvider<Entity> for EntityRef<'static> {
     fn access(&self, method: &str, args: Box<dyn Any>) -> Entity {

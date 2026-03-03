@@ -8,10 +8,12 @@ use std::sync::Mutex;
 
 use crate::reflection::{
     function_ids::{CtorId, MethodId, StaticFunctionId},
-    ids::TypeId,
     registry::{CtorRegistryEntry, MethodRegistryEntry, StaticFunctionRegistryEntry},
-    traits::{TraitTypeKey, TraitTypeVTables, TraitTypeEntry},
     type_info::TypeInfo
+};
+use crate::rhai_binding::value_semantics::{
+    ids::TypeId,
+    trait_object::{TraitTypeEntry, TraitTypeKey, TraitTypeVTables},
 };
 
 export_static!(self, crate::reflection::internals::statics::SCHEDULE_HOOKS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));

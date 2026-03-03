@@ -1,6 +1,10 @@
 use crate::{
-    reflection::internals::traits::*,
-    rhai_binding::meta::monomorphized::trait_::*
+    rhai_binding::{
+        meta::{
+            abstract_::trait_identity::{DynGetTraitName, DynGetTraitObjectName},
+            monomorphized::trait_::*,
+        },
+    },
 };
 
 impl TraitMetadata {

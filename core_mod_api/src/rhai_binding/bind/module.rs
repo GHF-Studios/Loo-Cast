@@ -52,11 +52,11 @@ impl TopLevelModuleMetadata {
 
             // === Inherent Impl ===
 
-            let inherent_impl_paths: Vec<_> = self
-                .inherent_impls()
-                .get()
-                .into_iter()
+            let inherent_impl_paths: Vec<_> = graph
+                .inherent_impls
+                .keys()
                 .filter(|p| p.type_path() == &type_path)
+                .cloned()
                 .collect();
 
             let inherent_impl = match inherent_impl_paths.len() {
@@ -73,11 +73,11 @@ impl TopLevelModuleMetadata {
 
             // === Trait Impls ===
 
-            let trait_impls: Vec<_> = self
-                .trait_impls()
-                .get()
-                .into_iter()
+            let trait_impls: Vec<_> = graph
+                .trait_impls
+                .keys()
                 .filter(|p| p.type_path() == &type_path)
+                .cloned()
                 .map(|p| {
                     graph
                         .trait_impls
@@ -138,11 +138,11 @@ impl SubModuleMetadata {
 
             // === Inherent Impl ===
 
-            let inherent_impl_paths: Vec<_> = self
-                .inherent_impls()
-                .get()
-                .into_iter()
+            let inherent_impl_paths: Vec<_> = graph
+                .inherent_impls
+                .keys()
                 .filter(|p| p.type_path() == &type_path)
+                .cloned()
                 .collect();
 
             let inherent_impl = match inherent_impl_paths.len() {
@@ -159,11 +159,11 @@ impl SubModuleMetadata {
 
             // === Trait Impls ===
 
-            let trait_impls: Vec<_> = self
-                .trait_impls()
-                .get()
-                .into_iter()
+            let trait_impls: Vec<_> = graph
+                .trait_impls
+                .keys()
                 .filter(|p| p.type_path() == &type_path)
+                .cloned()
                 .map(|p| {
                     graph
                         .trait_impls

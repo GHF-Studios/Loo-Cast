@@ -4,8 +4,8 @@ use std::sync::TryLockError;
 use crate::bevy::prelude::Commands as BevyCommands;
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
 use crate::reflection::internals::managed_traits::BundleTraitObject;
-use crate::reflection::internals::traits::ScopedAccessProvider;
-use crate::script::access::ScopedAccessHandle;
+use crate::rhai_binding::value_semantics::access_traits::ScopedAccessProvider;
+use crate::rhai_binding::value_semantics::scoped_access::ScopedAccessHandle;
 
 use crate::script::{
     ecs::{

@@ -1,4 +1,4 @@
-use crate::reflection::traits::StaticTraitObject;
+use crate::rhai_binding::value_semantics::trait_object::StaticTraitObject;
 
 // TODO: Consolidate Type::name() into here as TYPE_NAME similarly to GetTraitId
 // TODO: Add string-format documentation or newtype with invariant-enforcing on construction
