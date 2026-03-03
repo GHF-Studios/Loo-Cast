@@ -1,4 +1,4 @@
-# Universal Simulation Framework (USF) — Structurally Refactored
+# Universal Simulation Framework (USF) — Iteration 2
 
 ---
 
@@ -6,9 +6,9 @@
 
 ## 1. Active Scale Authority Principle
 
-Causality flows upward. Authority lives at the active scale.
+Causality flows upward. Authority lives exclusively at the active scale.
 All player interaction and automatic triggers originate at the active scale and propagate upward.
-Parent scales react to changes; they do not originate irreversible events.
+Parent scales react; they do not originate irreversible events.
 
 ## 2. Upward Causality Rule
 
@@ -18,14 +18,18 @@ Parent scales integrate these mutations according to their own evolution logic.
 ## 3. Downward Generation Rule
 
 World generation flows downward from parent DPMs into child detail via deterministic or seeded procedural expansion.
-Only the active scale is fully simulated; lower scales are generated on demand.
+Only the active scale is fully simulated. Lower scales are generated on demand. Higher scales persist as abstract fields and higher-scales models of the same phenomena. From Atomic Movement emerges Temperature, and from leaves and branches and twigs and roots and logs and stem and all a tree emerges.
 
 ## 4. Perceptual Continuity Invariant
 
 The universe must feel, play, and appear as if every atom and force is simulated at all times.
-Local pseudo-determinism, global statistical coherence, and perceptual continuity under zoom are mandatory.
+Local best-effort physical realism, globally cross-model/cross-scale best-efort determinism and scale-glueing, global statistical coherence, and perceptual continuity under zoom are mandatory. (This point ios very loaded and very meh and is best enjoyed with a sizeable grain of sodium-chloride)
 
----
+## 5. Scale-Relative Time Principle
+
+Each scale defines its own effective time factor.
+Simulation logic integrates over (Δt × scale_time_factor).
+Higher scales evolve slowly and mostly reactively. Only the active scale performs fully and exclusively via continuously and arbitrarily triggered integration.
 
 ---
 
@@ -33,133 +37,149 @@ Local pseudo-determinism, global statistical coherence, and perceptual continuit
 
 ## 1. Phenomena
 
-Abstract concept representing a game observation/experience.
-Essentially a unique identifier.
+Abstract categorization of a recognizable kind of existence.
+Essentially a unique identifier shared across scales.
 
----
+## 2. Phenomena Model
 
-## 2. Phenomena Model ( *REVIEW NEEDED: It's all a bit meh* )
+Concrete manifestation of a Phenomena at a specific scale.
+Represented by a single primary ECS Entity mapped to a fixed Archetype.
 
-Concrete representation of a Phenomena for a specific scale.
-Internally represented by a single ECS Entity.
-Tied to a single scale; each Phenomena can exist across scales, requiring a model for each scale.
-Maps to an ECS Entity Archetype (ECS Component collection immutable at runtime).
-Categorized as either "Localized" (distinct boundaries) or "Aerial" (ambiguous boundaries).
+Properties:
 
-Models have a hierarchical structure, adhering to a single-parent, multiple-child approach.
-Models are linked together via contextual dependency, attaching their start to any other string anywhere along its length, maintaining a tree-like hierarchy. Loops are not allowed.
+* Bound to exactly one scale.
+* Hierarchical (single parent, multiple children).
+* Context-dependent (parent scale or same-scale reference).
+* Structural mutation may replace the model entirely.
 
-Models depend on a context, which could either be:
-
-* The model of the same phenomenon one scale up,
-* Another phenomenon's bottom-most scaled model one scale up,
-* Or any model in the same scale.
-  Circular contextual dependencies are not allowed.
-
-Profound transformations in models lead to model replacement.
-Model templates are unique identifiers, representing only one type of model. Multiple component configurations for a single model type are not allowed.
-Significant alterations involve either implementing changes into an existing Model or spawning a new model to represent the transformed entity (e.g., caterpillar-to-butterfly transition).
-
----
+Phenomena Models are super-significant and structured/categorized/classified entity-like excitations within the parent scale’s DPM.
+They can read from and write to their own scale's DPM and are effectively a self-interactive manifestation/reflection/proxy of the parent DPM's excitation, but that entity-fied interaction is gatekept by some sort of significance threshold procedure.
 
 ## 3. State
 
-Represents a Phenomena Model's condition/configuration at a specific moment.
-A model's type ("Localized" or "Aerial") must match its state type.
-
----
+Represents a Phenomena Model's local configuration.
+Small, sub-threshold state may be stored locally in the model.
+Large or persistent state must be encoded into the DPM.
 
 ## 4. Scales
 
-Scales determine the simulation granularity for Phenomena Models, with each scale being ten times as large as the one below it.
-Each scale has a corresponding ECS marker Component, which when attached to all Phenomena Models (internally ECS Entities), enables systems to be exclusive to a particular scale, but more importantly to be exposed to exactly and only the functionality required and provided by said scale.
-For example. No atomic forces allowed at galactic scales; what would that accomplish, yk? And if an atomic force is relevant there, or gravity relevant at a subatomic scale, then it must always be a scale-local instantiaton of a more general/generic/abstract pattern of a cross-scale force/mechanism/mechanic.
+Each scale defines:
+
+* Spatial granularity (factor 10 progression).
+* Allowed mechanics and abstractions.
+* A specific DPM schema.
+
+Mechanics must be scale-local instantiations of broader cross-scale abstractions, even if cross-scale means across a single scale only.
 
 ---
 
 # II. Simulation Mechanics (How State Evolves)
 
-## 5. Events ( *REVIEW NEEDED: What does direct and indirect simulation mean?* )
+## 5. Events
 
-Denote interactions or state changes within the game.
-Sent between Phenomena Models and can be self-targeting.
+Events represent causal interactions.
+
+Mode-Dimensions:
+
+* Instant / Continuous
+* Localized / Aerial
 
 Variants:
 
-* Localized Instant: Emanates from a single entity, instantaneous.
-* Aerial Instant: Emanates from an aerial entity, instantaneous.
-* Localized Continuous: Starts from a single entity, extends over time.
-* Aerial Continuous: Starts from an aerial entity, extends over time.
+* Internal: originate from the model.
+* External: originate from outside.
 
-Phenomena Models are operated on by ECS Systems, divided into "Internal" and "External" events.
+Only the active scale runs full simulation systems.
+Higher scales evolve via:
 
-Internal Events: Active, originates within the model (e.g., player input or autonomous triggers).
-External Events: Passive, originates from outside the model.
+* Time-scaled integration
+* Reactively aggregated child deltas; where aggregation is gated by procedural significance thresholds
 
-Models in the active scale are "directly" simulated, while those in higher scales are "indirectly" simulated.
+State evolution per model:
 
----
-
-## 6. Dynamic Generation & Updates
-
-Transitioning to a smaller scale involves spawning detail models according to the DPMs of the scale you are transitioning from.
-Transitioning to a larger scale involves despawning detail models at the scale that you are transitioning from.
-
-Viewing radius is chunk-based, not real-world length, resulting in consistent apparent size but varying real-world coverage.
-Chunks in scales below the active scale are never loaded.
-Chunks in scales above are only spawned if they are the chunks that lower scale chunks reside in, to provide context.
+NewState = Integrate(OldState, Δt_scaled) + Apply(AggregatedDeltas)
 
 ---
 
-# III. Generative & Cross-Scale Mechanics (How Detail Emerges)
+## 6. Dynamic Generation & Zoom
 
-## 7. Data Point Matrix (DPM) ( *REVIEW NEEDED: Small correction with your like "semantic classification": DPMs actually don't (primarily/intentionally at least) ensure consistency! They primarily just represent a foundation for a world in which ""Entities"", A.K.A. Phenomena (or more precisely the Phenomena Models!) dont necessarily have a well-defined boundary, nor a well-defined origin or geometry or anything of the sorts; not unlike reality. Additionally: DPMs provide a set of field metrics/metric fields, from which a probabilistic sorta spawn-probability field is derived, but that's ONE unified field, which can categorize it's probabilistic field, using the ZLM, into any sort of Phenomena (-Models). But, roughly, and mostly even word-for-word, the given text is already very good and precise.* )
+Zoom In:
 
-Models carry generative data through DPMs which update based on state changes. (Meh, more like the DPM facilitates state changes by being the state itself, ZLM is a biome lookup table basically that categorizes the metrics into regions with fixed rules about how to interpet the scale-local metrics, and a Phenomena Model reads the state change from the DPM, and can also write to it, and if that writing is large enough, we immediately, as the PhenomenaModel (DPMs are dumb, same as ZLMs), fire an event, if some significance has been reached by this change of the DPM plus incremental changes too small for the DPM to register that are stored in the individual PhenomenaModels; if these two together overcome some threshold, the PhenomenaModel should emit that event and change the DPM..... but like, I imagine we would have state that is too small to even be tracked locally in the DPM, so we store it inside the concrete PhenomenaModel, makes sense, but then we also want to have the broader state stored in the DPM of the respective Scale, yk? )
-DPMs ensure consistency in the game world across scales by reflecting changes immediately. (Meh, for the same reason I feel like, but it's complicated)
-Changes in a model’s state propagate up to context models, which in turn update their DPMs. (Good, yeeees indeed, because we as a Phenomena Model are just a blip in the DPM of our parent, riiiiight. We are fully encoded in our parent's DPM, in realtime, so we can just seamlessly vanish/aka zoom and the parent will hapily simulate us on and on, as now only an abstract point in some DPM, and if we zoom out more, we are now even less: Just a doubly-abstract pattern in a single blip in the super parent DPM, yk?)
+* Generate child DPM from parent seed.
+* Spawn Phenomena Models from interpreted DPM regions plus model-internal state. Essentially: *Phenomena Models are the spawners of Phenomena Models in Scale n-1.*
 
-DPMs represent probabilistic fields describing gradients, with each data point indicating the likelihood and properties of a model spawning nearby. (As I said: Kind of, the probabilities are region-typed and more derived than defined; the metric ranges and behaviour or whatever, that is what we tune, not the actual proabilities, but the probability generation algorithms, yk?)
-Each type of property inside a data point, excluding the likelihood, is considered a metric. (Yeeeeees, or rather noooo, we got two types of metrics I suppose: Primitive, and Derived. Derived just means the metric is derived/calculated/procedurally-generated from zero or more primitive metrics)
+Zoom Out:
 
-DPMs provide a way to represent complex phenomena (like a tree) without detailing every component (like each leaf) until you zoom in, and only as long as you are zoomed in properly; not too much, not too little. (Good mostly)
+* Aggregate Phenomena Models into parent DPM and communicate destruction/aggregation internally to it's underlying Phenomena so it can handle the cross-scale implications, if any.
+* Despawn detailed models.
 
-A DPM is a 3D collection (because each Scale of the Game is 3-dimensional) of data points, with each type having a unique set of metrics(Good, but I would append: "... although multiple metrics are allowed to be created from a common pattern, for example gravity, which is really simple to model and could easily be created as a fully abstract metric, viable and implementable from scale A to scale B, ykkkkk?")
+Aggregation consumes detail to create a transformation of the parent DPM, which we then apply to said parent DPM.
+
+Chunks:
+
+* Active scale: loaded within viewing radius.
+* Lower scales: nonexistent until generated.
+* Higher scales: exist abstractly. Also: only relevant regions instantiated.
 
 ---
+
+# III. Substrate & Interpretation
+
+## 7. Data Point Matrix (DPM)
+
+The DPM is the substrate state of a scale.
+
+It is a 3D collection of data points containing metrics.
+
+Metric Types:
+
+* Primitive Metrics (fundamental fields, "derived" from all metrics in Scale n+1)
+* Derived Metrics (computed from any number of primitives from Scale n)
+
+The DPM:
+
+* Represents continuous field-like state.
+* Encodes all aggregated child DPM detail. (Just like a Phenomena Model encodes all aggregated child Model internal state)
+* Serves as the source (together with the PhenomenaModels) for downward generation.
+
+Phenomena Models are excitations within the DPM.
+They may accumulate sub-threshold local state before committing to DPM mutation.
 
 ## 8. Zone Lookup Map (ZLM)
 
-ZLMs are defined by the types of DPM metrics they consist of.
-ZLMs map data point metric values to specific sub-shapes within an n-dimensional space, where each axis represents a metric.
-Each shape within a ZLM corresponds to a zone type, akin to biome determination in games like Minecraft.
-Every ZLM space must be entirely filled to ensure all possible metric combinations are accounted for.
+ZLM is a deterministic partition of DPM metric space.
 
----
+It maps metric combinations to Zone Types.
+Zones are semantic classifications (e.g., biome, phase region, structural regime).
+As such, there can be multiple ZLMs per Scale, depending on how complex the given set of mechanics at that Scale is.
 
-## 9. Constraints, Templates, and Constraint-Template-Sets (CTS) ( *REVIEW NEEDED: Meh, this is really unclear; like how is a region in a ZLM defined? WHat is a "Zone" exactly, yk?* )
+ZLM does not enforce behavior.
+It provides contextual metadata that Phenomena Models may interpret.
 
-Details based on DPMs and ZLMs are generated using a modified Wave Function Collapse (WFC).
+The metric space must be fully covered.
 
-Constraints detail the rules, while Templates represent the "Tiles" of a WFC configuration.
-A CTS is a single configuration for WFC, offering placement features and placement rules.
-Templates always correlate with a specific Phenomena Model template.
+## 9. Constraints, Templates, CTS
 
-While Constraints and Templates can be used across scales if deemed necessary, CTSs are scale-specific.
+Detail generation may use procedural systems (e.g., WFC).
 
-A DPM type must always (except root) be created by another DPM type's detail generator.
+Constraints define placement rules.
+Templates define structured detail units.
+CTS defines a scale-specific configuration of these rules.
+
+Templates correlate to Phenomena Model templates.
+CTS is scale-specific.
 
 ---
 
 # IV. Persistence & Meta Rules
 
-## 10. Data Storage Strategy
+## 10. Data Storage
 
-A database-centric approach is used, potentially leveraging NoSQL databases like MongoDB for persistence.
-
----
+Persistence is database-centric.
+Serialized state must not depend on generators.
+DPM + Phenomena Model state + Persistence File/DB/Folder/Whatever must be sufficient for full reconstruction.
 
 ## 11. Meta Changes
 
-Foundational game rules are unchangeable and are tied to each save game.
-Modifications to these rules mandate a new save game, ensuring in-game universe stability.
+Foundational rules(game rules, mods, dlcs, etc.) form a fixed set/universe-archetype per save game.
+Changing them requires a new universe instance.
