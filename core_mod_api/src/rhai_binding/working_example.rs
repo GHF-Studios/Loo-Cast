@@ -358,8 +358,11 @@ pub mod shop {
             impl ConstDynMetadata for __SexShopProduct__Type__ {
                 fn raw_rust_module_path(&self) -> &'static str { module_path!() }
             }
+            impl GetTypeId for __SexShopProduct__Type__ {
+                const TYPE_ID: &'static str = "shop::divisions::sex::SexShopProduct";
+            }
             impl TypeConstDynMetadata for __SexShopProduct__Type__ {
-                fn id_path(&self) -> CloneLazy<TypePath> { CloneLazy::new(CloneClosure::new((), |_, _| "shop::divisions::sex::SexShopProduct".into())) }
+                fn id_path(&self) -> CloneLazy<TypePath> { CloneLazy::new(CloneClosure::new((), |_, _| Self::TYPE_ID.into())) }
                 fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)> {
                     CloneClosure::new(self.id_path().get().type_name().clone(), |name, parent_module| {
                         parent_module.set_custom_type::<crate::rhai_binding::working_example::shop::divisions::sex::SexShopProduct>(&name);

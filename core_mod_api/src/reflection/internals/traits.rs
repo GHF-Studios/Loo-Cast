@@ -5,41 +5,14 @@ use rhai::{ImmutableString, RhaiNativeFunc, Shared, Variant};
 use std::hash::Hash;
 use std::sync::Arc;
 
-use crate::reflection::traits::StaticTraitObject;
 use crate::utils::clone_closure::{ApplyCloneClosure, CloneClosure};
 use crate::utils::clone_lazy::CloneLazy;
 
 
-// TODO: Consolidate Type::name() into here as TYPE_NAME similarly to GetTraitId
-// TODO: Add string-format documentation or newtype with invariant-enforcing on construction
-pub trait GetTypeId: Sized + 'static {
-    const TYPE_ID: &'static str;
-}
-
-// TODO: MAJOR: REFACTOR: But where to?
-// TODO: MINOR: Add string-format documentation or newtype with invariant-enforcing on construction
-pub trait GetTraitName: Clone + Sized + 'static {
-    const TRAIT_NAME: &'static str;
-}
-pub trait GetTraitObjectName: Clone + Sized + 'static {
-    const TRAIT_OBJECT_NAME: &'static str;
-}
-pub trait DynGetTraitName: 'static {
-    fn trait_name(&self) -> &'static str;
-}
-pub trait DynGetTraitObjectName: 'static {
-    fn trait_object_name(&self) -> &'static str;
-}
-pub trait GetTraitId: Clone + Sized + 'static {
-    const TRAIT_ID: &'static str;
-}
-pub trait GetTraitObjectId: Clone + Sized + 'static {
-    const TRAIT_OBJECT_ID: &'static str;
-}
-pub trait ToTraitObject<T: GetTraitId>: Sized {
-    fn cast_to(self) -> StaticTraitObject<T>;
-    fn cast_from(obj: StaticTraitObject<T>) -> Self;
-}
+pub use crate::rhai_binding::meta::abstract_::trait_identity::{
+    DynGetTraitName, DynGetTraitObjectName, GetTraitId, GetTraitName, GetTraitObjectId, GetTraitObjectName, GetTypeId,
+    ToTraitObject,
+};
 
 
 use crate::reflection::{
@@ -434,8 +407,6 @@ impl EngineExt_OLD for rhai::Engine {
 //         }
 //     }
 // }
-
-
 
 
 

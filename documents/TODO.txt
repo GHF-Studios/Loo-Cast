@@ -2,8 +2,3 @@ TODO:
 1. Refactor a LOOOOT of stuff from reflection/internals/(traits.rs|types.rs) and utils/string stuff, etc. into bindings/rhai/metadata.rs and bindings/rhai/example.rs (likely among others).
 2. Refactor all the special type handling stuff like ScopedAccess (...all, except ScopedAccess lol) from wherever into bindings/rhai/data_containers.rs and implement some sort of blanket-impl auto-registration for these generic-powered mechanisms
 3. Write the proc macros...
-
-
-
-
-script_bindings/rhai/

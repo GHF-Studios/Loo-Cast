@@ -1,4 +1,4 @@
-use crate::{reflection::internals::traits::{DynGetTraitName, DynGetTraitObjectName}, rhai_binding::{meta::{generic::abstract_primitive::ConstDynMetadata, monomorphized::trait_::{TraitMetadata, TraitObjectMetadata}}, path::trait_path::TraitPath}, utils::clone_lazy::CloneLazy};
+use crate::{rhai_binding::{meta::{abstract_::trait_identity::{DynGetTraitName, DynGetTraitObjectName}, generic::abstract_primitive::ConstDynMetadata, monomorphized::trait_::{TraitMetadata, TraitObjectMetadata}}, path::trait_path::TraitPath}, utils::clone_lazy::CloneLazy};
 
 
 pub const trait TraitConstDynMetadata: ConstDynMetadata + DynGetTraitName {
