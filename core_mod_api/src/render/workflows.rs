@@ -74,6 +74,7 @@ define_workflow_mod_OLD! {
                                 Camera2d,
                                 Camera {
                                     order: 1,
+                                    clear_color: crate::bevy::camera::ClearColorConfig::None,
                                     ..Default::default()
                                 },
                                 RenderTarget::Image(ImageRenderTarget {
