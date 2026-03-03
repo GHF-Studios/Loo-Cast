@@ -7,7 +7,7 @@ define_workflow_mod_OLD! {
             user_imports: {
                 use crate::bevy::prelude::{Commands, Res, ResMut, Camera2d, Vec2, Name, Camera};
                 use crate::bevy::camera::visibility::RenderLayers;
-                use bevy_egui::EguiRenderOutput;
+                use bevy_egui::{EguiGlobalSettings, EguiRenderOutput};
                 use crate::bevy::render::render_resource::{
                     Buffer, TextureView, TextureDescriptor, Extent3d,
                     TextureDimension, TextureFormat, TextureUsages,
@@ -32,6 +32,7 @@ define_workflow_mod_OLD! {
                         struct MainAccess<'w, 's> {
                             commands: Commands<'w, 's>,
                             game_view_render_target: Res<'w, GameViewRenderTarget>,
+                            egui_global_settings: ResMut<'w, EguiGlobalSettings>,
                         }
                         struct State {
                             main_camera_entity: Entity,
@@ -48,6 +49,8 @@ define_workflow_mod_OLD! {
                         fn SetupEcsWhile |main_access| -> State {
                             let mut commands = main_access.commands;
                             let game_view_render_target = main_access.game_view_render_target;
+                            let mut egui_global_settings = main_access.egui_global_settings;
+                            egui_global_settings.auto_create_primary_context = false;
 
                             let (
                                 egui_camera_entity,

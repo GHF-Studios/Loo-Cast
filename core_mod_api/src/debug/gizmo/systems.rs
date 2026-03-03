@@ -82,8 +82,6 @@ pub(super) fn update_gizmo_visibility_and_position(
 
     gizmo_transform.translation.z = chunk_loader.scale.compute_z() + CONFIG().get::<f32>("debug/gizmo/z_offset");
     gizmo_transform.scale = Vec2::splat(zoom_factor.0).extend(1.0);
-
-    warn!("Gizmo Z position: {}", gizmo_transform.translation.z);
 }
 
 pub(super) fn move_selected_with_gizmo(
