@@ -1,10 +1,10 @@
-use crate::bevy::prelude::Entity as BevyEntity;
-use crate::bevy::ecs::system::Commands;
-use crate::bevy::ecs::system::EntityCommands;
-use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
-use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
 use std::any::Any;
 
+use crate::bevy::ecs::system::Commands;
+use crate::bevy::ecs::system::EntityCommands;
+use crate::bevy::prelude::Entity as BevyEntity;
+use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
+use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 
 unsafe impl AccessCellProvider<EntityCommands<'static>> for Commands<'static, 'static> {
     unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> AccessCell<Scoped, EntityCommands<'static>> {
@@ -15,14 +15,12 @@ unsafe impl AccessCellProvider<EntityCommands<'static>> for Commands<'static, 's
                 }
 
                 self.spawn_empty()
-            },
+            }
             _ => panic!("Unsupported method '{}' in AccessCellProvider<EntityCommands> for Commands", method),
         };
 
         // Erase lifetime(s)
-        let entity_commands_static = unsafe {
-            std::mem::transmute::<EntityCommands<'_>, EntityCommands<'static>>(entity_commands)
-        };
+        let entity_commands_static = unsafe { std::mem::transmute::<EntityCommands<'_>, EntityCommands<'static>>(entity_commands) };
 
         AccessCell::new(entity_commands_static)
     }
@@ -31,9 +29,8 @@ unsafe impl AccessCellProvider<EntityCommands<'static>> for Commands<'static, 's
         let returned_entity_commands_static = handle.take();
 
         // Restore lifetime(s)
-        let _returned_entity_commands = unsafe {
-            std::mem::transmute::<EntityCommands<'static>, EntityCommands<'_>>(returned_entity_commands_static)
-        };
+        let _returned_entity_commands =
+            unsafe { std::mem::transmute::<EntityCommands<'static>, EntityCommands<'_>>(returned_entity_commands_static) };
     }
 }
 
@@ -47,11 +44,9 @@ unsafe impl AccessCellProvider<Commands<'static, 'static>> for EntityCommands<'s
         }
 
         let commands = self.commands();
-        
+
         // Erase lifetime(s)
-        let commands_static = unsafe {
-            std::mem::transmute::<Commands<'_, '_>, Commands<'static, 'static>>(commands)
-        };
+        let commands_static = unsafe { std::mem::transmute::<Commands<'_, '_>, Commands<'static, 'static>>(commands) };
 
         AccessCell::new(commands_static)
     }
@@ -60,9 +55,7 @@ unsafe impl AccessCellProvider<Commands<'static, 'static>> for EntityCommands<'s
         let returned_commands_static = handle.take();
 
         // Restore lifetime(s)
-        let _returned_commands = unsafe {
-            std::mem::transmute::<Commands<'static, 'static>, Commands<'_, '_>>(returned_commands_static)
-        };
+        let _returned_commands = unsafe { std::mem::transmute::<Commands<'static, 'static>, Commands<'_, '_>>(returned_commands_static) };
     }
 }
 

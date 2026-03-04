@@ -18,4 +18,5 @@ pub mod commands;
 pub mod entities;
 pub mod messages;
 pub mod query;
+pub mod registrations;
 pub mod world;

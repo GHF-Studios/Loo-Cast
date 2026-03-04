@@ -1,13 +1,13 @@
 fn run_query_single_messages_suite(world) {
     print("[Startup][ECS] query/single/messages suite");
 
-    let entity_data = ecs::query::QueryData::of("ecs::entities::Entity");
+    let entity_data = ecs::query::QueryData::single("ecs::entities::Entity");
     let all_entities = world.query(entity_data);
-    print("[Startup][ECS] world.query(QueryData::of(...)).len = " + all_entities.len());
+    print("[Startup][ECS] world.query(QueryData::single(...)).len = " + all_entities.len());
 
-    let player_filter = ecs::query::QueryFilter::of("player::components::Player");
+    let player_filter = ecs::query::QueryFilter::require("player::components::Player");
     let player_entities = world.query_filtered(entity_data, player_filter);
-    print("[Startup][ECS] world.query_filtered(..., QueryFilter::of(...)).len = " + player_entities.len());
+    print("[Startup][ECS] world.query_filtered(..., QueryFilter::require(...)).len = " + player_entities.len());
 
     if player_entities.len() != 1 {
         print("[Startup][ECS][WARN] Expected exactly one player entity");

@@ -98,17 +98,19 @@ impl WorldApi for Shared<World> {
 
     fn query_filtered(&self, data: QueryData, filter: QueryFilter) -> Query {
         let mut world = self.world.start_write();
-        let key = query_dispatch_key(data.id.as_str(), filter.id.as_str());
+        let data_key = data.dispatch_key();
+        let filter_key = filter.dispatch_key();
+        let key = query_dispatch_key(data_key.as_str(), filter_key.as_str());
         let dispatch = query_dispatch_registry().get(&key).copied().unwrap_or_else(|| {
             let available = query_dispatch_registry()
                 .keys()
-                .map(|(data_id, filter_id)| format!("({data_id}, {filter_id})"))
+                .map(|(existing_data_key, existing_filter_key)| format!("({existing_data_key}, {existing_filter_key})"))
                 .collect::<Vec<_>>()
                 .join(", ");
 
             panic!(
-                "No query dispatcher registered for data='{}', filter='{}'. Available dispatchers: [{}]",
-                data.id, filter.id, available
+                "No query dispatcher registered for data_key='{}', filter_key='{}'. Available dispatchers: [{}]",
+                data_key, filter_key, available
             )
         });
         let query = dispatch(&mut world);

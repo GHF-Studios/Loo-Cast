@@ -20,11 +20,9 @@ unsafe impl AccessCellProvider<Commands<'static, 'static>> for World {
         }
 
         let commands = self.commands();
-        
+
         // Erase lifetime(s)
-        let commands_static = unsafe {
-            std::mem::transmute::<Commands<'_, '_>, Commands<'static, 'static>>(commands)
-        };
+        let commands_static = unsafe { std::mem::transmute::<Commands<'_, '_>, Commands<'static, 'static>>(commands) };
 
         AccessCell::new(commands_static)
     }
@@ -33,9 +31,7 @@ unsafe impl AccessCellProvider<Commands<'static, 'static>> for World {
         let returned_static_commands = handle.take();
 
         // Restore lifetime(s)
-        let _returned_commands = unsafe {
-            std::mem::transmute::<Commands<'static, 'static>, Commands<'_, '_>>(returned_static_commands)
-        };
+        let _returned_commands = unsafe { std::mem::transmute::<Commands<'static, 'static>, Commands<'_, '_>>(returned_static_commands) };
     }
 }
 
@@ -48,7 +44,7 @@ unsafe impl AccessCellProvider<EntityWorldMut<'static>> for World {
                 }
 
                 self.spawn_empty()
-            },
+            }
             "spawn" => {
                 let Ok(bundle) = args.downcast::<BundleTraitObject>() else {
                     panic!("Unsupported arguments for method '{}' in AccessCellProvider<EntityWorldMut> for World", method);
@@ -57,8 +53,7 @@ unsafe impl AccessCellProvider<EntityWorldMut<'static>> for World {
                 let bundle = *bundle;
                 match <PlayerBundle as GetTypeValueSemantics>::VALUE_SEMANTICS {
                     TypeValueSemantics::ScopedMut => {
-                        let bundle: AccessCell<Scoped, PlayerBundle> =
-                            ToTraitObject::<BundleTrait>::cast_from(bundle.0);
+                        let bundle: AccessCell<Scoped, PlayerBundle> = ToTraitObject::<BundleTrait>::cast_from(bundle.0);
                         ent.insert(bundle.take());
                     }
                     TypeValueSemantics::Owned => {
@@ -74,14 +69,12 @@ unsafe impl AccessCellProvider<EntityWorldMut<'static>> for World {
                     }
                 }
                 ent
-            },
+            }
             _ => panic!("Unsupported method '{}' in AccessCellProvider<EntityWorldMut> for World", method),
         };
 
         // Erase lifetime(s)
-        let entity_world_mut_static = unsafe {
-            std::mem::transmute::<EntityWorldMut<'_>, EntityWorldMut<'static>>(entity_world_mut)
-        };
+        let entity_world_mut_static = unsafe { std::mem::transmute::<EntityWorldMut<'_>, EntityWorldMut<'static>>(entity_world_mut) };
 
         AccessCell::new(entity_world_mut_static)
     }
@@ -90,8 +83,7 @@ unsafe impl AccessCellProvider<EntityWorldMut<'static>> for World {
         let returned_static_entity_world_mut = handle.take();
 
         // Restore lifetime(s)
-        let _returned_entity_world_mut = unsafe {
-            std::mem::transmute::<EntityWorldMut<'static>, EntityWorldMut<'_>>(returned_static_entity_world_mut)
-        };
+        let _returned_entity_world_mut =
+            unsafe { std::mem::transmute::<EntityWorldMut<'static>, EntityWorldMut<'_>>(returned_static_entity_world_mut) };
     }
 }

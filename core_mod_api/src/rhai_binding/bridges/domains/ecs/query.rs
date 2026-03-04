@@ -1,4 +1,8 @@
-use crate::rhai_binding::runtime::ecs::query::bindings::types::{Query as ScriptQuery, QueryData as ScriptQueryData, QueryFilter as ScriptQueryFilter};
+use rhai::FuncRegistration;
+
+use crate::rhai_binding::runtime::ecs::query::bindings::types::{
+    Query as ScriptQuery, QueryData as ScriptQueryData, QueryDataTerm as ScriptQueryDataTerm, QueryFilter as ScriptQueryFilter,
+};
 use crate::rhai_binding::runtime::ecs::query::internals::traits::QueryApi;
 
 core_mod_macros::reflect_extern_generic_definition!(
@@ -6,7 +10,10 @@ core_mod_macros::reflect_extern_generic_definition!(
     owner_kind = r#type,
     params = [TData, TFilter],
     bounds = [TData: [], TFilter: []],
-    notes = ["Runtime query facade carrying query data and query filter tokens."],
+    notes = [
+        "Runtime query facade for pre-registered monomorphized query signatures.",
+        "Descriptors can be composed dynamically but only registered signatures dispatch.",
+    ],
 );
 
 core_mod_macros::reflect_extern_generic_instantiation!(
@@ -21,7 +28,7 @@ core_mod_macros::reflect_extern_sub_module!(
     id = ecs::query,
     sub_modules = [],
     traits = [],
-    types = [Query, QueryData, QueryFilter],
+    types = [Query, QueryDataTerm, QueryData, QueryFilter],
     module_associated_functions = [],
 );
 
@@ -40,19 +47,36 @@ core_mod_macros::reflect_extern_type!(
 );
 
 core_mod_macros::reflect_extern_type!(
+    id = ecs::query::QueryDataTerm,
+    rust_type = ScriptQueryDataTerm,
+    value_semantics = clone,
+    constructor_functions = [
+        ecs::query::QueryDataTerm::value,
+        ecs::query::QueryDataTerm::ref_,
+        ecs::query::QueryDataTerm::mut_,
+    ],
+    method_functions = [ecs::query::QueryDataTerm::type_id, ecs::query::QueryDataTerm::access,],
+);
+
+core_mod_macros::reflect_extern_type!(
     id = ecs::query::QueryData,
     rust_type = ScriptQueryData,
     value_semantics = clone,
-    constructor_functions = [ecs::query::QueryData::of],
-    method_functions = [ecs::query::QueryData::id],
+    constructor_functions = [ecs::query::QueryData::single, ecs::query::QueryData::tuple, ecs::query::QueryData::from_terms,],
+    method_functions = [ecs::query::QueryData::len, ecs::query::QueryData::to_array,],
 );
 
 core_mod_macros::reflect_extern_type!(
     id = ecs::query::QueryFilter,
     rust_type = ScriptQueryFilter,
     value_semantics = clone,
-    constructor_functions = [ecs::query::QueryFilter::none, ecs::query::QueryFilter::of,],
-    method_functions = [ecs::query::QueryFilter::id],
+    constructor_functions = [
+        ecs::query::QueryFilter::none,
+        ecs::query::QueryFilter::require,
+        ecs::query::QueryFilter::exclude,
+        ecs::query::QueryFilter::from_sets,
+    ],
+    method_functions = [ecs::query::QueryFilter::with_types, ecs::query::QueryFilter::without_types,],
 );
 
 core_mod_macros::reflect_extern_method_function!(
@@ -102,40 +126,133 @@ core_mod_macros::reflect_extern_method_function!(
 );
 
 core_mod_macros::reflect_extern_constructor_function!(
-    id = ecs::query::QueryData::of,
+    id = ecs::query::QueryDataTerm::value,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
-        rhai::FuncRegistration::new(name).set_into_module(parent_module, |id: rhai::ImmutableString| -> ScriptQueryData { ScriptQueryData::of(id) });
+        FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryDataTerm {
+            ScriptQueryDataTerm::value(type_id)
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_constructor_function!(
+    id = ecs::query::QueryDataTerm::ref_,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryDataTerm {
+            ScriptQueryDataTerm::ref_(type_id)
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_constructor_function!(
+    id = ecs::query::QueryDataTerm::mut_,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryDataTerm {
+            ScriptQueryDataTerm::mut_(type_id)
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_method_function!(
+    id = ecs::query::QueryDataTerm::type_id,
+    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
+        let get_name = name.clone();
+        engine.register_get(get_name, |term: &mut ScriptQueryDataTerm| term.type_id());
+        engine.register_fn(name, |term: &mut ScriptQueryDataTerm| term.type_id());
+    },
+);
+
+core_mod_macros::reflect_extern_method_function!(
+    id = ecs::query::QueryDataTerm::access,
+    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
+        let get_name = name.clone();
+        engine.register_get(get_name, |term: &mut ScriptQueryDataTerm| term.access());
+        engine.register_fn(name, |term: &mut ScriptQueryDataTerm| term.access());
+    },
+);
+
+core_mod_macros::reflect_extern_constructor_function!(
+    id = ecs::query::QueryData::single,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryData {
+            ScriptQueryData::single(type_id)
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_constructor_function!(
+    id = ecs::query::QueryData::tuple,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |types: rhai::Array| -> ScriptQueryData { ScriptQueryData::tuple(types) });
+    },
+);
+
+core_mod_macros::reflect_extern_constructor_function!(
+    id = ecs::query::QueryData::from_terms,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |terms: rhai::Array| -> ScriptQueryData { ScriptQueryData::from_terms(terms) });
+    },
+);
+
+core_mod_macros::reflect_extern_method_function!(
+    id = ecs::query::QueryData::len,
+    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
+        let get_name = name.clone();
+        engine.register_get(get_name, |query_data: &mut ScriptQueryData| query_data.len());
+        engine.register_fn(name, |query_data: &mut ScriptQueryData| query_data.len());
+    },
+);
+
+core_mod_macros::reflect_extern_method_function!(
+    id = ecs::query::QueryData::to_array,
+    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
+        engine.register_fn(name, |query_data: &mut ScriptQueryData| query_data.to_array());
     },
 );
 
 core_mod_macros::reflect_extern_constructor_function!(
     id = ecs::query::QueryFilter::none,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
-        rhai::FuncRegistration::new(name).set_into_module(parent_module, || -> ScriptQueryFilter { ScriptQueryFilter::none() });
+        FuncRegistration::new(name).set_into_module(parent_module, || -> ScriptQueryFilter { ScriptQueryFilter::none() });
     },
 );
 
 core_mod_macros::reflect_extern_constructor_function!(
-    id = ecs::query::QueryFilter::of,
+    id = ecs::query::QueryFilter::require,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
-        rhai::FuncRegistration::new(name).set_into_module(parent_module, |id: rhai::ImmutableString| -> ScriptQueryFilter { ScriptQueryFilter::of(id) });
+        FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryFilter {
+            ScriptQueryFilter::require(type_id)
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_constructor_function!(
+    id = ecs::query::QueryFilter::exclude,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryFilter {
+            ScriptQueryFilter::exclude(type_id)
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_constructor_function!(
+    id = ecs::query::QueryFilter::from_sets,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |with: rhai::Array, without: rhai::Array| -> ScriptQueryFilter {
+            ScriptQueryFilter::from_sets(with, without)
+        });
     },
 );
 
 core_mod_macros::reflect_extern_method_function!(
-    id = ecs::query::QueryData::id,
+    id = ecs::query::QueryFilter::with_types,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        let get_name = name.clone();
-        engine.register_get(get_name, |query_data: &mut ScriptQueryData| query_data.id());
-        engine.register_fn(name, |query_data: &mut ScriptQueryData| query_data.id());
+        engine.register_fn(name, |query_filter: &mut ScriptQueryFilter| query_filter.with_types());
     },
 );
 
 core_mod_macros::reflect_extern_method_function!(
-    id = ecs::query::QueryFilter::id,
+    id = ecs::query::QueryFilter::without_types,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        let get_name = name.clone();
-        engine.register_get(get_name, |query_filter: &mut ScriptQueryFilter| query_filter.id());
-        engine.register_fn(name, |query_filter: &mut ScriptQueryFilter| query_filter.id());
+        engine.register_fn(name, |query_filter: &mut ScriptQueryFilter| query_filter.without_types());
     },
 );
