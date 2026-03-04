@@ -18,5 +18,6 @@ pub mod commands;
 pub mod entities;
 pub mod messages;
 pub mod query;
-pub mod registrations;
+pub mod query_dispatch;
+pub mod sysparam_access;
 pub mod world;
