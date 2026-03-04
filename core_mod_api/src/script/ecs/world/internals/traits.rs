@@ -1,8 +1,8 @@
 use rhai::{Dynamic, FnPtr, ImmutableString, NativeCallContext};
 
 use crate::script::ecs::bundle::internals::trait_objects::BundleTraitObject;
-use crate::script::ecs::messages::bindings::types::MessageBatch;
 use crate::script::ecs::query::bindings::types::{Query, QueryData, QueryFilter};
+use crate::script::rust::iter::bindings::types::StringIter;
 
 pub trait WorldApi {
     fn commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;
@@ -12,7 +12,7 @@ pub trait WorldApi {
     fn query(&self, data: QueryData) -> Query;
     fn query_filtered(&self, data: QueryData, filter: QueryFilter) -> Query;
     fn write_probe_message(&self, payload: ImmutableString);
-    fn read_probe_messages(&self) -> MessageBatch;
+    fn drain_probe_messages(&self) -> StringIter;
     // fn spawn_batch(&self, bundles: Array, ctx: NativeCallContext, callback: FnPtr) -> Array;
 }
 

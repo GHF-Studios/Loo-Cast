@@ -4,8 +4,3 @@ use crate::bevy::prelude::Message;
 pub struct ScriptProbeMessage {
     pub payload: String,
 }
-
-#[derive(Clone, Default)]
-pub struct MessageBatch {
-    pub(crate) payloads: Vec<String>,
-}

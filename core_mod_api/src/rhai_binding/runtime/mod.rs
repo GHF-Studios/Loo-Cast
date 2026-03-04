@@ -4,4 +4,5 @@
 //! New bridge code should prefer `rhai_binding::runtime::*` over `script::*`.
 
 pub use crate::script::ecs;
+pub use crate::script::rust;
 pub use crate::script::usf;

@@ -2,9 +2,9 @@ use rhai::{Dynamic, FnPtr, ImmutableString, Shared};
 use std::any::TypeId as RustTypeId;
 
 use crate::rhai_binding::runtime::ecs::bundle::internals::trait_objects::BundleTraitObject;
-use crate::rhai_binding::runtime::ecs::messages::bindings::types::MessageBatch as ScriptMessageBatch;
 use crate::rhai_binding::runtime::ecs::query::bindings::types::{Query as ScriptQuery, QueryData as ScriptQueryData, QueryFilter as ScriptQueryFilter};
 use crate::rhai_binding::runtime::ecs::world::bindings::types::World;
+use crate::rhai_binding::runtime::rust::iter::bindings::types::StringIter as ScriptStringIter;
 use crate::rhai_binding::runtime::ecs::world::internals::traits::WorldApi;
 
 type ScriptWorld = Shared<World>;
@@ -29,7 +29,7 @@ core_mod_macros::reflect_extern_type!(
         ecs::world::World::query,
         ecs::world::World::query_filtered,
         ecs::world::World::write_probe_message,
-        ecs::world::World::read_probe_messages,
+        ecs::world::World::drain_probe_messages,
     ],
 );
 
@@ -132,12 +132,12 @@ core_mod_macros::reflect_extern_method_function!(
 );
 
 core_mod_macros::reflect_extern_method_function!(
-    id = ecs::world::World::read_probe_messages,
+    id = ecs::world::World::drain_probe_messages,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>()], |_, args| {
             let world = &*args[0].write_lock::<ScriptWorld>().unwrap();
-            let messages = world.read_probe_messages();
-            Ok(Dynamic::from::<ScriptMessageBatch>(messages))
+            let messages = world.drain_probe_messages();
+            Ok(Dynamic::from::<ScriptStringIter>(messages))
         });
     },
 );

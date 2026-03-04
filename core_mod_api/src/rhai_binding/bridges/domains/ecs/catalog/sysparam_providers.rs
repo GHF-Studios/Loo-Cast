@@ -12,12 +12,13 @@ use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Persistent, 
 use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
 use crate::script::ecs::bundle::internals::trait_objects::{BundleTrait, BundleTraitObject};
-use crate::script::ecs::messages::bindings::types::{MessageBatch, ScriptProbeMessage};
+use crate::script::ecs::messages::bindings::types::ScriptProbeMessage;
 use crate::script::ecs::query::{bindings::types::Query, internals::statics::resolve_query_dispatch};
 use crate::script::ecs::world::internals::access_requests::{
-    WorldQueryRequest, WriteProbeMessageRequest, WORLD_ACCESS_METHOD_QUERY, WORLD_ACCESS_METHOD_READ_PROBE_MESSAGES,
+    WorldQueryRequest, WriteProbeMessageRequest, WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES, WORLD_ACCESS_METHOD_QUERY,
     WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE,
 };
+use crate::script::rust::iter::bindings::types::StringIter;
 
 unsafe impl AccessCellProvider<Commands<'static, 'static>> for World {
     unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> AccessCell<Scoped, Commands<'static, 'static>> {
@@ -145,13 +146,13 @@ unsafe impl AccessCellProvider<()> for World {
     }
 }
 
-unsafe impl AccessCellProvider<MessageBatch> for World {
-    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> AccessCell<Scoped, MessageBatch> {
-        if method != WORLD_ACCESS_METHOD_READ_PROBE_MESSAGES {
-            panic!("Unsupported method '{}' in AccessCellProvider<MessageBatch> for World", method);
+unsafe impl AccessCellProvider<StringIter> for World {
+    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> AccessCell<Scoped, StringIter> {
+        if method != WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES {
+            panic!("Unsupported method '{}' in AccessCellProvider<StringIter> for World", method);
         }
         if !args.is::<()>() {
-            panic!("Unsupported arguments for method '{}' in AccessCellProvider<MessageBatch> for World", method);
+            panic!("Unsupported arguments for method '{}' in AccessCellProvider<StringIter> for World", method);
         }
 
         let payloads = {
@@ -161,10 +162,10 @@ unsafe impl AccessCellProvider<MessageBatch> for World {
             messages.drain().map(|message| message.payload).collect()
         };
 
-        AccessCell::new(MessageBatch { payloads })
+        AccessCell::new(StringIter::from_values(payloads))
     }
 
-    unsafe fn end_access(&mut self, handle: AccessCell<Scoped, MessageBatch>) {
+    unsafe fn end_access(&mut self, handle: AccessCell<Scoped, StringIter>) {
         let _handle = handle;
     }
 }

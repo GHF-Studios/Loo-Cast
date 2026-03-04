@@ -6,7 +6,6 @@ use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 
 use crate::script::ecs::{
     bundle::internals::trait_objects::BundleTraitObject,
-    messages::bindings::types::MessageBatch,
     query::bindings::types::{Query, QueryData, QueryFilter},
     system::commands::bindings::types::Commands,
     world::{
@@ -14,13 +13,14 @@ use crate::script::ecs::{
         entity_ref::bindings::types::EntityWorldMut,
         internals::{
             access_requests::{
-                WorldQueryRequest, WriteProbeMessageRequest, WORLD_ACCESS_METHOD_QUERY, WORLD_ACCESS_METHOD_READ_PROBE_MESSAGES,
+                WorldQueryRequest, WriteProbeMessageRequest, WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES, WORLD_ACCESS_METHOD_QUERY,
                 WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE,
             },
             traits::WorldApi,
         },
     },
 };
+use crate::script::rust::iter::bindings::types::StringIter;
 
 impl WorldApi for Shared<World> {
     fn commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
@@ -130,12 +130,12 @@ impl WorldApi for Shared<World> {
         self.world.end_write(world);
     }
 
-    fn read_probe_messages(&self) -> MessageBatch {
+    fn drain_probe_messages(&self) -> StringIter {
         let mut world = self.world.start_write();
         let message_raw_handle: crate::rhai_binding::value_semantics::access_cell::AccessCell<
             crate::rhai_binding::value_semantics::access_cell::Scoped,
-            MessageBatch,
-        > = unsafe { world.start_access(WORLD_ACCESS_METHOD_READ_PROBE_MESSAGES, Box::new(())) };
+            StringIter,
+        > = unsafe { world.start_access(WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES, Box::new(())) };
         let messages = message_raw_handle.take();
         unsafe { world.end_access(message_raw_handle) };
 

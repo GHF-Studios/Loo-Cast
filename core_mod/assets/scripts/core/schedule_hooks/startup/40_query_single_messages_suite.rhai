@@ -27,18 +27,22 @@ fn run_query_single_messages_suite(world) {
     world.write_probe_message("startup-message-0");
     world.write_probe_message("startup-message-1");
 
-    let drained_batch = world.read_probe_messages();
-    print("[Startup][ECS] drained_batch.len = " + drained_batch.len());
-    if drained_batch.len() != 2 {
+    let drained_iter = world.drain_probe_messages();
+    print("[Startup][ECS] drained_iter.remaining_len = " + drained_iter.remaining_len());
+    if drained_iter.remaining_len() != 2 {
         print("[Startup][ECS][WARN] Expected exactly two probe messages");
     }
 
-    for payload in drained_batch.to_array() {
+    loop {
+        let payload = drained_iter.next();
+        if payload == () {
+            break;
+        }
         print("[Startup][ECS] probe_message = " + payload);
     }
 
-    let drained_again = world.read_probe_messages();
-    if drained_again.len() != 0 {
+    let drained_again = world.drain_probe_messages();
+    if !drained_again.is_empty() {
         print("[Startup][ECS][WARN] Expected message drain to be empty on second read");
     }
 }
