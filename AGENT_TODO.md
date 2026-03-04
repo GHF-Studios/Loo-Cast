@@ -37,7 +37,7 @@ Result snapshot:
 
 ## Task 2: Separate Testing vs Examples in Startup Flow
 
-Status: pending
+Status: completed
 
 Scope:
 
@@ -48,6 +48,13 @@ Scope:
 Outcome:
 
 - Clean startup structure where examples are always clear, and testing suites are opt-in/controlled.
+
+Result snapshot:
+
+- Startup orchestration split into production suites vs testing suites.
+- Testing suite invocation is gated by `is_testing_bridges_enabled()`.
+- Testing bridge registration is gated at engine boot by `rhai_binding/testing/bridges_enabled` config.
+- Default behavior excludes testing-only top-level modules (for now: `shop`) from the runtime bridge graph.
 
 ## Task 3: Bundle Construction Path Consolidation
 
