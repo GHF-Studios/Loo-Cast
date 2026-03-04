@@ -1,8 +1,8 @@
 use crate::bevy::ecs::query::With;
 use crate::bevy::prelude::{Entity as BevyEntity, World as BevyWorld};
 use crate::player::components::Player;
-use crate::script::ecs::query::bindings::types::Query;
-use crate::script::ecs::query::internals::types::{QueryDispatchAccess, QueryDispatchEntry, QueryDispatchTerm};
+use crate::rhai_binding::runtime::ecs::query::bindings::types::Query;
+use crate::rhai_binding::runtime::ecs::query::internals::types::{QueryDispatchAccess, QueryDispatchEntry, QueryDispatchTerm};
 
 pub const QUERY_SIG__ENTITY: &str = "QUERY_SIG__ENTITY";
 pub const QUERY_SIG__ENTITY__WITH_PLAYER: &str = "QUERY_SIG__ENTITY__WITH_PLAYER";

@@ -11,14 +11,14 @@ use crate::rhai_binding::meta::abstract_::trait_identity::ToTraitObject;
 use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Persistent, Scoped};
 use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
-use crate::script::ecs::bundle::internals::trait_objects::{BundleTrait, BundleTraitObject};
-use crate::script::ecs::messages::bindings::types::ScriptProbeMessage;
-use crate::script::ecs::query::{bindings::types::Query, internals::statics::resolve_query_dispatch};
-use crate::script::ecs::world::internals::access_requests::{
+use crate::rhai_binding::runtime::ecs::bundle::internals::trait_objects::{BundleTrait, BundleTraitObject};
+use crate::rhai_binding::runtime::ecs::messages::bindings::types::ScriptProbeMessage;
+use crate::rhai_binding::runtime::ecs::query::{bindings::types::Query, internals::statics::resolve_query_dispatch};
+use crate::rhai_binding::runtime::ecs::world::internals::access_requests::{
     WorldQueryRequest, WriteProbeMessageRequest, WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES, WORLD_ACCESS_METHOD_QUERY,
     WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE,
 };
-use crate::script::rust::iter::bindings::types::StringIter;
+use crate::rhai_binding::runtime::rust::iter::bindings::types::StringIter;
 
 unsafe impl AccessCellProvider<Commands<'static, 'static>> for World {
     unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> AccessCell<Scoped, Commands<'static, 'static>> {

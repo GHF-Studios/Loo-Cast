@@ -1,8 +1,8 @@
-//! Canonical runtime-facing namespace for bridge internals.
+//! Canonical runtime-facing namespace for Rhai bridge internals.
 //!
-//! During migration, this re-exports the legacy `script::*` runtime scaffolding.
-//! New bridge code should prefer `rhai_binding::runtime::*` over `script::*`.
+//! This is the source of truth for runtime wrapper types and low-level bridge
+//! plumbing used by `rhai_binding::bridges::*`.
 
-pub use crate::script::ecs;
-pub use crate::script::rust;
-pub use crate::script::usf;
+pub mod ecs;
+pub mod rust;
+pub mod usf;

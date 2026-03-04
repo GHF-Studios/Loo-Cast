@@ -19,10 +19,10 @@ This project treats Rhai as a customizable runtime dialect for Bevy/ECS workflow
 
 ### 2) Runtime wrappers and implementation layer
 
-- Runtime wrappers currently live in `core_mod_api/src/script/*`.
-- Canonical import path for new bridge code is:
-  - `core_mod_api/src/rhai_binding/runtime/mod.rs`
-- `rhai_binding::runtime` re-exports the legacy `script::*` tree during migration.
+- Runtime wrappers live in:
+  - `core_mod_api/src/rhai_binding/runtime/*`
+- Canonical import path for bridge/runtime code is:
+  - `crate::rhai_binding::runtime::*`
 
 ### 3) Access backbone (soundness boundary)
 

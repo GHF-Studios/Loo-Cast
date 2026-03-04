@@ -34,9 +34,9 @@ This makes `startup.rhai` a stable test/example entrypoint while companion files
 - Reflection/registration source of truth: `core_mod_api/src/rhai_binding/bridges/`
   - `domains/` for real runtime APIs (`ecs`, `player`, `rust`, etc.).
   - `testing/` for test-only modules.
-- Runtime wrapper types currently live in `script/*` and are re-exported via:
-  - `core_mod_api/src/rhai_binding/runtime/mod.rs`
-- New bridge/runtime code should import through `rhai_binding::runtime::*`, not directly from `script::*`.
+- Runtime wrapper types live directly under:
+  - `core_mod_api/src/rhai_binding/runtime/*`
+- Bridge/runtime code should import through `rhai_binding::runtime::*`.
 
 ## Extension references
 

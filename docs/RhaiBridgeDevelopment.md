@@ -16,15 +16,15 @@ Related design context: `docs/RhaiDialect.md`.
   - `core_mod_api/src/rhai_binding/bridges/domains/ecs/catalog/message_signatures.rs`
   - `core_mod_api/src/rhai_binding/bridges/domains/ecs/catalog/bundle_signatures.rs`
   - `core_mod_api/src/rhai_binding/bridges/domains/ecs/catalog/sysparam_providers.rs`
-- Runtime wrappers (migration in progress):
-  - `core_mod_api/src/rhai_binding/runtime/*` (re-exporting `script/*`)
+- Runtime wrappers:
+  - `core_mod_api/src/rhai_binding/runtime/*`
 - Script integration suites:
   - `core_mod/assets/scripts/core/schedule_hooks/startup/*`
 
 ## Workflow: add a new bridge feature
 
 1. Define runtime wrapper/API methods.
-- Add/update wrapper types and traits under runtime (`script/*` today, imported via `rhai_binding::runtime::*`).
+- Add/update wrapper types and traits under `rhai_binding/runtime/*`.
 - Keep API shape close to intended Rhai usage.
 
 2. Implement access provider wiring.

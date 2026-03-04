@@ -6,9 +6,9 @@ use crate::{
     chunk::components::{ChunkActor, ChunkLoader},
     config::statics::CONFIG,
 };
-use crate::script::ecs::bundle::internals::traits::BundleFromDynamic;
-use crate::script::ecs::bundle::bindings::types::Bundle;
-use crate::script::ecs::component::internals::traits::InsertComponentFromDynamic;
+use crate::rhai_binding::runtime::ecs::bundle::internals::traits::BundleFromDynamic;
+use crate::rhai_binding::runtime::ecs::bundle::bindings::types::Bundle;
+use crate::rhai_binding::runtime::ecs::component::internals::traits::InsertComponentFromDynamic;
 use crate::rhai_binding::meta::abstract_::trait_identity::GetTypeId;
 use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
 

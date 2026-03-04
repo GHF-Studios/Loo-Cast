@@ -1,7 +1,7 @@
 use crate::bevy::prelude::{Mut, World as BevyWorld};
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
-use crate::script::ecs::world::bindings::types::World;
+use crate::rhai_binding::runtime::ecs::world::bindings::types::World;
 use std::path::{Path, PathBuf};
 
 fn collect_rhai_files_recursive(dir: &Path, out: &mut Vec<PathBuf>) {

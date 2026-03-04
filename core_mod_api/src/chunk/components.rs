@@ -5,7 +5,7 @@ use rhai::Dynamic;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::Scale;
-use crate::script::ecs::component::internals::traits::InsertComponentFromDynamic;
+use crate::rhai_binding::runtime::ecs::component::internals::traits::InsertComponentFromDynamic;
 
 use super::enums::ZoomState;
 

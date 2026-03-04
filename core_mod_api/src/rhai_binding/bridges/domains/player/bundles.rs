@@ -5,7 +5,7 @@ use crate::rhai_binding::meta::abstract_::trait_identity::ToTraitObject;
 use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Persistent, Scoped};
 use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
 use crate::rhai_binding::value_semantics::trait_object::StaticTraitObject;
-use crate::script::ecs::bundle::internals::trait_objects::{BundleTrait, BundleTraitObject};
+use crate::rhai_binding::runtime::ecs::bundle::internals::trait_objects::{BundleTrait, BundleTraitObject};
 
 type OwnedPlayerBundle = AccessCell<Persistent, NativePlayerBundle>;
 type ScopedPlayerBundle = AccessCell<Scoped, NativePlayerBundle>;

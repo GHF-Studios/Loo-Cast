@@ -1,11 +1,11 @@
 use rhai::Shared;
 
 use crate::bevy::ecs::entity::Entity as BevyEntity;
-use crate::script::ecs::world::entity_ref::bindings::types::{
+use crate::rhai_binding::runtime::ecs::world::entity_ref::bindings::types::{
     EntityMut as ScriptEntityMut, EntityRef as ScriptEntityRef,
     EntityWorldMut as ScriptEntityWorldMut,
 };
-use crate::script::ecs::world::entity_ref::internals::traits::{
+use crate::rhai_binding::runtime::ecs::world::entity_ref::internals::traits::{
     EntityMutApi, EntityRefApi, EntityWorldMutApi,
 };
 

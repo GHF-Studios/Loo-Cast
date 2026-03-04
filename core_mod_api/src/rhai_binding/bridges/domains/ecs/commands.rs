@@ -1,8 +1,8 @@
 use rhai::{Dynamic, FnPtr, Shared};
 use std::any::TypeId as RustTypeId;
 
-use crate::script::ecs::system::commands::bindings::types::{Commands, EntityCommands};
-use crate::script::ecs::system::commands::internals::traits::{CommandsApi, EntityCommandsApi};
+use crate::rhai_binding::runtime::ecs::system::commands::bindings::types::{Commands, EntityCommands};
+use crate::rhai_binding::runtime::ecs::system::commands::internals::traits::{CommandsApi, EntityCommandsApi};
 
 type ScriptCommands = Shared<Commands>;
 type ScriptEntityCommands = Shared<EntityCommands>;
