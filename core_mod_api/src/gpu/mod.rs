@@ -1,4 +1,3 @@
-pub mod external;
 pub mod resources;
 
 pub mod workflows;

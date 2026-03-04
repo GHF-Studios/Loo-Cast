@@ -27,7 +27,7 @@
 //!
 //! Structure, scope & assets
 //! - Modules are organized around runtime subsystems: `chunk`, `config`, `core`, `debug`, `gpu`,
-//!   `input`, `logging`, `picking`, `player`, `reflection`, `render`, `script`, `time`, `usf`,
+//!   `input`, `logging`, `picking`, `player`, `reflection`, `render`, `rhai_binding`, `time`, `usf`,
 //!   `utils`, `window`, and `workflow`.
 //! - The crate registers workflows and plugin groups; see `CoreApiPluginGroup` and the
 //!   `register_workflow_mods!` invocation for the canonical composition approach used by the
@@ -109,7 +109,6 @@ pub use uuid;
 //pub mod traits;
 
 // Modules
-pub mod access;
 pub mod chunk;
 pub mod config;
 pub mod core;

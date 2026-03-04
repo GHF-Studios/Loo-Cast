@@ -2,11 +2,14 @@
 
 Purpose: carry forward agreed task structure after chat reset.
 
+Read first: `docs/RhaiAgentHandoff.md`
+
 ## Ground Rules
 
 - For **Task 3** and **Task 4**, produce a design plan and get approval **before** implementation.
 - Keep startup-script-based integration validation (`./build.sh dev` then `./run.sh dev`) as the main acceptance path.
 - Keep `sex::divisions::sex` test bridge content; do not delete it.
+- Keep Rhai global namespace minimal; prefer namespaced module APIs and `private fn` helper suites.
 
 ## Task 1: Structural Cleanup (no behavior expansion)
 
@@ -52,13 +55,13 @@ Outcome:
 Result snapshot:
 
 - Startup orchestration split into production suites vs testing suites.
-- Testing suite invocation is gated by `is_testing_bridges_enabled()`.
-- Testing bridge registration is gated at engine boot by `rhai_binding/testing/bridges_enabled` config.
+- Testing suite invocation is gated by `rhai_binding::testing::enabled()`.
+- Testing bridge registration is gated at engine boot by `rhai_binding/testing_enabled` config.
 - Default behavior excludes testing-only top-level modules (for now: `shop`) from the runtime bridge graph.
 
 ## Task 3: Bundle Construction Path Consolidation
 
-Status: pending (plan-first)
+Status: completed
 
 Problem:
 
@@ -74,6 +77,17 @@ Scope:
 Gate:
 
 - **Must provide plan + reasoning and get approval before implementation.**
+
+Result snapshot:
+
+- Chosen direction: remove stale `BundleFromDynamic` flow and consolidate on
+  provider/catalog dispatch.
+- `World::spawn_single` now uses typed access payload
+  (`WorldSpawnSingleRequest`) instead of raw string+arg shape.
+- Bundle insertion dispatch now resolves through inventory-backed bundle
+  signature registry (`BUNDLE_SIG__PLAYER__SPAWN_SINGLE`).
+- Legacy/dead bundle scaffolding was removed (`runtime::ecs::bundle::bindings`
+  and `BundleFromDynamic` trait path).
 
 ## Task 4: Arc Detox for Scoped Access Paths
 

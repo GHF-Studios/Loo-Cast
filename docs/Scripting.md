@@ -6,7 +6,10 @@
 - Startup script entrypoint:
   - authoring path: `core_mod/assets/scripts/core/boot.rhai`
   - runtime asset path: `core_mod/scripts/core/boot.rhai` (resolved by `asset_root()`).
-- `boot.rhai` registers schedule hooks through `add_hook_handler("<schedule_name>")`.
+- `boot.rhai` registers schedule hooks through `rhai_binding::schedule_hooks::add("<schedule_name>")`.
+- Testing gate is exposed via `rhai_binding::testing::enabled()`, backed by config key
+  `rhai_binding/testing_enabled`.
+- Policy: keep script helper orchestration out of global namespace; prefer namespaced modules and `private fn`.
 
 ## Hook loading model
 

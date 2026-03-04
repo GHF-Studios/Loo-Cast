@@ -21,6 +21,9 @@ Macro surface notes: `docs/RhaiMacroSurface.md`.
   - `core_mod_api/src/rhai_binding/bridges/domains/bevy/ecs/catalog/sysparam_providers.rs`
 - Runtime wrappers:
   - `core_mod_api/src/rhai_binding/runtime/*`
+  - bundle spawn dispatch runtime registry:
+    - `core_mod_api/src/rhai_binding/runtime/ecs/bundle/internals/types.rs`
+    - `core_mod_api/src/rhai_binding/runtime/ecs/bundle/internals/statics.rs`
 - Script integration suites:
   - `core_mod/assets/scripts/core/schedule_hooks/startup/*`
 
@@ -78,6 +81,24 @@ Use this for Query/Message/Bundle patterns that require Rust monomorphization.
 
 5. Cover with startup script examples.
 - Add at least one positive-path script that exercises the new signature.
+
+## Workflow: add a new bundle spawn signature
+
+1. Add dispatch entry in `catalog/bundle_signatures.rs`.
+- Register `BundleSpawnDispatchEntry` with:
+  - signature id,
+  - `instance_type_id`,
+  - `trait_id` (`bevy::ecs::bundle::Bundle`),
+  - dispatch function.
+
+2. Resolve through provider path.
+- `World::spawn_single` flows through typed request payload
+  (`WorldSpawnSingleRequest`) and `resolve_bundle_spawn_dispatch`.
+
+3. Keep constructor model explicit.
+- Prefer reflected constructors + trait-object conversion
+  (`PlayerBundle::new_default` + `as_trait_obj` style).
+- Do not reintroduce legacy `BundleFromDynamic` flow.
 
 ## Naming conventions (recommended)
 

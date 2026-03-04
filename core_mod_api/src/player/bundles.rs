@@ -6,9 +6,6 @@ use crate::{
     chunk::components::{ChunkActor, ChunkLoader},
     config::statics::CONFIG,
 };
-use crate::rhai_binding::runtime::ecs::bundle::internals::traits::BundleFromDynamic;
-use crate::rhai_binding::runtime::ecs::bundle::bindings::types::Bundle;
-use crate::rhai_binding::runtime::ecs::component::internals::traits::InsertComponentFromDynamic;
 use crate::rhai_binding::meta::abstract_::trait_identity::GetTypeId;
 use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
 
@@ -59,21 +56,4 @@ impl GetTypeId for PlayerBundle {
 }
 impl GetTypeValueSemantics for PlayerBundle {
     const VALUE_SEMANTICS: TypeValueSemantics = TypeValueSemantics::Owned;
-}
-impl BundleFromDynamic for PlayerBundle {
-    fn from_dynamic(method: &str, params: rhai::Dynamic) -> Bundle {
-        match method {
-            "default" => {
-                if !params.is::<()>() {
-                    panic!("PlayerBundle::default does not take any parameters");
-                }
-                let components = PlayerBundle::default();
-                
-                Bundle(todo!())
-            },
-            unknown => {
-                panic!("Unknown PlayerBundle constructor method: '{}'. Valid methods: default", unknown);
-            }
-        }
-    }
 }

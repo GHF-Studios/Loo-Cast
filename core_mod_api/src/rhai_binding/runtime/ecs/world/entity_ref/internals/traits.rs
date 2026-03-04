@@ -1,7 +1,4 @@
 use crate::bevy::prelude::Entity as BevyEntity;
-use rhai::{Array, Dynamic, FnPtr, NativeCallContext};
-
-use crate::rhai_binding::runtime::ecs::{bundle::bindings::types::Bundle, world::entity_ref::bindings::types::EntityRef};
 
 pub trait EntityRefApi {
     fn id(&self) -> BevyEntity;

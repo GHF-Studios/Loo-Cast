@@ -1,4 +1,4 @@
-fn run_ecs_player_bundle_suite(world) {
+private fn run_ecs_player_bundle_suite(world) {
     print("[Startup][Player] bundle suite");
 
     let player_bundle = core_mod_api::player::bundles::PlayerBundle::new_default();

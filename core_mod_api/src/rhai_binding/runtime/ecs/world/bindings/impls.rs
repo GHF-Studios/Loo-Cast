@@ -13,8 +13,8 @@ use crate::rhai_binding::runtime::ecs::{
         entity_ref::bindings::types::EntityWorldMut,
         internals::{
             access_requests::{
-                WorldQueryRequest, WriteProbeMessageRequest, WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES, WORLD_ACCESS_METHOD_QUERY,
-                WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE,
+                WorldQueryRequest, WorldSpawnSingleRequest, WriteProbeMessageRequest, WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES,
+                WORLD_ACCESS_METHOD_QUERY, WORLD_ACCESS_METHOD_SPAWN_SINGLE, WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE,
             },
             traits::WorldApi,
         },
@@ -77,11 +77,12 @@ impl WorldApi for Shared<World> {
 
     fn spawn_single(&self, bundle: BundleTraitObject, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
         let mut world = self.world.start_write();
+        let spawn_request = WorldSpawnSingleRequest::new(bundle);
 
         let entity_world_mut_raw_handle: crate::rhai_binding::value_semantics::access_cell::AccessCell<
             crate::rhai_binding::value_semantics::access_cell::Scoped,
             BevyEntityWorldMut<'static>,
-        > = unsafe { world.start_access("spawn", Box::new(bundle)) };
+        > = unsafe { world.start_access(WORLD_ACCESS_METHOD_SPAWN_SINGLE, Box::new(spawn_request)) };
         let entity_world_mut = EntityWorldMut {
             entity_world_mut: entity_world_mut_raw_handle.clone(),
         };

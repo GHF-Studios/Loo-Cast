@@ -1,4 +1,4 @@
-fn run_testing_bridge_smoke_suite() {
+private fn run_testing_bridge_smoke_suite() {
     print("[Startup][Testing] bridge smoke suite");
 
     shop::divisions::sex::test_function();

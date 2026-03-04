@@ -6,17 +6,14 @@ use crate::bevy::ecs::system::EntityCommands;
 use crate::bevy::ecs::world::EntityWorldMut;
 use crate::bevy::prelude::Entity as BevyEntity;
 use crate::bevy::prelude::World;
-use crate::player::bundles::PlayerBundle;
-use crate::rhai_binding::meta::abstract_::trait_identity::ToTraitObject;
-use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Persistent, Scoped};
+use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
 use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
-use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
-use crate::rhai_binding::runtime::ecs::bundle::internals::trait_objects::{BundleTrait, BundleTraitObject};
+use crate::rhai_binding::runtime::ecs::bundle::internals::statics::resolve_bundle_spawn_dispatch;
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
 use crate::rhai_binding::runtime::ecs::system::query::{bindings::types::Query, internals::statics::resolve_query_dispatch};
 use crate::rhai_binding::runtime::ecs::world::internals::access_requests::{
-    WorldQueryRequest, WriteProbeMessageRequest, WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES, WORLD_ACCESS_METHOD_QUERY,
-    WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE,
+    WorldQueryRequest, WorldSpawnSingleRequest, WriteProbeMessageRequest, WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES,
+    WORLD_ACCESS_METHOD_QUERY, WORLD_ACCESS_METHOD_SPAWN_SINGLE, WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE,
 };
 use crate::rhai_binding::runtime::std::iter::bindings::types::StringIter;
 
@@ -55,29 +52,14 @@ unsafe impl AccessCellProvider<EntityWorldMut<'static>> for World {
 
                 self.spawn_empty()
             }
-            "spawn" => {
-                let Ok(bundle) = args.downcast::<BundleTraitObject>() else {
+            WORLD_ACCESS_METHOD_SPAWN_SINGLE => {
+                let Ok(request) = args.downcast::<WorldSpawnSingleRequest>() else {
                     panic!("Unsupported arguments for method '{}' in AccessCellProvider<EntityWorldMut> for World", method);
                 };
+                let request = *request;
                 let mut ent = self.spawn_empty();
-                let bundle = *bundle;
-                match <PlayerBundle as GetTypeValueSemantics>::VALUE_SEMANTICS {
-                    TypeValueSemantics::ScopedMut => {
-                        let bundle: AccessCell<Scoped, PlayerBundle> = ToTraitObject::<BundleTrait>::cast_from(bundle.0);
-                        ent.insert(bundle.take());
-                    }
-                    TypeValueSemantics::Owned => {
-                        let bundle: AccessCell<Persistent, PlayerBundle> = ToTraitObject::<BundleTrait>::cast_from(bundle.0);
-                        ent.insert(bundle.take());
-                    }
-                    TypeValueSemantics::Clone
-                    | TypeValueSemantics::Ref
-                    | TypeValueSemantics::Mut
-                    | TypeValueSemantics::ScopedOwned
-                    | TypeValueSemantics::ScopedRef => {
-                        panic!("World::spawn currently supports PlayerBundle semantics: owned | scoped_mut")
-                    }
-                }
+                let dispatch = resolve_bundle_spawn_dispatch(&request.bundle);
+                dispatch(&mut ent, request.bundle);
                 ent
             }
             _ => panic!("Unsupported method '{}' in AccessCellProvider<EntityWorldMut> for World", method),

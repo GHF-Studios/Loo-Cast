@@ -1,4 +1,4 @@
-fn run_ecs_query_messages_iterators_suite(world) {
+private fn run_ecs_query_messages_iterators_suite(world) {
     print("[Startup][ECS] query/single/messages suite");
 
     let entity_data = bevy::ecs::query::QueryData::single("bevy::ecs::entity::Entity");

@@ -6,6 +6,7 @@ Quick links
 
 - `Architecture.md` — engine & mod composition
 - `Scripting.md` — Rhai scripting overview and hook system
+- `RhaiAgentHandoff.md` — condensed context/rules for continuing Rhai-binding work after chat reset
 - `RhaiDialect.md` — architecture and design rules for the custom Rhai dialect layer
 - `RhaiValueSemantics.md` — intent and lifecycle model for Rhai-facing value semantics variants
 - `RhaiMacroSurface.md` — current reflection macro families and planned naming/unification direction

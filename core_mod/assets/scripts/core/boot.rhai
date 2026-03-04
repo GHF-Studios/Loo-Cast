@@ -1,8 +1,12 @@
-add_hook_handler("pre_startup");
-add_hook_handler("startup");
-add_hook_handler("post_startup");
-add_hook_handler("first");
-add_hook_handler("pre_update");
-add_hook_handler("update");
-add_hook_handler("post_update");
-add_hook_handler("last");
+for hook in [
+    "pre_startup",
+    "startup",
+    "post_startup",
+    "first",
+    "pre_update",
+    "update",
+    "post_update",
+    "last",
+] {
+    rhai_binding::schedule_hooks::add(hook);
+}

@@ -19,16 +19,17 @@ This lets us split suites by concern while keeping one executable entrypoint.
   - Bevy ECS bridge examples (World, Commands, Entity primitives, Query, Messages, iterators).
 - `testing/`
   - testing-only bridges that are intentionally not production API.
-  - loaded and executed only when `rhai_binding/testing/bridges_enabled = true` in `config.toml`.
+  - loaded and executed only when `rhai_binding/testing_enabled = true` in `config.toml`.
 
 ## Testing gate
 
 - Bridge registration and startup invocation for testing-only modules are both gated by:
-  - `rhai_binding/testing/bridges_enabled` (from `core_mod/assets/configs/config.toml`)
+  - `rhai_binding/testing_enabled` (from `core_mod/assets/configs/config.toml`)
 - Default behavior is disabled (production-safe startup surface).
 
 ## Function naming convention
 
+Startup helper functions are `private fn` by default and are orchestrated centrally.
 Use explicit suite function names, for example:
 
 - `run_reflection_*`
