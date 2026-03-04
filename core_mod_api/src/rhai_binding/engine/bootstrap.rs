@@ -1,17 +1,17 @@
 use std::path::PathBuf;
 
-use crate::bevy::prelude::{
-    App, First, Last, PostStartup, PostUpdate, PreStartup, PreUpdate, Startup, Update,
-};
+use crate::bevy::prelude::{App, First, Last, PostStartup, PostUpdate, PreStartup, PreUpdate, Startup, Update};
 use crate::core::functions::asset_root;
 use crate::rhai_binding::bind::engine_ext::EngineExt;
 use crate::rhai_binding::engine::hook::new_hook_runner_system;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::SCHEDULE_HOOKS;
+use crate::rhai_binding::runtime::ecs::messages::bindings::types::ScriptProbeMessage;
 use rhai::Engine;
 
 pub fn build(app: &mut App) {
     app.init_resource::<MainScriptEngineHandle>();
+    app.add_message::<ScriptProbeMessage>();
 
     let path = "core_mod/scripts/core/schedule_hooks/";
     let mut abs_path = PathBuf::from(path);

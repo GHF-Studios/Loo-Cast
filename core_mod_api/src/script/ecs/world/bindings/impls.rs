@@ -1,111 +1,169 @@
 use rhai::{Dynamic, FnPtr, NativeCallContext, Shared};
-use std::sync::TryLockError;
 
-use crate::bevy::prelude::Commands as BevyCommands;
+use crate::bevy::ecs::message::Messages;
+use crate::bevy::ecs::query::{QuerySingleError, With};
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
-use crate::rhai_binding::value_semantics::access_traits::ScopedAccessProvider;
-use crate::rhai_binding::value_semantics::scoped_access::ScopedAccessHandle;
+use crate::bevy::prelude::Commands as BevyCommands;
+use crate::bevy::prelude::Entity as BevyEntity;
+use crate::player::components::Player;
+use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 
-use crate::script::{
-    ecs::{
-        bundle::{bindings::types::Bundle, internals::trait_objects::BundleTraitObject},
-        system::commands::bindings::types::Commands,
-        world::{
-            bindings::types::World,
-            entity_ref::bindings::types::EntityWorldMut,
-            internals::traits::WorldApi
-        }
-    }
+use crate::script::ecs::{
+    bundle::internals::trait_objects::BundleTraitObject,
+    messages::bindings::types::{MessageBatch, ScriptProbeMessage},
+    query::bindings::types::EntityQuery,
+    system::commands::bindings::types::Commands,
+    world::{bindings::types::World, entity_ref::bindings::types::EntityWorldMut, internals::traits::WorldApi},
 };
 
 impl WorldApi for Shared<World> {
     fn commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
-        let mut world = match self.world.0.try_write() {
-            Ok(guard) => guard,
-            Err(TryLockError::Poisoned(_)) => panic!("World lock poisoned"),
-            Err(TryLockError::WouldBlock) => panic!("World is already borrowed elsewhere"),
+        let mut world = self.world.start_write();
+
+        let commands_raw_handle: crate::rhai_binding::value_semantics::access_cell::AccessCell<
+            crate::rhai_binding::value_semantics::access_cell::Scoped,
+            BevyCommands<'static, 'static>,
+        > = unsafe { world.start_access("commands", Box::new(())) };
+        let commands_binding = Commands {
+            commands: commands_raw_handle.clone(),
         };
+        let shared_commands = Shared::new(commands_binding);
 
-        world.write(|world| {
-            let commands_raw_handle: ScopedAccessHandle<BevyCommands<'static, 'static>> = unsafe { world.start_access("commands", Box::new(())) };
-            let commands_binding = Commands { commands: commands_raw_handle.clone() };
-            let shared_commands = Shared::new(commands_binding);
+        let output = callback.call_within_context::<Dynamic>(&ctx, (shared_commands.clone(),));
 
-            let output: Dynamic =
-                callback.call_within_context(&ctx, (shared_commands.clone(),))
-                    .expect("Callback failed");
+        drop(shared_commands);
+        unsafe { world.end_access(commands_raw_handle) };
+        self.world.end_write(world);
 
-            drop(shared_commands);
-            unsafe { world.end_access(commands_raw_handle) };
-
-            output
-        }).unwrap_or_else(|e| {
-            panic!("World access failed: {}", e);
+        output.unwrap_or_else(|e| {
+            panic!("Callback failed: {e}");
         })
     }
 
     fn flush(&self) {
-        let mut world = match self.world.0.try_write() {
-            Ok(guard) => guard,
-            Err(TryLockError::Poisoned(_)) => panic!("World lock poisoned"),
-            Err(TryLockError::WouldBlock) => panic!("World is already borrowed elsewhere"),
-        };
-
-        world.write(|world| {
-            world.flush();
-        }).unwrap_or_else(|e| {
-            panic!("World access failed: {}", e);
-        })
+        let mut world = self.world.start_write();
+        world.flush();
+        self.world.end_write(world);
     }
 
     fn spawn_empty(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
-        let mut world = match self.world.0.try_write() {
-            Ok(guard) => guard,
-            Err(TryLockError::Poisoned(_)) => panic!("World lock poisoned"),
-            Err(TryLockError::WouldBlock) => panic!("World is already borrowed elsewhere"),
+        let mut world = self.world.start_write();
+
+        let entity_world_mut_raw_handle: crate::rhai_binding::value_semantics::access_cell::AccessCell<
+            crate::rhai_binding::value_semantics::access_cell::Scoped,
+            BevyEntityWorldMut<'static>,
+        > = unsafe { world.start_access("spawn_empty", Box::new(())) };
+        let entity_world_mut = EntityWorldMut {
+            entity_world_mut: entity_world_mut_raw_handle.clone(),
         };
+        let shared_entity_world_mut = Shared::new(entity_world_mut);
 
-        world.write(|world| {
-            let entity_world_mut_raw_handle: ScopedAccessHandle<BevyEntityWorldMut<'static>> = unsafe { world.start_access("spawn_empty", Box::new(())) };
-            let entity_world_mut = EntityWorldMut { entity_world_mut: entity_world_mut_raw_handle.clone() };
-            let shared_entity_world_mut = Shared::new(entity_world_mut);
+        let output = callback.call_within_context::<Dynamic>(&ctx, (shared_entity_world_mut.clone(),));
 
-            let output: Dynamic =
-                callback.call_within_context(&ctx, (shared_entity_world_mut.clone(),))
-                    .expect("Callback failed");
+        drop(shared_entity_world_mut);
+        unsafe { world.end_access(entity_world_mut_raw_handle) };
+        self.world.end_write(world);
 
-            drop(shared_entity_world_mut);
-            unsafe { world.end_access(entity_world_mut_raw_handle) };
-
-            output
-        }).unwrap_or_else(|e| {
-            panic!("World access failed: {}", e);
+        output.unwrap_or_else(|e| {
+            panic!("Callback failed: {e}");
         })
     }
 
     fn spawn_single(&self, bundle: BundleTraitObject, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
-        let mut world = match self.world.0.try_write() {
-            Ok(guard) => guard,
-            Err(TryLockError::Poisoned(_)) => panic!("World lock poisoned"),
-            Err(TryLockError::WouldBlock) => panic!("World is already borrowed elsewhere"),
+        let mut world = self.world.start_write();
+
+        let entity_world_mut_raw_handle: crate::rhai_binding::value_semantics::access_cell::AccessCell<
+            crate::rhai_binding::value_semantics::access_cell::Scoped,
+            BevyEntityWorldMut<'static>,
+        > = unsafe { world.start_access("spawn", Box::new(bundle)) };
+        let entity_world_mut = EntityWorldMut {
+            entity_world_mut: entity_world_mut_raw_handle.clone(),
+        };
+        let shared_entity_world_mut = Shared::new(entity_world_mut);
+
+        let output = callback.call_within_context::<Dynamic>(&ctx, (shared_entity_world_mut.clone(),));
+
+        drop(shared_entity_world_mut);
+        unsafe { world.end_access(entity_world_mut_raw_handle) };
+        self.world.end_write(world);
+
+        output.unwrap_or_else(|e| {
+            panic!("Callback failed: {e}");
+        })
+    }
+
+    fn query_entities(&self) -> EntityQuery {
+        let mut world = self.world.start_write();
+        let mut query = world.query::<BevyEntity>();
+        let entities = query.iter(&*world).collect();
+        self.world.end_write(world);
+
+        EntityQuery { entities }
+    }
+
+    fn query_players(&self) -> EntityQuery {
+        let mut world = self.world.start_write();
+        let mut query = world.query_filtered::<BevyEntity, With<Player>>();
+        let entities = query.iter(&*world).collect();
+        self.world.end_write(world);
+
+        EntityQuery { entities }
+    }
+
+    fn single_player(&self) -> BevyEntity {
+        let mut world = self.world.start_write();
+        let mut query = world.query_filtered::<BevyEntity, With<Player>>();
+        let single = query.single(&*world);
+        self.world.end_write(world);
+
+        single.unwrap_or_else(|err| {
+            panic!("World::single_player failed: {err}");
+        })
+    }
+
+    fn try_single_player(&self) -> Dynamic {
+        let mut world = self.world.start_write();
+        let mut query = world.query_filtered::<BevyEntity, With<Player>>();
+        let single = query.single(&*world);
+        self.world.end_write(world);
+
+        match single {
+            Ok(entity) => Dynamic::from(entity),
+            Err(QuerySingleError::NoEntities(_)) | Err(QuerySingleError::MultipleEntities(_)) => Dynamic::UNIT,
+        }
+    }
+
+    fn write_probe_message(&self, payload: rhai::ImmutableString) {
+        let mut world = self.world.start_write();
+        let message = ScriptProbeMessage {
+            payload: payload.to_string(),
         };
 
-        world.write(|world| {
-            let entity_world_mut_raw_handle: ScopedAccessHandle<BevyEntityWorldMut<'static>> =
-                unsafe { world.start_access("spawn", Box::new(bundle)) };
-            let entity_world_mut = EntityWorldMut { entity_world_mut: entity_world_mut_raw_handle.clone() };
-            let shared_entity_world_mut = Shared::new(entity_world_mut);
+        if world.write_message(message).is_none() {
+            self.world.end_write(world);
+            panic!(
+                "ScriptProbeMessage writer unavailable. Ensure RhaiEnginePlugin registered add_message::<ScriptProbeMessage>()"
+            );
+        }
 
-            let output: Dynamic =
-                callback.call_within_context(&ctx, (shared_entity_world_mut.clone(),))
-                    .expect("Callback failed");
+        self.world.end_write(world);
+    }
 
-            drop(shared_entity_world_mut);
-            unsafe { world.end_access(entity_world_mut_raw_handle) };
+    fn read_probe_messages(&self) -> MessageBatch {
+        let mut world = self.world.start_write();
 
-            output
-        }).unwrap_or_else(|e| {
-            panic!("World access failed: {}", e);
-        })
+        let payloads = {
+            let Some(mut messages) = world.get_resource_mut::<Messages<ScriptProbeMessage>>() else {
+                self.world.end_write(world);
+                panic!(
+                    "ScriptProbeMessage storage is unavailable. Ensure RhaiEnginePlugin registered add_message::<ScriptProbeMessage>()"
+                );
+            };
+            messages.drain().map(|message| message.payload).collect()
+        };
+
+        self.world.end_write(world);
+
+        MessageBatch { payloads }
     }
 }

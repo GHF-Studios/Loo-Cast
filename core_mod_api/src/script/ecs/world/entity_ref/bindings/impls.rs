@@ -1,5 +1,3 @@
-use std::sync::TryLockError;
-
 use crate::bevy::ecs::entity::Entity as BevyEntity;
 use crate::rhai_binding::value_semantics::access_traits::ReadAccessProvider;
 use crate::script::{
@@ -11,48 +9,27 @@ use crate::script::{
 
 impl EntityRefApi for EntityRef {
     fn id(&self) -> BevyEntity {
-        let entity_ref = match self.entity_ref.0.try_read() {
-            Ok(guard) => guard,
-            Err(TryLockError::Poisoned(_)) => panic!("EntityRef lock poisoned"),
-            Err(TryLockError::WouldBlock) => panic!("EntityRef is already borrowed elsewhere"),
-        };
-
-        entity_ref.read(|entity_ref| {
-            entity_ref.access("id", Box::new(()))
-        }).unwrap_or_else(|e| {
-            panic!("EntityRef access failed: {}", e);
-        })
+        let entity_ref = self.entity_ref.start_read();
+        let id = entity_ref.access("id", Box::new(()));
+        self.entity_ref.end_read(entity_ref);
+        id
     }
 }
 
 impl EntityMutApi for EntityMut {
     fn id(&self) -> BevyEntity {
-        let entity_mut = match self.entity_mut.0.try_read() {
-            Ok(guard) => guard,
-            Err(TryLockError::Poisoned(_)) => panic!("EntityMut lock poisoned"),
-            Err(TryLockError::WouldBlock) => panic!("EntityMut is already borrowed elsewhere"),
-        };
-
-        entity_mut.read(|entity_mut| {
-            entity_mut.access("id", Box::new(()))
-        }).unwrap_or_else(|e| {
-            panic!("EntityRef access failed: {}", e);
-        })
+        let entity_mut = self.entity_mut.start_read();
+        let id = entity_mut.access("id", Box::new(()));
+        self.entity_mut.end_read(entity_mut);
+        id
     }
 }
 
 impl EntityWorldMutApi for EntityWorldMut {
     fn id(&self) -> BevyEntity {
-        let entity_world_mut = match self.entity_world_mut.0.try_read() {
-            Ok(guard) => guard,
-            Err(TryLockError::Poisoned(_)) => panic!("EntityWorldMut lock poisoned"),
-            Err(TryLockError::WouldBlock) => panic!("EntityWorldMut is already borrowed elsewhere"),
-        };
-
-        entity_world_mut.read(|entity_world_mut| {
-            entity_world_mut.access("id", Box::new(()))
-        }).unwrap_or_else(|e| {
-            panic!("EntityRef access failed: {}", e);
-        })
+        let entity_world_mut = self.entity_world_mut.start_read();
+        let id = entity_world_mut.access("id", Box::new(()));
+        self.entity_world_mut.end_read(entity_world_mut);
+        id
     }
 }

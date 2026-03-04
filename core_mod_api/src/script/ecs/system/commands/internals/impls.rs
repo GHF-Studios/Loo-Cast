@@ -1,23 +1,22 @@
 use crate::bevy::prelude::Entity as BevyEntity;
 use crate::bevy::ecs::system::Commands;
 use crate::bevy::ecs::system::EntityCommands;
-use crate::rhai_binding::value_semantics::access_traits::ScopedAccessProvider;
-use crate::rhai_binding::value_semantics::scoped_access::{ScopedAccess, ScopedAccessHandle};
+use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
+use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
 use std::any::Any;
-use std::sync::{Arc, RwLock};
 
 
-unsafe impl ScopedAccessProvider<EntityCommands<'static>> for Commands<'static, 'static> {
-    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> ScopedAccessHandle<EntityCommands<'static>> {
+unsafe impl AccessCellProvider<EntityCommands<'static>> for Commands<'static, 'static> {
+    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> AccessCell<Scoped, EntityCommands<'static>> {
         let entity_commands = match method {
             "spawn_empty" => {
                 if !args.is::<()>() {
-                    panic!("Unsupported arguments for method '{}' in ScopedAccessProvider<EntityCommands> for Commands", method);
+                    panic!("Unsupported arguments for method '{}' in AccessCellProvider<EntityCommands> for Commands", method);
                 }
 
                 self.spawn_empty()
             },
-            _ => panic!("Unsupported method '{}' in ScopedAccessProvider<EntityCommands> for Commands", method),
+            _ => panic!("Unsupported method '{}' in AccessCellProvider<EntityCommands> for Commands", method),
         };
 
         // Erase lifetime(s)
@@ -25,33 +24,26 @@ unsafe impl ScopedAccessProvider<EntityCommands<'static>> for Commands<'static, 
             std::mem::transmute::<EntityCommands<'_>, EntityCommands<'static>>(entity_commands)
         };
 
-        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(Box::new(entity_commands_static)))))
+        AccessCell::new(entity_commands_static)
     }
 
-    unsafe fn end_access(&mut self, handle: ScopedAccessHandle<EntityCommands<'static>>) {
-        let mut entity_commands_raw_scoped = handle
-            .0
-            .write()
-            .expect("RwLock poisoned");
-        
-        let returned_entity_commands_static = entity_commands_raw_scoped
-            .invalidate()
-            .expect("EntityCommands handle was already invalidated");
+    unsafe fn end_access(&mut self, handle: AccessCell<Scoped, EntityCommands<'static>>) {
+        let returned_entity_commands_static = handle.take();
 
         // Restore lifetime(s)
         let _returned_entity_commands = unsafe {
-            std::mem::transmute::<EntityCommands<'static>, EntityCommands<'_>>(*returned_entity_commands_static)
+            std::mem::transmute::<EntityCommands<'static>, EntityCommands<'_>>(returned_entity_commands_static)
         };
     }
 }
 
-unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for EntityCommands<'static> {
-    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> ScopedAccessHandle<Commands<'static, 'static>> {
+unsafe impl AccessCellProvider<Commands<'static, 'static>> for EntityCommands<'static> {
+    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> AccessCell<Scoped, Commands<'static, 'static>> {
         if method != "commands" {
-            panic!("Unsupported method '{}' in ScopedAccessProvider<Commands> for EntityCommands", method);
+            panic!("Unsupported method '{}' in AccessCellProvider<Commands> for EntityCommands", method);
         }
         if !args.is::<()>() {
-            panic!("Unsupported arguments for method '{}' in ScopedAccessProvider<Commands> for EntityCommands", method);
+            panic!("Unsupported arguments for method '{}' in AccessCellProvider<Commands> for EntityCommands", method);
         }
 
         let commands = self.commands();
@@ -61,48 +53,34 @@ unsafe impl ScopedAccessProvider<Commands<'static, 'static>> for EntityCommands<
             std::mem::transmute::<Commands<'_, '_>, Commands<'static, 'static>>(commands)
         };
 
-        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(Box::new(commands_static)))))
+        AccessCell::new(commands_static)
     }
 
-    unsafe fn end_access(&mut self, handle: ScopedAccessHandle<Commands<'static, 'static>>) {
-        let mut commands_raw_scoped = handle
-            .0
-            .write()
-            .expect("RwLock poisoned");
-        
-        let returned_commands_static = commands_raw_scoped
-            .invalidate()
-            .expect("Commands handle was already invalidated");
+    unsafe fn end_access(&mut self, handle: AccessCell<Scoped, Commands<'static, 'static>>) {
+        let returned_commands_static = handle.take();
 
         // Restore lifetime(s)
         let _returned_commands = unsafe {
-            std::mem::transmute::<Commands<'static, 'static>, Commands<'_, '_>>(*returned_commands_static)
+            std::mem::transmute::<Commands<'static, 'static>, Commands<'_, '_>>(returned_commands_static)
         };
     }
 }
 
-unsafe impl ScopedAccessProvider<BevyEntity> for EntityCommands<'static> {
-    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> ScopedAccessHandle<BevyEntity> {
+unsafe impl AccessCellProvider<BevyEntity> for EntityCommands<'static> {
+    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> AccessCell<Scoped, BevyEntity> {
         if method != "id" {
-            panic!("Unsupported method '{}' in ScopedAccessProvider<BevyEntity> for EntityCommands", method);
+            panic!("Unsupported method '{}' in AccessCellProvider<BevyEntity> for EntityCommands", method);
         }
         if !args.is::<()>() {
-            panic!("Unsupported arguments for method '{}' in ScopedAccessProvider<BevyEntity> for EntityCommands", method);
+            panic!("Unsupported arguments for method '{}' in AccessCellProvider<BevyEntity> for EntityCommands", method);
         }
 
         let id = self.id();
 
-        ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(Box::new(id)))))
+        AccessCell::new(id)
     }
 
-    unsafe fn end_access(&mut self, handle: ScopedAccessHandle<BevyEntity>) {
-        let mut id_raw_scoped = handle
-            .0
-            .write()
-            .expect("RwLock poisoned");
-        
-        let _returned_id = id_raw_scoped
-            .invalidate()
-            .expect("BevyEntity handle was already invalidated");
+    unsafe fn end_access(&mut self, handle: AccessCell<Scoped, BevyEntity>) {
+        let _returned_id = handle.take();
     }
 }

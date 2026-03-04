@@ -1,9 +1,8 @@
 use crate::bevy::prelude::{Mut, World as BevyWorld};
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
-use crate::rhai_binding::value_semantics::scoped_access::{ScopedAccess, ScopedAccessHandle};
+use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
 use crate::script::ecs::world::bindings::types::World;
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
 
 fn compose_hook_source(path: &str) -> String {
     let script_path = PathBuf::from(path);
@@ -43,8 +42,7 @@ pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut 
             let mut scope = rhai::Scope::new();
 
             let world = std::mem::take(source_world);
-            let world_raw_handle =
-                ScopedAccessHandle(Arc::new(RwLock::new(ScopedAccess::new(Box::new(world)))));
+            let world_raw_handle: AccessCell<Scoped, BevyWorld> = AccessCell::new(world);
             let world_binding = World {
                 world: world_raw_handle.clone(),
             };
@@ -54,14 +52,8 @@ pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut 
                 .call_fn::<()>(&mut scope, &ast, "main", (shared_world,))
                 .unwrap();
 
-            let mut world_raw_scoped = world_raw_handle
-                .0
-                .write()
-                .expect("RwLock poisoned");
-            let returned_world = world_raw_scoped
-                .invalidate()
-                .expect("World handle was already invalidated");
-            *source_world = *returned_world;
+            let returned_world = world_raw_handle.take();
+            *source_world = returned_world;
         });
     }
 }

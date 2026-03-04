@@ -1,6 +1,6 @@
 use std::any::Any;
 
-use crate::rhai_binding::value_semantics::scoped_access::ScopedAccessHandle;
+use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
 
 /// Provides read-only, non-mutating access to a value of type `T` from `Self`,
 /// typically used to expose internal state to external systems (e.g., scripting).
@@ -39,7 +39,7 @@ pub(crate) trait WriteAccessProvider<T: Clone> {
 ///
 /// ## Contract
 /// - `start_access` and `end_access` **must** be called during the **same execution of the same Bevy system**.
-/// - The returned `ScopedAccessHandle<T>` must **not escape** the scope in which `start_access` was called.
+/// - The returned `AccessCell<Scoped, T>` must **not escape** the scope in which `start_access` was called.
 /// - `end_access` **must be called** before the system yields control back to Bevy's ECS scheduler.
 /// - The access must remain **synchronous, non-blocking, and locally scoped**-no async, no deferring, no caching handles.
 ///
@@ -52,22 +52,22 @@ pub(crate) trait WriteAccessProvider<T: Clone> {
 /// Violating these guarantees may result in **undefined behavior**, including use-after-free or aliasing mutable borrows.
 /// # "Design rationale":
 /// This trait provides unsafe, dynamic, lifetime-erased access across a constrained, synchronous borrow window.
-/// Because Bevy controls world borrowing tightly, ScopedAccessHandle<T> must act like a scoped guard.
+/// Because Bevy controls world borrowing tightly, `AccessCell<Scoped, T>` must act like a scoped guard.
 /// That means the full access cycle (start -> use -> end) MUST complete within a single ECS system frame.
 /// Don't try to store handles, yield them across frames, or wrap this in async - it will break Rust's safety model.
-pub(crate) unsafe trait ScopedAccessProvider<T> {
+pub(crate) unsafe trait AccessCellProvider<T> {
     /// Begins a scoped, synchronous access to a value of type `T` from `Self`, using a named method and arguments.
     /// Returns a handle representing the active borrow.
     ///
     /// # Safety
     /// The returned handle must not escape the calling system. This method must be followed by a call to `end_access`
     /// during the same system execution before control returns to Bevy.
-    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> ScopedAccessHandle<T>;
+    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> AccessCell<Scoped, T>;
 
     /// Ends a previously started scoped access, releasing the associated borrow.
     ///
     /// # Safety
     /// This must only be called with a handle previously returned by `start_access`
     /// during the current system execution.
-    unsafe fn end_access(&mut self, handle: ScopedAccessHandle<T>);
+    unsafe fn end_access(&mut self, handle: AccessCell<Scoped, T>);
 }

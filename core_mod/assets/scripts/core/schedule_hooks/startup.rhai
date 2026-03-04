@@ -4,5 +4,6 @@ fn main(world) {
     run_world_commands_suite(world);
     run_player_bundle_suite(world);
     run_entity_primitives_suite(world);
+    run_query_single_messages_suite(world);
     world.flush();
 }

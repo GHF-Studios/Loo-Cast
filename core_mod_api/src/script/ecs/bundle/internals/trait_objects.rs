@@ -5,9 +5,8 @@ use crate::{
     rhai_binding::{
         meta::abstract_::trait_identity::{GetTraitId, GetTraitName, GetTraitObjectName, ToTraitObject},
         value_semantics::{
-            access_cell::{AccessCell, Persistent},
+            access_cell::{AccessCell, Persistent, Scoped},
             ids::{StaticTraitId, TypeId},
-            scoped_access::ScopedAccessHandle,
             trait_object::StaticTraitObject,
         },
     },
@@ -41,16 +40,16 @@ impl ToTraitObject<BundleTrait> for AccessCell<Persistent, PlayerBundle> {
         obj.value.cast()
     }
 }
-impl ToTraitObject<BundleTrait> for ScopedAccessHandle<PlayerBundle> {
+impl ToTraitObject<BundleTrait> for AccessCell<Scoped, PlayerBundle> {
     fn cast_to(self) -> StaticTraitObject<BundleTrait> {
         StaticTraitObject {
-            value: Dynamic::from(self.0),
+            value: Dynamic::from(self),
             trait_id: StaticTraitId::new(),
             instance_type_id: TypeId::of::<PlayerBundle>(),
         }
     }
 
     fn cast_from(obj: StaticTraitObject<BundleTrait>) -> Self {
-        ScopedAccessHandle(obj.value.cast())
+        obj.value.cast()
     }
 }

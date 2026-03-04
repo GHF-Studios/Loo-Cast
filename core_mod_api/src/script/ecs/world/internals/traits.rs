@@ -1,12 +1,21 @@
-use rhai::{Array, Dynamic, FnPtr, NativeCallContext, Shared};
+use crate::bevy::prelude::Entity as BevyEntity;
+use rhai::{Dynamic, FnPtr, ImmutableString, NativeCallContext};
 
-use crate::script::ecs::bundle::{bindings::types::Bundle, internals::trait_objects::BundleTraitObject};
+use crate::script::ecs::bundle::internals::trait_objects::BundleTraitObject;
+use crate::script::ecs::messages::bindings::types::MessageBatch;
+use crate::script::ecs::query::bindings::types::EntityQuery;
 
 pub trait WorldApi {
     fn commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;
     fn flush(&self);
     fn spawn_empty(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;
     fn spawn_single(&self, bundle: BundleTraitObject, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;
+    fn query_entities(&self) -> EntityQuery;
+    fn query_players(&self) -> EntityQuery;
+    fn single_player(&self) -> BevyEntity;
+    fn try_single_player(&self) -> Dynamic;
+    fn write_probe_message(&self, payload: ImmutableString);
+    fn read_probe_messages(&self) -> MessageBatch;
     // fn spawn_batch(&self, bundles: Array, ctx: NativeCallContext, callback: FnPtr) -> Array;
     // fn query(&self, data: QueryData, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;
     // fn query_filtered(&self, data: QueryData, filter: QueryFilter, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;
@@ -101,7 +110,7 @@ impl World {
         // self.raw_access().run_schedule(label);
         // self.raw_access().run_system(id);
         // self.raw_access().spawn(bundle);
-        // 
+        //
         // self.raw_access().archetypes();
         // self.raw_access().bundles();
         // self.raw_access().components();

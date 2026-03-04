@@ -1,16 +1,14 @@
-use rhai::{FuncRegistration, Shared};
-use std::sync::RwLock;
+use rhai::FuncRegistration;
 
 use crate::player::bundles::PlayerBundle as NativePlayerBundle;
 use crate::rhai_binding::meta::abstract_::trait_identity::ToTraitObject;
-use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Persistent};
+use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Persistent, Scoped};
 use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
-use crate::rhai_binding::value_semantics::scoped_access::{ScopedAccess, ScopedAccessHandle};
 use crate::rhai_binding::value_semantics::trait_object::StaticTraitObject;
 use crate::script::ecs::bundle::internals::trait_objects::{BundleTrait, BundleTraitObject};
 
 type OwnedPlayerBundle = AccessCell<Persistent, NativePlayerBundle>;
-type ScopedPlayerBundle = ScopedAccessHandle<NativePlayerBundle>;
+type ScopedPlayerBundle = AccessCell<Scoped, NativePlayerBundle>;
 
 core_mod_macros::reflect_extern_sub_module!(
     id = player::bundles,
@@ -100,9 +98,7 @@ core_mod_macros::reflect_extern_constructor_function!(
             }
             TypeValueSemantics::ScopedMut => {
                 FuncRegistration::new(name).set_into_module(parent_module, || -> ScopedPlayerBundle {
-                    ScopedAccessHandle(Shared::new(RwLock::new(ScopedAccess::new(Box::new(
-                        NativePlayerBundle::default(),
-                    )))))
+                    AccessCell::new(NativePlayerBundle::default())
                 });
             }
             TypeValueSemantics::Clone
@@ -131,7 +127,9 @@ core_mod_macros::reflect_extern_method_function!(
             }
             TypeValueSemantics::ScopedMut => {
                 engine.register_fn(name, |b: ScopedPlayerBundle| {
-                    b.0.read().unwrap().read(|bundle| bundle.test_print()).unwrap();
+                    let guard = b.start_read();
+                    guard.test_print();
+                    b.end_read(guard);
                 });
             }
             TypeValueSemantics::Clone
