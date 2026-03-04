@@ -55,7 +55,7 @@ impl PlayerBundle {
     }
 }
 impl GetTypeId for PlayerBundle {
-    const TYPE_ID: &'static str = "player::bundles::PlayerBundle";
+    const TYPE_ID: &'static str = "core_mod_api::player::bundles::PlayerBundle";
 }
 impl GetTypeValueSemantics for PlayerBundle {
     const VALUE_SEMANTICS: TypeValueSemantics = TypeValueSemantics::Owned;

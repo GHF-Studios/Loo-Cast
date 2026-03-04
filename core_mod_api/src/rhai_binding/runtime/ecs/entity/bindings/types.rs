@@ -3,7 +3,7 @@ use crate::bevy::prelude::*;
 #[derive(Clone)]
 #[repr(transparent)]
 pub struct EntityId {
-    entity_id: Entity
+    entity_id: Entity,
 }
 impl EntityId {
     pub fn from_raw(entity_id: Entity) -> Self {

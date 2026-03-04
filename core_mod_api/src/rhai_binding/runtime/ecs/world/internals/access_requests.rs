@@ -1,4 +1,4 @@
-use crate::rhai_binding::runtime::ecs::query::bindings::types::{QueryData, QueryFilter};
+use crate::rhai_binding::runtime::ecs::system::query::bindings::types::{QueryData, QueryFilter};
 
 pub const WORLD_ACCESS_METHOD_QUERY: &str = "query";
 pub const WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE: &str = "write_probe_message";

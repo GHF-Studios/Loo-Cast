@@ -12,7 +12,7 @@ This is the canonical backlog for expanding the Rhai dialect bridge surface.
 
 - Runtime wrappers and internals live in `core_mod_api/src/rhai_binding/runtime/*`.
 - Reflection/registration declarations live in `core_mod_api/src/rhai_binding/bridges/*`.
-- Generic-like runtime dispatch is catalog-based (`bridges/domains/ecs/catalog/*`).
+- Generic-like runtime dispatch is catalog-based (`bridges/domains/bevy/ecs/catalog/*`).
 - Unsafe ECS access boundaries must go through `AccessCell` + `AccessCellProvider`.
 
 ## World bindings hierarchy
@@ -104,9 +104,9 @@ This is the canonical backlog for expanding the Rhai dialect bridge surface.
 ## Bridge development process for each new capability
 
 1. Add runtime wrapper/API in `rhai_binding/runtime/*`.
-2. Add provider/access wiring in `bridges/domains/ecs/catalog/sysparam_providers.rs`.
+2. Add provider/access wiring in `bridges/domains/bevy/ecs/catalog/sysparam_providers.rs`.
 3. Add reflection declarations in `bridges/domains/*`.
-4. Register signatures in `bridges/domains/ecs/catalog/*` when generic/monomorphized.
+4. Register signatures in `bridges/domains/bevy/ecs/catalog/*` when generic/monomorphized.
 5. Add startup suite coverage in `core_mod/assets/scripts/core/schedule_hooks/startup/*`.
 6. Validate with:
    - `cargo check -p core_mod_api`

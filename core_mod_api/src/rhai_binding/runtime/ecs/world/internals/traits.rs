@@ -1,8 +1,8 @@
 use rhai::{Dynamic, FnPtr, ImmutableString, NativeCallContext};
 
 use crate::rhai_binding::runtime::ecs::bundle::internals::trait_objects::BundleTraitObject;
-use crate::rhai_binding::runtime::ecs::query::bindings::types::{Query, QueryData, QueryFilter};
-use crate::rhai_binding::runtime::rust::iter::bindings::types::StringIter;
+use crate::rhai_binding::runtime::ecs::system::query::bindings::types::{Query, QueryData, QueryFilter};
+use crate::rhai_binding::runtime::std::iter::bindings::types::StringIter;
 
 pub trait WorldApi {
     fn commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic;

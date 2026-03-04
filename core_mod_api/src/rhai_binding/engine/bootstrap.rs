@@ -6,7 +6,7 @@ use crate::rhai_binding::bind::engine_ext::EngineExt;
 use crate::rhai_binding::engine::hook::new_hook_runner_system;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::SCHEDULE_HOOKS;
-use crate::rhai_binding::runtime::ecs::messages::bindings::types::ScriptProbeMessage;
+use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
 use rhai::Engine;
 
 pub fn build(app: &mut App) {

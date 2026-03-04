@@ -21,7 +21,7 @@ impl GetTraitObjectName for BundleTrait {
     const TRAIT_OBJECT_NAME: &'static str = "BundleTraitObject";
 }
 impl GetTraitId for BundleTrait {
-    const TRAIT_ID: &'static str = "ecs::bundle::Bundle";
+    const TRAIT_ID: &'static str = "bevy::ecs::bundle::Bundle";
 }
 
 #[derive(Clone)]

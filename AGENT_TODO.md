@@ -1,4 +1,4 @@
-# Agent TODO
+ # Agent TODO
 
 Purpose: carry forward agreed task structure after chat reset.
 
@@ -10,7 +10,7 @@ Purpose: carry forward agreed task structure after chat reset.
 
 ## Task 1: Structural Cleanup (no behavior expansion)
 
-Status: pending
+Status: completed
 
 Scope:
 
@@ -26,6 +26,14 @@ Extra assessment (requested):
 
 - Reassess macro surface and determine whether `reflect_*` and `reflect_extern_*` can be unified cleanly.
 - If unification is viable, propose migration path and naming simplification.
+
+Result snapshot:
+
+- Done. Placeholder files/modules were removed and value-semantics intent was
+  moved into docs (`docs/RhaiValueSemantics.md`).
+- Macro unification assessment was documented in `docs/RhaiMacroSurface.md`
+  with a staged migration path (capability split kept, naming surface can be
+  normalized later).
 
 ## Task 2: Separate Testing vs Examples in Startup Flow
 
@@ -97,6 +105,11 @@ Scope:
 - Reduce one-off specializations and keep extensibility clear.
 - Clarify conceptual role in docs so future bridge additions stay coherent.
 
+Follow-up ergonomics track (requested):
+
+- Design rust-style Rhai imports and path aliases (for example local `use`-like bindings) so fully-qualified ids stay explicit in metadata while script callsites stay concise.
+- Include a shorthand strategy for generic-bound verbosity once full-path generic metadata is stable.
+
 ---
 
 ## Suggested Execution Order
@@ -106,4 +119,3 @@ Scope:
 3. Task 3 (plan + approval, then implement)
 4. Task 4 (plan + approval, then implement)
 5. Task 5
-

@@ -6,7 +6,7 @@ use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 
 use crate::rhai_binding::runtime::ecs::{
     bundle::internals::trait_objects::BundleTraitObject,
-    query::bindings::types::{Query, QueryData, QueryFilter},
+    system::query::bindings::types::{Query, QueryData, QueryFilter},
     system::commands::bindings::types::Commands,
     world::{
         bindings::types::World,
@@ -20,7 +20,7 @@ use crate::rhai_binding::runtime::ecs::{
         },
     },
 };
-use crate::rhai_binding::runtime::rust::iter::bindings::types::StringIter;
+use crate::rhai_binding::runtime::std::iter::bindings::types::StringIter;
 
 impl WorldApi for Shared<World> {
     fn commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {

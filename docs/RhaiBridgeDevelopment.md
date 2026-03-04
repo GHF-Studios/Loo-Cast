@@ -6,6 +6,8 @@ This is the operational guide for adding new Rhai-exposed Bevy/Rust features and
 
 Related design context: `docs/RhaiDialect.md`.
 Coverage backlog: `docs/RhaiBindingRoadmap.md`.
+Semantics intent reference: `docs/RhaiValueSemantics.md`.
+Macro surface notes: `docs/RhaiMacroSurface.md`.
 
 ## File map
 
@@ -13,10 +15,10 @@ Coverage backlog: `docs/RhaiBindingRoadmap.md`.
   - `core_mod_api/src/rhai_binding/bridges/domains/*`
   - `core_mod_api/src/rhai_binding/bridges/testing/*`
 - ECS compile-time catalogs:
-  - `core_mod_api/src/rhai_binding/bridges/domains/ecs/catalog/query_signatures.rs`
-  - `core_mod_api/src/rhai_binding/bridges/domains/ecs/catalog/message_signatures.rs`
-  - `core_mod_api/src/rhai_binding/bridges/domains/ecs/catalog/bundle_signatures.rs`
-  - `core_mod_api/src/rhai_binding/bridges/domains/ecs/catalog/sysparam_providers.rs`
+  - `core_mod_api/src/rhai_binding/bridges/domains/bevy/ecs/catalog/query_signatures.rs`
+  - `core_mod_api/src/rhai_binding/bridges/domains/bevy/ecs/catalog/message_signatures.rs`
+  - `core_mod_api/src/rhai_binding/bridges/domains/bevy/ecs/catalog/bundle_signatures.rs`
+  - `core_mod_api/src/rhai_binding/bridges/domains/bevy/ecs/catalog/sysparam_providers.rs`
 - Runtime wrappers:
   - `core_mod_api/src/rhai_binding/runtime/*`
 - Script integration suites:

@@ -1,0 +1,35 @@
+use rhai::{Array, Dynamic};
+
+use crate::rhai_binding::runtime::std::iter::{bindings::types::StringIter, internals::traits::StringIterApi};
+
+impl StringIterApi for StringIter {
+    fn next(&mut self) -> Dynamic {
+        let Some(value) = self.values.get(self.cursor) else {
+            return Dynamic::UNIT;
+        };
+        self.cursor += 1;
+        Dynamic::from(value.clone())
+    }
+
+    fn remaining_len(&self) -> i64 {
+        let remaining = self.values.len().saturating_sub(self.cursor);
+        i64::try_from(remaining).unwrap_or_else(|_| panic!("StringIter remaining length '{}' exceeds i64::MAX", remaining))
+    }
+
+    fn is_empty(&self) -> bool {
+        self.cursor >= self.values.len()
+    }
+
+    fn collect_remaining(&mut self) -> Array {
+        if self.cursor >= self.values.len() {
+            return Array::new();
+        }
+        let items = self.values[self.cursor..]
+            .iter()
+            .cloned()
+            .map(Dynamic::from)
+            .collect::<Array>();
+        self.cursor = self.values.len();
+        items
+    }
+}

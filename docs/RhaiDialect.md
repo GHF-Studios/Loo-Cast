@@ -44,7 +44,7 @@ Supported semantics vocabulary:
 
 - `Clone`
 - `Owned`
-- `Ref` (persistent read-like sharing)
+- `Ref`
 - `Mut`
 - `ScopedOwned`
 - `ScopedRef`
@@ -52,9 +52,12 @@ Supported semantics vocabulary:
 
 Current policy direction:
 
-- use `AccessCell` as the primary mechanism for ownership and scoped access semantics,
+- use `AccessCell` as the primary mechanism for runtime ownership/access semantics,
 - avoid broad `Arc`-style sharing for mutable/owned semantics,
-- reserve shared-handle semantics for explicit persistent read-oriented use cases.
+- allow dangling handles to exist and enforce safety at use-time (invalid access panics),
+- treat `Scoped*` as lifetime-erased variants anchored by provider-managed system-frame access.
+
+Detailed intent/lifecycle matrix: `docs/RhaiValueSemantics.md`.
 
 ## Generic support model
 
@@ -76,8 +79,10 @@ This gives dynamic selection with static safety boundaries.
 
 - `bridges/domains/*`: production runtime API surface mirrored by domain path.
 - `bridges/testing/*`: explicit testing-only bridge space.
-- `bridges/domains/ecs/catalog/*`: compile-time registries for signatures and providers.
+- `bridges/domains/bevy/ecs/catalog/*`: compile-time registries for signatures and providers.
 - `core_mod/assets/scripts/core/schedule_hooks/startup/*`: runtime integration examples and smoke coverage.
+
+Macro surface assessment and unification plan: `docs/RhaiMacroSurface.md`.
 
 ## Failure model
 

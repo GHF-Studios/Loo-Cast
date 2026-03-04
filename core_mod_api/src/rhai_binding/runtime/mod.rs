@@ -4,5 +4,5 @@
 //! plumbing used by `rhai_binding::bridges::*`.
 
 pub mod ecs;
-pub mod rust;
+pub mod std;
 pub mod usf;

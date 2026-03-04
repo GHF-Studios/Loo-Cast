@@ -121,7 +121,6 @@ pub mod logging;
 pub mod picking;
 pub mod player;
 pub mod reflection;
-pub mod reflection_NEW;
 pub mod render;
 pub mod rhai_binding;
 pub mod time;
