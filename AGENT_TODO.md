@@ -66,8 +66,8 @@ Status: in progress
 
 - [x] Gather user requirements from live discussion and lock baseline constraints.
 - [x] Re-read repo-level docs (`README.md`, `docs/USF.md`) to align implementation with intent.
-- [ ] Implement Phase A chunk-spacing fix.
-- [ ] Add tests for cross-scale spacing invariants.
+- [x] Implement Phase A chunk-spacing fix.
+- [x] Add tests for cross-scale spacing invariants.
 - [ ] Implement Phase B/C scaffolding for `Usf*` model + seamless rollover logic.
 - [ ] Add config-backed hysteresis thresholds.
 - [ ] Validate with `./build.sh dev` + user visual verification run.

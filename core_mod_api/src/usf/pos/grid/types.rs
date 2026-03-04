@@ -311,6 +311,24 @@ impl GridVec {
         Some(stack)
     }
 
+    fn accumulate_grid_units(diff_grid: &GridVec) -> IVec2 {
+        let mut acc = IVec2::ZERO;
+        let mut factor = 1;
+
+        let mut cursor = diff_grid;
+        loop {
+            acc += cursor.xy * factor;
+            factor *= 10;
+            if let Some(parent) = &cursor.parent {
+                cursor = parent;
+            } else {
+                break;
+            }
+        }
+
+        acc
+    }
+
     /// - Assumes that the given `scale` is greater than or equal to that of `self`.
     /// - Assumes that the parent of `grid_diff` is the same as `self`'s parent.
     #[track_caller]
@@ -338,7 +356,7 @@ impl GridVec {
         assert!(scale == origin.scale);
         let scale_diff = scale as i8 - origin.scale as i8;
         let scale_factor = 10.0_f32.powi(scale_diff as i32);
-        let native_unit = 1000.0 / scale_factor;
+        let native_unit = 1000.0 * scale_factor;
 
         let unit_offset_x = native_visual_pos.x / native_unit;
         let unit_offset_y = native_visual_pos.y / native_unit;
@@ -360,7 +378,6 @@ impl GridVec {
     #[track_caller]
     pub fn to_native_logical(self, origin: Self) -> Vec2 {
         assert!(self.scale >= origin.scale);
-        let _scale_diff = self.scale as i8 - origin.scale as i8;
         let self_unit = UnitVec {
             grid_offset: self.clone(),
             unit_offset: Vec3::ZERO,
@@ -370,10 +387,13 @@ impl GridVec {
             unit_offset: Vec3::ZERO,
         };
         let diff_unit = self_unit - origin_unit;
-        assert!(diff_unit.grid_offset.parent.as_ref().map(|p| p.is_zero()).unwrap_or(true));
+        // Keep native spacing invariant (1000.0) and derive cross-scale distance from the
+        // grid stack significance itself (leaf=10^0, parent=10^1, ...).
+        let native_unit = 1000.0;
+        let acc = Self::accumulate_grid_units(&diff_unit.grid_offset);
 
-        let native_x = diff_unit.grid_offset.xy.x as f32 * 1000.0;
-        let native_y = diff_unit.grid_offset.xy.y as f32 * 1000.0;
+        let native_x = acc.x as f32 * native_unit;
+        let native_y = acc.y as f32 * native_unit;
 
         Vec2::new(native_x, native_y)
     }
@@ -395,21 +415,10 @@ impl GridVec {
         let diff_unit = self_unit - origin_unit;
 
         let scale = 10.0_f32.powi(scale_diff as i32);
-        let native_unit = 1000.0 / scale;
-
-        let mut acc = IVec2::ZERO;
-        let mut factor = 1;
-
-        let mut cursor = &diff_unit.grid_offset;
-        loop {
-            acc += cursor.xy * factor;
-            factor *= 10;
-            if let Some(parent) = &cursor.parent {
-                cursor = parent;
-            } else {
-                break;
-            }
-        }
+        // Translation spacing remains in native 1000.0 units; visual size scaling is returned
+        // separately via `scale`.
+        let native_unit = 1000.0;
+        let acc = Self::accumulate_grid_units(&diff_unit.grid_offset);
 
         let native_x = acc.x as f32 * native_unit;
         let native_y = acc.y as f32 * native_unit;
