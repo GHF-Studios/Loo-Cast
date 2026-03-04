@@ -1,17 +1,106 @@
- # Agent TODO
+# Agent TODO
 
-Purpose: carry forward agreed task structure after chat reset.
+Purpose: live, temporary working log and progress tracker for active agent work.
+
+This file is now split into:
+- **Live section**: temporary notes, active goals, short-term progress, risks.
+- **Historical core section**: preserved completed task history for continuity.
 
 Read first: `docs/RhaiAgentHandoff.md`
 
-## Ground Rules
+## Live Initiative: USF Positioning & Pivoting (Active)
+
+Status: in progress
+
+### Locked Vision Constraints
+
+- Bevy is the viewport/runtime projection layer, not the full canonical universe state.
+- Pivoting is mandatory to avoid precision drift and huge/small float blowups.
+- Translation origin-shifting, scale origin-shifting, and rotation origin-shifting are
+  **separate concerns** with similar principles.
+- Current pivot anchor is player-centric (`ChunkLoader` / player position).
+- Player should remain visually constant in the viewport while world context shifts
+  around the player.
+- Discrete scale transitions are base-10 (`x10` / `÷10` semantics).
+- Local zoom window target is strict mathematical core range: `0.1 < z < 10.0`.
+- Overshoot should persist and be folded into canonical USF state (not discarded).
+- Hysteresis/buffer zones are desired to prevent instant flip-flopping near boundaries.
+- Cross-scale/world-around-player rotation is required long-term, but can be phased
+  after core translation+scale mechanics are stable.
+
+### Immediate Problem Reports (from live visual testing)
+
+1. On `KEYPAD_ADD`, newly spawned larger-scale chunks bunch up.
+- Observed: offsets look like they still use root-scale spacing.
+- Expected: offsets scale with the target scale so large chunks space correctly.
+
+2. Player zoom mismatch on discrete scale steps.
+- Observed: player behavior tracks local wheel zoom, but not scale-step transitions
+  in the intended seamless way.
+- Expected: seamless rollover behavior where local zoom resets/re-centers while
+  canonical scale/position state preserves progress.
+
+### Active Implementation Phases
+
+- `Phase A` (first fix): chunk offset/spacing correctness on scale-step zoom.
+  - Objective: remove chunk bunching and restore scale-consistent spacing.
+  - Acceptance: visual spacing is correct after repeated `KEYPAD_ADD` / `KEYPAD_SUBTRACT`.
+
+- `Phase B`: USF transform foundation.
+  - Introduce/normalize conceptual model:
+    - `UsfTranslation`
+    - `UsfRotation`
+    - `UsfScale`
+    - `UsfTransform`
+  - Keep naming and responsibilities consistent.
+
+- `Phase C`: automatic seamless rollover.
+  - Apply scale-step transitions when local zoom crosses committed thresholds.
+  - Preserve overshoot and support multi-step rollover in one update.
+  - Add hysteresis zones to avoid oscillation near boundaries.
+
+- `Phase D` (follow-up): rotation-origin shifting across scale contexts.
+  - Keep separate from translation/scale logic, but aligned conceptually.
+
+### Temporary Progress Checklist
+
+- [x] Gather user requirements from live discussion and lock baseline constraints.
+- [x] Re-read repo-level docs (`README.md`, `docs/USF.md`) to align implementation with intent.
+- [ ] Implement Phase A chunk-spacing fix.
+- [ ] Add tests for cross-scale spacing invariants.
+- [ ] Implement Phase B/C scaffolding for `Usf*` model + seamless rollover logic.
+- [ ] Add config-backed hysteresis thresholds.
+- [ ] Validate with `./build.sh dev` + user visual verification run.
+
+### Temporary Notes (Working Assumptions)
+
+- Keep changes incremental and testable; avoid mixing all USF concerns in one patch.
+- Prioritize visual continuity and deterministic conversion behavior over premature
+  architectural expansion.
+- Keep rotation work as explicit next task once translation+scale transitions are stable.
+
+### Validation Protocol (Current)
+
+- `cargo check -p core_mod_api`
+- Focused tests under `core_mod_api/src/usf/pos/*`
+- Runtime integration pass:
+  - `./build.sh dev`
+  - `./run.sh dev` (user-driven visual validation)
+
+---
+
+## Historical Core Section (Preserved)
+
+Purpose: carry forward agreed task structure after chat reset.
+
+### Ground Rules
 
 - For **Task 3** and **Task 4**, produce a design plan and get approval **before** implementation.
 - Keep startup-script-based integration validation (`./build.sh dev` then `./run.sh dev`) as the main acceptance path.
 - Keep `sex::divisions::sex` test bridge content; do not delete it.
 - Keep Rhai global namespace minimal; prefer namespaced module APIs and `private fn` helper tests.
 
-## Task 1: Structural Cleanup (no behavior expansion)
+### Task 1: Structural Cleanup (no behavior expansion)
 
 Status: completed
 
@@ -38,7 +127,7 @@ Result snapshot:
   with a staged migration path (capability split kept, naming surface can be
   normalized later).
 
-## Task 2: Separate Testing vs Examples in Startup Flow
+### Task 2: Separate Testing vs Examples in Startup Flow
 
 Status: completed
 
@@ -59,7 +148,7 @@ Result snapshot:
 - Testing bridge registration is gated at engine boot by `rhai_binding/testing_enabled` config.
 - Default behavior excludes testing-only top-level modules (for now: `shop`) from the runtime bridge graph.
 
-## Task 3: Bundle Construction Path Consolidation
+### Task 3: Bundle Construction Path Consolidation
 
 Status: completed
 
@@ -89,7 +178,7 @@ Result snapshot:
 - Legacy/dead bundle scaffolding was removed (`runtime::ecs::bundle::bindings`
   and `BundleFromDynamic` trait path).
 
-## Task 4: Arc Detox for Scoped Access Paths
+### Task 4: Arc Detox for Scoped Access Paths
 
 Status: completed
 
@@ -118,7 +207,7 @@ Result snapshot:
 - Startup-script integration path still exercises world/commands/player-bundle
   flows successfully after the refactor.
 
-## Task 5: Query/Message/Bundle Generic Dispatch Normalization
+### Task 5: Query/Message/Bundle Generic Dispatch Normalization
 
 Status: completed
 
@@ -172,9 +261,7 @@ Result snapshot:
   - pending: generic-bound display shorthand
     (tracked in `docs/RhaiScriptErgonomics.md`).
 
----
-
-## Suggested Execution Order
+### Suggested Execution Order (Historical)
 
 1. Task 1
 2. Task 2
