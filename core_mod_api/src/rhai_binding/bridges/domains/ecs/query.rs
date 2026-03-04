@@ -1,6 +1,22 @@
 use crate::rhai_binding::runtime::ecs::query::bindings::types::EntityQuery as ScriptEntityQuery;
 use crate::rhai_binding::runtime::ecs::query::internals::traits::EntityQueryApi;
 
+core_mod_macros::reflect_extern_generic_definition!(
+    id = "ecs::query::EntityQuery<T>",
+    owner_kind = r#type,
+    params = [T],
+    bounds = [T: []],
+    notes = ["Runtime generic query facade. Concrete instantiations are registered explicitly."],
+);
+
+core_mod_macros::reflect_extern_generic_instantiation!(
+    id = "ecs::query::EntityQuery<ecs::entities::Entity>",
+    generic_id = "ecs::query::EntityQuery<T>",
+    type_arguments = [ecs::entities::Entity],
+    concrete_item_path = "ecs::query::EntityQuery",
+    value_semantics = clone,
+);
+
 core_mod_macros::reflect_extern_sub_module!(
     id = ecs::query,
     sub_modules = [],

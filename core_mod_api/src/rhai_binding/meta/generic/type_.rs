@@ -1,6 +1,13 @@
 use rhai::ImmutableString;
 
-use crate::{rhai_binding::{meta::{generic::abstract_primitive::ConstDynMetadata, monomorphized::type_::TypeMetadata}, path::{function_path::MethodFunctionPath, type_path::TypePath}, value_semantics::modes::TypeValueSemantics}, utils::{clone_closure::CloneClosure, clone_lazy::CloneLazy}};
+use crate::{
+    rhai_binding::{
+        meta::{generic::abstract_primitive::ConstDynMetadata, monomorphized::type_::TypeMetadata},
+        path::{function_path::MethodFunctionPath, trait_path::TraitPath, type_path::TypePath},
+        value_semantics::modes::TypeValueSemantics,
+    },
+    utils::{clone_closure::CloneClosure, clone_lazy::CloneLazy},
+};
 
 
 /// I think this is outdated, and the entire Type shit is not yet adapted to the new reflection paradigm,
@@ -10,6 +17,10 @@ pub const trait TypeConstDynMetadata: ConstDynMetadata {
     fn registrator(self) -> CloneClosure<ImmutableString, &'static mut rhai::Module, (), fn(ImmutableString, &mut rhai::Module)>;
     fn method_functions(&self) -> CloneLazy<Vec<MethodFunctionPath>>;
     fn value_semantics(&self) -> CloneLazy<TypeValueSemantics>;
+    fn generic_definition_id(&self) -> CloneLazy<Option<ImmutableString>>;
+    fn generic_param_names(&self) -> CloneLazy<Vec<ImmutableString>>;
+    fn generic_param_trait_bounds(&self) -> CloneLazy<Vec<Vec<TraitPath>>>;
+    fn generic_instantiation_args(&self) -> CloneLazy<Vec<Vec<TypePath>>>;
 }
 // pub const trait TypeOwnConstDynMetadata: TypeConstDynMetadata {}
 // pub const trait TypeCloneConstDynMetadata: TypeConstDynMetadata {}
@@ -28,6 +39,10 @@ pub trait TypeDynamicTypedMetadata {
             
             method_functions: const_dyn_metadata.method_functions().clone(),
             value_semantics: const_dyn_metadata.value_semantics().clone(),
+            generic_definition_id: const_dyn_metadata.generic_definition_id().clone(),
+            generic_param_names: const_dyn_metadata.generic_param_names().clone(),
+            generic_param_trait_bounds: const_dyn_metadata.generic_param_trait_bounds().clone(),
+            generic_instantiation_args: const_dyn_metadata.generic_instantiation_args().clone(),
         }
     }
 }

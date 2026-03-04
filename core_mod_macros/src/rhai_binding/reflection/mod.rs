@@ -118,6 +118,137 @@ fn parse_id_paths(input: ParseStream) -> syn::Result<Vec<Path>> {
     Ok(elems.into_iter().collect())
 }
 
+fn parse_lit_strings(input: ParseStream) -> syn::Result<Vec<LitStr>> {
+    let content;
+    syn::bracketed!(content in input);
+    let elems = Punctuated::<LitStr, Token![,]>::parse_terminated(&content)?;
+    Ok(elems.into_iter().collect())
+}
+
+fn collect_generic_type_param_metadata(type_generics: &syn::Generics) -> (Vec<String>, Vec<Vec<String>>) {
+    let mut param_names = Vec::<String>::new();
+    let mut bounds_by_param = std::collections::BTreeMap::<String, std::collections::BTreeSet<String>>::new();
+
+    for generic_param in &type_generics.params {
+        if let syn::GenericParam::Type(type_param) = generic_param {
+            let param_name = type_param.ident.to_string();
+            param_names.push(param_name.clone());
+            bounds_by_param.entry(param_name.clone()).or_default();
+
+            for bound in &type_param.bounds {
+                if let syn::TypeParamBound::Trait(trait_bound) = bound {
+                    bounds_by_param
+                        .entry(param_name.clone())
+                        .or_default()
+                        .insert(path_to_string(&trait_bound.path));
+                }
+            }
+        }
+    }
+
+    if let Some(where_clause) = &type_generics.where_clause {
+        for predicate in &where_clause.predicates {
+            let syn::WherePredicate::Type(type_predicate) = predicate else {
+                continue;
+            };
+
+            let syn::Type::Path(type_path) = &type_predicate.bounded_ty else {
+                continue;
+            };
+
+            if type_path.qself.is_some() {
+                continue;
+            }
+
+            let Some(single_segment) = type_path.path.get_ident() else {
+                continue;
+            };
+
+            let param_name = single_segment.to_string();
+            if !bounds_by_param.contains_key(&param_name) {
+                continue;
+            }
+
+            for bound in &type_predicate.bounds {
+                if let syn::TypeParamBound::Trait(trait_bound) = bound {
+                    bounds_by_param
+                        .entry(param_name.clone())
+                        .or_default()
+                        .insert(path_to_string(&trait_bound.path));
+                }
+            }
+        }
+    }
+
+    let param_trait_bounds = param_names
+        .iter()
+        .map(|name| {
+            bounds_by_param
+                .get(name)
+                .map(|set| set.iter().cloned().collect::<Vec<_>>())
+                .unwrap_or_default()
+        })
+        .collect::<Vec<_>>();
+
+    (param_names, param_trait_bounds)
+}
+
+fn infer_trait_dyn_safety(item_trait: &ItemTrait) -> (bool, Vec<String>) {
+    let mut notes = Vec::<String>::new();
+
+    for bound in &item_trait.supertraits {
+        if let syn::TypeParamBound::Trait(trait_bound) = bound {
+            let bound_path = path_to_string(&trait_bound.path);
+            if bound_path.ends_with("::Sized") || bound_path == "Sized" {
+                notes.push("Trait has supertrait `Sized`, therefore it is not dyn-safe".to_string());
+            }
+        }
+    }
+
+    for item in &item_trait.items {
+        let syn::TraitItem::Fn(method) = item else {
+            continue;
+        };
+
+        let method_name = method.sig.ident.to_string();
+
+        if !method.sig.generics.params.is_empty() {
+            notes.push(format!(
+                "Method `{method_name}` has generic parameters, therefore it is not object-safe"
+            ));
+        }
+
+        let has_receiver = method.sig.receiver().is_some();
+        if !has_receiver {
+            notes.push(format!(
+                "Method `{method_name}` has no receiver, therefore it is not object-safe unless explicitly constrained to `Self: Sized`"
+            ));
+        }
+
+        for input in &method.sig.inputs {
+            if let syn::FnArg::Typed(typed) = input {
+                let type_string = quote! { #typed.ty }.to_string();
+                if type_string.contains("Self") {
+                    notes.push(format!(
+                        "Method `{method_name}` input references `Self`, therefore it is not object-safe"
+                    ));
+                }
+            }
+        }
+
+        if let syn::ReturnType::Type(_, ty) = &method.sig.output {
+            let type_string = quote! { #ty }.to_string();
+            if type_string.contains("Self") {
+                notes.push(format!(
+                    "Method `{method_name}` return type references `Self`, therefore it is not object-safe"
+                ));
+            }
+        }
+    }
+
+    (notes.is_empty(), notes)
+}
+
 struct ModuleMacroInput {
     id: Path,
     sub_modules: Vec<Path>,
@@ -378,6 +509,157 @@ struct ExternTraitMacroInput {
     trait_name: Option<LitStr>,
     trait_object_name: Option<LitStr>,
     trait_object_id: Option<Path>,
+    super_traits: Vec<Path>,
+    is_dyn_safe: Option<bool>,
+    object_safety_notes: Vec<LitStr>,
+}
+
+struct GenericBoundSpec {
+    param: Ident,
+    traits: Vec<Path>,
+}
+
+impl Parse for GenericBoundSpec {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let param: Ident = input.parse()?;
+        input.parse::<Token![:]>()?;
+        let traits = parse_id_paths(input)?;
+
+        Ok(Self { param, traits })
+    }
+}
+
+fn parse_generic_bound_specs(input: ParseStream) -> syn::Result<Vec<GenericBoundSpec>> {
+    let content;
+    syn::bracketed!(content in input);
+    let elems = Punctuated::<GenericBoundSpec, Token![,]>::parse_terminated(&content)?;
+    Ok(elems.into_iter().collect())
+}
+
+struct ExternGenericDefinitionMacroInput {
+    id: LitStr,
+    owner_kind: Ident,
+    params: Vec<Ident>,
+    bounds: Vec<GenericBoundSpec>,
+    notes: Vec<LitStr>,
+}
+
+impl Parse for ExternGenericDefinitionMacroInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut id: Option<LitStr> = None;
+        let mut owner_kind: Option<Ident> = None;
+        let mut params: Vec<Ident> = vec![];
+        let mut bounds: Vec<GenericBoundSpec> = vec![];
+        let mut notes: Vec<LitStr> = vec![];
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+
+            match key.to_string().as_str() {
+                "id" => {
+                    id = Some(input.parse::<LitStr>()?);
+                }
+                "owner_kind" => {
+                    owner_kind = Some(input.parse::<Ident>()?);
+                }
+                "params" => {
+                    let content;
+                    syn::bracketed!(content in input);
+                    let elems = Punctuated::<Ident, Token![,]>::parse_terminated(&content)?;
+                    params = elems.into_iter().collect();
+                }
+                "bounds" => {
+                    bounds = parse_generic_bound_specs(input)?;
+                }
+                "notes" => {
+                    notes = parse_lit_strings(input)?;
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "Unknown key '{other}' in reflect_extern_generic_definition!. Expected: id, owner_kind, params, bounds, notes"
+                        ),
+                    ));
+                }
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            id: id.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `id`"))?,
+            owner_kind: owner_kind.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `owner_kind`"))?,
+            params,
+            bounds,
+            notes,
+        })
+    }
+}
+
+struct ExternGenericInstantiationMacroInput {
+    id: LitStr,
+    generic_id: LitStr,
+    type_arguments: Vec<Path>,
+    concrete_item_path: LitStr,
+    value_semantics: Option<ReflectTypeValueSemantics>,
+}
+
+impl Parse for ExternGenericInstantiationMacroInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut id: Option<LitStr> = None;
+        let mut generic_id: Option<LitStr> = None;
+        let mut type_arguments: Vec<Path> = vec![];
+        let mut concrete_item_path: Option<LitStr> = None;
+        let mut value_semantics: Option<ReflectTypeValueSemantics> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+
+            match key.to_string().as_str() {
+                "id" => {
+                    id = Some(input.parse::<LitStr>()?);
+                }
+                "generic_id" => {
+                    generic_id = Some(input.parse::<LitStr>()?);
+                }
+                "type_arguments" => {
+                    type_arguments = parse_id_paths(input)?;
+                }
+                "concrete_item_path" => {
+                    concrete_item_path = Some(input.parse::<LitStr>()?);
+                }
+                "value_semantics" => {
+                    value_semantics = Some(parse_value_semantics_ident(&input.parse::<Ident>()?)?);
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "Unknown key '{other}' in reflect_extern_generic_instantiation!. Expected: id, generic_id, type_arguments, concrete_item_path, value_semantics"
+                        ),
+                    ));
+                }
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            id: id.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `id`"))?,
+            generic_id: generic_id.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `generic_id`"))?,
+            type_arguments,
+            concrete_item_path: concrete_item_path
+                .ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `concrete_item_path`"))?,
+            value_semantics,
+        })
+    }
 }
 
 impl Parse for ExternTraitMacroInput {
@@ -386,6 +668,9 @@ impl Parse for ExternTraitMacroInput {
         let mut trait_name: Option<LitStr> = None;
         let mut trait_object_name: Option<LitStr> = None;
         let mut trait_object_id: Option<Path> = None;
+        let mut super_traits: Vec<Path> = vec![];
+        let mut is_dyn_safe: Option<bool> = None;
+        let mut object_safety_notes: Vec<LitStr> = vec![];
 
         while !input.is_empty() {
             let key: Ident = input.parse()?;
@@ -404,11 +689,20 @@ impl Parse for ExternTraitMacroInput {
                 "trait_object_id" => {
                     trait_object_id = Some(input.parse::<Path>()?);
                 }
+                "super_traits" => {
+                    super_traits = parse_id_paths(input)?;
+                }
+                "is_dyn_safe" => {
+                    is_dyn_safe = Some(input.parse::<syn::LitBool>()?.value());
+                }
+                "object_safety_notes" => {
+                    object_safety_notes = parse_lit_strings(input)?;
+                }
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
                         format!(
-                            "Unknown key '{other}' in reflect_extern_trait!. Expected: id, trait_name, trait_object_name, trait_object_id"
+                            "Unknown key '{other}' in reflect_extern_trait!. Expected: id, trait_name, trait_object_name, trait_object_id, super_traits, is_dyn_safe, object_safety_notes"
                         ),
                     ));
                 }
@@ -424,6 +718,9 @@ impl Parse for ExternTraitMacroInput {
             trait_name,
             trait_object_name,
             trait_object_id,
+            super_traits,
+            is_dyn_safe,
+            object_safety_notes,
         })
     }
 }
@@ -702,6 +999,26 @@ pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
             })
         }
     };
+    let (generic_param_names_raw, generic_param_trait_bounds_raw) =
+        collect_generic_type_param_metadata(&type_generics);
+    let generic_param_name_lits: Vec<syn::LitStr> = generic_param_names_raw
+        .iter()
+        .map(|name| path_lit(name))
+        .collect();
+    let generic_param_trait_bounds_tokens: Vec<TokenStream2> = generic_param_trait_bounds_raw
+        .iter()
+        .map(|bounds| {
+            let bound_lits: Vec<syn::LitStr> = bounds.iter().map(|bound| path_lit(bound)).collect();
+            quote! { vec![#(#bound_lits.into()),*] }
+        })
+        .collect();
+    let generic_definition_id_expr = if generic_param_names_raw.is_empty() {
+        quote! { None }
+    } else {
+        let generic_id = format!("{}<{}>", type_path_string, generic_param_names_raw.join(","));
+        let generic_id_lit = path_lit(&generic_id);
+        quote! { Some(rhai::ImmutableString::from(#generic_id_lit)) }
+    };
 
     let type_marker = make_marker_ident("TYPE", &type_path_string);
     let type_static = make_static_ident("TYPE", &type_path_string);
@@ -762,6 +1079,22 @@ pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             fn value_semantics(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::value_semantics::modes::TypeValueSemantics> {
                 crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #value_semantics))
+            }
+
+            fn generic_definition_id(&self) -> crate::utils::clone_lazy::CloneLazy<Option<rhai::ImmutableString>> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #generic_definition_id_expr))
+            }
+
+            fn generic_param_names(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<rhai::ImmutableString>> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#generic_param_name_lits.into()),*]))
+            }
+
+            fn generic_param_trait_bounds(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<Vec<crate::rhai_binding::path::trait_path::TraitPath>>> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#generic_param_trait_bounds_tokens),*]))
+            }
+
+            fn generic_instantiation_args(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<Vec<crate::rhai_binding::path::type_path::TypePath>>> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![]))
             }
         }
 
@@ -897,6 +1230,22 @@ pub fn reflect_extern_type(input: TokenStream) -> TokenStream {
 
             fn value_semantics(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::value_semantics::modes::TypeValueSemantics> {
                 crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #value_semantics))
+            }
+
+            fn generic_definition_id(&self) -> crate::utils::clone_lazy::CloneLazy<Option<rhai::ImmutableString>> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| None))
+            }
+
+            fn generic_param_names(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<rhai::ImmutableString>> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![]))
+            }
+
+            fn generic_param_trait_bounds(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<Vec<crate::rhai_binding::path::trait_path::TraitPath>>> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![]))
+            }
+
+            fn generic_instantiation_args(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<Vec<crate::rhai_binding::path::type_path::TypePath>>> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![]))
             }
         }
 
@@ -1152,6 +1501,14 @@ pub fn reflect_extern_trait(input: TokenStream) -> TokenStream {
         .map(path_to_string)
         .unwrap_or(default_trait_object_id);
     let trait_object_id_lit = path_lit(&trait_object_id_string);
+    let super_trait_lits: Vec<LitStr> = input
+        .super_traits
+        .iter()
+        .map(path_to_string)
+        .map(|s| path_lit(&s))
+        .collect();
+    let is_dyn_safe = input.is_dyn_safe.unwrap_or(true);
+    let object_safety_note_lits: Vec<LitStr> = input.object_safety_notes.clone();
 
     let marker_ident = make_marker_ident("TRAIT", &trait_path_string);
     let marker_static = make_static_ident("TRAIT", &trait_path_string);
@@ -1193,6 +1550,21 @@ pub fn reflect_extern_trait(input: TokenStream) -> TokenStream {
             fn id_path(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::path::trait_path::TraitPath> {
                 crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #trait_path_lit.into()))
             }
+            fn super_traits(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<crate::rhai_binding::path::trait_path::TraitPath>> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#super_trait_lits.into()),*])
+                )
+            }
+            fn is_dyn_safe(&self) -> crate::utils::clone_lazy::CloneLazy<bool> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| #is_dyn_safe)
+                )
+            }
+            fn object_safety_notes(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<rhai::ImmutableString>> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#object_safety_note_lits.into()),*])
+                )
+            }
         }
 
         impl crate::rhai_binding::meta::generic::trait_::TraitDynamicTypedMetadata for #marker_ident {}
@@ -1224,6 +1596,186 @@ pub fn reflect_extern_trait(input: TokenStream) -> TokenStream {
     .into()
 }
 
+pub fn reflect_extern_generic_definition(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ExternGenericDefinitionMacroInput);
+
+    let generic_id_lit = input.id;
+    let owner_kind = match input.owner_kind.to_string().as_str() {
+        "type" => quote! { crate::rhai_binding::meta::generic::generic_::GenericOwnerKind::Type },
+        "r#type" => quote! { crate::rhai_binding::meta::generic::generic_::GenericOwnerKind::Type },
+        "function" => quote! { crate::rhai_binding::meta::generic::generic_::GenericOwnerKind::Function },
+        "method" => quote! { crate::rhai_binding::meta::generic::generic_::GenericOwnerKind::Method },
+        other => {
+            return syn::Error::new(
+                input.owner_kind.span(),
+                format!("Unknown owner_kind '{other}'. Expected one of: type, function, method"),
+            )
+            .to_compile_error()
+            .into();
+        }
+    };
+    let param_lits: Vec<LitStr> = input
+        .params
+        .iter()
+        .map(|param| path_lit(&param.to_string()))
+        .collect();
+    let note_lits: Vec<LitStr> = input.notes.clone();
+
+    let mut bounds_by_param = std::collections::BTreeMap::<String, Vec<LitStr>>::new();
+    for param in &input.params {
+        bounds_by_param.insert(param.to_string(), Vec::new());
+    }
+    for bound_spec in input.bounds {
+        let param_name = bound_spec.param.to_string();
+        if !bounds_by_param.contains_key(&param_name) {
+            return syn::Error::new(
+                bound_spec.param.span(),
+                format!("Bound specified for unknown generic parameter '{param_name}'"),
+            )
+            .to_compile_error()
+            .into();
+        }
+        let bound_lits = bound_spec
+            .traits
+            .iter()
+            .map(path_to_string)
+            .map(|s| path_lit(&s))
+            .collect::<Vec<_>>();
+        bounds_by_param.entry(param_name).or_default().extend(bound_lits);
+    }
+    let bound_vec_tokens: Vec<TokenStream2> = input
+        .params
+        .iter()
+        .map(|param| {
+            let param_name = param.to_string();
+            let bound_lits = bounds_by_param.get(&param_name).cloned().unwrap_or_default();
+            quote! { vec![#(#bound_lits.into()),*] }
+        })
+        .collect();
+
+    let marker = make_marker_ident("GENERIC_DEF", &generic_id_lit.value());
+    let marker_static = make_static_ident("GENERIC_DEF", &generic_id_lit.value());
+
+    quote! {
+        #[allow(non_upper_case_globals)]
+        static #marker_static: crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::meta::monomorphized::generic_::GenericDefinitionMetadata>
+            = crate::utils::clone_lazy::CloneLazy::new(
+                crate::utils::clone_closure::CloneClosure::new((), |(), ()| <#marker as crate::rhai_binding::meta::generic::generic_::GenericDefinitionDynamicTypedMetadata>::from_comptime_to_runtime(&#marker, &#marker))
+            );
+        inventory::submit!(crate::rhai_binding::meta::registry::GenericDefinitionMetadataEntry(&#marker_static));
+
+        #[allow(non_camel_case_types)]
+        #[derive(Clone, PartialEq, Eq, Hash)]
+        struct #marker;
+
+        impl crate::rhai_binding::meta::generic::abstract_primitive::ConstDynMetadata for #marker {
+            fn raw_rust_module_path(&self) -> &'static str { module_path!() }
+        }
+
+        impl crate::rhai_binding::meta::generic::generic_::GenericDefinitionConstDynMetadata for #marker {
+            fn id(&self) -> crate::utils::clone_lazy::CloneLazy<rhai::ImmutableString> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| rhai::ImmutableString::from(#generic_id_lit))
+                )
+            }
+            fn owner_kind(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::meta::generic::generic_::GenericOwnerKind> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| #owner_kind)
+                )
+            }
+            fn params(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<rhai::ImmutableString>> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#param_lits.into()),*])
+                )
+            }
+            fn param_trait_bounds(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<Vec<crate::rhai_binding::path::trait_path::TraitPath>>> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#bound_vec_tokens),*])
+                )
+            }
+            fn notes(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<rhai::ImmutableString>> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#note_lits.into()),*])
+                )
+            }
+        }
+
+        impl crate::rhai_binding::meta::generic::generic_::GenericDefinitionDynamicTypedMetadata for #marker {}
+    }
+    .into()
+}
+
+pub fn reflect_extern_generic_instantiation(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ExternGenericInstantiationMacroInput);
+
+    let instantiation_id_lit = input.id;
+    let generic_id_lit = input.generic_id;
+    let type_argument_lits: Vec<LitStr> = input
+        .type_arguments
+        .iter()
+        .map(path_to_string)
+        .map(|s| path_lit(&s))
+        .collect();
+    let concrete_item_path_lit = input.concrete_item_path;
+    let value_semantics_expr = if let Some(semantics) = input.value_semantics {
+        let semantics_tokens = semantics.as_tokens();
+        quote! { Some(#semantics_tokens) }
+    } else {
+        quote! { None }
+    };
+
+    let marker = make_marker_ident("GENERIC_INST", &instantiation_id_lit.value());
+    let marker_static = make_static_ident("GENERIC_INST", &instantiation_id_lit.value());
+
+    quote! {
+        #[allow(non_upper_case_globals)]
+        static #marker_static: crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::meta::monomorphized::generic_::GenericInstantiationMetadata>
+            = crate::utils::clone_lazy::CloneLazy::new(
+                crate::utils::clone_closure::CloneClosure::new((), |(), ()| <#marker as crate::rhai_binding::meta::generic::generic_::GenericInstantiationDynamicTypedMetadata>::from_comptime_to_runtime(&#marker, &#marker))
+            );
+        inventory::submit!(crate::rhai_binding::meta::registry::GenericInstantiationMetadataEntry(&#marker_static));
+
+        #[allow(non_camel_case_types)]
+        #[derive(Clone, PartialEq, Eq, Hash)]
+        struct #marker;
+
+        impl crate::rhai_binding::meta::generic::abstract_primitive::ConstDynMetadata for #marker {
+            fn raw_rust_module_path(&self) -> &'static str { module_path!() }
+        }
+
+        impl crate::rhai_binding::meta::generic::generic_::GenericInstantiationConstDynMetadata for #marker {
+            fn id(&self) -> crate::utils::clone_lazy::CloneLazy<rhai::ImmutableString> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| rhai::ImmutableString::from(#instantiation_id_lit))
+                )
+            }
+            fn generic_id(&self) -> crate::utils::clone_lazy::CloneLazy<rhai::ImmutableString> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| rhai::ImmutableString::from(#generic_id_lit))
+                )
+            }
+            fn type_arguments(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<crate::rhai_binding::path::type_path::TypePath>> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#type_argument_lits.into()),*])
+                )
+            }
+            fn concrete_item_path(&self) -> crate::utils::clone_lazy::CloneLazy<rhai::ImmutableString> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| rhai::ImmutableString::from(#concrete_item_path_lit))
+                )
+            }
+            fn value_semantics(&self) -> crate::utils::clone_lazy::CloneLazy<Option<crate::rhai_binding::value_semantics::modes::TypeValueSemantics>> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| #value_semantics_expr)
+                )
+            }
+        }
+
+        impl crate::rhai_binding::meta::generic::generic_::GenericInstantiationDynamicTypedMetadata for #marker {}
+    }
+    .into()
+}
+
 pub fn reflect_trait(attr: TokenStream, item: TokenStream) -> TokenStream {
     let trait_path = parse_single_path_attr(attr);
     let trait_path_string = path_to_string(&trait_path);
@@ -1232,6 +1784,26 @@ pub fn reflect_trait(attr: TokenStream, item: TokenStream) -> TokenStream {
     let item_trait = parse_macro_input!(item as ItemTrait);
     let trait_ident = item_trait.ident.clone();
     let trait_name_lit = path_lit(&trait_ident.to_string());
+    let trait_module_path = trait_path_string
+        .rsplit_once("::")
+        .map(|(m, _)| m.to_string())
+        .unwrap_or_default();
+    let super_trait_lits: Vec<LitStr> = item_trait
+        .supertraits
+        .iter()
+        .filter_map(|bound| {
+            let syn::TypeParamBound::Trait(trait_bound) = bound else {
+                return None;
+            };
+            let raw = path_to_string(&trait_bound.path);
+            Some(path_lit(&qualify(&trait_module_path, &raw)))
+        })
+        .collect();
+    let (is_dyn_safe, object_safety_notes_raw) = infer_trait_dyn_safety(&item_trait);
+    let object_safety_note_lits: Vec<LitStr> = object_safety_notes_raw
+        .iter()
+        .map(|note| path_lit(note))
+        .collect();
 
     let marker_ident = make_marker_ident("TRAIT", &trait_path_string);
     let marker_static = make_static_ident("TRAIT", &trait_path_string);
@@ -1287,6 +1859,21 @@ pub fn reflect_trait(attr: TokenStream, item: TokenStream) -> TokenStream {
         impl crate::rhai_binding::meta::generic::trait_::TraitConstDynMetadata for #marker_ident {
             fn id_path(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::path::trait_path::TraitPath> {
                 crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #trait_path_lit.into()))
+            }
+            fn super_traits(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<crate::rhai_binding::path::trait_path::TraitPath>> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#super_trait_lits.into()),*])
+                )
+            }
+            fn is_dyn_safe(&self) -> crate::utils::clone_lazy::CloneLazy<bool> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| #is_dyn_safe)
+                )
+            }
+            fn object_safety_notes(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<rhai::ImmutableString>> {
+                crate::utils::clone_lazy::CloneLazy::new(
+                    crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#object_safety_note_lits.into()),*])
+                )
             }
         }
 

@@ -137,6 +137,14 @@ pub fn reflect_extern_item_associated_function(input: TokenStream) -> TokenStrea
 pub fn reflect_extern_trait(input: TokenStream) -> TokenStream {
     rhai_binding::reflection::reflect_extern_trait(input)
 }
+#[proc_macro]
+pub fn reflect_extern_generic_definition(input: TokenStream) -> TokenStream {
+    rhai_binding::reflection::reflect_extern_generic_definition(input)
+}
+#[proc_macro]
+pub fn reflect_extern_generic_instantiation(input: TokenStream) -> TokenStream {
+    rhai_binding::reflection::reflect_extern_generic_instantiation(input)
+}
 #[proc_macro_attribute]
 pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
     rhai_binding::reflection::reflect_type(attr, item)

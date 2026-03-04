@@ -10,7 +10,7 @@ use crate::{
     },
     utils::{clone_lazy::CloneLazy}
 };
-use crate::rhai_binding::meta::monomorphized::{module::*, trait_::*, type_::*, impl_::*, function::*};
+use crate::rhai_binding::meta::monomorphized::{function::*, generic_::*, impl_::*, module::*, trait_::*, type_::*};
 
 inventory::collect!(TopLevelModuleMetadataEntry);
 pub struct TopLevelModuleMetadataEntry(pub &'static CloneLazy<TopLevelModuleMetadata>);
@@ -36,6 +36,10 @@ inventory::collect!(ConstructorFunctionMetadataEntry);
 pub struct ConstructorFunctionMetadataEntry(pub &'static CloneLazy<ConstructorFunctionMetadata>);
 inventory::collect!(MethodFunctionMetadataEntry);
 pub struct MethodFunctionMetadataEntry(pub &'static CloneLazy<MethodFunctionMetadata>);
+inventory::collect!(GenericDefinitionMetadataEntry);
+pub struct GenericDefinitionMetadataEntry(pub &'static CloneLazy<GenericDefinitionMetadata>);
+inventory::collect!(GenericInstantiationMetadataEntry);
+pub struct GenericInstantiationMetadataEntry(pub &'static CloneLazy<GenericInstantiationMetadata>);
 
 pub struct RuntimeBindingGraph {
     pub top_level_modules: HashMap<TopLevelModulePath, TopLevelModuleMetadata>,
@@ -52,6 +56,8 @@ pub struct RuntimeBindingGraph {
     pub item_associated_functions: HashMap<ItemAssociatedFunctionPath, ItemAssociatedFunctionMetadata>,
     pub constructor_functions: HashMap<ConstructorFunctionPath, ConstructorFunctionMetadata>,
     pub method_functions: HashMap<MethodFunctionPath, MethodFunctionMetadata>,
+    pub generic_definitions: HashMap<rhai::ImmutableString, GenericDefinitionMetadata>,
+    pub generic_instantiations: HashMap<rhai::ImmutableString, GenericInstantiationMetadata>,
 }
 impl RuntimeBindingGraph {
     pub fn build() -> Self {
@@ -188,6 +194,26 @@ impl RuntimeBindingGraph {
             }
         }
 
+        // Generic metadata
+        let mut generic_definitions = HashMap::default();
+        for entry in inventory::iter::<GenericDefinitionMetadataEntry> {
+            let value = entry.0.get();
+            let id = value.id.get();
+            if let Some(existing) = generic_definitions.insert(id.clone(), value) {
+                let existing_id = existing.id.get();
+                panic!("Duplicate generic definition '{existing_id}'!");
+            }
+        }
+        let mut generic_instantiations = HashMap::default();
+        for entry in inventory::iter::<GenericInstantiationMetadataEntry> {
+            let value = entry.0.get();
+            let id = value.id.get();
+            if let Some(existing) = generic_instantiations.insert(id.clone(), value) {
+                let existing_id = existing.id.get();
+                panic!("Duplicate generic instantiation '{existing_id}'!");
+            }
+        }
+
         Self {
             top_level_modules,
             sub_modules,
@@ -200,6 +226,8 @@ impl RuntimeBindingGraph {
             item_associated_functions,
             constructor_functions,
             method_functions,
+            generic_definitions,
+            generic_instantiations,
         }.log_contents()
     }
 
@@ -215,6 +243,69 @@ impl RuntimeBindingGraph {
         let item_associated_functions_string = self.item_associated_functions.keys().collect::<Vec<_>>();
         let constructor_functions_string = self.constructor_functions.keys().collect::<Vec<_>>();
         let method_functions_string = self.method_functions.keys().collect::<Vec<_>>();
+        let generic_definitions_string = self
+            .generic_definitions
+            .iter()
+            .map(|(id, metadata)| {
+                let owner_kind = metadata.owner_kind.get();
+                let params = metadata.params.get();
+                let bounds = metadata.param_trait_bounds.get();
+                let notes = metadata.notes.get();
+
+                let params_with_bounds = params
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, param)| {
+                        let param_bounds = bounds.get(idx).cloned().unwrap_or_default();
+                        format!("{param}: {:?}", param_bounds)
+                    })
+                    .collect::<Vec<_>>();
+
+                format!("{id} [{owner_kind:?}] params={params_with_bounds:?} notes={notes:?}")
+            })
+            .collect::<Vec<_>>();
+        let generic_instantiations_string = self
+            .generic_instantiations
+            .iter()
+            .map(|(id, metadata)| {
+                let generic_id = metadata.generic_id.get();
+                let type_arguments = metadata.type_arguments.get();
+                let concrete_item = metadata.concrete_item_path.get();
+                let value_semantics = metadata.value_semantics.get();
+                format!("{id} => generic={generic_id}, args={type_arguments:?}, concrete={concrete_item}, semantics={value_semantics:?}")
+            })
+            .collect::<Vec<_>>();
+        let generic_bound_links_string = self
+            .generic_instantiations
+            .iter()
+            .map(|(id, inst)| {
+                let generic_id = inst.generic_id.get();
+                let type_arguments = inst.type_arguments.get();
+                let Some(definition) = self.generic_definitions.get(&generic_id) else {
+                    return format!("{id}: unresolved generic definition '{generic_id}'");
+                };
+
+                let params = definition.params.get();
+                let bounds = definition.param_trait_bounds.get();
+                let mut links = Vec::new();
+                for (idx, param) in params.iter().enumerate() {
+                    let arg = type_arguments
+                        .get(idx)
+                        .map(|path| format!("{path}"))
+                        .unwrap_or_else(|| "<missing-arg>".to_string());
+                    let required_bounds = bounds.get(idx).cloned().unwrap_or_default();
+                    links.push(format!("{param} -> {arg} requires {:?}", required_bounds));
+                }
+
+                if type_arguments.len() > params.len() {
+                    for extra in type_arguments.iter().skip(params.len()) {
+                        links.push(format!("<extra-arg> -> {extra} (no generic parameter slot)"));
+                    }
+                }
+
+                format!("{id}: {}", links.join(" | "))
+            })
+            .collect::<Vec<_>>();
 
         println!("top_level_modules: {:?}", top_level_modules_string);
         println!("sub_modules: {:?}", sub_modules_string);
@@ -227,6 +318,9 @@ impl RuntimeBindingGraph {
         println!("item_associated_functions: {:?}", item_associated_functions_string);
         println!("constructor_functions: {:?}", constructor_functions_string);
         println!("method_functions: {:?}", method_functions_string);
+        println!("generic_definitions: {:?}", generic_definitions_string);
+        println!("generic_instantiations: {:?}", generic_instantiations_string);
+        println!("generic_bound_links: {:?}", generic_bound_links_string);
 
         self
     }
