@@ -1,4 +1,4 @@
-fn run_world_commands_suite(world) {
+fn run_ecs_world_commands_suite(world) {
     print("[Startup][ECS] world/commands suite");
 
     world.commands(|commands| {

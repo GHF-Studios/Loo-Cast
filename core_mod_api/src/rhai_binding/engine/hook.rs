@@ -2,7 +2,26 @@ use crate::bevy::prelude::{Mut, World as BevyWorld};
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
 use crate::script::ecs::world::bindings::types::World;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+fn collect_rhai_files_recursive(dir: &Path, out: &mut Vec<PathBuf>) {
+    let entries = std::fs::read_dir(dir)
+        .unwrap_or_else(|e| panic!("Failed to read companion hook dir '{}': {e}", dir.display()));
+
+    for entry in entries {
+        let Ok(entry) = entry else {
+            continue;
+        };
+        let path = entry.path();
+        if path.is_dir() {
+            collect_rhai_files_recursive(&path, out);
+            continue;
+        }
+        if path.extension().and_then(|e| e.to_str()) == Some("rhai") {
+            out.push(path);
+        }
+    }
+}
 
 fn compose_hook_source(path: &str) -> String {
     let script_path = PathBuf::from(path);
@@ -11,13 +30,9 @@ fn compose_hook_source(path: &str) -> String {
     let mut source_parts: Vec<String> = Vec::new();
 
     if companion_dir.is_dir() {
-        let mut companion_files: Vec<PathBuf> = std::fs::read_dir(&companion_dir)
-            .unwrap_or_else(|e| panic!("Failed to read companion hook dir '{}': {e}", companion_dir.display()))
-            .filter_map(|entry| entry.ok().map(|e| e.path()))
-            .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("rhai"))
-            .collect();
-
-        companion_files.sort();
+        let mut companion_files = Vec::new();
+        collect_rhai_files_recursive(&companion_dir, &mut companion_files);
+        companion_files.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
 
         for file in companion_files {
             let code = std::fs::read_to_string(&file)

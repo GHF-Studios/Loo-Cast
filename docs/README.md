@@ -6,6 +6,8 @@ Quick links
 
 - `Architecture.md` — engine & mod composition
 - `Scripting.md` — Rhai scripting overview and hook system
+- `RhaiDialect.md` — architecture and design rules for the custom Rhai dialect layer
+- `RhaiBridgeDevelopment.md` — playbook for adding new Bevy/Rust bridges and signature catalogs
 - `Building.md` — build & run instructions, profiles, tips
 - `Crates.md` — workspace crate responsibilities (code vs assets and engine/runtime vs game/gameplay)
 - `Modding.md` — how to structure a mod and where to put assets

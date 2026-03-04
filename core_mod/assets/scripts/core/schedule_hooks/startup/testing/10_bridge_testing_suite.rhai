@@ -1,6 +1,5 @@
-fn run_reflection_smoke_suite() {
-    print("[Startup][Reflection] smoke suite");
-    print("[Startup][Reflection] " + ecs::bridge_info());
+fn run_testing_bridge_smoke_suite() {
+    print("[Startup][Testing] bridge smoke suite");
 
     shop::divisions::sex::test_function();
     shop::divisions::sex::SexShopProduct::test();
@@ -10,5 +9,5 @@ fn run_reflection_smoke_suite() {
     let price_usd = product.price_usd();
     shop::divisions::sex::SexShopProduct::verify_price(price_usd);
 
-    print("[Startup][Reflection] product check: " + name + " @ " + price_usd + "USD");
+    print("[Startup][Testing] product check: " + name + " @ " + price_usd + "USD");
 }

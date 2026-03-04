@@ -1,4 +1,4 @@
-fn run_entity_primitives_suite(world) {
+fn run_ecs_entity_primitives_suite(world) {
     print("[Startup][Entity] primitive suite");
 
     world.spawn_empty(|entity_world_mut| {

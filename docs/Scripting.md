@@ -1,26 +1,51 @@
-# Scripting — Rhai-based scripting & schedule hooks
+# Scripting — Rhai Dialect, Hooks, and Bridge Suites
 
-**Overview**
-- This project uses Rhai as the embedded scripting language for gameplay logic and light orchestration.
-- The main script engine is created at startup (see `core_mod_api::reflection::internals::functions::new_main_script_engine`) and runs a `boot.rhai` script located under `core_mod/assets/scripts/core/boot.rhai`.
+## Overview
 
-**Schedule hooks**
-- Scripts can register hook handlers which are then mapped into Bevy schedule stages (e.g., `pre_startup`, `startup`, `update`, `post_update`, `last`).
-- The engine's hook runner compiles and executes hook files from `core_mod/scripts/core/schedule_hooks/` and runs them in the appropriate stage via a system wrapper.
-- Use the engine-exposed helper `add_hook_handler("<schedule_name>")` from scripts to register a hook that gets executed by the runner.
+- The engine embeds Rhai and boots it through `core_mod_api::rhai_binding::engine`.
+- Startup script entrypoint:
+  - authoring path: `core_mod/assets/scripts/core/boot.rhai`
+  - runtime asset path: `core_mod/scripts/core/boot.rhai` (resolved by `asset_root()`).
+- `boot.rhai` registers schedule hooks through `add_hook_handler("<schedule_name>")`.
 
-**Bindings exposed to scripts**
-- `World` — read/write access to the Bevy world (safe, scoped handle wrapping raw Bevy access).
-- `Commands` / `EntityCommands` — spawn and manipulate entities.
-- `Component` / `Bundle` — convenience constructors for components and bundles.
-- `Entity` — entity identity and helper getters.
-- TODO: This is hiiiiiighly incomplete and needs to be expanded into a full tree of docs for the base_mod_api crate, basically.
+## Hook loading model
 
-**Authoring tips**
-- Keep boot scripts idempotent and fast; use scheduled hooks for per-frame or periodic logic.
-- Prefer manipulating data through `Commands` and small scripts that call into typed runtime APIs instead of re-creating complex logic in scripts.
+- Hook runner lives in `core_mod_api/src/rhai_binding/engine/hook.rs`.
+- Each hook stage loads:
+  1. all `.rhai` files under a same-name companion directory recursively (sorted by full path),
+  2. then the stage's root file itself.
+- Example:
+  - `startup.rhai` pulls in everything under `startup/` first, then calls `main(world)`.
 
-**Where to look**
-- `core_mod_api/src/reflection/internals/functions.rs` — script engine, bindings, and hook runner.
-- `core_mod/assets/scripts/core/` — boot scripts and default hooks.
-- `base_mod/assets/scripts/` — gameplay scripts for the base mod.
+This makes `startup.rhai` a stable test/example entrypoint while companion files hold organized suites.
+
+## Script layout
+
+- Core scripts root: `core_mod/assets/scripts/core/`
+- Schedule hooks: `core_mod/assets/scripts/core/schedule_hooks/`
+- Startup suites: `core_mod/assets/scripts/core/schedule_hooks/startup/`
+  - `reflection/` for reflection graph smoke checks.
+  - `ecs/` for ECS bridge examples (World, Commands, Query, Messages, iterators).
+  - `testing/` for testing-only bridge modules (e.g. `shop::divisions::sex`).
+- Rhai-only utility namespace scaffold: `core_mod/assets/scripts/core/rhai_std/`
+
+## Bridge model (high-level)
+
+- Reflection/registration source of truth: `core_mod_api/src/rhai_binding/bridges/`
+  - `domains/` for real runtime APIs (`ecs`, `player`, `rust`, etc.).
+  - `testing/` for test-only modules.
+- Runtime wrapper types currently live in `script/*` and are re-exported via:
+  - `core_mod_api/src/rhai_binding/runtime/mod.rs`
+- New bridge/runtime code should import through `rhai_binding::runtime::*`, not directly from `script::*`.
+
+## Extension references
+
+- Architecture and design rules: `docs/RhaiDialect.md`
+- Step-by-step extension workflow: `docs/RhaiBridgeDevelopment.md`
+
+## Validation
+
+- Fast compile check: `cargo check -p core_mod_api`
+- End-to-end startup script smoke:
+  1. `./build.sh dev`
+  2. `./run.sh dev`

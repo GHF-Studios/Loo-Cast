@@ -1,4 +1,4 @@
-fn run_query_single_messages_suite(world) {
+fn run_ecs_query_messages_iterators_suite(world) {
     print("[Startup][ECS] query/single/messages suite");
 
     let entity_data = ecs::query::QueryData::single("ecs::entities::Entity");

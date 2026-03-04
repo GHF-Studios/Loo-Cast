@@ -1,0 +1,19 @@
+# Core Rhai Scripts
+
+This directory is the canonical Rhai asset root for core runtime scripting.
+
+## Layout
+
+- `boot.rhai`
+  - Registers schedule hooks via `add_hook_handler`.
+- `schedule_hooks/`
+  - Hook entrypoint scripts (`pre_startup.rhai`, `startup.rhai`, etc.).
+  - Companion folders (same name as hook file) contain categorized suites loaded before the root hook file.
+- `rhai_std/`
+  - Reserved space for Rhai-first helper modules and script-side standard-library style utilities.
+
+## Important references
+
+- `docs/Scripting.md`
+- `docs/RhaiDialect.md`
+- `docs/RhaiBridgeDevelopment.md`
