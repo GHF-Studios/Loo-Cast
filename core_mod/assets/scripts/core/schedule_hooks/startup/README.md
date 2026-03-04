@@ -11,6 +11,8 @@ When startup hook runs, loader concatenates:
 2. then `../startup.rhai`.
 
 This keeps startup tests categorized while preserving one executable entrypoint.
+Execution order is defined by `startup_test_catalog.rhai`, not by filename
+prefixes.
 
 ## Folder conventions
 
@@ -41,4 +43,12 @@ Use explicit helper names, for example:
 - `run_ecs_*`
 - `run_*_working_example_test_*`
 
-Keep orchestration centralized in `00_startup_test_catalog.rhai`.
+Keep orchestration centralized in `startup_test_catalog.rhai`.
+
+## File naming convention
+
+Use descriptive filenames without numeric prefixes, for example:
+
+- `tests/ecs/world_commands_test.rhai`
+- `tests/reflection/reflection_core_test.rhai`
+- `tests/examples/shop_working_example_test.rhai`

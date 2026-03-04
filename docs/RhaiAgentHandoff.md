@@ -1,74 +1,76 @@
-# Rhai Agent Handoff
+# Rhai Agent Policy
 
-Purpose: give a fresh agent enough context to continue Rhai-binding work without
-chat history.
+Purpose: permanent pre-instructions for AI agents working on Rhai bindings and
+Rhai script runtime behavior in this repository.
 
-## Hard Rules (Current Agreement)
+## Scope
 
-- Global Rhai namespace is reserved for top-level modules and only truly central
-  primitives.
-- Do not add ad-hoc global helper functions for hook/testing orchestration.
+This document defines durable rules and expected workflow. It does not track
+task status, temporary migrations, or historical cleanup notes.
+
+## Non-Negotiable Rules
+
+- Global Rhai namespace is reserved for truly central primitives and
+  top-level modules.
+- Do not add ad-hoc global helper functions for hook or test orchestration.
 - Schedule hook registration must go through
   `rhai_binding::schedule_hooks::add`.
-- Testing gate must use config key `rhai_binding/testing_enabled`
-  (not env vars).
-- Keep `shop::divisions::sex` testing bridge content; do not delete it.
-- Startup scripts are the integration-test entrypoint
-  (`./build.sh dev` then `./run.sh dev`).
-- `AccessCell` + provider pattern is the intended backbone for ECS/sysparam
-  safety and value semantics.
-- Arc/`rhai::Shared` is discouraged for mutable/scoped semantics; acceptable
-  only for explicit persistent readonly-style semantics.
+- Testing gate must use config key `rhai_binding/testing_enabled` from
+  config, not env vars.
+- Startup tests/examples must execute only when
+  `rhai_binding::testing::enabled() == true`.
+- Keep testing/example bridge content available for harness coverage (for
+  example `shop::divisions::sex`).
+- Startup hook scripts are the integration test entrypoint:
+  `./build.sh dev` then `./run.sh dev`.
+- `AccessCell` + provider patterns are the default semantics backbone for
+  ECS/sysparam safety.
+- `Arc`/`rhai::Shared` is not the default mutable/scoped model; only use it for
+  explicit persistent/readonly semantics.
 
-## Current Runtime Shape
+## Rhai Runtime Layout Policy
 
-- Boot registration:
-  - `core_mod/assets/scripts/core/boot.rhai` loops hook names and calls
-    `rhai_binding::schedule_hooks::add(hook)`.
-- Engine runtime modules (non-bridge internals):
-  - `rhai_binding::schedule_hooks::add`
-  - `rhai_binding::testing::enabled`
-  - both registered in
-    `core_mod_api/src/rhai_binding/engine/bootstrap.rs`.
-- Startup test split:
-  - startup tests (including example-tests) run only when
-    `rhai_binding::testing::enabled() == true`.
-- Startup test helper functions are `private fn` to reduce script-global
-  pollution.
+- `core_mod/assets/scripts/core/boot.rhai` is responsible for registering
+  schedule hooks.
+- Runtime utility modules exposed to scripts remain explicit and minimal:
+  `rhai_binding::schedule_hooks`, `rhai_binding::testing`, etc.
+- Startup harness code under
+  `core_mod/assets/scripts/core/schedule_hooks/startup/` is tests/examples, not
+  gameplay logic.
+- `core` is a reserved script module name for core functionality.
+  Non-core scripting logic should live under dedicated module paths
+  (for example `scripts/<module_name>/...`).
 
-## Where To Read First
+## Generic Binding Policy
 
-1. `AGENT_TODO.md` (task sequencing + approval gates)
-2. `docs/RhaiDialect.md` (architecture decisions)
-3. `docs/RhaiValueSemantics.md` (semantics/lifecycle intent)
-4. `docs/RhaiBridgeDevelopment.md` (extension workflow)
-5. `docs/RhaiBindingRoadmap.md` (coverage backlog)
-
-## Open Tasks (As Of This Handoff)
-
-- Task 1: complete
-- Task 2: complete
-- Task 3: complete
-- Task 4: complete
-- Task 5: complete
-
-## Known Directional Constraints
-
+- Rhai generic-like behavior must stay explicit:
+  reflected generic metadata + compile-time monomorphized catalogs + runtime
+  resolver dispatch.
+- Centralize generic dispatch validation/registration conventions in
+  `core_mod_api/src/rhai_binding/runtime/ecs/dispatch_policy.rs`.
+- Prefer policy macros and validators over ad-hoc per-catalog rules.
 - Favor Rust/Bevy path mirroring in bridge domain/module naming.
-- Keep generic behavior explicit: runtime descriptors + pre-registered
-  monomorphized catalogs.
-- Keep generic dispatch policy centralized in
-  `rhai_binding::runtime::ecs::dispatch_policy`.
-- Do not replace startup-hook integration testing with isolated test-only
-  harnesses as the primary validation path.
 
-## Recent Cleanup Notes
+## Startup Test Harness Policy
 
-- Removed dead compatibility/export scaffolding:
-  - `core_mod_api::access` shim module
-  - empty `gpu::external` module tree
-  - empty `logging::{functions,systems}` and `usf::{components,systems}` files
-  - unused placeholder runtime submodules under
-    `rhai_binding::runtime::{ecs,usf}`
-- `reflection::{ids,traits}` remain as active reflection-facing alias modules,
-  but are now documented as aliases (not legacy shims).
+- Keep orchestration centralized in
+  `core_mod/assets/scripts/core/schedule_hooks/startup/startup_test_catalog.rhai`.
+- Use descriptive file names for test scripts; do not rely on numeric filename
+  prefixes for semantics.
+- Keep helper functions `private fn` unless broader visibility is intentional.
+
+## Required Validation When Touching Rhai Bindings
+
+- `cargo check -p core_mod_api`
+- Focused unit tests for edited areas (for example dispatch policy and
+  preprocess tests).
+- Integration pass:
+  `./build.sh dev` and a bounded `./run.sh dev` check.
+
+## Primary Reference Docs
+
+1. `AGENT_TODO.md`
+2. `docs/RhaiDialect.md`
+3. `docs/RhaiBridgeDevelopment.md`
+4. `docs/RhaiGenericBindingPolicy.md`
+5. `docs/RhaiValueSemantics.md`
