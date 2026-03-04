@@ -1,4 +1,4 @@
-use rhai::{Dynamic, FnPtr, NativeCallContext, Shared};
+use rhai::{Dynamic, FnPtr, NativeCallContext};
 
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
 use crate::bevy::prelude::Commands as BevyCommands;
@@ -22,7 +22,7 @@ use crate::rhai_binding::runtime::ecs::{
 };
 use crate::rhai_binding::runtime::std::iter::bindings::types::StringIter;
 
-impl WorldApi for Shared<World> {
+impl WorldApi for World {
     fn commands(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {
         let mut world = self.world.start_write();
 
@@ -33,11 +33,7 @@ impl WorldApi for Shared<World> {
         let commands_binding = Commands {
             commands: commands_raw_handle.clone(),
         };
-        let shared_commands = Shared::new(commands_binding);
-
-        let output = callback.call_within_context::<Dynamic>(&ctx, (shared_commands.clone(),));
-
-        drop(shared_commands);
+        let output = callback.call_within_context::<Dynamic>(&ctx, (commands_binding,));
         unsafe { world.end_access(commands_raw_handle) };
         self.world.end_write(world);
 
@@ -62,11 +58,7 @@ impl WorldApi for Shared<World> {
         let entity_world_mut = EntityWorldMut {
             entity_world_mut: entity_world_mut_raw_handle.clone(),
         };
-        let shared_entity_world_mut = Shared::new(entity_world_mut);
-
-        let output = callback.call_within_context::<Dynamic>(&ctx, (shared_entity_world_mut.clone(),));
-
-        drop(shared_entity_world_mut);
+        let output = callback.call_within_context::<Dynamic>(&ctx, (entity_world_mut,));
         unsafe { world.end_access(entity_world_mut_raw_handle) };
         self.world.end_write(world);
 
@@ -86,11 +78,7 @@ impl WorldApi for Shared<World> {
         let entity_world_mut = EntityWorldMut {
             entity_world_mut: entity_world_mut_raw_handle.clone(),
         };
-        let shared_entity_world_mut = Shared::new(entity_world_mut);
-
-        let output = callback.call_within_context::<Dynamic>(&ctx, (shared_entity_world_mut.clone(),));
-
-        drop(shared_entity_world_mut);
+        let output = callback.call_within_context::<Dynamic>(&ctx, (entity_world_mut,));
         unsafe { world.end_access(entity_world_mut_raw_handle) };
         self.world.end_write(world);
 

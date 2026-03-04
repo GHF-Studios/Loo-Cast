@@ -61,10 +61,9 @@ pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut 
             let world_binding = World {
                 world: world_raw_handle.clone(),
             };
-            let shared_world = rhai::Shared::new(world_binding);
 
             engine
-                .call_fn::<()>(&mut scope, &ast, "main", (shared_world,))
+                .call_fn::<()>(&mut scope, &ast, "main", (world_binding,))
                 .unwrap();
 
             let returned_world = world_raw_handle.take();

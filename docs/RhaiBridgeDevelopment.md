@@ -37,6 +37,8 @@ Macro surface notes: `docs/RhaiMacroSurface.md`.
 - Add `AccessCellProvider<T>` impl(s) in `ecs/catalog/sysparam_providers.rs`.
 - Keep method names and argument payload structs explicit.
 - Preserve strict `start_access` -> use -> `end_access` lifecycle.
+- For scoped ECS wrappers, pass AccessCell-backed wrapper values directly;
+  avoid introducing `rhai::Shared` wrappers.
 
 3. Expose reflection macros.
 - Add or update extern reflection declarations in domain modules:

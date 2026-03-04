@@ -91,7 +91,7 @@ Result snapshot:
 
 ## Task 4: Arc Detox for Scoped Access Paths
 
-Status: pending (plan-first)
+Status: completed
 
 Goal:
 
@@ -106,6 +106,17 @@ Scope:
 Gate:
 
 - **Must provide plan + impact analysis and get approval before implementation.**
+
+Result snapshot:
+
+- Removed `rhai::Shared` wrappers from scoped ECS access paths across world,
+  commands, and entity handle bridge/runtime layers.
+- Scoped wrapper types are now passed directly as AccessCell-backed values into
+  Rhai callback paths (`FnPtr::call_within_context`) and raw method dispatch.
+- Engine hook world injection now passes `World` wrapper directly into script
+  entrypoint instead of wrapping in `rhai::Shared`.
+- Startup-script integration path still exercises world/commands/player-bundle
+  flows successfully after the refactor.
 
 ## Task 5: Query/Message/Bundle Generic Dispatch Normalization
 

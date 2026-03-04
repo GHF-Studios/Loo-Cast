@@ -14,6 +14,7 @@ This is the canonical backlog for expanding the Rhai dialect bridge surface.
 - Reflection/registration declarations live in `core_mod_api/src/rhai_binding/bridges/*`.
 - Generic-like runtime dispatch is catalog-based (`bridges/domains/bevy/ecs/catalog/*`).
 - Bundle spawn dispatch is catalog-backed via typed world access requests (no `BundleFromDynamic` path).
+- Scoped ECS wrapper bindings avoid `rhai::Shared`; AccessCell-backed wrappers are passed directly.
 - Unsafe ECS access boundaries must go through `AccessCell` + `AccessCellProvider`.
 
 ## World bindings hierarchy
