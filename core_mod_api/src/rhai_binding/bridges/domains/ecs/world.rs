@@ -7,7 +7,7 @@ use crate::script::ecs::world::internals::traits::WorldApi;
 
 type ScriptWorld = Shared<World>;
 
-core_mod_macros::reflect_sub_module!(
+core_mod_macros::reflect_extern_sub_module!(
     id = ecs::world,
     sub_modules = [],
     traits = [],

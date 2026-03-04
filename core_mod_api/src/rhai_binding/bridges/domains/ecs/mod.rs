@@ -1,11 +1,21 @@
-core_mod_macros::reflect_top_level_module!(
+core_mod_macros::reflect_extern_top_level_module!(
     id = ecs,
-    sub_modules = [world, commands, entities],
+    sub_modules = [world, commands, entities, bundle],
     traits = [],
     types = [],
-    module_associated_functions = [],
+    module_associated_functions = [bridge_info],
 );
 
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = ecs::bridge_info,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        rhai::FuncRegistration::new(name).set_into_module(parent_module, || -> String {
+            "ecs bridge online".to_string()
+        });
+    },
+);
+
+pub mod bundle;
 pub mod commands;
 pub mod entities;
 pub mod world;

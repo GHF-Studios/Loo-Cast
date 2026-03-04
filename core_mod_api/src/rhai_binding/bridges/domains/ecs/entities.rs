@@ -13,7 +13,7 @@ type SharedEntityRef = Shared<ScriptEntityRef>;
 type SharedEntityMut = Shared<ScriptEntityMut>;
 type SharedEntityWorldMut = Shared<ScriptEntityWorldMut>;
 
-core_mod_macros::reflect_sub_module!(
+core_mod_macros::reflect_extern_sub_module!(
     id = ecs::entities,
     sub_modules = [],
     traits = [],

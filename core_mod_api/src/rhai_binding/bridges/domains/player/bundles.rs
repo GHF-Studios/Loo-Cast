@@ -12,7 +12,7 @@ use crate::script::ecs::bundle::internals::trait_objects::{BundleTrait, BundleTr
 type OwnedPlayerBundle = AccessCell<Persistent, NativePlayerBundle>;
 type ScopedPlayerBundle = ScopedAccessHandle<NativePlayerBundle>;
 
-core_mod_macros::reflect_sub_module!(
+core_mod_macros::reflect_extern_sub_module!(
     id = player::bundles,
     sub_modules = [],
     traits = [],
@@ -25,10 +25,8 @@ core_mod_macros::reflect_extern_type!(
     rust_type = OwnedPlayerBundle,
     value_semantics = owned,
     method_functions = [player::bundles::PlayerBundle::test_print],
-    item_associated_functions = [
-        player::bundles::PlayerBundle::new_default,
-        player::bundles::PlayerBundle::as_trait_obj,
-    ],
+    constructor_functions = [player::bundles::PlayerBundle::new_default],
+    item_associated_functions = [player::bundles::PlayerBundle::as_trait_obj],
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         match <NativePlayerBundle as GetTypeValueSemantics>::VALUE_SEMANTICS {
             TypeValueSemantics::Owned => {
@@ -91,7 +89,7 @@ core_mod_macros::reflect_extern_item_associated_function!(
     },
 );
 
-core_mod_macros::reflect_extern_item_associated_function!(
+core_mod_macros::reflect_extern_constructor_function!(
     id = player::bundles::PlayerBundle::new_default,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         match <NativePlayerBundle as GetTypeValueSemantics>::VALUE_SEMANTICS {

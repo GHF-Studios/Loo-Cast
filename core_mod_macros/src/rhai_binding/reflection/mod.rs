@@ -8,7 +8,8 @@ use syn::punctuated::Punctuated;
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input,
-    Attribute, Expr, ExprPath, Ident, ImplItem, ImplItemFn, Item, ItemFn, ItemImpl, ItemTrait, Path, Token,
+    Attribute, Expr, ExprPath, Ident, ImplItem, ImplItemFn, Item, ItemFn, ItemImpl, ItemTrait, LitStr, Path,
+    Token,
 };
 
 fn path_to_string(path: &Path) -> String {
@@ -90,7 +91,7 @@ fn get_attr_path(attr: &Attribute) -> Option<Path> {
 }
 
 fn attr_name(attr: &Attribute) -> Option<String> {
-    attr.path().get_ident().map(|i| i.to_string())
+    attr.path().segments.last().map(|s| s.ident.to_string())
 }
 
 fn is_reflect_marker_attr(attr: &Attribute) -> bool {
@@ -372,6 +373,61 @@ impl Parse for ExternFunctionMacroInput {
     }
 }
 
+struct ExternTraitMacroInput {
+    id: Path,
+    trait_name: Option<LitStr>,
+    trait_object_name: Option<LitStr>,
+    trait_object_id: Option<Path>,
+}
+
+impl Parse for ExternTraitMacroInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut id: Option<Path> = None;
+        let mut trait_name: Option<LitStr> = None;
+        let mut trait_object_name: Option<LitStr> = None;
+        let mut trait_object_id: Option<Path> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+
+            match key.to_string().as_str() {
+                "id" | "id_path" => {
+                    id = Some(input.parse::<Path>()?);
+                }
+                "trait_name" => {
+                    trait_name = Some(input.parse::<LitStr>()?);
+                }
+                "trait_object_name" => {
+                    trait_object_name = Some(input.parse::<LitStr>()?);
+                }
+                "trait_object_id" => {
+                    trait_object_id = Some(input.parse::<Path>()?);
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "Unknown key '{other}' in reflect_extern_trait!. Expected: id, trait_name, trait_object_name, trait_object_id"
+                        ),
+                    ));
+                }
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            id: id.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `id`/`id_path`"))?,
+            trait_name,
+            trait_object_name,
+            trait_object_id,
+        })
+    }
+}
+
 impl ReflectTypeValueSemantics {
     fn as_tokens(self) -> TokenStream2 {
         match self {
@@ -601,6 +657,14 @@ pub fn reflect_top_level_module(input: TokenStream) -> TokenStream {
 pub fn reflect_sub_module(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ModuleMacroInput);
     generate_module_metadata(input, false).into()
+}
+
+pub fn reflect_extern_top_level_module(input: TokenStream) -> TokenStream {
+    reflect_top_level_module(input)
+}
+
+pub fn reflect_extern_sub_module(input: TokenStream) -> TokenStream {
+    reflect_sub_module(input)
 }
 
 pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -869,6 +933,98 @@ pub fn reflect_extern_type(input: TokenStream) -> TokenStream {
     .into()
 }
 
+pub fn reflect_extern_module_associated_function(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ExternFunctionMacroInput);
+    let id_path_string = path_to_string(&input.id);
+    let id_lit = path_lit(&id_path_string);
+    let fn_name = id_path_string
+        .rsplit("::")
+        .next()
+        .expect("Module-associated function id path must include a function segment");
+    let fn_name_lit = path_lit(fn_name);
+    let registrator = input.registrator;
+
+    let marker = make_marker_ident("MODULE_FN", &id_path_string);
+    let marker_static = make_static_ident("MODULE_FN", &id_path_string);
+
+    quote! {
+        #[allow(non_upper_case_globals)]
+        static #marker_static: crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::meta::monomorphized::function::ModuleAssociatedFunctionMetadata>
+            = crate::utils::clone_lazy::CloneLazy::new(
+                crate::utils::clone_closure::CloneClosure::new((), |(), ()| <#marker as crate::rhai_binding::meta::generic::function::ModuleAssociatedFunctionDynamicTypedMetadata>::from_comptime_to_runtime(&#marker, &#marker))
+            );
+        inventory::submit!(crate::rhai_binding::meta::registry::ModuleAssociatedFunctionMetadataEntry(&#marker_static));
+
+        #[allow(non_camel_case_types)]
+        #[derive(Clone, PartialEq, Eq, Hash)]
+        struct #marker;
+
+        impl crate::rhai_binding::meta::generic::abstract_primitive::ConstDynMetadata for #marker {
+            fn raw_rust_module_path(&self) -> &'static str { module_path!() }
+        }
+
+        impl crate::rhai_binding::meta::generic::function::ModuleAssociatedFunctionConstDynMetadata for #marker {
+            fn id_path(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::path::function_path::ModuleAssociatedFunctionPath> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #id_lit.into()))
+            }
+            fn registrator(self) -> crate::utils::clone_closure::CloneClosure<rhai::ImmutableString, &'static mut rhai::Module, (), fn(rhai::ImmutableString, &mut rhai::Module)> {
+                crate::utils::clone_closure::CloneClosure::new(#fn_name_lit.into(), |name, parent_module| {
+                    (#registrator)(name, parent_module);
+                })
+            }
+        }
+
+        impl crate::rhai_binding::meta::generic::function::ModuleAssociatedFunctionDynamicTypedMetadata for #marker {}
+    }
+    .into()
+}
+
+pub fn reflect_extern_constructor_function(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ExternFunctionMacroInput);
+    let id_path_string = path_to_string(&input.id);
+    let id_lit = path_lit(&id_path_string);
+    let fn_name = id_path_string
+        .rsplit("::")
+        .next()
+        .expect("Constructor function id path must include a function segment");
+    let fn_name_lit = path_lit(fn_name);
+    let registrator = input.registrator;
+
+    let marker = make_marker_ident("CTOR_FN", &id_path_string);
+    let marker_static = make_static_ident("CTOR_FN", &id_path_string);
+
+    quote! {
+        #[allow(non_upper_case_globals)]
+        static #marker_static: crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::meta::monomorphized::function::ConstructorFunctionMetadata>
+            = crate::utils::clone_lazy::CloneLazy::new(
+                crate::utils::clone_closure::CloneClosure::new((), |(), ()| <#marker as crate::rhai_binding::meta::generic::function::ConstructorFunctionDynamicTypedMetadata>::from_comptime_to_runtime(&#marker, &#marker))
+            );
+        inventory::submit!(crate::rhai_binding::meta::registry::ConstructorFunctionMetadataEntry(&#marker_static));
+
+        #[allow(non_camel_case_types)]
+        #[derive(Clone, PartialEq, Eq, Hash)]
+        struct #marker;
+
+        impl crate::rhai_binding::meta::generic::abstract_primitive::ConstDynMetadata for #marker {
+            fn raw_rust_module_path(&self) -> &'static str { module_path!() }
+        }
+
+        impl crate::rhai_binding::meta::generic::function::ConstructorFunctionConstDynMetadata for #marker {
+            fn id_path(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::path::function_path::ConstructorFunctionPath> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #id_lit.into()))
+            }
+            fn registrator(self) -> crate::utils::clone_closure::CloneClosure<rhai::ImmutableString, &'static mut rhai::Module, (), fn(rhai::ImmutableString, &mut rhai::Module)> {
+                crate::utils::clone_closure::CloneClosure::new(#fn_name_lit.into(), |name, parent_module| {
+                    (#registrator)(name, parent_module);
+                })
+            }
+        }
+
+        impl crate::rhai_binding::meta::generic::function::ConstructorFunctionDynamicTypedMetadata for #marker {}
+    }
+    .into()
+}
+
 pub fn reflect_extern_method_function(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ExternFunctionMacroInput);
     let id_path_string = path_to_string(&input.id);
@@ -957,6 +1113,113 @@ pub fn reflect_extern_item_associated_function(input: TokenStream) -> TokenStrea
         }
 
         impl crate::rhai_binding::meta::generic::function::ItemAssociatedFunctionDynamicTypedMetadata for #marker {}
+    }
+    .into()
+}
+
+pub fn reflect_extern_trait(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ExternTraitMacroInput);
+
+    let trait_path_string = path_to_string(&input.id);
+    let trait_path_lit = path_lit(&trait_path_string);
+
+    let default_trait_name = trait_path_string
+        .rsplit("::")
+        .next()
+        .expect("Trait path must have at least one segment")
+        .to_string();
+    let trait_name_lit = input
+        .trait_name
+        .unwrap_or_else(|| path_lit(&default_trait_name));
+
+    let default_trait_object_name = format!("{default_trait_name}TraitObject");
+    let trait_object_name_lit = input
+        .trait_object_name
+        .unwrap_or_else(|| path_lit(&default_trait_object_name));
+
+    let default_module_path = trait_path_string
+        .rsplit_once("::")
+        .map(|(m, _)| m.to_string())
+        .unwrap_or_default();
+    let default_trait_object_id = if default_module_path.is_empty() {
+        default_trait_object_name
+    } else {
+        format!("{default_module_path}::{default_trait_object_name}")
+    };
+    let trait_object_id_string = input
+        .trait_object_id
+        .as_ref()
+        .map(path_to_string)
+        .unwrap_or(default_trait_object_id);
+    let trait_object_id_lit = path_lit(&trait_object_id_string);
+
+    let marker_ident = make_marker_ident("TRAIT", &trait_path_string);
+    let marker_static = make_static_ident("TRAIT", &trait_path_string);
+    let object_marker_ident = make_marker_ident("TRAIT_OBJECT", &trait_path_string);
+    let object_marker_static = make_static_ident("TRAIT_OBJECT", &trait_path_string);
+
+    quote! {
+        #[allow(non_upper_case_globals)]
+        static #marker_static: crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::meta::monomorphized::trait_::TraitMetadata>
+            = crate::utils::clone_lazy::CloneLazy::new(
+                crate::utils::clone_closure::CloneClosure::new((), |(), ()| <#marker_ident as crate::rhai_binding::meta::generic::trait_::TraitDynamicTypedMetadata>::from_comptime_to_runtime(&#marker_ident, &#marker_ident))
+            );
+        inventory::submit!(crate::rhai_binding::meta::registry::TraitMetadataEntry(&#marker_static));
+
+        #[allow(non_upper_case_globals)]
+        static #object_marker_static: crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::meta::monomorphized::trait_::TraitObjectMetadata>
+            = crate::utils::clone_lazy::CloneLazy::new(
+                crate::utils::clone_closure::CloneClosure::new((), |(), ()| <#object_marker_ident as crate::rhai_binding::meta::generic::trait_::TraitObjectDynamicTypedMetadata>::from_comptime_to_runtime(&#object_marker_ident, &#object_marker_ident))
+            );
+        inventory::submit!(crate::rhai_binding::meta::registry::TraitObjectMetadataEntry(&#object_marker_static));
+
+        #[allow(non_camel_case_types)]
+        #[derive(Clone, PartialEq, Eq, Hash)]
+        struct #marker_ident;
+
+        impl crate::rhai_binding::meta::generic::abstract_primitive::ConstDynMetadata for #marker_ident {
+            fn raw_rust_module_path(&self) -> &'static str { module_path!() }
+        }
+
+        impl crate::rhai_binding::meta::abstract_::trait_identity::DynGetTraitName for #marker_ident {
+            fn trait_name(&self) -> &'static str { #trait_name_lit }
+        }
+
+        impl crate::rhai_binding::meta::abstract_::trait_identity::GetTraitId for #marker_ident {
+            const TRAIT_ID: &'static str = #trait_path_lit;
+        }
+
+        impl crate::rhai_binding::meta::generic::trait_::TraitConstDynMetadata for #marker_ident {
+            fn id_path(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::path::trait_path::TraitPath> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #trait_path_lit.into()))
+            }
+        }
+
+        impl crate::rhai_binding::meta::generic::trait_::TraitDynamicTypedMetadata for #marker_ident {}
+
+        #[allow(non_camel_case_types)]
+        #[derive(Clone, PartialEq, Eq, Hash)]
+        struct #object_marker_ident;
+
+        impl crate::rhai_binding::meta::generic::abstract_primitive::ConstDynMetadata for #object_marker_ident {
+            fn raw_rust_module_path(&self) -> &'static str { module_path!() }
+        }
+
+        impl crate::rhai_binding::meta::abstract_::trait_identity::DynGetTraitObjectName for #object_marker_ident {
+            fn trait_object_name(&self) -> &'static str { #trait_object_name_lit }
+        }
+
+        impl crate::rhai_binding::meta::abstract_::trait_identity::GetTraitObjectId for #marker_ident {
+            const TRAIT_OBJECT_ID: &'static str = #trait_object_id_lit;
+        }
+
+        impl crate::rhai_binding::meta::generic::trait_::TraitObjectConstDynMetadata for #object_marker_ident {
+            fn id_path(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::path::trait_path::TraitPath> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #trait_path_lit.into()))
+            }
+        }
+
+        impl crate::rhai_binding::meta::generic::trait_::TraitObjectDynamicTypedMetadata for #object_marker_ident {}
     }
     .into()
 }

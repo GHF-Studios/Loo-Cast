@@ -1,9 +1,9 @@
 core_mod_macros::reflect_extern_top_level_module!(
-    id = player,
-    sub_modules = [bundles],
+    id = shop,
+    sub_modules = [divisions],
     traits = [],
     types = [],
     module_associated_functions = [],
 );
 
-pub mod bundles;
+pub mod divisions;

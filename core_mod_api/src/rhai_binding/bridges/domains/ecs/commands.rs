@@ -7,7 +7,7 @@ use crate::script::ecs::system::commands::internals::traits::{CommandsApi, Entit
 type ScriptCommands = Shared<Commands>;
 type ScriptEntityCommands = Shared<EntityCommands>;
 
-core_mod_macros::reflect_sub_module!(
+core_mod_macros::reflect_extern_sub_module!(
     id = ecs::commands,
     sub_modules = [],
     traits = [],
