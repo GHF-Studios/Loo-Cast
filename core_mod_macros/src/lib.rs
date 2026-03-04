@@ -105,6 +105,18 @@ pub fn reflect_top_level_module(input: TokenStream) -> TokenStream {
 pub fn reflect_sub_module(input: TokenStream) -> TokenStream {
     rhai_binding::reflection::reflect_sub_module(input)
 }
+#[proc_macro]
+pub fn reflect_extern_type(input: TokenStream) -> TokenStream {
+    rhai_binding::reflection::reflect_extern_type(input)
+}
+#[proc_macro]
+pub fn reflect_extern_method_function(input: TokenStream) -> TokenStream {
+    rhai_binding::reflection::reflect_extern_method_function(input)
+}
+#[proc_macro]
+pub fn reflect_extern_item_associated_function(input: TokenStream) -> TokenStream {
+    rhai_binding::reflection::reflect_extern_item_associated_function(input)
+}
 #[proc_macro_attribute]
 pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
     rhai_binding::reflection::reflect_type(attr, item)

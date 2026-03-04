@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use crate::bevy::ecs::entity::Entity as BevyEntity;
 use crate::bevy::prelude::{
     App, First, Last, PostStartup, PostUpdate, PreStartup, PreUpdate, Startup, Update,
 };
@@ -9,22 +8,7 @@ use crate::rhai_binding::bind::engine_ext::EngineExt;
 use crate::rhai_binding::engine::hook::new_hook_runner_system;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::SCHEDULE_HOOKS;
-use crate::rhai_binding::meta::abstract_::trait_identity::ToTraitObject;
-use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Persistent};
-use crate::rhai_binding::value_semantics::scoped_access::{ScopedAccess, ScopedAccessHandle};
-use crate::rhai_binding::value_semantics::trait_object::StaticTraitObject;
-use crate::script::ecs::bundle::bindings::types::Bundle;
-use crate::script::ecs::bundle::internals::trait_objects::{BundleTrait, BundleTraitObject};
-use crate::script::ecs::component::bindings::types::Component;
-use crate::script::ecs::system::commands::bindings::types::{Commands, EntityCommands};
-use crate::script::ecs::system::commands::internals::traits::{CommandsApi, EntityCommandsApi};
-use crate::script::ecs::world::bindings::types::World;
-use crate::script::ecs::world::entity_ref::bindings::types::{EntityMut, EntityRef, EntityWorldMut};
-use crate::script::ecs::world::entity_ref::internals::traits::{EntityMutApi, EntityRefApi, EntityWorldMutApi};
-use crate::script::ecs::world::internals::traits::WorldApi;
-use rhai::{Dynamic, Engine, FnPtr, Shared};
-use std::any::TypeId as RustTypeId;
-use std::sync::{Arc, RwLock};
+use rhai::Engine;
 
 pub fn build(app: &mut App) {
     app.init_resource::<MainScriptEngineHandle>();
@@ -89,7 +73,7 @@ pub(super) fn new_main_script_engine() -> Engine {
     let mut engine = Engine::new();
 
     engine.register_binding_graph();
-    register_legacy_bindings(&mut engine);
+    register_runtime_bindings(&mut engine);
 
     let boot_script_path = "core_mod/scripts/core/boot.rhai";
     let mut abs_boot_script_path = PathBuf::from(boot_script_path);
@@ -107,186 +91,8 @@ pub(super) fn new_main_script_engine() -> Engine {
     engine
 }
 
-fn register_legacy_bindings(engine: &mut rhai::Engine) {
+fn register_runtime_bindings(engine: &mut rhai::Engine) {
     engine.register_fn("add_hook_handler", |hook: &str| {
         SCHEDULE_HOOKS().lock().unwrap().insert(hook.into());
     });
-
-    // World
-    engine.register_type_with_name::<Shared<World>>("World");
-    engine.register_raw_fn("flush", [RustTypeId::of::<Shared<World>>()], |_, args| {
-        let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
-        world.flush();
-        Ok(Dynamic::UNIT)
-    });
-    engine.register_raw_fn(
-        "commands",
-        [RustTypeId::of::<Shared<World>>(), RustTypeId::of::<FnPtr>()],
-        |ctx, args| {
-            let callback = args[1].take().cast::<FnPtr>();
-            let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
-            Ok(world.commands(ctx, callback))
-        },
-    );
-    engine.register_raw_fn(
-        "spawn_empty",
-        [RustTypeId::of::<Shared<World>>(), RustTypeId::of::<FnPtr>()],
-        |ctx, args| {
-            let callback = args[1].take().cast::<FnPtr>();
-            let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
-            Ok(world.spawn_empty(ctx, callback))
-        },
-    );
-    engine.register_raw_fn(
-        "spawn_single",
-        [
-            RustTypeId::of::<Shared<World>>(),
-            RustTypeId::of::<BundleTraitObject>(),
-            RustTypeId::of::<FnPtr>(),
-        ],
-        |ctx, args| {
-            let callback = args[2].take().cast::<FnPtr>();
-            let bundle = args[1].take().cast::<BundleTraitObject>();
-            let world = &mut *args[0].write_lock::<Shared<World>>().unwrap();
-            Ok(world.spawn_single(bundle, ctx, callback))
-        },
-    );
-
-    // Commands
-    engine.register_type_with_name::<Shared<Commands>>("Commands");
-    engine.register_raw_fn(
-        "spawn_empty",
-        [RustTypeId::of::<Shared<Commands>>(), RustTypeId::of::<FnPtr>()],
-        |ctx, args| {
-            let callback = args[1].take().cast::<FnPtr>();
-            let commands = &mut *args[0].write_lock::<Shared<Commands>>().unwrap();
-            Ok(commands.spawn_empty(ctx, callback))
-        },
-    );
-
-    // EntityCommands
-    engine.register_type_with_name::<Shared<EntityCommands>>("EntityCommands");
-    engine.register_raw_fn("id", [RustTypeId::of::<Shared<EntityCommands>>()], |_, args| {
-        let entity_commands = &*args[0].read_lock::<Shared<EntityCommands>>().unwrap();
-        Ok(Dynamic::from(entity_commands.id()))
-    });
-
-    // Entity
-    engine.register_type::<BevyEntity>();
-    engine.register_get("index", |e: &mut BevyEntity| e.index());
-    engine.register_get("gen", |e: &mut BevyEntity| e.generation());
-    engine.register_fn("to_string", |e: &mut BevyEntity| {
-        format!("Entity(index={}, gen={})", e.index(), e.generation())
-    });
-
-    // EntityRef
-    engine.register_type_with_name::<Shared<EntityRef>>("EntityRef");
-    engine.register_get("id", |entity_ref: &mut Shared<EntityRef>| entity_ref.id());
-    engine.register_fn("id", |entity_ref: &mut Shared<EntityRef>| entity_ref.id());
-
-    // EntityMut
-    engine.register_type_with_name::<Shared<EntityMut>>("EntityMut");
-    engine.register_get("id", |entity_mut: &mut Shared<EntityMut>| entity_mut.id());
-    engine.register_fn("id", |entity_mut: &mut Shared<EntityMut>| entity_mut.id());
-
-    // EntityWorldMut
-    engine.register_type_with_name::<Shared<EntityWorldMut>>("EntityWorldMut");
-    engine.register_get("id", |entity_world_mut: &mut Shared<EntityWorldMut>| {
-        entity_world_mut.id()
-    });
-    engine.register_fn("id", |entity_world_mut: &mut Shared<EntityWorldMut>| {
-        entity_world_mut.id()
-    });
-
-    // Component
-    engine.register_type_with_name::<Component>("Component");
-    engine.register_fn("Component", |name: &str, params: Dynamic| {
-        Component::create_single((name.into(), params))
-    });
-
-    // Bundle
-    engine.register_type_with_name::<Bundle>("Bundle");
-    engine.register_fn("Bundle", |components: rhai::Map| Bundle::create_batch(components));
-
-    register_legacy_player_bindings(engine);
-}
-
-fn register_legacy_player_bindings(engine: &mut rhai::Engine) {
-    use crate::player::bundles::PlayerBundle;
-    use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
-
-    let mut player_module = rhai::Module::new();
-    let mut bundles_module = rhai::Module::new();
-    let mut player_bundle_module = rhai::Module::new();
-
-    bundles_module.set_custom_type::<BundleTraitObject>("Bundle");
-    match <PlayerBundle as GetTypeValueSemantics>::VALUE_SEMANTICS {
-        TypeValueSemantics::ScopedMut => {
-            bundles_module.set_custom_type::<ScopedAccessHandle<PlayerBundle>>("PlayerBundle");
-
-            rhai::FuncRegistration::new("as_trait_obj").set_into_module(
-                &mut player_bundle_module,
-                |bundle: ScopedAccessHandle<PlayerBundle>, trait_id: &str| match trait_id {
-                    "ecs::bundle::Bundle" => {
-                        let b: StaticTraitObject<BundleTrait> = bundle.cast_to();
-                        BundleTraitObject(b)
-                    }
-                    unknown_trait_id => panic!("Unknown trait id: '{unknown_trait_id}'"),
-                },
-            );
-            rhai::FuncRegistration::new("new_default").set_into_module(
-                &mut player_bundle_module,
-                || -> ScopedAccessHandle<PlayerBundle> {
-                    ScopedAccessHandle(Shared::new(RwLock::new(ScopedAccess::new(Box::new(
-                        PlayerBundle::default(),
-                    )))))
-                },
-            );
-
-            engine.register_fn("test_print", |b: ScopedAccessHandle<PlayerBundle>| {
-                b.0.read().unwrap().read(|bundle| bundle.test_print()).unwrap();
-            });
-        }
-        TypeValueSemantics::Owned => {
-            bundles_module.set_custom_type::<AccessCell<Persistent, PlayerBundle>>("PlayerBundle");
-
-            rhai::FuncRegistration::new("as_trait_obj").set_into_module(
-                &mut player_bundle_module,
-                |bundle: AccessCell<Persistent, PlayerBundle>, trait_id: &str| match trait_id {
-                    "ecs::bundle::Bundle" => {
-                        let b: StaticTraitObject<BundleTrait> = bundle.cast_to();
-                        BundleTraitObject(b)
-                    }
-                    unknown_trait_id => panic!("Unknown trait id: '{unknown_trait_id}'"),
-                },
-            );
-            rhai::FuncRegistration::new("new_default").set_into_module(
-                &mut player_bundle_module,
-                || -> AccessCell<Persistent, PlayerBundle> {
-                    AccessCell::new(PlayerBundle::default())
-                },
-            );
-
-            engine.register_fn("test_print", |b: AccessCell<Persistent, PlayerBundle>| {
-                let guard = b.start_read();
-                guard.test_print();
-                b.end_read(guard);
-            });
-        }
-        TypeValueSemantics::Clone
-        | TypeValueSemantics::Ref
-        | TypeValueSemantics::Mut
-        | TypeValueSemantics::ScopedOwned
-        | TypeValueSemantics::ScopedRef => {
-            panic!("Legacy PlayerBundle bindings currently support only 'owned' and 'scoped_mut'")
-        }
-    }
-
-    player_bundle_module.set_id("PlayerBundle");
-    bundles_module
-        .set_id("bundles")
-        .set_sub_module("PlayerBundle", player_bundle_module);
-    player_module.set_id("player").set_sub_module("bundles", bundles_module);
-
-    engine.register_static_module("player", Arc::new(player_module));
 }

@@ -8,7 +8,7 @@ use syn::punctuated::Punctuated;
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input,
-    Attribute, ExprPath, Ident, ImplItem, ImplItemFn, Item, ItemFn, ItemImpl, ItemTrait, Path, Token,
+    Attribute, Expr, ExprPath, Ident, ImplItem, ImplItemFn, Item, ItemFn, ItemImpl, ItemTrait, Path, Token,
 };
 
 fn path_to_string(path: &Path) -> String {
@@ -196,6 +196,24 @@ struct ReflectTypeAttr {
     value_semantics: ReflectTypeValueSemantics,
 }
 
+fn parse_value_semantics_ident(value: &Ident) -> syn::Result<ReflectTypeValueSemantics> {
+    match value.to_string().as_str() {
+        "clone" | "clone_on_move" => Ok(ReflectTypeValueSemantics::Clone),
+        "owned" | "persistent_own" => Ok(ReflectTypeValueSemantics::Owned),
+        "ref" | "persistent_ref" => Ok(ReflectTypeValueSemantics::Ref),
+        "mut" | "persistent_mut" => Ok(ReflectTypeValueSemantics::Mut),
+        "scoped_owned" => Ok(ReflectTypeValueSemantics::ScopedOwned),
+        "scoped_ref" => Ok(ReflectTypeValueSemantics::ScopedRef),
+        "scoped_mut" => Ok(ReflectTypeValueSemantics::ScopedMut),
+        other => Err(syn::Error::new(
+            value.span(),
+            format!(
+                "Unknown value semantics '{other}'. Expected one of: clone, owned, ref, mut, scoped_owned, scoped_ref, scoped_mut"
+            ),
+        )),
+    }
+}
+
 impl Parse for ReflectTypeAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let type_path: Path = input.parse()?;
@@ -212,23 +230,7 @@ impl Parse for ReflectTypeAttr {
             match key.to_string().as_str() {
                 "value_semantics" | "semantics" => {
                     let value: Ident = input.parse()?;
-                    value_semantics = match value.to_string().as_str() {
-                        "clone" | "clone_on_move" => ReflectTypeValueSemantics::Clone,
-                        "owned" | "persistent_own" => ReflectTypeValueSemantics::Owned,
-                        "ref" | "persistent_ref" => ReflectTypeValueSemantics::Ref,
-                        "mut" | "persistent_mut" => ReflectTypeValueSemantics::Mut,
-                        "scoped_owned" => ReflectTypeValueSemantics::ScopedOwned,
-                        "scoped_ref" => ReflectTypeValueSemantics::ScopedRef,
-                        "scoped_mut" => ReflectTypeValueSemantics::ScopedMut,
-                        other => {
-                            return Err(syn::Error::new(
-                                value.span(),
-                                format!(
-                                    "Unknown value semantics '{other}'. Expected one of: clone, owned, ref, mut, scoped_owned, scoped_ref, scoped_mut"
-                                ),
-                            ));
-                        }
-                    };
+                    value_semantics = parse_value_semantics_ident(&value)?;
                 }
                 other => {
                     return Err(syn::Error::new(
@@ -246,6 +248,126 @@ impl Parse for ReflectTypeAttr {
         Ok(Self {
             type_path,
             value_semantics,
+        })
+    }
+}
+
+struct ExternTypeMacroInput {
+    id: Path,
+    rust_type: syn::Type,
+    value_semantics: ReflectTypeValueSemantics,
+    method_functions: Vec<Path>,
+    constructor_functions: Vec<Path>,
+    item_associated_functions: Vec<Path>,
+    registrator: Option<Expr>,
+}
+
+impl Parse for ExternTypeMacroInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut id: Option<Path> = None;
+        let mut rust_type: Option<syn::Type> = None;
+        let mut value_semantics = ReflectTypeValueSemantics::Clone;
+        let mut method_functions: Vec<Path> = vec![];
+        let mut constructor_functions: Vec<Path> = vec![];
+        let mut item_associated_functions: Vec<Path> = vec![];
+        let mut registrator: Option<Expr> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+
+            match key.to_string().as_str() {
+                "id" | "id_path" => {
+                    id = Some(input.parse::<Path>()?);
+                }
+                "rust_type" | "type" => {
+                    rust_type = Some(input.parse::<syn::Type>()?);
+                }
+                "value_semantics" | "semantics" => {
+                    let value: Ident = input.parse()?;
+                    value_semantics = parse_value_semantics_ident(&value)?;
+                }
+                "method_functions" => {
+                    method_functions = parse_id_paths(input)?;
+                }
+                "constructor_functions" => {
+                    constructor_functions = parse_id_paths(input)?;
+                }
+                "item_associated_functions" => {
+                    item_associated_functions = parse_id_paths(input)?;
+                }
+                "registrator" => {
+                    registrator = Some(input.parse::<Expr>()?);
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "Unknown key '{other}' in reflect_extern_type!. Expected: id, rust_type, value_semantics, method_functions, constructor_functions, item_associated_functions, registrator"
+                        ),
+                    ));
+                }
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        let id = id.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `id`/`id_path`"))?;
+        let rust_type =
+            rust_type.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `rust_type`/`type`"))?;
+
+        Ok(Self {
+            id,
+            rust_type,
+            value_semantics,
+            method_functions,
+            constructor_functions,
+            item_associated_functions,
+            registrator,
+        })
+    }
+}
+
+struct ExternFunctionMacroInput {
+    id: Path,
+    registrator: Expr,
+}
+
+impl Parse for ExternFunctionMacroInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut id: Option<Path> = None;
+        let mut registrator: Option<Expr> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+
+            match key.to_string().as_str() {
+                "id" | "id_path" => {
+                    id = Some(input.parse::<Path>()?);
+                }
+                "registrator" => {
+                    registrator = Some(input.parse::<Expr>()?);
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!("Unknown key '{other}' in extern function macro. Expected: id, registrator"),
+                    ));
+                }
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            id: id.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `id`/`id_path`"))?,
+            registrator: registrator
+                .ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `registrator`"))?,
         })
     }
 }
@@ -491,13 +613,29 @@ pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
     let value_semantics_const = attr_parsed.value_semantics.as_const_tokens();
 
     let item_parsed = parse_macro_input!(item as Item);
-    let (item_tokens, type_ident) = match &item_parsed {
-        Item::Struct(s) => (quote! { #s }, s.ident.clone()),
-        Item::Enum(e) => (quote! { #e }, e.ident.clone()),
+    let (item_tokens, type_ident, type_generics) = match &item_parsed {
+        Item::Struct(s) => (quote! { #s }, s.ident.clone(), s.generics.clone()),
+        Item::Enum(e) => (quote! { #e }, e.ident.clone(), e.generics.clone()),
         _ => {
             return syn::Error::new(Span::call_site(), "`#[reflect_type(..)]` only supports structs and enums")
                 .to_compile_error()
                 .into();
+        }
+    };
+    let (impl_generics, ty_generics, where_clause) = type_generics.split_for_impl();
+    let type_reflection_target = quote! { #type_ident #ty_generics };
+    let type_registrator = if type_generics.params.is_empty() {
+        quote! {
+            crate::utils::clone_closure::CloneClosure::new(self.id_path().get().type_name().clone(), |name, parent_module| {
+                parent_module.set_custom_type::<#type_ident>(&name);
+            })
+        }
+    } else {
+        quote! {
+            crate::utils::clone_closure::CloneClosure::new(self.id_path().get().type_name().clone(), |_name, _parent_module| {
+                // Generic declarations are reflected as metadata only.
+                // Concrete monomorphized registrations are intentionally explicit.
+            })
         }
     };
 
@@ -535,7 +673,15 @@ pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
             const TYPE_ID: &'static str = #type_path_lit;
         }
 
-        impl crate::rhai_binding::value_semantics::modes::HasTypeValueSemanticsConst<{ #value_semantics_const }> for #type_ident {}
+        impl #impl_generics crate::rhai_binding::meta::abstract_::trait_identity::GetTypeId for #type_reflection_target #where_clause {
+            const TYPE_ID: &'static str = #type_path_lit;
+        }
+
+        impl #impl_generics crate::rhai_binding::value_semantics::modes::GetTypeValueSemantics for #type_reflection_target #where_clause {
+            const VALUE_SEMANTICS: crate::rhai_binding::value_semantics::modes::TypeValueSemantics = #value_semantics;
+        }
+
+        impl #impl_generics crate::rhai_binding::value_semantics::modes::HasTypeValueSemanticsConst<{ #value_semantics_const }> for #type_reflection_target #where_clause {}
 
         impl crate::rhai_binding::meta::generic::type_::TypeConstDynMetadata for #type_marker {
             fn id_path(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::path::type_path::TypePath> {
@@ -543,9 +689,7 @@ pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             fn registrator(self) -> crate::utils::clone_closure::CloneClosure<rhai::ImmutableString, &'static mut rhai::Module, (), fn(rhai::ImmutableString, &mut rhai::Module)> {
-                crate::utils::clone_closure::CloneClosure::new(self.id_path().get().type_name().clone(), |name, parent_module| {
-                    parent_module.set_custom_type::<#type_ident>(&name);
-                })
+                #type_registrator
             }
 
             fn method_functions(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<crate::rhai_binding::path::function_path::MethodFunctionPath>> {
@@ -586,6 +730,233 @@ pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
 
         impl crate::rhai_binding::meta::generic::module::TypeBindingModuleDynamicTypedMetadata for #binding_marker {}
+    }
+    .into()
+}
+
+pub fn reflect_extern_type(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ExternTypeMacroInput);
+
+    let type_path_string = path_to_string(&input.id);
+    let type_path_lit = path_lit(&type_path_string);
+    let value_semantics = input.value_semantics.as_tokens();
+    let value_semantics_const = input.value_semantics.as_const_tokens();
+    let rust_type = input.rust_type;
+
+    let type_marker = make_marker_ident("TYPE", &type_path_string);
+    let type_static = make_static_ident("TYPE", &type_path_string);
+    let binding_marker = make_marker_ident("TYPE_BINDING", &type_path_string);
+    let binding_static = make_static_ident("TYPE_BINDING", &type_path_string);
+
+    let method_lits: Vec<_> = input
+        .method_functions
+        .iter()
+        .map(path_to_string)
+        .map(|s| path_lit(&s))
+        .collect();
+    let ctor_lits: Vec<_> = input
+        .constructor_functions
+        .iter()
+        .map(path_to_string)
+        .map(|s| path_lit(&s))
+        .collect();
+    let item_lits: Vec<_> = input
+        .item_associated_functions
+        .iter()
+        .map(path_to_string)
+        .map(|s| path_lit(&s))
+        .collect();
+
+    let type_registrator = if let Some(registrator) = input.registrator {
+        quote! {
+            crate::utils::clone_closure::CloneClosure::new(self.id_path().get().type_name().clone(), |name, parent_module| {
+                (#registrator)(name, parent_module);
+            })
+        }
+    } else {
+        quote! {
+            crate::utils::clone_closure::CloneClosure::new(self.id_path().get().type_name().clone(), |name, parent_module| {
+                parent_module.set_custom_type::<#rust_type>(&name);
+            })
+        }
+    };
+
+    quote! {
+        #[allow(non_upper_case_globals)]
+        static #type_static: crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::meta::monomorphized::type_::TypeMetadata>
+            = crate::utils::clone_lazy::CloneLazy::new(
+                crate::utils::clone_closure::CloneClosure::new((), |(), ()| <#type_marker as crate::rhai_binding::meta::generic::type_::TypeDynamicTypedMetadata>::from_comptime_to_runtime(&#type_marker, &#type_marker))
+            );
+        inventory::submit!(crate::rhai_binding::meta::registry::TypeMetadataEntry(&#type_static));
+
+        #[allow(non_upper_case_globals)]
+        static #binding_static: crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::meta::monomorphized::module::TypeBindingModuleMetadata>
+            = crate::utils::clone_lazy::CloneLazy::new(
+                crate::utils::clone_closure::CloneClosure::new((), |(), ()| <#binding_marker as crate::rhai_binding::meta::generic::module::TypeBindingModuleDynamicTypedMetadata>::from_comptime_to_runtime(&#binding_marker, &#binding_marker))
+            );
+        inventory::submit!(crate::rhai_binding::meta::registry::TypeBindingModuleMetadataEntry(&#binding_static));
+
+        #[allow(non_camel_case_types)]
+        #[derive(Clone, PartialEq, Eq, Hash)]
+        struct #type_marker;
+
+        impl crate::rhai_binding::meta::generic::abstract_primitive::ConstDynMetadata for #type_marker {
+            fn raw_rust_module_path(&self) -> &'static str { module_path!() }
+        }
+
+        impl crate::rhai_binding::meta::abstract_::trait_identity::GetTypeId for #type_marker {
+            const TYPE_ID: &'static str = #type_path_lit;
+        }
+
+        impl crate::rhai_binding::meta::abstract_::trait_identity::GetTypeId for #rust_type {
+            const TYPE_ID: &'static str = #type_path_lit;
+        }
+
+        impl crate::rhai_binding::value_semantics::modes::GetTypeValueSemantics for #rust_type {
+            const VALUE_SEMANTICS: crate::rhai_binding::value_semantics::modes::TypeValueSemantics = #value_semantics;
+        }
+
+        impl crate::rhai_binding::value_semantics::modes::HasTypeValueSemanticsConst<{ #value_semantics_const }> for #rust_type {}
+
+        impl crate::rhai_binding::meta::generic::type_::TypeConstDynMetadata for #type_marker {
+            fn id_path(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::path::type_path::TypePath> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #type_path_lit.into()))
+            }
+
+            fn registrator(self) -> crate::utils::clone_closure::CloneClosure<rhai::ImmutableString, &'static mut rhai::Module, (), fn(rhai::ImmutableString, &mut rhai::Module)> {
+                #type_registrator
+            }
+
+            fn method_functions(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<crate::rhai_binding::path::function_path::MethodFunctionPath>> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#method_lits.into()),*]))
+            }
+
+            fn value_semantics(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::value_semantics::modes::TypeValueSemantics> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #value_semantics))
+            }
+        }
+
+        impl crate::rhai_binding::meta::generic::type_::TypeDynamicTypedMetadata for #type_marker {}
+
+        #[allow(non_camel_case_types)]
+        #[derive(Clone, PartialEq, Eq, Hash)]
+        struct #binding_marker;
+
+        impl crate::rhai_binding::meta::generic::abstract_primitive::ConstDynMetadata for #binding_marker {
+            fn raw_rust_module_path(&self) -> &'static str { module_path!() }
+        }
+
+        impl crate::rhai_binding::meta::generic::module::TypeBindingModuleConstDynMetadata for #binding_marker {
+            fn id_path(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::path::module_path::TypeBindingModulePath> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #type_path_lit.into()))
+            }
+
+            fn item_associated_functions(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<crate::rhai_binding::path::function_path::ItemAssociatedFunctionPath>> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#item_lits.into()),*]))
+            }
+
+            fn constructor_functions(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<crate::rhai_binding::path::function_path::ConstructorFunctionPath>> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#ctor_lits.into()),*]))
+            }
+
+            fn method_functions(&self) -> crate::utils::clone_lazy::CloneLazy<Vec<crate::rhai_binding::path::function_path::MethodFunctionPath>> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| vec![#(#method_lits.into()),*]))
+            }
+        }
+
+        impl crate::rhai_binding::meta::generic::module::TypeBindingModuleDynamicTypedMetadata for #binding_marker {}
+    }
+    .into()
+}
+
+pub fn reflect_extern_method_function(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ExternFunctionMacroInput);
+    let id_path_string = path_to_string(&input.id);
+    let id_lit = path_lit(&id_path_string);
+    let fn_name = id_path_string
+        .rsplit("::")
+        .next()
+        .expect("Method id path must include a function segment");
+    let fn_name_lit = path_lit(fn_name);
+    let registrator = input.registrator;
+
+    let marker = make_marker_ident("METHOD_FN", &id_path_string);
+    let marker_static = make_static_ident("METHOD_FN", &id_path_string);
+
+    quote! {
+        #[allow(non_upper_case_globals)]
+        static #marker_static: crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::meta::monomorphized::function::MethodFunctionMetadata>
+            = crate::utils::clone_lazy::CloneLazy::new(
+                crate::utils::clone_closure::CloneClosure::new((), |(), ()| <#marker as crate::rhai_binding::meta::generic::function::MethodFunctionDynamicTypedMetadata>::from_comptime_to_runtime(&#marker, &#marker))
+            );
+        inventory::submit!(crate::rhai_binding::meta::registry::MethodFunctionMetadataEntry(&#marker_static));
+
+        #[allow(non_camel_case_types)]
+        #[derive(Clone, PartialEq, Eq, Hash)]
+        struct #marker;
+
+        impl crate::rhai_binding::meta::generic::abstract_primitive::ConstDynMetadata for #marker {
+            fn raw_rust_module_path(&self) -> &'static str { module_path!() }
+        }
+
+        impl crate::rhai_binding::meta::generic::function::MethodFunctionConstDynMetadata for #marker {
+            fn id_path(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::path::function_path::MethodFunctionPath> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #id_lit.into()))
+            }
+            fn registrator(self) -> crate::utils::clone_closure::CloneClosure<rhai::ImmutableString, &'static mut rhai::Engine, (), fn(rhai::ImmutableString, &mut rhai::Engine)> {
+                crate::utils::clone_closure::CloneClosure::new(#fn_name_lit.into(), |name, engine| {
+                    (#registrator)(name, engine);
+                })
+            }
+        }
+
+        impl crate::rhai_binding::meta::generic::function::MethodFunctionDynamicTypedMetadata for #marker {}
+    }
+    .into()
+}
+
+pub fn reflect_extern_item_associated_function(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ExternFunctionMacroInput);
+    let id_path_string = path_to_string(&input.id);
+    let id_lit = path_lit(&id_path_string);
+    let fn_name = id_path_string
+        .rsplit("::")
+        .next()
+        .expect("Item associated function id path must include a function segment");
+    let fn_name_lit = path_lit(fn_name);
+    let registrator = input.registrator;
+
+    let marker = make_marker_ident("ITEM_FN", &id_path_string);
+    let marker_static = make_static_ident("ITEM_FN", &id_path_string);
+
+    quote! {
+        #[allow(non_upper_case_globals)]
+        static #marker_static: crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::meta::monomorphized::function::ItemAssociatedFunctionMetadata>
+            = crate::utils::clone_lazy::CloneLazy::new(
+                crate::utils::clone_closure::CloneClosure::new((), |(), ()| <#marker as crate::rhai_binding::meta::generic::function::ItemAssociatedFunctionDynamicTypedMetadata>::from_comptime_to_runtime(&#marker, &#marker))
+            );
+        inventory::submit!(crate::rhai_binding::meta::registry::ItemAssociatedFunctionMetadataEntry(&#marker_static));
+
+        #[allow(non_camel_case_types)]
+        #[derive(Clone, PartialEq, Eq, Hash)]
+        struct #marker;
+
+        impl crate::rhai_binding::meta::generic::abstract_primitive::ConstDynMetadata for #marker {
+            fn raw_rust_module_path(&self) -> &'static str { module_path!() }
+        }
+
+        impl crate::rhai_binding::meta::generic::function::ItemAssociatedFunctionConstDynMetadata for #marker {
+            fn id_path(&self) -> crate::utils::clone_lazy::CloneLazy<crate::rhai_binding::path::function_path::ItemAssociatedFunctionPath> {
+                crate::utils::clone_lazy::CloneLazy::new(crate::utils::clone_closure::CloneClosure::new((), |_, _| #id_lit.into()))
+            }
+            fn registrator(self) -> crate::utils::clone_closure::CloneClosure<rhai::ImmutableString, &'static mut rhai::Module, (), fn(rhai::ImmutableString, &mut rhai::Module)> {
+                crate::utils::clone_closure::CloneClosure::new(#fn_name_lit.into(), |name, parent_module| {
+                    (#registrator)(name, parent_module);
+                })
+            }
+        }
+
+        impl crate::rhai_binding::meta::generic::function::ItemAssociatedFunctionDynamicTypedMetadata for #marker {}
     }
     .into()
 }
