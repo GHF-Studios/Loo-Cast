@@ -42,6 +42,7 @@ This makes `startup.rhai` a stable test/example entrypoint while companion files
 
 - Architecture and design rules: `docs/RhaiDialect.md`
 - Step-by-step extension workflow: `docs/RhaiBridgeDevelopment.md`
+- Coverage/TODO hierarchy: `docs/RhaiBindingRoadmap.md`
 
 ## Validation
 

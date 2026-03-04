@@ -20,7 +20,7 @@ mod define_workflow_mod_OLD;
 mod global_statics;
 mod register_workflow_mods;
 mod rhai_binding;
-mod script;
+mod rhai_runtime;
 mod usf;
 
 use composite_workflow::CompositeWorkflow as OuterCompositeWorkflow;
@@ -178,9 +178,9 @@ pub fn reflect_method_function(attr: TokenStream, item: TokenStream) -> TokenStr
     rhai_binding::reflection::reflect_method_function(attr, item)
 }
 
-// Script
+// Rhai Runtime
 
-// - Ecs
+// - ECS
 
 // -- Components
 
@@ -188,7 +188,7 @@ pub fn reflect_method_function(attr: TokenStream, item: TokenStream) -> TokenStr
 
 #[proc_macro_attribute]
 pub fn component_ctor(attr: TokenStream, item: TokenStream) -> TokenStream {
-    script::ecs::components::internals::types::component_ctor(attr, item)
+    rhai_runtime::ecs::components::internals::types::component_ctor(attr, item)
 }
 
 // Usf

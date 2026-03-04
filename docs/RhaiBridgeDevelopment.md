@@ -5,6 +5,7 @@
 This is the operational guide for adding new Rhai-exposed Bevy/Rust features and maintaining the signature catalogs used to emulate generics.
 
 Related design context: `docs/RhaiDialect.md`.
+Coverage backlog: `docs/RhaiBindingRoadmap.md`.
 
 ## File map
 
