@@ -1,7 +1,7 @@
 use rhai::{Dynamic, FnPtr, NativeCallContext, Shared};
 
 use crate::bevy::ecs::message::Messages;
-use crate::bevy::ecs::query::{QuerySingleError, With};
+use crate::bevy::ecs::query::With;
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
 use crate::bevy::prelude::Commands as BevyCommands;
 use crate::bevy::prelude::Entity as BevyEntity;
@@ -11,7 +11,7 @@ use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 use crate::script::ecs::{
     bundle::internals::trait_objects::BundleTraitObject,
     messages::bindings::types::{MessageBatch, ScriptProbeMessage},
-    query::bindings::types::EntityQuery,
+    query::bindings::types::{Query, QueryData, QueryDataKind, QueryFilter, QueryFilterKind},
     system::commands::bindings::types::Commands,
     world::{bindings::types::World, entity_ref::bindings::types::EntityWorldMut, internals::traits::WorldApi},
 };
@@ -92,58 +92,36 @@ impl WorldApi for Shared<World> {
         })
     }
 
-    fn query_entities(&self) -> EntityQuery {
-        let mut world = self.world.start_write();
-        let mut query = world.query::<BevyEntity>();
-        let entities = query.iter(&*world).collect();
-        self.world.end_write(world);
-
-        EntityQuery { entities }
+    fn query(&self, data: QueryData) -> Query {
+        self.query_filtered(data, QueryFilter::none())
     }
 
-    fn query_players(&self) -> EntityQuery {
+    fn query_filtered(&self, data: QueryData, filter: QueryFilter) -> Query {
         let mut world = self.world.start_write();
-        let mut query = world.query_filtered::<BevyEntity, With<Player>>();
-        let entities = query.iter(&*world).collect();
+
+        let entities = match (data.kind, filter.kind) {
+            (QueryDataKind::Entities, QueryFilterKind::None) => {
+                let mut query = world.query::<BevyEntity>();
+                query.iter(&*world).collect()
+            }
+            (QueryDataKind::Entities, QueryFilterKind::WithPlayer) => {
+                let mut query = world.query_filtered::<BevyEntity, With<Player>>();
+                query.iter(&*world).collect()
+            }
+        };
+
         self.world.end_write(world);
 
-        EntityQuery { entities }
-    }
-
-    fn single_player(&self) -> BevyEntity {
-        let mut world = self.world.start_write();
-        let mut query = world.query_filtered::<BevyEntity, With<Player>>();
-        let single = query.single(&*world);
-        self.world.end_write(world);
-
-        single.unwrap_or_else(|err| {
-            panic!("World::single_player failed: {err}");
-        })
-    }
-
-    fn try_single_player(&self) -> Dynamic {
-        let mut world = self.world.start_write();
-        let mut query = world.query_filtered::<BevyEntity, With<Player>>();
-        let single = query.single(&*world);
-        self.world.end_write(world);
-
-        match single {
-            Ok(entity) => Dynamic::from(entity),
-            Err(QuerySingleError::NoEntities(_)) | Err(QuerySingleError::MultipleEntities(_)) => Dynamic::UNIT,
-        }
+        Query { entities }
     }
 
     fn write_probe_message(&self, payload: rhai::ImmutableString) {
         let mut world = self.world.start_write();
-        let message = ScriptProbeMessage {
-            payload: payload.to_string(),
-        };
+        let message = ScriptProbeMessage { payload: payload.to_string() };
 
         if world.write_message(message).is_none() {
             self.world.end_write(world);
-            panic!(
-                "ScriptProbeMessage writer unavailable. Ensure RhaiEnginePlugin registered add_message::<ScriptProbeMessage>()"
-            );
+            panic!("ScriptProbeMessage writer unavailable. Ensure RhaiEnginePlugin registered add_message::<ScriptProbeMessage>()");
         }
 
         self.world.end_write(world);
@@ -155,9 +133,7 @@ impl WorldApi for Shared<World> {
         let payloads = {
             let Some(mut messages) = world.get_resource_mut::<Messages<ScriptProbeMessage>>() else {
                 self.world.end_write(world);
-                panic!(
-                    "ScriptProbeMessage storage is unavailable. Ensure RhaiEnginePlugin registered add_message::<ScriptProbeMessage>()"
-                );
+                panic!("ScriptProbeMessage storage is unavailable. Ensure RhaiEnginePlugin registered add_message::<ScriptProbeMessage>()");
             };
             messages.drain().map(|message| message.payload).collect()
         };

@@ -1,11 +1,11 @@
 use rhai::{Array, Dynamic};
 
 use crate::bevy::prelude::Entity as BevyEntity;
-use crate::script::ecs::query::{bindings::types::EntityQuery, internals::traits::EntityQueryApi};
+use crate::script::ecs::query::{bindings::types::Query, internals::traits::QueryApi};
 
-impl EntityQueryApi for EntityQuery {
+impl QueryApi for Query {
     fn len(&self) -> i64 {
-        i64::try_from(self.entities.len()).unwrap_or_else(|_| panic!("EntityQuery length '{}' exceeds i64::MAX", self.entities.len()))
+        i64::try_from(self.entities.len()).unwrap_or_else(|_| panic!("Query length '{}' exceeds i64::MAX", self.entities.len()))
     }
 
     fn is_empty(&self) -> bool {
@@ -23,8 +23,15 @@ impl EntityQueryApi for EntityQuery {
     fn single(&self) -> BevyEntity {
         match self.entities.as_slice() {
             [entity] => *entity,
-            [] => panic!("EntityQuery::single failed: expected exactly one entity, found none"),
-            many => panic!("EntityQuery::single failed: expected exactly one entity, found {}", many.len()),
+            [] => panic!("Query::single failed: expected exactly one entity, found none"),
+            many => panic!("Query::single failed: expected exactly one entity, found {}", many.len()),
+        }
+    }
+
+    fn try_single(&self) -> Dynamic {
+        match self.entities.as_slice() {
+            [entity] => Dynamic::from(*entity),
+            _ => Dynamic::UNIT,
         }
     }
 }

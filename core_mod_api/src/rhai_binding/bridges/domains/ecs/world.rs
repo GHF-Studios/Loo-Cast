@@ -3,7 +3,7 @@ use std::any::TypeId as RustTypeId;
 
 use crate::rhai_binding::runtime::ecs::bundle::internals::trait_objects::BundleTraitObject;
 use crate::rhai_binding::runtime::ecs::messages::bindings::types::MessageBatch as ScriptMessageBatch;
-use crate::rhai_binding::runtime::ecs::query::bindings::types::EntityQuery as ScriptEntityQuery;
+use crate::rhai_binding::runtime::ecs::query::bindings::types::{Query as ScriptQuery, QueryData as ScriptQueryData, QueryFilter as ScriptQueryFilter};
 use crate::rhai_binding::runtime::ecs::world::bindings::types::World;
 use crate::rhai_binding::runtime::ecs::world::internals::traits::WorldApi;
 
@@ -26,10 +26,8 @@ core_mod_macros::reflect_extern_type!(
         ecs::world::World::commands,
         ecs::world::World::spawn_empty,
         ecs::world::World::spawn_single,
-        ecs::world::World::query_entities,
-        ecs::world::World::query_players,
-        ecs::world::World::single_player,
-        ecs::world::World::try_single_player,
+        ecs::world::World::query,
+        ecs::world::World::query_filtered,
         ecs::world::World::write_probe_message,
         ecs::world::World::read_probe_messages,
     ],
@@ -89,44 +87,35 @@ core_mod_macros::reflect_extern_method_function!(
 );
 
 core_mod_macros::reflect_extern_method_function!(
-    id = ecs::world::World::query_entities,
+    id = ecs::world::World::query,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>()], |_, args| {
+        engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<ScriptQueryData>()], |_, args| {
+            let data = args[1].take().cast::<ScriptQueryData>();
             let world = &*args[0].write_lock::<ScriptWorld>().unwrap();
-            let query = world.query_entities();
-            Ok(Dynamic::from::<ScriptEntityQuery>(query))
+            let query = world.query(data);
+            Ok(Dynamic::from::<ScriptQuery>(query))
         });
     },
 );
 
 core_mod_macros::reflect_extern_method_function!(
-    id = ecs::world::World::query_players,
+    id = ecs::world::World::query_filtered,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>()], |_, args| {
-            let world = &*args[0].write_lock::<ScriptWorld>().unwrap();
-            let query = world.query_players();
-            Ok(Dynamic::from::<ScriptEntityQuery>(query))
-        });
-    },
-);
-
-core_mod_macros::reflect_extern_method_function!(
-    id = ecs::world::World::single_player,
-    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>()], |_, args| {
-            let world = &*args[0].write_lock::<ScriptWorld>().unwrap();
-            Ok(Dynamic::from(world.single_player()))
-        });
-    },
-);
-
-core_mod_macros::reflect_extern_method_function!(
-    id = ecs::world::World::try_single_player,
-    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>()], |_, args| {
-            let world = &*args[0].write_lock::<ScriptWorld>().unwrap();
-            Ok(world.try_single_player())
-        });
+        engine.register_raw_fn(
+            name,
+            [
+                RustTypeId::of::<ScriptWorld>(),
+                RustTypeId::of::<ScriptQueryData>(),
+                RustTypeId::of::<ScriptQueryFilter>(),
+            ],
+            |_, args| {
+                let filter = args[2].take().cast::<ScriptQueryFilter>();
+                let data = args[1].take().cast::<ScriptQueryData>();
+                let world = &*args[0].write_lock::<ScriptWorld>().unwrap();
+                let query = world.query_filtered(data, filter);
+                Ok(Dynamic::from::<ScriptQuery>(query))
+            },
+        );
     },
 );
 

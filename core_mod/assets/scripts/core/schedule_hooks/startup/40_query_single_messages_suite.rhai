@@ -1,11 +1,13 @@
 fn run_query_single_messages_suite(world) {
     print("[Startup][ECS] query/single/messages suite");
 
-    let all_entities = world.query_entities();
-    print("[Startup][ECS] query_entities.len = " + all_entities.len());
+    let entity_data = ecs::query::QueryData::entities();
+    let all_entities = world.query(entity_data);
+    print("[Startup][ECS] world.query(QueryData::entities).len = " + all_entities.len());
 
-    let player_entities = world.query_players();
-    print("[Startup][ECS] query_players.len = " + player_entities.len());
+    let player_filter = ecs::query::QueryFilter::with_player();
+    let player_entities = world.query_filtered(entity_data, player_filter);
+    print("[Startup][ECS] world.query_filtered(..., QueryFilter::with_player).len = " + player_entities.len());
 
     if player_entities.len() != 1 {
         print("[Startup][ECS][WARN] Expected exactly one player entity");
@@ -13,13 +15,13 @@ fn run_query_single_messages_suite(world) {
     }
 
     let player_from_query = player_entities.single();
-    let player_from_world_single = world.single_player();
+    let player_from_try_single = player_entities.try_single();
     print("[Startup][ECS] query.single = " + player_from_query.to_string());
-    print("[Startup][ECS] world.single_player = " + player_from_world_single.to_string());
+    print("[Startup][ECS] query.try_single = " + player_from_try_single.to_string());
 
-    let maybe_player = world.try_single_player();
+    let maybe_player = player_entities.try_single();
     if maybe_player == () {
-        print("[Startup][ECS][WARN] try_single_player returned unit unexpectedly");
+        print("[Startup][ECS][WARN] query.try_single returned unit unexpectedly");
     }
 
     world.write_probe_message("startup-message-0");
