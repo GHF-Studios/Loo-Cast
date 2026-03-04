@@ -14,10 +14,9 @@ core_mod_macros::reflect_extern_module_associated_function!(
 );
 
 pub mod bundle;
+pub mod catalog;
 pub mod commands;
 pub mod entities;
 pub mod messages;
 pub mod query;
-pub mod query_dispatch;
-pub mod sysparam_access;
 pub mod world;

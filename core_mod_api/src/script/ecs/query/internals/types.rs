@@ -72,6 +72,7 @@ pub fn query_filter_key(with: &'static [&'static str], without: &'static [&'stat
 
 inventory::collect!(QueryDispatchEntry);
 pub struct QueryDispatchEntry {
+    pub signature_id: &'static str,
     pub data_terms: &'static [QueryDispatchTerm],
     pub filter_with: &'static [&'static str],
     pub filter_without: &'static [&'static str],

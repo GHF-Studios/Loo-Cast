@@ -1,19 +1,25 @@
 use rhai::{Dynamic, FnPtr, NativeCallContext, Shared};
 
-use crate::bevy::ecs::message::Messages;
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
 use crate::bevy::prelude::Commands as BevyCommands;
 use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 
 use crate::script::ecs::{
     bundle::internals::trait_objects::BundleTraitObject,
-    messages::bindings::types::{MessageBatch, ScriptProbeMessage},
-    query::{
-        bindings::types::{Query, QueryData, QueryFilter},
-        internals::{statics::query_dispatch_registry, types::query_dispatch_key},
-    },
+    messages::bindings::types::MessageBatch,
+    query::bindings::types::{Query, QueryData, QueryFilter},
     system::commands::bindings::types::Commands,
-    world::{bindings::types::World, entity_ref::bindings::types::EntityWorldMut, internals::traits::WorldApi},
+    world::{
+        bindings::types::World,
+        entity_ref::bindings::types::EntityWorldMut,
+        internals::{
+            access_requests::{
+                WorldQueryRequest, WriteProbeMessageRequest, WORLD_ACCESS_METHOD_QUERY, WORLD_ACCESS_METHOD_READ_PROBE_MESSAGES,
+                WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE,
+            },
+            traits::WorldApi,
+        },
+    },
 };
 
 impl WorldApi for Shared<World> {
@@ -98,22 +104,14 @@ impl WorldApi for Shared<World> {
 
     fn query_filtered(&self, data: QueryData, filter: QueryFilter) -> Query {
         let mut world = self.world.start_write();
-        let data_key = data.dispatch_key();
-        let filter_key = filter.dispatch_key();
-        let key = query_dispatch_key(data_key.as_str(), filter_key.as_str());
-        let dispatch = query_dispatch_registry().get(&key).copied().unwrap_or_else(|| {
-            let available = query_dispatch_registry()
-                .keys()
-                .map(|(existing_data_key, existing_filter_key)| format!("({existing_data_key}, {existing_filter_key})"))
-                .collect::<Vec<_>>()
-                .join(", ");
+        let query_request = WorldQueryRequest::new(data, filter);
 
-            panic!(
-                "No query dispatcher registered for data_key='{}', filter_key='{}'. Available dispatchers: [{}]",
-                data_key, filter_key, available
-            )
-        });
-        let query = dispatch(&mut world);
+        let query_raw_handle: crate::rhai_binding::value_semantics::access_cell::AccessCell<
+            crate::rhai_binding::value_semantics::access_cell::Scoped,
+            Query,
+        > = unsafe { world.start_access(WORLD_ACCESS_METHOD_QUERY, Box::new(query_request)) };
+        let query = query_raw_handle.take();
+        unsafe { world.end_access(query_raw_handle) };
 
         self.world.end_write(world);
 
@@ -122,29 +120,27 @@ impl WorldApi for Shared<World> {
 
     fn write_probe_message(&self, payload: rhai::ImmutableString) {
         let mut world = self.world.start_write();
-        let message = ScriptProbeMessage { payload: payload.to_string() };
-
-        if world.write_message(message).is_none() {
-            self.world.end_write(world);
-            panic!("ScriptProbeMessage writer unavailable. Ensure RhaiEnginePlugin registered add_message::<ScriptProbeMessage>()");
-        }
+        let write_request = WriteProbeMessageRequest::new(payload.to_string());
+        let write_raw_handle: crate::rhai_binding::value_semantics::access_cell::AccessCell<
+            crate::rhai_binding::value_semantics::access_cell::Scoped,
+            (),
+        > = unsafe { world.start_access(WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE, Box::new(write_request)) };
+        unsafe { world.end_access(write_raw_handle) };
 
         self.world.end_write(world);
     }
 
     fn read_probe_messages(&self) -> MessageBatch {
         let mut world = self.world.start_write();
-
-        let payloads = {
-            let Some(mut messages) = world.get_resource_mut::<Messages<ScriptProbeMessage>>() else {
-                self.world.end_write(world);
-                panic!("ScriptProbeMessage storage is unavailable. Ensure RhaiEnginePlugin registered add_message::<ScriptProbeMessage>()");
-            };
-            messages.drain().map(|message| message.payload).collect()
-        };
+        let message_raw_handle: crate::rhai_binding::value_semantics::access_cell::AccessCell<
+            crate::rhai_binding::value_semantics::access_cell::Scoped,
+            MessageBatch,
+        > = unsafe { world.start_access(WORLD_ACCESS_METHOD_READ_PROBE_MESSAGES, Box::new(())) };
+        let messages = message_raw_handle.take();
+        unsafe { world.end_access(message_raw_handle) };
 
         self.world.end_write(world);
 
-        MessageBatch { payloads }
+        messages
     }
 }
