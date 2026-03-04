@@ -5,6 +5,7 @@ use crate::config::statics::CONFIG;
 use crate::core::functions::asset_root;
 use crate::rhai_binding::bind::engine_ext::EngineExt;
 use crate::rhai_binding::engine::hook::new_hook_runner_system;
+use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::SCHEDULE_HOOKS;
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
@@ -84,14 +85,8 @@ pub(super) fn new_main_script_engine() -> Engine {
     }
     let boot_script_path = abs_boot_script_path.to_string_lossy().to_string();
 
-    crate::bevy::prelude::warn!("boot_script_path: {}", boot_script_path);
-    crate::bevy::prelude::warn!(
-        "testing bridges enabled ({}): {}",
-        "rhai_binding/testing_enabled",
-        testing_enabled
-    );
-
-    let boot_script = std::fs::read_to_string(boot_script_path).unwrap();
+    let boot_script = std::fs::read_to_string(&boot_script_path).unwrap();
+    let boot_script = preprocess_script_source(&boot_script, &boot_script_path);
     let boot_script = engine.compile(boot_script).unwrap();
     engine.eval_ast::<()>(&boot_script).unwrap();
 

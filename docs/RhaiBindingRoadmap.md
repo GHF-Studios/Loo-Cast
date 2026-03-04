@@ -13,6 +13,12 @@ This is the canonical backlog for expanding the Rhai dialect bridge surface.
 - Runtime wrappers and internals live in `core_mod_api/src/rhai_binding/runtime/*`.
 - Reflection/registration declarations live in `core_mod_api/src/rhai_binding/bridges/*`.
 - Generic-like runtime dispatch is catalog-based (`bridges/domains/bevy/ecs/catalog/*`).
+- Generic-like dispatch policy/invariants are centralized in:
+  - `runtime/ecs/dispatch_policy.rs`
+- Query/message/bundle runtime resolver registries are normalized under:
+  - `runtime/ecs/system/query/internals/*`
+  - `runtime/ecs/message/internals/*`
+  - `runtime/ecs/bundle/internals/*`
 - Bundle spawn dispatch is catalog-backed via typed world access requests (no `BundleFromDynamic` path).
 - Scoped ECS wrapper bindings avoid `rhai::Shared`; AccessCell-backed wrappers are passed directly.
 - Unsafe ECS access boundaries must go through `AccessCell` + `AccessCellProvider`.
@@ -37,6 +43,7 @@ This is the canonical backlog for expanding the Rhai dialect bridge surface.
 ### World messages/events
 
 - `[x] Script probe message write/drain smoke path
+- `[x] Message write/drain dispatch registry (`MESSAGE_SIG__SCRIPT_PROBE__WRITE`, `MESSAGE_SIG__SCRIPT_PROBE__DRAIN`)
 - `[~] Message iterator shape (`StringIter`) exists, still narrow
 - `[ ] General MessageReader / MessageWriter bridge signatures
 - `[ ] Event-style compatibility layer if needed
@@ -100,6 +107,7 @@ This is the canonical backlog for expanding the Rhai dialect bridge surface.
 ## Messages hierarchy
 
 - `[x] Probe-message write and drain smoke path
+- `[x] Catalog-backed message write/drain dispatcher resolution
 - `[ ] Typed message writer signatures
 - `[ ] Typed message reader signatures
 - `[ ] Iterator bridges for message readers that mirror Rust usage patterns
@@ -110,7 +118,7 @@ This is the canonical backlog for expanding the Rhai dialect bridge surface.
 2. Add provider/access wiring in `bridges/domains/bevy/ecs/catalog/sysparam_providers.rs`.
 3. Add reflection declarations in `bridges/domains/*`.
 4. Register signatures in `bridges/domains/bevy/ecs/catalog/*` when generic/monomorphized.
-5. Add startup suite coverage in `core_mod/assets/scripts/core/schedule_hooks/startup/*`.
+5. Add startup test coverage in `core_mod/assets/scripts/core/schedule_hooks/startup/tests/*`.
 6. Validate with:
    - `cargo check -p core_mod_api`
    - `./build.sh dev`

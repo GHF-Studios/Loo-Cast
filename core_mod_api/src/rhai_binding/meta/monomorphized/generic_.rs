@@ -1,3 +1,9 @@
+//! Concrete runtime metadata for generic definitions/instantiations.
+//!
+//! These structs are inserted into the runtime binding graph and are consumed
+//! by tooling/logging/validation. They are intentionally canonical (full-path
+//! IDs, explicit bounds, explicit type argument lists).
+
 use rhai::ImmutableString;
 
 use crate::{

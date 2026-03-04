@@ -2,6 +2,9 @@ use std::collections::HashMap;
 
 use once_cell::sync::Lazy;
 
+use crate::rhai_binding::runtime::ecs::dispatch_policy::{
+    validate_bundle_signature_id, validate_trait_path_id, validate_type_path_id,
+};
 use crate::rhai_binding::runtime::ecs::bundle::internals::trait_objects::BundleTraitObject;
 use crate::rhai_binding::runtime::ecs::bundle::internals::types::{
     bundle_spawn_dispatch_key_from_paths, BundleSpawnDispatchEntry, BundleSpawnDispatchFn, BundleSpawnDispatchKey,
@@ -12,6 +15,10 @@ static BUNDLE_SPAWN_DISPATCH_REGISTRY: Lazy<HashMap<BundleSpawnDispatchKey, Bund
     let mut signature_by_key: HashMap<BundleSpawnDispatchKey, &'static str> = HashMap::new();
 
     for entry in inventory::iter::<BundleSpawnDispatchEntry> {
+        validate_bundle_signature_id(entry.signature_id);
+        validate_type_path_id("BundleSpawnDispatchEntry::instance_type_id", entry.instance_type_id);
+        validate_trait_path_id("BundleSpawnDispatchEntry::trait_id", entry.trait_id);
+
         let dispatch_key = bundle_spawn_dispatch_key_from_paths(entry.instance_type_id, entry.trait_id);
         if let Some(existing_signature) = signature_by_key.insert(dispatch_key.clone(), entry.signature_id) {
             panic!(

@@ -228,7 +228,7 @@ impl RuntimeBindingGraph {
             method_functions,
             generic_definitions,
             generic_instantiations,
-        }.log_contents()
+        }
     }
 
     pub fn log_contents(self) -> Self {

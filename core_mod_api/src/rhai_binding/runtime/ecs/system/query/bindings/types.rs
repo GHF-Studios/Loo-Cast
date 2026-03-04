@@ -1,5 +1,7 @@
 use rhai::{Array, Dynamic, ImmutableString};
 
+use crate::rhai_binding::runtime::ecs::dispatch_policy::validate_type_path_id;
+
 #[derive(Clone, Default)]
 pub struct Query {
     pub(crate) values: Vec<Dynamic>,
@@ -57,6 +59,18 @@ impl QueryDataTerm {
         }
     }
 
+    pub fn value_t(type_id: ImmutableString) -> Self {
+        Self::value(type_id)
+    }
+
+    pub fn ref_t(type_id: ImmutableString) -> Self {
+        Self::ref_(type_id)
+    }
+
+    pub fn mut_t(type_id: ImmutableString) -> Self {
+        Self::mut_(type_id)
+    }
+
     pub fn type_id(&self) -> ImmutableString {
         self.type_id.clone().into()
     }
@@ -80,6 +94,10 @@ impl QueryData {
         Self {
             terms: vec![QueryDataTerm::value(type_id)],
         }
+    }
+
+    pub fn single_t(type_id: ImmutableString) -> Self {
+        Self::single(type_id)
     }
 
     pub fn tuple(type_ids: Array) -> Self {
@@ -148,8 +166,16 @@ impl QueryFilter {
         Self::from_collections(vec![normalize_type_id(type_id, "QueryFilter::require")], Vec::new())
     }
 
+    pub fn require_t(type_id: ImmutableString) -> Self {
+        Self::require(type_id)
+    }
+
     pub fn exclude(type_id: ImmutableString) -> Self {
         Self::from_collections(Vec::new(), vec![normalize_type_id(type_id, "QueryFilter::exclude")])
+    }
+
+    pub fn exclude_t(type_id: ImmutableString) -> Self {
+        Self::exclude(type_id)
     }
 
     pub fn from_sets(with: Array, without: Array) -> Self {
@@ -191,9 +217,7 @@ impl QueryFilter {
 
 fn normalize_type_id(type_id: ImmutableString, context: &str) -> String {
     let type_id = type_id.to_string();
-    if type_id.trim().is_empty() {
-        panic!("{context} requires a non-empty type id");
-    }
+    validate_type_path_id(context, type_id.as_str());
     type_id
 }
 

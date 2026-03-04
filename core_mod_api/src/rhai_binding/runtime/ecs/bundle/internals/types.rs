@@ -1,16 +1,13 @@
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
+use crate::rhai_binding::runtime::ecs::dispatch_policy::{validate_trait_path_id, validate_type_path_id};
 use crate::rhai_binding::runtime::ecs::bundle::internals::trait_objects::BundleTraitObject;
 
 pub type BundleSpawnDispatchKey = (String, String);
 pub type BundleSpawnDispatchFn = fn(&mut BevyEntityWorldMut, BundleTraitObject);
 
 pub fn bundle_spawn_dispatch_key_from_paths(instance_type_id: &str, trait_id: &str) -> BundleSpawnDispatchKey {
-    if instance_type_id.trim().is_empty() {
-        panic!("bundle spawn dispatch key requires a non-empty instance_type_id");
-    }
-    if trait_id.trim().is_empty() {
-        panic!("bundle spawn dispatch key requires a non-empty trait_id");
-    }
+    validate_type_path_id("bundle_spawn_dispatch_key_from_paths::instance_type_id", instance_type_id);
+    validate_trait_path_id("bundle_spawn_dispatch_key_from_paths::trait_id", trait_id);
 
     (instance_type_id.to_string(), trait_id.to_string())
 }

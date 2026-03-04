@@ -1,8 +1,9 @@
 use crate::bevy::ecs::query::With;
 use crate::bevy::prelude::{Entity as BevyEntity, World as BevyWorld};
 use crate::player::components::Player;
+use crate::rhai_binding::runtime::ecs::dispatch_policy::submit_query_dispatch_entry;
 use crate::rhai_binding::runtime::ecs::system::query::bindings::types::Query;
-use crate::rhai_binding::runtime::ecs::system::query::internals::types::{QueryDispatchAccess, QueryDispatchEntry, QueryDispatchTerm};
+use crate::rhai_binding::runtime::ecs::system::query::internals::types::{QueryDispatchAccess, QueryDispatchTerm};
 
 pub const QUERY_SIG__ENTITY: &str = "QUERY_SIG__ENTITY";
 pub const QUERY_SIG__ENTITY__WITH_PLAYER: &str = "QUERY_SIG__ENTITY__WITH_PLAYER";
@@ -27,22 +28,18 @@ fn dispatch_query_sig_entity_with_player(world: &mut BevyWorld) -> Query {
     Query::from_values(values)
 }
 
-inventory::submit! {
-    QueryDispatchEntry {
-        signature_id: QUERY_SIG__ENTITY,
-        data_terms: QUERY_DATA__ENTITY,
-        filter_with: &[],
-        filter_without: &[],
-        dispatch: dispatch_query_sig_entity,
-    }
-}
+submit_query_dispatch_entry!(
+    signature_id = QUERY_SIG__ENTITY,
+    data_terms = QUERY_DATA__ENTITY,
+    filter_with = &[],
+    filter_without = &[],
+    dispatch = dispatch_query_sig_entity,
+);
 
-inventory::submit! {
-    QueryDispatchEntry {
-        signature_id: QUERY_SIG__ENTITY__WITH_PLAYER,
-        data_terms: QUERY_DATA__ENTITY,
-        filter_with: &[TYPE_PATH__PLAYER],
-        filter_without: &[],
-        dispatch: dispatch_query_sig_entity_with_player,
-    }
-}
+submit_query_dispatch_entry!(
+    signature_id = QUERY_SIG__ENTITY__WITH_PLAYER,
+    data_terms = QUERY_DATA__ENTITY,
+    filter_with = &[TYPE_PATH__PLAYER],
+    filter_without = &[],
+    dispatch = dispatch_query_sig_entity_with_player,
+);

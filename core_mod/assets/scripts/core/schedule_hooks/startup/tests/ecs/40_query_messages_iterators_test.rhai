@@ -1,11 +1,16 @@
-private fn run_ecs_query_messages_iterators_suite(world) {
-    print("[Startup][ECS] query/single/messages suite");
+use bevy::ecs::query::QueryData as QueryData;
+use bevy::ecs::query::QueryFilter as QueryFilter;
+use bevy::ecs::entity::Entity as Entity;
+use core_mod_api::player::components::Player as Player;
 
-    let entity_data = bevy::ecs::query::QueryData::single("bevy::ecs::entity::Entity");
+private fn run_ecs_query_messages_iterators_test(world) {
+    print("[Startup][ECS] query/single/messages test");
+
+    let entity_data = QueryData::single_t(Entity);
     let all_entities = world.query(entity_data);
     print("[Startup][ECS] world.query(QueryData::single(...)).remaining_len = " + all_entities.remaining_len());
 
-    let player_filter = bevy::ecs::query::QueryFilter::require("core_mod_api::player::components::Player");
+    let player_filter = QueryFilter::require_t(Player);
     let player_entities = world.query_filtered(entity_data, player_filter);
     print("[Startup][ECS] world.query_filtered(..., QueryFilter::require(...)).remaining_len = " + player_entities.remaining_len());
 

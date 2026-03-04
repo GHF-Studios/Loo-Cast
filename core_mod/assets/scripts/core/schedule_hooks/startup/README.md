@@ -1,6 +1,7 @@
-# Startup Hook Suites
+# Startup Hook Tests
 
-`startup.rhai` is the integration-test-like entrypoint for bridge validation.
+`startup.rhai` is the startup-time test harness entrypoint.
+It is not gameplay logic.
 
 ## Loading behavior
 
@@ -9,31 +10,35 @@ When startup hook runs, loader concatenates:
 1. all `.rhai` files under this folder recursively (sorted by path),
 2. then `../startup.rhai`.
 
-This lets us split suites by concern while keeping one executable entrypoint.
+This keeps startup tests categorized while preserving one executable entrypoint.
 
 ## Folder conventions
 
-- `reflection/`
-  - reflection graph and metadata smoke coverage.
-- `ecs/`
-  - Bevy ECS bridge examples (World, Commands, Entity primitives, Query, Messages, iterators).
-- `testing/`
-  - testing-only bridges that are intentionally not production API.
-  - loaded and executed only when `rhai_binding/testing_enabled = true` in `config.toml`.
+- `tests/reflection/`
+  - reflection graph and metadata validation tests.
+- `tests/ecs/`
+  - Bevy ECS validation tests (World, Commands, Entity primitives, Query, Messages, iterators).
+- `tests/examples/`
+  - runnable working-example tests.
+  - these currently depend on testing-only bridge modules.
+
+Non-core scripting logic must live outside this harness tree (for example under
+`scripts/<module_name>/...`).
 
 ## Testing gate
 
-- Bridge registration and startup invocation for testing-only modules are both gated by:
+- Bridge registration and all startup test execution are gated by:
   - `rhai_binding/testing_enabled` (from `core_mod/assets/configs/config.toml`)
-- Default behavior is disabled (production-safe startup surface).
+- Default behavior is disabled (`false`), so startup tests do not execute.
 
 ## Function naming convention
 
 Startup helper functions are `private fn` by default and are orchestrated centrally.
-Use explicit suite function names, for example:
+Use explicit helper names, for example:
 
+- `run_startup_test_*`
 - `run_reflection_*`
 - `run_ecs_*`
-- `run_testing_*`
+- `run_*_working_example_test_*`
 
-Keep orchestration centralized in `00_example_catalog.rhai`.
+Keep orchestration centralized in `00_startup_test_catalog.rhai`.

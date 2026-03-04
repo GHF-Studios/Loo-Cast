@@ -1,3 +1,12 @@
+//! Generic metadata contracts.
+//!
+//! These traits define compile-time metadata requirements for:
+//! - generic definitions (parameter list, bounds, notes),
+//! - generic instantiations (type arguments and concrete target).
+//!
+//! Runtime metadata objects are materialized in
+//! `meta::monomorphized::generic_`.
+
 use rhai::ImmutableString;
 
 use crate::{

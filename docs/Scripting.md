@@ -1,4 +1,4 @@
-# Scripting — Rhai Dialect, Hooks, and Bridge Suites
+# Scripting — Rhai Dialect and Hook Tests
 
 ## Overview
 
@@ -9,6 +9,7 @@
 - `boot.rhai` registers schedule hooks through `rhai_binding::schedule_hooks::add("<schedule_name>")`.
 - Testing gate is exposed via `rhai_binding::testing::enabled()`, backed by config key
   `rhai_binding/testing_enabled`.
+- Startup test scripts only execute when `rhai_binding/testing_enabled = true`.
 - Policy: keep script helper orchestration out of global namespace; prefer namespaced modules and `private fn`.
 
 ## Hook loading model
@@ -20,17 +21,38 @@
 - Example:
   - `startup.rhai` pulls in everything under `startup/` first, then calls `main(world)`.
 
-This makes `startup.rhai` a stable test/example entrypoint while companion files hold organized suites.
+This makes `startup.rhai` a stable startup-test entrypoint while companion files hold organized tests.
 
 ## Script layout
 
 - Core scripts root: `core_mod/assets/scripts/core/`
 - Schedule hooks: `core_mod/assets/scripts/core/schedule_hooks/`
-- Startup suites: `core_mod/assets/scripts/core/schedule_hooks/startup/`
-  - `reflection/` for reflection graph smoke checks.
-  - `ecs/` for ECS bridge examples (World, Commands, Query, Messages, iterators).
-  - `testing/` for testing-only bridge modules (e.g. `shop::divisions::sex`).
-- Rhai-only utility namespace scaffold: `core_mod/assets/scripts/core/rhai_std/`
+- Startup test harness: `core_mod/assets/scripts/core/schedule_hooks/startup/`
+  - `tests/reflection/` for reflection graph smoke checks.
+  - `tests/ecs/` for ECS integration tests (World, Commands, Query, Messages, iterators).
+  - `tests/examples/` for runnable example-tests, currently including `shop::divisions::sex`.
+- Non-core module scripts: `*/assets/scripts/<module_name>/...` (for example
+  `core_mod/assets/scripts/other_module/...`).
+
+## `use` alias syntax
+
+Supported script alias form:
+
+- `use bevy::ecs::query::QueryData as QueryData;`
+- `use core_mod_api::player::bundles::PlayerBundle as PlayerBundle;`
+
+Current behavior:
+
+- aliases are preprocessed before Rhai compilation,
+- use declarations are preprocessed per script file before hook-source composition,
+- alias substitution applies to:
+  - path roots (`Alias::...`),
+  - bare alias tokens (`Alias`) as canonical type-id string literals,
+- strings/comments are not rewritten.
+- alias declarations fail fast on:
+  - duplicate alias names in one script,
+  - reserved Rhai keywords,
+  - collisions with known registered global symbol names when target path differs.
 
 ## Bridge model (high-level)
 
@@ -46,6 +68,8 @@ This makes `startup.rhai` a stable test/example entrypoint while companion files
 - Architecture and design rules: `docs/RhaiDialect.md`
 - Step-by-step extension workflow: `docs/RhaiBridgeDevelopment.md`
 - Coverage/TODO hierarchy: `docs/RhaiBindingRoadmap.md`
+- Generic binding contract: `docs/RhaiGenericBindingPolicy.md`
+- Script ergonomics design proposal: `docs/RhaiScriptErgonomics.md`
 
 ## Validation
 

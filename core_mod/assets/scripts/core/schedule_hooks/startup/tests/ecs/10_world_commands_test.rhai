@@ -1,5 +1,5 @@
-private fn run_ecs_world_commands_suite(world) {
-    print("[Startup][ECS] world/commands suite");
+private fn run_ecs_world_commands_test(world) {
+    print("[Startup][ECS] world/commands test");
 
     world.commands(|commands| {
         commands.spawn_empty(|entity_commands| {

@@ -9,7 +9,7 @@ Read first: `docs/RhaiAgentHandoff.md`
 - For **Task 3** and **Task 4**, produce a design plan and get approval **before** implementation.
 - Keep startup-script-based integration validation (`./build.sh dev` then `./run.sh dev`) as the main acceptance path.
 - Keep `sex::divisions::sex` test bridge content; do not delete it.
-- Keep Rhai global namespace minimal; prefer namespaced module APIs and `private fn` helper suites.
+- Keep Rhai global namespace minimal; prefer namespaced module APIs and `private fn` helper tests.
 
 ## Task 1: Structural Cleanup (no behavior expansion)
 
@@ -45,17 +45,17 @@ Status: completed
 Scope:
 
 - Keep `startup.rhai` as canonical entrypoint.
-- Split orchestration so production examples and testing-only suites are clearly separated.
+- Split orchestration so core startup tests and testing-bridge example-tests are clearly separated.
 - Gate testing bridge registration/invocation explicitly (without deleting test bridge modules).
 
 Outcome:
 
-- Clean startup structure where examples are always clear, and testing suites are opt-in/controlled.
+- Clean startup structure where startup tests are explicit and example-tests are opt-in/controlled.
 
 Result snapshot:
 
-- Startup orchestration split into production suites vs testing suites.
-- Testing suite invocation is gated by `rhai_binding::testing::enabled()`.
+- Startup orchestration split into core tests vs testing-bridge example-tests.
+- Startup test execution (core and example) is gated by `rhai_binding::testing::enabled()`.
 - Testing bridge registration is gated at engine boot by `rhai_binding/testing_enabled` config.
 - Default behavior excludes testing-only top-level modules (for now: `shop`) from the runtime bridge graph.
 
@@ -120,7 +120,7 @@ Result snapshot:
 
 ## Task 5: Query/Message/Bundle Generic Dispatch Normalization
 
-Status: pending
+Status: completed
 
 Important caution:
 
@@ -141,6 +141,36 @@ Follow-up ergonomics track (requested):
 
 - Design rust-style Rhai imports and path aliases (for example local `use`-like bindings) so fully-qualified ids stay explicit in metadata while script callsites stay concise.
 - Include a shorthand strategy for generic-bound verbosity once full-path generic metadata is stable.
+
+Result snapshot:
+
+- Message dispatch path was normalized to the same registry-resolver pattern
+  already used by query and bundle flows:
+  - runtime message internals registry added under
+    `runtime/ecs/message/internals/*`,
+  - compile-time signatures registered in
+    `catalog/message_signatures.rs`
+    (`MESSAGE_SIG__SCRIPT_PROBE__WRITE`,
+    `MESSAGE_SIG__SCRIPT_PROBE__DRAIN`),
+  - world access providers now resolve message write/drain dispatchers instead
+    of hardcoded one-off logic.
+- Docs were updated to describe the hybrid architecture role and normalized
+  dispatch-key model across query/message/bundle.
+- Generic binding policy was centralized and codified with shared invariants,
+  submission macros, and cross-layer automation:
+  - `runtime/ecs/dispatch_policy.rs`
+  - `docs/RhaiGenericBindingPolicy.md`
+- Ergonomics follow-up status:
+  - implemented: rust-style script `use <full_path> as <alias>;` preprocessing
+    for boot/hook scripts with:
+    - path-root substitution (`Alias::...`),
+    - bare-token type-id substitution (`Alias` -> canonical type-id string),
+    - conflict guards (duplicate alias, keyword alias, global symbol clash).
+  - partially implemented: typed query helpers
+    (`QueryData::single_t`, `QueryFilter::{require_t,exclude_t}`,
+    `QueryDataTerm::{value_t,ref_t,mut_t}`),
+  - pending: generic-bound display shorthand
+    (tracked in `docs/RhaiScriptErgonomics.md`).
 
 ---
 

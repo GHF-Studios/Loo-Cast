@@ -1,3 +1,5 @@
+use rhai_binding::schedule_hooks as ScheduleHooks;
+
 for hook in [
     "pre_startup",
     "startup",
@@ -8,5 +10,5 @@ for hook in [
     "post_update",
     "last",
 ] {
-    rhai_binding::schedule_hooks::add(hook);
+    ScheduleHooks::add(hook);
 }

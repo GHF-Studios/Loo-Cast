@@ -2,6 +2,9 @@ use std::collections::HashMap;
 
 use once_cell::sync::Lazy;
 
+use crate::rhai_binding::runtime::ecs::dispatch_policy::{
+    validate_query_signature_id, validate_type_path_id, validate_type_path_list,
+};
 use crate::rhai_binding::runtime::ecs::system::query::internals::types::{
     query_data_key, query_dispatch_key, query_filter_key, QueryDispatchEntry, QueryDispatchFn, QueryDispatchKey,
 };
@@ -10,6 +13,13 @@ static QUERY_DISPATCH_REGISTRY: Lazy<HashMap<QueryDispatchKey, QueryDispatchFn>>
     let mut registry = HashMap::new();
     let mut signature_by_key: HashMap<QueryDispatchKey, &'static str> = HashMap::new();
     for entry in inventory::iter::<QueryDispatchEntry> {
+        validate_query_signature_id(entry.signature_id);
+        for term in entry.data_terms {
+            validate_type_path_id("QueryDispatchEntry::data_terms.type_id", term.type_id);
+        }
+        validate_type_path_list("QueryDispatchEntry::filter_with", entry.filter_with);
+        validate_type_path_list("QueryDispatchEntry::filter_without", entry.filter_without);
+
         let data_key = query_data_key(entry.data_terms);
         let filter_key = query_filter_key(entry.filter_with, entry.filter_without);
         let dispatch_key = query_dispatch_key(data_key.as_str(), filter_key.as_str());

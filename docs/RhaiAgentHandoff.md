@@ -30,11 +30,10 @@ chat history.
   - `rhai_binding::testing::enabled`
   - both registered in
     `core_mod_api/src/rhai_binding/engine/bootstrap.rs`.
-- Startup suite split:
-  - production suites always run,
-  - testing suites run only when
+- Startup test split:
+  - startup tests (including example-tests) run only when
     `rhai_binding::testing::enabled() == true`.
-- Startup suite helper functions are `private fn` to reduce script-global
+- Startup test helper functions are `private fn` to reduce script-global
   pollution.
 
 ## Where To Read First
@@ -49,23 +48,19 @@ chat history.
 
 - Task 1: complete
 - Task 2: complete
-- Task 3: pending, **plan + approval required before implementation**
-- Task 4: pending, **plan + approval required before implementation**
-- Task 5: pending
+- Task 3: complete
+- Task 4: complete
+- Task 5: complete
 
 ## Known Directional Constraints
 
 - Favor Rust/Bevy path mirroring in bridge domain/module naming.
 - Keep generic behavior explicit: runtime descriptors + pre-registered
   monomorphized catalogs.
-- Do not replace startup-suite integration testing with isolated test-only
+- Keep generic dispatch policy centralized in
+  `rhai_binding::runtime::ecs::dispatch_policy`.
+- Do not replace startup-hook integration testing with isolated test-only
   harnesses as the primary validation path.
-
-## Known Quirk
-
-- The reflection graph debug print may still list testing modules (for example
-  `shop`) even when testing is disabled; actual runtime registration is filtered
-  later by `register_binding_graph_with_testing`.
 
 ## Recent Cleanup Notes
 

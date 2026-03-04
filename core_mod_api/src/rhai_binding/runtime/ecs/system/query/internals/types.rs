@@ -1,5 +1,6 @@
 use crate::bevy::prelude::World as BevyWorld;
 
+use crate::rhai_binding::runtime::ecs::dispatch_policy::validate_type_path_id;
 use crate::rhai_binding::runtime::ecs::system::query::bindings::types::Query;
 
 pub type QueryDispatchKey = (String, String);
@@ -40,9 +41,7 @@ pub fn query_data_key(terms: &[QueryDispatchTerm]) -> String {
     terms
         .iter()
         .map(|term| {
-            if term.type_id.trim().is_empty() {
-                panic!("query_data_key received an empty term type id");
-            }
+            validate_type_path_id("query_data_key::term.type_id", term.type_id);
             format!("{}:{}", term.access.as_str(), term.type_id)
         })
         .collect::<Vec<_>>()
@@ -57,6 +56,13 @@ pub fn query_filter_key(with: &'static [&'static str], without: &'static [&'stat
     with.dedup();
     without.sort_unstable();
     without.dedup();
+
+    for type_id in &with {
+        validate_type_path_id("query_filter_key::with", type_id.as_str());
+    }
+    for type_id in &without {
+        validate_type_path_id("query_filter_key::without", type_id.as_str());
+    }
 
     let overlap = with
         .iter()

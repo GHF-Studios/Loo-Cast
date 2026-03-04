@@ -7,7 +7,7 @@ This directory is the executable reflection/registration surface for the Rhai di
 - `domains/`
   - production bridge modules that mirror exposed runtime domains (`ecs`, `player`, `rust`, ...).
 - `testing/`
-  - testing-only bridge domains used by startup suites and bridge smoke checks.
+  - testing-only bridge domains used by startup tests and bridge smoke checks.
 
 ## Design rule
 

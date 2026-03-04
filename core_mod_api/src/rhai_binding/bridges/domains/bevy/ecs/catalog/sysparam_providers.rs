@@ -1,15 +1,15 @@
 use std::any::Any;
 
-use crate::bevy::ecs::message::Messages;
 use crate::bevy::ecs::system::Commands;
 use crate::bevy::ecs::system::EntityCommands;
 use crate::bevy::ecs::world::EntityWorldMut;
 use crate::bevy::prelude::Entity as BevyEntity;
 use crate::bevy::prelude::World;
+use crate::rhai_binding::bridges::domains::bevy::ecs::catalog::message_signatures::TYPE_PATH__SCRIPT_PROBE_MESSAGE;
 use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
 use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 use crate::rhai_binding::runtime::ecs::bundle::internals::statics::resolve_bundle_spawn_dispatch;
-use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
+use crate::rhai_binding::runtime::ecs::message::internals::statics::{resolve_message_drain_dispatch, resolve_message_write_dispatch};
 use crate::rhai_binding::runtime::ecs::system::query::{bindings::types::Query, internals::statics::resolve_query_dispatch};
 use crate::rhai_binding::runtime::ecs::world::internals::access_requests::{
     WorldQueryRequest, WorldSpawnSingleRequest, WriteProbeMessageRequest, WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES,
@@ -112,13 +112,8 @@ unsafe impl AccessCellProvider<()> for World {
             panic!("Unsupported arguments for method '{}' in AccessCellProvider<()> for World", method);
         };
         let request = *request;
-        let message = ScriptProbeMessage {
-            payload: request.payload,
-        };
-
-        if self.write_message(message).is_none() {
-            panic!("ScriptProbeMessage writer unavailable. Ensure RhaiEnginePlugin registered add_message::<ScriptProbeMessage>()");
-        }
+        let dispatch = resolve_message_write_dispatch(TYPE_PATH__SCRIPT_PROBE_MESSAGE);
+        dispatch(self, request.payload);
 
         AccessCell::new(())
     }
@@ -137,12 +132,8 @@ unsafe impl AccessCellProvider<StringIter> for World {
             panic!("Unsupported arguments for method '{}' in AccessCellProvider<StringIter> for World", method);
         }
 
-        let payloads = {
-            let Some(mut messages) = self.get_resource_mut::<Messages<ScriptProbeMessage>>() else {
-                panic!("ScriptProbeMessage storage is unavailable. Ensure RhaiEnginePlugin registered add_message::<ScriptProbeMessage>()");
-            };
-            messages.drain().map(|message| message.payload).collect()
-        };
+        let dispatch = resolve_message_drain_dispatch(TYPE_PATH__SCRIPT_PROBE_MESSAGE);
+        let payloads = dispatch(self);
 
         AccessCell::new(StringIter::from_values(payloads))
     }

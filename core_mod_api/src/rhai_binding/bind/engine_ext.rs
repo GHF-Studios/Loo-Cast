@@ -15,7 +15,6 @@ impl EngineExt for rhai::Engine {
         for (top_level_module_path, top_level_module) in RUNTIME_BINDING_GRAPH().top_level_modules.iter() {
             let module_name = top_level_module_path.module_name();
             if !include_testing_bridges && is_testing_top_level_module(module_name.as_str()) {
-                println!("[RhaiBinding] skipping testing top-level module '{}'", module_name);
                 continue;
             }
             top_level_module.register_top_level_module(self);

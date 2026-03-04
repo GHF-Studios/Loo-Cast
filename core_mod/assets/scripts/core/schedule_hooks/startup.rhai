@@ -1,5 +1,11 @@
+use rhai_binding::testing as Testing;
+
 fn main(world) {
-    print("[Startup] bridge integration suite (entrypoint)");
-    run_startup_example_catalog(world);
+    if !Testing::enabled() {
+        return;
+    }
+
+    print("[Startup] startup test harness (entrypoint)");
+    run_startup_test_catalog(world);
     world.flush();
 }

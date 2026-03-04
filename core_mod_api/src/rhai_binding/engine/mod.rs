@@ -1,5 +1,6 @@
 pub mod bootstrap;
 pub mod hook;
+mod preprocess;
 pub mod resources;
 pub mod statics;
 

@@ -36,7 +36,7 @@ This project treats Rhai as a customizable runtime dialect for Bevy/ECS workflow
 - For each schedule hook, loader composes:
   1. recursively discovered companion `.rhai` files,
   2. then the hook root file.
-- Startup entrypoint is kept at `startup.rhai`, with categorized suites under `startup/`.
+- Startup entrypoint is kept at `startup.rhai`, with categorized tests under `startup/`.
 
 ## Value semantics model
 
@@ -69,18 +69,48 @@ Rhai cannot create new Rust monomorphizations at runtime, so generic support is 
 
 This gives dynamic selection with static safety boundaries.
 
+Canonical policy and enforcement details:
+`docs/RhaiGenericBindingPolicy.md`.
+
+Architectural role note:
+
+- monomorphized signature catalogs are not the sole conceptual foundation,
+- they are one layer in a hybrid model:
+  - AccessCell/provider lifecycle is the safety boundary,
+  - runtime descriptors are the scripting-facing selection model,
+  - catalog-backed dispatch is the Rust monomorphization bridge.
+
 ## Query/Commands/Messages direction
 
 - Sysparam-like features are exposed via the same AccessCellProvider pattern.
-- Query/message behavior is signature-driven and catalog-backed.
+- Query/message/bundle behavior resolves through runtime dispatch registries
+  backed by compile-time signatures.
 - Bridge APIs should mirror Rust/Bevy concepts where practical (iterators/cursors instead of ad-hoc batch facades).
+- Script callsite ergonomics may be improved by loader-time alias preprocessing
+  while keeping canonical full-path metadata and dispatch keys unchanged.
+
+## Dispatch normalization model
+
+- Query dispatch key:
+  - `(query_data_key, query_filter_key)`
+- Message dispatch key:
+  - `message_type_id` (separate write and drain registries)
+- Bundle dispatch key:
+  - `(instance_type_id, trait_id)`
+- Provider workflow:
+  1. decode typed access request payload,
+  2. resolve dispatch function from registry,
+  3. execute dispatch against Bevy world/entity access.
 
 ## Module organization rules
 
 - `bridges/domains/*`: production runtime API surface mirrored by domain path.
 - `bridges/testing/*`: explicit testing-only bridge space.
 - `bridges/domains/bevy/ecs/catalog/*`: compile-time registries for signatures and providers.
-- `core_mod/assets/scripts/core/schedule_hooks/startup/*`: runtime integration examples and smoke coverage.
+- `runtime/ecs/dispatch_policy.rs`: canonical generic-dispatch policy, invariant checks, and submission macros.
+- `core_mod/assets/scripts/core/schedule_hooks/startup/*`: startup test harness scripts.
+- `core_mod/assets/scripts/core/schedule_hooks/startup/tests/*`: integration tests and example-tests.
+- `*/assets/scripts/<module_name>/*`: module-owned script trees outside core hooks.
 
 Macro surface assessment and unification plan: `docs/RhaiMacroSurface.md`.
 

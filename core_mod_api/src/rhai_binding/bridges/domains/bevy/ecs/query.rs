@@ -20,6 +20,9 @@ core_mod_macros::reflect_extern_type!(
         bevy::ecs::query::QueryDataTerm::value,
         bevy::ecs::query::QueryDataTerm::ref_,
         bevy::ecs::query::QueryDataTerm::mut_,
+        bevy::ecs::query::QueryDataTerm::value_t,
+        bevy::ecs::query::QueryDataTerm::ref_t,
+        bevy::ecs::query::QueryDataTerm::mut_t,
     ],
     method_functions = [bevy::ecs::query::QueryDataTerm::type_id, bevy::ecs::query::QueryDataTerm::access,],
 );
@@ -30,6 +33,7 @@ core_mod_macros::reflect_extern_type!(
     value_semantics = clone,
     constructor_functions = [
         bevy::ecs::query::QueryData::single,
+        bevy::ecs::query::QueryData::single_t,
         bevy::ecs::query::QueryData::tuple,
         bevy::ecs::query::QueryData::from_terms,
     ],
@@ -43,7 +47,9 @@ core_mod_macros::reflect_extern_type!(
     constructor_functions = [
         bevy::ecs::query::QueryFilter::none,
         bevy::ecs::query::QueryFilter::require,
+        bevy::ecs::query::QueryFilter::require_t,
         bevy::ecs::query::QueryFilter::exclude,
+        bevy::ecs::query::QueryFilter::exclude_t,
         bevy::ecs::query::QueryFilter::from_sets,
     ],
     method_functions = [bevy::ecs::query::QueryFilter::with_types, bevy::ecs::query::QueryFilter::without_types,],
@@ -76,6 +82,33 @@ core_mod_macros::reflect_extern_constructor_function!(
     },
 );
 
+core_mod_macros::reflect_extern_constructor_function!(
+    id = bevy::ecs::query::QueryDataTerm::value_t,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryDataTerm {
+            ScriptQueryDataTerm::value_t(type_id)
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_constructor_function!(
+    id = bevy::ecs::query::QueryDataTerm::ref_t,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryDataTerm {
+            ScriptQueryDataTerm::ref_t(type_id)
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_constructor_function!(
+    id = bevy::ecs::query::QueryDataTerm::mut_t,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryDataTerm {
+            ScriptQueryDataTerm::mut_t(type_id)
+        });
+    },
+);
+
 core_mod_macros::reflect_extern_method_function!(
     id = bevy::ecs::query::QueryDataTerm::type_id,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
@@ -99,6 +132,15 @@ core_mod_macros::reflect_extern_constructor_function!(
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryData {
             ScriptQueryData::single(type_id)
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_constructor_function!(
+    id = bevy::ecs::query::QueryData::single_t,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryData {
+            ScriptQueryData::single_t(type_id)
         });
     },
 );
@@ -150,10 +192,28 @@ core_mod_macros::reflect_extern_constructor_function!(
 );
 
 core_mod_macros::reflect_extern_constructor_function!(
+    id = bevy::ecs::query::QueryFilter::require_t,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryFilter {
+            ScriptQueryFilter::require_t(type_id)
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_constructor_function!(
     id = bevy::ecs::query::QueryFilter::exclude,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryFilter {
             ScriptQueryFilter::exclude(type_id)
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_constructor_function!(
+    id = bevy::ecs::query::QueryFilter::exclude_t,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |type_id: rhai::ImmutableString| -> ScriptQueryFilter {
+            ScriptQueryFilter::exclude_t(type_id)
         });
     },
 );

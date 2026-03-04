@@ -5,6 +5,7 @@
 This is the operational guide for adding new Rhai-exposed Bevy/Rust features and maintaining the signature catalogs used to emulate generics.
 
 Related design context: `docs/RhaiDialect.md`.
+Generic contract: `docs/RhaiGenericBindingPolicy.md`.
 Coverage backlog: `docs/RhaiBindingRoadmap.md`.
 Semantics intent reference: `docs/RhaiValueSemantics.md`.
 Macro surface notes: `docs/RhaiMacroSurface.md`.
@@ -21,11 +22,19 @@ Macro surface notes: `docs/RhaiMacroSurface.md`.
   - `core_mod_api/src/rhai_binding/bridges/domains/bevy/ecs/catalog/sysparam_providers.rs`
 - Runtime wrappers:
   - `core_mod_api/src/rhai_binding/runtime/*`
-  - bundle spawn dispatch runtime registry:
-    - `core_mod_api/src/rhai_binding/runtime/ecs/bundle/internals/types.rs`
-    - `core_mod_api/src/rhai_binding/runtime/ecs/bundle/internals/statics.rs`
-- Script integration suites:
-  - `core_mod/assets/scripts/core/schedule_hooks/startup/*`
+- bundle spawn dispatch runtime registry:
+  - `core_mod_api/src/rhai_binding/runtime/ecs/bundle/internals/types.rs`
+  - `core_mod_api/src/rhai_binding/runtime/ecs/bundle/internals/statics.rs`
+- message write/drain dispatch runtime registries:
+  - `core_mod_api/src/rhai_binding/runtime/ecs/message/internals/types.rs`
+  - `core_mod_api/src/rhai_binding/runtime/ecs/message/internals/statics.rs`
+- query dispatch runtime registry:
+  - `core_mod_api/src/rhai_binding/runtime/ecs/system/query/internals/types.rs`
+  - `core_mod_api/src/rhai_binding/runtime/ecs/system/query/internals/statics.rs`
+- shared generic-dispatch policy and validation:
+  - `core_mod_api/src/rhai_binding/runtime/ecs/dispatch_policy.rs`
+- Script integration tests:
+  - `core_mod/assets/scripts/core/schedule_hooks/startup/tests/*`
 
 ## Workflow: add a new bridge feature
 
@@ -51,12 +60,13 @@ Macro surface notes: `docs/RhaiMacroSurface.md`.
 - Use `register_fn`, `register_raw_fn`, property getters, and module insertion APIs consistently.
 - Keep conversions between Rhai `Dynamic` and wrapper types explicit.
 
-5. Add startup suite coverage.
-- Add/extend `.rhai` suite files under categorized startup companion folders.
+5. Add startup test coverage.
+- Add/extend `.rhai` test files under categorized startup `tests/*` folders.
 - Keep `startup.rhai` as the entrypoint; call orchestrator helpers from there.
 
 6. Validate.
 - `cargo check -p core_mod_api`
+- `cargo test -p core_mod_api dispatch_policy --lib`
 - `./build.sh dev`
 - `./run.sh dev`
 
@@ -64,25 +74,40 @@ Macro surface notes: `docs/RhaiMacroSurface.md`.
 
 Use this for Query/Message/Bundle patterns that require Rust monomorphization.
 
-1. Add signature catalog entry.
-- Register a dispatch entry with `inventory::submit!`.
+1. Pick the normalized dispatch-key shape.
+- Query: `(data_key, filter_key)`.
+- Message: `message_type_id` (per operation registry, e.g. write/drain).
+- Bundle: `(instance_type_id, trait_id)`.
+
+2. Add signature catalog entry.
+- Register a dispatch entry with the domain policy macro:
+  - `submit_query_dispatch_entry!`
+  - `submit_message_write_dispatch_entry!`
+  - `submit_message_drain_dispatch_entry!`
+  - `submit_bundle_spawn_dispatch_entry!`
 - Define:
   - signature id,
-  - data/filter term definitions,
+  - dispatch key fields,
   - dispatch function.
 
-2. Add/extend descriptor DSL if needed.
+3. Add/extend descriptor DSL if needed.
 - Update runtime descriptor types (`QueryDataTerm`, `QueryData`, `QueryFilter`, etc.).
 - Keep descriptor -> dispatch-key mapping deterministic.
 
-3. Resolve in provider path.
-- Ensure AccessCellProvider request path maps descriptor keys to catalog dispatchers.
+4. Resolve in provider path.
+- Ensure AccessCellProvider request path maps request payload keys to runtime resolvers (`resolve_*_dispatch`).
+- Avoid hardcoded one-off logic in providers when the operation has a catalog.
+- Keep signature IDs and type/trait path IDs canonical so policy validators pass.
 
-4. Add reflection metadata for discoverability.
+5. Add reflection metadata for discoverability.
 - Add `reflect_extern_generic_definition!` and `reflect_extern_generic_instantiation!` where applicable.
 
-5. Cover with startup script examples.
+6. Cover with startup script tests/examples.
 - Add at least one positive-path script that exercises the new signature.
+- Prefer alias-driven type-id tokens in scripts when available:
+  - `use bevy::ecs::entity::Entity as Entity;`
+  - `QueryData::single_t(Entity)`
+  - `QueryFilter::require_t(Player)`
 
 ## Workflow: add a new bundle spawn signature
 
@@ -109,6 +134,7 @@ Use explicit and grep-friendly signature constants in catalogs:
 - `QUERY_SIG__ENTITY`
 - `QUERY_SIG__ENTITY__WITH_PLAYER`
 - `QUERY_SIG__ENTITY_AND_PLAYER_REF__WITH_CHUNK_LOADER`
+- `MESSAGE_SIG__SCRIPT_PROBE__WRITE`
 - `MESSAGE_SIG__SCRIPT_PROBE__DRAIN`
 - `BUNDLE_SIG__PLAYER__SPAWN_SINGLE`
 
@@ -116,11 +142,11 @@ Keep names auto-derivable from descriptor definitions where practical.
 
 ## Testing policy
 
-- Treat startup hook suites as integration tests/examples.
+- Treat startup hook tests as integration tests (with optional example-tests).
 - Keep test-only bridges under `bridges/testing/*`.
 - Keep production bridge APIs under `bridges/domains/*`.
 
 ## Migration policy
 
 - Hard refactors are acceptable.
-- Backwards compatibility is optional during migration, as long as final API is coherent and covered by startup suite execution.
+- Backwards compatibility is optional during migration, as long as final API is coherent and covered by startup test execution.

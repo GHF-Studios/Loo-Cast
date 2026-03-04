@@ -12,6 +12,8 @@ Quick links
 - `RhaiMacroSurface.md` — current reflection macro families and planned naming/unification direction
 - `RhaiBridgeDevelopment.md` — playbook for adding new Bevy/Rust bridges and signature catalogs
 - `RhaiBindingRoadmap.md` — hierarchical TODO/backlog for planned bridge coverage
+- `RhaiScriptErgonomics.md` — proposal for Rhai `use` aliases and generic-path verbosity reduction
+- `RhaiGenericBindingPolicy.md` — canonical contract for generic-like Rhai bindings and automated enforcement
 - `Building.md` — build & run instructions, profiles, tips
 - `Crates.md` — workspace crate responsibilities (code vs assets and engine/runtime vs game/gameplay)
 - `Modding.md` — how to structure a mod and where to put assets

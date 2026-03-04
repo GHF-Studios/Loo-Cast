@@ -39,7 +39,7 @@ sprint_multiplier = 2.5
 z_offset = 10.0 # For good measure, we pretty much always want gizmos on top of everything else.
 
 [rhai_binding]
-testing_enabled = false
+testing_enabled = true
 
 [time]
 start_paused = false

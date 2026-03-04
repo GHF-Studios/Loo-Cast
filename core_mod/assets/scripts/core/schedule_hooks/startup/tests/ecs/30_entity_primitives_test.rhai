@@ -1,5 +1,5 @@
-private fn run_ecs_entity_primitives_suite(world) {
-    print("[Startup][Entity] primitive suite");
+private fn run_ecs_entity_primitives_test(world) {
+    print("[Startup][Entity] primitive test");
 
     world.spawn_empty(|entity_world_mut| {
         let id = entity_world_mut.id();
