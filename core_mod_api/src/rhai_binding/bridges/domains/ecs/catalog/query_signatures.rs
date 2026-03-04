@@ -18,13 +18,13 @@ const QUERY_DATA__ENTITY: &[QueryDispatchTerm] = &[QueryDispatchTerm {
 fn dispatch_query_sig_entity(world: &mut BevyWorld) -> Query {
     let mut query = world.query::<BevyEntity>();
     let values = query.iter(&*world).map(rhai::Dynamic::from).collect();
-    Query { values }
+    Query::from_values(values)
 }
 
 fn dispatch_query_sig_entity_with_player(world: &mut BevyWorld) -> Query {
     let mut query = world.query_filtered::<BevyEntity, With<Player>>();
     let values = query.iter(&*world).map(rhai::Dynamic::from).collect();
-    Query { values }
+    Query::from_values(values)
 }
 
 inventory::submit! {

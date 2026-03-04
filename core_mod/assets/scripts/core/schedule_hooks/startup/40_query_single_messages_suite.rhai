@@ -3,26 +3,30 @@ fn run_query_single_messages_suite(world) {
 
     let entity_data = ecs::query::QueryData::single("ecs::entities::Entity");
     let all_entities = world.query(entity_data);
-    print("[Startup][ECS] world.query(QueryData::single(...)).len = " + all_entities.len());
+    print("[Startup][ECS] world.query(QueryData::single(...)).remaining_len = " + all_entities.remaining_len());
 
     let player_filter = ecs::query::QueryFilter::require("player::components::Player");
     let player_entities = world.query_filtered(entity_data, player_filter);
-    print("[Startup][ECS] world.query_filtered(..., QueryFilter::require(...)).len = " + player_entities.len());
+    print("[Startup][ECS] world.query_filtered(..., QueryFilter::require(...)).remaining_len = " + player_entities.remaining_len());
 
-    if player_entities.len() != 1 {
+    if player_entities.remaining_len() != 1 {
         print("[Startup][ECS][WARN] Expected exactly one player entity");
         return;
     }
 
-    let player_from_query = player_entities.single();
-    let player_from_try_single = player_entities.try_single();
-    print("[Startup][ECS] query.single = " + player_from_query.to_string());
-    print("[Startup][ECS] query.try_single = " + player_from_try_single.to_string());
+    let player_from_query = player_entities.next();
+    print("[Startup][ECS] query.next = " + player_from_query.to_string());
 
-    let maybe_player = player_entities.try_single();
+    let maybe_player = player_entities.next();
     if maybe_player == () {
-        print("[Startup][ECS][WARN] query.try_single returned unit unexpectedly");
+        print("[Startup][ECS] query.next returned unit as expected after consuming the single player");
+    } else {
+        print("[Startup][ECS][WARN] query.next returned an unexpected second value");
     }
+
+    let all_entities_again = world.query(entity_data);
+    let all_entities_array = all_entities_again.collect_remaining();
+    print("[Startup][ECS] query.collect_remaining count = " + all_entities_array.len());
 
     world.write_probe_message("startup-message-0");
     world.write_probe_message("startup-message-1");

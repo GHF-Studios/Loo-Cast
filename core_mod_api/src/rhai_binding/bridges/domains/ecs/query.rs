@@ -12,6 +12,7 @@ core_mod_macros::reflect_extern_generic_definition!(
     bounds = [TData: [], TFilter: []],
     notes = [
         "Runtime query facade for pre-registered monomorphized query signatures.",
+        "Dispatched query results are exposed as a cursor-style runtime iterator.",
         "Descriptors can be composed dynamically but only registered signatures dispatch.",
     ],
 );
@@ -37,12 +38,10 @@ core_mod_macros::reflect_extern_type!(
     rust_type = ScriptQuery,
     value_semantics = clone,
     method_functions = [
-        ecs::query::Query::len,
+        ecs::query::Query::next,
+        ecs::query::Query::remaining_len,
         ecs::query::Query::is_empty,
-        ecs::query::Query::to_array,
-        ecs::query::Query::first_or_unit,
-        ecs::query::Query::single,
-        ecs::query::Query::try_single,
+        ecs::query::Query::collect_remaining,
     ],
 );
 
@@ -80,11 +79,25 @@ core_mod_macros::reflect_extern_type!(
 );
 
 core_mod_macros::reflect_extern_method_function!(
-    id = ecs::query::Query::len,
+    id = ecs::query::Query::next,
+    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
+        engine.register_fn(name, |query: &mut ScriptQuery| query.next());
+    },
+);
+
+core_mod_macros::reflect_extern_method_function!(
+    id = ecs::query::Query::remaining_len,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         let get_name = name.clone();
-        engine.register_get(get_name, |query: &mut ScriptQuery| query.len());
-        engine.register_fn(name, |query: &mut ScriptQuery| query.len());
+        engine.register_get(get_name, |query: &mut ScriptQuery| query.remaining_len());
+        engine.register_fn(name, |query: &mut ScriptQuery| query.remaining_len());
+    },
+);
+
+core_mod_macros::reflect_extern_method_function!(
+    id = ecs::query::Query::collect_remaining,
+    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
+        engine.register_fn(name, |query: &mut ScriptQuery| query.collect_remaining());
     },
 );
 
@@ -94,34 +107,6 @@ core_mod_macros::reflect_extern_method_function!(
         let get_name = name.clone();
         engine.register_get(get_name, |query: &mut ScriptQuery| query.is_empty());
         engine.register_fn(name, |query: &mut ScriptQuery| query.is_empty());
-    },
-);
-
-core_mod_macros::reflect_extern_method_function!(
-    id = ecs::query::Query::to_array,
-    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        engine.register_fn(name, |query: &mut ScriptQuery| query.to_array());
-    },
-);
-
-core_mod_macros::reflect_extern_method_function!(
-    id = ecs::query::Query::first_or_unit,
-    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        engine.register_fn(name, |query: &mut ScriptQuery| query.first_or_unit());
-    },
-);
-
-core_mod_macros::reflect_extern_method_function!(
-    id = ecs::query::Query::single,
-    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        engine.register_fn(name, |query: &mut ScriptQuery| query.single());
-    },
-);
-
-core_mod_macros::reflect_extern_method_function!(
-    id = ecs::query::Query::try_single,
-    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        engine.register_fn(name, |query: &mut ScriptQuery| query.try_single());
     },
 );
 

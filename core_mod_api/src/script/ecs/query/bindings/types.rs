@@ -3,6 +3,13 @@ use rhai::{Array, Dynamic, ImmutableString};
 #[derive(Clone, Default)]
 pub struct Query {
     pub(crate) values: Vec<Dynamic>,
+    pub(crate) cursor: usize,
+}
+
+impl Query {
+    pub fn from_values(values: Vec<Dynamic>) -> Self {
+        Self { values, cursor: 0 }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
