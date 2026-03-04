@@ -1,45 +1,52 @@
-use crate::bevy::prelude::Entity as BevyEntity;
+use rhai::{Dynamic, ImmutableString};
+
+pub const QUERY_FILTER_NONE_ID: &str = "ecs::query::filter::none";
 
 #[derive(Clone, Default)]
 pub struct Query {
-    pub(crate) entities: Vec<BevyEntity>,
+    pub(crate) values: Vec<Dynamic>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum QueryDataKind {
-    Entities,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct QueryData {
-    pub(crate) kind: QueryDataKind,
+    pub(crate) id: String,
 }
 
 impl QueryData {
-    pub fn entities() -> Self {
-        Self { kind: QueryDataKind::Entities }
+    pub fn of(id: ImmutableString) -> Self {
+        let id = id.to_string();
+        if id.trim().is_empty() {
+            panic!("QueryData::of requires a non-empty id");
+        }
+        Self { id }
+    }
+
+    pub fn id(&self) -> ImmutableString {
+        self.id.clone().into()
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum QueryFilterKind {
-    None,
-    WithPlayer,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct QueryFilter {
-    pub(crate) kind: QueryFilterKind,
+    pub(crate) id: String,
 }
 
 impl QueryFilter {
     pub fn none() -> Self {
-        Self { kind: QueryFilterKind::None }
+        Self {
+            id: QUERY_FILTER_NONE_ID.to_string(),
+        }
     }
 
-    pub fn with_player() -> Self {
-        Self {
-            kind: QueryFilterKind::WithPlayer,
+    pub fn of(id: ImmutableString) -> Self {
+        let id = id.to_string();
+        if id.trim().is_empty() {
+            panic!("QueryFilter::of requires a non-empty id");
         }
+        Self { id }
+    }
+
+    pub fn id(&self) -> ImmutableString {
+        self.id.clone().into()
     }
 }

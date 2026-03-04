@@ -10,9 +10,9 @@ core_mod_macros::reflect_extern_generic_definition!(
 );
 
 core_mod_macros::reflect_extern_generic_instantiation!(
-    id = "ecs::query::Query<ecs::entities::Entity, ecs::query::QueryFilter>",
+    id = "ecs::query::Query<ecs::entities::Entity, player::components::Player>",
     generic_id = "ecs::query::Query<TData, TFilter>",
-    type_arguments = [ecs::entities::Entity, ecs::query::QueryFilter],
+    type_arguments = [ecs::entities::Entity, player::components::Player],
     concrete_item_path = "ecs::query::Query",
     value_semantics = clone,
 );
@@ -43,15 +43,16 @@ core_mod_macros::reflect_extern_type!(
     id = ecs::query::QueryData,
     rust_type = ScriptQueryData,
     value_semantics = clone,
-    constructor_functions = [ecs::query::QueryData::entities],
-    method_functions = [],
+    constructor_functions = [ecs::query::QueryData::of],
+    method_functions = [ecs::query::QueryData::id],
 );
 
 core_mod_macros::reflect_extern_type!(
     id = ecs::query::QueryFilter,
     rust_type = ScriptQueryFilter,
     value_semantics = clone,
-    constructor_functions = [ecs::query::QueryFilter::none, ecs::query::QueryFilter::with_player,],
+    constructor_functions = [ecs::query::QueryFilter::none, ecs::query::QueryFilter::of,],
+    method_functions = [ecs::query::QueryFilter::id],
 );
 
 core_mod_macros::reflect_extern_method_function!(
@@ -101,9 +102,9 @@ core_mod_macros::reflect_extern_method_function!(
 );
 
 core_mod_macros::reflect_extern_constructor_function!(
-    id = ecs::query::QueryData::entities,
+    id = ecs::query::QueryData::of,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
-        rhai::FuncRegistration::new(name).set_into_module(parent_module, || -> ScriptQueryData { ScriptQueryData::entities() });
+        rhai::FuncRegistration::new(name).set_into_module(parent_module, |id: rhai::ImmutableString| -> ScriptQueryData { ScriptQueryData::of(id) });
     },
 );
 
@@ -115,8 +116,26 @@ core_mod_macros::reflect_extern_constructor_function!(
 );
 
 core_mod_macros::reflect_extern_constructor_function!(
-    id = ecs::query::QueryFilter::with_player,
+    id = ecs::query::QueryFilter::of,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
-        rhai::FuncRegistration::new(name).set_into_module(parent_module, || -> ScriptQueryFilter { ScriptQueryFilter::with_player() });
+        rhai::FuncRegistration::new(name).set_into_module(parent_module, |id: rhai::ImmutableString| -> ScriptQueryFilter { ScriptQueryFilter::of(id) });
+    },
+);
+
+core_mod_macros::reflect_extern_method_function!(
+    id = ecs::query::QueryData::id,
+    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
+        let get_name = name.clone();
+        engine.register_get(get_name, |query_data: &mut ScriptQueryData| query_data.id());
+        engine.register_fn(name, |query_data: &mut ScriptQueryData| query_data.id());
+    },
+);
+
+core_mod_macros::reflect_extern_method_function!(
+    id = ecs::query::QueryFilter::id,
+    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
+        let get_name = name.clone();
+        engine.register_get(get_name, |query_filter: &mut ScriptQueryFilter| query_filter.id());
+        engine.register_fn(name, |query_filter: &mut ScriptQueryFilter| query_filter.id());
     },
 );

@@ -1,17 +1,17 @@
 use rhai::{Dynamic, FnPtr, NativeCallContext, Shared};
 
 use crate::bevy::ecs::message::Messages;
-use crate::bevy::ecs::query::With;
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
 use crate::bevy::prelude::Commands as BevyCommands;
-use crate::bevy::prelude::Entity as BevyEntity;
-use crate::player::components::Player;
 use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 
 use crate::script::ecs::{
     bundle::internals::trait_objects::BundleTraitObject,
     messages::bindings::types::{MessageBatch, ScriptProbeMessage},
-    query::bindings::types::{Query, QueryData, QueryDataKind, QueryFilter, QueryFilterKind},
+    query::{
+        bindings::types::{Query, QueryData, QueryFilter},
+        internals::{statics::query_dispatch_registry, types::query_dispatch_key},
+    },
     system::commands::bindings::types::Commands,
     world::{bindings::types::World, entity_ref::bindings::types::EntityWorldMut, internals::traits::WorldApi},
 };
@@ -98,21 +98,24 @@ impl WorldApi for Shared<World> {
 
     fn query_filtered(&self, data: QueryData, filter: QueryFilter) -> Query {
         let mut world = self.world.start_write();
+        let key = query_dispatch_key(data.id.as_str(), filter.id.as_str());
+        let dispatch = query_dispatch_registry().get(&key).copied().unwrap_or_else(|| {
+            let available = query_dispatch_registry()
+                .keys()
+                .map(|(data_id, filter_id)| format!("({data_id}, {filter_id})"))
+                .collect::<Vec<_>>()
+                .join(", ");
 
-        let entities = match (data.kind, filter.kind) {
-            (QueryDataKind::Entities, QueryFilterKind::None) => {
-                let mut query = world.query::<BevyEntity>();
-                query.iter(&*world).collect()
-            }
-            (QueryDataKind::Entities, QueryFilterKind::WithPlayer) => {
-                let mut query = world.query_filtered::<BevyEntity, With<Player>>();
-                query.iter(&*world).collect()
-            }
-        };
+            panic!(
+                "No query dispatcher registered for data='{}', filter='{}'. Available dispatchers: [{}]",
+                data.id, filter.id, available
+            )
+        });
+        let query = dispatch(&mut world);
 
         self.world.end_write(world);
 
-        Query { entities }
+        query
     }
 
     fn write_probe_message(&self, payload: rhai::ImmutableString) {
