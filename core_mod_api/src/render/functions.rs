@@ -5,7 +5,7 @@ use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
 
 use crate::{
-    chunk::resources::ChunkLoadGate,
+    chunk::resources::{ChunkLoadGate, ChunkLoadGateState},
     debug::types::DebugSuiteTabViewer,
     render::{
         components::RenderProxy,
@@ -80,7 +80,11 @@ pub(crate) fn draw_primary_window_ui(
     world: &mut World,
     ctx: &mut egui::Context,
 ) {
-    let overload_gate_locked = world.get_resource::<ChunkLoadGate>().is_some_and(|gate| gate.is_locked());
+    let overload_overlay = world.get_resource::<ChunkLoadGate>().and_then(|gate| match gate.state {
+        ChunkLoadGateState::Open => None,
+        ChunkLoadGateState::LockedByTimeout => Some((egui::Color32::RED, "TIMEOUT")),
+        ChunkLoadGateState::LockedByInFlightBoundary => Some((egui::Color32::YELLOW, "BOUNDARY OVERLAP")),
+    });
 
     if !state.enabled {
         // Game view only
@@ -102,10 +106,17 @@ pub(crate) fn draw_primary_window_ui(
                 &mut state.viewport_rect_precision_proxy,
             );
 
-            if overload_gate_locked {
+            if let Some((border_color, label)) = overload_overlay {
                 if let Some(viewport_rect) = state.viewport_rect_precision_proxy {
-                    let stroke = egui::Stroke::new(12.0, egui::Color32::RED);
+                    let stroke = egui::Stroke::new(12.0, border_color);
                     ui.painter().rect_stroke(viewport_rect, 0.0, stroke, egui::StrokeKind::Middle);
+                    ui.painter().text(
+                        viewport_rect.center_top() + egui::vec2(0.0, 8.0),
+                        egui::Align2::CENTER_TOP,
+                        label,
+                        egui::TextStyle::Heading.resolve(ui.style()),
+                        egui::Color32::WHITE,
+                    );
                 }
             }
         });
