@@ -1,7 +1,5 @@
 use crate::bevy::prelude::*;
-use crossbeam_channel::{unbounded, Receiver, Sender};
 use std::collections::{HashMap, HashSet};
-use std::sync::OnceLock;
 
 use crate::chunk::types::ChunkActionWorkflowHandles;
 use crate::config::statics::CONFIG;
@@ -55,12 +53,18 @@ pub struct ChunkLoadGateLockInfo {
 pub struct ChunkLoadGate {
     pub state: ChunkLoadGateState,
     pub lock_info: Option<ChunkLoadGateLockInfo>,
+    pub timeout_lock_count: u64,
+    pub boundary_overlap_lock_count: u64,
+    pub unlock_count: u64,
 }
 impl Default for ChunkLoadGate {
     fn default() -> Self {
         Self {
             state: ChunkLoadGateState::Open,
             lock_info: None,
+            timeout_lock_count: 0,
+            boundary_overlap_lock_count: 0,
+            unlock_count: 0,
         }
     }
 }
@@ -78,6 +82,9 @@ impl ChunkLoadGate {
         });
         let changed = self.lock_info != next_info;
         self.lock_info = next_info;
+        if changed {
+            self.timeout_lock_count += 1;
+        }
         changed
     }
 
@@ -85,6 +92,9 @@ impl ChunkLoadGate {
         let changed = self.state != ChunkLoadGateState::LockedByInFlightBoundary || self.lock_info.is_some();
         self.state = ChunkLoadGateState::LockedByInFlightBoundary;
         self.lock_info = None;
+        if changed {
+            self.boundary_overlap_lock_count += 1;
+        }
         changed
     }
 
@@ -92,36 +102,12 @@ impl ChunkLoadGate {
         let changed = self.is_locked() || self.lock_info.is_some();
         self.state = ChunkLoadGateState::Open;
         self.lock_info = None;
+        if changed {
+            self.unlock_count += 1;
+        }
         changed
     }
 }
-
-#[derive(Clone, Copy, Debug)]
-pub struct ChunkLoadTimeoutSignal {
-    pub module_name: &'static str,
-    pub workflow_name: &'static str,
-    pub timeout_count: usize,
-}
-
-static CHUNK_LOAD_TIMEOUT_SIGNAL_SENDER: OnceLock<Sender<ChunkLoadTimeoutSignal>> = OnceLock::new();
-
-pub fn initialize_chunk_load_timeout_signal_channel() -> Receiver<ChunkLoadTimeoutSignal> {
-    let (sender, receiver) = unbounded();
-    if CHUNK_LOAD_TIMEOUT_SIGNAL_SENDER.set(sender).is_err() {
-        unreachable!("Chunk load timeout signal sender already initialized");
-    }
-    receiver
-}
-
-pub fn emit_chunk_load_timeout_signal(signal: ChunkLoadTimeoutSignal) {
-    let Some(sender) = CHUNK_LOAD_TIMEOUT_SIGNAL_SENDER.get() else {
-        return;
-    };
-    let _ = sender.send(signal);
-}
-
-#[derive(Resource)]
-pub struct ChunkLoadTimeoutSignalReceiver(pub Receiver<ChunkLoadTimeoutSignal>);
 
 #[derive(Default, Resource)]
 pub struct ChunkActionWorkflowState {

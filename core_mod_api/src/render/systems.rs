@@ -3,7 +3,7 @@ use crate::bevy::prelude::*;
 use crate::bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 
 use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
-use crate::chunk::resources::ChunkLoadGate;
+use crate::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
 use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
 use crate::player::components::Player;
@@ -229,38 +229,109 @@ pub(super) fn apply_usf_player_pivots_system(
     mut zoom_factor: ResMut<ZoomFactor>,
     mut projection_query: Query<&mut Projection, With<Camera>>,
     mut player_loader_query: Query<(&mut ChunkLoader, &mut Transform), With<Player>>,
+    mut chunk_load_gate: Option<ResMut<ChunkLoadGate>>,
+    workflow_state: Option<Res<ChunkActionWorkflowState>>,
 ) {
     let Ok((mut chunk_loader, mut player_transform)) = player_loader_query.single_mut() else {
         return;
     };
 
-    let (scale_pivot, translation_grid_delta) = chunk_loader.apply_player_anchor_pivots(&mut zoom_factor.0, &mut player_transform.translation);
-    if chunk_loader.scale == Scale::MAX {
-        let top_level_zoom_cap = chunk_loader.usf_transform.scale.policy.local_max as f32;
-        if zoom_factor.0 > top_level_zoom_cap {
-            zoom_factor.0 = top_level_zoom_cap;
+    let mut gate_locked = chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked());
+    let scale_policy = chunk_loader.usf_transform.scale.policy;
+    let local_min = scale_policy.local_min as f32;
+    let local_max = scale_policy.local_max as f32;
+    let translation_policy = chunk_loader.usf_transform.translation.policy;
+    let translation_local_min = translation_policy.local_min as f32;
+    let translation_local_max = translation_policy.local_max as f32;
+    let workflow_in_flight = workflow_state.as_ref().is_some_and(|state| !state.is_idle());
+
+    if gate_locked {
+        // Hard freeze mode: do not process additional pivot transitions while input is locked.
+        zoom_factor.0 = zoom_factor.0.clamp(local_min, local_max);
+        chunk_loader.usf_transform.scale.uniform.local =
+            chunk_loader.usf_transform.scale.uniform.local.clamp(scale_policy.local_min, scale_policy.local_max);
+        player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
+        player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
+        chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
+        chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
+    } else {
+        let scale_commit_min = scale_policy.commit_min() as f32;
+        let scale_commit_max = scale_policy.commit_max() as f32;
+        let translation_commit_min = translation_policy.commit_min() as f32;
+        let translation_commit_max = translation_policy.commit_max() as f32;
+
+        let would_cross_scale_boundary = zoom_factor.0 <= scale_commit_min || zoom_factor.0 >= scale_commit_max;
+        let would_cross_translation_boundary = player_transform.translation.x <= translation_commit_min
+            || player_transform.translation.x >= translation_commit_max
+            || player_transform.translation.y <= translation_commit_min
+            || player_transform.translation.y >= translation_commit_max;
+
+        if workflow_in_flight && (would_cross_scale_boundary || would_cross_translation_boundary) {
+            if let Some(gate) = chunk_load_gate.as_mut() {
+                let changed = gate.lock_by_in_flight_boundary();
+                if changed {
+                    warn!("ChunkLoadGate preemptively locked due to boundary crossing attempt while chunk workflow is in flight");
+                }
+            }
+
+            // Reject boundary commit while a previous boundary batch is still in flight.
+            zoom_factor.0 = zoom_factor.0.clamp(local_min, local_max);
+            chunk_loader.usf_transform.scale.uniform.local =
+                chunk_loader.usf_transform.scale.uniform.local.clamp(scale_policy.local_min, scale_policy.local_max);
+            player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
+            player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
+            chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
+            chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
+        } else {
+            let (scale_pivot, translation_grid_delta) =
+                chunk_loader.apply_player_anchor_pivots(&mut zoom_factor.0, &mut player_transform.translation);
+            zoom_factor.0 = zoom_factor.0.clamp(scale_commit_min, scale_commit_max);
+
+            let boundary_crossed = scale_pivot.lower_crossings > 0 || scale_pivot.upper_crossings > 0 || translation_grid_delta != IVec2::ZERO;
+            if boundary_crossed && workflow_in_flight {
+                if let Some(gate) = chunk_load_gate.as_mut() {
+                    let changed = gate.lock_by_in_flight_boundary();
+                    if changed {
+                        warn!("ChunkLoadGate locked immediately during pivot due to in-flight boundary overlap");
+                    }
+                }
+                gate_locked = true;
+            }
+
+            if gate_locked {
+                zoom_factor.0 = zoom_factor.0.clamp(local_min, local_max);
+                chunk_loader.usf_transform.scale.uniform.local =
+                    chunk_loader.usf_transform.scale.uniform.local.clamp(scale_policy.local_min, scale_policy.local_max);
+                player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
+                player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
+                chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
+                chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
+            }
+
+            if boundary_crossed {
+                warn!(
+                    "USF player pivot event: scale={:?}, zoom={:.6}, scale_crossings(l={},u={}), translation_grid_delta={:?}, player_pos={:?}",
+                    chunk_loader.scale,
+                    zoom_factor.0,
+                    scale_pivot.lower_crossings,
+                    scale_pivot.upper_crossings,
+                    translation_grid_delta,
+                    player_transform.translation
+                );
+                player_transform.translation.z = chunk_loader.scale.compute_z() + CONFIG().get::<f32>("player/z_offset");
+            }
         }
     }
 
-    if scale_pivot.lower_crossings > 0 || scale_pivot.upper_crossings > 0 || translation_grid_delta != IVec2::ZERO {
-        warn!(
-            "USF player pivot event: scale={:?}, zoom={:.6}, scale_crossings(l={},u={}), translation_grid_delta={:?}, player_pos={:?}",
-            chunk_loader.scale,
-            zoom_factor.0,
-            scale_pivot.lower_crossings,
-            scale_pivot.upper_crossings,
-            translation_grid_delta,
-            player_transform.translation
-        );
-        player_transform.translation.z = chunk_loader.scale.compute_z() + CONFIG().get::<f32>("player/z_offset");
-    }
+    // Keep commit-buffer accumulation internal. Rendering should never show values outside strict local bounds.
+    let display_zoom = zoom_factor.0.clamp(local_min, local_max);
 
     // Player is a fine-scale phenomena: local mousewheel zoom also scales the player.
-    player_transform.scale = Vec3::splat(zoom_factor.0.max(f32::EPSILON));
+    player_transform.scale = Vec3::splat(display_zoom.max(f32::EPSILON));
 
     for mut projection in projection_query.iter_mut() {
         if let Projection::Orthographic(ortho) = projection.as_mut() {
-            ortho.scale = zoom_factor.0;
+            ortho.scale = display_zoom;
         }
     }
 }

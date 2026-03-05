@@ -5,9 +5,7 @@ use std::time::Duration;
 
 use crate::chunk::components::ChunkLoader;
 use crate::chunk::enums::ZoomState;
-use crate::chunk::resources::{
-    emit_chunk_load_timeout_signal, ChunkActionWorkflowState, ChunkLoadGate, ChunkLoadTimeoutSignal, ChunkLoadTimeoutSignalReceiver, ChunkManager,
-};
+use crate::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate, ChunkManager};
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
 use crate::config::statics::CONFIG;
@@ -16,6 +14,7 @@ use crate::usf::scale::Scale;
 use crate::workflow::functions::{
     handle_composite_workflow_return_now, run_workflow_io_with_timeout_control, run_workflow_ioe_with_timeout_control, WorkflowTimeoutControlDecision,
 };
+use crate::workflow::resources::WorkflowTimeoutSignalReceiver;
 use crate::workflow::types::WorkflowTimeoutMode;
 
 use super::resources::ChunkRenderHandles;
@@ -51,7 +50,14 @@ pub(crate) fn chunk_zoom_cooldown_system(time: Res<Time<Virtual>>, mut timer: Lo
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn chunk_timeout_signal_system(mut chunk_load_gate: ResMut<ChunkLoadGate>, timeout_signal_receiver: Res<ChunkLoadTimeoutSignalReceiver>) {
+pub(crate) fn chunk_timeout_signal_system(
+    mut chunk_load_gate: ResMut<ChunkLoadGate>,
+    timeout_signal_receiver: Option<Res<WorkflowTimeoutSignalReceiver>>,
+) {
+    let Some(timeout_signal_receiver) = timeout_signal_receiver else {
+        return;
+    };
+
     while let Ok(signal) = timeout_signal_receiver.0.try_recv() {
         let changed = chunk_load_gate.lock_by_timeout(signal.module_name, signal.workflow_name, signal.timeout_count);
         if changed {
@@ -69,11 +75,6 @@ fn chunk_workflow_timeout_decision(
     timeout_count: usize,
 ) -> WorkflowTimeoutControlDecision {
     if timeout_count == 1 {
-        emit_chunk_load_timeout_signal(ChunkLoadTimeoutSignal {
-            module_name,
-            workflow_name,
-            timeout_count,
-        });
         warn!(
             "Chunk workflow timeout request: {}::{}, timeout_count={}, decision=Retry",
             module_name, workflow_name, timeout_count

@@ -91,6 +91,7 @@ impl Plugin for WorkflowPlugin {
         let (workflow_request_ie_receiver, workflow_response_ie_sender) = initialize_ie_channels();
         let (workflow_request_io_receiver, workflow_response_io_sender) = initialize_io_channels();
         let (workflow_request_ioe_receiver, workflow_response_ioe_sender) = initialize_ioe_channels();
+        let workflow_timeout_signal_receiver = WorkflowTimeoutSignalReceiver(initialize_workflow_timeout_signal_channel());
 
         app.add_message::<StageInitializationMessage>()
             .add_message::<StageSetupMessage>()
@@ -130,6 +131,7 @@ impl Plugin for WorkflowPlugin {
             .insert_resource(WorkflowResponseIESender(workflow_response_ie_sender))
             .insert_resource(WorkflowResponseIOSender(workflow_response_io_sender))
             .insert_resource(WorkflowResponseIOESender(workflow_response_ioe_sender))
+            .insert_resource(workflow_timeout_signal_receiver)
             .add_systems(
                 PreUpdate,
                 (

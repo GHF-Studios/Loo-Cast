@@ -10,6 +10,7 @@ use crate::config::statics::CONFIG;
 use crate::time::functions::virtual_timeout;
 use crate::utils::premium_box::AnySendSyncPremiumBox;
 use crate::workflow::composite_workflow_context::{ScopedCompositeWorkflowContext, CURRENT_COMPOSITE_WORKFLOW_ID};
+use crate::workflow::resources::{emit_workflow_timeout_signal, WorkflowTimeoutSignal};
 use crate::workflow::response::WorkflowResponse;
 use crate::workflow::types::{WorkflowID, WorkflowTimeoutMode};
 
@@ -141,6 +142,15 @@ pub enum WorkflowControlledRunError<E> {
     Control(WorkflowRunnerControlError),
 }
 
+#[inline]
+fn publish_workflow_timeout_signal(module_name: &'static str, workflow_name: &'static str, timeout_count: usize) {
+    emit_workflow_timeout_signal(WorkflowTimeoutSignal {
+        module_name,
+        workflow_name,
+        timeout_count,
+    });
+}
+
 pub async fn run_workflow<W: WorkflowType>(timeout_duration: Duration, timeout_mode: WorkflowTimeoutMode) {
     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
         warn!("Running run_workflow for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
@@ -187,6 +197,7 @@ pub async fn run_workflow<W: WorkflowType>(timeout_duration: Duration, timeout_m
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
             Err(_) => {
+                publish_workflow_timeout_signal(W::MODULE_NAME, W::WORKFLOW_NAME, 1);
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
         }
@@ -248,6 +259,7 @@ pub async fn run_workflow_e<W: WorkflowTypeE>(timeout_duration: Duration, timeou
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
             Err(_) => {
+                publish_workflow_timeout_signal(W::MODULE_NAME, W::WORKFLOW_NAME, 1);
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
         }
@@ -309,6 +321,7 @@ pub async fn run_workflow_o<W: WorkflowTypeO>(timeout_duration: Duration, timeou
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
             Err(_) => {
+                publish_workflow_timeout_signal(W::MODULE_NAME, W::WORKFLOW_NAME, 1);
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
         }
@@ -370,6 +383,7 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>(timeout_duration: Duration, time
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
             Err(_) => {
+                publish_workflow_timeout_signal(W::MODULE_NAME, W::WORKFLOW_NAME, 1);
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
         }
@@ -432,6 +446,7 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(timeout_duration: Duration, timeou
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
             Err(_) => {
+                publish_workflow_timeout_signal(W::MODULE_NAME, W::WORKFLOW_NAME, 1);
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
         }
@@ -494,6 +509,7 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(timeout_duration: Duration, time
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
             Err(_) => {
+                publish_workflow_timeout_signal(W::MODULE_NAME, W::WORKFLOW_NAME, 1);
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
         }
@@ -556,6 +572,7 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(timeout_duration: Duration, time
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
             Err(_) => {
+                publish_workflow_timeout_signal(W::MODULE_NAME, W::WORKFLOW_NAME, 1);
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
         }
@@ -641,6 +658,7 @@ where
             }
             Err(_) => {
                 timeout_count += 1;
+                publish_workflow_timeout_signal(W::MODULE_NAME, W::WORKFLOW_NAME, timeout_count);
                 let decision = on_timeout(WorkflowTimeoutContext {
                     module_name: W::MODULE_NAME,
                     workflow_name: W::WORKFLOW_NAME,
@@ -741,6 +759,7 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(
                 panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
             Err(_) => {
+                publish_workflow_timeout_signal(W::MODULE_NAME, W::WORKFLOW_NAME, 1);
                 panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
         }
@@ -826,6 +845,7 @@ where
             }
             Err(_) => {
                 timeout_count += 1;
+                publish_workflow_timeout_signal(W::MODULE_NAME, W::WORKFLOW_NAME, timeout_count);
                 let decision = on_timeout(WorkflowTimeoutContext {
                     module_name: W::MODULE_NAME,
                     workflow_name: W::WORKFLOW_NAME,

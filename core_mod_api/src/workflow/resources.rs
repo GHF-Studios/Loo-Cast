@@ -1,6 +1,7 @@
 use crate::bevy::prelude::*;
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use std::collections::HashMap;
+use std::sync::OnceLock;
 
 use crate::utils::premium_box::AnySendSyncPremiumBox;
 
@@ -197,3 +198,30 @@ impl WorkflowMap {
         }
     }
 }
+
+#[derive(Clone, Copy, Debug)]
+pub struct WorkflowTimeoutSignal {
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub timeout_count: usize,
+}
+
+static WORKFLOW_TIMEOUT_SIGNAL_SENDER: OnceLock<Sender<WorkflowTimeoutSignal>> = OnceLock::new();
+
+pub fn initialize_workflow_timeout_signal_channel() -> Receiver<WorkflowTimeoutSignal> {
+    let (sender, receiver) = unbounded();
+    if WORKFLOW_TIMEOUT_SIGNAL_SENDER.set(sender).is_err() {
+        unreachable!("Workflow timeout signal sender already initialized");
+    }
+    receiver
+}
+
+pub fn emit_workflow_timeout_signal(signal: WorkflowTimeoutSignal) {
+    let Some(sender) = WORKFLOW_TIMEOUT_SIGNAL_SENDER.get() else {
+        return;
+    };
+    let _ = sender.send(signal);
+}
+
+#[derive(Resource)]
+pub struct WorkflowTimeoutSignalReceiver(pub Receiver<WorkflowTimeoutSignal>);

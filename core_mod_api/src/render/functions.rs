@@ -82,8 +82,15 @@ pub(crate) fn draw_primary_window_ui(
 ) {
     let overload_overlay = world.get_resource::<ChunkLoadGate>().and_then(|gate| match gate.state {
         ChunkLoadGateState::Open => None,
-        ChunkLoadGateState::LockedByTimeout => Some((egui::Color32::RED, "TIMEOUT")),
-        ChunkLoadGateState::LockedByInFlightBoundary => Some((egui::Color32::YELLOW, "BOUNDARY OVERLAP")),
+        ChunkLoadGateState::LockedByTimeout => {
+            let label = if let Some(info) = gate.lock_info {
+                format!("TIMEOUT {}::{} | Retry #{}", info.module_name, info.workflow_name, info.timeout_count)
+            } else {
+                "TIMEOUT".to_string()
+            };
+            Some((egui::Color32::RED, label))
+        }
+        ChunkLoadGateState::LockedByInFlightBoundary => Some((egui::Color32::YELLOW, "BOUNDARY OVERLAP".to_string())),
     });
 
     if !state.enabled {
@@ -106,17 +113,24 @@ pub(crate) fn draw_primary_window_ui(
                 &mut state.viewport_rect_precision_proxy,
             );
 
-            if let Some((border_color, label)) = overload_overlay {
+            if let Some((border_color, label)) = overload_overlay.as_ref() {
                 if let Some(viewport_rect) = state.viewport_rect_precision_proxy {
-                    let stroke = egui::Stroke::new(12.0, border_color);
+                    let stroke = egui::Stroke::new(12.0, *border_color);
                     ui.painter().rect_stroke(viewport_rect, 0.0, stroke, egui::StrokeKind::Middle);
-                    ui.painter().text(
-                        viewport_rect.center_top() + egui::vec2(0.0, 8.0),
-                        egui::Align2::CENTER_TOP,
-                        label,
-                        egui::TextStyle::Heading.resolve(ui.style()),
-                        egui::Color32::WHITE,
+
+                    let text_anchor = viewport_rect.center_top() + egui::vec2(0.0, 8.0);
+                    let font_id = egui::TextStyle::Heading.resolve(ui.style());
+                    let galley = ui.painter().layout_no_wrap(label.clone(), font_id, egui::Color32::WHITE);
+                    let text_size = galley.size();
+                    let text_top_left = egui::pos2(text_anchor.x - text_size.x * 0.5, text_anchor.y);
+
+                    let padding = egui::vec2(10.0, 6.0);
+                    let bg_rect = egui::Rect::from_min_max(
+                        text_top_left - padding,
+                        text_top_left + text_size + padding,
                     );
+                    ui.painter().rect_filled(bg_rect, 4.0, egui::Color32::from_black_alpha(220));
+                    ui.painter().galley(text_top_left, galley, egui::Color32::WHITE);
                 }
             }
         });

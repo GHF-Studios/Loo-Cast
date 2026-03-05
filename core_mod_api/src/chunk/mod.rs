@@ -14,8 +14,7 @@ use components::{Chunk, ChunkActor, ChunkLoader};
 use enums::ZoomState;
 use errors::{DespawnError, SpawnError};
 use resources::{
-    initialize_chunk_load_timeout_signal_channel, ChunkActionWorkflowState, ChunkLoadGate, ChunkLoadGateLockInfo, ChunkLoadGateState,
-    ChunkLoadTimeoutSignalReceiver, ChunkManager, ChunkRenderExecutorRegistry, ChunkRenderHandles,
+    ChunkActionWorkflowState, ChunkLoadGate, ChunkLoadGateLockInfo, ChunkLoadGateState, ChunkManager, ChunkRenderExecutorRegistry, ChunkRenderHandles,
 };
 use systems::{chunk_detection_system, chunk_management_system, chunk_startup_system, chunk_timeout_signal_system, chunk_zoom_cooldown_system};
 
@@ -28,7 +27,6 @@ impl Plugin for ChunkPlugin {
             .insert_resource(ChunkRenderExecutorRegistry::default())
             .insert_resource(ChunkLoadGate::default())
             .insert_resource(ChunkActionWorkflowState::default())
-            .insert_resource(ChunkLoadTimeoutSignalReceiver(initialize_chunk_load_timeout_signal_channel()))
             .add_systems(Startup, chunk_startup_system)
             .add_systems(PreUpdate, chunk_timeout_signal_system.run_if(run_after_startup_finished))
             .add_systems(Update, chunk_zoom_cooldown_system.run_if(run_after_startup_finished.and(run_if_not_paused)))

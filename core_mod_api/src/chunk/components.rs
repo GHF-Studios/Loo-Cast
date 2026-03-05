@@ -90,6 +90,11 @@ impl ChunkLoader {
         if dropped_lower > 0 {
             self.usf_transform.scale.uniform.local /= pivot_factor.powi(dropped_lower);
             self.usf_transform.scale.uniform.canonical_cycles += dropped_lower as i64;
+
+            // At finest-level scale, prevent fake-infinite local zoom-in underflow: cap at commit_min.
+            if self.scale == Scale::MIN {
+                self.usf_transform.scale.uniform.local = self.usf_transform.scale.policy.commit_min();
+            }
         }
         pivot.lower_crossings = consumed_lower;
 
@@ -106,9 +111,9 @@ impl ChunkLoader {
             self.usf_transform.scale.uniform.local *= pivot_factor.powi(dropped_upper);
             self.usf_transform.scale.uniform.canonical_cycles -= dropped_upper as i64;
 
-            // At top-level scale, prevent fake-infinite local zoom-out: cap at local_max.
+            // At top-level scale, prevent fake-infinite local zoom-out: cap at commit_max.
             if self.scale == Scale::MAX {
-                self.usf_transform.scale.uniform.local = self.usf_transform.scale.policy.local_max;
+                self.usf_transform.scale.uniform.local = self.usf_transform.scale.policy.commit_max();
             }
         }
         pivot.upper_crossings = consumed_upper;
