@@ -40,6 +40,7 @@ pub struct ChunkRenderExecutorRegistry {
 pub enum ChunkLoadGateState {
     Open,
     LockedByTimeout,
+    LockedByInFlightBoundary,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
@@ -77,6 +78,13 @@ impl ChunkLoadGate {
         });
         let changed = self.lock_info != next_info;
         self.lock_info = next_info;
+        changed
+    }
+
+    pub fn lock_by_in_flight_boundary(&mut self) -> bool {
+        let changed = self.state != ChunkLoadGateState::LockedByInFlightBoundary || self.lock_info.is_some();
+        self.state = ChunkLoadGateState::LockedByInFlightBoundary;
+        self.lock_info = None;
         changed
     }
 
@@ -118,9 +126,25 @@ pub struct ChunkLoadTimeoutSignalReceiver(pub Receiver<ChunkLoadTimeoutSignal>);
 #[derive(Default, Resource)]
 pub struct ChunkActionWorkflowState {
     pub handles: Option<ChunkActionWorkflowHandles>,
+    pub in_flight_spawn_targets: HashSet<GridVec>,
+    pub in_flight_despawn_targets: HashSet<GridVec>,
 }
 impl ChunkActionWorkflowState {
     pub fn is_idle(&self) -> bool {
         self.handles.is_none()
+    }
+
+    pub fn set_in_flight_targets(&mut self, spawn_targets: HashSet<GridVec>, despawn_targets: HashSet<GridVec>) {
+        self.in_flight_spawn_targets = spawn_targets;
+        self.in_flight_despawn_targets = despawn_targets;
+    }
+
+    pub fn clear_in_flight_targets(&mut self) {
+        self.in_flight_spawn_targets.clear();
+        self.in_flight_despawn_targets.clear();
+    }
+
+    pub fn has_new_boundary_request(&self, spawn_targets: &HashSet<GridVec>, despawn_targets: &HashSet<GridVec>) -> bool {
+        !spawn_targets.is_subset(&self.in_flight_spawn_targets) || !despawn_targets.is_subset(&self.in_flight_despawn_targets)
     }
 }

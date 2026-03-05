@@ -235,6 +235,12 @@ pub(super) fn apply_usf_player_pivots_system(
     };
 
     let (scale_pivot, translation_grid_delta) = chunk_loader.apply_player_anchor_pivots(&mut zoom_factor.0, &mut player_transform.translation);
+    if chunk_loader.scale == Scale::MAX {
+        let top_level_zoom_cap = chunk_loader.usf_transform.scale.policy.local_max as f32;
+        if zoom_factor.0 > top_level_zoom_cap {
+            zoom_factor.0 = top_level_zoom_cap;
+        }
+    }
 
     if scale_pivot.lower_crossings > 0 || scale_pivot.upper_crossings > 0 || translation_grid_delta != IVec2::ZERO {
         warn!(
@@ -248,6 +254,9 @@ pub(super) fn apply_usf_player_pivots_system(
         );
         player_transform.translation.z = chunk_loader.scale.compute_z() + CONFIG().get::<f32>("player/z_offset");
     }
+
+    // Player is a fine-scale phenomena: local mousewheel zoom also scales the player.
+    player_transform.scale = Vec3::splat(zoom_factor.0.max(f32::EPSILON));
 
     for mut projection in projection_query.iter_mut() {
         if let Projection::Orthographic(ortho) = projection.as_mut() {

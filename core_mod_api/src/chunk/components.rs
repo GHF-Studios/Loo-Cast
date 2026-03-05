@@ -105,6 +105,11 @@ impl ChunkLoader {
         if dropped_upper > 0 {
             self.usf_transform.scale.uniform.local *= pivot_factor.powi(dropped_upper);
             self.usf_transform.scale.uniform.canonical_cycles -= dropped_upper as i64;
+
+            // At top-level scale, prevent fake-infinite local zoom-out: cap at local_max.
+            if self.scale == Scale::MAX {
+                self.usf_transform.scale.uniform.local = self.usf_transform.scale.policy.local_max;
+            }
         }
         pivot.upper_crossings = consumed_upper;
 

@@ -181,6 +181,9 @@ pub(crate) fn chunk_management_system(
     mut chunk_load_gate: ResMut<ChunkLoadGate>,
 ) {
     let (spawn_chunk_inputs, despawn_chunk_inputs) = inputs;
+    let incoming_spawn_targets: HashSet<GridVec> = spawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect();
+    let incoming_despawn_targets: HashSet<GridVec> = despawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect();
+    let has_boundary_request = !incoming_spawn_targets.is_empty() || !incoming_despawn_targets.is_empty();
 
     // Step 1: If workflows are running, wait for all to complete
     if let Some(handles) = &mut workflow_state.handles {
@@ -188,6 +191,18 @@ pub(crate) fn chunk_management_system(
         let despawn_done = handles.despawn.as_ref().is_none_or(|h| h.is_finished());
 
         if !spawn_done || !despawn_done {
+            if has_boundary_request && workflow_state.has_new_boundary_request(&incoming_spawn_targets, &incoming_despawn_targets) {
+                let changed = chunk_load_gate.lock_by_in_flight_boundary();
+                if changed {
+                    warn!(
+                        "ChunkLoadGate locked due to boundary request while previous chunk batch is still running (incoming spawn={}, despawn={}, active spawn={}, despawn={})",
+                        incoming_spawn_targets.len(),
+                        incoming_despawn_targets.len(),
+                        workflow_state.in_flight_spawn_targets.len(),
+                        workflow_state.in_flight_despawn_targets.len()
+                    );
+                }
+            }
             //warn!(
             //    "Waiting for chunk action workflows to finish... spawn_done: {}, despawn_done: {}",
             //    spawn_done, despawn_done
@@ -212,6 +227,7 @@ pub(crate) fn chunk_management_system(
         }
 
         workflow_state.handles = None;
+        workflow_state.clear_in_flight_targets();
     }
 
     if spawn_chunk_inputs.is_empty() && despawn_chunk_inputs.is_empty() {
@@ -333,6 +349,7 @@ pub(crate) fn chunk_management_system(
         None
     };
 
+    workflow_state.set_in_flight_targets(incoming_spawn_targets, incoming_despawn_targets);
     workflow_state.handles = Some(crate::chunk::types::ChunkActionWorkflowHandles {
         spawn: spawn_handle,
         despawn: despawn_handle,
