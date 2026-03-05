@@ -1,17 +1,22 @@
 use crate::bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 use std::collections::HashSet;
+use std::time::Duration;
 
 use crate::chunk::components::ChunkLoader;
 use crate::chunk::enums::ZoomState;
-use crate::chunk::resources::ChunkManager;
-use crate::chunk::types::ChunkActionWorkflowHandles;
+use crate::chunk::resources::{
+    emit_chunk_load_timeout_signal, ChunkActionWorkflowState, ChunkLoadGate, ChunkLoadTimeoutSignal, ChunkLoadTimeoutSignalReceiver, ChunkManager,
+};
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
 use crate::config::statics::CONFIG;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
-use crate::workflow::functions::handle_composite_workflow_return_now;
+use crate::workflow::functions::{
+    handle_composite_workflow_return_now, run_workflow_io_with_timeout_control, run_workflow_ioe_with_timeout_control, WorkflowTimeoutControlDecision,
+};
+use crate::workflow::types::WorkflowTimeoutMode;
 
 use super::resources::ChunkRenderHandles;
 
@@ -43,6 +48,44 @@ pub(crate) fn chunk_zoom_cooldown_system(time: Res<Time<Virtual>>, mut timer: Lo
             *timer = CONFIG().get::<f32>("chunk_loader/zoom_cooldown_secs");
         }
     }
+}
+
+#[tracing::instrument(skip_all)]
+pub(crate) fn chunk_timeout_signal_system(mut chunk_load_gate: ResMut<ChunkLoadGate>, timeout_signal_receiver: Res<ChunkLoadTimeoutSignalReceiver>) {
+    while let Ok(signal) = timeout_signal_receiver.0.try_recv() {
+        let changed = chunk_load_gate.lock_by_timeout(signal.module_name, signal.workflow_name, signal.timeout_count);
+        if changed {
+            warn!(
+                "ChunkLoadGate locked due to workflow timeout request: {}::{}, timeout_count={}",
+                signal.module_name, signal.workflow_name, signal.timeout_count
+            );
+        }
+    }
+}
+
+fn chunk_workflow_timeout_decision(
+    module_name: &'static str,
+    workflow_name: &'static str,
+    timeout_count: usize,
+) -> WorkflowTimeoutControlDecision {
+    if timeout_count == 1 {
+        emit_chunk_load_timeout_signal(ChunkLoadTimeoutSignal {
+            module_name,
+            workflow_name,
+            timeout_count,
+        });
+        warn!(
+            "Chunk workflow timeout request: {}::{}, timeout_count={}, decision=Retry",
+            module_name, workflow_name, timeout_count
+        );
+        return WorkflowTimeoutControlDecision::Retry;
+    }
+
+    warn!(
+        "Chunk workflow timeout escalation: {}::{}, timeout_count={}, decision=Panic",
+        module_name, workflow_name, timeout_count
+    );
+    WorkflowTimeoutControlDecision::Panic
 }
 
 #[tracing::instrument(skip_all)]
@@ -134,12 +177,13 @@ pub(crate) fn chunk_detection_system(
 #[tracing::instrument(skip_all)]
 pub(crate) fn chunk_management_system(
     In(inputs): In<(Vec<SpawnChunkInput>, Vec<DespawnChunkInput>)>,
-    mut workflow_handles: Local<Option<ChunkActionWorkflowHandles>>,
+    mut workflow_state: ResMut<ChunkActionWorkflowState>,
+    mut chunk_load_gate: ResMut<ChunkLoadGate>,
 ) {
     let (spawn_chunk_inputs, despawn_chunk_inputs) = inputs;
 
     // Step 1: If workflows are running, wait for all to complete
-    if let Some(handles) = &mut *workflow_handles {
+    if let Some(handles) = &mut workflow_state.handles {
         let spawn_done = handles.spawn.as_ref().is_none_or(|h| h.is_finished());
         let despawn_done = handles.despawn.as_ref().is_none_or(|h| h.is_finished());
 
@@ -167,11 +211,23 @@ pub(crate) fn chunk_management_system(
             });
         }
 
-        *workflow_handles = None;
+        workflow_state.handles = None;
     }
 
     if spawn_chunk_inputs.is_empty() && despawn_chunk_inputs.is_empty() {
-        // warn!("No chunk actions to process");
+        if chunk_load_gate.is_locked() && workflow_state.is_idle() {
+            let lock_info = chunk_load_gate.lock_info;
+            if chunk_load_gate.unlock() {
+                if let Some(info) = lock_info {
+                    warn!(
+                        "ChunkLoadGate unlocked after workload recovery (triggered by {}::{}, timeout_count={})",
+                        info.module_name, info.workflow_name, info.timeout_count
+                    );
+                } else {
+                    warn!("ChunkLoadGate unlocked after workload recovery");
+                }
+            }
+        }
         return;
     }
 
@@ -210,9 +266,21 @@ pub(crate) fn chunk_management_system(
 
             let shader_name = CONFIG().get::<&'static str>("chunk/texture_generator_shader");
 
-            let generate_output = workflow!(IO, Gpu::GenerateChunkTextures, Input {
-                shader_name,
-                param_data,
+            let generate_output = run_workflow_io_with_timeout_control::<crate::gpu::workflows::gpu::generate_chunk_textures::TypeIO, _>(
+                Duration::from_secs_f64(1.0),
+                WorkflowTimeoutMode::VirtualTime,
+                crate::gpu::workflows::gpu::generate_chunk_textures::stages::prepare_render_executor::core_types::Input {
+                    shader_name,
+                    param_data,
+                },
+                |ctx| chunk_workflow_timeout_decision(ctx.module_name, ctx.workflow_name, ctx.timeout_count),
+            )
+            .await
+            .unwrap_or_else(|control_error| {
+                panic!(
+                    "Chunk workflow control error while running Gpu::GenerateChunkTextures: {:?}",
+                    control_error
+                )
             });
 
             let spawn_inputs_with_textures = spawn_chunk_inputs
@@ -226,9 +294,17 @@ pub(crate) fn chunk_management_system(
 
             warn!("Finished GenerateChunkTextures workflow execution");
 
-            let _ = workflow!(IOE, Chunk::SpawnChunks, Input {
-                inner: crate::chunk::workflows::external::spawn_chunks::Input { inputs: spawn_inputs_with_textures },
-            });
+            let _ = run_workflow_ioe_with_timeout_control::<crate::chunk::workflows::chunk::spawn_chunks::TypeIOE, _>(
+                Duration::from_secs_f64(1.0),
+                WorkflowTimeoutMode::VirtualTime,
+                crate::chunk::workflows::chunk::spawn_chunks::stages::validate_and_spawn_and_wait::core_types::Input {
+                    inner: crate::chunk::workflows::external::spawn_chunks::Input {
+                        inputs: spawn_inputs_with_textures,
+                    },
+                },
+                |ctx| chunk_workflow_timeout_decision(ctx.module_name, ctx.workflow_name, ctx.timeout_count),
+            )
+            .await;
         }))
     } else {
         None
@@ -241,15 +317,23 @@ pub(crate) fn chunk_management_system(
         {
             warn!("Running composite workflow 'DespawnChunks'");
 
-            let _ = workflow!(IOE, Chunk::DespawnChunks, Input {
-                inner: crate::chunk::workflows::external::despawn_chunks::Input { inputs: despawn_chunk_inputs },
-            });
+            let _ = run_workflow_ioe_with_timeout_control::<crate::chunk::workflows::chunk::despawn_chunks::TypeIOE, _>(
+                Duration::from_secs_f64(1.0),
+                WorkflowTimeoutMode::VirtualTime,
+                crate::chunk::workflows::chunk::despawn_chunks::stages::find_and_despawn_and_wait::core_types::Input {
+                    inner: crate::chunk::workflows::external::despawn_chunks::Input {
+                        inputs: despawn_chunk_inputs,
+                    },
+                },
+                |ctx| chunk_workflow_timeout_decision(ctx.module_name, ctx.workflow_name, ctx.timeout_count),
+            )
+            .await;
         }))
     } else {
         None
     };
 
-    *workflow_handles = Some(ChunkActionWorkflowHandles {
+    workflow_state.handles = Some(crate::chunk::types::ChunkActionWorkflowHandles {
         spawn: spawn_handle,
         despawn: despawn_handle,
     });

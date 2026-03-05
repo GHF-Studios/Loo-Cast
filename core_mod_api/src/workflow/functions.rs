@@ -112,6 +112,35 @@ fn is_ignored_workflow(module: &str, workflow: &str) -> bool {
         .unwrap_or(false)
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WorkflowTimeoutControlDecision {
+    Retry,
+    Abort,
+    Panic,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct WorkflowTimeoutContext {
+    pub module_name: &'static str,
+    pub workflow_name: &'static str,
+    pub timeout_count: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WorkflowRunnerControlError {
+    TimeoutAborted {
+        module_name: &'static str,
+        workflow_name: &'static str,
+        timeout_count: usize,
+    },
+}
+
+#[derive(Debug)]
+pub enum WorkflowControlledRunError<E> {
+    Workflow(E),
+    Control(WorkflowRunnerControlError),
+}
+
 pub async fn run_workflow<W: WorkflowType>(timeout_duration: Duration, timeout_mode: WorkflowTimeoutMode) {
     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
         warn!("Running run_workflow for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
@@ -542,6 +571,125 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(timeout_duration: Duration, time
     }
 }
 
+pub async fn run_workflow_io_with_timeout_control<W, F>(
+    timeout_duration: Duration,
+    timeout_mode: WorkflowTimeoutMode,
+    input: W::Input,
+    mut on_timeout: F,
+) -> Result<W::Output, WorkflowRunnerControlError>
+where
+    W: WorkflowTypeIO,
+    F: FnMut(WorkflowTimeoutContext) -> WorkflowTimeoutControlDecision,
+{
+    if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
+        warn!(
+            "Running run_workflow_io_with_timeout_control for {}::{}",
+            W::MODULE_NAME,
+            W::WORKFLOW_NAME
+        );
+    }
+    let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let workflow_id = WorkflowID {
+        module: W::MODULE_NAME,
+        workflow: W::WORKFLOW_NAME,
+    };
+    let mut timeout_count = 0usize;
+
+    get_request_io_sender()
+        .send(TypedWorkflowRequestIO {
+            input: AnySendSyncPremiumBox::new(input, format!("{}::{}::Input", W::MODULE_NAME, W::WORKFLOW_NAME)),
+            module_name: workflow_id.module,
+            workflow_name: workflow_id.workflow,
+            composite_workflow_id,
+        })
+        .unwrap();
+
+    loop {
+        let mut receiver = get_response_io_receiver().await;
+
+        let result = match timeout_mode {
+            WorkflowTimeoutMode::RealTime => timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
+            WorkflowTimeoutMode::VirtualTime => virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
+        };
+
+        match result {
+            Ok(Some(response)) => {
+                let key = WorkflowID {
+                    module: response.module_name,
+                    workflow: response.workflow_name,
+                };
+
+                if key == workflow_id {
+                    if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
+                        warn!(
+                            "Finished run_workflow_io_with_timeout_control for {}::{}",
+                            W::MODULE_NAME,
+                            W::WORKFLOW_NAME
+                        );
+                    }
+                    return Ok(W::Output::from_boxed(response.output));
+                }
+
+                RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
+            }
+            Ok(None) => {
+                panic!(
+                    "Channel closed while waiting for response to {}::{}",
+                    W::MODULE_NAME,
+                    W::WORKFLOW_NAME
+                );
+            }
+            Err(_) => {
+                timeout_count += 1;
+                let decision = on_timeout(WorkflowTimeoutContext {
+                    module_name: W::MODULE_NAME,
+                    workflow_name: W::WORKFLOW_NAME,
+                    timeout_count,
+                });
+                match decision {
+                    WorkflowTimeoutControlDecision::Retry => {
+                        if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
+                            warn!(
+                                "Timeout while waiting for {}::{}, retrying (timeout_count={})",
+                                W::MODULE_NAME,
+                                W::WORKFLOW_NAME,
+                                timeout_count
+                            );
+                        }
+                    }
+                    WorkflowTimeoutControlDecision::Abort => {
+                        return Err(WorkflowRunnerControlError::TimeoutAborted {
+                            module_name: W::MODULE_NAME,
+                            workflow_name: W::WORKFLOW_NAME,
+                            timeout_count,
+                        });
+                    }
+                    WorkflowTimeoutControlDecision::Panic => {
+                        panic!(
+                            "Timeout while waiting for response to {}::{}",
+                            W::MODULE_NAME,
+                            W::WORKFLOW_NAME
+                        );
+                    }
+                }
+            }
+        }
+
+        if let Some(WorkflowResponse::O(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
+            if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
+                warn!(
+                    "Finished run_workflow_io_with_timeout_control for {}::{}",
+                    W::MODULE_NAME,
+                    W::WORKFLOW_NAME
+                );
+            }
+            return Ok(W::Output::from_boxed(response.output));
+        }
+
+        tokio::task::yield_now().await;
+    }
+}
+
 pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(
     timeout_duration: Duration,
     timeout_mode: WorkflowTimeoutMode,
@@ -602,6 +750,127 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(
                 warn!("Finished run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
             return <Result<W::Output, W::Error>>::from_response(response);
+        }
+
+        tokio::task::yield_now().await;
+    }
+}
+
+pub async fn run_workflow_ioe_with_timeout_control<W, F>(
+    timeout_duration: Duration,
+    timeout_mode: WorkflowTimeoutMode,
+    input: W::Input,
+    mut on_timeout: F,
+) -> Result<W::Output, WorkflowControlledRunError<W::Error>>
+where
+    W: WorkflowTypeIOE,
+    F: FnMut(WorkflowTimeoutContext) -> WorkflowTimeoutControlDecision,
+{
+    if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
+        warn!(
+            "Running run_workflow_ioe_with_timeout_control for {}::{}",
+            W::MODULE_NAME,
+            W::WORKFLOW_NAME
+        );
+    }
+    let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let workflow_id = WorkflowID {
+        module: W::MODULE_NAME,
+        workflow: W::WORKFLOW_NAME,
+    };
+    let mut timeout_count = 0usize;
+
+    get_request_ioe_sender()
+        .send(TypedWorkflowRequestIOE {
+            input: AnySendSyncPremiumBox::new(input, format!("{}::{}::Input", W::MODULE_NAME, W::WORKFLOW_NAME)),
+            module_name: workflow_id.module,
+            workflow_name: workflow_id.workflow,
+            composite_workflow_id,
+        })
+        .unwrap();
+
+    loop {
+        let mut receiver = get_response_ioe_receiver().await;
+
+        let result = match timeout_mode {
+            WorkflowTimeoutMode::RealTime => timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
+            WorkflowTimeoutMode::VirtualTime => virtual_timeout(timeout_duration, receiver.recv()).await.map_err(|_| ()),
+        };
+
+        match result {
+            Ok(Some(response)) => {
+                let key = WorkflowID {
+                    module: response.module_name,
+                    workflow: response.workflow_name,
+                };
+
+                if key == workflow_id {
+                    if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
+                        warn!(
+                            "Finished run_workflow_ioe_with_timeout_control for {}::{}",
+                            W::MODULE_NAME,
+                            W::WORKFLOW_NAME
+                        );
+                    }
+                    return <Result<W::Output, W::Error>>::from_response(response).map_err(WorkflowControlledRunError::Workflow);
+                }
+
+                RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
+            }
+            Ok(None) => {
+                panic!(
+                    "Channel closed while waiting for response to {}::{}",
+                    W::MODULE_NAME,
+                    W::WORKFLOW_NAME
+                );
+            }
+            Err(_) => {
+                timeout_count += 1;
+                let decision = on_timeout(WorkflowTimeoutContext {
+                    module_name: W::MODULE_NAME,
+                    workflow_name: W::WORKFLOW_NAME,
+                    timeout_count,
+                });
+                match decision {
+                    WorkflowTimeoutControlDecision::Retry => {
+                        if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
+                            warn!(
+                                "Timeout while waiting for {}::{}, retrying (timeout_count={})",
+                                W::MODULE_NAME,
+                                W::WORKFLOW_NAME,
+                                timeout_count
+                            );
+                        }
+                    }
+                    WorkflowTimeoutControlDecision::Abort => {
+                        return Err(WorkflowControlledRunError::Control(
+                            WorkflowRunnerControlError::TimeoutAborted {
+                                module_name: W::MODULE_NAME,
+                                workflow_name: W::WORKFLOW_NAME,
+                                timeout_count,
+                            },
+                        ));
+                    }
+                    WorkflowTimeoutControlDecision::Panic => {
+                        panic!(
+                            "Timeout while waiting for response to {}::{}",
+                            W::MODULE_NAME,
+                            W::WORKFLOW_NAME
+                        );
+                    }
+                }
+            }
+        }
+
+        if let Some(WorkflowResponse::OE(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
+            if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
+                warn!(
+                    "Finished run_workflow_ioe_with_timeout_control for {}::{}",
+                    W::MODULE_NAME,
+                    W::WORKFLOW_NAME
+                );
+            }
+            return <Result<W::Output, W::Error>>::from_response(response).map_err(WorkflowControlledRunError::Workflow);
         }
 
         tokio::task::yield_now().await;

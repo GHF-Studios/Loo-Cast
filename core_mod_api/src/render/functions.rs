@@ -5,6 +5,7 @@ use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
 
 use crate::{
+    chunk::resources::ChunkLoadGate,
     debug::types::DebugSuiteTabViewer,
     render::{
         components::RenderProxy,
@@ -79,6 +80,8 @@ pub(crate) fn draw_primary_window_ui(
     world: &mut World,
     ctx: &mut egui::Context,
 ) {
+    let overload_gate_locked = world.get_resource::<ChunkLoadGate>().is_some_and(|gate| gate.is_locked());
+
     if !state.enabled {
         // Game view only
         let central_panel = egui::CentralPanel::default();
@@ -98,6 +101,13 @@ pub(crate) fn draw_primary_window_ui(
                 egui::Vec2::new(target.size.x as f32, target.size.y as f32),
                 &mut state.viewport_rect_precision_proxy,
             );
+
+            if overload_gate_locked {
+                if let Some(viewport_rect) = state.viewport_rect_precision_proxy {
+                    let stroke = egui::Stroke::new(12.0, egui::Color32::RED);
+                    ui.painter().rect_stroke(viewport_rect, 0.0, stroke, egui::StrokeKind::Middle);
+                }
+            }
         });
     } else {
         // Toolbar

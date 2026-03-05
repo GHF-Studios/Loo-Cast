@@ -6,7 +6,7 @@ Read first: `docs/RhaiAgentHandoff.md`
 
 ## Live Initiative: USF Load-Overload Safety Gate (Active)
 
-Status: approved plan, implementation pending
+Status: implementation in progress
 
 ### Confirmed Constraints
 
@@ -36,24 +36,27 @@ Status: approved plan, implementation pending
 
 ### Implementation Checklist
 
-- [ ] Define `ChunkLoadGate` resource and lifecycle/state transitions.
-- [ ] Move chunk in-flight tracking from system-local state to globally queryable resource state.
-- [ ] Add timeout request/decision plumbing for workflow runner path (opt-in extension, default panic unchanged).
-- [ ] Integrate chunk orchestration with timeout request emission and decision handling.
-- [ ] Add dedicated gameplay-input gate run condition.
-- [ ] Gate player translation in `player::systems::update_player_system`.
-- [ ] Gate zoom authority in `render::systems::main_camera_zoom_system`.
-- [ ] Gate world-rotation authority in `player::systems::update_player_system`.
-- [ ] Implement deterministic unlock checks based on completed loading conditions.
-- [ ] Add `warn!` observability for all significant gate/timeout transitions.
-- [ ] Validate via `cargo test`, then runtime integration pass with `./build.sh dev; ./run.sh dev`.
-- [ ] Add gameplay overload red border (inverted semantics vs debug-suite border) after stabilization.
+- [x] Define `ChunkLoadGate` resource and lifecycle/state transitions.
+- [x] Move chunk in-flight tracking from system-local state to globally queryable resource state.
+- [x] Add timeout request/decision plumbing for workflow runner path (opt-in extension, default panic unchanged).
+- [x] Integrate chunk orchestration with timeout request emission and decision handling.
+- [x] Add dedicated gameplay-input gate run condition.
+- [x] Gate player translation in `player::systems::update_player_system`.
+- [x] Gate zoom authority in `render::systems::main_camera_zoom_system`.
+- [x] Gate world-rotation authority in `player::systems::update_player_system`.
+- [x] Implement deterministic unlock checks based on completed loading conditions.
+- [x] Add `warn!` observability for all significant gate/timeout transitions.
+- [x] Validate via `cargo test`.
+- [ ] Runtime integration pass with `./build.sh dev; ./run.sh dev`.
+- [x] Add gameplay overload red border (inverted semantics vs debug-suite border) after stabilization.
 
 ### Active Risks / Open Design Threads
 
 - Workflow timeout control integration may require non-trivial runner API expansion.
 - `run_if_not_paused` and overload-cutoff concerns must remain disentangled.
 - Future workflow-system facelift should be scoped as a separate design track to avoid destabilizing this safety pass.
+- Runtime smoke pass (`./run.sh dev`) can be externally blocked if `console_subscriber` bind address is already in use.
+- Temporary runtime smoke workaround: `TOKIO_CONSOLE_BIND=127.0.0.1:0 ./run.sh dev`.
 
 ---
 

@@ -3,6 +3,7 @@ use crate::bevy::prelude::*;
 use crate::bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 
 use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
+use crate::chunk::resources::ChunkLoadGate;
 use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
 use crate::player::components::Player;
@@ -193,13 +194,14 @@ pub(super) fn main_camera_zoom_system(
     input_mode: Res<State<InputMode>>,
     time: Res<Time<Real>>,
     virtual_paused: Res<VirtualPaused>,
+    chunk_load_gate: Option<Res<ChunkLoadGate>>,
     mut zoom_factor: ResMut<ZoomFactor>,
 ) {
     let min_zoom = CONFIG().get::<f32>("camera/min_zoom");
     let max_zoom = CONFIG().get::<f32>("camera/max_zoom");
     let base_zoom_speed = CONFIG().get::<f32>("camera/base_zoom_speed");
 
-    if !input_mode.is_game() || virtual_paused.0 {
+    if !input_mode.is_game() || virtual_paused.0 || chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked()) {
         scroll_message_reader.clear();
         return;
     }
