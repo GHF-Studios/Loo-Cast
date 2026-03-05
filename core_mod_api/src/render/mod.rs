@@ -12,7 +12,8 @@ use bevy_egui::EguiPrimaryContextPass;
 use components::{MainCamera, RenderProxy, RenderProxyHandle, UiCamera};
 use resources::{PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor};
 use systems::{
-    despawn_orphaned_render_proxies, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system, resize_render_texture,
+    apply_usf_player_pivots_system, despawn_orphaned_render_proxies, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system,
+    resize_render_texture,
     update_render_proxies, update_view_scale_from_zoom,
 };
 
@@ -34,7 +35,8 @@ impl Plugin for RenderPlugin {
                 Update,
                 (
                     resize_render_texture,
-                    main_camera_zoom_system.before(update_view_scale_from_zoom),
+                    main_camera_zoom_system.before(apply_usf_player_pivots_system),
+                    apply_usf_player_pivots_system.before(update_view_scale_from_zoom),
                     update_view_scale_from_zoom,
                     despawn_orphaned_render_proxies.before(update_render_proxies),
                     update_render_proxies,

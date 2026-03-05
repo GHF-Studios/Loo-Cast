@@ -5,6 +5,7 @@ use crate::bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureD
 use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
 use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
+use crate::player::components::Player;
 use crate::render::{
     components::{MainCamera, RenderProxy, RenderProxyHandle, UiCamera},
     functions::draw_primary_window_ui,
@@ -82,56 +83,67 @@ pub(super) fn resize_render_texture(
 
 #[tracing::instrument(skip_all)]
 pub(super) fn update_render_proxies(
-    chunk_loader: Single<&ChunkLoader>,
-    chunk_actor_query: Query<(&RenderProxyHandle, &ChunkActor), Without<RenderProxy>>,
-    chunk_query: Query<(&RenderProxyHandle, &Chunk), Without<RenderProxy>>,
-    mut proxy_transforms: Query<&mut Transform, With<RenderProxy>>,
+    mut params: ParamSet<(
+        Single<(&ChunkLoader, &Transform), With<Player>>,
+        Query<(&RenderProxyHandle, &ChunkActor), Without<RenderProxy>>,
+        Query<(&RenderProxyHandle, &Chunk), Without<RenderProxy>>,
+        Query<&mut Transform, With<RenderProxy>>,
+    )>,
 ) {
-    let chunk_loader = *chunk_loader;
+    let (chunk_loader, chunk_loader_transform) = *params.p0();
+    let world_rotation = chunk_loader.world_rotation_quat();
+    let world_rotation_origin = chunk_loader_transform.translation;
+    let origin_offset = chunk_loader.origin_offset.clone();
 
-    for (handle, chunk_actor) in &chunk_actor_query {
-        // warn!(
-        //     "Updating Render Proxy for ChunkActor at Coord: {:?}, Scale: {} @ Origin: {:?}",
-        //     chunk_actor.coord,
-        //     chunk_actor.coord.scale.index_from_top(),
-        //     chunk_loader.origin_offset
-        // );
+    let actor_updates = {
+        let chunk_actor_query = params.p1();
+        chunk_actor_query
+            .iter()
+            .filter_map(|(handle, chunk_actor)| {
+                if chunk_actor.coord.scale < origin_offset.scale {
+                    return None;
+                }
+                Some((handle.proxy_entity, chunk_actor.coord.clone()))
+            })
+            .collect::<Vec<_>>()
+    };
 
-        if let Ok(mut proxy_transform) = proxy_transforms.get_mut(handle.proxy_entity) {
-            if chunk_actor.coord.scale < chunk_loader.origin_offset.scale {
-                continue;
+    {
+        let mut proxy_transforms = params.p3();
+        for (proxy_entity, coord) in actor_updates {
+            if let Ok(mut proxy_transform) = proxy_transforms.get_mut(proxy_entity) {
+                let (pos, scale) = coord.to_native_visual(origin_offset.clone());
+                let world_pos = pos.extend(proxy_transform.translation.z);
+                proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
+                proxy_transform.scale = Vec3::splat(scale);
+                proxy_transform.rotation = world_rotation;
             }
-
-            // warn!(
-            //     "CHUNK ACTOR SHIT: chunk_actor.coord.scale: {}, chunk_loader.origin_offset.scale: {}",
-            //     chunk_actor.coord.scale, chunk_loader.origin_offset.scale
-            // );
-            let (pos, scale) = chunk_actor.coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
-            proxy_transform.translation = pos.extend(proxy_transform.translation.z); // preserve Z
-            proxy_transform.scale = Vec3::splat(scale);
         }
     }
 
-    for (handle, chunk) in &chunk_query {
-        // warn!(
-        //     "Updating Render Proxy for Chunk at Coord: {:?}, Scale: {} @ Origin: {:?}",
-        //     chunk.coord,
-        //     chunk.coord.scale.index_from_top(),
-        //     chunk_loader.origin_offset
-        // );
+    let chunk_updates = {
+        let chunk_query = params.p2();
+        chunk_query
+            .iter()
+            .filter_map(|(handle, chunk)| {
+                if chunk.coord.scale < origin_offset.scale {
+                    return None;
+                }
+                Some((handle.proxy_entity, chunk.coord.clone()))
+            })
+            .collect::<Vec<_>>()
+    };
 
-        if let Ok(mut proxy_transform) = proxy_transforms.get_mut(handle.proxy_entity) {
-            if chunk.coord.scale < chunk_loader.origin_offset.scale {
-                continue;
+    {
+        let mut proxy_transforms = params.p3();
+        for (proxy_entity, coord) in chunk_updates {
+            if let Ok(mut proxy_transform) = proxy_transforms.get_mut(proxy_entity) {
+                let (pos, scale) = coord.to_native_visual(origin_offset.clone());
+                let world_pos = pos.extend(proxy_transform.translation.z);
+                proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
+                proxy_transform.scale = Vec3::splat(scale);
+                proxy_transform.rotation = world_rotation;
             }
-
-            // warn!(
-            //     "CHUNK SHIT: chunk.coord.scale: {}, chunk_loader.origin_offset.scale: {}",
-            //     chunk.coord.scale, chunk_loader.origin_offset.scale
-            // );
-            let (pos, scale) = chunk.coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
-            proxy_transform.translation = pos.extend(proxy_transform.translation.z); // preserve Z
-            proxy_transform.scale = Vec3::splat(scale);
         }
     }
 }
@@ -202,6 +214,29 @@ pub(super) fn main_camera_zoom_system(
                 ortho.scale = zoom_factor.0;
             }
             _ => panic!("Main camera is not orthographic/2d!"),
+        }
+    }
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn apply_usf_player_pivots_system(
+    mut zoom_factor: ResMut<ZoomFactor>,
+    mut projection_query: Query<&mut Projection, With<Camera>>,
+    mut player_loader_query: Query<(&mut ChunkLoader, &mut Transform), With<Player>>,
+) {
+    let Ok((mut chunk_loader, mut player_transform)) = player_loader_query.single_mut() else {
+        return;
+    };
+
+    let (scale_pivot, translation_grid_delta) = chunk_loader.apply_player_anchor_pivots(&mut zoom_factor.0, &mut player_transform.translation);
+
+    if scale_pivot.lower_crossings > 0 || scale_pivot.upper_crossings > 0 || translation_grid_delta != IVec2::ZERO {
+        player_transform.translation.z = chunk_loader.scale.compute_z() + CONFIG().get::<f32>("player/z_offset");
+    }
+
+    for mut projection in projection_query.iter_mut() {
+        if let Projection::Orthographic(ortho) = projection.as_mut() {
+            ortho.scale = zoom_factor.0;
         }
     }
 }

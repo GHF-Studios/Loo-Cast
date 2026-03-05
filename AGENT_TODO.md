@@ -30,7 +30,7 @@ Status: in progress
 
 ### Immediate Problem Reports (from live visual testing)
 
-1. On `KEYPAD_ADD`, newly spawned larger-scale chunks bunch up.
+1. On discrete scale-step zoom, newly spawned larger-scale chunks bunch up.
 - Observed: offsets look like they still use root-scale spacing.
 - Expected: offsets scale with the target scale so large chunks space correctly.
 
@@ -61,6 +61,8 @@ Status: in progress
 
 - `Phase D` (follow-up): rotation-origin shifting across scale contexts.
   - Keep separate from translation/scale logic, but aligned conceptually.
+  - Note: initial world-around-player rotation path is now live; deeper cross-scale
+    rotation mechanics are still pending.
 
 ### Temporary Progress Checklist
 
@@ -68,15 +70,22 @@ Status: in progress
 - [x] Re-read repo-level docs (`README.md`, `docs/USF.md`) to align implementation with intent.
 - [x] Implement Phase A chunk-spacing fix.
 - [x] Add tests for cross-scale spacing invariants.
-- [ ] Implement Phase B/C scaffolding for `Usf*` model + seamless rollover logic.
-- [ ] Add config-backed hysteresis thresholds.
-- [ ] Validate with `./build.sh dev` + user visual verification run.
+- [x] Implement Phase B scaffolding (`usf::transform::{UsfFloat, UsfTranslation, UsfScale, UsfRotation, UsfTransform}`).
+- [x] Implement Phase C core rollover behavior (automatic local zoom folding with overshoot preservation).
+- [x] Add config-backed local scale window + buffer ratio (`usf/scale/*`).
+- [x] Add initial rotation controls (`Q` / `E`) and world-around-player proxy rotation path.
+- [x] Make mousewheel zoom authoritative for scale pivots (remove keypad-driven scale-step path).
+- [x] Unify player-anchor pivot execution in one path (`ChunkLoader::apply_player_anchor_pivots`).
+- [ ] Validate with `./build.sh dev; ./run.sh dev` + user visual verification pass. (script sequence runs cleanly; user visual sign-off pending)
+- [ ] Extend translation/rotation origin-shifting to full parity with scale pivot semantics.
 
 ### Temporary Notes (Working Assumptions)
 
 - Keep changes incremental and testable; avoid mixing all USF concerns in one patch.
 - Prioritize visual continuity and deterministic conversion behavior over premature
   architectural expansion.
+- Keep mousewheel as the single authority for scale rollover; avoid duplicate key-driven
+  scale transition paths.
 - Keep rotation work as explicit next task once translation+scale transitions are stable.
 
 ### Validation Protocol (Current)

@@ -7,17 +7,15 @@ pub mod unit;
 pub mod systems;
 
 use crate::bevy::prelude::*;
-use systems::{apply_new_origin_offset_system, realign_origin_offset_system, sync_logical_from_transform_system, update_managed_positions};
 
-use crate::core::run_conditions::run_after_startup_finished;
-use crate::time::run_conditions::run_if_not_paused;
 pub(crate) struct PosPlugin;
 impl Plugin for PosPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(grid::GridPlugin)
             .add_plugins(subgrid::SubgridPlugin)
             .add_plugins(unit::UnitPlugin)
-            .add_systems(PreUpdate, update_managed_positions.run_if(run_after_startup_finished.and(run_if_not_paused)))
+            // NOTE: origin-shift authority is currently driven by USF transform fields in runtime systems
+            // (player input + render pivot systems), so this legacy position manager is disabled.
             // .add_systems(
             //     Update,
             //     realign_origin_offset_system.run_if(run_after_startup_finished.and(run_if_not_paused)),

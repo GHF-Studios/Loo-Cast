@@ -5,7 +5,6 @@ use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
 use crate::player::bundles::PlayerBundle;
 use crate::player::components::Player;
-use crate::render::resources::ZoomFactor;
 
 #[tracing::instrument(skip_all)]
 pub(super) fn update_player_system(
@@ -14,17 +13,28 @@ pub(super) fn update_player_system(
     keys: Res<ButtonInput<KeyCode>>,
     input_mode: Res<State<InputMode>>,
     time: Res<Time<Virtual>>,
-    zoom_factor: Res<ZoomFactor>,
     mut initialized: Local<bool>,
     mut base_movement_speed: Local<f32>,
     mut sprint_multiplier: Local<f32>,
-    mut player_z_offset: Local<f32>,
+    mut world_rotation_speed: Local<f32>,
+    mut local_zoom_min: Local<f32>,
+    mut local_zoom_max: Local<f32>,
+    mut local_zoom_buffer_ratio: Local<f32>,
+    mut local_translation_min: Local<f32>,
+    mut local_translation_max: Local<f32>,
+    mut local_translation_buffer_ratio: Local<f32>,
 ) {
     if !*initialized {
         *initialized = true;
         *base_movement_speed = CONFIG().get::<f32>("player/base_movement_speed");
         *sprint_multiplier = CONFIG().get::<f32>("player/sprint_multiplier");
-        *player_z_offset = CONFIG().get::<f32>("player/z_offset");
+        *world_rotation_speed = CONFIG().get::<f32>("usf/rotation/local_angular_speed");
+        *local_zoom_min = CONFIG().get::<f32>("usf/scale/local_min");
+        *local_zoom_max = CONFIG().get::<f32>("usf/scale/local_max");
+        *local_zoom_buffer_ratio = CONFIG().get::<f32>("usf/scale/local_buffer_ratio");
+        *local_translation_min = CONFIG().get::<f32>("usf/translation/local_min");
+        *local_translation_max = CONFIG().get::<f32>("usf/translation/local_max");
+        *local_translation_buffer_ratio = CONFIG().get::<f32>("usf/translation/local_buffer_ratio");
     }
 
     let (mut transform, mut chunk_loader) = if keys.just_pressed(KeyCode::F1) && input_mode.is_game() {
@@ -42,7 +52,14 @@ pub(super) fn update_player_system(
         return;
     };
 
-    transform.scale = Vec2::splat(zoom_factor.0).extend(1.0);
+    // Player is the viewport pivot anchor and stays visually constant.
+    transform.scale = Vec3::ONE;
+    chunk_loader.configure_scale_pivot_window(*local_zoom_min as f64, *local_zoom_max as f64, *local_zoom_buffer_ratio as f64);
+    chunk_loader.configure_translation_pivot_window(
+        *local_translation_min as f64,
+        *local_translation_max as f64,
+        *local_translation_buffer_ratio as f64,
+    );
 
     let mut direction = Vec3::ZERO;
 
@@ -63,17 +80,20 @@ pub(super) fn update_player_system(
         if direction.length_squared() > 0.0 {
             direction = direction.normalize();
             let sprint_multiplier = if keys.pressed(KeyCode::ShiftLeft) { *sprint_multiplier } else { 1.0 };
-            transform.translation += (direction * zoom_factor.0 * *base_movement_speed * sprint_multiplier * time.delta_secs())
+            transform.translation += (direction * *base_movement_speed * sprint_multiplier * time.delta_secs())
                 .truncate()
                 .extend(0.0);
         }
 
-        if keys.just_pressed(KeyCode::NumpadAdd) {
-            transform.translation = chunk_loader.zoom_in(transform.translation.truncate());
-            transform.translation.z += *player_z_offset;
-        } else if keys.just_pressed(KeyCode::NumpadSubtract) {
-            chunk_loader.zoom_out();
-            transform.translation.z = chunk_loader.scale.compute_z() + *player_z_offset;
+        let mut delta_rotation = Vec3::ZERO;
+        if keys.pressed(KeyCode::KeyQ) {
+            delta_rotation.z += *world_rotation_speed * time.delta_secs();
+        }
+        if keys.pressed(KeyCode::KeyE) {
+            delta_rotation.z -= *world_rotation_speed * time.delta_secs();
+        }
+        if delta_rotation != Vec3::ZERO {
+            chunk_loader.rotate_world_local(delta_rotation);
         }
     }
 }

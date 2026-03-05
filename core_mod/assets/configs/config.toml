@@ -1,7 +1,7 @@
 [camera]
 default_zoom = 0.15
-min_zoom = 0.000001
-max_zoom = 1000000.0
+min_zoom = 0.001
+max_zoom = 1000.0
 base_zoom_speed = 10.0
 follow_smoothness = 0.15
 
@@ -47,6 +47,19 @@ start_step_secs = 0.02
 
 [usf.pos]
 origin_offset_threshold = 10
+
+[usf.scale]
+local_min = 0.1
+local_max = 10.0
+local_buffer_ratio = 0.1
+
+[usf.translation]
+local_min = -500.0
+local_max = 500.0
+local_buffer_ratio = 0.1
+
+[usf.rotation]
+local_angular_speed = 1.5
 
 [utils.premium_box]
 success_logging_enabled = false
