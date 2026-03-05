@@ -806,7 +806,7 @@ define_scale!(ScaleMicroMeter10, -5, "scale_micro_meter_10", up = ScaleMicroMete
 define_scale!(ScaleMicroMeter100, -4, "scale_micro_meter_100", up = ScaleMilliMeter1, down = ScaleMicroMeter10);
 define_scale!(ScaleMilliMeter1, -3, "scale_milli_meter_1", up = ScaleMilliMeter10, down = ScaleMicroMeter100);
 define_scale!(ScaleMilliMeter10, -2, "scale_milli_meter_10", up = ScaleMilliMeter100, down = ScaleMilliMeter1);
-define_scale!(ScaleMilliMeter100, -1, "scale_milli_meter_100", up = ScaleMilliMeter10, down = ScaleMeter1);
+define_scale!(ScaleMilliMeter100, -1, "scale_milli_meter_100", up = ScaleMeter1, down = ScaleMilliMeter10);
 define_scale!(ScaleMeter1, 0, "scale_meter_1", up = ScaleMeter10, down = ScaleMilliMeter100);
 define_scale!(ScaleMeter10, 1, "scale_meter_10", up = ScaleMeter100, down = ScaleMeter1);
 define_scale!(ScaleMeter100, 2, "scale_meter_100", up = ScaleKiloMeter1, down = ScaleMeter10);
@@ -880,3 +880,24 @@ define_scale!(
 );
 define_scale!(ScaleQuettaMeter100000, 35, "scale_quetta_meter_100000", down = ScaleQuettaMeter10000);
 define_scale!(NoHigherScale, 0, "no_higher_scale");
+
+#[cfg(test)]
+mod tests {
+    use super::Scale;
+
+    #[test]
+    fn meter_milli_zoom_links_are_consistent() {
+        let mut scale = Scale::ScaleMeter1;
+        scale.zoom_in();
+        assert_eq!(scale, Scale::ScaleMilliMeter100);
+
+        scale.zoom_in();
+        assert_eq!(scale, Scale::ScaleMilliMeter10);
+
+        scale.zoom_out();
+        assert_eq!(scale, Scale::ScaleMilliMeter100);
+
+        scale.zoom_out();
+        assert_eq!(scale, Scale::ScaleMeter1);
+    }
+}

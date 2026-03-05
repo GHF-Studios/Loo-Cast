@@ -311,22 +311,39 @@ impl GridVec {
         Some(stack)
     }
 
-    fn accumulate_grid_units(diff_grid: &GridVec) -> IVec2 {
-        let mut acc = IVec2::ZERO;
-        let mut factor = 1;
+    fn accumulate_grid_units(diff_grid: &GridVec) -> (f64, f64) {
+        let mut acc_x = 0.0_f64;
+        let mut acc_y = 0.0_f64;
+        let mut factor = 1.0_f64;
+        let mut depth = 0_usize;
 
         let mut cursor = diff_grid;
         loop {
-            acc += cursor.xy * factor;
-            factor *= 10;
+            let term_x = cursor.xy.x as f64 * factor;
+            let term_y = cursor.xy.y as f64 * factor;
+            acc_x += term_x;
+            acc_y += term_y;
+
             if let Some(parent) = &cursor.parent {
+                factor *= 10.0;
+                if !factor.is_finite() {
+                    panic!("USF grid accumulation panic: factor became non-finite at depth {}, factor={}", depth, factor);
+                }
                 cursor = parent;
+                depth += 1;
             } else {
                 break;
             }
         }
 
-        acc
+        if !acc_x.is_finite() || !acc_y.is_finite() {
+            panic!(
+                "USF grid accumulation panic: non-finite accumulated coordinates, acc=({acc_x}, {acc_y}), root_scale={:?}",
+                diff_grid.scale
+            );
+        }
+
+        (acc_x, acc_y)
     }
 
     /// - Assumes that the given `scale` is greater than or equal to that of `self`.
@@ -389,11 +406,16 @@ impl GridVec {
         let diff_unit = self_unit - origin_unit;
         // Keep native spacing invariant (1000.0) and derive cross-scale distance from the
         // grid stack significance itself (leaf=10^0, parent=10^1, ...).
-        let native_unit = 1000.0;
+        let native_unit = 1000.0_f64;
         let acc = Self::accumulate_grid_units(&diff_unit.grid_offset);
-
-        let native_x = acc.x as f32 * native_unit;
-        let native_y = acc.y as f32 * native_unit;
+        let native_x = (acc.0 * native_unit) as f32;
+        let native_y = (acc.1 * native_unit) as f32;
+        if !native_x.is_finite() || !native_y.is_finite() {
+            panic!(
+                "USF native logical conversion panic: non-finite viewport coords, native=({native_x}, {native_y}), acc=({:.3e}, {:.3e}), self_scale={:?}, origin_scale={:?}",
+                acc.0, acc.1, self.scale, origin.scale
+            );
+        }
 
         Vec2::new(native_x, native_y)
     }
@@ -417,11 +439,16 @@ impl GridVec {
         let scale = 10.0_f32.powi(scale_diff as i32);
         // Translation spacing remains in native 1000.0 units; visual size scaling is returned
         // separately via `scale`.
-        let native_unit = 1000.0;
+        let native_unit = 1000.0_f64;
         let acc = Self::accumulate_grid_units(&diff_unit.grid_offset);
-
-        let native_x = acc.x as f32 * native_unit;
-        let native_y = acc.y as f32 * native_unit;
+        let native_x = (acc.0 * native_unit) as f32;
+        let native_y = (acc.1 * native_unit) as f32;
+        if !native_x.is_finite() || !native_y.is_finite() {
+            panic!(
+                "USF native visual conversion panic: non-finite viewport coords, native=({native_x}, {native_y}), acc=({:.3e}, {:.3e}), self_scale={:?}, origin_scale={:?}",
+                acc.0, acc.1, self.scale, origin.scale
+            );
+        }
 
         (Vec2::new(native_x, native_y), scale)
     }

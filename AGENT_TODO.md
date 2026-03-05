@@ -76,6 +76,9 @@ Status: in progress
 - [x] Add initial rotation controls (`Q` / `E`) and world-around-player proxy rotation path.
 - [x] Make mousewheel zoom authoritative for scale pivots (remove keypad-driven scale-step path).
 - [x] Unify player-anchor pivot execution in one path (`ChunkLoader::apply_player_anchor_pivots`).
+- [x] Add viewport scale-diff guard (`Scale::MAX_DIFF_SCALE_EXP`) across chunk detection, spawn, and render update paths.
+- [x] Replace per-chunk out-of-window spawn WARN spam with one summarized WARN per spawn batch.
+- [x] Fix `ScaleMilliMeter100` up/down link typo and add regression test (`usf::scale::tests::meter_milli_zoom_links_are_consistent`).
 - [ ] Validate with `./build.sh dev; ./run.sh dev` + user visual verification pass. (script sequence runs cleanly; user visual sign-off pending)
 - [ ] Extend translation/rotation origin-shifting to full parity with scale pivot semantics.
 

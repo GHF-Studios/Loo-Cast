@@ -61,10 +61,18 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     let _camera_transform = main_access.camera_transform;
 
     let mut spawn_chunk_states = Vec::new();
+    let mut skipped_outside_window = 0usize;
+    let mut skipped_example = None;
 
     for input in input.inputs {
         let scale = input.grid_coord.scale;
         let grid_coord = input.grid_coord;
+        let scale_diff = scale as i8 - chunk_loader.coord.scale as i8;
+        if !(0_i8..=Scale::MAX_DIFF_SCALE_EXP).contains(&scale_diff) {
+            skipped_outside_window += 1;
+            skipped_example.get_or_insert((scale, chunk_loader.coord.scale, scale_diff));
+            continue;
+        }
         let logical_world_coord = grid_coord.clone().to_native_logical(chunk_loader.coord.clone());
         let (visual_world_coord, visual_world_scale) = grid_coord.clone().to_native_visual(chunk_loader.coord.clone());
         let metric_texture = input.metric_texture.clone();
@@ -115,6 +123,18 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             chunk_entity,
             is_spawned: false,
         });
+    }
+
+    if skipped_outside_window > 0 {
+        let (coord_scale, loader_scale, scale_diff) = skipped_example.unwrap();
+        warn!(
+            "Skipped {} chunk spawns outside viewport scale window (example: coord_scale={:?}, loader_scale={:?}, scale_diff={}, max_diff={})",
+            skipped_outside_window,
+            coord_scale,
+            loader_scale,
+            scale_diff,
+            Scale::MAX_DIFF_SCALE_EXP
+        );
     }
 
     Ok(State { spawn_chunk_states })

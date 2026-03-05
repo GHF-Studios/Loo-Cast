@@ -6,6 +6,7 @@ use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
 use crate::config::statics::CONFIG;
 use crate::input::states::InputMode;
 use crate::player::components::Player;
+use crate::usf::scale::Scale;
 use crate::render::{
     components::{MainCamera, RenderProxy, RenderProxyHandle, UiCamera},
     functions::draw_primary_window_ui,
@@ -94,13 +95,15 @@ pub(super) fn update_render_proxies(
     let world_rotation = chunk_loader.world_rotation_quat();
     let world_rotation_origin = chunk_loader_transform.translation;
     let origin_offset = chunk_loader.origin_offset.clone();
+    let max_scale_diff = Scale::MAX_DIFF_SCALE_EXP;
 
     let actor_updates = {
         let chunk_actor_query = params.p1();
         chunk_actor_query
             .iter()
             .filter_map(|(handle, chunk_actor)| {
-                if chunk_actor.coord.scale < origin_offset.scale {
+                let scale_diff = chunk_actor.coord.scale as i8 - origin_offset.scale as i8;
+                if scale_diff < 0 || scale_diff > max_scale_diff {
                     return None;
                 }
                 Some((handle.proxy_entity, chunk_actor.coord.clone()))
@@ -126,7 +129,8 @@ pub(super) fn update_render_proxies(
         chunk_query
             .iter()
             .filter_map(|(handle, chunk)| {
-                if chunk.coord.scale < origin_offset.scale {
+                let scale_diff = chunk.coord.scale as i8 - origin_offset.scale as i8;
+                if scale_diff < 0 || scale_diff > max_scale_diff {
                     return None;
                 }
                 Some((handle.proxy_entity, chunk.coord.clone()))
@@ -231,6 +235,15 @@ pub(super) fn apply_usf_player_pivots_system(
     let (scale_pivot, translation_grid_delta) = chunk_loader.apply_player_anchor_pivots(&mut zoom_factor.0, &mut player_transform.translation);
 
     if scale_pivot.lower_crossings > 0 || scale_pivot.upper_crossings > 0 || translation_grid_delta != IVec2::ZERO {
+        warn!(
+            "USF player pivot event: scale={:?}, zoom={:.6}, scale_crossings(l={},u={}), translation_grid_delta={:?}, player_pos={:?}",
+            chunk_loader.scale,
+            zoom_factor.0,
+            scale_pivot.lower_crossings,
+            scale_pivot.upper_crossings,
+            translation_grid_delta,
+            player_transform.translation
+        );
         player_transform.translation.z = chunk_loader.scale.compute_z() + CONFIG().get::<f32>("player/z_offset");
     }
 

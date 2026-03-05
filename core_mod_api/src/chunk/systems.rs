@@ -62,32 +62,35 @@ pub(crate) fn chunk_detection_system(
     let mut despawn_chunk_inputs = Vec::new();
     let radius = chunk_manager.load_radius;
     let current_chunks = chunk_manager.chunks.clone();
-    let mut chunk_loader_scale_cursor = chunk_loader.scale;
     let mut chunk_loader_grid_coord_cursor = &chunk_loader.coord;
     let mut target_chunk_cone = Vec::new();
 
     // warn!("Starting Chunk Detection with current Chunks: {:?}", current_chunks);
 
-    while chunk_loader_scale_cursor < Scale::MAX {
-        // warn!("Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
+    loop {
+        let current_scale = chunk_loader_grid_coord_cursor.scale;
+        let scale_diff = current_scale as i8 - chunk_loader.coord.scale as i8;
+        if scale_diff > Scale::MAX_DIFF_SCALE_EXP {
+            break;
+        }
 
+        // warn!("Chunk Detection at scale: {:?}", current_scale);
         let coords_in_radius = chunk_loader_grid_coord_cursor
             .query_grid_radius(radius)
             .into_iter()
             .collect::<HashSet<GridVec>>();
         // warn!("Detected Chunks: {:?}", coords_in_radius);
         target_chunk_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
-        chunk_loader_scale_cursor.zoom_out();
-        chunk_loader_grid_coord_cursor = &**chunk_loader_grid_coord_cursor.parent.as_ref().unwrap();
-    }
 
-    // warn!("Final Chunk Detection at scale: {:?}", chunk_loader_scale_cursor);
-    let coords_in_radius = chunk_loader_grid_coord_cursor
-        .query_grid_radius(radius)
-        .into_iter()
-        .collect::<HashSet<GridVec>>();
-    // warn!("Detected Chunks: {:?}", coords_in_radius);
-    target_chunk_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
+        if current_scale == Scale::MAX {
+            break;
+        }
+
+        let Some(parent) = chunk_loader_grid_coord_cursor.parent.as_ref() else {
+            break;
+        };
+        chunk_loader_grid_coord_cursor = parent;
+    }
 
     target_chunk_cone.reverse();
 
