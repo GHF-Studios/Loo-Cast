@@ -7,11 +7,12 @@ use crate::chunk::components::ChunkLoader;
 use crate::chunk::enums::ZoomState;
 use crate::chunk::messages::ChunkBatchLifecycleMessage;
 use crate::chunk::resources::{
-    ChunkActionWorkflowState, ChunkBatchPlanResult, ChunkBatchTracker, ChunkLoadGate, ChunkManager,
+    ChunkActionWorkflowState, ChunkBatchPlanResult, ChunkBatchTracker, ChunkLoadGate, ChunkLoadGateState, ChunkManager,
 };
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
 use crate::config::statics::CONFIG;
+use crate::core::protocol::{AppOrchestrationSignal, AppOrchestrationState, OrchestrationPressure};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 use crate::workflow::functions::{
@@ -70,6 +71,48 @@ pub(crate) fn chunk_timeout_signal_system(
             );
         }
     }
+}
+
+#[tracing::instrument(skip_all)]
+pub(crate) fn sync_chunk_orchestration_state_system(
+    chunk_load_gate: Option<Res<ChunkLoadGate>>,
+    chunk_batch_tracker: Option<Res<ChunkBatchTracker>>,
+    mut app_orchestration_state: Option<ResMut<AppOrchestrationState>>,
+    mut app_orchestration_signal_writer: MessageWriter<AppOrchestrationSignal>,
+) {
+    let Some(mut app_orchestration_state) = app_orchestration_state else {
+        return;
+    };
+    let Some(chunk_load_gate) = chunk_load_gate else {
+        return;
+    };
+
+    let next_pressure = match chunk_load_gate.state {
+        ChunkLoadGateState::Open => OrchestrationPressure::Open,
+        ChunkLoadGateState::LockedByInFlightBoundary => OrchestrationPressure::BoundaryOverlap,
+        ChunkLoadGateState::LockedByTimeout => OrchestrationPressure::TimeoutRecovery,
+    };
+
+    let active_batches = chunk_batch_tracker
+        .as_ref()
+        .map(|tracker| tracker.is_batch_running() as u64 + tracker.is_batch_planned() as u64)
+        .unwrap_or_default();
+    let active_retries = chunk_load_gate.lock_info.map(|info| info.timeout_count as u64).unwrap_or_default();
+
+    if app_orchestration_state.pressure != next_pressure {
+        app_orchestration_state.pressure = next_pressure;
+        app_orchestration_signal_writer.write(AppOrchestrationSignal::PressureChanged {
+            pressure: next_pressure,
+            source: "chunk_load_gate".to_string(),
+            details: format!(
+                "gate_state={:?}, active_batches={}, timeout_retries={}",
+                chunk_load_gate.state, active_batches, active_retries
+            ),
+        });
+    }
+
+    app_orchestration_state.active_batches = active_batches;
+    app_orchestration_state.active_retries = active_retries;
 }
 
 fn chunk_workflow_timeout_decision(
@@ -195,6 +238,9 @@ pub(crate) fn chunk_management_system(
     let incoming_spawn_targets: HashSet<GridVec> = spawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect();
     let incoming_despawn_targets: HashSet<GridVec> = despawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect();
     let has_boundary_request = !incoming_spawn_targets.is_empty() || !incoming_despawn_targets.is_empty();
+    if has_boundary_request {
+        chunk_load_gate.boundary_quiet_frames = 0;
+    }
 
     match chunk_batch_tracker.sync_plan(&incoming_spawn_targets, &incoming_despawn_targets) {
         ChunkBatchPlanResult::Unchanged => {}
@@ -304,6 +350,15 @@ pub(crate) fn chunk_management_system(
 
     if spawn_chunk_inputs.is_empty() && despawn_chunk_inputs.is_empty() {
         if chunk_load_gate.is_locked() && workflow_state.is_idle() {
+            if chunk_load_gate.state == ChunkLoadGateState::LockedByInFlightBoundary {
+                // Require a short quiet period before unlocking to avoid lock-state chatter
+                // around boundary completion edges.
+                const REQUIRED_QUIET_FRAMES: u8 = 2;
+                chunk_load_gate.boundary_quiet_frames = chunk_load_gate.boundary_quiet_frames.saturating_add(1);
+                if chunk_load_gate.boundary_quiet_frames < REQUIRED_QUIET_FRAMES {
+                    return;
+                }
+            }
             let lock_info = chunk_load_gate.lock_info;
             if chunk_load_gate.unlock() {
                 if let Some(info) = lock_info {

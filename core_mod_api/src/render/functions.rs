@@ -5,6 +5,7 @@ use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
 
 use crate::{
+    config::statics::CONFIG,
     chunk::resources::{ChunkLoadGate, ChunkLoadGateState},
     debug::types::DebugSuiteTabViewer,
     render::{
@@ -80,18 +81,22 @@ pub(crate) fn draw_primary_window_ui(
     world: &mut World,
     ctx: &mut egui::Context,
 ) {
-    let overload_overlay = world.get_resource::<ChunkLoadGate>().and_then(|gate| match gate.state {
-        ChunkLoadGateState::Open => None,
-        ChunkLoadGateState::LockedByTimeout => {
-            let label = if let Some(info) = gate.lock_info {
-                format!("TIMEOUT {}::{} | Retry #{}", info.module_name, info.workflow_name, info.timeout_count)
-            } else {
-                "TIMEOUT".to_string()
-            };
-            Some((egui::Color32::RED, label))
-        }
-        ChunkLoadGateState::LockedByInFlightBoundary => Some((egui::Color32::YELLOW, "BOUNDARY OVERLAP".to_string())),
-    });
+    let overload_overlay = if CONFIG().get::<bool>("workflow/chunk_load_gate_enabled") {
+        world.get_resource::<ChunkLoadGate>().and_then(|gate| match gate.state {
+            ChunkLoadGateState::Open => None,
+            ChunkLoadGateState::LockedByTimeout => {
+                let label = if let Some(info) = gate.lock_info {
+                    format!("TIMEOUT {}::{} | Retry #{}", info.module_name, info.workflow_name, info.timeout_count)
+                } else {
+                    "TIMEOUT".to_string()
+                };
+                Some((egui::Color32::RED, label))
+            }
+            ChunkLoadGateState::LockedByInFlightBoundary => Some((egui::Color32::YELLOW, "BOUNDARY OVERLAP".to_string())),
+        })
+    } else {
+        None
+    };
 
     if !state.enabled {
         // Game view only

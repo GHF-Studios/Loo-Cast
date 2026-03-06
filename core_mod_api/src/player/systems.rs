@@ -2,6 +2,7 @@ use crate::bevy::prelude::*;
 
 use crate::chunk::components::ChunkLoader;
 use crate::config::statics::CONFIG;
+use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;
 use crate::player::bundles::PlayerBundle;
 use crate::player::components::Player;
@@ -9,10 +10,11 @@ use crate::player::components::Player;
 #[tracing::instrument(skip_all)]
 pub(super) fn update_player_system(
     mut commands: Commands,
-    mut player_query: Query<(Entity, &mut Transform, &mut ChunkLoader), With<Player>>,
+    mut player_query: Query<(Entity, &mut ChunkLoader), With<Player>>,
     keys: Res<ButtonInput<KeyCode>>,
     input_mode: Res<State<InputMode>>,
     time: Res<Time<Virtual>>,
+    mut player_motion_intent: ResMut<PlayerMotionIntent>,
     mut initialized: Local<bool>,
     mut base_movement_speed: Local<f32>,
     mut sprint_multiplier: Local<f32>,
@@ -24,6 +26,9 @@ pub(super) fn update_player_system(
     mut local_translation_max: Local<f32>,
     mut local_translation_buffer_ratio: Local<f32>,
 ) {
+    // Intent is per-frame; if this system runs, start from a clean slate.
+    player_motion_intent.clear();
+
     if !*initialized {
         *initialized = true;
         *base_movement_speed = CONFIG().get::<f32>("player/base_movement_speed");
@@ -37,17 +42,17 @@ pub(super) fn update_player_system(
         *local_translation_buffer_ratio = CONFIG().get::<f32>("usf/translation/local_buffer_ratio");
     }
 
-    let (mut transform, mut chunk_loader) = if keys.just_pressed(KeyCode::F1) && input_mode.is_game() {
+    let mut chunk_loader = if keys.just_pressed(KeyCode::F1) && input_mode.is_game() {
         if player_query.is_empty() {
             commands.spawn(PlayerBundle::default());
             return;
         } else {
-            let (player_entity, _, _) = player_query.single().unwrap();
+            let (player_entity, _) = player_query.single().unwrap();
             commands.entity(player_entity).despawn();
             return;
         }
-    } else if let Ok((_, transform, chunk_loader)) = player_query.single_mut() {
-        (transform, chunk_loader)
+    } else if let Ok((_, chunk_loader)) = player_query.single_mut() {
+        chunk_loader
     } else {
         return;
     };
@@ -79,9 +84,7 @@ pub(super) fn update_player_system(
         if direction.length_squared() > 0.0 {
             direction = direction.normalize();
             let sprint_multiplier = if keys.pressed(KeyCode::ShiftLeft) { *sprint_multiplier } else { 1.0 };
-            transform.translation += (direction * *base_movement_speed * sprint_multiplier * time.delta_secs())
-                .truncate()
-                .extend(0.0);
+            player_motion_intent.translation_delta = (direction * *base_movement_speed * sprint_multiplier * time.delta_secs()).truncate();
         }
 
         let mut delta_rotation = Vec3::ZERO;
@@ -91,8 +94,6 @@ pub(super) fn update_player_system(
         if keys.pressed(KeyCode::KeyE) {
             delta_rotation.z -= *world_rotation_speed * time.delta_secs();
         }
-        if delta_rotation != Vec3::ZERO {
-            chunk_loader.rotate_world_local(delta_rotation);
-        }
+        player_motion_intent.rotation_delta = delta_rotation;
     }
 }

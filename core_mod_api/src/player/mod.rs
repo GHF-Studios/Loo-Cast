@@ -8,7 +8,7 @@ use components::Player;
 use systems::update_player_system;
 
 use crate::chunk::run_conditions::run_if_chunk_load_gate_open;
-use crate::core::run_conditions::run_after_startup_finished;
+use crate::core::{orchestration::AppSet, run_conditions::run_after_startup_finished};
 use crate::time::run_conditions::run_if_not_paused;
 
 pub(crate) struct PlayerPlugin;
@@ -16,7 +16,9 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            update_player_system.run_if(run_after_startup_finished.and(run_if_not_paused).and(run_if_chunk_load_gate_open)),
+            update_player_system
+                .in_set(AppSet::Intent)
+                .run_if(run_after_startup_finished.and(run_if_not_paused).and(run_if_chunk_load_gate_open)),
         )
             .register_type::<PlayerBundle>()
             .register_type::<Player>();

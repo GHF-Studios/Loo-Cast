@@ -5,6 +5,7 @@ use crate::bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureD
 use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
 use crate::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
 use crate::config::statics::CONFIG;
+use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;
 use crate::player::components::Player;
 use crate::usf::scale::Scale;
@@ -65,7 +66,9 @@ pub(super) fn resize_render_texture(
     mut game_view_render_target: ResMut<GameViewRenderTarget>,
     windows: Query<&Window>,
 ) {
-    let window = windows.single().unwrap();
+    let Ok(window) = windows.single() else {
+        return;
+    };
     let size_uvec2 = window.physical_size();
 
     if size_uvec2 == *previous_window_size_uvec2 {
@@ -200,8 +203,12 @@ pub(super) fn main_camera_zoom_system(
     let min_zoom = CONFIG().get::<f32>("camera/min_zoom");
     let max_zoom = CONFIG().get::<f32>("camera/max_zoom");
     let base_zoom_speed = CONFIG().get::<f32>("camera/base_zoom_speed");
+    let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
 
-    if !input_mode.is_game() || virtual_paused.0 || chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked()) {
+    if !input_mode.is_game()
+        || virtual_paused.0
+        || (chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked()))
+    {
         scroll_message_reader.clear();
         return;
     }
@@ -231,22 +238,33 @@ pub(super) fn apply_usf_player_pivots_system(
     mut player_loader_query: Query<(&mut ChunkLoader, &mut Transform), With<Player>>,
     mut chunk_load_gate: Option<ResMut<ChunkLoadGate>>,
     workflow_state: Option<Res<ChunkActionWorkflowState>>,
+    mut player_motion_intent: ResMut<PlayerMotionIntent>,
 ) {
     let Ok((mut chunk_loader, mut player_transform)) = player_loader_query.single_mut() else {
+        player_motion_intent.clear();
         return;
     };
 
-    let mut gate_locked = chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked());
+    let intent_translation_delta = player_motion_intent.translation_delta;
+    let intent_rotation_delta = player_motion_intent.rotation_delta;
+    player_motion_intent.clear();
+
+    let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
+    let mut gate_locked = chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked());
     let scale_policy = chunk_loader.usf_transform.scale.policy;
     let local_min = scale_policy.local_min as f32;
     let local_max = scale_policy.local_max as f32;
+    let scale_commit_min = scale_policy.commit_min() as f32;
+    let scale_commit_max = scale_policy.commit_max() as f32;
     let translation_policy = chunk_loader.usf_transform.translation.policy;
     let translation_local_min = translation_policy.local_min as f32;
     let translation_local_max = translation_policy.local_max as f32;
+    let translation_commit_min = translation_policy.commit_min() as f32;
+    let translation_commit_max = translation_policy.commit_max() as f32;
     let rotation_policy = chunk_loader.usf_transform.rotation.policy;
     let rotation_local_min = rotation_policy.local_min;
     let rotation_local_max = rotation_policy.local_max;
-    let workflow_in_flight = workflow_state.as_ref().is_some_and(|state| !state.is_idle());
+    let workflow_in_flight = chunk_load_gate_enabled && workflow_state.as_ref().is_some_and(|state| !state.is_idle());
 
     if gate_locked {
         // Hard freeze mode: do not process additional pivot transitions while input is locked.
@@ -261,16 +279,13 @@ pub(super) fn apply_usf_player_pivots_system(
         chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
         chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
     } else {
-        let scale_commit_min = scale_policy.commit_min() as f32;
-        let scale_commit_max = scale_policy.commit_max() as f32;
-        let translation_commit_min = translation_policy.commit_min() as f32;
-        let translation_commit_max = translation_policy.commit_max() as f32;
+        let candidate_translation = player_transform.translation + intent_translation_delta.extend(0.0);
 
         let would_cross_scale_boundary = zoom_factor.0 <= scale_commit_min || zoom_factor.0 >= scale_commit_max;
-        let would_cross_translation_boundary = player_transform.translation.x <= translation_commit_min
-            || player_transform.translation.x >= translation_commit_max
-            || player_transform.translation.y <= translation_commit_min
-            || player_transform.translation.y >= translation_commit_max;
+        let would_cross_translation_boundary = candidate_translation.x <= translation_commit_min
+            || candidate_translation.x >= translation_commit_max
+            || candidate_translation.y <= translation_commit_min
+            || candidate_translation.y >= translation_commit_max;
 
         if workflow_in_flight && (would_cross_scale_boundary || would_cross_translation_boundary) {
             if let Some(gate) = chunk_load_gate.as_mut() {
@@ -292,6 +307,13 @@ pub(super) fn apply_usf_player_pivots_system(
             chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
             chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
         } else {
+            if intent_translation_delta != Vec2::ZERO {
+                player_transform.translation += intent_translation_delta.extend(0.0);
+            }
+            if intent_rotation_delta != Vec3::ZERO {
+                chunk_loader.rotate_world_local(intent_rotation_delta);
+            }
+
             let (scale_pivot, translation_grid_delta) =
                 chunk_loader.apply_player_anchor_pivots(&mut zoom_factor.0, &mut player_transform.translation);
             zoom_factor.0 = zoom_factor.0.clamp(scale_commit_min, scale_commit_max);

@@ -10,14 +10,22 @@ use messages::FollowerTargetLifecycleMessage;
 use observers::observe_on_add_follower;
 use systems::update_follower_system;
 
-use crate::{core::run_conditions::run_after_startup_finished, time::run_conditions::run_if_not_paused};
+use crate::{
+    core::{orchestration::AppSet, run_conditions::run_after_startup_finished},
+    time::run_conditions::run_if_not_paused,
+};
 
 pub(crate) struct FollowerPlugin;
 impl Plugin for FollowerPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<FollowerTargetLifecycleMessage>()
             .add_observer(observe_on_add_follower)
-            .add_systems(Update, update_follower_system.run_if(run_after_startup_finished.and(run_if_not_paused)))
+            .add_systems(
+                Update,
+                update_follower_system
+                    .in_set(AppSet::Camera)
+                    .run_if(run_after_startup_finished.and(run_if_not_paused)),
+            )
             .register_type::<Follower>()
             .register_type::<FollowerTarget>()
             .register_type::<FollowerTargetLifecycleMessage>();

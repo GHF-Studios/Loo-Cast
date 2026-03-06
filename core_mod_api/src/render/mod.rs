@@ -17,7 +17,7 @@ use systems::{
     update_render_proxies, update_view_scale_from_zoom,
 };
 
-use crate::core::{components::Meta, run_conditions::run_after_startup_finished};
+use crate::core::{components::Meta, orchestration::AppSet, run_conditions::run_after_startup_finished};
 
 pub(crate) struct RenderPlugin;
 impl Plugin for RenderPlugin {
@@ -34,12 +34,14 @@ impl Plugin for RenderPlugin {
             .add_systems(
                 Update,
                 (
-                    resize_render_texture,
-                    main_camera_zoom_system.before(apply_usf_player_pivots_system),
-                    apply_usf_player_pivots_system.before(update_view_scale_from_zoom),
-                    update_view_scale_from_zoom,
-                    despawn_orphaned_render_proxies.before(update_render_proxies),
-                    update_render_proxies,
+                    resize_render_texture.in_set(AppSet::Presentation),
+                    main_camera_zoom_system.in_set(AppSet::InputGather),
+                    apply_usf_player_pivots_system.in_set(AppSet::BoundaryResolve),
+                    update_view_scale_from_zoom.in_set(AppSet::Camera),
+                    despawn_orphaned_render_proxies.in_set(AppSet::Presentation),
+                    update_render_proxies
+                        .in_set(AppSet::Presentation)
+                        .after(despawn_orphaned_render_proxies),
                 )
                     .run_if(run_after_startup_finished),
             )

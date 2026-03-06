@@ -230,6 +230,9 @@ pub struct ChunkLoadGate {
     pub timeout_lock_count: u64,
     pub boundary_overlap_lock_count: u64,
     pub unlock_count: u64,
+    /// Consecutive idle/no-boundary-request frames while locked by in-flight overlap.
+    /// Used to avoid one-frame lock/unlock chatter in overload border visuals.
+    pub boundary_quiet_frames: u8,
 }
 impl Default for ChunkLoadGate {
     fn default() -> Self {
@@ -239,6 +242,7 @@ impl Default for ChunkLoadGate {
             timeout_lock_count: 0,
             boundary_overlap_lock_count: 0,
             unlock_count: 0,
+            boundary_quiet_frames: 0,
         }
     }
 }
@@ -259,6 +263,7 @@ impl ChunkLoadGate {
         if changed {
             self.timeout_lock_count += 1;
         }
+        self.boundary_quiet_frames = 0;
         changed
     }
 
@@ -269,6 +274,7 @@ impl ChunkLoadGate {
         if changed {
             self.boundary_overlap_lock_count += 1;
         }
+        self.boundary_quiet_frames = 0;
         changed
     }
 
@@ -279,6 +285,7 @@ impl ChunkLoadGate {
         if changed {
             self.unlock_count += 1;
         }
+        self.boundary_quiet_frames = 0;
         changed
     }
 }
