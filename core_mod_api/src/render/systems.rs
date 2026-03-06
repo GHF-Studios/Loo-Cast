@@ -98,7 +98,10 @@ pub(super) fn update_render_proxies(
     let (chunk_loader, chunk_loader_transform) = *params.p0();
     let world_rotation = chunk_loader.world_rotation_quat();
     let world_rotation_origin = chunk_loader_transform.translation;
-    let origin_offset = chunk_loader.origin_offset.clone();
+    // Keep render-space origin aligned with chunk detection/spawn origin.
+    // Detection/spawn are driven by `chunk_loader.coord`, so using `origin_offset`
+    // here causes visual space to drift from loaded space during scale pivots.
+    let render_origin = chunk_loader.coord.clone();
     let max_scale_diff = Scale::MAX_DIFF_SCALE_EXP;
 
     let actor_updates = {
@@ -106,7 +109,7 @@ pub(super) fn update_render_proxies(
         chunk_actor_query
             .iter()
             .filter_map(|(handle, chunk_actor)| {
-                let scale_diff = chunk_actor.coord.scale as i8 - origin_offset.scale as i8;
+                let scale_diff = chunk_actor.coord.scale as i8 - render_origin.scale as i8;
                 if scale_diff < 0 || scale_diff > max_scale_diff {
                     return None;
                 }
@@ -119,7 +122,7 @@ pub(super) fn update_render_proxies(
         let mut proxy_transforms = params.p3();
         for (proxy_entity, coord) in actor_updates {
             if let Ok(mut proxy_transform) = proxy_transforms.get_mut(proxy_entity) {
-                let (pos, scale) = coord.to_native_visual(origin_offset.clone());
+                let (pos, scale) = coord.to_native_visual(render_origin.clone());
                 let world_pos = pos.extend(proxy_transform.translation.z);
                 proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
                 proxy_transform.scale = Vec3::splat(scale);
@@ -133,7 +136,7 @@ pub(super) fn update_render_proxies(
         chunk_query
             .iter()
             .filter_map(|(handle, chunk)| {
-                let scale_diff = chunk.coord.scale as i8 - origin_offset.scale as i8;
+                let scale_diff = chunk.coord.scale as i8 - render_origin.scale as i8;
                 if scale_diff < 0 || scale_diff > max_scale_diff {
                     return None;
                 }
@@ -146,7 +149,7 @@ pub(super) fn update_render_proxies(
         let mut proxy_transforms = params.p3();
         for (proxy_entity, coord) in chunk_updates {
             if let Ok(mut proxy_transform) = proxy_transforms.get_mut(proxy_entity) {
-                let (pos, scale) = coord.to_native_visual(origin_offset.clone());
+                let (pos, scale) = coord.to_native_visual(render_origin.clone());
                 let world_pos = pos.extend(proxy_transform.translation.z);
                 proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
                 proxy_transform.scale = Vec3::splat(scale);
