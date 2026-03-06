@@ -2,6 +2,7 @@ pub mod components;
 pub mod enums;
 pub mod errors;
 pub mod functions;
+pub mod messages;
 pub mod run_conditions;
 pub mod resources;
 pub mod systems;
@@ -13,8 +14,10 @@ use crate::bevy::prelude::*;
 use components::{Chunk, ChunkActor, ChunkLoader};
 use enums::ZoomState;
 use errors::{DespawnError, SpawnError};
+use messages::ChunkBatchLifecycleMessage;
 use resources::{
-    ChunkActionWorkflowState, ChunkLoadGate, ChunkLoadGateLockInfo, ChunkLoadGateState, ChunkManager, ChunkRenderExecutorRegistry, ChunkRenderHandles,
+    ChunkActionWorkflowState, ChunkBatchTracker, ChunkLoadGate, ChunkLoadGateLockInfo, ChunkLoadGateState, ChunkManager, ChunkRenderExecutorRegistry,
+    ChunkRenderHandles,
 };
 use systems::{chunk_detection_system, chunk_management_system, chunk_startup_system, chunk_timeout_signal_system, chunk_zoom_cooldown_system};
 
@@ -26,7 +29,9 @@ impl Plugin for ChunkPlugin {
         app.insert_resource(ChunkManager::default())
             .insert_resource(ChunkRenderExecutorRegistry::default())
             .insert_resource(ChunkLoadGate::default())
+            .insert_resource(ChunkBatchTracker::default())
             .insert_resource(ChunkActionWorkflowState::default())
+            .add_message::<ChunkBatchLifecycleMessage>()
             .add_systems(Startup, chunk_startup_system)
             .add_systems(PreUpdate, chunk_timeout_signal_system.run_if(run_after_startup_finished))
             .add_systems(Update, chunk_zoom_cooldown_system.run_if(run_after_startup_finished.and(run_if_not_paused)))

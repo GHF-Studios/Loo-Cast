@@ -127,3 +127,17 @@ Objective: treat translation, scale, and rotation as first-class USF fields with
 - [x] Feed live `current_view_scale` into chunk texture shader params (remove hardcoded placeholder).
 - [x] Replace experimental debug shader with clean `example_dev_v2` hierarchical grid shader (chunk border + 10x10 subgrid only).
 - [x] Register `example_dev_v2` in startup and switch default chunk texture generator to it.
+
+---
+
+## Current Slice: Chunk Batch Lifecycle Bus (In Progress)
+
+Objective: expose chunk loading as explicit planned/running lifecycle state + messages so systems can hook into structured chunk events.
+
+- [x] Add `ChunkBatchTracker` resource with query helpers:
+  - `is_batch_planned`, `is_batch_running`
+  - `is_chunk_in_planned_batch`, `is_chunk_in_running_batch`
+- [x] Add `ChunkBatchLifecycleMessage` (`Planned`, `Started`, `Finished`, `Cancelled`).
+- [x] Wire `chunk_management_system` to publish lifecycle transitions.
+- [x] Add focused unit tests for planning/replanning/start/finish behavior.
+- [ ] Integrate follower/camera systems against lifecycle messages/resource (next pass).

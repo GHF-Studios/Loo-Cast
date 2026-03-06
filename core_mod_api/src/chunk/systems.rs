@@ -5,7 +5,10 @@ use std::time::Duration;
 
 use crate::chunk::components::ChunkLoader;
 use crate::chunk::enums::ZoomState;
-use crate::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate, ChunkManager};
+use crate::chunk::messages::ChunkBatchLifecycleMessage;
+use crate::chunk::resources::{
+    ChunkActionWorkflowState, ChunkBatchPlanResult, ChunkBatchTracker, ChunkLoadGate, ChunkManager,
+};
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
 use crate::config::statics::CONFIG;
@@ -181,6 +184,8 @@ pub(crate) fn chunk_management_system(
     chunk_loader_query: Query<&ChunkLoader>,
     mut workflow_state: ResMut<ChunkActionWorkflowState>,
     mut chunk_load_gate: ResMut<ChunkLoadGate>,
+    mut chunk_batch_tracker: ResMut<ChunkBatchTracker>,
+    mut chunk_batch_lifecycle_writer: MessageWriter<ChunkBatchLifecycleMessage>,
 ) {
     let (spawn_chunk_inputs, despawn_chunk_inputs) = inputs;
     let current_view_scale = chunk_loader_query
@@ -190,6 +195,55 @@ pub(crate) fn chunk_management_system(
     let incoming_spawn_targets: HashSet<GridVec> = spawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect();
     let incoming_despawn_targets: HashSet<GridVec> = despawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect();
     let has_boundary_request = !incoming_spawn_targets.is_empty() || !incoming_despawn_targets.is_empty();
+
+    match chunk_batch_tracker.sync_plan(&incoming_spawn_targets, &incoming_despawn_targets) {
+        ChunkBatchPlanResult::Unchanged => {}
+        ChunkBatchPlanResult::Planned(batch) => {
+            warn!(
+                "Chunk batch planned: batch_id={}, spawn={}, despawn={}",
+                batch.id,
+                batch.spawn_count(),
+                batch.despawn_count()
+            );
+            chunk_batch_lifecycle_writer.write(ChunkBatchLifecycleMessage::Planned { batch });
+        }
+        ChunkBatchPlanResult::Replanned { previous, planned } => {
+            warn!(
+                "Chunk batch cancelled: batch_id={}, reason=Replanned, spawn={}, despawn={}",
+                previous.id,
+                previous.spawn_count(),
+                previous.despawn_count()
+            );
+            chunk_batch_lifecycle_writer.write(ChunkBatchLifecycleMessage::Cancelled {
+                batch_id: previous.id,
+                reason: crate::chunk::resources::ChunkBatchCancellationReason::Replanned,
+                spawn_count: previous.spawn_count(),
+                despawn_count: previous.despawn_count(),
+            });
+            warn!(
+                "Chunk batch planned: batch_id={}, spawn={}, despawn={}",
+                planned.id,
+                planned.spawn_count(),
+                planned.despawn_count()
+            );
+            chunk_batch_lifecycle_writer.write(ChunkBatchLifecycleMessage::Planned { batch: planned });
+        }
+        ChunkBatchPlanResult::Cleared { previous, reason } => {
+            warn!(
+                "Chunk batch cancelled: batch_id={}, reason={}, spawn={}, despawn={}",
+                previous.id,
+                reason.as_str(),
+                previous.spawn_count(),
+                previous.despawn_count()
+            );
+            chunk_batch_lifecycle_writer.write(ChunkBatchLifecycleMessage::Cancelled {
+                batch_id: previous.id,
+                reason,
+                spawn_count: previous.spawn_count(),
+                despawn_count: previous.despawn_count(),
+            });
+        }
+    }
 
     // Step 1: If workflows are running, wait for all to complete
     if let Some(handles) = &mut workflow_state.handles {
@@ -234,6 +288,18 @@ pub(crate) fn chunk_management_system(
 
         workflow_state.handles = None;
         workflow_state.clear_in_flight_targets();
+
+        if let Some(finished_batch) = chunk_batch_tracker.finish_running() {
+            warn!(
+                "Chunk batch finished: batch_id={}, spawn={}, despawn={}",
+                finished_batch.id,
+                finished_batch.spawn_count(),
+                finished_batch.despawn_count()
+            );
+            chunk_batch_lifecycle_writer.write(ChunkBatchLifecycleMessage::Finished {
+                batch: finished_batch,
+            });
+        }
     }
 
     if spawn_chunk_inputs.is_empty() && despawn_chunk_inputs.is_empty() {
@@ -259,6 +325,18 @@ pub(crate) fn chunk_management_system(
         //     spawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect::<Vec<_>>(),
         //     despawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect::<Vec<_>>()
         // );
+    }
+
+    if let Some(started_batch) = chunk_batch_tracker.start_planned_or_direct(&incoming_spawn_targets, &incoming_despawn_targets) {
+        warn!(
+            "Chunk batch started: batch_id={}, spawn={}, despawn={}",
+            started_batch.id,
+            started_batch.spawn_count(),
+            started_batch.despawn_count()
+        );
+        chunk_batch_lifecycle_writer.write(ChunkBatchLifecycleMessage::Started {
+            batch: started_batch,
+        });
     }
 
     // Step 2: Build & launch composite workflows

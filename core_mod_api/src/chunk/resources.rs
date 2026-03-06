@@ -34,6 +34,180 @@ pub struct ChunkRenderExecutorRegistry {
     pub executors: HashMap<GridVec, ChunkRenderExecutor>,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ChunkBatchTargets {
+    pub spawn: HashSet<GridVec>,
+    pub despawn: HashSet<GridVec>,
+}
+impl ChunkBatchTargets {
+    pub fn from_refs(spawn: &HashSet<GridVec>, despawn: &HashSet<GridVec>) -> Self {
+        Self {
+            spawn: spawn.clone(),
+            despawn: despawn.clone(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.spawn.is_empty() && self.despawn.is_empty()
+    }
+
+    pub fn contains_chunk(&self, grid_coord: &GridVec) -> bool {
+        self.spawn.contains(grid_coord) || self.despawn.contains(grid_coord)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ChunkBatchSnapshot {
+    pub id: u64,
+    pub targets: ChunkBatchTargets,
+}
+impl ChunkBatchSnapshot {
+    pub fn spawn_count(&self) -> usize {
+        self.targets.spawn.len()
+    }
+
+    pub fn despawn_count(&self) -> usize {
+        self.targets.despawn.len()
+    }
+
+    pub fn contains_chunk(&self, grid_coord: &GridVec) -> bool {
+        self.targets.contains_chunk(grid_coord)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ChunkBatchCancellationReason {
+    NoBoundaryRequest,
+    Replanned,
+}
+impl ChunkBatchCancellationReason {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ChunkBatchCancellationReason::NoBoundaryRequest => "NoBoundaryRequest",
+            ChunkBatchCancellationReason::Replanned => "Replanned",
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ChunkBatchPlanResult {
+    Unchanged,
+    Planned(ChunkBatchSnapshot),
+    Replanned {
+        previous: ChunkBatchSnapshot,
+        planned: ChunkBatchSnapshot,
+    },
+    Cleared {
+        previous: ChunkBatchSnapshot,
+        reason: ChunkBatchCancellationReason,
+    },
+}
+
+#[derive(Resource, Debug)]
+pub struct ChunkBatchTracker {
+    next_batch_id: u64,
+    planned: Option<ChunkBatchSnapshot>,
+    running: Option<ChunkBatchSnapshot>,
+}
+impl Default for ChunkBatchTracker {
+    fn default() -> Self {
+        Self {
+            next_batch_id: 1,
+            planned: None,
+            running: None,
+        }
+    }
+}
+impl ChunkBatchTracker {
+    pub fn is_batch_planned(&self) -> bool {
+        self.planned.is_some()
+    }
+
+    pub fn is_batch_running(&self) -> bool {
+        self.running.is_some()
+    }
+
+    pub fn planned_batch(&self) -> Option<&ChunkBatchSnapshot> {
+        self.planned.as_ref()
+    }
+
+    pub fn running_batch(&self) -> Option<&ChunkBatchSnapshot> {
+        self.running.as_ref()
+    }
+
+    pub fn is_chunk_in_planned_batch(&self, grid_coord: &GridVec) -> bool {
+        self.planned.as_ref().is_some_and(|batch| batch.contains_chunk(grid_coord))
+    }
+
+    pub fn is_chunk_in_running_batch(&self, grid_coord: &GridVec) -> bool {
+        self.running.as_ref().is_some_and(|batch| batch.contains_chunk(grid_coord))
+    }
+
+    pub fn sync_plan(&mut self, spawn_targets: &HashSet<GridVec>, despawn_targets: &HashSet<GridVec>) -> ChunkBatchPlanResult {
+        let targets = ChunkBatchTargets::from_refs(spawn_targets, despawn_targets);
+        if targets.is_empty() {
+            if let Some(previous) = self.planned.take() {
+                return ChunkBatchPlanResult::Cleared {
+                    previous,
+                    reason: ChunkBatchCancellationReason::NoBoundaryRequest,
+                };
+            }
+            return ChunkBatchPlanResult::Unchanged;
+        }
+
+        if self.running.as_ref().is_some_and(|running| running.targets == targets) {
+            return ChunkBatchPlanResult::Unchanged;
+        }
+
+        if self.planned.as_ref().is_some_and(|planned| planned.targets == targets) {
+            return ChunkBatchPlanResult::Unchanged;
+        }
+
+        let planned = self.new_snapshot(targets);
+        if let Some(previous) = self.planned.replace(planned.clone()) {
+            return ChunkBatchPlanResult::Replanned { previous, planned };
+        }
+
+        ChunkBatchPlanResult::Planned(planned)
+    }
+
+    pub fn start_planned_or_direct(
+        &mut self,
+        spawn_targets: &HashSet<GridVec>,
+        despawn_targets: &HashSet<GridVec>,
+    ) -> Option<ChunkBatchSnapshot> {
+        let targets = ChunkBatchTargets::from_refs(spawn_targets, despawn_targets);
+        if targets.is_empty() {
+            return None;
+        }
+
+        if self.running.as_ref().is_some_and(|running| running.targets == targets) {
+            return None;
+        }
+
+        let batch = if self.planned.as_ref().is_some_and(|planned| planned.targets == targets) {
+            self.planned
+                .take()
+                .expect("ChunkBatchTracker invariant: planned batch vanished before start")
+        } else {
+            self.new_snapshot(targets)
+        };
+
+        self.running = Some(batch.clone());
+        Some(batch)
+    }
+
+    pub fn finish_running(&mut self) -> Option<ChunkBatchSnapshot> {
+        self.running.take()
+    }
+
+    fn new_snapshot(&mut self, targets: ChunkBatchTargets) -> ChunkBatchSnapshot {
+        let id = self.next_batch_id;
+        self.next_batch_id += 1;
+        ChunkBatchSnapshot { id, targets }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
 pub enum ChunkLoadGateState {
     Open,
@@ -132,5 +306,91 @@ impl ChunkActionWorkflowState {
 
     pub fn has_new_boundary_request(&self, spawn_targets: &HashSet<GridVec>, despawn_targets: &HashSet<GridVec>) -> bool {
         !spawn_targets.is_subset(&self.in_flight_spawn_targets) || !despawn_targets.is_subset(&self.in_flight_despawn_targets)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ChunkBatchPlanResult, ChunkBatchTracker};
+    use crate::bevy::prelude::IVec2;
+    use crate::usf::pos::grid::types::GridVec;
+    use std::collections::HashSet;
+
+    fn set(coords: &[GridVec]) -> HashSet<GridVec> {
+        coords.iter().cloned().collect()
+    }
+
+    #[test]
+    fn chunk_batch_tracker_plan_start_finish_and_query_flow() {
+        let mut tracker = ChunkBatchTracker::default();
+        let coord_a = GridVec::new_root(IVec2::new(0, 0));
+        let coord_b = GridVec::new_root(IVec2::new(1, 0));
+
+        let planned = match tracker.sync_plan(&set(&[coord_a.clone()]), &set(&[coord_b.clone()])) {
+            ChunkBatchPlanResult::Planned(batch) => batch,
+            other => panic!("expected Planned, got {other:?}"),
+        };
+        assert!(tracker.is_batch_planned());
+        assert!(tracker.is_chunk_in_planned_batch(&coord_a));
+        assert!(tracker.is_chunk_in_planned_batch(&coord_b));
+
+        let started = tracker
+            .start_planned_or_direct(&set(&[coord_a.clone()]), &set(&[coord_b.clone()]))
+            .expect("planned batch should start");
+        assert_eq!(started.id, planned.id);
+        assert!(tracker.is_batch_running());
+        assert!(tracker.is_chunk_in_running_batch(&coord_a));
+        assert!(tracker.is_chunk_in_running_batch(&coord_b));
+
+        let finished = tracker.finish_running().expect("running batch should finish");
+        assert_eq!(finished.id, started.id);
+        assert!(!tracker.is_batch_running());
+    }
+
+    #[test]
+    fn chunk_batch_tracker_replans_and_clears_when_targets_change() {
+        let mut tracker = ChunkBatchTracker::default();
+        let coord_a = GridVec::new_root(IVec2::new(0, 0));
+        let coord_b = GridVec::new_root(IVec2::new(1, 0));
+
+        let first_plan = match tracker.sync_plan(&set(&[coord_a.clone()]), &HashSet::new()) {
+            ChunkBatchPlanResult::Planned(batch) => batch,
+            other => panic!("expected first Planned, got {other:?}"),
+        };
+
+        let second_plan = match tracker.sync_plan(&set(&[coord_b.clone()]), &HashSet::new()) {
+            ChunkBatchPlanResult::Replanned { previous, planned } => {
+                assert_eq!(previous.id, first_plan.id);
+                planned
+            }
+            other => panic!("expected Replanned, got {other:?}"),
+        };
+        assert_ne!(first_plan.id, second_plan.id);
+
+        match tracker.sync_plan(&HashSet::new(), &HashSet::new()) {
+            ChunkBatchPlanResult::Cleared { previous, .. } => {
+                assert_eq!(previous.id, second_plan.id);
+            }
+            other => panic!("expected Cleared, got {other:?}"),
+        }
+        assert!(!tracker.is_batch_planned());
+    }
+
+    #[test]
+    fn chunk_batch_tracker_does_not_plan_duplicate_running_targets() {
+        let mut tracker = ChunkBatchTracker::default();
+        let coord = GridVec::new_root(IVec2::new(0, 0));
+        let spawn = set(&[coord.clone()]);
+        let despawn = HashSet::new();
+
+        let started = tracker.start_planned_or_direct(&spawn, &despawn).expect("batch should start directly");
+        assert!(tracker.is_batch_running());
+
+        let result = tracker.sync_plan(&spawn, &despawn);
+        assert!(matches!(result, ChunkBatchPlanResult::Unchanged));
+        assert!(!tracker.is_batch_planned());
+
+        let finished = tracker.finish_running().expect("running batch should finish");
+        assert_eq!(finished.id, started.id);
     }
 }
