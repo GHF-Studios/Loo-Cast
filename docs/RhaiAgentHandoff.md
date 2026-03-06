@@ -65,3 +65,4 @@ task status or temporary migration notes.
 3. `docs/RhaiBridgeDevelopment.md`
 4. `docs/RhaiGenericBindingPolicy.md`
 5. `docs/RhaiValueSemantics.md`
+6. `docs/UsfTransformPolicy.md`

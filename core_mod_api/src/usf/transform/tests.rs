@@ -1,4 +1,6 @@
-use super::types::{UsfFloat, UsfFloatDomain, UsfFloatPolicy};
+use std::f64::consts::TAU;
+
+use super::types::{UsfFloat, UsfFloatDomain, UsfFloatPolicy, UsfRotation, UsfTransform};
 
 #[test]
 fn multiplicative_usf_float_folds_large_values_down_with_cycles() {
@@ -56,3 +58,54 @@ fn linear_usf_float_wraps_rotation_and_tracks_cycles() {
     assert_eq!(value.canonical_cycles, 1);
 }
 
+#[test]
+fn usf_rotation_fold_tracks_multi_turn_cycles_in_both_directions() {
+    let mut rotation = UsfRotation::default();
+    rotation.add_local_delta(crate::bevy::prelude::Vec3::new(0.0, 0.0, (TAU * 3.0 + 1.0) as f32));
+
+    let first = rotation.fold();
+    assert_eq!(first.z, 3);
+    assert!(rotation.z.local < std::f64::consts::PI);
+    assert!(rotation.z.local > -std::f64::consts::PI);
+    assert_eq!(rotation.z.canonical_cycles, 3);
+
+    rotation.add_local_delta(crate::bevy::prelude::Vec3::new(0.0, 0.0, (-(TAU * 5.0 + 0.5)) as f32));
+
+    let second = rotation.fold();
+    assert_eq!(second.z, -5);
+    assert!(rotation.z.local < std::f64::consts::PI);
+    assert!(rotation.z.local > -std::f64::consts::PI);
+    assert_eq!(rotation.z.canonical_cycles, -2);
+}
+
+#[test]
+fn usf_transform_scale_and_rotation_folds_are_independent() {
+    let mut transform = UsfTransform::default();
+    transform.scale.uniform.local = 125.0;
+    transform.rotation.z.local = 4.0;
+
+    let scale_pivot = transform.scale.fold();
+    let rotation_cycle_delta = transform.rotation.fold();
+
+    assert_eq!(scale_pivot.upper_crossings, 2);
+    assert_eq!(scale_pivot.lower_crossings, 0);
+    assert_eq!(transform.scale.uniform.canonical_cycles, 2);
+
+    assert_eq!(rotation_cycle_delta.z, 1);
+    assert_eq!(transform.rotation.z.canonical_cycles, 1);
+}
+
+#[test]
+fn usf_transform_translation_and_rotation_folds_are_independent() {
+    let mut transform = UsfTransform::default();
+    transform.translation.x.local = 1600.0;
+    transform.rotation.x.local = -4.0;
+
+    let translation_cycle_delta = transform.translation.fold();
+    let rotation_cycle_delta = transform.rotation.fold();
+
+    assert_eq!(translation_cycle_delta.x, 2);
+    assert_eq!(transform.translation.x.canonical_cycles, 2);
+    assert_eq!(rotation_cycle_delta.x, -1);
+    assert_eq!(transform.rotation.x.canonical_cycles, -1);
+}

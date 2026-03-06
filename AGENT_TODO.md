@@ -6,7 +6,7 @@ Read first: `docs/RhaiAgentHandoff.md`
 
 ## Live Initiative: USF Load-Overload Safety Gate (Active)
 
-Status: implementation in progress
+Status: runtime pass completed, ready to transition to next initiative
 
 ### Confirmed Constraints
 
@@ -47,7 +47,7 @@ Status: implementation in progress
 - [x] Implement deterministic unlock checks based on completed loading conditions.
 - [x] Add `warn!` observability for all significant gate/timeout transitions.
 - [x] Validate via `cargo test`.
-- [ ] Runtime integration pass with `./build.sh dev; ./run.sh dev`.
+- [x] Runtime integration pass with `./build.sh dev; ./run.sh dev`.
 - [x] Add gameplay overload red border (inverted semantics vs debug-suite border) after stabilization.
 
 ### Active Risks / Open Design Threads
@@ -68,3 +68,62 @@ Completed previously in this cycle:
 - Bundle/provider dispatch consolidation and AccessCell-first scoped API migration.
 - Generic dispatch normalization and Rhai import alias ergonomics foundation.
 - USF chunk-spacing and pivot-path stabilization work (including scale-link regression test coverage).
+
+---
+
+## Next Initiative: USF 3D + Rotation + Transform Canonicalization (Planned)
+
+Objective: treat translation, scale, and rotation as first-class USF fields with a unified policy model while migrating viewport-facing behavior to 3D semantics.
+
+### Proposed Work Queue
+
+1. Finalize `UsfTransform` policy shape for all three fields (`UsfTranslation`, `UsfScale`, `UsfRotation`) with explicit per-field boundary and buffer semantics.
+2. Define 3D migration boundaries:
+   - what remains viewport-only (Bevy `Transform`/`Quat` local projection),
+   - what becomes USF-canonical state.
+3. Introduce rotation pivot/origin-shift policy (separate from translation/scale) with clear invariants and tests.
+4. Migrate chunk/world render projection codepaths to 3D-compatible transform plumbing incrementally.
+5. Add regression tests for cross-scale rotation and mixed translation+scale+rotation pivot interactions.
+6. Re-assess docs/rustdocs/markdown after implementation:
+   - update durable policy docs,
+   - remove stale migration notes,
+   - document workflow/runtime implications for USF transforms.
+
+### Kickoff Progress
+
+- [x] Draft canonical transform policy + migration phases in `docs/UsfTransformPolicy.md`.
+- [x] Convert policy into implementation tasks/issues with explicit acceptance tests.
+
+### Implementation Task Pack (Phase 2 Start)
+
+1. Extend runtime transform paths to treat translation as full XYZ canonical flow.
+   - Acceptance:
+     - no XY-only assumptions in USF pivot entry points.
+     - Z path remains stable for current chunk depth rendering.
+2. Introduce explicit `UsfRotation` pivot application path in player/chunk anchor systems.
+   - Acceptance:
+     - world rotation updates continue to work under load gate constraints.
+     - rotation canonical cycles are updated and observable via logs/tests.
+3. Split viewport projection from canonical state update in all transform authority systems.
+   - Acceptance:
+     - Bevy projection/scale/rotation always derived from canonical USF transform at end-of-frame.
+     - no visible overshoot from commit-buffer state.
+4. Expand tests for mixed-field pivots.
+   - Acceptance:
+     - add unit/integration coverage for translation+scale, rotation+scale, and translation+rotation crossovers.
+5. Add temporary diagnostics for transform pivot transitions.
+   - Acceptance:
+     - `warn!` logs include field, crossing count, and gate state.
+     - diagnostics can be removed cleanly once behavior is stable.
+
+### First Execution Slice (Next Coding Pass)
+
+- [x] Implement rotation pivot plumbing in `render::systems::apply_usf_player_pivots_system`.
+- [x] Add focused tests in `core_mod_api/src/usf/transform/tests.rs` for rotation wrap/cycle and mixed crossings.
+- [x] Keep chunk topology unchanged for this slice; topology refactor remains Phase 4.
+
+### Immediate Visualization Pass (Current)
+
+- [x] Feed live `current_view_scale` into chunk texture shader params (remove hardcoded placeholder).
+- [x] Replace experimental debug shader with clean `example_dev_v2` hierarchical grid shader (chunk border + 10x10 subgrid only).
+- [x] Register `example_dev_v2` in startup and switch default chunk texture generator to it.

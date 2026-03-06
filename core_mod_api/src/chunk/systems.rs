@@ -178,10 +178,15 @@ pub(crate) fn chunk_detection_system(
 #[tracing::instrument(skip_all)]
 pub(crate) fn chunk_management_system(
     In(inputs): In<(Vec<SpawnChunkInput>, Vec<DespawnChunkInput>)>,
+    chunk_loader_query: Query<&ChunkLoader>,
     mut workflow_state: ResMut<ChunkActionWorkflowState>,
     mut chunk_load_gate: ResMut<ChunkLoadGate>,
 ) {
     let (spawn_chunk_inputs, despawn_chunk_inputs) = inputs;
+    let current_view_scale = chunk_loader_query
+        .single()
+        .map(|chunk_loader| chunk_loader.coord.scale as i32)
+        .unwrap_or_default();
     let incoming_spawn_targets: HashSet<GridVec> = spawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect();
     let incoming_despawn_targets: HashSet<GridVec> = despawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect();
     let has_boundary_request = !incoming_spawn_targets.is_empty() || !incoming_despawn_targets.is_empty();
@@ -267,7 +272,7 @@ pub(crate) fn chunk_management_system(
                     chunk_pos: [coord.xy.x, coord.xy.y],
                     chunk_size: 1000,
                     chunk_scale: coord.scale as i32,
-                    current_view_scale: 35,
+                    current_view_scale,
                     _padding0: 0,
                     _padding1: [0, 0, 0, 0],
                 }

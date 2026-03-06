@@ -243,6 +243,9 @@ pub(super) fn apply_usf_player_pivots_system(
     let translation_policy = chunk_loader.usf_transform.translation.policy;
     let translation_local_min = translation_policy.local_min as f32;
     let translation_local_max = translation_policy.local_max as f32;
+    let rotation_policy = chunk_loader.usf_transform.rotation.policy;
+    let rotation_local_min = rotation_policy.local_min;
+    let rotation_local_max = rotation_policy.local_max;
     let workflow_in_flight = workflow_state.as_ref().is_some_and(|state| !state.is_idle());
 
     if gate_locked {
@@ -254,6 +257,9 @@ pub(super) fn apply_usf_player_pivots_system(
         player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
         chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
         chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
+        chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
+        chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
+        chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
     } else {
         let scale_commit_min = scale_policy.commit_min() as f32;
         let scale_commit_max = scale_policy.commit_max() as f32;
@@ -282,6 +288,9 @@ pub(super) fn apply_usf_player_pivots_system(
             player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
             chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
             chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
+            chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
+            chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
+            chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
         } else {
             let (scale_pivot, translation_grid_delta) =
                 chunk_loader.apply_player_anchor_pivots(&mut zoom_factor.0, &mut player_transform.translation);
@@ -306,6 +315,9 @@ pub(super) fn apply_usf_player_pivots_system(
                 player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
                 chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
                 chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
+                chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
+                chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
+                chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
             }
 
             if boundary_crossed {

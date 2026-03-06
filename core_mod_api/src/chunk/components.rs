@@ -186,12 +186,43 @@ impl ChunkLoader {
     pub fn apply_player_anchor_pivots(&mut self, local_zoom: &mut f32, logical_world_pos: &mut Vec3) -> (UsfFloatPivotResult, IVec2) {
         let scale_pivot = self.apply_scale_pivot(local_zoom, logical_world_pos);
         let translation_grid_delta = self.apply_translation_pivot(logical_world_pos);
+        self.apply_rotation_pivot();
         (scale_pivot, translation_grid_delta)
+    }
+
+    pub fn apply_rotation_pivot(&mut self) -> IVec3 {
+        let local_before = Vec3::new(
+            self.usf_transform.rotation.x.local as f32,
+            self.usf_transform.rotation.y.local as f32,
+            self.usf_transform.rotation.z.local as f32,
+        );
+        let cycles_before = (
+            self.usf_transform.rotation.x.canonical_cycles,
+            self.usf_transform.rotation.y.canonical_cycles,
+            self.usf_transform.rotation.z.canonical_cycles,
+        );
+        let cycle_delta = self.usf_transform.rotation.fold();
+        if cycle_delta != IVec3::ZERO {
+            let local_after = Vec3::new(
+                self.usf_transform.rotation.x.local as f32,
+                self.usf_transform.rotation.y.local as f32,
+                self.usf_transform.rotation.z.local as f32,
+            );
+            let cycles_after = (
+                self.usf_transform.rotation.x.canonical_cycles,
+                self.usf_transform.rotation.y.canonical_cycles,
+                self.usf_transform.rotation.z.canonical_cycles,
+            );
+            warn!(
+                "USF rotation fold: cycle_delta={:?}, local {:?}->{:?}, cycles {:?}->{:?}",
+                cycle_delta, local_before, local_after, cycles_before, cycles_after
+            );
+        }
+        cycle_delta
     }
 
     pub fn rotate_world_local(&mut self, delta_radians_xyz: Vec3) {
         self.usf_transform.rotation.add_local_delta(delta_radians_xyz);
-        self.usf_transform.rotation.fold();
     }
 
     pub fn world_rotation_quat(&self) -> Quat {
