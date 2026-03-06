@@ -12,7 +12,7 @@ use crate::usf::scale::Scale;
 use crate::render::{
     components::{MainCamera, RenderProxy, RenderProxyHandle, UiCamera},
     functions::draw_primary_window_ui,
-    resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor},
+    resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomAuthority, ZoomFactor},
 };
 use crate::time::resources::VirtualPaused;
 
@@ -202,28 +202,55 @@ pub(super) fn main_camera_zoom_system(
     virtual_paused: Res<VirtualPaused>,
     chunk_load_gate: Option<Res<ChunkLoadGate>>,
     mut zoom_factor: ResMut<ZoomFactor>,
+    mut zoom_authority: ResMut<ZoomAuthority>,
 ) {
     let min_zoom = CONFIG().get::<f32>("camera/min_zoom");
     let max_zoom = CONFIG().get::<f32>("camera/max_zoom");
     let base_zoom_speed = CONFIG().get::<f32>("camera/base_zoom_speed");
     let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
+    let gate_locked = chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked());
+    zoom_authority.gate_locked = gate_locked;
 
-    if !input_mode.is_game()
-        || virtual_paused.0
-        || (chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked()))
-    {
+    if !input_mode.is_game() || virtual_paused.0 {
         scroll_message_reader.clear();
+        zoom_authority.local_zoom = zoom_authority.local_zoom.clamp(min_zoom, max_zoom);
+        zoom_factor.0 = zoom_authority.local_zoom;
+        for mut projection in projection_query.iter_mut() {
+            match projection.as_mut() {
+                Projection::Orthographic(ortho) => {
+                    ortho.scale = zoom_factor.0;
+                }
+                _ => panic!("Main camera is not orthographic/2d!"),
+            }
+        }
         return;
     }
 
+    let mut frame_zoom_delta = 0.0_f32;
     for message in scroll_message_reader.read() {
         let scroll_delta = match message.unit {
             MouseScrollUnit::Line => -message.y,
             MouseScrollUnit::Pixel => message.y * -0.01,
         };
-        let zoom_speed = base_zoom_speed * zoom_factor.0;
-        zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_secs()).clamp(min_zoom, max_zoom);
+        let zoom_speed = base_zoom_speed * zoom_authority.local_zoom;
+        frame_zoom_delta += scroll_delta * zoom_speed * time.delta_secs();
     }
+
+    if gate_locked {
+        if frame_zoom_delta != 0.0 {
+            zoom_authority.pending_zoom_delta += frame_zoom_delta;
+        }
+    } else {
+        // Drain buffered zoom pressure gradually to avoid post-unlock jumps.
+        let replay_cap = (zoom_authority.local_zoom.abs() * 0.25).max(0.01);
+        let replay_delta = zoom_authority.pending_zoom_delta.clamp(-replay_cap, replay_cap);
+        zoom_authority.pending_zoom_delta -= replay_delta;
+        zoom_authority.local_zoom += frame_zoom_delta + replay_delta;
+    }
+
+    zoom_authority.local_zoom = zoom_authority.local_zoom.clamp(min_zoom, max_zoom);
+    zoom_factor.0 = zoom_authority.local_zoom;
+
     for mut projection in projection_query.iter_mut() {
         match projection.as_mut() {
             Projection::Orthographic(ortho) => {
@@ -242,7 +269,11 @@ pub(super) fn apply_usf_player_pivots_system(
     mut chunk_load_gate: Option<ResMut<ChunkLoadGate>>,
     workflow_state: Option<Res<ChunkActionWorkflowState>>,
     mut player_motion_intent: ResMut<PlayerMotionIntent>,
+    mut zoom_authority: ResMut<ZoomAuthority>,
 ) {
+    let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
+    zoom_authority.gate_locked = chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked());
+
     let Ok((mut chunk_loader, mut player_transform)) = player_loader_query.single_mut() else {
         player_motion_intent.clear();
         return;
@@ -252,7 +283,6 @@ pub(super) fn apply_usf_player_pivots_system(
     let intent_rotation_delta = player_motion_intent.rotation_delta;
     player_motion_intent.clear();
 
-    let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
     let mut gate_locked = chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked());
     let scale_policy = chunk_loader.usf_transform.scale.policy;
     let local_min = scale_policy.local_min as f32;
@@ -371,6 +401,12 @@ pub(super) fn apply_usf_player_pivots_system(
             ortho.scale = display_zoom;
         }
     }
+
+    zoom_authority.local_zoom = zoom_factor.0;
+    zoom_authority.gate_locked = chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked());
+    zoom_authority.global_scale_exponent = chunk_loader.scale as i8;
+    zoom_authority.global_scale_index_from_top = chunk_loader.scale.index_from_top();
+    zoom_authority.global_scale_name = format!("{:?}", chunk_loader.scale);
 }
 
 #[tracing::instrument(skip_all)]
