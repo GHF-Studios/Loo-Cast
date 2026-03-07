@@ -23,29 +23,6 @@ impl Default for ZoomFactor {
     }
 }
 
-#[derive(Resource, Reflect, Debug)]
-#[reflect(Resource)]
-pub(crate) struct ZoomAuthority {
-    pub local_zoom: f32,
-    pub pending_zoom_delta: f32,
-    pub global_scale_exponent: i8,
-    pub global_scale_index_from_top: u8,
-    pub global_scale_name: String,
-    pub gate_locked: bool,
-}
-impl Default for ZoomAuthority {
-    fn default() -> Self {
-        Self {
-            local_zoom: CONFIG().get::<f32>("camera/default_zoom"),
-            pending_zoom_delta: 0.0,
-            global_scale_exponent: 35,
-            global_scale_index_from_top: 0,
-            global_scale_name: "scale_quetta_meter_100000".to_string(),
-            gate_locked: false,
-        }
-    }
-}
-
 #[derive(Resource)]
 pub struct GameViewRenderTarget {
     pub handle: Handle<Image>,

@@ -10,7 +10,7 @@ use crate::{
     debug::types::DebugSuiteTabViewer,
     render::{
         components::RenderProxy,
-        resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ZoomAuthority},
+        resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState},
     },
     time::{
         resources::TimeInfo,
@@ -97,16 +97,6 @@ pub(crate) fn draw_primary_window_ui(
     } else {
         None
     };
-    let zoom_authority_snapshot = world.get_resource::<ZoomAuthority>().map(|authority| {
-        (
-            authority.local_zoom,
-            authority.pending_zoom_delta,
-            authority.global_scale_exponent,
-            authority.global_scale_index_from_top,
-            authority.global_scale_name.clone(),
-            authority.gate_locked,
-        )
-    });
 
     if !state.enabled {
         // Game view only
@@ -146,64 +136,6 @@ pub(crate) fn draw_primary_window_ui(
                     );
                     ui.painter().rect_filled(bg_rect, 4.0, egui::Color32::from_black_alpha(220));
                     ui.painter().galley(text_top_left, galley, egui::Color32::WHITE);
-                }
-            }
-
-            if let Some((local_zoom, pending_zoom_delta, scale_exp, scale_index_from_top, scale_name, gate_locked)) =
-                zoom_authority_snapshot.as_ref()
-            {
-                if let Some(viewport_rect) = state.viewport_rect_precision_proxy {
-                    let bar_margin_x = 24.0;
-                    let bar_height = 14.0;
-                    let bar_bottom_padding = 14.0;
-                    let bar_top = viewport_rect.bottom() - bar_bottom_padding - bar_height;
-                    let bar_rect = egui::Rect::from_min_max(
-                        egui::pos2(viewport_rect.left() + bar_margin_x, bar_top),
-                        egui::pos2(viewport_rect.right() - bar_margin_x, bar_top + bar_height),
-                    );
-
-                    let local_min = CONFIG().get::<f32>("usf/scale/local_min").max(f32::EPSILON);
-                    let local_max = CONFIG().get::<f32>("usf/scale/local_max").max(local_min + f32::EPSILON);
-                    let min_log = local_min.log10();
-                    let max_log = local_max.log10();
-                    let zoom_clamped = local_zoom.clamp(local_min, local_max);
-                    let progress = ((zoom_clamped.log10() - min_log) / (max_log - min_log).max(f32::EPSILON)).clamp(0.0, 1.0);
-                    let fill_rect = egui::Rect::from_min_max(
-                        bar_rect.min,
-                        egui::pos2(bar_rect.left() + bar_rect.width() * progress, bar_rect.bottom()),
-                    );
-
-                    let fill_color = if *gate_locked {
-                        egui::Color32::from_rgb(190, 140, 40)
-                    } else {
-                        egui::Color32::from_rgb(80, 170, 220)
-                    };
-                    ui.painter().rect_filled(bar_rect, 3.0, egui::Color32::from_black_alpha(180));
-                    ui.painter().rect_filled(fill_rect, 3.0, fill_color);
-                    ui.painter().rect_stroke(
-                        bar_rect,
-                        3.0,
-                        egui::Stroke::new(1.0, egui::Color32::from_white_alpha(120)),
-                        egui::StrokeKind::Middle,
-                    );
-
-                    let pending_text = if pending_zoom_delta.abs() >= 0.0001 {
-                        format!(" | queued {:+.3}", pending_zoom_delta)
-                    } else {
-                        String::new()
-                    };
-                    let hud_text = format!(
-                        "Local {:.3}x | Scale {:+} | idx {} | {}{}",
-                        local_zoom, scale_exp, scale_index_from_top, scale_name, pending_text
-                    );
-                    let hud_pos = egui::pos2(bar_rect.center().x, bar_rect.top() - 4.0);
-                    ui.painter().text(
-                        hud_pos,
-                        egui::Align2::CENTER_BOTTOM,
-                        hud_text,
-                        egui::TextStyle::Body.resolve(ui.style()),
-                        egui::Color32::WHITE,
-                    );
                 }
             }
         });
