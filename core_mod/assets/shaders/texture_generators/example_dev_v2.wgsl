@@ -35,14 +35,20 @@ const CH_6: i32 = 17;
 const CH_7: i32 = 18;
 const CH_8: i32 = 19;
 const CH_9: i32 = 20;
+const CH_X: i32 = 21;
+const CH_Y: i32 = 22;
+const CH_COMMA: i32 = 23;
 
 const LABEL_LEN: u32 = 14u; // "SCALE: 10^+00M"
+const COORD_LABEL_LEN: u32 = 6u; // "XY:0,0"
 const GLYPH_W: u32 = 5u;
 const GLYPH_H: u32 = 7u;
 const FONT_SCALE: u32 = 4u;
 const GLYPH_ADVANCE: u32 = (GLYPH_W + 1u) * FONT_SCALE;
 const LABEL_W: u32 = LABEL_LEN * GLYPH_ADVANCE - FONT_SCALE;
+const COORD_LABEL_W: u32 = COORD_LABEL_LEN * GLYPH_ADVANCE - FONT_SCALE;
 const LABEL_H: u32 = GLYPH_H * FONT_SCALE;
+const LABEL_LINE_GAP: u32 = FONT_SCALE * 2u;
 
 fn pick_row(row: u32, r0: u32, r1: u32, r2: u32, r3: u32, r4: u32, r5: u32, r6: u32) -> u32 {
     switch (row) {
@@ -138,6 +144,15 @@ fn glyph_row_bits(ch: i32, row: u32) -> u32 {
         case CH_9: {
             return pick_row(row, 0x0Eu, 0x11u, 0x11u, 0x0Fu, 0x01u, 0x01u, 0x0Eu);
         }
+        case CH_X: {
+            return pick_row(row, 0x11u, 0x0Au, 0x04u, 0x04u, 0x04u, 0x0Au, 0x11u);
+        }
+        case CH_Y: {
+            return pick_row(row, 0x11u, 0x0Au, 0x04u, 0x04u, 0x04u, 0x04u, 0x04u);
+        }
+        case CH_COMMA: {
+            return pick_row(row, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x04u, 0x08u);
+        }
         default: {
             return 0u;
         }
@@ -203,6 +218,35 @@ fn label_char(index: u32, exponent: i32) -> i32 {
     }
 }
 
+fn coord_label_char(index: u32, chunk_pos: vec2<i32>) -> i32 {
+    let coord_x = u32(clamp(chunk_pos.x + 5, 0, 9));
+    let coord_y = u32(clamp(chunk_pos.y + 5, 0, 9));
+
+    switch (index) {
+        case 0u: {
+            return CH_X;
+        }
+        case 1u: {
+            return CH_Y;
+        }
+        case 2u: {
+            return CH_COLON;
+        }
+        case 3u: {
+            return digit_char(coord_x);
+        }
+        case 4u: {
+            return CH_COMMA;
+        }
+        case 5u: {
+            return digit_char(coord_y);
+        }
+        default: {
+            return CH_SPACE;
+        }
+    }
+}
+
 fn glyph_pixel(ch: i32, x: u32, y: u32) -> bool {
     if (x >= GLYPH_W || y >= GLYPH_H) {
         return false;
@@ -237,6 +281,33 @@ fn is_label_pixel(pixel: vec2<u32>, label_origin: vec2<u32>, exponent: i32) -> b
     let glyph_x = x_in_slot / FONT_SCALE;
     let glyph_y = rel.y / FONT_SCALE;
     let ch = label_char(char_slot, exponent);
+    return glyph_pixel(ch, glyph_x, glyph_y);
+}
+
+fn is_coord_label_pixel(pixel: vec2<u32>, label_origin: vec2<u32>, chunk_pos: vec2<i32>) -> bool {
+    if (pixel.x < label_origin.x || pixel.y < label_origin.y) {
+        return false;
+    }
+
+    let rel = pixel - label_origin;
+    if (rel.x >= COORD_LABEL_W || rel.y >= LABEL_H) {
+        return false;
+    }
+
+    let char_slot = rel.x / GLYPH_ADVANCE;
+    if (char_slot >= COORD_LABEL_LEN) {
+        return false;
+    }
+
+    let x_in_slot = rel.x % GLYPH_ADVANCE;
+    let glyph_w_scaled = GLYPH_W * FONT_SCALE;
+    if (x_in_slot >= glyph_w_scaled) {
+        return false;
+    }
+
+    let glyph_x = x_in_slot / FONT_SCALE;
+    let glyph_y = rel.y / FONT_SCALE;
+    let ch = coord_label_char(char_slot, chunk_pos);
     return glyph_pixel(ch, glyph_x, glyph_y);
 }
 
@@ -295,10 +366,13 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let label_origin = vec2<u32>(24u, 24u);
     let panel_pad_x = 10u;
     let panel_pad_y = 8u;
+    let coord_label_origin = vec2<u32>(label_origin.x, label_origin.y + LABEL_H + LABEL_LINE_GAP);
     let panel_min = vec2<u32>(label_origin.x - panel_pad_x, label_origin.y - panel_pad_y);
+    let panel_w = max(LABEL_W, COORD_LABEL_W);
+    let panel_h = LABEL_H + LABEL_LINE_GAP + LABEL_H;
     let panel_max = vec2<u32>(
-        label_origin.x + LABEL_W + panel_pad_x,
-        label_origin.y + LABEL_H + panel_pad_y,
+        label_origin.x + panel_w + panel_pad_x,
+        label_origin.y + panel_h + panel_pad_y,
     );
     let in_label_panel = global_id.x >= panel_min.x
         && global_id.y >= panel_min.y
@@ -310,6 +384,9 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     if (is_label_pixel(global_id.xy, label_origin, params.chunk_scale)) {
         color = vec3<f32>(0.98, 0.95, 0.72);
+    }
+    if (is_coord_label_pixel(global_id.xy, coord_label_origin, params.chunk_pos)) {
+        color = vec3<f32>(0.76, 0.90, 0.99);
     }
 
     textureStore(output_texture, global_id.xy, vec4<f32>(color, 1.0));
