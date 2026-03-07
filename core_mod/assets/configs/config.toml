@@ -12,10 +12,6 @@ texture_generator_shader = "texture_generators/example_dev_v2"
 [chunk_loader]
 load_radius = 2
 zoom_cooldown_secs = 1.0
-preload_enabled = true
-preload_scale_steps = 2
-preload_radius = 1
-preload_translation_bias_threshold = 250.0
 
 [core]
 cli_log_filter = "warn"
