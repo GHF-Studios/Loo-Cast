@@ -12,7 +12,7 @@ use crate::usf::scale::Scale;
 use crate::render::{
     components::{MainCamera, RenderProxy, RenderProxyHandle, UiCamera},
     functions::draw_primary_window_ui,
-    resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor},
+    resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor},
 };
 use crate::time::resources::VirtualPaused;
 
@@ -194,15 +194,20 @@ pub(super) fn primary_window_ui_system(world: &mut World) {
 pub(super) fn main_camera_zoom_system(
     mut projection_query: Query<&mut Projection, With<Camera>>,
     mut scroll_message_reader: MessageReader<MouseWheel>,
+    keys: Res<ButtonInput<KeyCode>>,
     input_mode: Res<State<InputMode>>,
     time: Res<Time<Real>>,
     virtual_paused: Res<VirtualPaused>,
     chunk_load_gate: Option<Res<ChunkLoadGate>>,
     mut zoom_factor: ResMut<ZoomFactor>,
+    mut dev_zoom_factor: ResMut<DevZoomFactor>,
 ) {
     let min_zoom = CONFIG().get::<f32>("camera/min_zoom");
     let max_zoom = CONFIG().get::<f32>("camera/max_zoom");
     let base_zoom_speed = CONFIG().get::<f32>("camera/base_zoom_speed");
+    let min_dev_zoom = CONFIG().get::<f32>("camera/min_dev_zoom");
+    let max_dev_zoom = CONFIG().get::<f32>("camera/max_dev_zoom");
+    let dev_zoom_speed = CONFIG().get::<f32>("camera/dev_zoom_speed");
     let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
 
     if !input_mode.is_game()
@@ -213,18 +218,26 @@ pub(super) fn main_camera_zoom_system(
         return;
     }
 
+    let shift_pressed = keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight);
+
     for message in scroll_message_reader.read() {
         let scroll_delta = match message.unit {
             MouseScrollUnit::Line => -message.y,
             MouseScrollUnit::Pixel => message.y * -0.01,
         };
-        let zoom_speed = base_zoom_speed * zoom_factor.0;
-        zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_secs()).clamp(min_zoom, max_zoom);
+        if shift_pressed {
+            let zoom_speed = dev_zoom_speed * dev_zoom_factor.0;
+            dev_zoom_factor.0 = (dev_zoom_factor.0 + scroll_delta * zoom_speed * time.delta_secs()).clamp(min_dev_zoom, max_dev_zoom);
+        } else {
+            let zoom_speed = base_zoom_speed * zoom_factor.0;
+            zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_secs()).clamp(min_zoom, max_zoom);
+        }
     }
+    let camera_zoom = (zoom_factor.0 * dev_zoom_factor.0).max(f32::EPSILON);
     for mut projection in projection_query.iter_mut() {
         match projection.as_mut() {
             Projection::Orthographic(ortho) => {
-                ortho.scale = zoom_factor.0;
+                ortho.scale = camera_zoom;
             }
             _ => panic!("Main camera is not orthographic/2d!"),
         }
@@ -234,6 +247,7 @@ pub(super) fn main_camera_zoom_system(
 #[tracing::instrument(skip_all)]
 pub(super) fn apply_usf_player_pivots_system(
     mut zoom_factor: ResMut<ZoomFactor>,
+    dev_zoom_factor: Res<DevZoomFactor>,
     mut projection_query: Query<&mut Projection, With<Camera>>,
     mut player_loader_query: Query<(&mut ChunkLoader, &mut Transform), With<Player>>,
     mut chunk_load_gate: Option<ResMut<ChunkLoadGate>>,
@@ -359,13 +373,14 @@ pub(super) fn apply_usf_player_pivots_system(
 
     // Keep commit-buffer accumulation internal. Rendering should never show values outside strict local bounds.
     let display_zoom = zoom_factor.0.clamp(local_min, local_max);
+    let camera_zoom = (display_zoom * dev_zoom_factor.0).max(f32::EPSILON);
 
     // Player is a fine-scale phenomena: local mousewheel zoom also scales the player.
     player_transform.scale = Vec3::splat(display_zoom.max(f32::EPSILON));
 
     for mut projection in projection_query.iter_mut() {
         if let Projection::Orthographic(ortho) = projection.as_mut() {
-            ortho.scale = display_zoom;
+            ortho.scale = camera_zoom;
         }
     }
 }

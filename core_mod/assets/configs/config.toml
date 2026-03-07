@@ -3,6 +3,10 @@ default_zoom = 0.15
 min_zoom = 0.001
 max_zoom = 1000.0
 base_zoom_speed = 10.0
+default_dev_zoom = 1.0
+min_dev_zoom = 0.0005
+max_dev_zoom = 2000.0
+dev_zoom_speed = 25.0
 follow_smoothness = 0.15
 
 [chunk]

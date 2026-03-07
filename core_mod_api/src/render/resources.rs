@@ -23,6 +23,15 @@ impl Default for ZoomFactor {
     }
 }
 
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
+pub(crate) struct DevZoomFactor(pub f32);
+impl Default for DevZoomFactor {
+    fn default() -> Self {
+        Self(CONFIG().get::<f32>("camera/default_dev_zoom"))
+    }
+}
+
 #[derive(Resource)]
 pub struct GameViewRenderTarget {
     pub handle: Handle<Image>,
