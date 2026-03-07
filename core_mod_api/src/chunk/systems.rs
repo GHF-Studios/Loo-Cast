@@ -23,6 +23,13 @@ use crate::workflow::types::WorkflowTimeoutMode;
 
 use super::resources::ChunkRenderHandles;
 
+pub(crate) struct ChunkDetectionOutput {
+    pub spawn_chunk_inputs: Vec<SpawnChunkInput>,
+    pub despawn_chunk_inputs: Vec<DespawnChunkInput>,
+    pub boundary_spawn_targets: HashSet<GridVec>,
+    pub boundary_despawn_targets: HashSet<GridVec>,
+}
+
 #[tracing::instrument(skip_all)]
 pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
     let quad = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
@@ -139,12 +146,17 @@ fn chunk_workflow_timeout_decision(
 pub(crate) fn chunk_detection_system(
     chunk_loader_query: Query<&ChunkLoader>,
     chunk_manager: Res<ChunkManager>,
-) -> (Vec<SpawnChunkInput>, Vec<DespawnChunkInput>) {
+) -> ChunkDetectionOutput {
     let chunk_loader = match chunk_loader_query.single() {
         Ok(data) => data,
         Err(_) => {
             // warn!("No ChunkLoader found in the world; skipping chunk detection. Despawning all chunks.");
-            return (Vec::new(), chunk_manager.chunks.iter().cloned().map(DespawnChunkInput::new).collect());
+            return ChunkDetectionOutput {
+                spawn_chunk_inputs: Vec::new(),
+                despawn_chunk_inputs: chunk_manager.chunks.iter().cloned().map(DespawnChunkInput::new).collect(),
+                boundary_spawn_targets: HashSet::new(),
+                boundary_despawn_targets: HashSet::new(),
+            };
         }
     };
 
@@ -188,15 +200,52 @@ pub(crate) fn chunk_detection_system(
     //     warn!("Target Chunks at scale: {:?} => {{{}}} {:?}", chunk_loader_grid_coord.scale, target_chunks.len(), target_chunks);
     // }
 
-    let mut final_target_chunks: HashSet<GridVec> = HashSet::new();
-
+    let mut required_target_chunks: HashSet<GridVec> = HashSet::new();
     for (_coord, target_chunks) in &target_chunk_cone {
-        final_target_chunks.extend(target_chunks.iter().cloned());
+        required_target_chunks.extend(target_chunks.iter().cloned());
     }
 
-    let chunks_to_load = final_target_chunks.difference(&current_chunks).cloned();
+    let preload_enabled = CONFIG().get::<bool>("chunk_loader/preload_enabled");
+    let preload_scale_steps = CONFIG().get::<u8>("chunk_loader/preload_scale_steps") as usize;
+    let preload_radius = CONFIG().get::<u32>("chunk_loader/preload_radius");
+    let preload_translation_bias_threshold = CONFIG().get::<f32>("chunk_loader/preload_translation_bias_threshold");
 
+    let mut preload_target_chunks: HashSet<GridVec> = HashSet::new();
+    if preload_enabled {
+        // Predict near-border directional movement at the current scale.
+        let mut directional_delta = IVec2::ZERO;
+        let local_x = chunk_loader.usf_transform.translation.x.local as f32;
+        let local_y = chunk_loader.usf_transform.translation.y.local as f32;
+        if local_x >= preload_translation_bias_threshold {
+            directional_delta.x = 1;
+        } else if local_x <= -preload_translation_bias_threshold {
+            directional_delta.x = -1;
+        }
+        if local_y >= preload_translation_bias_threshold {
+            directional_delta.y = 1;
+        } else if local_y <= -preload_translation_bias_threshold {
+            directional_delta.y = -1;
+        }
+        if directional_delta != IVec2::ZERO {
+            let directional_steps = preload_scale_steps.max(1);
+            let directional_radius = radius.saturating_add(preload_radius.max(1));
+
+            for step in 1..=directional_steps {
+                let directional_center = chunk_loader.coord.clone() + (directional_delta * step as i32);
+                preload_target_chunks.extend(directional_center.query_grid_radius(directional_radius).into_iter());
+            }
+        }
+    }
+
+    preload_target_chunks.retain(|coord| !required_target_chunks.contains(coord));
+
+    let mut final_target_chunks = required_target_chunks.clone();
+    final_target_chunks.extend(preload_target_chunks.iter().cloned());
+
+    let chunks_to_load = final_target_chunks.difference(&current_chunks).cloned();
     let chunks_to_unload = current_chunks.difference(&final_target_chunks).cloned();
+    let boundary_spawn_targets: HashSet<GridVec> = required_target_chunks.difference(&current_chunks).cloned().collect();
+    let boundary_despawn_targets: HashSet<GridVec> = HashSet::new();
 
     for chunk in chunks_to_load {
         spawn_chunk_inputs.push(SpawnChunkInput {
@@ -216,28 +265,41 @@ pub(crate) fn chunk_detection_system(
     //     );
     // }
 
-    // We now have `spawn_chunk_inputs` and `despawn_chunk_inputs` populated and ready to be used by the chunk management system
-
-    (spawn_chunk_inputs, despawn_chunk_inputs)
+    ChunkDetectionOutput {
+        spawn_chunk_inputs,
+        despawn_chunk_inputs,
+        boundary_spawn_targets,
+        boundary_despawn_targets,
+    }
 }
 
 #[tracing::instrument(skip_all)]
 pub(crate) fn chunk_management_system(
-    In(inputs): In<(Vec<SpawnChunkInput>, Vec<DespawnChunkInput>)>,
+    In(detection_output): In<ChunkDetectionOutput>,
     chunk_loader_query: Query<&ChunkLoader>,
     mut workflow_state: ResMut<ChunkActionWorkflowState>,
     mut chunk_load_gate: ResMut<ChunkLoadGate>,
     mut chunk_batch_tracker: ResMut<ChunkBatchTracker>,
     mut chunk_batch_lifecycle_writer: MessageWriter<ChunkBatchLifecycleMessage>,
 ) {
-    let (spawn_chunk_inputs, despawn_chunk_inputs) = inputs;
+    let ChunkDetectionOutput {
+        spawn_chunk_inputs,
+        despawn_chunk_inputs,
+        boundary_spawn_targets,
+        boundary_despawn_targets,
+    } = detection_output;
+
     let current_view_scale = chunk_loader_query
         .single()
         .map(|chunk_loader| chunk_loader.coord.scale as i32)
         .unwrap_or_default();
+    let current_view_coord = chunk_loader_query
+        .single()
+        .map(|chunk_loader| chunk_loader.coord.clone())
+        .unwrap_or_default();
     let incoming_spawn_targets: HashSet<GridVec> = spawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect();
     let incoming_despawn_targets: HashSet<GridVec> = despawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect();
-    let has_boundary_request = !incoming_spawn_targets.is_empty() || !incoming_despawn_targets.is_empty();
+    let has_boundary_request = !boundary_spawn_targets.is_empty() || !boundary_despawn_targets.is_empty();
     if has_boundary_request {
         chunk_load_gate.boundary_quiet_frames = 0;
     }
@@ -297,7 +359,7 @@ pub(crate) fn chunk_management_system(
         let despawn_done = handles.despawn.as_ref().is_none_or(|h| h.is_finished());
 
         if !spawn_done || !despawn_done {
-            if has_boundary_request && workflow_state.has_new_boundary_request(&incoming_spawn_targets, &incoming_despawn_targets) {
+            if has_boundary_request && workflow_state.has_new_boundary_request(&boundary_spawn_targets, &boundary_despawn_targets) {
                 let changed = chunk_load_gate.lock_by_in_flight_boundary();
                 if changed {
                     warn!(
@@ -400,9 +462,14 @@ pub(crate) fn chunk_management_system(
             .iter()
             .map(|input| {
                 let coord = input.grid_coord.clone();
+                let coord_native_logical = coord.clone().to_native_logical(current_view_coord.clone());
+                let coord_relative_chunk_units = IVec2::new(
+                    (coord_native_logical.x / 1000.0).round() as i32,
+                    (coord_native_logical.y / 1000.0).round() as i32,
+                );
 
                 crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
-                    chunk_pos: [coord.xy.x, coord.xy.y],
+                    chunk_pos: [coord_relative_chunk_units.x, coord_relative_chunk_units.y],
                     chunk_size: 1000,
                     chunk_scale: coord.scale as i32,
                     current_view_scale,
@@ -488,7 +555,7 @@ pub(crate) fn chunk_management_system(
         None
     };
 
-    workflow_state.set_in_flight_targets(incoming_spawn_targets, incoming_despawn_targets);
+    workflow_state.set_in_flight_targets(boundary_spawn_targets, boundary_despawn_targets);
     workflow_state.handles = Some(crate::chunk::types::ChunkActionWorkflowHandles {
         spawn: spawn_handle,
         despawn: despawn_handle,
