@@ -171,11 +171,7 @@ impl ChunkBatchTracker {
         ChunkBatchPlanResult::Planned(planned)
     }
 
-    pub fn start_planned_or_direct(
-        &mut self,
-        spawn_targets: &HashSet<GridVec>,
-        despawn_targets: &HashSet<GridVec>,
-    ) -> Option<ChunkBatchSnapshot> {
+    pub fn start_planned_or_direct(&mut self, spawn_targets: &HashSet<GridVec>, despawn_targets: &HashSet<GridVec>) -> Option<ChunkBatchSnapshot> {
         let targets = ChunkBatchTargets::from_refs(spawn_targets, despawn_targets);
         if targets.is_empty() {
             return None;
@@ -186,9 +182,7 @@ impl ChunkBatchTracker {
         }
 
         let batch = if self.planned.as_ref().is_some_and(|planned| planned.targets == targets) {
-            self.planned
-                .take()
-                .expect("ChunkBatchTracker invariant: planned batch vanished before start")
+            self.planned.take().expect("ChunkBatchTracker invariant: planned batch vanished before start")
         } else {
             self.new_snapshot(targets)
         };

@@ -1,6 +1,9 @@
 use rhai::ImmutableString;
 
-use super::{ids::TypeId, names::{FieldName, VariantName}};
+use super::{
+    ids::TypeId,
+    names::{FieldName, VariantName},
+};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct FieldInfo {
@@ -63,7 +66,10 @@ impl From<ImmutableString> for VariantInfo {
         let parts: Vec<&str> = variant_signature.splitn(2, '(').collect();
 
         if parts.len() != 2 || !variant_signature.ends_with(')') {
-            panic!("VariantInfo strings must be in the format 'VariantName(field1: Type1, field2: Type2)', got '{}'", variant_signature);
+            panic!(
+                "VariantInfo strings must be in the format 'VariantName(field1: Type1, field2: Type2)', got '{}'",
+                variant_signature
+            );
         }
 
         let name = VariantName::from(ImmutableString::from(parts[0].trim()));
@@ -71,25 +77,15 @@ impl From<ImmutableString> for VariantInfo {
         let field_infos: Vec<FieldInfo> = if fields_str.trim().is_empty() {
             Vec::new()
         } else {
-            fields_str
-                .split(',')
-                .map(|s| FieldInfo::from(ImmutableString::from(s.trim())))
-                .collect()
+            fields_str.split(',').map(|s| FieldInfo::from(ImmutableString::from(s.trim()))).collect()
         };
 
-        VariantInfo {
-            name,
-            field_infos,
-        }
+        VariantInfo { name, field_infos }
     }
 }
 impl From<VariantInfo> for ImmutableString {
     fn from(variant_info: VariantInfo) -> Self {
-        let field_signatures: Vec<ImmutableString> = variant_info
-            .field_infos
-            .into_iter()
-            .map(|fi| fi.into())
-            .collect();
+        let field_signatures: Vec<ImmutableString> = variant_info.field_infos.into_iter().map(|fi| fi.into()).collect();
 
         ImmutableString::from(format!("{} {{ {} }}", variant_info.name.name, field_signatures.join(", ")))
     }
@@ -109,37 +105,21 @@ impl std::fmt::Display for VariantInfo {
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum TypeDataInfo {
-    Struct {
-        field_infos: Vec<FieldInfo>,
-    },
-    Enum {
-        variant_infos: Vec<VariantInfo>,
-    },
+    Struct { field_infos: Vec<FieldInfo> },
+    Enum { variant_infos: Vec<VariantInfo> },
 }
 impl From<TypeDataInfo> for ImmutableString {
     fn from(type_data_info: TypeDataInfo) -> Self {
         match type_data_info {
             TypeDataInfo::Struct { field_infos } => {
-                let field_signatures: Vec<ImmutableString> = field_infos
-                    .into_iter()
-                    .map(|fi| fi.into())
-                    .collect();
+                let field_signatures: Vec<ImmutableString> = field_infos.into_iter().map(|fi| fi.into()).collect();
 
-                ImmutableString::from(format!(
-                    "Struct {{\n\t{}\n}}",
-                    field_signatures.join(",\n\t")
-                ))
+                ImmutableString::from(format!("Struct {{\n\t{}\n}}", field_signatures.join(",\n\t")))
             }
             TypeDataInfo::Enum { variant_infos } => {
-                let variant_signatures: Vec<ImmutableString> = variant_infos
-                    .into_iter()
-                    .map(|vi| vi.into())
-                    .collect();
+                let variant_signatures: Vec<ImmutableString> = variant_infos.into_iter().map(|vi| vi.into()).collect();
 
-                ImmutableString::from(format!(
-                    "Enum {{\n\t{}\n}}",
-                    variant_signatures.join(",\n\t")
-                ))
+                ImmutableString::from(format!("Enum {{\n\t{}\n}}", variant_signatures.join(",\n\t")))
             }
         }
     }
@@ -192,26 +172,14 @@ impl From<TypeLayoutInfo> for ImmutableString {
     fn from(type_layout_info: TypeLayoutInfo) -> Self {
         match type_layout_info.data_info {
             TypeDataInfo::Struct { field_infos } => {
-                let field_signatures: Vec<ImmutableString> = field_infos
-                    .into_iter()
-                    .map(|fi| fi.into())
-                    .collect();
+                let field_signatures: Vec<ImmutableString> = field_infos.into_iter().map(|fi| fi.into()).collect();
 
-                ImmutableString::from(format!(
-                    "Struct {{\n\t{}\n}}",
-                    field_signatures.join(",\n\t")
-                ))
+                ImmutableString::from(format!("Struct {{\n\t{}\n}}", field_signatures.join(",\n\t")))
             }
             TypeDataInfo::Enum { variant_infos } => {
-                let variant_signatures: Vec<ImmutableString> = variant_infos
-                    .into_iter()
-                    .map(|vi| vi.into())
-                    .collect();
+                let variant_signatures: Vec<ImmutableString> = variant_infos.into_iter().map(|vi| vi.into()).collect();
 
-                ImmutableString::from(format!(
-                    "Enum {{\n\t{}\n}}",
-                    variant_signatures.join(",\n\t")
-                ))
+                ImmutableString::from(format!("Enum {{\n\t{}\n}}", variant_signatures.join(",\n\t")))
             }
         }
     }

@@ -4,9 +4,7 @@ use std::any::TypeId as RustTypeId;
 use crate::rhai_binding::runtime::ecs::bundle::internals::trait_objects::BundleTraitObject;
 use crate::rhai_binding::runtime::ecs::system::query::bindings::types::{Query as ScriptQuery, QueryData as ScriptQueryData, QueryFilter as ScriptQueryFilter};
 use crate::rhai_binding::runtime::ecs::world::bindings::types::World;
-use crate::rhai_binding::runtime::ecs::world::entity_ref::bindings::types::{
-    EntityMut as ScriptEntityMut, EntityRef as ScriptEntityRef,
-};
+use crate::rhai_binding::runtime::ecs::world::entity_ref::bindings::types::{EntityMut as ScriptEntityMut, EntityRef as ScriptEntityRef};
 use crate::rhai_binding::runtime::ecs::world::entity_ref::internals::traits::{EntityMutApi, EntityRefApi};
 use crate::rhai_binding::runtime::ecs::world::internals::traits::WorldApi;
 use crate::rhai_binding::runtime::std::iter::bindings::types::StringIter as ScriptStringIter;

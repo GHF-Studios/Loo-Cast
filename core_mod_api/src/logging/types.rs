@@ -1,8 +1,8 @@
 use crate::bevy::prelude::Reflect;
 use std::collections::HashMap;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::sync::LazyLock;
+use std::sync::atomic::Ordering;
 use tracing::metadata::Kind;
 use tracing::{Level as TracingLevel, Metadata};
 

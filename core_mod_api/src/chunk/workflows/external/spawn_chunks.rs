@@ -7,7 +7,7 @@ use crate::chunk::{
 };
 use crate::config::statics::CONFIG;
 use crate::render::{
-    components::{MainCamera, RenderProxyHandle},
+    components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision},
     functions::new_sprite_proxy_bundle,
 };
 use crate::usf::{pos::grid::types::GridVec, scale::Scale};
@@ -74,7 +74,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             continue;
         }
         let origin = chunk_loader.origin_offset.clone();
-        let logical_world_coord = grid_coord.clone().to_native_logical(origin.clone());
         let (visual_world_coord, visual_world_scale) = grid_coord.clone().to_native_visual(origin);
         let metric_texture = input.metric_texture.clone();
 
@@ -90,14 +89,21 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         // let camera_world_coord = camera_pos.to_world_coord(scale, camera_grid_extent);
         // println!("camera_world_coord: {:?}", camera_world_coord);
 
-        let chunk_transform = Transform {
-            translation: logical_world_coord.extend(chunk_z),
-            ..Default::default()
-        };
+        // Under the proxy contract, root transforms are intentionally non-authoritative.
+        let chunk_transform = Transform::default();
 
         let chunk_name = Name::new(format!("chunk_entity({grid_coord:?})"));
 
         let chunk_entity = commands.spawn(()).id();
+
+        let chunk_logic_proxy_entity = commands
+            .spawn((
+                Name::new(format!("logic_proxy({grid_coord:?})")),
+                Transform::default(),
+                LogicProxy { source: chunk_entity },
+                ProxySyncRevision::default(),
+            ))
+            .id();
 
         let chunk_render_proxy_entity = commands
             .spawn(new_sprite_proxy_bundle(
@@ -112,8 +118,11 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         commands.entity(chunk_entity).insert((
             chunk_transform,
             Chunk { coord: grid_coord.clone() },
-            RenderProxyHandle {
-                proxy_entity: chunk_render_proxy_entity,
+            EntityProxyLink {
+                logic_entity: chunk_logic_proxy_entity,
+                render_entity: chunk_render_proxy_entity,
+                revision: ProxySyncRevision::default(),
+                root_transform_contract_is_ub: true,
             },
             chunk_name,
         ));

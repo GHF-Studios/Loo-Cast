@@ -6,9 +6,7 @@ use std::time::Duration;
 use crate::chunk::components::ChunkLoader;
 use crate::chunk::enums::ZoomState;
 use crate::chunk::messages::ChunkBatchLifecycleMessage;
-use crate::chunk::resources::{
-    ChunkActionWorkflowState, ChunkBatchPlanResult, ChunkBatchTracker, ChunkLoadGate, ChunkLoadGateState, ChunkManager,
-};
+use crate::chunk::resources::{ChunkActionWorkflowState, ChunkBatchPlanResult, ChunkBatchTracker, ChunkLoadGate, ChunkLoadGateState, ChunkManager};
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
 use crate::config::statics::CONFIG;
@@ -16,7 +14,7 @@ use crate::core::protocol::{AppOrchestrationSignal, AppOrchestrationState, Orche
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 use crate::workflow::functions::{
-    handle_composite_workflow_return_now, run_workflow_io_with_timeout_control, run_workflow_ioe_with_timeout_control, WorkflowTimeoutControlDecision,
+    WorkflowTimeoutControlDecision, handle_composite_workflow_return_now, run_workflow_io_with_timeout_control, run_workflow_ioe_with_timeout_control,
 };
 use crate::workflow::resources::WorkflowTimeoutSignalReceiver;
 use crate::workflow::types::WorkflowTimeoutMode;
@@ -54,10 +52,7 @@ pub(crate) fn chunk_zoom_cooldown_system(time: Res<Time<Virtual>>, mut timer: Lo
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) fn chunk_timeout_signal_system(
-    mut chunk_load_gate: ResMut<ChunkLoadGate>,
-    timeout_signal_receiver: Option<Res<WorkflowTimeoutSignalReceiver>>,
-) {
+pub(crate) fn chunk_timeout_signal_system(mut chunk_load_gate: ResMut<ChunkLoadGate>, timeout_signal_receiver: Option<Res<WorkflowTimeoutSignalReceiver>>) {
     let Some(timeout_signal_receiver) = timeout_signal_receiver else {
         return;
     };
@@ -115,11 +110,7 @@ pub(crate) fn sync_chunk_orchestration_state_system(
     app_orchestration_state.active_retries = active_retries;
 }
 
-fn chunk_workflow_timeout_decision(
-    module_name: &'static str,
-    workflow_name: &'static str,
-    timeout_count: usize,
-) -> WorkflowTimeoutControlDecision {
+fn chunk_workflow_timeout_decision(module_name: &'static str, workflow_name: &'static str, timeout_count: usize) -> WorkflowTimeoutControlDecision {
     if timeout_count == 1 {
         warn!(
             "Chunk workflow timeout request: {}::{}, timeout_count={}, decision=Retry",
@@ -344,9 +335,7 @@ pub(crate) fn chunk_management_system(
                 finished_batch.spawn_count(),
                 finished_batch.despawn_count()
             );
-            chunk_batch_lifecycle_writer.write(ChunkBatchLifecycleMessage::Finished {
-                batch: finished_batch,
-            });
+            chunk_batch_lifecycle_writer.write(ChunkBatchLifecycleMessage::Finished { batch: finished_batch });
         }
     }
 
@@ -391,9 +380,7 @@ pub(crate) fn chunk_management_system(
             started_batch.spawn_count(),
             started_batch.despawn_count()
         );
-        chunk_batch_lifecycle_writer.write(ChunkBatchLifecycleMessage::Started {
-            batch: started_batch,
-        });
+        chunk_batch_lifecycle_writer.write(ChunkBatchLifecycleMessage::Started { batch: started_batch });
     }
 
     // Step 2: Build & launch composite workflows

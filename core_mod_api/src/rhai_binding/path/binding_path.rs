@@ -2,10 +2,10 @@ use rhai::ImmutableString;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum BindingPathSegment {
-    Module(ImmutableString),      // snake_case
-    Type(ImmutableString),        // PascalCase
-    Trait(ImmutableString),       // PascalCase
-    Function(ImmutableString),    // snake_case
+    Module(ImmutableString),   // snake_case
+    Type(ImmutableString),     // PascalCase
+    Trait(ImmutableString),    // PascalCase
+    Function(ImmutableString), // snake_case
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -50,10 +50,7 @@ impl BindingPath {
             }
 
             match seg {
-                BindingPathSegment::Module(s)
-                | BindingPathSegment::Type(s)
-                | BindingPathSegment::Trait(s)
-                | BindingPathSegment::Function(s) => out.push_str(s),
+                BindingPathSegment::Module(s) | BindingPathSegment::Type(s) | BindingPathSegment::Trait(s) | BindingPathSegment::Function(s) => out.push_str(s),
             }
         }
 

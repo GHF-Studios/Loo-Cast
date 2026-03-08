@@ -3,20 +3,11 @@ use std::sync::Arc;
 use crate::rhai_binding::{
     internals::statics::RUNTIME_BINDING_GRAPH,
     meta::{
-        generic::{
-            module::*,
-            trait_::*,
-            type_::*,
-            impl_::*,
-            function::*,
-        },
-        monomorphized::{
-            function::*, impl_::*, module::*, trait_::*, type_::*
-        }
+        generic::{function::*, impl_::*, module::*, trait_::*, type_::*},
+        monomorphized::{function::*, impl_::*, module::*, trait_::*, type_::*},
     },
-    path::type_path::TypePath
+    path::type_path::TypePath,
 };
-
 
 impl TopLevelModuleMetadata {
     pub(super) fn register_top_level_module(&self, engine: &mut rhai::Engine) {
@@ -52,12 +43,7 @@ impl TopLevelModuleMetadata {
 
             // === Inherent Impl ===
 
-            let inherent_impl_paths: Vec<_> = graph
-                .inherent_impls
-                .keys()
-                .filter(|p| p.type_path() == &type_path)
-                .cloned()
-                .collect();
+            let inherent_impl_paths: Vec<_> = graph.inherent_impls.keys().filter(|p| p.type_path() == &type_path).cloned().collect();
 
             let inherent_impl = match inherent_impl_paths.len() {
                 0 => None,
@@ -66,7 +52,7 @@ impl TopLevelModuleMetadata {
                         .inherent_impls
                         .get(&inherent_impl_paths[0])
                         .unwrap_or_else(|| panic!("Missing InherentImpl '{}'", inherent_impl_paths[0]))
-                        .clone()
+                        .clone(),
                 ),
                 _ => panic!("Multiple inherent impls for type '{}'", type_path),
             };
@@ -78,21 +64,10 @@ impl TopLevelModuleMetadata {
                 .keys()
                 .filter(|p| p.type_path() == &type_path)
                 .cloned()
-                .map(|p| {
-                    graph
-                        .trait_impls
-                        .get(&p)
-                        .unwrap_or_else(|| panic!("Missing TraitImpl '{}'", p))
-                        .clone()
-                })
+                .map(|p| graph.trait_impls.get(&p).unwrap_or_else(|| panic!("Missing TraitImpl '{}'", p)).clone())
                 .collect();
 
-            type_binding_module.register_type_binding_module(
-                engine,
-                &mut top_level_module,
-                inherent_impl,
-                trait_impls,
-            );
+            type_binding_module.register_type_binding_module(engine, &mut top_level_module, inherent_impl, trait_impls);
         }
 
         for path in self.module_associated_functions().get().into_iter() {
@@ -138,12 +113,7 @@ impl SubModuleMetadata {
 
             // === Inherent Impl ===
 
-            let inherent_impl_paths: Vec<_> = graph
-                .inherent_impls
-                .keys()
-                .filter(|p| p.type_path() == &type_path)
-                .cloned()
-                .collect();
+            let inherent_impl_paths: Vec<_> = graph.inherent_impls.keys().filter(|p| p.type_path() == &type_path).cloned().collect();
 
             let inherent_impl = match inherent_impl_paths.len() {
                 0 => None,
@@ -152,7 +122,7 @@ impl SubModuleMetadata {
                         .inherent_impls
                         .get(&inherent_impl_paths[0])
                         .unwrap_or_else(|| panic!("Missing InherentImpl '{}'", inherent_impl_paths[0]))
-                        .clone()
+                        .clone(),
                 ),
                 _ => panic!("Multiple inherent impls for type '{}'", type_path),
             };
@@ -164,21 +134,10 @@ impl SubModuleMetadata {
                 .keys()
                 .filter(|p| p.type_path() == &type_path)
                 .cloned()
-                .map(|p| {
-                    graph
-                        .trait_impls
-                        .get(&p)
-                        .unwrap_or_else(|| panic!("Missing TraitImpl '{}'", p))
-                        .clone()
-                })
+                .map(|p| graph.trait_impls.get(&p).unwrap_or_else(|| panic!("Missing TraitImpl '{}'", p)).clone())
                 .collect();
 
-            type_binding_module.register_type_binding_module(
-                engine,
-                &mut origin_sub_module,
-                inherent_impl,
-                trait_impls,
-            );
+            type_binding_module.register_type_binding_module(engine, &mut origin_sub_module, inherent_impl, trait_impls);
         }
 
         for path in self.module_associated_functions().get().into_iter() {
@@ -191,7 +150,13 @@ impl SubModuleMetadata {
 }
 
 impl TypeBindingModuleMetadata {
-    fn register_type_binding_module(&self, engine: &mut rhai::Engine, parent_module: &mut rhai::Module, inherent_impl: Option<InherentImplMetadata>, trait_impls: Vec<TraitImplMetadata>) {
+    fn register_type_binding_module(
+        &self,
+        engine: &mut rhai::Engine,
+        parent_module: &mut rhai::Module,
+        inherent_impl: Option<InherentImplMetadata>,
+        trait_impls: Vec<TraitImplMetadata>,
+    ) {
         let graph = RUNTIME_BINDING_GRAPH();
         let mut type_binding_module = rhai::Module::new();
         let id_path = self.id_path().get();
@@ -200,13 +165,17 @@ impl TypeBindingModuleMetadata {
         if let Some(inherent_impl) = inherent_impl {
             inherent_impl.register_inherent_impl(engine, &mut type_binding_module);
         }
-        
+
         for trait_impl in trait_impls {
             trait_impl.register_trait_impl(engine, &mut type_binding_module);
         }
 
         for path in self.item_associated_functions().get().into_iter() {
-            let item_associated_function = graph.item_associated_functions.get(&path).unwrap_or_else(|| panic!("Failed to find item associated function '{}'", path)).clone();
+            let item_associated_function = graph
+                .item_associated_functions
+                .get(&path)
+                .unwrap_or_else(|| panic!("Failed to find item associated function '{}'", path))
+                .clone();
             item_associated_function.register_item_associated_function(&mut type_binding_module);
         }
 

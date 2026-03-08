@@ -6,8 +6,8 @@
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
 use crate::player::bundles::PlayerBundle;
 use crate::rhai_binding::meta::abstract_::trait_identity::ToTraitObject;
-use crate::rhai_binding::runtime::ecs::dispatch_policy::submit_bundle_spawn_dispatch_entry;
 use crate::rhai_binding::runtime::ecs::bundle::internals::trait_objects::{BundleTrait, BundleTraitObject};
+use crate::rhai_binding::runtime::ecs::dispatch_policy::submit_bundle_spawn_dispatch_entry;
 use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Persistent, Scoped};
 use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
 
@@ -25,11 +25,7 @@ fn dispatch_bundle_sig_player_spawn_single(ent: &mut BevyEntityWorldMut, bundle:
             let bundle: AccessCell<Persistent, PlayerBundle> = ToTraitObject::<BundleTrait>::cast_from(bundle.0);
             ent.insert(bundle.take());
         }
-        TypeValueSemantics::Clone
-        | TypeValueSemantics::Ref
-        | TypeValueSemantics::Mut
-        | TypeValueSemantics::ScopedOwned
-        | TypeValueSemantics::ScopedRef => {
+        TypeValueSemantics::Clone | TypeValueSemantics::Ref | TypeValueSemantics::Mut | TypeValueSemantics::ScopedOwned | TypeValueSemantics::ScopedRef => {
             panic!("PlayerBundle spawn dispatch currently supports semantics: owned | scoped_mut")
         }
     }

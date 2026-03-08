@@ -1,13 +1,13 @@
+use crate::bevy::camera::{ImageRenderTarget, RenderTarget};
 use crate::bevy::ecs::query::QuerySingleError;
-use crate::bevy::input::mouse::MouseWheel;
 use crate::bevy::input::ButtonState;
+use crate::bevy::input::mouse::MouseWheel;
 use crate::bevy::math::FloatOrd;
 use crate::bevy::picking::PickingSettings;
 use crate::bevy::picking::backend::prelude::*;
 use crate::bevy::picking::input::PointerInputSettings;
 use crate::bevy::picking::pointer::{Location, PointerAction, PointerButton, PointerId, PointerInput, PointerLocation, PointerPress};
 use crate::bevy::prelude::*;
-use crate::bevy::camera::{ImageRenderTarget, RenderTarget};
 use crate::bevy::window::{PrimaryWindow, WindowEvent};
 
 use crate::core::types::{Diegetic, Meta, OntologicalContext};
@@ -391,9 +391,7 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
                 return None;
             };
 
-            let sprite_size = sprite.custom_size.unwrap_or(Vec2::ONE)
-                * image.size().as_vec2()
-                * sprite.rect.unwrap_or_default().size();
+            let sprite_size = sprite.custom_size.unwrap_or(Vec2::ONE) * image.size().as_vec2() * sprite.rect.unwrap_or_default().size();
 
             let cursor_pos_sprite_pixel = cursor_pos_sprite;
 
@@ -405,12 +403,9 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
             //     cursor_pos_sprite
             // );
 
-            let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(
-                cursor_pos_sprite_pixel,
-                crate::bevy::sprite::Anchor(Vec2::ZERO),
-                images,
-                texture_atlas_layout
-            ) else {
+            let Ok(cursor_pos_sprite_pixel) =
+                sprite.compute_pixel_space_point(cursor_pos_sprite_pixel, crate::bevy::sprite::Anchor(Vec2::ZERO), images, texture_atlas_layout)
+            else {
                 // warn!("Cursor position '{}' outside sprite bounds", cursor_pos_sprite_pixel);
                 return None;
             };

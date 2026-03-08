@@ -3,12 +3,12 @@ use rhai::ImmutableString;
 use crate::{
     rhai_binding::path::{
         binding_path::{BindingPath, BindingPathSegment},
+        impl_path::TraitImplPath,
         module_path::ModulePath,
         trait_path::TraitPath,
         type_path::TypePath,
-        impl_path::TraitImplPath,
     },
-    utils::string::{assert_snake_case_clean_string, assert_pascal_case_clean_string}
+    utils::string::{assert_pascal_case_clean_string, assert_snake_case_clean_string},
 };
 
 /// Format: `"Type::function"`

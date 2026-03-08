@@ -5,11 +5,11 @@ use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
 
 use crate::{
-    config::statics::CONFIG,
     chunk::resources::{ChunkLoadGate, ChunkLoadGateState},
+    config::statics::CONFIG,
     debug::types::DebugSuiteTabViewer,
     render::{
-        components::RenderProxy,
+        components::{ProxySyncRevision, RenderProxy},
         resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState},
     },
     time::{
@@ -69,6 +69,7 @@ pub fn new_sprite_proxy_bundle(image: Handle<Image>, pos: Vec2, scale: f32, sour
         Sprite { image, ..Default::default() },
         Pickable::default(),
         RenderProxy { source: source_entity },
+        ProxySyncRevision::default(),
     )
 }
 
@@ -130,10 +131,7 @@ pub(crate) fn draw_primary_window_ui(
                     let text_top_left = egui::pos2(text_anchor.x - text_size.x * 0.5, text_anchor.y);
 
                     let padding = egui::vec2(10.0, 6.0);
-                    let bg_rect = egui::Rect::from_min_max(
-                        text_top_left - padding,
-                        text_top_left + text_size + padding,
-                    );
+                    let bg_rect = egui::Rect::from_min_max(text_top_left - padding, text_top_left + text_size + padding);
                     ui.painter().rect_filled(bg_rect, 4.0, egui::Color32::from_black_alpha(220));
                     ui.painter().galley(text_top_left, galley, egui::Color32::WHITE);
                 }

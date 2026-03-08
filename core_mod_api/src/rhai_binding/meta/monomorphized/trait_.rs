@@ -26,16 +26,28 @@ pub struct TraitMetadata {
     pub object_safety_notes: CloneLazy<Vec<ImmutableString>>,
 }
 impl ConstDynMetadata for TraitMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
+    fn raw_rust_module_path(&self) -> &'static str {
+        self.raw_rust_module_path
+    }
 }
 impl DynGetTraitName for TraitMetadata {
-    fn trait_name(&self) -> &'static str { self.trait_name }
+    fn trait_name(&self) -> &'static str {
+        self.trait_name
+    }
 }
 impl TraitConstDynMetadata for TraitMetadata {
-    fn id_path(&self) -> CloneLazy<TraitPath> { self.id_path.clone() }
-    fn super_traits(&self) -> CloneLazy<Vec<TraitPath>> { self.super_traits.clone() }
-    fn is_dyn_safe(&self) -> CloneLazy<bool> { self.is_dyn_safe.clone() }
-    fn object_safety_notes(&self) -> CloneLazy<Vec<ImmutableString>> { self.object_safety_notes.clone() }
+    fn id_path(&self) -> CloneLazy<TraitPath> {
+        self.id_path.clone()
+    }
+    fn super_traits(&self) -> CloneLazy<Vec<TraitPath>> {
+        self.super_traits.clone()
+    }
+    fn is_dyn_safe(&self) -> CloneLazy<bool> {
+        self.is_dyn_safe.clone()
+    }
+    fn object_safety_notes(&self) -> CloneLazy<Vec<ImmutableString>> {
+        self.object_safety_notes.clone()
+    }
 }
 #[derive(Clone)]
 pub struct TraitObjectMetadata {
@@ -46,11 +58,17 @@ pub struct TraitObjectMetadata {
     pub trait_object_name: &'static str,
 }
 impl ConstDynMetadata for TraitObjectMetadata {
-    fn raw_rust_module_path(&self) -> &'static str { self.raw_rust_module_path }
+    fn raw_rust_module_path(&self) -> &'static str {
+        self.raw_rust_module_path
+    }
 }
 impl DynGetTraitObjectName for TraitObjectMetadata {
-    fn trait_object_name(&self) -> &'static str { self.trait_object_name }
+    fn trait_object_name(&self) -> &'static str {
+        self.trait_object_name
+    }
 }
 impl TraitObjectConstDynMetadata for TraitObjectMetadata {
-    fn id_path(&self) -> CloneLazy<TraitPath> { self.id_path.clone() }
+    fn id_path(&self) -> CloneLazy<TraitPath> {
+        self.id_path.clone()
+    }
 }

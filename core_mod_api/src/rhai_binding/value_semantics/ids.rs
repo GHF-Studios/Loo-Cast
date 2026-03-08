@@ -21,27 +21,18 @@ impl From<ImmutableString> for ModuleId {
             panic!("ModuleId strings must not be empty");
         }
 
-        let segments: Vec<ModuleName> = module_path
-            .split("::")
-            .map(|s| ModuleName::new(ImmutableString::from(s)))
-            .collect();
+        let segments: Vec<ModuleName> = module_path.split("::").map(|s| ModuleName::new(ImmutableString::from(s))).collect();
 
         if segments.is_empty() {
             panic!("ModuleId must have at least one segment, got '{}'", module_path);
         }
 
-        ModuleId {
-            module_path: segments,
-        }
+        ModuleId { module_path: segments }
     }
 }
 impl From<ModuleId> for ImmutableString {
     fn from(module_id: ModuleId) -> Self {
-        let segments: Vec<ImmutableString> = module_id
-            .module_path
-            .into_iter()
-            .map(|mn| mn.name)
-            .collect();
+        let segments: Vec<ImmutableString> = module_id.module_path.into_iter().map(|mn| mn.name).collect();
 
         ImmutableString::from(segments.join("::"))
     }
@@ -87,10 +78,7 @@ impl From<ImmutableString> for TypeId {
         let type_name = TypeName::new(ImmutableString::from(parts[0]));
         let module_id = ModuleId::from(ImmutableString::from(parts[1]));
 
-        TypeId {
-            module_id,
-            type_name,
-        }
+        TypeId { module_id, type_name }
     }
 }
 impl From<TypeId> for ImmutableString {
@@ -162,10 +150,7 @@ impl From<ImmutableString> for DynamicTraitId {
         let trait_name = TraitName::new(ImmutableString::from(parts[0]));
         let module_id = ModuleId::from(ImmutableString::from(parts[1]));
 
-        DynamicTraitId {
-            module_id,
-            trait_name,
-        }
+        DynamicTraitId { module_id, trait_name }
     }
 }
 impl From<DynamicTraitId> for ImmutableString {

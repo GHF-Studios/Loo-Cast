@@ -1,11 +1,9 @@
 use crate::bevy::ecs::entity::Entity as BevyEntity;
-use crate::rhai_binding::value_semantics::access_traits::ReadAccessProvider;
-use crate::rhai_binding::runtime::{
-    ecs::world::entity_ref::{
-        bindings::types::{EntityMut, EntityRef, EntityWorldMut},
-        internals::traits::{EntityMutApi, EntityRefApi, EntityWorldMutApi}
-    }
+use crate::rhai_binding::runtime::ecs::world::entity_ref::{
+    bindings::types::{EntityMut, EntityRef, EntityWorldMut},
+    internals::traits::{EntityMutApi, EntityRefApi, EntityWorldMutApi},
 };
+use crate::rhai_binding::value_semantics::access_traits::ReadAccessProvider;
 
 impl EntityRefApi for EntityRef {
     fn id(&self) -> BevyEntity {

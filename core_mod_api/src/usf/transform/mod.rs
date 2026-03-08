@@ -17,4 +17,3 @@ impl Plugin for TransformPlugin {
             .register_type::<UsfTransform>();
     }
 }
-

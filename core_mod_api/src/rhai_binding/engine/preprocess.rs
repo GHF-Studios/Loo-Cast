@@ -76,8 +76,8 @@ fn build_known_global_symbols_by_name() -> HashMap<String, HashSet<String>> {
 static KNOWN_GLOBAL_SYMBOLS_BY_NAME: Lazy<HashMap<String, HashSet<String>>> = Lazy::new(build_known_global_symbols_by_name);
 
 static RESERVED_RHAI_KEYWORDS: &[&str] = &[
-    "if", "else", "while", "loop", "for", "in", "switch", "case", "default", "break", "continue", "return", "throw", "try",
-    "catch", "do", "until", "let", "const", "fn", "private", "this", "true", "false", "null",
+    "if", "else", "while", "loop", "for", "in", "switch", "case", "default", "break", "continue", "return", "throw", "try", "catch", "do", "until", "let",
+    "const", "fn", "private", "this", "true", "false", "null",
 ];
 
 fn validate_alias_name(use_alias: &UseAlias, source_name: &str) {
@@ -136,9 +136,7 @@ fn parse_use_alias_line(line: &str, line_number: usize) -> Option<UseAlias> {
     }
     rest = rest.trim_start();
 
-    let alias_end = rest
-        .find(|ch: char| ch.is_whitespace() || ch == ';')
-        .unwrap_or(rest.len());
+    let alias_end = rest.find(|ch: char| ch.is_whitespace() || ch == ';').unwrap_or(rest.len());
     let alias = rest[..alias_end].trim();
     if !is_valid_identifier(alias) {
         panic!("Invalid Rhai use alias declaration at line {line_number}: invalid alias `{alias}`");

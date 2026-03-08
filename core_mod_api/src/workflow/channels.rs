@@ -1,9 +1,9 @@
 use crate::bevy::prelude::*;
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use std::sync::OnceLock;
 use tokio::sync::{
-    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     Mutex, MutexGuard,
+    mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
 };
 
 use super::messages::*;

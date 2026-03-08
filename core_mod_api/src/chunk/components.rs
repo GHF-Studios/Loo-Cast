@@ -2,10 +2,10 @@ use crate::bevy::prelude::*;
 use core_mod_macros::component_ctor;
 use rhai::Dynamic;
 
+use crate::rhai_binding::runtime::ecs::component::internals::traits::InsertComponentFromDynamic;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 use crate::usf::transform::types::{UsfFloatDomain, UsfFloatPivotResult, UsfTransform};
-use crate::rhai_binding::runtime::ecs::component::internals::traits::InsertComponentFromDynamic;
 
 use super::enums::ZoomState;
 

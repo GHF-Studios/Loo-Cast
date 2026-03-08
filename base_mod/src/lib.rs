@@ -8,7 +8,7 @@
 //! - Gameplay behavior is primarily authored as assets (rhai scripts, configs) and exposed via
 //!   `base_mod_api` wrappers; avoid embedding gameplay logic directly in the Rust code in `base_mod_api`.
 //! - Avoid embedding gameplay asset files anywhere else but `base_mod` to keep a single
-//!   authoritative source for built-in gameplay content. 
+//!   authoritative source for built-in gameplay content.
 //! - The crate exposes an initialization hook (via `api_initializer!`) to register mod-provided
 //!   statics and assets with the runtime.
 

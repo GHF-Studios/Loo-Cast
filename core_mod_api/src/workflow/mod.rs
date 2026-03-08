@@ -1,7 +1,7 @@
 pub mod channels;
 pub mod composite_workflow_context;
-pub mod messages;
 pub mod functions;
+pub mod messages;
 pub mod resources;
 pub mod statics;
 pub mod systems;
@@ -20,8 +20,8 @@ use crate::bevy::{
 use bevy_consumable_message::ConsumableMessageApp;
 use channels::*;
 use composite_workflow_context::*;
-use messages::*;
 use instance::*;
+use messages::*;
 use request::*;
 use resources::*;
 use response::*;

@@ -40,8 +40,6 @@ core_mod_macros::reflect_extern_method_function!(
 core_mod_macros::reflect_extern_method_function!(
     id = bevy::ecs::entity::Entity::to_string,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        engine.register_fn(name, |e: &mut BevyEntity| {
-            format!("Entity(index={}, gen={})", e.index(), e.generation())
-        });
+        engine.register_fn(name, |e: &mut BevyEntity| format!("Entity(index={}, gen={})", e.index(), e.generation()));
     },
 );

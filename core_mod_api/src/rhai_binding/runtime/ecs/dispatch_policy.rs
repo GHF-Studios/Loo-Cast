@@ -57,9 +57,7 @@ fn validate_signature_id(signature_id: &str, expected_prefix: &str, domain: &str
         panic!("Invalid {domain} signature id '{signature_id}': whitespace is not allowed");
     }
     if !signature_id.starts_with(expected_prefix) {
-        panic!(
-            "Invalid {domain} signature id '{signature_id}': expected prefix '{expected_prefix}'"
-        );
+        panic!("Invalid {domain} signature id '{signature_id}': expected prefix '{expected_prefix}'");
     }
 }
 
@@ -155,52 +153,28 @@ pub(crate) use submit_bundle_spawn_dispatch_entry;
 #[cfg(test)]
 mod tests {
     use super::{
-        validate_bundle_signature_id,
-        validate_message_signature_id,
-        validate_query_signature_id,
-        validate_trait_path_id,
-        validate_type_path_id,
+        validate_bundle_signature_id, validate_message_signature_id, validate_query_signature_id, validate_trait_path_id, validate_type_path_id,
         validate_type_path_list,
     };
     use std::collections::HashSet;
 
     use crate::rhai_binding::bridges::domains::bevy::ecs::catalog::{
-        bundle_signatures::{
-            BUNDLE_SIG__PLAYER__SPAWN_SINGLE,
-            TYPE_PATH__PLAYER_BUNDLE,
-            TYPE_PATH__TRAIT_BUNDLE,
-        },
-        message_signatures::{
-            MESSAGE_SIG__SCRIPT_PROBE__DRAIN,
-            MESSAGE_SIG__SCRIPT_PROBE__WRITE,
-            TYPE_PATH__SCRIPT_PROBE_MESSAGE,
-        },
-        query_signatures::{
-            QUERY_SIG__ENTITY,
-            QUERY_SIG__ENTITY__WITH_PLAYER,
-            TYPE_PATH__ENTITY,
-            TYPE_PATH__PLAYER,
-        },
+        bundle_signatures::{BUNDLE_SIG__PLAYER__SPAWN_SINGLE, TYPE_PATH__PLAYER_BUNDLE, TYPE_PATH__TRAIT_BUNDLE},
+        message_signatures::{MESSAGE_SIG__SCRIPT_PROBE__DRAIN, MESSAGE_SIG__SCRIPT_PROBE__WRITE, TYPE_PATH__SCRIPT_PROBE_MESSAGE},
+        query_signatures::{QUERY_SIG__ENTITY, QUERY_SIG__ENTITY__WITH_PLAYER, TYPE_PATH__ENTITY, TYPE_PATH__PLAYER},
     };
     use crate::rhai_binding::internals::statics::RUNTIME_BINDING_GRAPH;
     use crate::rhai_binding::runtime::ecs::bundle::internals::statics::bundle_spawn_dispatch_registry;
-    use crate::rhai_binding::runtime::ecs::bundle::internals::types::{
-        bundle_spawn_dispatch_key_from_paths, BundleSpawnDispatchEntry,
-    };
-    use crate::rhai_binding::runtime::ecs::message::internals::statics::{
-        resolve_message_drain_dispatch, resolve_message_write_dispatch,
-    };
-    use crate::rhai_binding::runtime::ecs::message::internals::types::{
-        MessageDrainDispatchEntry, MessageWriteDispatchEntry,
-    };
+    use crate::rhai_binding::runtime::ecs::bundle::internals::types::{BundleSpawnDispatchEntry, bundle_spawn_dispatch_key_from_paths};
+    use crate::rhai_binding::runtime::ecs::message::internals::statics::{resolve_message_drain_dispatch, resolve_message_write_dispatch};
+    use crate::rhai_binding::runtime::ecs::message::internals::types::{MessageDrainDispatchEntry, MessageWriteDispatchEntry};
     use crate::rhai_binding::runtime::ecs::system::query::internals::statics::resolve_query_dispatch;
     use crate::rhai_binding::runtime::ecs::system::query::internals::types::{
-        query_data_key, query_filter_key, QueryDispatchAccess, QueryDispatchEntry, QueryDispatchTerm,
+        QueryDispatchAccess, QueryDispatchEntry, QueryDispatchTerm, query_data_key, query_filter_key,
     };
 
     const QUERY_GENERIC_ID: &str = "bevy::ecs::system::Query<TData, TFilter>";
-    const QUERY_GENERIC_INSTANCE_ID: &str =
-        "bevy::ecs::system::Query<bevy::ecs::entity::Entity, core_mod_api::player::components::Player>";
+    const QUERY_GENERIC_INSTANCE_ID: &str = "bevy::ecs::system::Query<bevy::ecs::entity::Entity, core_mod_api::player::components::Player>";
 
     #[test]
     fn query_signatures_follow_policy_and_are_registered() {
@@ -213,11 +187,7 @@ mod tests {
             }
             validate_type_path_list("QueryDispatchEntry::filter_with", entry.filter_with);
             validate_type_path_list("QueryDispatchEntry::filter_without", entry.filter_without);
-            assert!(
-                ids.insert(entry.signature_id),
-                "Duplicate query signature id '{}'",
-                entry.signature_id
-            );
+            assert!(ids.insert(entry.signature_id), "Duplicate query signature id '{}'", entry.signature_id);
         }
 
         assert!(ids.contains(QUERY_SIG__ENTITY));
@@ -259,11 +229,7 @@ mod tests {
             validate_bundle_signature_id(entry.signature_id);
             validate_type_path_id("BundleSpawnDispatchEntry::instance_type_id", entry.instance_type_id);
             validate_trait_path_id("BundleSpawnDispatchEntry::trait_id", entry.trait_id);
-            assert!(
-                ids.insert(entry.signature_id),
-                "Duplicate bundle signature id '{}'",
-                entry.signature_id
-            );
+            assert!(ids.insert(entry.signature_id), "Duplicate bundle signature id '{}'", entry.signature_id);
         }
 
         assert!(ids.contains(BUNDLE_SIG__PLAYER__SPAWN_SINGLE));

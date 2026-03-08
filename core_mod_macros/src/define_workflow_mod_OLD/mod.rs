@@ -30,7 +30,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use stage::{Stage, Stages};
 use std::time::Duration;
-use syn::{braced, bracketed, parse::Parse, parse_str, Ident, LitFloat, LitStr, Path, Result, Token};
+use syn::{Ident, LitFloat, LitStr, Path, Result, Token, braced, bracketed, parse::Parse, parse_str};
 use use_statement::UseStatements;
 use user_item::UserItems;
 
@@ -557,7 +557,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        
+
                         use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
@@ -697,7 +697,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        
+
                         use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
@@ -809,7 +809,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        
+
                         use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
@@ -957,7 +957,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        
+
                         use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
@@ -1070,7 +1070,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        
+
                         use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
@@ -1218,7 +1218,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        
+
                         use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
@@ -1334,7 +1334,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        
+
                         use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 
@@ -1486,7 +1486,7 @@ impl Workflow {
 
                 quote! {
                     pub mod #workflow_ident {
-                        
+
                         use crate::bevy::prelude::SystemCondition;
                         use std::time::Duration;
 

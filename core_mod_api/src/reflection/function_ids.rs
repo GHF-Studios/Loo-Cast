@@ -1,6 +1,6 @@
 use rhai::ImmutableString;
 
-use super::signatures::{FunctionOrigin, CtorSignature, MethodSignature, StaticFunctionSignature};
+use super::signatures::{CtorSignature, FunctionOrigin, MethodSignature, StaticFunctionSignature};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct CtorId {
@@ -12,11 +12,7 @@ impl From<CtorId> for ImmutableString {
         let sig: ImmutableString = id.sig.into();
         let origin: ImmutableString = id.origin.clone().into();
 
-        ImmutableString::from(format!(
-            "{}{}",
-            sig,
-            origin
-        ))
+        ImmutableString::from(format!("{}{}", sig, origin))
     }
 }
 impl std::fmt::Debug for CtorId {
@@ -42,11 +38,7 @@ impl From<MethodId> for ImmutableString {
         let sig: ImmutableString = id.sig.into();
         let origin: ImmutableString = id.origin.clone().into();
 
-        ImmutableString::from(format!(
-            "{}{}",
-            sig,
-            origin
-        ))
+        ImmutableString::from(format!("{}{}", sig, origin))
     }
 }
 impl std::fmt::Debug for MethodId {
@@ -72,11 +64,7 @@ impl From<StaticFunctionId> for ImmutableString {
         let sig: ImmutableString = id.sig.into();
         let origin: ImmutableString = id.origin.clone().into();
 
-        ImmutableString::from(format!(
-            "{}{}",
-            sig,
-            origin
-        ))
+        ImmutableString::from(format!("{}{}", sig, origin))
     }
 }
 impl std::fmt::Debug for StaticFunctionId {

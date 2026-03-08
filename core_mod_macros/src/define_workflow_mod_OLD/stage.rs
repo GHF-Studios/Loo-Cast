@@ -6,9 +6,8 @@ use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    braced, bracketed,
+    Ident, LitBool, LitInt, Result, Token, braced, bracketed,
     parse::{Parse, ParseStream},
-    Ident, LitBool, LitInt, Result, Token,
 };
 
 pub struct Ecs;

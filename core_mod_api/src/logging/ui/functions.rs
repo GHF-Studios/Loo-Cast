@@ -1,5 +1,5 @@
 use bevy_egui::egui::{self, Color32, FontId, ScrollArea, TextFormat};
-use egui::{text::LayoutJob, WidgetText};
+use egui::{WidgetText, text::LayoutJob};
 
 use crate::logging::{
     resources::LogRegistry,

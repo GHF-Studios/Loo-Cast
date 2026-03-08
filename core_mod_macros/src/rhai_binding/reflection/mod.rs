@@ -6,38 +6,22 @@ use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
 use syn::punctuated::Punctuated;
 use syn::{
+    Attribute, Expr, ExprPath, Ident, ImplItem, ImplItemFn, Item, ItemFn, ItemImpl, ItemTrait, LitStr, Path, Token,
     parse::{Parse, ParseStream},
     parse_macro_input,
-    Attribute, Expr, ExprPath, Ident, ImplItem, ImplItemFn, Item, ItemFn, ItemImpl, ItemTrait, LitStr, Path,
-    Token,
 };
 
 fn path_to_string(path: &Path) -> String {
-    path.segments
-        .iter()
-        .map(|s| s.ident.to_string())
-        .collect::<Vec<_>>()
-        .join("::")
+    path.segments.iter().map(|s| s.ident.to_string()).collect::<Vec<_>>().join("::")
 }
 
 fn expr_path_to_string(path: &ExprPath) -> String {
-    path.path
-        .segments
-        .iter()
-        .map(|s| s.ident.to_string())
-        .collect::<Vec<_>>()
-        .join("::")
+    path.path.segments.iter().map(|s| s.ident.to_string()).collect::<Vec<_>>().join("::")
 }
 
 fn type_path_to_string(ty: &syn::Type) -> String {
     match ty {
-        syn::Type::Path(tp) => tp
-            .path
-            .segments
-            .iter()
-            .map(|s| s.ident.to_string())
-            .collect::<Vec<_>>()
-            .join("::"),
+        syn::Type::Path(tp) => tp.path.segments.iter().map(|s| s.ident.to_string()).collect::<Vec<_>>().join("::"),
         _ => panic!("Expected a path type"),
     }
 }
@@ -97,12 +81,7 @@ fn attr_name(attr: &Attribute) -> Option<String> {
 fn is_reflect_marker_attr(attr: &Attribute) -> bool {
     matches!(
         attr_name(attr).as_deref(),
-        Some(
-            "reflect_constructor_function"
-                | "reflect_method_function"
-                | "reflect_item_associated_function"
-                | "reflect_module_associated_function"
-        )
+        Some("reflect_constructor_function" | "reflect_method_function" | "reflect_item_associated_function" | "reflect_module_associated_function")
     )
 }
 
@@ -137,10 +116,7 @@ fn collect_generic_type_param_metadata(type_generics: &syn::Generics) -> (Vec<St
 
             for bound in &type_param.bounds {
                 if let syn::TypeParamBound::Trait(trait_bound) = bound {
-                    bounds_by_param
-                        .entry(param_name.clone())
-                        .or_default()
-                        .insert(path_to_string(&trait_bound.path));
+                    bounds_by_param.entry(param_name.clone()).or_default().insert(path_to_string(&trait_bound.path));
                 }
             }
         }
@@ -171,10 +147,7 @@ fn collect_generic_type_param_metadata(type_generics: &syn::Generics) -> (Vec<St
 
             for bound in &type_predicate.bounds {
                 if let syn::TypeParamBound::Trait(trait_bound) = bound {
-                    bounds_by_param
-                        .entry(param_name.clone())
-                        .or_default()
-                        .insert(path_to_string(&trait_bound.path));
+                    bounds_by_param.entry(param_name.clone()).or_default().insert(path_to_string(&trait_bound.path));
                 }
             }
         }
@@ -182,12 +155,7 @@ fn collect_generic_type_param_metadata(type_generics: &syn::Generics) -> (Vec<St
 
     let param_trait_bounds = param_names
         .iter()
-        .map(|name| {
-            bounds_by_param
-                .get(name)
-                .map(|set| set.iter().cloned().collect::<Vec<_>>())
-                .unwrap_or_default()
-        })
+        .map(|name| bounds_by_param.get(name).map(|set| set.iter().cloned().collect::<Vec<_>>()).unwrap_or_default())
         .collect::<Vec<_>>();
 
     (param_names, param_trait_bounds)
@@ -213,9 +181,7 @@ fn infer_trait_dyn_safety(item_trait: &ItemTrait) -> (bool, Vec<String>) {
         let method_name = method.sig.ident.to_string();
 
         if !method.sig.generics.params.is_empty() {
-            notes.push(format!(
-                "Method `{method_name}` has generic parameters, therefore it is not object-safe"
-            ));
+            notes.push(format!("Method `{method_name}` has generic parameters, therefore it is not object-safe"));
         }
 
         let has_receiver = method.sig.receiver().is_some();
@@ -229,9 +195,7 @@ fn infer_trait_dyn_safety(item_trait: &ItemTrait) -> (bool, Vec<String>) {
             if let syn::FnArg::Typed(typed) = input {
                 let type_string = quote! { #typed.ty }.to_string();
                 if type_string.contains("Self") {
-                    notes.push(format!(
-                        "Method `{method_name}` input references `Self`, therefore it is not object-safe"
-                    ));
+                    notes.push(format!("Method `{method_name}` input references `Self`, therefore it is not object-safe"));
                 }
             }
         }
@@ -239,9 +203,7 @@ fn infer_trait_dyn_safety(item_trait: &ItemTrait) -> (bool, Vec<String>) {
         if let syn::ReturnType::Type(_, ty) = &method.sig.output {
             let type_string = quote! { #ty }.to_string();
             if type_string.contains("Self") {
-                notes.push(format!(
-                    "Method `{method_name}` return type references `Self`, therefore it is not object-safe"
-                ));
+                notes.push(format!("Method `{method_name}` return type references `Self`, therefore it is not object-safe"));
             }
         }
     }
@@ -339,9 +301,7 @@ fn parse_value_semantics_ident(value: &Ident) -> syn::Result<ReflectTypeValueSem
         "scoped_mut" => Ok(ReflectTypeValueSemantics::ScopedMut),
         other => Err(syn::Error::new(
             value.span(),
-            format!(
-                "Unknown value semantics '{other}'. Expected one of: clone, owned, ref, mut, scoped_owned, scoped_ref, scoped_mut"
-            ),
+            format!("Unknown value semantics '{other}'. Expected one of: clone, owned, ref, mut, scoped_owned, scoped_ref, scoped_mut"),
         )),
     }
 }
@@ -365,10 +325,7 @@ impl Parse for ReflectTypeAttr {
                     value_semantics = parse_value_semantics_ident(&value)?;
                 }
                 other => {
-                    return Err(syn::Error::new(
-                        key.span(),
-                        format!("Unknown key '{other}' in #[reflect_type(...)]"),
-                    ));
+                    return Err(syn::Error::new(key.span(), format!("Unknown key '{other}' in #[reflect_type(...)]")));
                 }
             }
 
@@ -377,10 +334,7 @@ impl Parse for ReflectTypeAttr {
             }
         }
 
-        Ok(Self {
-            type_path,
-            value_semantics,
-        })
+        Ok(Self { type_path, value_semantics })
     }
 }
 
@@ -447,8 +401,7 @@ impl Parse for ExternTypeMacroInput {
         }
 
         let id = id.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `id`/`id_path`"))?;
-        let rust_type =
-            rust_type.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `rust_type`/`type`"))?;
+        let rust_type = rust_type.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `rust_type`/`type`"))?;
 
         Ok(Self {
             id,
@@ -498,8 +451,7 @@ impl Parse for ExternFunctionMacroInput {
 
         Ok(Self {
             id: id.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `id`/`id_path`"))?,
-            registrator: registrator
-                .ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `registrator`"))?,
+            registrator: registrator.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `registrator`"))?,
         })
     }
 }
@@ -578,9 +530,7 @@ impl Parse for ExternGenericDefinitionMacroInput {
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
-                        format!(
-                            "Unknown key '{other}' in reflect_extern_generic_definition!. Expected: id, owner_kind, params, bounds, notes"
-                        ),
+                        format!("Unknown key '{other}' in reflect_extern_generic_definition!. Expected: id, owner_kind, params, bounds, notes"),
                     ));
                 }
             }
@@ -655,8 +605,7 @@ impl Parse for ExternGenericInstantiationMacroInput {
             id: id.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `id`"))?,
             generic_id: generic_id.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `generic_id`"))?,
             type_arguments,
-            concrete_item_path: concrete_item_path
-                .ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `concrete_item_path`"))?,
+            concrete_item_path: concrete_item_path.ok_or_else(|| syn::Error::new(Span::call_site(), "Missing `concrete_item_path`"))?,
             value_semantics,
         })
     }
@@ -810,24 +759,9 @@ fn generate_module_metadata(input: ModuleMacroInput, top_level: bool) -> TokenSt
     let marker_ident = make_marker_ident(if top_level { "TOP" } else { "SUB" }, &id_string);
     let static_ident = make_static_ident(if top_level { "TOP" } else { "SUB" }, &id_string);
 
-    let sub_modules: Vec<String> = input
-        .sub_modules
-        .iter()
-        .map(path_to_string)
-        .map(|p| qualify(&id_string, &p))
-        .collect();
-    let traits_: Vec<String> = input
-        .traits
-        .iter()
-        .map(path_to_string)
-        .map(|p| qualify(&id_string, &p))
-        .collect();
-    let types_: Vec<String> = input
-        .types
-        .iter()
-        .map(path_to_string)
-        .map(|p| qualify(&id_string, &p))
-        .collect();
+    let sub_modules: Vec<String> = input.sub_modules.iter().map(path_to_string).map(|p| qualify(&id_string, &p)).collect();
+    let traits_: Vec<String> = input.traits.iter().map(path_to_string).map(|p| qualify(&id_string, &p)).collect();
+    let types_: Vec<String> = input.types.iter().map(path_to_string).map(|p| qualify(&id_string, &p)).collect();
     let module_fns: Vec<String> = input
         .module_associated_functions
         .iter()
@@ -965,8 +899,7 @@ pub fn reflect_extern_sub_module(input: TokenStream) -> TokenStream {
 }
 
 pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let attr_parsed = syn::parse::<ReflectTypeAttr>(attr)
-        .expect("Failed to parse #[reflect_type(...)] arguments");
+    let attr_parsed = syn::parse::<ReflectTypeAttr>(attr).expect("Failed to parse #[reflect_type(...)] arguments");
     let type_path = attr_parsed.type_path;
     let type_path_string = path_to_string(&type_path);
     let type_path_lit = path_lit(&type_path_string);
@@ -999,12 +932,8 @@ pub fn reflect_type(attr: TokenStream, item: TokenStream) -> TokenStream {
             })
         }
     };
-    let (generic_param_names_raw, generic_param_trait_bounds_raw) =
-        collect_generic_type_param_metadata(&type_generics);
-    let generic_param_name_lits: Vec<syn::LitStr> = generic_param_names_raw
-        .iter()
-        .map(|name| path_lit(name))
-        .collect();
+    let (generic_param_names_raw, generic_param_trait_bounds_raw) = collect_generic_type_param_metadata(&type_generics);
+    let generic_param_name_lits: Vec<syn::LitStr> = generic_param_names_raw.iter().map(|name| path_lit(name)).collect();
     let generic_param_trait_bounds_tokens: Vec<TokenStream2> = generic_param_trait_bounds_raw
         .iter()
         .map(|bounds| {
@@ -1145,24 +1074,9 @@ pub fn reflect_extern_type(input: TokenStream) -> TokenStream {
     let binding_marker = make_marker_ident("TYPE_BINDING", &type_path_string);
     let binding_static = make_static_ident("TYPE_BINDING", &type_path_string);
 
-    let method_lits: Vec<_> = input
-        .method_functions
-        .iter()
-        .map(path_to_string)
-        .map(|s| path_lit(&s))
-        .collect();
-    let ctor_lits: Vec<_> = input
-        .constructor_functions
-        .iter()
-        .map(path_to_string)
-        .map(|s| path_lit(&s))
-        .collect();
-    let item_lits: Vec<_> = input
-        .item_associated_functions
-        .iter()
-        .map(path_to_string)
-        .map(|s| path_lit(&s))
-        .collect();
+    let method_lits: Vec<_> = input.method_functions.iter().map(path_to_string).map(|s| path_lit(&s)).collect();
+    let ctor_lits: Vec<_> = input.constructor_functions.iter().map(path_to_string).map(|s| path_lit(&s)).collect();
+    let item_lits: Vec<_> = input.item_associated_functions.iter().map(path_to_string).map(|s| path_lit(&s)).collect();
 
     let type_registrator = if let Some(registrator) = input.registrator {
         quote! {
@@ -1378,10 +1292,7 @@ pub fn reflect_extern_method_function(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ExternFunctionMacroInput);
     let id_path_string = path_to_string(&input.id);
     let id_lit = path_lit(&id_path_string);
-    let fn_name = id_path_string
-        .rsplit("::")
-        .next()
-        .expect("Method id path must include a function segment");
+    let fn_name = id_path_string.rsplit("::").next().expect("Method id path must include a function segment");
     let fn_name_lit = path_lit(fn_name);
     let registrator = input.registrator;
 
@@ -1477,36 +1388,20 @@ pub fn reflect_extern_trait(input: TokenStream) -> TokenStream {
         .next()
         .expect("Trait path must have at least one segment")
         .to_string();
-    let trait_name_lit = input
-        .trait_name
-        .unwrap_or_else(|| path_lit(&default_trait_name));
+    let trait_name_lit = input.trait_name.unwrap_or_else(|| path_lit(&default_trait_name));
 
     let default_trait_object_name = format!("{default_trait_name}TraitObject");
-    let trait_object_name_lit = input
-        .trait_object_name
-        .unwrap_or_else(|| path_lit(&default_trait_object_name));
+    let trait_object_name_lit = input.trait_object_name.unwrap_or_else(|| path_lit(&default_trait_object_name));
 
-    let default_module_path = trait_path_string
-        .rsplit_once("::")
-        .map(|(m, _)| m.to_string())
-        .unwrap_or_default();
+    let default_module_path = trait_path_string.rsplit_once("::").map(|(m, _)| m.to_string()).unwrap_or_default();
     let default_trait_object_id = if default_module_path.is_empty() {
         default_trait_object_name
     } else {
         format!("{default_module_path}::{default_trait_object_name}")
     };
-    let trait_object_id_string = input
-        .trait_object_id
-        .as_ref()
-        .map(path_to_string)
-        .unwrap_or(default_trait_object_id);
+    let trait_object_id_string = input.trait_object_id.as_ref().map(path_to_string).unwrap_or(default_trait_object_id);
     let trait_object_id_lit = path_lit(&trait_object_id_string);
-    let super_trait_lits: Vec<LitStr> = input
-        .super_traits
-        .iter()
-        .map(path_to_string)
-        .map(|s| path_lit(&s))
-        .collect();
+    let super_trait_lits: Vec<LitStr> = input.super_traits.iter().map(path_to_string).map(|s| path_lit(&s)).collect();
     let is_dyn_safe = input.is_dyn_safe.unwrap_or(true);
     let object_safety_note_lits: Vec<LitStr> = input.object_safety_notes.clone();
 
@@ -1614,11 +1509,7 @@ pub fn reflect_extern_generic_definition(input: TokenStream) -> TokenStream {
             .into();
         }
     };
-    let param_lits: Vec<LitStr> = input
-        .params
-        .iter()
-        .map(|param| path_lit(&param.to_string()))
-        .collect();
+    let param_lits: Vec<LitStr> = input.params.iter().map(|param| path_lit(&param.to_string())).collect();
     let note_lits: Vec<LitStr> = input.notes.clone();
 
     let mut bounds_by_param = std::collections::BTreeMap::<String, Vec<LitStr>>::new();
@@ -1628,19 +1519,11 @@ pub fn reflect_extern_generic_definition(input: TokenStream) -> TokenStream {
     for bound_spec in input.bounds {
         let param_name = bound_spec.param.to_string();
         if !bounds_by_param.contains_key(&param_name) {
-            return syn::Error::new(
-                bound_spec.param.span(),
-                format!("Bound specified for unknown generic parameter '{param_name}'"),
-            )
-            .to_compile_error()
-            .into();
+            return syn::Error::new(bound_spec.param.span(), format!("Bound specified for unknown generic parameter '{param_name}'"))
+                .to_compile_error()
+                .into();
         }
-        let bound_lits = bound_spec
-            .traits
-            .iter()
-            .map(path_to_string)
-            .map(|s| path_lit(&s))
-            .collect::<Vec<_>>();
+        let bound_lits = bound_spec.traits.iter().map(path_to_string).map(|s| path_lit(&s)).collect::<Vec<_>>();
         bounds_by_param.entry(param_name).or_default().extend(bound_lits);
     }
     let bound_vec_tokens: Vec<TokenStream2> = input
@@ -1710,12 +1593,7 @@ pub fn reflect_extern_generic_instantiation(input: TokenStream) -> TokenStream {
 
     let instantiation_id_lit = input.id;
     let generic_id_lit = input.generic_id;
-    let type_argument_lits: Vec<LitStr> = input
-        .type_arguments
-        .iter()
-        .map(path_to_string)
-        .map(|s| path_lit(&s))
-        .collect();
+    let type_argument_lits: Vec<LitStr> = input.type_arguments.iter().map(path_to_string).map(|s| path_lit(&s)).collect();
     let concrete_item_path_lit = input.concrete_item_path;
     let value_semantics_expr = if let Some(semantics) = input.value_semantics {
         let semantics_tokens = semantics.as_tokens();
@@ -1784,10 +1662,7 @@ pub fn reflect_trait(attr: TokenStream, item: TokenStream) -> TokenStream {
     let item_trait = parse_macro_input!(item as ItemTrait);
     let trait_ident = item_trait.ident.clone();
     let trait_name_lit = path_lit(&trait_ident.to_string());
-    let trait_module_path = trait_path_string
-        .rsplit_once("::")
-        .map(|(m, _)| m.to_string())
-        .unwrap_or_default();
+    let trait_module_path = trait_path_string.rsplit_once("::").map(|(m, _)| m.to_string()).unwrap_or_default();
     let super_trait_lits: Vec<LitStr> = item_trait
         .supertraits
         .iter()
@@ -1800,10 +1675,7 @@ pub fn reflect_trait(attr: TokenStream, item: TokenStream) -> TokenStream {
         })
         .collect();
     let (is_dyn_safe, object_safety_notes_raw) = infer_trait_dyn_safety(&item_trait);
-    let object_safety_note_lits: Vec<LitStr> = object_safety_notes_raw
-        .iter()
-        .map(|note| path_lit(note))
-        .collect();
+    let object_safety_note_lits: Vec<LitStr> = object_safety_notes_raw.iter().map(|note| path_lit(note)).collect();
 
     let marker_ident = make_marker_ident("TRAIT", &trait_path_string);
     let marker_static = make_static_ident("TRAIT", &trait_path_string);
@@ -1811,10 +1683,7 @@ pub fn reflect_trait(attr: TokenStream, item: TokenStream) -> TokenStream {
     let object_marker_ident = make_marker_ident("TRAIT_OBJECT", &trait_path_string);
     let object_marker_static = make_static_ident("TRAIT_OBJECT", &trait_path_string);
 
-    let module_path = trait_path_string
-        .rsplit_once("::")
-        .map(|(m, _)| m.to_string())
-        .unwrap_or_else(|| String::new());
+    let module_path = trait_path_string.rsplit_once("::").map(|(m, _)| m.to_string()).unwrap_or_else(|| String::new());
     let trait_object_id = if module_path.is_empty() {
         format!("{}TraitObject", trait_ident)
     } else {
@@ -1906,10 +1775,7 @@ pub fn reflect_trait(attr: TokenStream, item: TokenStream) -> TokenStream {
     .into()
 }
 
-fn generate_module_associated_function_metadata(
-    id_path_string: String,
-    fn_ident: &Ident,
-) -> TokenStream2 {
+fn generate_module_associated_function_metadata(id_path_string: String, fn_ident: &Ident) -> TokenStream2 {
     let id_lit = path_lit(&id_path_string);
     let fn_name_lit = path_lit(&fn_ident.to_string());
 
@@ -1965,11 +1831,7 @@ pub fn reflect_module_associated_function(attr: TokenStream, item: TokenStream) 
     .into()
 }
 
-fn generate_constructor_metadata(
-    id_path_string: String,
-    fn_name: &str,
-    function_expr: TokenStream2,
-) -> TokenStream2 {
+fn generate_constructor_metadata(id_path_string: String, fn_name: &str, function_expr: TokenStream2) -> TokenStream2 {
     let id_lit = path_lit(&id_path_string);
     let fn_name_lit = path_lit(fn_name);
 
@@ -2007,11 +1869,7 @@ fn generate_constructor_metadata(
     }
 }
 
-fn generate_method_metadata(
-    id_path_string: String,
-    fn_name: &str,
-    function_expr: TokenStream2,
-) -> TokenStream2 {
+fn generate_method_metadata(id_path_string: String, fn_name: &str, function_expr: TokenStream2) -> TokenStream2 {
     let id_lit = path_lit(&id_path_string);
     let fn_name_lit = path_lit(fn_name);
 
@@ -2049,11 +1907,7 @@ fn generate_method_metadata(
     }
 }
 
-fn generate_item_assoc_metadata(
-    id_path_string: String,
-    fn_name: &str,
-    function_expr: TokenStream2,
-) -> TokenStream2 {
+fn generate_item_assoc_metadata(id_path_string: String, fn_name: &str, function_expr: TokenStream2) -> TokenStream2 {
     let id_lit = path_lit(&id_path_string);
     let fn_name_lit = path_lit(fn_name);
 
@@ -2123,40 +1977,22 @@ pub fn reflect_inherent_impl(attr: TokenStream, item: TokenStream) -> TokenStrea
                 for attr in &f.attrs {
                     match attr_name(attr).as_deref() {
                         Some("reflect_constructor_function") => {
-                            let base = get_attr_path(attr)
-                                .map(|p| path_to_string(&p))
-                                .unwrap_or_else(|| self_ty_string.clone());
+                            let base = get_attr_path(attr).map(|p| path_to_string(&p)).unwrap_or_else(|| self_ty_string.clone());
                             let id_path = format!("{}::{}", base, fn_ident);
                             ctor_paths.push(path_lit(&id_path));
-                            function_meta.push(generate_constructor_metadata(
-                                id_path,
-                                &fn_ident.to_string(),
-                                quote! { #self_ty::#fn_ident },
-                            ));
+                            function_meta.push(generate_constructor_metadata(id_path, &fn_ident.to_string(), quote! { #self_ty::#fn_ident }));
                         }
                         Some("reflect_method_function") => {
-                            let base = get_attr_path(attr)
-                                .map(|p| path_to_string(&p))
-                                .unwrap_or_else(|| self_ty_string.clone());
+                            let base = get_attr_path(attr).map(|p| path_to_string(&p)).unwrap_or_else(|| self_ty_string.clone());
                             let id_path = format!("{}::{}", base, fn_ident);
                             method_paths.push(path_lit(&id_path));
-                            function_meta.push(generate_method_metadata(
-                                id_path,
-                                &fn_ident.to_string(),
-                                quote! { #self_ty::#fn_ident },
-                            ));
+                            function_meta.push(generate_method_metadata(id_path, &fn_ident.to_string(), quote! { #self_ty::#fn_ident }));
                         }
                         Some("reflect_item_associated_function") => {
-                            let base = get_attr_path(attr)
-                                .map(|p| path_to_string(&p))
-                                .unwrap_or_else(|| self_ty_string.clone());
+                            let base = get_attr_path(attr).map(|p| path_to_string(&p)).unwrap_or_else(|| self_ty_string.clone());
                             let id_path = format!("{}::{}", base, fn_ident);
                             item_paths.push(path_lit(&id_path));
-                            function_meta.push(generate_item_assoc_metadata(
-                                id_path,
-                                &fn_ident.to_string(),
-                                quote! { #self_ty::#fn_ident },
-                            ));
+                            function_meta.push(generate_item_assoc_metadata(id_path, &fn_ident.to_string(), quote! { #self_ty::#fn_ident }));
                         }
                         _ => {}
                     }

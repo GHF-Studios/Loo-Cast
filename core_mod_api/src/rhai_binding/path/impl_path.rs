@@ -5,7 +5,7 @@ use crate::rhai_binding::path::{trait_path::TraitPath, type_path::TypePath};
 /// Format: `"Type"`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct InherentImplPath {
-    pub(in crate::rhai_binding) type_path: TypePath
+    pub(in crate::rhai_binding) type_path: TypePath,
 }
 impl InherentImplPath {
     pub fn type_path(&self) -> &TypePath {
@@ -14,7 +14,9 @@ impl InherentImplPath {
 }
 impl Into<InherentImplPath> for &'static str {
     fn into(self) -> InherentImplPath {
-        InherentImplPath { type_path: TypePath::parse(&ImmutableString::from(self)) }
+        InherentImplPath {
+            type_path: TypePath::parse(&ImmutableString::from(self)),
+        }
     }
 }
 impl Into<TypePath> for InherentImplPath {

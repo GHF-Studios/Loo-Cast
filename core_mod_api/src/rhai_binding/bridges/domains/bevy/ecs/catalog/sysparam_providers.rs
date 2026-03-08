@@ -6,16 +6,16 @@ use crate::bevy::ecs::world::EntityWorldMut;
 use crate::bevy::prelude::Entity as BevyEntity;
 use crate::bevy::prelude::World;
 use crate::rhai_binding::bridges::domains::bevy::ecs::catalog::message_signatures::TYPE_PATH__SCRIPT_PROBE_MESSAGE;
-use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
-use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 use crate::rhai_binding::runtime::ecs::bundle::internals::statics::resolve_bundle_spawn_dispatch;
 use crate::rhai_binding::runtime::ecs::message::internals::statics::{resolve_message_drain_dispatch, resolve_message_write_dispatch};
 use crate::rhai_binding::runtime::ecs::system::query::{bindings::types::Query, internals::statics::resolve_query_dispatch};
 use crate::rhai_binding::runtime::ecs::world::internals::access_requests::{
-    WorldQueryRequest, WorldSpawnSingleRequest, WriteProbeMessageRequest, WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES,
-    WORLD_ACCESS_METHOD_QUERY, WORLD_ACCESS_METHOD_SPAWN_SINGLE, WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE,
+    WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES, WORLD_ACCESS_METHOD_QUERY, WORLD_ACCESS_METHOD_SPAWN_SINGLE, WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE,
+    WorldQueryRequest, WorldSpawnSingleRequest, WriteProbeMessageRequest,
 };
 use crate::rhai_binding::runtime::std::iter::bindings::types::StringIter;
+use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
+use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 
 unsafe impl AccessCellProvider<Commands<'static, 'static>> for World {
     unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> AccessCell<Scoped, Commands<'static, 'static>> {
@@ -75,8 +75,7 @@ unsafe impl AccessCellProvider<EntityWorldMut<'static>> for World {
         let returned_static_entity_world_mut = handle.take();
 
         // Restore lifetime(s)
-        let _returned_entity_world_mut =
-            unsafe { std::mem::transmute::<EntityWorldMut<'static>, EntityWorldMut<'_>>(returned_static_entity_world_mut) };
+        let _returned_entity_world_mut = unsafe { std::mem::transmute::<EntityWorldMut<'static>, EntityWorldMut<'_>>(returned_static_entity_world_mut) };
     }
 }
 
@@ -148,7 +147,10 @@ unsafe impl AccessCellProvider<EntityCommands<'static>> for Commands<'static, 's
         let entity_commands = match method {
             "spawn_empty" => {
                 if !args.is::<()>() {
-                    panic!("Unsupported arguments for method '{}' in AccessCellProvider<EntityCommands> for Commands", method);
+                    panic!(
+                        "Unsupported arguments for method '{}' in AccessCellProvider<EntityCommands> for Commands",
+                        method
+                    );
                 }
 
                 self.spawn_empty()
@@ -166,8 +168,7 @@ unsafe impl AccessCellProvider<EntityCommands<'static>> for Commands<'static, 's
         let returned_entity_commands_static = handle.take();
 
         // Restore lifetime(s)
-        let _returned_entity_commands =
-            unsafe { std::mem::transmute::<EntityCommands<'static>, EntityCommands<'_>>(returned_entity_commands_static) };
+        let _returned_entity_commands = unsafe { std::mem::transmute::<EntityCommands<'static>, EntityCommands<'_>>(returned_entity_commands_static) };
     }
 }
 
@@ -177,7 +178,10 @@ unsafe impl AccessCellProvider<Commands<'static, 'static>> for EntityCommands<'s
             panic!("Unsupported method '{}' in AccessCellProvider<Commands> for EntityCommands", method);
         }
         if !args.is::<()>() {
-            panic!("Unsupported arguments for method '{}' in AccessCellProvider<Commands> for EntityCommands", method);
+            panic!(
+                "Unsupported arguments for method '{}' in AccessCellProvider<Commands> for EntityCommands",
+                method
+            );
         }
 
         let commands = self.commands();
@@ -202,7 +206,10 @@ unsafe impl AccessCellProvider<BevyEntity> for EntityCommands<'static> {
             panic!("Unsupported method '{}' in AccessCellProvider<BevyEntity> for EntityCommands", method);
         }
         if !args.is::<()>() {
-            panic!("Unsupported arguments for method '{}' in AccessCellProvider<BevyEntity> for EntityCommands", method);
+            panic!(
+                "Unsupported arguments for method '{}' in AccessCellProvider<BevyEntity> for EntityCommands",
+                method
+            );
         }
 
         let id = self.id();

@@ -37,10 +37,7 @@ pub const trait GenericDefinitionConstDynMetadata: ConstDynMetadata {
 }
 
 pub trait GenericDefinitionDynamicTypedMetadata {
-    fn from_comptime_to_runtime<T: GenericDefinitionConstDynMetadata>(
-        &self,
-        const_dyn_metadata: &T,
-    ) -> GenericDefinitionMetadata {
+    fn from_comptime_to_runtime<T: GenericDefinitionConstDynMetadata>(&self, const_dyn_metadata: &T) -> GenericDefinitionMetadata {
         GenericDefinitionMetadata {
             raw_rust_module_path: const_dyn_metadata.raw_rust_module_path(),
             id: const_dyn_metadata.id().clone(),
@@ -61,10 +58,7 @@ pub const trait GenericInstantiationConstDynMetadata: ConstDynMetadata {
 }
 
 pub trait GenericInstantiationDynamicTypedMetadata {
-    fn from_comptime_to_runtime<T: GenericInstantiationConstDynMetadata>(
-        &self,
-        const_dyn_metadata: &T,
-    ) -> GenericInstantiationMetadata {
+    fn from_comptime_to_runtime<T: GenericInstantiationConstDynMetadata>(&self, const_dyn_metadata: &T) -> GenericInstantiationMetadata {
         GenericInstantiationMetadata {
             raw_rust_module_path: const_dyn_metadata.raw_rust_module_path(),
             id: const_dyn_metadata.id().clone(),

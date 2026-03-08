@@ -1,7 +1,7 @@
 use quote::{format_ident, quote};
 use syn::{
-    parse::{Parse, ParseStream},
     Expr, Token,
+    parse::{Parse, ParseStream},
 };
 
 pub const SCALES: &[&str] = &[

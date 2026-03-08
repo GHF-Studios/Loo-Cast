@@ -9,8 +9,8 @@ use tokio::time::timeout;
 use crate::config::statics::CONFIG;
 use crate::time::functions::virtual_timeout;
 use crate::utils::premium_box::AnySendSyncPremiumBox;
-use crate::workflow::composite_workflow_context::{ScopedCompositeWorkflowContext, CURRENT_COMPOSITE_WORKFLOW_ID};
-use crate::workflow::resources::{emit_workflow_timeout_signal, WorkflowTimeoutSignal};
+use crate::workflow::composite_workflow_context::{CURRENT_COMPOSITE_WORKFLOW_ID, ScopedCompositeWorkflowContext};
+use crate::workflow::resources::{WorkflowTimeoutSignal, emit_workflow_timeout_signal};
 use crate::workflow::response::WorkflowResponse;
 use crate::workflow::types::{WorkflowID, WorkflowTimeoutMode};
 
@@ -599,11 +599,7 @@ where
     F: FnMut(WorkflowTimeoutContext) -> WorkflowTimeoutControlDecision,
 {
     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
-        warn!(
-            "Running run_workflow_io_with_timeout_control for {}::{}",
-            W::MODULE_NAME,
-            W::WORKFLOW_NAME
-        );
+        warn!("Running run_workflow_io_with_timeout_control for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     }
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
     let workflow_id = WorkflowID {
@@ -638,11 +634,7 @@ where
 
                 if key == workflow_id {
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
-                        warn!(
-                            "Finished run_workflow_io_with_timeout_control for {}::{}",
-                            W::MODULE_NAME,
-                            W::WORKFLOW_NAME
-                        );
+                        warn!("Finished run_workflow_io_with_timeout_control for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
                     return Ok(W::Output::from_boxed(response.output));
                 }
@@ -650,11 +642,7 @@ where
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
             }
             Ok(None) => {
-                panic!(
-                    "Channel closed while waiting for response to {}::{}",
-                    W::MODULE_NAME,
-                    W::WORKFLOW_NAME
-                );
+                panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
             Err(_) => {
                 timeout_count += 1;
@@ -683,11 +671,7 @@ where
                         });
                     }
                     WorkflowTimeoutControlDecision::Panic => {
-                        panic!(
-                            "Timeout while waiting for response to {}::{}",
-                            W::MODULE_NAME,
-                            W::WORKFLOW_NAME
-                        );
+                        panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
                 }
             }
@@ -695,11 +679,7 @@ where
 
         if let Some(WorkflowResponse::O(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
-                warn!(
-                    "Finished run_workflow_io_with_timeout_control for {}::{}",
-                    W::MODULE_NAME,
-                    W::WORKFLOW_NAME
-                );
+                warn!("Finished run_workflow_io_with_timeout_control for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
             return Ok(W::Output::from_boxed(response.output));
         }
@@ -786,11 +766,7 @@ where
     F: FnMut(WorkflowTimeoutContext) -> WorkflowTimeoutControlDecision,
 {
     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
-        warn!(
-            "Running run_workflow_ioe_with_timeout_control for {}::{}",
-            W::MODULE_NAME,
-            W::WORKFLOW_NAME
-        );
+        warn!("Running run_workflow_ioe_with_timeout_control for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     }
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
     let workflow_id = WorkflowID {
@@ -825,11 +801,7 @@ where
 
                 if key == workflow_id {
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
-                        warn!(
-                            "Finished run_workflow_ioe_with_timeout_control for {}::{}",
-                            W::MODULE_NAME,
-                            W::WORKFLOW_NAME
-                        );
+                        warn!("Finished run_workflow_ioe_with_timeout_control for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
                     return <Result<W::Output, W::Error>>::from_response(response).map_err(WorkflowControlledRunError::Workflow);
                 }
@@ -837,11 +809,7 @@ where
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
             }
             Ok(None) => {
-                panic!(
-                    "Channel closed while waiting for response to {}::{}",
-                    W::MODULE_NAME,
-                    W::WORKFLOW_NAME
-                );
+                panic!("Channel closed while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
             Err(_) => {
                 timeout_count += 1;
@@ -863,20 +831,14 @@ where
                         }
                     }
                     WorkflowTimeoutControlDecision::Abort => {
-                        return Err(WorkflowControlledRunError::Control(
-                            WorkflowRunnerControlError::TimeoutAborted {
-                                module_name: W::MODULE_NAME,
-                                workflow_name: W::WORKFLOW_NAME,
-                                timeout_count,
-                            },
-                        ));
+                        return Err(WorkflowControlledRunError::Control(WorkflowRunnerControlError::TimeoutAborted {
+                            module_name: W::MODULE_NAME,
+                            workflow_name: W::WORKFLOW_NAME,
+                            timeout_count,
+                        }));
                     }
                     WorkflowTimeoutControlDecision::Panic => {
-                        panic!(
-                            "Timeout while waiting for response to {}::{}",
-                            W::MODULE_NAME,
-                            W::WORKFLOW_NAME
-                        );
+                        panic!("Timeout while waiting for response to {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
                 }
             }
@@ -884,11 +846,7 @@ where
 
         if let Some(WorkflowResponse::OE(response)) = RESPONSE_INBOX.lock().await.remove(&workflow_id) {
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
-                warn!(
-                    "Finished run_workflow_ioe_with_timeout_control for {}::{}",
-                    W::MODULE_NAME,
-                    W::WORKFLOW_NAME
-                );
+                warn!("Finished run_workflow_ioe_with_timeout_control for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
             return <Result<W::Output, W::Error>>::from_response(response).map_err(WorkflowControlledRunError::Workflow);
         }

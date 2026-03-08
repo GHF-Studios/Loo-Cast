@@ -76,10 +76,10 @@ where
     }
 }
 
-pub struct CloneClosure<M, A, R, F> 
-where 
+pub struct CloneClosure<M, A, R, F>
+where
     M: Clone,
-    F: Clone + FnMut(M, A) -> R
+    F: Clone + FnMut(M, A) -> R,
 {
     moved: M,
     phantom_args: PhantomData<A>,
@@ -87,35 +87,36 @@ where
     func: F,
 }
 impl<M, A, R, F> Clone for CloneClosure<M, A, R, F>
-where 
+where
     M: Clone,
-    F: Clone + FnMut(M, A) -> R
+    F: Clone + FnMut(M, A) -> R,
 {
     fn clone(&self) -> Self {
         Self::new(self.moved.clone(), self.func.clone())
     }
 }
 impl<M, A, R, F> CloneClosure<M, A, R, F>
-where 
+where
     M: Clone,
-    F: Clone + FnMut(M, A) -> R
+    F: Clone + FnMut(M, A) -> R,
 {
     pub const fn new(moved: M, func: F) -> Self {
-        Self { moved, phantom_args: PhantomData, phantom_r: PhantomData, func }
+        Self {
+            moved,
+            phantom_args: PhantomData,
+            phantom_r: PhantomData,
+            func,
+        }
     }
 
-    pub fn call_(
-        &mut self,
-        args: A,
-    ) -> R
-    {
+    pub fn call_(&mut self, args: A) -> R {
         self.func.apply((self.moved.clone(),), (args,))
     }
 }
 impl<M, A, R, F> FnOnce<(A,)> for CloneClosure<M, A, R, F>
-where 
+where
     M: Clone,
-    F: Clone + FnMut(M, A) -> R
+    F: Clone + FnMut(M, A) -> R,
 {
     type Output = R;
 
@@ -123,10 +124,10 @@ where
         self.call_(args.0)
     }
 }
-impl<M, A, R, F> FnMut<(A,)> for CloneClosure<M, A, R, F> 
-where 
+impl<M, A, R, F> FnMut<(A,)> for CloneClosure<M, A, R, F>
+where
     M: Clone,
-    F: Clone + FnMut(M, A) -> R
+    F: Clone + FnMut(M, A) -> R,
 {
     extern "rust-call" fn call_mut(&mut self, args: (A,)) -> Self::Output {
         self.call_(args.0)

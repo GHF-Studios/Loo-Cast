@@ -29,19 +29,21 @@ The current rendering/simulation setup is tightly coupled to 2D sprite assumptio
 9. Conservative deletions: keep legacy sprite/picking paths unless explicitly removed later.
 10. Per-scale depth spacing target: at least `1000` z-units between adjacent scales.
 11. Camera depth range target: support almost `100,000` z-units.
+12. `MainEntity` transform is non-authoritative under the proxy contract and should be treated as UB for simulation semantics.
 
 ## Formal Proxy Model
 ### Entities
-1. `PhenomenaRoot`: canonical identity/truth of a phenomenon.
-2. `LogicProxy`: simulation window and operational abstraction for the root.
-3. `RenderProxy`: visual window and operational abstraction for the root.
-4. `ProxyLink`: synchronization metadata between root, logic proxy, and render proxy.
+1. `MainEntity`: canonical ECS container for semantic components; extensible host for proxy-linked systems.
+2. `LogicProxy`: simulation window and operational abstraction for the main entity.
+3. `RenderProxy`: visual window and operational abstraction for the main entity.
+4. `EntityProxyLink`: synchronization metadata between main entity, logic proxy, and render proxy.
 
 ### Invariants
-1. A root can resolve exactly one active logic proxy and one active render proxy for a given mode.
-2. Proxy state changes are versioned (`epoch`) to avoid stale application.
+1. A main entity resolves one active logic proxy and one active render proxy.
+2. Proxy state changes are versioned (`ProxySyncRevision`) to avoid stale application.
 3. Logic and render windows are shallow entities that represent non-shallow phenomena.
 4. Scale ordering is monotonic by canonical mapping (layer + z).
+5. `MainEntity` transform is a non-authoritative safety value (zeroed under UB contract when enforced).
 
 ## Representation Policy
 1. Coarse context remains present in back.
@@ -73,7 +75,7 @@ Acceptance:
 2. No required code edits to switch runtime mode.
 
 ### M1 - Proxy Schema
-Status: `pending`
+Status: `completed`
 Goal: Add formal proxy components/resources and link invariants.
 Acceptance:
 1. Root, logic proxy, render proxy schema compiles and registers.
@@ -113,11 +115,11 @@ Acceptance:
 3. Simulation/load and render-visible sets are explicitly separated.
 
 ### M6 - LogicProxy Runtime
-Status: `pending`
+Status: `in_progress`
 Goal: Run simulation against logic proxies, synchronized to roots.
 Acceptance:
 1. Logic operations can execute against proxy windows.
-2. Epoch/version prevents stale state application.
+2. Revision/version prevents stale state application.
 3. Deterministic update order per frame.
 
 ### M7 - RenderProxy Windowed Mode
@@ -172,10 +174,15 @@ Acceptance:
 2. Locked core constraints from planning conversation.
 3. Locked full-hierarchy requirement and dynamic safety horizon.
 4. Locked layer-per-scale mapping and procedural subsection direction.
+5. Implemented `EntityProxyLink`, `LogicProxy`, and `ProxySyncRevision` components in code.
+6. Added runtime systems for revision stepping, deterministic main->logic sync, and root transform UB enforcement.
+7. Replaced `RenderProxyHandle` usage in active code paths with unified `EntityProxyLink`.
+8. Added live `EntityProxyLink` invariant validation and reporting in simulation.
+9. Marked M1 as `completed`; M6 remains `in_progress`.
 
 ## Open Questions (Must Resolve During Implementation)
 1. Exact near/far projection values after z remap and camera pose lock.
-2. Exact root/proxy ownership semantics for non-chunk phenomena.
+2. Exact main/proxy ownership semantics for non-chunk entities.
 3. Whether some logic proxy modes should remain chunk-only initially.
 4. Render-layer composition details for main camera vs UI camera interactions.
 

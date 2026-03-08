@@ -1,7 +1,7 @@
 use crate::define_composite_workflow::workflow_invocation::*;
 use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
 use quote::quote;
-use syn::{parse2, ExprPath, ExprStruct, Ident, Result};
+use syn::{ExprPath, ExprStruct, Ident, Result, parse2};
 
 #[derive(Debug, Clone)]
 pub enum WorkflowSegment {

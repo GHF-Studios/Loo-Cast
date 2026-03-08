@@ -1,8 +1,8 @@
 use proc_macro2::{Span, TokenStream};
 use syn::{
-    braced,
+    Attribute, ExprPath, ExprStruct, Ident, Result, Token, braced,
     parse::{Parse, ParseStream},
-    parse2, Attribute, ExprPath, ExprStruct, Ident, Result, Token,
+    parse2,
 };
 
 #[derive(Debug, Clone)]

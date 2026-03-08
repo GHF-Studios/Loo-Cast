@@ -14,7 +14,7 @@
 //! - Asset ownership: assets belong to `core_mod` and should be referenced by code through
 //!   `core_mod_api` typed helpers when possible.
 //! - Avoid embedding non-gameplay asset files anywhere else but `core_mod` to keep a single
-//!   authoritative source for built-in non-gameplay "content". 
+//!   authoritative source for built-in non-gameplay "content".
 //! - Keep long-form design notes in `documents/` and short usage notes near asset locations.
 //!
 //! TODO: add a crate-level README listing canonical config paths and asset conventions

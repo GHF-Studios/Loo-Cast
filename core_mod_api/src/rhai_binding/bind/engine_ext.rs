@@ -1,5 +1,5 @@
-use crate::rhai_binding::internals::statics::RUNTIME_BINDING_GRAPH;
 use crate::rhai_binding::bridges::testing::is_testing_top_level_module;
+use crate::rhai_binding::internals::statics::RUNTIME_BINDING_GRAPH;
 
 pub trait EngineExt {
     fn register_binding_graph(&mut self) -> &mut Self;

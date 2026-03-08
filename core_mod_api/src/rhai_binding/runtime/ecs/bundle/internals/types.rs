@@ -1,6 +1,6 @@
 use crate::bevy::ecs::world::EntityWorldMut as BevyEntityWorldMut;
-use crate::rhai_binding::runtime::ecs::dispatch_policy::{validate_trait_path_id, validate_type_path_id};
 use crate::rhai_binding::runtime::ecs::bundle::internals::trait_objects::BundleTraitObject;
+use crate::rhai_binding::runtime::ecs::dispatch_policy::{validate_trait_path_id, validate_type_path_id};
 
 pub type BundleSpawnDispatchKey = (String, String);
 pub type BundleSpawnDispatchFn = fn(&mut BevyEntityWorldMut, BundleTraitObject);

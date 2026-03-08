@@ -2,13 +2,11 @@ use std::collections::HashMap;
 
 use once_cell::sync::Lazy;
 
-use crate::rhai_binding::runtime::ecs::dispatch_policy::{
-    validate_bundle_signature_id, validate_trait_path_id, validate_type_path_id,
-};
 use crate::rhai_binding::runtime::ecs::bundle::internals::trait_objects::BundleTraitObject;
 use crate::rhai_binding::runtime::ecs::bundle::internals::types::{
-    bundle_spawn_dispatch_key_from_paths, BundleSpawnDispatchEntry, BundleSpawnDispatchFn, BundleSpawnDispatchKey,
+    BundleSpawnDispatchEntry, BundleSpawnDispatchFn, BundleSpawnDispatchKey, bundle_spawn_dispatch_key_from_paths,
 };
+use crate::rhai_binding::runtime::ecs::dispatch_policy::{validate_bundle_signature_id, validate_trait_path_id, validate_type_path_id};
 
 static BUNDLE_SPAWN_DISPATCH_REGISTRY: Lazy<HashMap<BundleSpawnDispatchKey, BundleSpawnDispatchFn>> = Lazy::new(|| {
     let mut registry = HashMap::new();

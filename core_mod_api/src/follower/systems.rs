@@ -12,15 +12,13 @@ pub(crate) fn update_follower_system(
 ) {
     process_lifecycle_messages(&mut follower_target_lifecycle_message_reader, &mut param_set.p0());
     let targets = collect_target_positions(&mut param_set.p1());
-    update_followers(
-        &mut param_set.p0(),
-        &targets,
-        &time,
-        &mut previous_target_positions,
-    );
+    update_followers(&mut param_set.p0(), &targets, &time, &mut previous_target_positions);
 }
 
-fn process_lifecycle_messages(messages: &mut MessageReader<FollowerTargetLifecycleMessage>, followers_query: &mut Query<(Entity, &mut Transform, &mut Follower)>) {
+fn process_lifecycle_messages(
+    messages: &mut MessageReader<FollowerTargetLifecycleMessage>,
+    followers_query: &mut Query<(Entity, &mut Transform, &mut Follower)>,
+) {
     for message in messages.read() {
         match message {
             FollowerTargetLifecycleMessage::Add { follow_id, followed_entity } => {
@@ -97,22 +95,12 @@ fn update_followers(
                 }
             };
 
-            update_follower_position(
-                &mut follower,
-                &mut follower_transform,
-                target_pos_2d,
-                time,
-            );
+            update_follower_position(&mut follower, &mut follower_transform, target_pos_2d, time);
         }
     }
 }
 
-fn update_follower_position(
-    follower: &mut Follower,
-    follower_transform: &mut Transform,
-    target_position: Vec2,
-    time: &Res<Time<Virtual>>,
-) {
+fn update_follower_position(follower: &mut Follower, follower_transform: &mut Transform, target_position: Vec2, time: &Res<Time<Virtual>>) {
     if follower.smoothness < 0.0 {
         warn!("Smoothness value for follower '{}' is less than 0. Clamping to 0.", follower.follow_id);
         follower.smoothness = 0.0;

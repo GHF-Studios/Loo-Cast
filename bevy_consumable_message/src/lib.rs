@@ -111,7 +111,9 @@ impl<M: Message> ConsumableMessages<M> {
 
     /// Reads the unconsumed messages stored in self.
     pub fn read(&mut self) -> ConsumableMessageIterator<'_, M> {
-        ConsumableMessageIterator { iter: self.messages.iter_mut() }
+        ConsumableMessageIterator {
+            iter: self.messages.iter_mut(),
+        }
     }
 
     /// Clears all messages stored in self. Unconsumed messages are also dropped.

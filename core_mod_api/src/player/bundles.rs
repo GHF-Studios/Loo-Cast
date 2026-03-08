@@ -1,13 +1,13 @@
 use crate::bevy::prelude::*;
 
 use crate::follower::components::FollowerTarget;
+use crate::rhai_binding::meta::abstract_::trait_identity::GetTypeId;
+use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
 use crate::usf::scale::Scale;
 use crate::{
     chunk::components::{ChunkActor, ChunkLoader},
     config::statics::CONFIG,
 };
-use crate::rhai_binding::meta::abstract_::trait_identity::GetTypeId;
-use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
 
 use super::components::Player;
 

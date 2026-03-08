@@ -1,6 +1,6 @@
 pub mod components;
-pub mod messages;
 pub mod hooks;
+pub mod messages;
 pub mod observers;
 pub mod systems;
 

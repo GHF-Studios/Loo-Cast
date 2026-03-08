@@ -1,7 +1,15 @@
 use rhai::ImmutableString;
 
-use crate::{rhai_binding::{meta::{generic::abstract_primitive::ConstDynMetadata, monomorphized::function::{ConstructorFunctionMetadata, ItemAssociatedFunctionMetadata, MethodFunctionMetadata, ModuleAssociatedFunctionMetadata}}, path::function_path::*}, utils::{clone_closure::CloneClosure, clone_lazy::CloneLazy}};
-
+use crate::{
+    rhai_binding::{
+        meta::{
+            generic::abstract_primitive::ConstDynMetadata,
+            monomorphized::function::{ConstructorFunctionMetadata, ItemAssociatedFunctionMetadata, MethodFunctionMetadata, ModuleAssociatedFunctionMetadata},
+        },
+        path::function_path::*,
+    },
+    utils::{clone_closure::CloneClosure, clone_lazy::CloneLazy},
+};
 
 pub const trait ModuleAssociatedFunctionConstDynMetadata: ConstDynMetadata {
     fn id_path(&self) -> CloneLazy<ModuleAssociatedFunctionPath>;

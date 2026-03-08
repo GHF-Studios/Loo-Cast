@@ -2,15 +2,12 @@ use crate::{
     rhai_binding::{
         meta::{
             generic::abstract_primitive::ConstDynMetadata,
-            monomorphized::module::{TopLevelModuleMetadata, SubModuleMetadata, TypeBindingModuleMetadata}
+            monomorphized::module::{SubModuleMetadata, TopLevelModuleMetadata, TypeBindingModuleMetadata},
         },
-        path::{
-            function_path::*, impl_path::*, module_path::*, trait_path::*, type_path::*
-        }
+        path::{function_path::*, impl_path::*, module_path::*, trait_path::*, type_path::*},
     },
-    utils::clone_lazy::CloneLazy
+    utils::clone_lazy::CloneLazy,
 };
-
 
 /// # Abstract
 /// Should not be implemented itself, but via a superset-trait,

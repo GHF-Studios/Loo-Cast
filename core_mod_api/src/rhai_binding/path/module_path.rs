@@ -1,6 +1,12 @@
 use rhai::ImmutableString;
 
-use crate::{rhai_binding::path::{binding_path::{BindingPath, BindingPathSegment}, type_path::TypePath}, utils::string::assert_snake_case_clean_string};
+use crate::{
+    rhai_binding::path::{
+        binding_path::{BindingPath, BindingPathSegment},
+        type_path::TypePath,
+    },
+    utils::string::assert_snake_case_clean_string,
+};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct ModulePath(BindingPath);
@@ -34,9 +40,7 @@ impl ModulePath {
     }
 
     pub fn last(&self) -> &ImmutableString {
-        self.module_segments()
-            .last()
-            .expect("ModulePath must contain at least one segment")
+        self.module_segments().last().expect("ModulePath must contain at least one segment")
     }
 
     pub fn parent(&self) -> Option<ModulePath> {
@@ -45,11 +49,7 @@ impl ModulePath {
             return None;
         }
 
-        let raw = segs[..segs.len() - 1]
-            .iter()
-            .map(|s| s.as_str())
-            .collect::<Vec<_>>()
-            .join("::");
+        let raw = segs[..segs.len() - 1].iter().map(|s| s.as_str()).collect::<Vec<_>>().join("::");
 
         Some(ModulePath::parse(&ImmutableString::from(raw)))
     }
@@ -127,9 +127,7 @@ impl SubModulePath {
     }
 
     pub fn parent_module_path(&self) -> ModulePath {
-        self.0
-            .parent()
-            .expect("SubModulePath must have a parent")
+        self.0.parent().expect("SubModulePath must have a parent")
     }
 
     pub fn module_name(&self) -> &ImmutableString {

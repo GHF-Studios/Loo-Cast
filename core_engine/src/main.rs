@@ -15,18 +15,18 @@ use core_mod_api::*;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
-use bevy::log::{error, info, info_span, LogPlugin};
+use bevy::log::{LogPlugin, error, info, info_span};
 use bevy::prelude::*;
 use bevy::window::PresentMode;
 
-use bevy::gizmos::config::GizmoConfigStore;
-use bevy::render::view::ColorGradingSection;
-use bevy::render::view::ColorGradingGlobal;
-use bevy::light::AmbientLight;
-use bevy::light::PointLight;
-use bevy::light::DirectionalLight;
-use bevy::light::cluster::ClusterConfig;
 use bevy::camera::Camera3dDepthLoadOp;
+use bevy::gizmos::config::GizmoConfigStore;
+use bevy::light::AmbientLight;
+use bevy::light::DirectionalLight;
+use bevy::light::PointLight;
+use bevy::light::cluster::ClusterConfig;
+use bevy::render::view::ColorGradingGlobal;
+use bevy::render::view::ColorGradingSection;
 
 use bevy_egui::EguiPlugin;
 // use bevy_rapier2d::prelude::*;
@@ -109,8 +109,7 @@ fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
 
     let mut app = App::new();
 
-    app
-        .register_type::<GizmoConfigStore>()
+    app.register_type::<GizmoConfigStore>()
         .register_type::<ColorGradingSection>()
         .register_type::<ColorGradingGlobal>()
         .register_type::<AmbientLight>()

@@ -1,16 +1,10 @@
 use std::collections::HashMap;
 
-use crate::{
-    rhai_binding::path::{
-        module_path::*,
-        trait_path::*,
-        type_path::*,
-        impl_path::*,
-        function_path::*,
-    },
-    utils::{clone_lazy::CloneLazy}
-};
 use crate::rhai_binding::meta::monomorphized::{function::*, generic_::*, impl_::*, module::*, trait_::*, type_::*};
+use crate::{
+    rhai_binding::path::{function_path::*, impl_path::*, module_path::*, trait_path::*, type_path::*},
+    utils::clone_lazy::CloneLazy,
+};
 
 inventory::collect!(TopLevelModuleMetadataEntry);
 pub struct TopLevelModuleMetadataEntry(pub &'static CloneLazy<TopLevelModuleMetadata>);
@@ -111,11 +105,9 @@ impl RuntimeBindingGraph {
         }
         let mut traits = HashMap::with_capacity(traits_raw.len());
         for (id_path, trait_meta) in traits_raw {
-            let trait_object_meta = trait_objects_raw
-                .remove(&id_path)
-                .unwrap_or_else(|| {
-                    panic!("Missing trait object for trait '{id_path}'!");
-                });
+            let trait_object_meta = trait_objects_raw.remove(&id_path).unwrap_or_else(|| {
+                panic!("Missing trait object for trait '{id_path}'!");
+            });
 
             let value = (trait_meta, trait_object_meta);
 

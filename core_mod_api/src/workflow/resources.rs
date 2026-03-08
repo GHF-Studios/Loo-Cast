@@ -1,11 +1,11 @@
 use crate::bevy::prelude::*;
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
 use crate::utils::premium_box::AnySendSyncPremiumBox;
 
-use super::{messages::*, instance::*, stage::*, types::*};
+use super::{instance::*, messages::*, stage::*, types::*};
 
 #[derive(Resource, Reflect, Default)]
 #[reflect(Resource)]

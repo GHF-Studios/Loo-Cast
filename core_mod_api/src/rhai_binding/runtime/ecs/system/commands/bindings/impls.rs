@@ -1,11 +1,11 @@
 use rhai::{Dynamic, FnPtr, NativeCallContext};
 
 use crate::bevy::prelude::Entity as BevyEntity;
-use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 use crate::rhai_binding::runtime::ecs::system::commands::{
     bindings::types::{Commands, EntityCommands},
     internals::traits::{CommandsApi, EntityCommandsApi},
 };
+use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 
 impl CommandsApi for Commands {
     fn spawn_empty(&self, ctx: NativeCallContext, callback: FnPtr) -> Dynamic {

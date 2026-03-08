@@ -1,5 +1,5 @@
 use crate::bevy::prelude::*;
-use bevy_egui::{egui, EguiContexts};
+use bevy_egui::{EguiContexts, egui};
 
 use crate::logging::{
     resources::LogRegistry,

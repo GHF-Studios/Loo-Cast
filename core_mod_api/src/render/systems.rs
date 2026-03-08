@@ -8,13 +8,13 @@ use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;
 use crate::player::components::Player;
-use crate::usf::scale::Scale;
 use crate::render::{
-    components::{MainCamera, RenderProxy, RenderProxyHandle, UiCamera},
+    components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, UiCamera},
     functions::draw_primary_window_ui,
     resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor},
 };
 use crate::time::resources::VirtualPaused;
+use crate::usf::scale::Scale;
 
 pub(super) fn pre_setup_phase_0(mut commands: Commands, mut images: ResMut<Assets<Image>>, windows: Query<&Window>) {
     // Reserve camera entities
@@ -90,9 +90,9 @@ pub(super) fn resize_render_texture(
 pub(super) fn update_render_proxies(
     mut params: ParamSet<(
         Single<(&ChunkLoader, &Transform), With<Player>>,
-        Query<(&RenderProxyHandle, &ChunkActor), Without<RenderProxy>>,
-        Query<(&RenderProxyHandle, &Chunk), Without<RenderProxy>>,
-        Query<&mut Transform, With<RenderProxy>>,
+        Query<(&EntityProxyLink, &ChunkActor), Without<RenderProxy>>,
+        Query<(&EntityProxyLink, &Chunk), Without<RenderProxy>>,
+        Query<(&mut Transform, &mut ProxySyncRevision), With<RenderProxy>>,
     )>,
 ) {
     let (chunk_loader, chunk_loader_transform) = *params.p0();
@@ -105,25 +105,29 @@ pub(super) fn update_render_proxies(
         let chunk_actor_query = params.p1();
         chunk_actor_query
             .iter()
-            .filter_map(|(handle, chunk_actor)| {
+            .filter_map(|(link, chunk_actor)| {
                 let scale_diff = chunk_actor.coord.scale as i8 - origin_offset.scale as i8;
                 if scale_diff < 0 || scale_diff > max_scale_diff {
                     return None;
                 }
-                Some((handle.proxy_entity, chunk_actor.coord.clone()))
+                Some((link.render_entity, link.revision, chunk_actor.coord.clone()))
             })
             .collect::<Vec<_>>()
     };
 
     {
         let mut proxy_transforms = params.p3();
-        for (proxy_entity, coord) in actor_updates {
-            if let Ok(mut proxy_transform) = proxy_transforms.get_mut(proxy_entity) {
+        for (proxy_entity, incoming_revision, coord) in actor_updates {
+            if let Ok((mut proxy_transform, mut proxy_revision)) = proxy_transforms.get_mut(proxy_entity) {
+                if incoming_revision.0 < proxy_revision.0 {
+                    continue;
+                }
                 let (pos, scale) = coord.to_native_visual(origin_offset.clone());
                 let world_pos = pos.extend(proxy_transform.translation.z);
                 proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
                 proxy_transform.scale = Vec3::splat(scale);
                 proxy_transform.rotation = world_rotation;
+                proxy_revision.0 = incoming_revision.0;
             }
         }
     }
@@ -132,25 +136,29 @@ pub(super) fn update_render_proxies(
         let chunk_query = params.p2();
         chunk_query
             .iter()
-            .filter_map(|(handle, chunk)| {
+            .filter_map(|(link, chunk)| {
                 let scale_diff = chunk.coord.scale as i8 - origin_offset.scale as i8;
                 if scale_diff < 0 || scale_diff > max_scale_diff {
                     return None;
                 }
-                Some((handle.proxy_entity, chunk.coord.clone()))
+                Some((link.render_entity, link.revision, chunk.coord.clone()))
             })
             .collect::<Vec<_>>()
     };
 
     {
         let mut proxy_transforms = params.p3();
-        for (proxy_entity, coord) in chunk_updates {
-            if let Ok(mut proxy_transform) = proxy_transforms.get_mut(proxy_entity) {
+        for (proxy_entity, incoming_revision, coord) in chunk_updates {
+            if let Ok((mut proxy_transform, mut proxy_revision)) = proxy_transforms.get_mut(proxy_entity) {
+                if incoming_revision.0 < proxy_revision.0 {
+                    continue;
+                }
                 let (pos, scale) = coord.to_native_visual(origin_offset.clone());
                 let world_pos = pos.extend(proxy_transform.translation.z);
                 proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
                 proxy_transform.scale = Vec3::splat(scale);
                 proxy_transform.rotation = world_rotation;
+                proxy_revision.0 = incoming_revision.0;
             }
         }
     }
@@ -158,12 +166,18 @@ pub(super) fn update_render_proxies(
 
 #[tracing::instrument(skip_all)]
 pub(super) fn despawn_orphaned_render_proxies(
-    mut removed: RemovedComponents<RenderProxyHandle>,
-    proxies: Query<(Entity, &RenderProxy)>,
+    mut removed: RemovedComponents<EntityProxyLink>,
+    render_proxies: Query<(Entity, &RenderProxy)>,
+    logic_proxies: Query<(Entity, &LogicProxy)>,
     mut commands: Commands,
 ) {
     for removed_source in removed.read() {
-        for (proxy_entity, proxy) in &proxies {
+        for (proxy_entity, proxy) in &render_proxies {
+            if proxy.source == removed_source {
+                commands.entity(proxy_entity).despawn();
+            }
+        }
+        for (proxy_entity, proxy) in &logic_proxies {
             if proxy.source == removed_source {
                 commands.entity(proxy_entity).despawn();
             }
@@ -210,10 +224,7 @@ pub(super) fn main_camera_zoom_system(
     let dev_zoom_speed = CONFIG().get::<f32>("camera/dev_zoom_speed");
     let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
 
-    if !input_mode.is_game()
-        || virtual_paused.0
-        || (chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked()))
-    {
+    if !input_mode.is_game() || virtual_paused.0 || (chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked())) {
         scroll_message_reader.clear();
         return;
     }
@@ -249,12 +260,12 @@ pub(super) fn apply_usf_player_pivots_system(
     mut zoom_factor: ResMut<ZoomFactor>,
     dev_zoom_factor: Res<DevZoomFactor>,
     mut projection_query: Query<&mut Projection, With<Camera>>,
-    mut player_loader_query: Query<(&mut ChunkLoader, &mut Transform), With<Player>>,
+    mut player_loader_query: Query<(&mut ChunkLoader, &mut ChunkActor, &mut Transform), With<Player>>,
     mut chunk_load_gate: Option<ResMut<ChunkLoadGate>>,
     workflow_state: Option<Res<ChunkActionWorkflowState>>,
     mut player_motion_intent: ResMut<PlayerMotionIntent>,
 ) {
-    let Ok((mut chunk_loader, mut player_transform)) = player_loader_query.single_mut() else {
+    let Ok((mut chunk_loader, mut chunk_actor, mut player_transform)) = player_loader_query.single_mut() else {
         player_motion_intent.clear();
         return;
     };
@@ -289,8 +300,12 @@ pub(super) fn apply_usf_player_pivots_system(
     if gate_locked {
         // Hard freeze mode: do not process additional pivot transitions while input is locked.
         zoom_factor.0 = zoom_factor.0.clamp(local_min, local_max);
-        chunk_loader.usf_transform.scale.uniform.local =
-            chunk_loader.usf_transform.scale.uniform.local.clamp(scale_policy.local_min, scale_policy.local_max);
+        chunk_loader.usf_transform.scale.uniform.local = chunk_loader
+            .usf_transform
+            .scale
+            .uniform
+            .local
+            .clamp(scale_policy.local_min, scale_policy.local_max);
         player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
         player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
         chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
@@ -317,8 +332,12 @@ pub(super) fn apply_usf_player_pivots_system(
 
             // Reject boundary commit while a previous boundary batch is still in flight.
             zoom_factor.0 = zoom_factor.0.clamp(local_min, local_max);
-            chunk_loader.usf_transform.scale.uniform.local =
-                chunk_loader.usf_transform.scale.uniform.local.clamp(scale_policy.local_min, scale_policy.local_max);
+            chunk_loader.usf_transform.scale.uniform.local = chunk_loader
+                .usf_transform
+                .scale
+                .uniform
+                .local
+                .clamp(scale_policy.local_min, scale_policy.local_max);
             player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
             player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
             chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
@@ -334,8 +353,8 @@ pub(super) fn apply_usf_player_pivots_system(
                 chunk_loader.rotate_world_local(intent_rotation_delta);
             }
 
-            let (scale_pivot, translation_grid_delta) =
-                chunk_loader.apply_player_anchor_pivots(&mut zoom_factor.0, &mut player_transform.translation);
+            let (scale_pivot, translation_grid_delta) = chunk_loader.apply_player_anchor_pivots(&mut zoom_factor.0, &mut player_transform.translation);
+            chunk_actor.coord = chunk_loader.coord.clone();
             zoom_factor.0 = zoom_factor.0.clamp(scale_commit_min, scale_commit_max);
 
             let boundary_crossed = scale_pivot.lower_crossings > 0 || scale_pivot.upper_crossings > 0 || translation_grid_delta != IVec2::ZERO;
@@ -351,8 +370,12 @@ pub(super) fn apply_usf_player_pivots_system(
 
             if gate_locked {
                 zoom_factor.0 = zoom_factor.0.clamp(local_min, local_max);
-                chunk_loader.usf_transform.scale.uniform.local =
-                    chunk_loader.usf_transform.scale.uniform.local.clamp(scale_policy.local_min, scale_policy.local_max);
+                chunk_loader.usf_transform.scale.uniform.local = chunk_loader
+                    .usf_transform
+                    .scale
+                    .uniform
+                    .local
+                    .clamp(scale_policy.local_min, scale_policy.local_max);
                 player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
                 player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
                 chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);

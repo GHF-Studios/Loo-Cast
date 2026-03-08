@@ -1,8 +1,8 @@
 use super::stage::{Async, Ecs, EcsWhile, Render, RenderWhile, StageSignature};
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use std::marker::PhantomData;
-use syn::{parenthesized, parse::Parse, spanned::Spanned, Ident, Result, Token};
+use syn::{Ident, Result, Token, parenthesized, parse::Parse, spanned::Spanned};
 
 pub enum CoreFunctionType {
     RunEcs { span: Span },
@@ -165,19 +165,19 @@ impl Parse for CoreFunction {
                         return Err(syn::Error::new(
                             param_name.span(),
                             "Unexpected parameter name. Expected: `main_access` or `render_access`",
-                        ))
+                        ));
                     }
                     (false, true) => {
                         return Err(syn::Error::new(
                             param_name.span(),
                             "Unexpected parameter name. Expected: `main_access` or `render_access`",
-                        ))
+                        ));
                     }
                     _ => {
                         return Err(syn::Error::new(
                             param_name.span(),
                             "Unexpected parameter name. Expected: `input`, `state`, or `main_access` or `render_access`",
-                        ))
+                        ));
                     }
                 },
             }

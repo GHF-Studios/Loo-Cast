@@ -64,10 +64,7 @@ impl Default for UsfFloat {
 }
 impl UsfFloat {
     pub fn new(local: f64) -> Self {
-        Self {
-            local,
-            canonical_cycles: 0,
-        }
+        Self { local, canonical_cycles: 0 }
     }
 
     pub fn set_local(&mut self, local: f64) {
@@ -162,7 +159,11 @@ impl UsfTranslation {
         let py = self.y.fold_with_policy(self.policy);
         let pz = self.z.fold_with_policy(self.policy);
 
-        IVec3::new(px.upper_crossings - px.lower_crossings, py.upper_crossings - py.lower_crossings, pz.upper_crossings - pz.lower_crossings)
+        IVec3::new(
+            px.upper_crossings - px.lower_crossings,
+            py.upper_crossings - py.lower_crossings,
+            pz.upper_crossings - pz.lower_crossings,
+        )
     }
 }
 
@@ -238,7 +239,11 @@ impl UsfRotation {
         let py = self.y.fold_with_policy(self.policy);
         let pz = self.z.fold_with_policy(self.policy);
 
-        IVec3::new(px.upper_crossings - px.lower_crossings, py.upper_crossings - py.lower_crossings, pz.upper_crossings - pz.lower_crossings)
+        IVec3::new(
+            px.upper_crossings - px.lower_crossings,
+            py.upper_crossings - py.lower_crossings,
+            pz.upper_crossings - pz.lower_crossings,
+        )
     }
 
     pub fn local_quat(&self) -> Quat {

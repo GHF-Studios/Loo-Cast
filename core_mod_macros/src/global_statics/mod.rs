@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, punctuated::Punctuated, spanned::Spanned, Expr, ExprPath, Ident, Token, Type};
+use syn::{Expr, ExprPath, Ident, Token, Type, parse_macro_input, punctuated::Punctuated, spanned::Spanned};
 
 pub fn export_static(input: TokenStream) -> TokenStream {
     let ExportInput {

@@ -1,7 +1,7 @@
 use std::any::Any;
 
+use crate::bevy::ecs::world::{EntityMut, EntityRef, EntityWorldMut};
 use crate::bevy::prelude::Entity;
-use crate::bevy::ecs::world::{EntityRef, EntityMut, EntityWorldMut};
 use crate::rhai_binding::value_semantics::access_traits::ReadAccessProvider;
 
 impl ReadAccessProvider<Entity> for EntityRef<'static> {
@@ -13,7 +13,7 @@ impl ReadAccessProvider<Entity> for EntityRef<'static> {
                 }
 
                 self.id()
-            },
+            }
             _ => panic!("Unsupported method '{}' in AccessProvider<Entity> for EntityRef", method),
         }
     }
@@ -28,7 +28,7 @@ impl ReadAccessProvider<Entity> for EntityMut<'static> {
                 }
 
                 self.id()
-            },
+            }
             _ => panic!("Unsupported method '{}' in AccessProvider<Entity> for EntityMut", method),
         }
     }
@@ -43,7 +43,7 @@ impl ReadAccessProvider<Entity> for EntityWorldMut<'static> {
                 }
 
                 self.id()
-            },
+            }
             _ => panic!("Unsupported method '{}' in AccessProvider<Entity> for EntityWorldMut", method),
         }
     }

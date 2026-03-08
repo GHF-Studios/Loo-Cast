@@ -19,7 +19,12 @@ pub(super) fn setup(mut commands: Commands) {
     let half_arrow_size_y = Vec2::new(arrow_thickness, arrow_length) / 2.0;
 
     commands
-        .spawn((Transform::from_translation(Vec3::new(0.0, 0.0, z)), Visibility::Hidden, Name::new("Gizmo Root"), GizmoRoot))
+        .spawn((
+            Transform::from_translation(Vec3::new(0.0, 0.0, z)),
+            Visibility::Hidden,
+            Name::new("Gizmo Root"),
+            GizmoRoot,
+        ))
         .with_children(|parent| {
             parent.spawn((
                 Sprite {

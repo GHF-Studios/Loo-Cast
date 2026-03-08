@@ -4,17 +4,16 @@ mod workflow_segment;
 
 use heck::{ToPascalCase, ToSnakeCase};
 use proc_macro2::{Group, TokenStream, TokenTree};
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use std::collections::HashSet;
 use syn::{
-    braced,
+    ExprPath, Ident, Result, braced,
     parse::{Parse, ParseStream},
     spanned::Spanned,
-    ExprPath, Ident, Result,
 };
 
 use pre_processor::pre_process_workflows;
-use workflow_segment::{extract_workflow_segments, WorkflowSegment};
+use workflow_segment::{WorkflowSegment, extract_workflow_segments};
 
 use crate::define_composite_workflow::workflow_invocation::WorkflowInvocation;
 

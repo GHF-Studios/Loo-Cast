@@ -9,7 +9,6 @@ use crate::{
     utils::{clone_closure::CloneClosure, clone_lazy::CloneLazy},
 };
 
-
 /// I think this is outdated, and the entire Type shit is not yet adapted to the new reflection paradigm,
 /// AKA there is no metadata to describe the different possible variants of a Type yet
 pub const trait TypeConstDynMetadata: ConstDynMetadata {
@@ -26,7 +25,7 @@ pub const trait TypeConstDynMetadata: ConstDynMetadata {
 // pub const trait TypeCloneConstDynMetadata: TypeConstDynMetadata {}
 // pub const trait TypePersistentRefConstDynMetadata: TypeConstDynMetadata {}
 // pub const trait TypePersistentMutConstDynMetadata: TypeConstDynMetadata {}
-// /// Like a PersistentRef, but backs a rust-native immutable borrow *with* lifetimes, aka it implements runtime-checks against use-after-free's and aliasing issues; 
+// /// Like a PersistentRef, but backs a rust-native immutable borrow *with* lifetimes, aka it implements runtime-checks against use-after-free's and aliasing issues;
 // pub const trait TypeScopedRefConstDynMetadata: TypeConstDynMetadata {}
 // pub const trait TypeScopedMutConstDynMetadata: TypeConstDynMetadata {}
 
@@ -36,7 +35,7 @@ pub trait TypeDynamicTypedMetadata {
             raw_rust_module_path: const_dyn_metadata.raw_rust_module_path(),
             id_path: const_dyn_metadata.id_path().clone(),
             registrator: const_dyn_metadata.clone().registrator(),
-            
+
             method_functions: const_dyn_metadata.method_functions().clone(),
             value_semantics: const_dyn_metadata.value_semantics().clone(),
             generic_definition_id: const_dyn_metadata.generic_definition_id().clone(),

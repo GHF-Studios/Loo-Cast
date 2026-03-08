@@ -1,7 +1,6 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 #![warn(clippy::large_stack_frames)]
-
 #![feature(const_trait_impl)]
 #![feature(const_destruct)]
 #![feature(fn_traits)]
@@ -44,15 +43,14 @@
 //! - When adding public APIs, include a concise module-level doc explaining intent, lifecycle
 //!   guarantees, and any invariants callers must respect.
 
-
 pub use bevy_consumable_message;
 pub use core_mod_macros;
 
 pub use anymap;
+pub use bevy;
 #[cfg(all(debug_assertions, not(target_os = "windows")))]
 #[allow(unused_imports)]
 pub use bevy_dylib;
-pub use bevy;
 pub use bevy_egui;
 pub use bevy_inspector_egui;
 // pub use bevy_rapier2d; // Stuck on bevy 0.17.3

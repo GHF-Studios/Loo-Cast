@@ -5,10 +5,8 @@
 
 use crate::bevy::ecs::message::Messages;
 use crate::bevy::prelude::World as BevyWorld;
+use crate::rhai_binding::runtime::ecs::dispatch_policy::{submit_message_drain_dispatch_entry, submit_message_write_dispatch_entry};
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
-use crate::rhai_binding::runtime::ecs::dispatch_policy::{
-    submit_message_drain_dispatch_entry, submit_message_write_dispatch_entry,
-};
 
 pub const MESSAGE_SIG__SCRIPT_PROBE__WRITE: &str = "MESSAGE_SIG__SCRIPT_PROBE__WRITE";
 pub const MESSAGE_SIG__SCRIPT_PROBE__DRAIN: &str = "MESSAGE_SIG__SCRIPT_PROBE__DRAIN";

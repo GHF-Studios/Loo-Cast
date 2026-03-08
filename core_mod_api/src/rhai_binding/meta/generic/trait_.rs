@@ -12,7 +12,6 @@ use crate::{
     utils::clone_lazy::CloneLazy,
 };
 
-
 pub const trait TraitConstDynMetadata: ConstDynMetadata + DynGetTraitName {
     fn id_path(&self) -> CloneLazy<TraitPath>;
     fn super_traits(&self) -> CloneLazy<Vec<TraitPath>>;

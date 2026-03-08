@@ -1,7 +1,7 @@
 use rhai::{Dynamic, Identifier};
 use std::sync::Arc;
 
-use super::super::internals::types::{ComponentId, ComponentCtorParams};
+use super::super::internals::types::{ComponentCtorParams, ComponentId};
 
 #[derive(Clone)]
 #[repr(transparent)]

@@ -20,7 +20,7 @@ impl Plugin for PlayerPlugin {
                 .in_set(AppSet::Intent)
                 .run_if(run_after_startup_finished.and(run_if_not_paused).and(run_if_chunk_load_gate_open)),
         )
-            .register_type::<PlayerBundle>()
-            .register_type::<Player>();
+        .register_type::<PlayerBundle>()
+        .register_type::<Player>();
     }
 }

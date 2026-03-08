@@ -6,7 +6,7 @@ use crate::rhai_binding::value_semantics::ids::{DynamicTraitId, StaticTraitId, T
 use super::{
     function_ids::{CtorId, MethodId, StaticFunctionId},
     layout::{FieldInfo, TypeDataInfo, TypeFormInfo, TypeLayoutInfo, VariantInfo},
-    signatures::{CtorSignature, FunctionOrigin, MethodSignature, StaticFunctionSignature}
+    signatures::{CtorSignature, FunctionOrigin, MethodSignature, StaticFunctionSignature},
 };
 
 inventory::collect!(TypeInfo);
@@ -29,10 +29,7 @@ impl From<ImmutableString> for TypeInfo {
             line.split('"').nth(1).expect("invalid module syntax")
         }
 
-        fn parse_type_declaration<'a>(
-            line: &'a str,
-            lines: &mut impl Iterator<Item = &'a str>,
-        ) -> (TypeFormInfo, TypeName, Vec<DynamicTraitId>, Vec<&'a str>) {
+        fn parse_type_declaration<'a>(line: &'a str, lines: &mut impl Iterator<Item = &'a str>) -> (TypeFormInfo, TypeName, Vec<DynamicTraitId>, Vec<&'a str>) {
             let tokens: Vec<&str> = line.split_whitespace().collect();
             if tokens.len() < 2 {
                 panic!("invalid type declaration");
@@ -127,14 +124,10 @@ impl From<ImmutableString> for TypeInfo {
         let input = input.as_str().replace("\r\n", "\n");
         let mut lines = input.lines().map(str::trim).peekable();
 
-        let module_line = lines
-            .next()
-            .expect("expected #[module = \"...\"] line");
+        let module_line = lines.next().expect("expected #[module = \"...\"] line");
         let module_path = parse_module_line(module_line);
 
-        let decl_line = lines
-            .next()
-            .expect("expected type declaration line");
+        let decl_line = lines.next().expect("expected type declaration line");
         let (form_info, type_name, implemented_trait_ids, data_lines) = parse_type_declaration(decl_line, &mut lines);
         let data_info = match form_info {
             TypeFormInfo::Struct => {
@@ -148,10 +141,7 @@ impl From<ImmutableString> for TypeInfo {
         };
 
         let type_id = TypeId::from(ImmutableString::from(format!("{}::{}", module_path, type_name)));
-        let type_layout_info = TypeLayoutInfo {
-            data_info,
-            form_info,
-        };
+        let type_layout_info = TypeLayoutInfo { data_info, form_info };
 
         let mut ctor_ids = Vec::new();
         let mut method_ids = Vec::new();
@@ -195,23 +185,17 @@ impl From<TypeInfo> for ImmutableString {
         let type_name: ImmutableString = type_info.type_id.type_name.clone().into();
         let module_path: ImmutableString = type_info.type_id.module_id.clone().into();
 
-        let header = format!(
-            "#[module = \"{}\"]",
-            module_path
-        );
+        let header = format!("#[module = \"{}\"]", module_path);
 
         let traits = {
-            let traits = type_info.implemented_trait_ids
+            let traits = type_info
+                .implemented_trait_ids
                 .into_iter()
                 .map(|t| format!("{}", ImmutableString::from(t)))
                 .collect::<Vec<_>>()
                 .join(" + ");
 
-            if !traits.is_empty() {
-                format!(": {traits}")
-            } else {
-                String::new()
-            }
+            if !traits.is_empty() { format!(": {traits}") } else { String::new() }
         };
         let layout = match type_info.type_layout_info.data_info {
             TypeDataInfo::Struct { field_infos } => {
@@ -220,11 +204,8 @@ impl From<TypeInfo> for ImmutableString {
                     .map(|f| format!("    {},", ImmutableString::from(f)))
                     .collect::<Vec<_>>()
                     .join("\n");
-            
-                format!(
-                    "struct {}{} {{\n{}\n}}",
-                    type_name, traits, fields
-                )
+
+                format!("struct {}{} {{\n{}\n}}", type_name, traits, fields)
             }
             TypeDataInfo::Enum { variant_infos } => {
                 let variants = variant_infos
@@ -232,47 +213,29 @@ impl From<TypeInfo> for ImmutableString {
                     .map(|v| format!("    {},", ImmutableString::from(v)))
                     .collect::<Vec<_>>()
                     .join("\n");
-            
-                format!(
-                    "enum {}{} {{\n{}\n}}",
-                    type_name, traits, variants
-                )
+
+                format!("enum {}{} {{\n{}\n}}", type_name, traits, variants)
             }
         };
 
         let impl_block = if type_info.ctor_ids.is_empty() && type_info.method_ids.is_empty() && type_info.static_function_ids.is_empty() {
             String::new()
         } else {
-            let ctor_lines = type_info.ctor_ids.into_iter().map(|c| {
-                format!("    ctor {};", ImmutableString::from(c))
-            });
-        
-            let method_lines = type_info.method_ids.into_iter().map(|m| {
-                format!("    fn {};", ImmutableString::from(m))
-            });
+            let ctor_lines = type_info.ctor_ids.into_iter().map(|c| format!("    ctor {};", ImmutableString::from(c)));
 
-            let static_function_lines = type_info.static_function_ids.into_iter().map(|m| {
-                format!("    static fn {};", ImmutableString::from(m))
-            });
-        
-            let body = ctor_lines
-                .chain(method_lines)
-                .chain(static_function_lines)
-                .collect::<Vec<_>>()
-                .join("\n");
-        
-            format!(
-                "\n\nimpl {} {{\n{}\n}}",
-                type_name, body
-            )
+            let method_lines = type_info.method_ids.into_iter().map(|m| format!("    fn {};", ImmutableString::from(m)));
+
+            let static_function_lines = type_info
+                .static_function_ids
+                .into_iter()
+                .map(|m| format!("    static fn {};", ImmutableString::from(m)));
+
+            let body = ctor_lines.chain(method_lines).chain(static_function_lines).collect::<Vec<_>>().join("\n");
+
+            format!("\n\nimpl {} {{\n{}\n}}", type_name, body)
         };
 
-        ImmutableString::from(format!(
-            "{}\n{}\n{}",
-            header,
-            layout,
-            impl_block
-        ))
+        ImmutableString::from(format!("{}\n{}\n{}", header, layout, impl_block))
     }
 }
 impl std::fmt::Debug for TypeInfo {

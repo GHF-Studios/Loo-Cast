@@ -18,24 +18,17 @@ core_mod_macros::reflect_extern_type!(
     id = bevy::ecs::system::EntityCommands,
     rust_type = ScriptEntityCommands,
     value_semantics = scoped_mut,
-    method_functions = [
-        bevy::ecs::system::EntityCommands::id,
-        bevy::ecs::system::EntityCommands::commands,
-    ],
+    method_functions = [bevy::ecs::system::EntityCommands::id, bevy::ecs::system::EntityCommands::commands,],
 );
 
 core_mod_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::Commands::spawn_empty,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        engine.register_raw_fn(
-            name,
-            [RustTypeId::of::<ScriptCommands>(), RustTypeId::of::<FnPtr>()],
-            |ctx, args| {
-                let callback = args[1].take().cast::<FnPtr>();
-                let commands = args[0].clone().cast::<ScriptCommands>();
-                Ok(commands.spawn_empty(ctx, callback))
-            },
-        );
+        engine.register_raw_fn(name, [RustTypeId::of::<ScriptCommands>(), RustTypeId::of::<FnPtr>()], |ctx, args| {
+            let callback = args[1].take().cast::<FnPtr>();
+            let commands = args[0].clone().cast::<ScriptCommands>();
+            Ok(commands.spawn_empty(ctx, callback))
+        });
     },
 );
 
@@ -54,14 +47,10 @@ core_mod_macros::reflect_extern_method_function!(
 core_mod_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::EntityCommands::commands,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        engine.register_raw_fn(
-            name,
-            [RustTypeId::of::<ScriptEntityCommands>(), RustTypeId::of::<FnPtr>()],
-            |ctx, args| {
-                let callback = args[1].take().cast::<FnPtr>();
-                let entity_commands = args[0].clone().cast::<ScriptEntityCommands>();
-                Ok(entity_commands.commands(ctx, callback))
-            },
-        );
+        engine.register_raw_fn(name, [RustTypeId::of::<ScriptEntityCommands>(), RustTypeId::of::<FnPtr>()], |ctx, args| {
+            let callback = args[1].take().cast::<FnPtr>();
+            let entity_commands = args[0].clone().cast::<ScriptEntityCommands>();
+            Ok(entity_commands.commands(ctx, callback))
+        });
     },
 );

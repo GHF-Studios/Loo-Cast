@@ -3,12 +3,12 @@ use crate::define_workflow_mod_OLD::WorkflowSignature;
 use super::stage::{Async, Ecs, EcsWhile, Render, RenderWhile, StageSignature};
 use heck::ToPascalCase;
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use std::marker::PhantomData;
 use syn::{
+    Fields, Ident, ItemEnum, ItemStruct, Result, Visibility,
     parse::{Parse, ParseStream},
     token::Pub,
-    Fields, Ident, ItemEnum, ItemStruct, Result, Visibility,
 };
 
 fn align_core_struct(item: &mut ItemStruct) {

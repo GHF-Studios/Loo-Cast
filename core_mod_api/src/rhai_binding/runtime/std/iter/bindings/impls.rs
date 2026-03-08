@@ -24,11 +24,7 @@ impl StringIterApi for StringIter {
         if self.cursor >= self.values.len() {
             return Array::new();
         }
-        let items = self.values[self.cursor..]
-            .iter()
-            .cloned()
-            .map(Dynamic::from)
-            .collect::<Array>();
+        let items = self.values[self.cursor..].iter().cloned().map(Dynamic::from).collect::<Array>();
         self.cursor = self.values.len();
         items
     }

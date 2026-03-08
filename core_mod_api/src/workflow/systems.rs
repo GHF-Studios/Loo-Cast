@@ -7,7 +7,7 @@ use bevy_consumable_message::{ConsumableMessageReader, ConsumableMessageWriter};
 
 use crate::{config::statics::CONFIG, utils::premium_box::AnySendSyncPremiumBox, workflow::response::*};
 
-use super::{channels::*, messages::*, instance::*, resources::*, stage::Stage, types::*};
+use super::{channels::*, instance::*, messages::*, resources::*, stage::Stage, types::*};
 
 pub(super) fn extract_render_stage_buffer_system(world: &mut World) {
     let mut main_world = SystemState::<ResMut<MainWorld>>::new(world).get_mut(world);
@@ -232,7 +232,10 @@ pub(super) fn send_render_while_stages_to_render_while_buffers_system(mut buffer
 }
 
 /// Note: We actually convert the message from 'setup' to 'wait', seeing as the message handler logic from post-setup is identical to that of post-run
-pub(super) fn stage_setup_relay_system(stage_message_receiver: Res<StageSetupMessageReceiver>, mut stage_message_writer: ConsumableMessageWriter<StageWaitMessage>) {
+pub(super) fn stage_setup_relay_system(
+    stage_message_receiver: Res<StageSetupMessageReceiver>,
+    mut stage_message_writer: ConsumableMessageWriter<StageWaitMessage>,
+) {
     while let Ok(StageSetupMessage {
         ty,
         module_name,
@@ -252,7 +255,10 @@ pub(super) fn stage_setup_relay_system(stage_message_receiver: Res<StageSetupMes
         });
     }
 }
-pub(super) fn stage_wait_relay_system(stage_message_receiver: Res<StageWaitMessageReceiver>, mut stage_message_writer: ConsumableMessageWriter<StageWaitMessage>) {
+pub(super) fn stage_wait_relay_system(
+    stage_message_receiver: Res<StageWaitMessageReceiver>,
+    mut stage_message_writer: ConsumableMessageWriter<StageWaitMessage>,
+) {
     while let Ok(StageWaitMessage {
         ty,
         module_name,

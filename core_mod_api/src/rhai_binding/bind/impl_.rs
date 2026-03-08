@@ -1,9 +1,6 @@
 use crate::rhai_binding::{
     internals::statics::RUNTIME_BINDING_GRAPH,
-    meta::{
-        generic::impl_::*,
-        monomorphized::impl_::*
-    }
+    meta::{generic::impl_::*, monomorphized::impl_::*},
 };
 
 impl InherentImplMetadata {

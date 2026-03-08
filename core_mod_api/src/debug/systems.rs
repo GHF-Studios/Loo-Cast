@@ -1,7 +1,7 @@
-use crate::bevy::{prelude::*, camera::visibility::RenderLayers};
+use crate::bevy::{camera::visibility::RenderLayers, prelude::*};
 use bevy_egui::{
-    egui::{self, ScrollArea},
     EguiContexts,
+    egui::{self, ScrollArea},
 };
 // TODO: Disabled cause iyes_perf_ui is stuck on bevy 0.16.0
 // use iyes_perf_ui::{
@@ -33,7 +33,7 @@ use crate::{
 //             panic!("Failed to get UiCamera entity for Perf UI setup: {}", err);
 //         }
 //     };
-// 
+//
 //     if !*has_spawned {
 //         *has_spawned = true;
 //         commands.spawn((

@@ -1,13 +1,12 @@
 use crate::bevy::prelude::{Mut, World as BevyWorld};
 use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
-use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
 use crate::rhai_binding::runtime::ecs::world::bindings::types::World;
+use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
 use std::path::{Path, PathBuf};
 
 fn collect_rhai_files_recursive(dir: &Path, out: &mut Vec<PathBuf>) {
-    let entries = std::fs::read_dir(dir)
-        .unwrap_or_else(|e| panic!("Failed to read companion hook dir '{}': {e}", dir.display()));
+    let entries = std::fs::read_dir(dir).unwrap_or_else(|e| panic!("Failed to read companion hook dir '{}': {e}", dir.display()));
 
     for entry in entries {
         let Ok(entry) = entry else {
@@ -36,15 +35,13 @@ fn compose_hook_source(path: &str) -> String {
         companion_files.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
 
         for file in companion_files {
-            let code = std::fs::read_to_string(&file)
-                .unwrap_or_else(|e| panic!("Failed to read companion hook file '{}': {e}", file.display()));
+            let code = std::fs::read_to_string(&file).unwrap_or_else(|e| panic!("Failed to read companion hook file '{}': {e}", file.display()));
             let code = preprocess_script_source(&code, &file.display().to_string());
             source_parts.push(code);
         }
     }
 
-    let main_hook_code = std::fs::read_to_string(&script_path)
-        .unwrap_or_else(|e| panic!("Failed to read hook file '{}': {e}", script_path.display()));
+    let main_hook_code = std::fs::read_to_string(&script_path).unwrap_or_else(|e| panic!("Failed to read hook file '{}': {e}", script_path.display()));
     let main_hook_code = preprocess_script_source(&main_hook_code, &script_path.display().to_string());
     source_parts.push(main_hook_code);
 
@@ -65,9 +62,7 @@ pub(in super::super) fn new_hook_runner_system(path: String) -> impl FnMut(&mut 
                 world: world_raw_handle.clone(),
             };
 
-            engine
-                .call_fn::<()>(&mut scope, &ast, "main", (world_binding,))
-                .unwrap();
+            engine.call_fn::<()>(&mut scope, &ast, "main", (world_binding,)).unwrap();
 
             let returned_world = world_raw_handle.take();
             *source_world = returned_world;

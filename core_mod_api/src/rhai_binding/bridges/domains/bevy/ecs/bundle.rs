@@ -6,6 +6,4 @@ core_mod_macros::reflect_extern_sub_module!(
     module_associated_functions = [],
 );
 
-core_mod_macros::reflect_extern_trait!(
-    id = bevy::ecs::bundle::Bundle,
-);
+core_mod_macros::reflect_extern_trait!(id = bevy::ecs::bundle::Bundle,);

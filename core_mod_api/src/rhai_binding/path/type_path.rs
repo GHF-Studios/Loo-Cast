@@ -1,7 +1,13 @@
 use rhai::ImmutableString;
 
-use crate::{rhai_binding::path::{binding_path::{BindingPath, BindingPathSegment}, impl_path::InherentImplPath, module_path::{ModulePath, TypeBindingModulePath}}, utils::string::{assert_pascal_case_clean_string, assert_snake_case_clean_string}};
-
+use crate::{
+    rhai_binding::path::{
+        binding_path::{BindingPath, BindingPathSegment},
+        impl_path::InherentImplPath,
+        module_path::{ModulePath, TypeBindingModulePath},
+    },
+    utils::string::{assert_pascal_case_clean_string, assert_snake_case_clean_string},
+};
 
 /// Format: `"snake::snake::Type"`
 #[derive(Clone, PartialEq, Eq, Hash)]

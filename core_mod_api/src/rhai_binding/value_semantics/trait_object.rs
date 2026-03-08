@@ -1,8 +1,8 @@
 use rhai::Dynamic;
 
 use crate::rhai_binding::meta::abstract_::trait_identity::GetTraitId;
-use crate::rhai_binding::value_semantics::statics::{TRAIT_OBJECT_VTABLE_REGISTRY, TYPE_REGISTRY};
 use crate::rhai_binding::value_semantics::ids::{DynamicTraitId, StaticTraitId, TypeId};
+use crate::rhai_binding::value_semantics::statics::{TRAIT_OBJECT_VTABLE_REGISTRY, TYPE_REGISTRY};
 
 pub type TraitObjectUseRefFn = fn(Dynamic, &str, Dynamic) -> Dynamic;
 pub type TraitObjectUseMutFn = fn(Dynamic, &str, Dynamic) -> Dynamic;
@@ -45,8 +45,9 @@ impl DynamicTraitObject {
     fn assert_safety(&self) {
         let trait_id = &self.trait_id;
         let instance_type_id = &self.instance_type_id;
-        let instance_type_info =
-            TYPE_REGISTRY().get(instance_type_id).unwrap_or_else(|| panic!("Unknown type '{instance_type_id}'"));
+        let instance_type_info = TYPE_REGISTRY()
+            .get(instance_type_id)
+            .unwrap_or_else(|| panic!("Unknown type '{instance_type_id}'"));
 
         if !instance_type_info.implemented_trait_ids.contains(trait_id) {
             panic!("Instance type '{instance_type_id}' does not implement the trait '{trait_id}'")

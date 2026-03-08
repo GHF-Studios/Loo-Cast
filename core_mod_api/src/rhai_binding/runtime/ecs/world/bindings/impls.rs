@@ -6,15 +6,15 @@ use crate::rhai_binding::value_semantics::access_traits::AccessCellProvider;
 
 use crate::rhai_binding::runtime::ecs::{
     bundle::internals::trait_objects::BundleTraitObject,
-    system::query::bindings::types::{Query, QueryData, QueryFilter},
     system::commands::bindings::types::Commands,
+    system::query::bindings::types::{Query, QueryData, QueryFilter},
     world::{
         bindings::types::World,
         entity_ref::bindings::types::EntityWorldMut,
         internals::{
             access_requests::{
-                WorldQueryRequest, WorldSpawnSingleRequest, WriteProbeMessageRequest, WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES,
-                WORLD_ACCESS_METHOD_QUERY, WORLD_ACCESS_METHOD_SPAWN_SINGLE, WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE,
+                WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES, WORLD_ACCESS_METHOD_QUERY, WORLD_ACCESS_METHOD_SPAWN_SINGLE, WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE,
+                WorldQueryRequest, WorldSpawnSingleRequest, WriteProbeMessageRequest,
             },
             traits::WorldApi,
         },
@@ -95,10 +95,8 @@ impl WorldApi for World {
         let mut world = self.world.start_write();
         let query_request = WorldQueryRequest::new(data, filter);
 
-        let query_raw_handle: crate::rhai_binding::value_semantics::access_cell::AccessCell<
-            crate::rhai_binding::value_semantics::access_cell::Scoped,
-            Query,
-        > = unsafe { world.start_access(WORLD_ACCESS_METHOD_QUERY, Box::new(query_request)) };
+        let query_raw_handle: crate::rhai_binding::value_semantics::access_cell::AccessCell<crate::rhai_binding::value_semantics::access_cell::Scoped, Query> =
+            unsafe { world.start_access(WORLD_ACCESS_METHOD_QUERY, Box::new(query_request)) };
         let query = query_raw_handle.take();
         unsafe { world.end_access(query_raw_handle) };
 
@@ -110,10 +108,8 @@ impl WorldApi for World {
     fn write_probe_message(&self, payload: rhai::ImmutableString) {
         let mut world = self.world.start_write();
         let write_request = WriteProbeMessageRequest::new(payload.to_string());
-        let write_raw_handle: crate::rhai_binding::value_semantics::access_cell::AccessCell<
-            crate::rhai_binding::value_semantics::access_cell::Scoped,
-            (),
-        > = unsafe { world.start_access(WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE, Box::new(write_request)) };
+        let write_raw_handle: crate::rhai_binding::value_semantics::access_cell::AccessCell<crate::rhai_binding::value_semantics::access_cell::Scoped, ()> =
+            unsafe { world.start_access(WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE, Box::new(write_request)) };
         unsafe { world.end_access(write_raw_handle) };
 
         self.world.end_write(world);

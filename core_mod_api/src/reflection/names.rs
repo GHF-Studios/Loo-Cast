@@ -5,7 +5,7 @@ use crate::utils::string::{assert_pascal_case_clean_string, assert_snake_case_cl
 #[derive(Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct TypeName {
-    pub name: ImmutableString
+    pub name: ImmutableString,
 }
 impl TypeName {
     pub fn new(name: impl Into<TypeName>) -> Self {
@@ -16,9 +16,7 @@ impl From<ImmutableString> for TypeName {
     fn from(name: ImmutableString) -> Self {
         assert_pascal_case_clean_string(&name, "TypeName");
 
-        TypeName {
-            name,
-        }
+        TypeName { name }
     }
 }
 impl From<TypeName> for ImmutableString {
@@ -40,7 +38,7 @@ impl std::fmt::Display for TypeName {
 #[derive(Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct TraitName {
-    pub name: ImmutableString
+    pub name: ImmutableString,
 }
 impl TraitName {
     pub fn new(name: impl Into<TraitName>) -> Self {
@@ -51,9 +49,7 @@ impl From<ImmutableString> for TraitName {
     fn from(name: ImmutableString) -> Self {
         assert_pascal_case_clean_string(&name, "TraitName");
 
-        TraitName {
-            name,
-        }
+        TraitName { name }
     }
 }
 impl From<TraitName> for ImmutableString {
@@ -75,7 +71,7 @@ impl std::fmt::Display for TraitName {
 #[derive(Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ModuleName {
-    pub name: ImmutableString
+    pub name: ImmutableString,
 }
 impl ModuleName {
     pub fn new(name: impl Into<ModuleName>) -> Self {
@@ -86,9 +82,7 @@ impl From<ImmutableString> for ModuleName {
     fn from(name: ImmutableString) -> Self {
         assert_snake_case_clean_string(&name, "ModuleName");
 
-        ModuleName {
-            name,
-        }
+        ModuleName { name }
     }
 }
 impl From<ModuleName> for ImmutableString {
@@ -121,9 +115,7 @@ impl From<ImmutableString> for FieldName {
     fn from(name: ImmutableString) -> Self {
         assert_snake_case_clean_string(&name, "FieldName");
 
-        FieldName {
-            name,
-        }
+        FieldName { name }
     }
 }
 impl From<FieldName> for ImmutableString {
@@ -156,9 +148,7 @@ impl From<ImmutableString> for VariantName {
     fn from(name: ImmutableString) -> Self {
         assert_pascal_case_clean_string(&name, "VariantName");
 
-        VariantName {
-            name,
-        }
+        VariantName { name }
     }
 }
 impl From<VariantName> for ImmutableString {
@@ -191,9 +181,7 @@ impl From<ImmutableString> for ArgName {
     fn from(name: ImmutableString) -> Self {
         assert_snake_case_clean_string(&name, "ArgName");
 
-        ArgName {
-            name,
-        }
+        ArgName { name }
     }
 }
 impl From<ArgName> for ImmutableString {
@@ -226,9 +214,7 @@ impl From<ImmutableString> for CtorName {
     fn from(name: ImmutableString) -> Self {
         assert_snake_case_clean_string(&name, "CtorName");
 
-        CtorName {
-            name,
-        }
+        CtorName { name }
     }
 }
 impl From<CtorName> for ImmutableString {
@@ -261,9 +247,7 @@ impl From<ImmutableString> for MethodName {
     fn from(name: ImmutableString) -> Self {
         assert_snake_case_clean_string(&name, "MethodName");
 
-        MethodName {
-            name,
-        }
+        MethodName { name }
     }
 }
 impl From<MethodName> for ImmutableString {
@@ -296,9 +280,7 @@ impl From<ImmutableString> for StaticFunctionName {
     fn from(name: ImmutableString) -> Self {
         assert_snake_case_clean_string(&name, "StaticFunctionName");
 
-        StaticFunctionName {
-            name,
-        }
+        StaticFunctionName { name }
     }
 }
 impl From<StaticFunctionName> for ImmutableString {

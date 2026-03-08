@@ -2,11 +2,9 @@ use std::collections::HashMap;
 
 use once_cell::sync::Lazy;
 
-use crate::rhai_binding::runtime::ecs::dispatch_policy::{
-    validate_query_signature_id, validate_type_path_id, validate_type_path_list,
-};
+use crate::rhai_binding::runtime::ecs::dispatch_policy::{validate_query_signature_id, validate_type_path_id, validate_type_path_list};
 use crate::rhai_binding::runtime::ecs::system::query::internals::types::{
-    query_data_key, query_dispatch_key, query_filter_key, QueryDispatchEntry, QueryDispatchFn, QueryDispatchKey,
+    QueryDispatchEntry, QueryDispatchFn, QueryDispatchKey, query_data_key, query_dispatch_key, query_filter_key,
 };
 
 static QUERY_DISPATCH_REGISTRY: Lazy<HashMap<QueryDispatchKey, QueryDispatchFn>> = Lazy::new(|| {

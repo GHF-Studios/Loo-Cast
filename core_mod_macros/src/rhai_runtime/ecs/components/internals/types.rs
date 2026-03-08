@@ -1,9 +1,9 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
+use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::{Item, Token, parse_macro_input};
-use syn::{ItemStruct, ItemEnum};
-use quote::quote;
+use syn::{ItemEnum, ItemStruct};
 
 pub enum ComponentItem {
     Struct(ItemStruct),
@@ -13,9 +13,7 @@ pub enum ComponentItem {
 pub fn component_ctor(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as Item);
 
-    ComponentCtorInput::new(item)
-        .generate()
-        .into()
+    ComponentCtorInput::new(item).generate().into()
 }
 
 pub struct ComponentCtorInput {
@@ -27,9 +25,7 @@ impl ComponentCtorInput {
             Item::Struct(s) => Self {
                 item: ComponentItem::Struct(s),
             },
-            Item::Enum(e) => Self {
-                item: ComponentItem::Enum(e),
-            },
+            Item::Enum(e) => Self { item: ComponentItem::Enum(e) },
             _ => {
                 panic!("`#[component_ctor]` can only be used on structs or enums");
             }

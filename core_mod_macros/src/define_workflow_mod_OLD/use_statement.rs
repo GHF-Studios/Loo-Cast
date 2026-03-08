@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
-use syn::{parse::Parse, spanned::Spanned, ItemUse, Result, Visibility};
+use quote::{ToTokens, quote};
+use syn::{ItemUse, Result, Visibility, parse::Parse, spanned::Spanned};
 
 pub struct UseStatements(pub Vec<UseStatement>);
 

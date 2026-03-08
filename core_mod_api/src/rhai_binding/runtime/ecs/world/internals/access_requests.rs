@@ -1,5 +1,5 @@
-use crate::rhai_binding::runtime::ecs::system::query::bindings::types::{QueryData, QueryFilter};
 use crate::rhai_binding::runtime::ecs::bundle::internals::trait_objects::BundleTraitObject;
+use crate::rhai_binding::runtime::ecs::system::query::bindings::types::{QueryData, QueryFilter};
 
 pub const WORLD_ACCESS_METHOD_QUERY: &str = "query";
 pub const WORLD_ACCESS_METHOD_SPAWN_SINGLE: &str = "spawn_single";

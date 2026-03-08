@@ -98,7 +98,9 @@ impl AtomicAccessCellState {
             Self::TAKEN => AccessCellState::Taken,
             Self::AVAILABLE => AccessCellState::Available,
             Self::WRITING => AccessCellState::Writing,
-            n if n >= Self::READING_BASE => AccessCellState::Reading { ref_count: n - Self::READING_BASE },
+            n if n >= Self::READING_BASE => AccessCellState::Reading {
+                ref_count: n - Self::READING_BASE,
+            },
             _ => unreachable!(),
         }
     }
@@ -157,11 +159,7 @@ impl AtomicAccessCellState {
             _ => unreachable!(),
         };
 
-        let new_val = if new_val == Self::READING_BASE - 1 {
-            Self::AVAILABLE
-        } else {
-            new_val
-        };
+        let new_val = if new_val == Self::READING_BASE - 1 { Self::AVAILABLE } else { new_val };
 
         self.inner.set(new_val);
         Ok(())
@@ -230,10 +228,8 @@ impl<M: AccessCellMode, T> Clone for AccessCell<M, T> {
 unsafe impl<M: AccessCellMode, T: Send> Send for AccessCell<M, T> {}
 unsafe impl<M: AccessCellMode, T: Send + Sync> Sync for AccessCell<M, T> {}
 
-impl<T> AccessCell<Scoped, T> {
-}
-impl<T> AccessCell<Persistent, T> {
-}
+impl<T> AccessCell<Scoped, T> {}
+impl<T> AccessCell<Persistent, T> {}
 impl<M: AccessCellMode, T> AccessCell<M, T> {
     pub fn new(value: T) -> Self {
         let inner = Box::new(AccessCellInner {
@@ -256,7 +252,7 @@ impl<M: AccessCellMode, T> AccessCell<M, T> {
 
     pub fn end_read(&self, guard: AccessCellReadGuard<T>) {
         match self.try_end_read(guard) {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => panic!("Failed to end read access: {e:?}!"),
         }
     }
@@ -270,15 +266,16 @@ impl<M: AccessCellMode, T> AccessCell<M, T> {
 
     pub fn end_write(&self, guard: AccessCellWriteGuard<T>) {
         match self.try_end_write(guard) {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => panic!("Failed to end write access: {e:?}!"),
         }
     }
 
     pub fn try_start_read(&self) -> Result<AccessCellReadGuard<T>, AccessCellStartReadError> {
         let inner = unsafe { self.inner() };
-        
-        inner.access_state
+
+        inner
+            .access_state
             // Atomically make sure that we can do the thing, and mark the access_state as if we had already done the thing
             .start_read()
             // Actually do the thing, now that we are sure we are allowed to and that no one else is attempting anything
@@ -301,7 +298,7 @@ impl<M: AccessCellMode, T> AccessCell<M, T> {
                 guard.invalidated = true;
                 drop(guard); // Nice and explicit
                 Ok(())
-            },
+            }
             Err(e) => Err(e),
         }
     }
@@ -318,7 +315,7 @@ impl<M: AccessCellMode, T> AccessCell<M, T> {
                     ptr: self.ptr,
                     invalidated: false,
                 })
-            },
+            }
             Err(e) => Err(e),
         }
     }
@@ -333,20 +330,20 @@ impl<M: AccessCellMode, T> AccessCell<M, T> {
                 guard.invalidated = true;
                 drop(guard); // Nice and explicit
                 Ok(())
-            },
+            }
             Err(e) => Err(e),
         }
     }
 
     pub fn take(&self) -> T {
         let inner = unsafe { self.inner() };
-        
+
         // Atomically make sure that we can do the thing, and mark the access_state as if we had already done the thing
         match inner.access_state.take() {
             Ok(_) => {
                 // Move the value out; allocation lifetime is managed by handle/guard ref_count.
                 unsafe { (&mut *inner.value.get()).take().unwrap() }
-            },
+            }
             Err(e) => panic!("Failed to take the inner value: {e:?}!"),
         }
     }
@@ -396,7 +393,9 @@ impl<T> Drop for AccessCellReadGuard<T> {
 
         if !self.invalidated {
             if thread::panicking() {
-                panic!("Tried to drop ReadGuard without explicitly invalidating it via `AccessCell::end_read` while unwinding! This constitutes a \"double panic\"!");
+                panic!(
+                    "Tried to drop ReadGuard without explicitly invalidating it via `AccessCell::end_read` while unwinding! This constitutes a \"double panic\"!"
+                );
             } else {
                 panic!("Tried to drop ReadGuard without explicitly invalidating it via `AccessCell::end_read`!");
             }
@@ -441,7 +440,9 @@ impl<T> Drop for AccessCellWriteGuard<T> {
 
         if !self.invalidated {
             if thread::panicking() {
-                panic!("Tried to drop WriteGuard without explicitly invalidating it via `AccessCell::end_write` while unwinding! This constitutes a \"double panic\"!");
+                panic!(
+                    "Tried to drop WriteGuard without explicitly invalidating it via `AccessCell::end_write` while unwinding! This constitutes a \"double panic\"!"
+                );
             } else {
                 panic!("Tried to drop WriteGuard without explicitly invalidating it via `AccessCell::end_write`!");
             }

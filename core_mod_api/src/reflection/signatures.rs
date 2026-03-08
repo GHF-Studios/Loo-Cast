@@ -2,7 +2,10 @@ use rhai::ImmutableString;
 
 use crate::rhai_binding::value_semantics::ids::DynamicTraitId;
 
-use super::{ids::TypeId, names::{ArgName, CtorName, MethodName, StaticFunctionName}};
+use super::{
+    ids::TypeId,
+    names::{ArgName, CtorName, MethodName, StaticFunctionName},
+};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct ArgInfo {
@@ -93,9 +96,7 @@ impl From<ImmutableString> for CtorSignature {
         let arg_infos = if args.is_empty() {
             Vec::new()
         } else {
-            args.split(',')
-                .map(|arg| ArgInfo::from(ImmutableString::from(arg.trim())))
-                .collect()
+            args.split(',').map(|arg| ArgInfo::from(ImmutableString::from(arg.trim()))).collect()
         };
 
         CtorSignature {
@@ -106,17 +107,9 @@ impl From<ImmutableString> for CtorSignature {
 }
 impl From<CtorSignature> for ImmutableString {
     fn from(ctor_sig: CtorSignature) -> Self {
-        let arg_signatures: Vec<ImmutableString> = ctor_sig
-            .arg_infos
-            .into_iter()
-            .map(|ai| ai.into())
-            .collect();
+        let arg_signatures: Vec<ImmutableString> = ctor_sig.arg_infos.into_iter().map(|ai| ai.into()).collect();
 
-        ImmutableString::from(format!(
-            "ctor {}({})",
-            ctor_sig.name.name,
-            arg_signatures.join(", ")
-        ))
+        ImmutableString::from(format!("ctor {}({})", ctor_sig.name.name, arg_signatures.join(", ")))
     }
 }
 impl std::fmt::Debug for CtorSignature {
@@ -159,9 +152,7 @@ impl From<ImmutableString> for MethodSignature {
         let arg_infos = if args.is_empty() {
             Vec::new()
         } else {
-            args.split(',')
-                .map(|arg| ArgInfo::from(ImmutableString::from(arg.trim())))
-                .collect()
+            args.split(',').map(|arg| ArgInfo::from(ImmutableString::from(arg.trim()))).collect()
         };
 
         MethodSignature {
@@ -173,19 +164,10 @@ impl From<ImmutableString> for MethodSignature {
 }
 impl From<MethodSignature> for ImmutableString {
     fn from(method_sig: MethodSignature) -> Self {
-        let arg_signatures: Vec<ImmutableString> = method_sig
-            .arg_infos
-            .into_iter()
-            .map(|ai| ai.into())
-            .collect();
+        let arg_signatures: Vec<ImmutableString> = method_sig.arg_infos.into_iter().map(|ai| ai.into()).collect();
         let return_type_path: ImmutableString = method_sig.return_type_id.into();
 
-        ImmutableString::from(format!(
-            "fn {}({}) -> {}",
-            method_sig.name.name,
-            arg_signatures.join(", "),
-            return_type_path
-        ))
+        ImmutableString::from(format!("fn {}({}) -> {}", method_sig.name.name, arg_signatures.join(", "), return_type_path))
     }
 }
 impl std::fmt::Debug for MethodSignature {
@@ -228,9 +210,7 @@ impl From<ImmutableString> for StaticFunctionSignature {
         let arg_infos = if args.is_empty() {
             Vec::new()
         } else {
-            args.split(',')
-                .map(|arg| ArgInfo::from(ImmutableString::from(arg.trim())))
-                .collect()
+            args.split(',').map(|arg| ArgInfo::from(ImmutableString::from(arg.trim()))).collect()
         };
 
         StaticFunctionSignature {
@@ -242,19 +222,10 @@ impl From<ImmutableString> for StaticFunctionSignature {
 }
 impl From<StaticFunctionSignature> for ImmutableString {
     fn from(static_fn_sig: StaticFunctionSignature) -> Self {
-        let arg_signatures: Vec<ImmutableString> = static_fn_sig
-            .arg_infos
-            .into_iter()
-            .map(|ai| ai.into())
-            .collect();
+        let arg_signatures: Vec<ImmutableString> = static_fn_sig.arg_infos.into_iter().map(|ai| ai.into()).collect();
         let return_type_path: ImmutableString = static_fn_sig.return_type_id.into();
 
-        ImmutableString::from(format!(
-            "fn {}({}) -> {}",
-            static_fn_sig.name.name,
-            arg_signatures.join(", "),
-            return_type_path
-        ))
+        ImmutableString::from(format!("fn {}({}) -> {}", static_fn_sig.name.name, arg_signatures.join(", "), return_type_path))
     }
 }
 impl std::fmt::Debug for StaticFunctionSignature {

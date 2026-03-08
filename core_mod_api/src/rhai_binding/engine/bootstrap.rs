@@ -100,23 +100,17 @@ fn register_runtime_bindings(engine: &mut rhai::Engine) {
 
 fn register_schedule_hooks_runtime_module(engine: &mut rhai::Engine) {
     let mut schedule_hooks_module = rhai::Module::new();
-    schedule_hooks_module.set_native_fn(
-        "add",
-        |hook: &str| -> Result<(), Box<rhai::EvalAltResult>> {
-            SCHEDULE_HOOKS().lock().unwrap().insert(hook.into());
-            Ok(())
-        },
-    );
+    schedule_hooks_module.set_native_fn("add", |hook: &str| -> Result<(), Box<rhai::EvalAltResult>> {
+        SCHEDULE_HOOKS().lock().unwrap().insert(hook.into());
+        Ok(())
+    });
     engine.register_static_module("rhai_binding::schedule_hooks", Arc::new(schedule_hooks_module));
 }
 
 fn register_testing_runtime_module(engine: &mut rhai::Engine) {
     let mut testing_module = rhai::Module::new();
-    testing_module.set_native_fn(
-        "enabled",
-        || -> Result<bool, Box<rhai::EvalAltResult>> {
-            Ok(CONFIG().get::<bool>("rhai_binding/testing_enabled"))
-        },
-    );
+    testing_module.set_native_fn("enabled", || -> Result<bool, Box<rhai::EvalAltResult>> {
+        Ok(CONFIG().get::<bool>("rhai_binding/testing_enabled"))
+    });
     engine.register_static_module("rhai_binding::testing", Arc::new(testing_module));
 }
