@@ -395,6 +395,7 @@ impl GridVec {
     #[track_caller]
     pub fn to_native_logical(self, origin: Self) -> Vec2 {
         assert!(self.scale >= origin.scale);
+        let scale_diff = self.scale as i8 - origin.scale as i8;
         let self_unit = UnitVec {
             grid_offset: self.clone(),
             unit_offset: Vec3::ZERO,
@@ -408,8 +409,16 @@ impl GridVec {
         // grid stack significance itself (leaf=10^0, parent=10^1, ...).
         let native_unit = 1000.0_f64;
         let acc = Self::accumulate_grid_units(&diff_unit.grid_offset);
-        let native_x = (acc.0 * native_unit) as f32;
-        let native_y = (acc.1 * native_unit) as f32;
+        // Grid digits are centered in a [-5, 4] domain; when comparing a coarser
+        // chunk against a finer origin, missing lower digits imply a half-cell bias.
+        // Sum_{k=0..d-1}(10^k) * 0.5 converts that bias into origin-scale units.
+        let center_bias_units = if scale_diff > 0 {
+            0.5 * ((10.0_f64.powi(scale_diff as i32) - 1.0) / 9.0)
+        } else {
+            0.0
+        };
+        let native_x = ((acc.0 - center_bias_units) * native_unit) as f32;
+        let native_y = ((acc.1 - center_bias_units) * native_unit) as f32;
         if !native_x.is_finite() || !native_y.is_finite() {
             panic!(
                 "USF native logical conversion panic: non-finite viewport coords, native=({native_x}, {native_y}), acc=({:.3e}, {:.3e}), self_scale={:?}, origin_scale={:?}",
@@ -441,8 +450,16 @@ impl GridVec {
         // separately via `scale`.
         let native_unit = 1000.0_f64;
         let acc = Self::accumulate_grid_units(&diff_unit.grid_offset);
-        let native_x = (acc.0 * native_unit) as f32;
-        let native_y = (acc.1 * native_unit) as f32;
+        // Grid digits are centered in a [-5, 4] domain; when comparing a coarser
+        // chunk against a finer origin, missing lower digits imply a half-cell bias.
+        // Sum_{k=0..d-1}(10^k) * 0.5 converts that bias into origin-scale units.
+        let center_bias_units = if scale_diff > 0 {
+            0.5 * ((10.0_f64.powi(scale_diff as i32) - 1.0) / 9.0)
+        } else {
+            0.0
+        };
+        let native_x = ((acc.0 - center_bias_units) * native_unit) as f32;
+        let native_y = ((acc.1 - center_bias_units) * native_unit) as f32;
         if !native_x.is_finite() || !native_y.is_finite() {
             panic!(
                 "USF native visual conversion panic: non-finite viewport coords, native=({native_x}, {native_y}), acc=({:.3e}, {:.3e}), self_scale={:?}, origin_scale={:?}",

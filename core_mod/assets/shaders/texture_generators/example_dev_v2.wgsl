@@ -324,11 +324,9 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     let world_x = params.chunk_pos.x * chunk_size_i + i32(global_id.x);
     let world_y = params.chunk_pos.y * chunk_size_i + i32(global_id.y);
-    // GridVec digits represent centered chunk positions. Shift subgrid phase by
-    // half a sub-cell so parent grid boundaries align with child chunk borders.
-    let half_subgrid_i = subgrid_size_i / 2;
-    let sub_x = positive_mod(world_x + half_subgrid_i, subgrid_size_i);
-    let sub_y = positive_mod(world_y + half_subgrid_i, subgrid_size_i);
+    // Keep the local 10x10 grid anchored to chunk borders.
+    let sub_x = positive_mod(world_x, subgrid_size_i);
+    let sub_y = positive_mod(world_y, subgrid_size_i);
 
     let major_thickness = 6u;
     let minor_thickness = 2;

@@ -152,14 +152,16 @@ pub(crate) fn chunk_detection_system(
     let mut despawn_chunk_inputs = Vec::new();
     let radius = chunk_manager.load_radius;
     let current_chunks = chunk_manager.chunks.clone();
-    let mut chunk_loader_grid_coord_cursor = &chunk_loader.coord;
+    // Use render origin as chunk cone anchor so loading stays aligned with
+    // the coordinate frame used by render proxy transforms.
+    let mut chunk_loader_grid_coord_cursor = &chunk_loader.origin_offset;
     let mut target_chunk_cone = Vec::new();
 
     // warn!("Starting Chunk Detection with current Chunks: {:?}", current_chunks);
 
     loop {
         let current_scale = chunk_loader_grid_coord_cursor.scale;
-        let scale_diff = current_scale as i8 - chunk_loader.coord.scale as i8;
+        let scale_diff = current_scale as i8 - chunk_loader.origin_offset.scale as i8;
         if scale_diff > Scale::MAX_DIFF_SCALE_EXP {
             break;
         }

@@ -106,7 +106,7 @@ fn grid_to_native_visual_scales_offsets_for_coarser_levels() {
     let (pos, scale) = coarser_neighbor.to_native_visual(origin);
 
     assert_eq!(scale, 10.0);
-    assert_eq!(pos, Vec2::new(chunk_size * 10.0, 0.0));
+    assert_eq!(pos, Vec2::new(chunk_size * 9.5, chunk_size * -0.5));
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn grid_to_native_logical_scales_offsets_for_coarser_levels() {
 
     let pos = coarser_neighbor.to_native_logical(origin);
 
-    assert_eq!(pos, Vec2::new(chunk_size * 10.0, 0.0));
+    assert_eq!(pos, Vec2::new(chunk_size * 9.5, chunk_size * -0.5));
 }
 
 #[test]
