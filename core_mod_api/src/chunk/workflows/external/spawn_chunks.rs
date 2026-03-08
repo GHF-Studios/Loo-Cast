@@ -5,10 +5,14 @@ use crate::chunk::{
     components::{Chunk, ChunkLoader},
     resources::ChunkManager,
 };
+use crate::bevy::camera::visibility::RenderLayers;
 use crate::config::statics::CONFIG;
 use crate::render::{
     components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision},
-    functions::new_sprite_proxy_bundle,
+    functions::{
+        CHUNK_DEV_CUBE_DEFAULT_COUNT, CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS, compute_chunk_dev_cube_local_offsets, new_chunk_cube_proxy_bundle,
+        new_sprite_proxy_bundle,
+    },
 };
 use crate::usf::{pos::grid::types::GridVec, scale::Scale};
 use crate::workflow::types::Outcome;
@@ -33,6 +37,8 @@ pub struct MainAccess<'w, 's> {
     pub chunk_loader_query: Single<'w, 's, &'static ChunkLoader>,
     pub chunk_manager: ResMut<'w, ChunkManager>,
     pub camera_transform: Single<'w, 's, &'static Transform, With<MainCamera>>,
+    pub meshes: ResMut<'w, Assets<Mesh>>,
+    pub standard_materials: ResMut<'w, Assets<StandardMaterial>>,
 }
 
 pub struct Input {
@@ -59,6 +65,21 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     let chunk_loader = main_access.chunk_loader_query;
     let mut chunk_manager = main_access.chunk_manager;
     let _camera_transform = main_access.camera_transform;
+    let mut meshes = main_access.meshes;
+    let mut standard_materials = main_access.standard_materials;
+
+    let use_chunk_cube_proxies = CONFIG().get::<bool>("render/use_chunk_cube_proxies");
+    let configured_dev_cube_count = CONFIG().get::<usize>("chunk/dev_cube_count");
+    let dev_cube_count = if configured_dev_cube_count == 0 {
+        CHUNK_DEV_CUBE_DEFAULT_COUNT
+    } else {
+        configured_dev_cube_count
+    };
+    let dev_cube_mesh = if use_chunk_cube_proxies {
+        Some(meshes.add(Mesh::from(Cuboid::from_size(Vec3::splat(CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS)))))
+    } else {
+        None
+    };
 
     let mut spawn_chunk_states = Vec::new();
     let mut skipped_outside_window = 0usize;
@@ -81,8 +102,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             return Err(Error::ChunkAlreadyLoaded { grid_coord });
         }
 
-        let chunk_z_offset = CONFIG().get::<i8>("chunk/z_offset") as f32;
-        let chunk_z = scale.compute_z() + chunk_z_offset;
+        let chunk_depth_bias = CONFIG().get::<i8>("chunk/z_offset") as f32;
 
         // let camera_pos = camera_transform.translation.truncate();
         // let camera_grid_extent = camera_pos.to_grid_coord(origin_offset.0);
@@ -105,15 +125,51 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             ))
             .id();
 
-        let chunk_render_proxy_entity = commands
-            .spawn(new_sprite_proxy_bundle(
-                metric_texture,
-                visual_world_coord,
-                visual_world_scale,
-                chunk_entity,
-                chunk_z,
-            ))
-            .id();
+        let chunk_render_proxy_entity = if use_chunk_cube_proxies {
+            let chunk_render_proxy_entity = commands
+                .spawn(new_chunk_cube_proxy_bundle(
+                    visual_world_coord,
+                    visual_world_scale,
+                    chunk_entity,
+                    scale,
+                    chunk_depth_bias,
+                ))
+                .id();
+
+            let dev_cube_material = standard_materials.add(StandardMaterial {
+                base_color_texture: Some(metric_texture),
+                perceptual_roughness: 0.85,
+                metallic: 0.05,
+                ..Default::default()
+            });
+
+            let dev_cube_offsets = compute_chunk_dev_cube_local_offsets(&grid_coord, dev_cube_count);
+            let chunk_debug_label = format!("{grid_coord:?}");
+            commands.entity(chunk_render_proxy_entity).with_children(|parent| {
+                for (index, local_offset) in dev_cube_offsets.iter().copied().enumerate() {
+                    parent.spawn((
+                        Name::new(format!("chunk_cube({chunk_debug_label})#{index}")),
+                        Mesh3d(dev_cube_mesh.clone().expect("dev cube mesh must exist when cube proxies are enabled")),
+                        MeshMaterial3d(dev_cube_material.clone()),
+                        Transform::from_translation(local_offset),
+                        RenderLayers::layer(2),
+                    ));
+                }
+            });
+
+            chunk_render_proxy_entity
+        } else {
+            commands
+                .spawn(new_sprite_proxy_bundle(
+                    metric_texture,
+                    visual_world_coord,
+                    visual_world_scale,
+                    chunk_entity,
+                    scale,
+                    chunk_depth_bias,
+                ))
+                .id()
+        };
 
         commands.entity(chunk_entity).insert((
             chunk_transform,

@@ -6,6 +6,10 @@ pub struct MainCamera;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
+pub struct ChunkCubeCamera;
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 pub struct UiCamera;
 
 #[derive(Component, Reflect)]
@@ -22,6 +26,19 @@ pub struct EntityProxyLink {
 #[reflect(Component)]
 pub struct RenderProxy {
     pub source: Entity,
+    pub layer_index: u8,
+    pub depth_bias: f32,
+    pub window_mode: RenderProxyWindowMode,
+    pub window_center_local: Vec2,
+    pub window_size_local: Vec2,
+    pub coarse_context_persistent: bool,
+}
+
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum RenderProxyWindowMode {
+    FullEntity,
+    #[default]
+    WindowedSubsection,
 }
 
 #[derive(Component, Reflect)]

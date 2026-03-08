@@ -9,10 +9,11 @@ pub mod workflows;
 
 use crate::bevy::prelude::*;
 use bevy_egui::EguiPrimaryContextPass;
-use components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, UiCamera};
+use components::{ChunkCubeCamera, EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera};
 use resources::{DevZoomFactor, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor};
 use systems::{
-    apply_usf_player_pivots_system, despawn_orphaned_render_proxies, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system,
+    apply_usf_player_pivots_system, despawn_orphaned_render_proxies, enforce_chunk_cube_camera_depth_contract_system,
+    enforce_main_camera_depth_contract_system, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system,
     resize_render_texture, update_render_proxies, update_view_scale_from_zoom,
 };
 
@@ -36,6 +37,8 @@ impl Plugin for RenderPlugin {
                     resize_render_texture.in_set(AppSet::Presentation),
                     main_camera_zoom_system.in_set(AppSet::InputGather),
                     apply_usf_player_pivots_system.in_set(AppSet::BoundaryResolve),
+                    enforce_main_camera_depth_contract_system.in_set(AppSet::Camera),
+                    enforce_chunk_cube_camera_depth_contract_system.in_set(AppSet::Camera),
                     update_view_scale_from_zoom.in_set(AppSet::Camera),
                     despawn_orphaned_render_proxies.in_set(AppSet::Presentation),
                     update_render_proxies.in_set(AppSet::Presentation).after(despawn_orphaned_render_proxies),
@@ -44,11 +47,13 @@ impl Plugin for RenderPlugin {
             )
             .add_systems(EguiPrimaryContextPass, primary_window_ui_system)
             .register_type::<MainCamera>()
+            .register_type::<ChunkCubeCamera>()
             .register_type::<UiCamera>()
             .register_type::<ViewScale>()
             .register_type::<EntityProxyLink>()
             .register_type::<LogicProxy>()
             .register_type::<RenderProxy>()
+            .register_type::<RenderProxyWindowMode>()
             .register_type::<ProxySyncRevision>()
             .register_type::<Meta<Sprite>>()
             .register_type::<PrimaryWindowUiState>()

@@ -5,7 +5,10 @@ define_workflow_mod_OLD! {
     workflows: [
         SpawnCameras, timeout_secs: 5.0, timeout_mode: RealTime {
             user_imports: {
-                use crate::bevy::prelude::{Commands, Res, ResMut, Camera2d, Vec2, Name, Camera};
+                use crate::bevy::prelude::{
+                    Commands, Res, ResMut, Camera2d, Camera3d, Vec2, Vec3, Name, Camera, Projection, PerspectiveProjection, Quat, Transform, DirectionalLight,
+                    EulerRot
+                };
                 use crate::bevy::camera::visibility::RenderLayers;
                 use bevy_egui::{EguiGlobalSettings, EguiRenderOutput};
                 use crate::bevy::render::render_resource::{
@@ -20,10 +23,11 @@ define_workflow_mod_OLD! {
                 use crate::config::statics::CONFIG;
                 use crate::follower::components::{Follower, FollowerTarget};
                 use crate::render::{
-                    components::MainCamera,
+                    components::{ChunkCubeCamera, MainCamera},
                     functions::get_reserved_camera_entities,
                     resources::GameViewRenderTarget
                 };
+                use crate::usf::scale::Scale;
             },
             user_items: {},
             stages: [
@@ -38,11 +42,13 @@ define_workflow_mod_OLD! {
                             main_camera_entity: Entity,
                             ui_camera_entity: Entity,
                             egui_camera_entity: Entity,
+                            chunk_cube_camera_entity: Entity,
                         }
                         struct Output {
                             spawned_main_camera_entity: Entity,
                             spawned_ui_camera_entity: Entity,
                             spawned_egui_camera_entity: Entity,
+                            spawned_chunk_cube_camera_entity: Entity,
                         }
                     ],
                     core_functions: [
@@ -56,24 +62,55 @@ define_workflow_mod_OLD! {
                                 egui_camera_entity,
                                 ui_camera_entity,
                                 main_camera_entity,
+                                chunk_cube_camera_entity,
                             ) = get_reserved_camera_entities();
 
                             commands.entity(egui_camera_entity).insert((
                                 Name::new("egui_camera"),
                                 Camera2d,
                                 Camera {
-                                    order: 2,
+                                    order: 3,
                                     ..Default::default()
                                 },
                                 RenderTarget::Window(WindowRef::Primary),
                                 PrimaryEguiContext,
                                 EguiRenderOutput::default(),
                             ));
+                            commands.entity(chunk_cube_camera_entity).insert((
+                                Name::new("chunk_cube_camera"),
+                                Camera3d::default(),
+                                Camera {
+                                    order: 0,
+                                    ..Default::default()
+                                },
+                                Projection::Perspective(PerspectiveProjection {
+                                    fov: std::f32::consts::FRAC_PI_4,
+                                    near: 0.1,
+                                    far: Scale::CANONICAL_CAMERA_FAR,
+                                    ..Default::default()
+                                }),
+                                Transform {
+                                    translation: Vec3::new(0.0, 0.0, Scale::CANONICAL_CAMERA_Z),
+                                    rotation: Quat::from_rotation_x(-0.35),
+                                    ..Default::default()
+                                },
+                                RenderTarget::Image(ImageRenderTarget {
+                                    handle: game_view_render_target.handle.clone(),
+                                    scale_factor: 1.0,
+                                }),
+                                ChunkCubeCamera,
+                                RenderLayers::layer(2),
+                                Follower::new(
+                                    "main_camera_proxy".to_string(),
+                                    Vec2::ZERO,
+                                    CONFIG().get::<f32>("camera/follow_smoothness"),
+                                ),
+                            ));
                             commands.entity(ui_camera_entity).insert((
                                 Name::new("ui_camera"),
                                 Camera2d,
                                 Camera {
-                                    order: 1,
+                                    order: 2,
                                     clear_color: crate::bevy::camera::ClearColorConfig::None,
                                     ..Default::default()
                                 },
@@ -87,7 +124,8 @@ define_workflow_mod_OLD! {
                                 Name::new("main_camera"),
                                 Camera2d,
                                 Camera {
-                                    order: 0,
+                                    order: 1,
+                                    clear_color: crate::bevy::camera::ClearColorConfig::None,
                                     ..Default::default()
                                 },
                                 RenderTarget::Image(ImageRenderTarget {
@@ -106,11 +144,22 @@ define_workflow_mod_OLD! {
                                     id: "main_camera_proxy".to_string(),
                                 },
                             ));
+                            commands.spawn((
+                                Name::new("chunk_cube_directional_light"),
+                                DirectionalLight::default(),
+                                Transform {
+                                    translation: Vec3::new(0.0, 0.0, Scale::CANONICAL_CAMERA_Z - 2_000.0),
+                                    rotation: Quat::from_euler(EulerRot::XYZ, -0.8, 0.4, 0.0),
+                                    ..Default::default()
+                                },
+                                RenderLayers::layer(2),
+                            ));
 
                             State {
                                 main_camera_entity,
                                 ui_camera_entity,
                                 egui_camera_entity,
+                                chunk_cube_camera_entity,
                             }
                         }
 
@@ -120,11 +169,13 @@ define_workflow_mod_OLD! {
                             if commands.get_entity(state.main_camera_entity).is_ok()
                                 && commands.get_entity(state.ui_camera_entity).is_ok()
                                 && commands.get_entity(state.egui_camera_entity).is_ok()
+                                && commands.get_entity(state.chunk_cube_camera_entity).is_ok()
                             {
                                 Outcome::Done(Output {
                                     spawned_main_camera_entity: state.main_camera_entity,
                                     spawned_ui_camera_entity: state.ui_camera_entity,
                                     spawned_egui_camera_entity: state.egui_camera_entity,
+                                    spawned_chunk_cube_camera_entity: state.chunk_cube_camera_entity,
                                 })
                             } else {
                                 Outcome::Wait(state)

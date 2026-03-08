@@ -9,7 +9,7 @@ use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;
 use crate::player::components::Player;
 use crate::render::{
-    components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, UiCamera},
+    components::{ChunkCubeCamera, EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera},
     functions::draw_primary_window_ui,
     resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor},
 };
@@ -21,7 +21,8 @@ pub(super) fn pre_setup_phase_0(mut commands: Commands, mut images: ResMut<Asset
     let egui_camera = commands.spawn(()).id();
     let ui_camera = commands.spawn(UiCamera).id();
     let main_camera = commands.spawn(MainCamera).id();
-    super::functions::reserve_camera_entities(egui_camera, ui_camera, main_camera);
+    let chunk_cube_camera = commands.spawn(ChunkCubeCamera).id();
+    super::functions::reserve_camera_entities(egui_camera, ui_camera, main_camera, chunk_cube_camera);
 
     // Reserve game view render target handle
     let window = windows.single().unwrap();
@@ -88,17 +89,21 @@ pub(super) fn resize_render_texture(
 
 #[tracing::instrument(skip_all)]
 pub(super) fn update_render_proxies(
+    zoom_factor: Res<ZoomFactor>,
+    dev_zoom_factor: Res<DevZoomFactor>,
     mut params: ParamSet<(
         Single<(&ChunkLoader, &Transform), With<Player>>,
         Query<(&EntityProxyLink, &ChunkActor), Without<RenderProxy>>,
         Query<(&EntityProxyLink, &Chunk), Without<RenderProxy>>,
-        Query<(&mut Transform, &mut ProxySyncRevision), With<RenderProxy>>,
+        Query<(&mut Transform, &mut ProxySyncRevision, &mut RenderProxy), With<RenderProxy>>,
     )>,
 ) {
     let (chunk_loader, chunk_loader_transform) = *params.p0();
     let world_rotation = chunk_loader.world_rotation_quat();
     let world_rotation_origin = chunk_loader_transform.translation;
     let origin_offset = chunk_loader.origin_offset.clone();
+    let view_pos_native = chunk_loader_transform.translation.truncate();
+    let camera_zoom = (zoom_factor.0 * dev_zoom_factor.0).max(f32::EPSILON);
     let max_scale_diff = Scale::MAX_DIFF_SCALE_EXP;
 
     let actor_updates = {
@@ -118,15 +123,24 @@ pub(super) fn update_render_proxies(
     {
         let mut proxy_transforms = params.p3();
         for (proxy_entity, incoming_revision, coord) in actor_updates {
-            if let Ok((mut proxy_transform, mut proxy_revision)) = proxy_transforms.get_mut(proxy_entity) {
+            if let Ok((mut proxy_transform, mut proxy_revision, mut proxy_state)) = proxy_transforms.get_mut(proxy_entity) {
                 if incoming_revision.0 < proxy_revision.0 {
                     continue;
                 }
+                let coord_scale = coord.scale;
+                let scale_diff = coord_scale as i8 - origin_offset.scale as i8;
+                let z = coord_scale.compute_z() + proxy_state.depth_bias;
                 let (pos, scale) = coord.to_native_visual(origin_offset.clone());
-                let world_pos = pos.extend(proxy_transform.translation.z);
+                let world_pos = pos.extend(z);
                 proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
                 proxy_transform.scale = Vec3::splat(scale);
                 proxy_transform.rotation = world_rotation;
+                proxy_state.layer_index = coord_scale.render_layer_index();
+                let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, camera_zoom, pos, view_pos_native);
+                proxy_state.window_mode = window_mode;
+                proxy_state.window_center_local = window_center_local;
+                proxy_state.window_size_local = window_size_local;
+                proxy_state.coarse_context_persistent = true;
                 proxy_revision.0 = incoming_revision.0;
             }
         }
@@ -149,18 +163,109 @@ pub(super) fn update_render_proxies(
     {
         let mut proxy_transforms = params.p3();
         for (proxy_entity, incoming_revision, coord) in chunk_updates {
-            if let Ok((mut proxy_transform, mut proxy_revision)) = proxy_transforms.get_mut(proxy_entity) {
+            if let Ok((mut proxy_transform, mut proxy_revision, mut proxy_state)) = proxy_transforms.get_mut(proxy_entity) {
                 if incoming_revision.0 < proxy_revision.0 {
                     continue;
                 }
+                let coord_scale = coord.scale;
+                let scale_diff = coord_scale as i8 - origin_offset.scale as i8;
+                let z = coord_scale.compute_z() + proxy_state.depth_bias;
                 let (pos, scale) = coord.to_native_visual(origin_offset.clone());
-                let world_pos = pos.extend(proxy_transform.translation.z);
+                let world_pos = pos.extend(z);
                 proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
                 proxy_transform.scale = Vec3::splat(scale);
                 proxy_transform.rotation = world_rotation;
+                proxy_state.layer_index = coord_scale.render_layer_index();
+                let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, camera_zoom, pos, view_pos_native);
+                proxy_state.window_mode = window_mode;
+                proxy_state.window_center_local = window_center_local;
+                proxy_state.window_size_local = window_size_local;
+                proxy_state.coarse_context_persistent = true;
                 proxy_revision.0 = incoming_revision.0;
             }
         }
+    }
+}
+
+#[inline]
+fn compute_render_proxy_windowing(scale_diff: i8, camera_zoom: f32, chunk_center_native: Vec2, view_pos_native: Vec2) -> (RenderProxyWindowMode, Vec2, Vec2) {
+    if scale_diff <= 0 {
+        return (RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
+    }
+
+    let coarse_factor = 10.0_f32.powi(scale_diff as i32);
+    if !coarse_factor.is_finite() || coarse_factor <= 0.0 {
+        return (RenderProxyWindowMode::WindowedSubsection, Vec2::ZERO, Vec2::splat(0.001));
+    }
+
+    let chunk_span = 1000.0 * coarse_factor;
+    let chunk_min = chunk_center_native - Vec2::splat(chunk_span * 0.5);
+    let center01 = ((view_pos_native - chunk_min) / chunk_span).clamp(Vec2::ZERO, Vec2::ONE);
+    let center_local = center01 - Vec2::splat(0.5);
+
+    let zoom_term = camera_zoom.clamp(0.0001, 1.0);
+    let window_size = (zoom_term / coarse_factor).clamp(0.0001, 1.0);
+
+    (RenderProxyWindowMode::WindowedSubsection, center_local, Vec2::splat(window_size))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn full_entity_mode_for_same_or_finer_scale() {
+        let (mode, center, size) = compute_render_proxy_windowing(0, 0.25, Vec2::ZERO, Vec2::new(123.0, -45.0));
+        assert_eq!(mode, RenderProxyWindowMode::FullEntity);
+        assert_eq!(center, Vec2::ZERO);
+        assert_eq!(size, Vec2::ONE);
+    }
+
+    #[test]
+    fn windowed_mode_scales_down_with_coarser_level() {
+        let (mode, center, size) = compute_render_proxy_windowing(1, 1.0, Vec2::ZERO, Vec2::ZERO);
+        assert_eq!(mode, RenderProxyWindowMode::WindowedSubsection);
+        assert_eq!(center, Vec2::ZERO);
+        assert!((size.x - 0.1).abs() < 1e-6);
+        assert!((size.y - 0.1).abs() < 1e-6);
+    }
+
+    #[test]
+    fn window_center_tracks_viewpoint_inside_chunk() {
+        // scale_diff=1 => chunk span is 10,000 native units.
+        let (mode, center, size) = compute_render_proxy_windowing(1, 0.5, Vec2::ZERO, Vec2::new(2_500.0, 2_500.0));
+        assert_eq!(mode, RenderProxyWindowMode::WindowedSubsection);
+        assert!(center.x > 0.0 && center.y > 0.0);
+        assert!((size.x - 0.05).abs() < 1e-6);
+        assert!((size.y - 0.05).abs() < 1e-6);
+    }
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn enforce_main_camera_depth_contract_system(mut main_camera_query: Query<(&mut Transform, &mut Projection), With<MainCamera>>) {
+    let Ok((mut camera_transform, mut projection)) = main_camera_query.single_mut() else {
+        return;
+    };
+
+    camera_transform.translation.z = Scale::CANONICAL_CAMERA_Z;
+
+    if let Projection::Orthographic(ortho) = projection.as_mut() {
+        ortho.near = Scale::CANONICAL_CAMERA_NEAR;
+        ortho.far = Scale::CANONICAL_CAMERA_FAR;
+    }
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn enforce_chunk_cube_camera_depth_contract_system(mut chunk_cube_camera_query: Query<(&mut Transform, &mut Projection), With<ChunkCubeCamera>>) {
+    let Ok((mut camera_transform, mut projection)) = chunk_cube_camera_query.single_mut() else {
+        return;
+    };
+
+    camera_transform.translation.z = Scale::CANONICAL_CAMERA_Z;
+
+    if let Projection::Perspective(perspective) = projection.as_mut() {
+        perspective.near = 0.1;
+        perspective.far = Scale::CANONICAL_CAMERA_FAR;
     }
 }
 
@@ -206,7 +311,7 @@ pub(super) fn primary_window_ui_system(world: &mut World) {
 
 #[tracing::instrument(skip_all)]
 pub(super) fn main_camera_zoom_system(
-    mut projection_query: Query<&mut Projection, With<Camera>>,
+    mut projection_query: Query<&mut Projection, With<MainCamera>>,
     mut scroll_message_reader: MessageReader<MouseWheel>,
     keys: Res<ButtonInput<KeyCode>>,
     input_mode: Res<State<InputMode>>,
@@ -246,12 +351,10 @@ pub(super) fn main_camera_zoom_system(
     }
     let camera_zoom = (zoom_factor.0 * dev_zoom_factor.0).max(f32::EPSILON);
     for mut projection in projection_query.iter_mut() {
-        match projection.as_mut() {
-            Projection::Orthographic(ortho) => {
-                ortho.scale = camera_zoom;
-            }
-            _ => panic!("Main camera is not orthographic/2d!"),
-        }
+        let Projection::Orthographic(ortho) = projection.as_mut() else {
+            panic!("Main camera is not orthographic/2d!");
+        };
+        ortho.scale = camera_zoom;
     }
 }
 
@@ -259,7 +362,7 @@ pub(super) fn main_camera_zoom_system(
 pub(super) fn apply_usf_player_pivots_system(
     mut zoom_factor: ResMut<ZoomFactor>,
     dev_zoom_factor: Res<DevZoomFactor>,
-    mut projection_query: Query<&mut Projection, With<Camera>>,
+    mut projection_query: Query<&mut Projection, With<MainCamera>>,
     mut player_loader_query: Query<(&mut ChunkLoader, &mut ChunkActor, &mut Transform), With<Player>>,
     mut chunk_load_gate: Option<ResMut<ChunkLoadGate>>,
     workflow_state: Option<Res<ChunkActionWorkflowState>>,

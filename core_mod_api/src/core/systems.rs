@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
 use crate::core::resources::EntityProxyRuntimeState;
 use crate::player::components::Player;
-use crate::render::components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy};
+use crate::render::components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode};
 use crate::usf::pos::grid::types::GridVec;
 use crate::workflow::functions::handle_composite_workflow_return_later;
 
@@ -103,7 +103,15 @@ pub(super) fn ensure_entity_proxy_links_system(
             .spawn((
                 Name::new(format!("render_proxy({root_label})")),
                 Transform::default(),
-                RenderProxy { source: root_entity },
+                RenderProxy {
+                    source: root_entity,
+                    layer_index: 0,
+                    depth_bias: 0.0,
+                    window_mode: RenderProxyWindowMode::WindowedSubsection,
+                    window_center_local: Vec2::ZERO,
+                    window_size_local: Vec2::ONE,
+                    coarse_context_persistent: true,
+                },
                 ProxySyncRevision::default(),
             ))
             .id();
@@ -163,10 +171,7 @@ pub(super) fn validate_entity_proxy_links_system(
     }
 
     if state.broken_links_last_frame > 0 {
-        warn!(
-            "EntityProxyLink validator found {} broken roots this frame.",
-            state.broken_links_last_frame
-        );
+        warn!("EntityProxyLink validator found {} broken roots this frame.", state.broken_links_last_frame);
     }
 }
 

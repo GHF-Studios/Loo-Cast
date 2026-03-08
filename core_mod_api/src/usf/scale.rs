@@ -636,9 +636,20 @@ impl Scale {
     pub const MAX: Scale = Scale::ScaleQuettaMeter100000;
     pub const MID: Scale = Scale::ScaleMeter1;
     pub const MIN: Scale = Scale::ScaleQuectoMeter000001;
+    pub const SCALE_LEVEL_COUNT: u8 = 71;
 
     /// So the max difference in scale can be 3 orders of magnitude
     pub const MAX_DIFF_SCALE_EXP: i8 = 3;
+
+    /// Canonical render depth contract for all 71 scales.
+    /// Adjacent levels are separated by >= 1000 units and the full span is ~100k.
+    pub const CANONICAL_Z_BASE: f32 = 500.0;
+    pub const CANONICAL_Z_SPACING: f32 = 1_420.0;
+    pub const CANONICAL_Z_MAX: f32 = Self::CANONICAL_Z_BASE + ((Self::SCALE_LEVEL_COUNT - 1) as f32 * Self::CANONICAL_Z_SPACING);
+    pub const CANONICAL_Z_SPAN: f32 = Self::CANONICAL_Z_MAX - Self::CANONICAL_Z_BASE;
+    pub const CANONICAL_CAMERA_Z: f32 = Self::CANONICAL_Z_MAX + Self::CANONICAL_Z_SPACING;
+    pub const CANONICAL_CAMERA_NEAR: f32 = -120_000.0;
+    pub const CANONICAL_CAMERA_FAR: f32 = 120_000.0;
 
     /// Get the index from the top (0..=70)
     pub fn index_from_top(&self) -> u8 {
@@ -672,6 +683,18 @@ impl Scale {
         scale_factor_exponent_dynamic_match!(scale_factor_exponent, Some(__SCALE__), None)
     }
 
+    /// Canonical layer index for render proxy composition.
+    #[inline]
+    pub fn render_layer_index(self) -> u8 {
+        self.index_from_top()
+    }
+
+    /// Canonical depth placement for this scale.
+    #[inline]
+    pub fn canonical_z(self) -> f32 {
+        Self::CANONICAL_Z_BASE + (self.index_from_top() as f32 * Self::CANONICAL_Z_SPACING)
+    }
+
     pub fn zoom_in(&mut self) {
         let self_scale_factor_exp = self.scale_factor_exponent();
         if self_scale_factor_exp > Self::MIN.scale_factor_exponent() {
@@ -696,12 +719,11 @@ impl Scale {
         self
     }
 
-    /// Compute the one and only valid Z coordinate for any given scale level.
-    /// - Scale::MIN corresponds to Z = -10.0
-    /// - Each subsequent smaller scale decreases Z by an additional 10.0 units.
+    /// Backwards-compatible alias for the canonical depth mapping.
+    /// Use this for all scale->z placement in proxies, player visuals, and helpers.
     #[inline]
     pub fn compute_z(self) -> f32 {
-        750.0 - (self.index_from_bottom() as f32 * 10.0)
+        self.canonical_z()
     }
 }
 
@@ -899,5 +921,24 @@ mod tests {
 
         scale.zoom_out();
         assert_eq!(scale, Scale::ScaleMeter1);
+    }
+
+    #[test]
+    fn canonical_layer_bounds_cover_all_scales() {
+        assert_eq!(Scale::MAX.render_layer_index(), 0);
+        assert_eq!(Scale::MIN.render_layer_index(), 70);
+    }
+
+    #[test]
+    fn canonical_depth_spacing_and_span_meet_contract() {
+        let coarse = Scale::MAX.canonical_z();
+        let next_finer = Scale::MAX.zoomed_in().canonical_z();
+        let finest = Scale::MIN.canonical_z();
+
+        let spacing = next_finer - coarse;
+        let span = finest - coarse;
+
+        assert!(spacing >= 1000.0, "adjacent spacing was {spacing}");
+        assert!((95_000.0..=105_000.0).contains(&span), "span was {span}");
     }
 }

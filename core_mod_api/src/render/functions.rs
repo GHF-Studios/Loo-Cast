@@ -3,38 +3,49 @@ use crate::bevy::prelude::*;
 use egui::Color32;
 use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
+use std::hash::{Hash, Hasher};
 
 use crate::{
     chunk::resources::{ChunkLoadGate, ChunkLoadGateState},
     config::statics::CONFIG,
     debug::types::DebugSuiteTabViewer,
     render::{
-        components::{ProxySyncRevision, RenderProxy},
+        components::{ProxySyncRevision, RenderProxy, RenderProxyWindowMode},
         resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState},
     },
     time::{
         resources::TimeInfo,
         types::{PauseState, StepConfig},
     },
+    usf::pos::grid::types::GridVec,
+    usf::scale::Scale,
 };
 
 static RESERVED_EGUI_CAMERA_ENTITY: OnceCell<Entity> = OnceCell::new();
 static RESERVED_UI_CAMERA_ENTITY: OnceCell<Entity> = OnceCell::new();
 static RESERVED_MAIN_CAMERA_ENTITY: OnceCell<Entity> = OnceCell::new();
+static RESERVED_CHUNK_CUBE_CAMERA_ENTITY: OnceCell<Entity> = OnceCell::new();
 
 static RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE: OnceCell<Handle<Image>> = OnceCell::new();
 static RESERVED_GAME_VIEW_RENDER_TARGET_SIZE_UVEC2: OnceCell<UVec2> = OnceCell::new();
 
-pub(super) fn reserve_camera_entities(egui_camera: Entity, ui_camera: Entity, main_camera: Entity) {
+pub(super) fn reserve_camera_entities(egui_camera: Entity, ui_camera: Entity, main_camera: Entity, chunk_cube_camera: Entity) {
     RESERVED_EGUI_CAMERA_ENTITY.set(egui_camera).expect("RESERVED_EGUI_CAMERA_ENTITY already set");
     RESERVED_UI_CAMERA_ENTITY.set(ui_camera).expect("RESERVED_UI_CAMERA_ENTITY already set");
     RESERVED_MAIN_CAMERA_ENTITY.set(main_camera).expect("RESERVED_MAIN_CAMERA_ENTITY already set");
+    RESERVED_CHUNK_CUBE_CAMERA_ENTITY
+        .set(chunk_cube_camera)
+        .expect("RESERVED_CHUNK_CUBE_CAMERA_ENTITY already set");
 }
-pub(super) fn get_reserved_camera_entities() -> (Entity, Entity, Entity) {
+pub(super) fn get_reserved_camera_entities() -> (Entity, Entity, Entity, Entity) {
     (
         RESERVED_EGUI_CAMERA_ENTITY.clone().into_inner().expect("RESERVED_EGUI_CAMERA_ENTITY not set"),
         RESERVED_UI_CAMERA_ENTITY.clone().into_inner().expect("RESERVED_UI_CAMERA_ENTITY not set"),
         RESERVED_MAIN_CAMERA_ENTITY.clone().into_inner().expect("RESERVED_MAIN_CAMERA_ENTITY not set"),
+        RESERVED_CHUNK_CUBE_CAMERA_ENTITY
+            .clone()
+            .into_inner()
+            .expect("RESERVED_CHUNK_CUBE_CAMERA_ENTITY not set"),
     )
 }
 
@@ -59,18 +70,120 @@ pub(super) fn get_reserved_game_view_render_target() -> (Handle<Image>, UVec2) {
     )
 }
 
-pub fn new_sprite_proxy_bundle(image: Handle<Image>, pos: Vec2, scale: f32, source_entity: Entity, chunk_z: f32) -> impl Bundle {
+pub fn new_sprite_proxy_bundle(image: Handle<Image>, pos: Vec2, visual_scale: f32, source_entity: Entity, coord_scale: Scale, depth_bias: f32) -> impl Bundle {
     (
         Transform {
-            translation: pos.extend(chunk_z),
-            scale: Vec3::splat(scale),
+            translation: pos.extend(coord_scale.compute_z() + depth_bias),
+            scale: Vec3::splat(visual_scale),
             ..Default::default()
         },
         Sprite { image, ..Default::default() },
         Pickable::default(),
-        RenderProxy { source: source_entity },
+        RenderProxy {
+            source: source_entity,
+            layer_index: coord_scale.render_layer_index(),
+            depth_bias,
+            window_mode: RenderProxyWindowMode::WindowedSubsection,
+            window_center_local: Vec2::ZERO,
+            window_size_local: Vec2::ONE,
+            coarse_context_persistent: true,
+        },
         ProxySyncRevision::default(),
     )
+}
+
+pub const CHUNK_DEV_CUBE_SUBGRID_SIZE: i32 = 10;
+pub const CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS: f32 = 100.0;
+pub const CHUNK_DEV_CUBE_DEFAULT_COUNT: usize = 8;
+
+pub fn new_chunk_cube_proxy_bundle(pos: Vec2, visual_scale: f32, source_entity: Entity, coord_scale: Scale, depth_bias: f32) -> impl Bundle {
+    (
+        Transform {
+            translation: pos.extend(coord_scale.compute_z() + depth_bias),
+            scale: Vec3::splat(visual_scale),
+            ..Default::default()
+        },
+        Visibility::Visible,
+        RenderProxy {
+            source: source_entity,
+            layer_index: coord_scale.render_layer_index(),
+            depth_bias,
+            window_mode: RenderProxyWindowMode::WindowedSubsection,
+            window_center_local: Vec2::ZERO,
+            window_size_local: Vec2::ONE,
+            coarse_context_persistent: true,
+        },
+        ProxySyncRevision::default(),
+    )
+}
+
+pub fn compute_chunk_dev_cube_local_offsets(grid_coord: &GridVec, requested_count: usize) -> Vec<Vec3> {
+    let max_slots = (CHUNK_DEV_CUBE_SUBGRID_SIZE * CHUNK_DEV_CUBE_SUBGRID_SIZE) as usize;
+    let count = requested_count.min(max_slots);
+    if count == 0 {
+        return Vec::new();
+    }
+
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    grid_coord.hash(&mut hasher);
+    let seed = hasher.finish();
+
+    let mut slots = (0..CHUNK_DEV_CUBE_SUBGRID_SIZE)
+        .flat_map(|y| (0..CHUNK_DEV_CUBE_SUBGRID_SIZE).map(move |x| IVec2::new(x, y)))
+        .map(|cell| {
+            let packed = ((cell.x as u64) << 32) | cell.y as u64;
+            let score = splitmix64(seed ^ packed);
+            (score, cell)
+        })
+        .collect::<Vec<_>>();
+    slots.sort_by_key(|(score, _)| *score);
+
+    let half = (CHUNK_DEV_CUBE_SUBGRID_SIZE as f32 - 1.0) * 0.5;
+    slots
+        .into_iter()
+        .take(count)
+        .map(|(_, cell)| {
+            let x = (cell.x as f32 - half) * CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS;
+            let y = (cell.y as f32 - half) * CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS;
+            Vec3::new(x, y, 0.0)
+        })
+        .collect()
+}
+
+#[inline]
+fn splitmix64(mut x: u64) -> u64 {
+    x = x.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    x = (x ^ (x >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    x = (x ^ (x >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    x ^ (x >> 31)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chunk_dev_cube_layout_is_deterministic() {
+        let coord = GridVec::new_root(IVec2::new(1, -2));
+        let a = compute_chunk_dev_cube_local_offsets(&coord, CHUNK_DEV_CUBE_DEFAULT_COUNT);
+        let b = compute_chunk_dev_cube_local_offsets(&coord, CHUNK_DEV_CUBE_DEFAULT_COUNT);
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn chunk_dev_cube_layout_is_subgrid_aligned_and_bounded() {
+        let coord = GridVec::new_root(IVec2::new(0, 0));
+        let offsets = compute_chunk_dev_cube_local_offsets(&coord, 100);
+        assert_eq!(offsets.len(), 100);
+
+        for pos in offsets {
+            assert_eq!(pos.z, 0.0);
+            assert!(pos.x >= -450.0 && pos.x <= 450.0);
+            assert!(pos.y >= -450.0 && pos.y <= 450.0);
+            assert!(((pos.x + 450.0) / CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS).fract().abs() < 1e-6);
+            assert!(((pos.y + 450.0) / CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS).fract().abs() < 1e-6);
+        }
+    }
 }
 
 // TODO: Move this (and other similar/related) to "render/functions.rs" (and other similar/related)
