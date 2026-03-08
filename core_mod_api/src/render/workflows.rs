@@ -23,7 +23,7 @@ define_workflow_mod_OLD! {
                 use crate::config::statics::CONFIG;
                 use crate::follower::components::{Follower, FollowerTarget};
                 use crate::render::{
-                    components::{ChunkCubeCamera, MainCamera},
+                    components::MainCamera,
                     functions::get_reserved_camera_entities,
                     resources::GameViewRenderTarget
                 };
@@ -69,7 +69,7 @@ define_workflow_mod_OLD! {
                                 Name::new("egui_camera"),
                                 Camera2d,
                                 Camera {
-                                    order: 3,
+                                    order: 2,
                                     ..Default::default()
                                 },
                                 RenderTarget::Window(WindowRef::Primary),
@@ -77,40 +77,13 @@ define_workflow_mod_OLD! {
                                 EguiRenderOutput::default(),
                             ));
                             commands.entity(chunk_cube_camera_entity).insert((
-                                Name::new("chunk_cube_camera"),
-                                Camera3d::default(),
-                                Camera {
-                                    order: 0,
-                                    ..Default::default()
-                                },
-                                Projection::Perspective(PerspectiveProjection {
-                                    fov: std::f32::consts::FRAC_PI_4,
-                                    near: 0.1,
-                                    far: Scale::CANONICAL_CAMERA_FAR,
-                                    ..Default::default()
-                                }),
-                                Transform {
-                                    translation: Vec3::new(0.0, 0.0, Scale::CANONICAL_CAMERA_Z),
-                                    rotation: Quat::from_rotation_x(-0.35),
-                                    ..Default::default()
-                                },
-                                RenderTarget::Image(ImageRenderTarget {
-                                    handle: game_view_render_target.handle.clone(),
-                                    scale_factor: 1.0,
-                                }),
-                                ChunkCubeCamera,
-                                RenderLayers::layer(2),
-                                Follower::new(
-                                    "main_camera_proxy".to_string(),
-                                    Vec2::ZERO,
-                                    CONFIG().get::<f32>("camera/follow_smoothness"),
-                                ),
+                                Name::new("chunk_cube_camera_reserved"),
                             ));
                             commands.entity(ui_camera_entity).insert((
                                 Name::new("ui_camera"),
                                 Camera2d,
                                 Camera {
-                                    order: 2,
+                                    order: 1,
                                     clear_color: crate::bevy::camera::ClearColorConfig::None,
                                     ..Default::default()
                                 },
@@ -122,10 +95,20 @@ define_workflow_mod_OLD! {
                             ));
                             commands.entity(main_camera_entity).insert((
                                 Name::new("main_camera"),
-                                Camera2d,
+                                Camera3d::default(),
                                 Camera {
-                                    order: 1,
-                                    clear_color: crate::bevy::camera::ClearColorConfig::None,
+                                    order: 0,
+                                    ..Default::default()
+                                },
+                                Projection::Perspective(PerspectiveProjection {
+                                    fov: CONFIG().get::<f32>("camera/default_fov_degrees").to_radians(),
+                                    near: 0.1,
+                                    far: Scale::CANONICAL_CAMERA_FAR,
+                                    ..Default::default()
+                                }),
+                                Transform {
+                                    translation: Vec3::new(0.0, 0.0, Scale::CANONICAL_CAMERA_Z),
+                                    rotation: Quat::IDENTITY,
                                     ..Default::default()
                                 },
                                 RenderTarget::Image(ImageRenderTarget {
@@ -152,7 +135,6 @@ define_workflow_mod_OLD! {
                                     rotation: Quat::from_euler(EulerRot::XYZ, -0.8, 0.4, 0.0),
                                     ..Default::default()
                                 },
-                                RenderLayers::layer(2),
                             ));
 
                             State {

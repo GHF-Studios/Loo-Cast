@@ -249,9 +249,16 @@ pub(super) fn enforce_main_camera_depth_contract_system(mut main_camera_query: Q
 
     camera_transform.translation.z = Scale::CANONICAL_CAMERA_Z;
 
-    if let Projection::Orthographic(ortho) = projection.as_mut() {
-        ortho.near = Scale::CANONICAL_CAMERA_NEAR;
-        ortho.far = Scale::CANONICAL_CAMERA_FAR;
+    match projection.as_mut() {
+        Projection::Orthographic(ortho) => {
+            ortho.near = Scale::CANONICAL_CAMERA_NEAR;
+            ortho.far = Scale::CANONICAL_CAMERA_FAR;
+        }
+        Projection::Perspective(perspective) => {
+            perspective.near = 0.1;
+            perspective.far = Scale::CANONICAL_CAMERA_FAR;
+        }
+        _ => {}
     }
 }
 
@@ -321,12 +328,16 @@ pub(super) fn main_camera_zoom_system(
     mut zoom_factor: ResMut<ZoomFactor>,
     mut dev_zoom_factor: ResMut<DevZoomFactor>,
 ) {
-    let min_zoom = CONFIG().get::<f32>("camera/min_zoom");
-    let max_zoom = CONFIG().get::<f32>("camera/max_zoom");
+    let min_zoom = CONFIG().get::<f32>("camera/min_zoom").max(f32::EPSILON);
+    let max_zoom = CONFIG().get::<f32>("camera/max_zoom").max(min_zoom * 1.001);
     let base_zoom_speed = CONFIG().get::<f32>("camera/base_zoom_speed");
-    let min_dev_zoom = CONFIG().get::<f32>("camera/min_dev_zoom");
-    let max_dev_zoom = CONFIG().get::<f32>("camera/max_dev_zoom");
+    let min_dev_zoom = CONFIG().get::<f32>("camera/min_dev_zoom").max(f32::EPSILON);
+    let max_dev_zoom = CONFIG().get::<f32>("camera/max_dev_zoom").max(min_dev_zoom * 1.001);
     let dev_zoom_speed = CONFIG().get::<f32>("camera/dev_zoom_speed");
+    let local_zoom_min = CONFIG().get::<f32>("usf/scale/local_min").max(f32::EPSILON);
+    let local_zoom_max = CONFIG().get::<f32>("usf/scale/local_max").max(local_zoom_min * 1.001);
+    let perspective_fov_min_deg = CONFIG().get::<f32>("camera/min_fov_degrees");
+    let perspective_fov_max_deg = CONFIG().get::<f32>("camera/max_fov_degrees");
     let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
 
     if !input_mode.is_game() || virtual_paused.0 || (chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked())) {
@@ -350,11 +361,17 @@ pub(super) fn main_camera_zoom_system(
         }
     }
     let camera_zoom = (zoom_factor.0 * dev_zoom_factor.0).max(f32::EPSILON);
+    let effective_zoom_min = local_zoom_min * min_dev_zoom;
+    let effective_zoom_max = local_zoom_max * max_dev_zoom;
     for mut projection in projection_query.iter_mut() {
-        let Projection::Orthographic(ortho) = projection.as_mut() else {
-            panic!("Main camera is not orthographic/2d!");
-        };
-        ortho.scale = camera_zoom;
+        apply_camera_zoom_to_projection(
+            projection.as_mut(),
+            camera_zoom,
+            effective_zoom_min,
+            effective_zoom_max,
+            perspective_fov_min_deg,
+            perspective_fov_max_deg,
+        );
     }
 }
 
@@ -398,6 +415,10 @@ pub(super) fn apply_usf_player_pivots_system(
     let rotation_policy = chunk_loader.usf_transform.rotation.policy;
     let rotation_local_min = rotation_policy.local_min;
     let rotation_local_max = rotation_policy.local_max;
+    let min_dev_zoom = CONFIG().get::<f32>("camera/min_dev_zoom").max(f32::EPSILON);
+    let max_dev_zoom = CONFIG().get::<f32>("camera/max_dev_zoom").max(min_dev_zoom * 1.001);
+    let perspective_fov_min_deg = CONFIG().get::<f32>("camera/min_fov_degrees");
+    let perspective_fov_max_deg = CONFIG().get::<f32>("camera/max_fov_degrees");
     let workflow_in_flight = chunk_load_gate_enabled && workflow_state.as_ref().is_some_and(|state| !state.is_idle());
 
     if gate_locked {
@@ -511,10 +532,57 @@ pub(super) fn apply_usf_player_pivots_system(
     player_transform.scale = Vec3::splat(display_zoom.max(f32::EPSILON));
 
     for mut projection in projection_query.iter_mut() {
-        if let Projection::Orthographic(ortho) = projection.as_mut() {
-            ortho.scale = camera_zoom;
-        }
+        apply_camera_zoom_to_projection(
+            projection.as_mut(),
+            camera_zoom,
+            local_min * min_dev_zoom,
+            local_max * max_dev_zoom,
+            perspective_fov_min_deg,
+            perspective_fov_max_deg,
+        );
     }
+}
+
+#[inline]
+fn apply_camera_zoom_to_projection(
+    projection: &mut Projection,
+    camera_zoom: f32,
+    effective_zoom_min: f32,
+    effective_zoom_max: f32,
+    perspective_fov_min_deg: f32,
+    perspective_fov_max_deg: f32,
+) {
+    match projection {
+        Projection::Orthographic(ortho) => {
+            ortho.scale = camera_zoom.max(f32::EPSILON);
+        }
+        Projection::Perspective(perspective) => {
+            perspective.fov = zoom_to_fov_radians(
+                camera_zoom,
+                effective_zoom_min.max(f32::EPSILON),
+                effective_zoom_max.max(effective_zoom_min * 1.001),
+                perspective_fov_min_deg,
+                perspective_fov_max_deg,
+            );
+        }
+        _ => {}
+    }
+}
+
+#[inline]
+fn zoom_to_fov_radians(camera_zoom: f32, zoom_min: f32, zoom_max: f32, fov_min_deg: f32, fov_max_deg: f32) -> f32 {
+    let zoom = camera_zoom.clamp(zoom_min, zoom_max);
+    let min_ln = zoom_min.ln();
+    let max_ln = zoom_max.ln();
+    let t = if (max_ln - min_ln).abs() <= f32::EPSILON {
+        0.0
+    } else {
+        ((zoom.ln() - min_ln) / (max_ln - min_ln)).clamp(0.0, 1.0)
+    };
+
+    let min_fov = fov_min_deg.max(1.0).to_radians();
+    let max_fov = fov_max_deg.max(fov_min_deg + 1.0).to_radians();
+    (min_fov + (max_fov - min_fov) * t).clamp(0.01, std::f32::consts::PI - 0.01)
 }
 
 #[tracing::instrument(skip_all)]

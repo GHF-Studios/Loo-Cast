@@ -269,14 +269,18 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
         }
     };
 
-    let (main_camera_entity, main_camera, main_camera_transform, main_camera_ortho) = match main_camera_query.single() {
-        Ok((ent, cam, cam_transform, cam_projection)) => match cam_projection {
-            Projection::Orthographic(ortho) => (ent, cam, cam_transform, ortho),
-            _ => {
-                warn!("Main camera is not orthographic");
-                return false;
-            }
-        },
+    let (main_camera_entity, main_camera, main_camera_transform, cursor_ray_len, camera_near_for_depth) = match main_camera_query.single() {
+        Ok((ent, cam, cam_transform, cam_projection)) => {
+            let (ray_len, near_for_depth) = match cam_projection {
+                Projection::Orthographic(ortho) => ((ortho.far - ortho.near).abs(), ortho.near),
+                Projection::Perspective(perspective) => (perspective.far.max(1.0), perspective.near),
+                _ => {
+                    warn!("Main camera projection is unsupported for picking");
+                    return false;
+                }
+            };
+            (ent, cam, cam_transform, ray_len, near_for_depth)
+        }
         Err(err) => match err {
             QuerySingleError::NoEntities(_) => {
                 warn!("No main camera found");
@@ -338,7 +342,6 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
         return false;
     };
 
-    let cursor_ray_len = main_camera_ortho.far - main_camera_ortho.near;
     let cursor_ray_end = cursor_ray_world.origin + cursor_ray_world.direction * cursor_ray_len;
     let mut picks: Vec<(Entity, HitData)> = sorted_sprites
         .iter()
@@ -457,7 +460,7 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
                 let hit_pos_cam = main_camera_transform.affine().inverse().transform_point3(hit_pos_world);
 
                 // HitData requires a depth as calculated from the camera's near clipping plane
-                let depth = -main_camera_ortho.near - hit_pos_cam.z;
+                let depth = -camera_near_for_depth - hit_pos_cam.z;
 
                 // warn!("✅ Picked entity {:?} at world Z: {:?}", entity, sprite_transform.translation().z);
 

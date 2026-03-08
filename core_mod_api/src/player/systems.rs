@@ -5,7 +5,47 @@ use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;
 use crate::player::bundles::PlayerBundle;
-use crate::player::components::Player;
+use crate::player::components::{Player, PlayerVisual3dLink};
+
+#[tracing::instrument(skip_all)]
+pub(super) fn ensure_player_visual_3d_system(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut standard_materials: ResMut<Assets<StandardMaterial>>,
+    mut player_query: Query<(Entity, Option<&mut Sprite>, Option<&PlayerVisual3dLink>), With<Player>>,
+) {
+    for (player_entity, sprite, visual_link) in player_query.iter_mut() {
+        if visual_link.is_some() {
+            continue;
+        }
+
+        if let Some(mut sprite) = sprite {
+            // Keep legacy sprite component for compatibility, but make 3D mesh authoritative.
+            sprite.color = sprite.color.with_alpha(0.0);
+        }
+
+        let player_size = CONFIG().get::<f32>("player/base_size").max(1.0);
+        let mesh = meshes.add(Mesh::from(Cuboid::from_size(Vec3::splat(player_size))));
+        let material = standard_materials.add(StandardMaterial {
+            base_color: Color::srgb(0.0, 0.77, 0.33),
+            perceptual_roughness: 0.8,
+            metallic: 0.0,
+            ..Default::default()
+        });
+
+        let visual_entity = commands
+            .spawn((
+                Name::new("player_visual_3d"),
+                Mesh3d(mesh),
+                MeshMaterial3d(material),
+                Transform::default(),
+            ))
+            .id();
+
+        commands.entity(player_entity).add_child(visual_entity);
+        commands.entity(player_entity).insert(PlayerVisual3dLink { entity: visual_entity });
+    }
+}
 
 #[tracing::instrument(skip_all)]
 pub(super) fn update_player_system(

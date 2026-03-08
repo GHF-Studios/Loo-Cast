@@ -32,7 +32,7 @@ impl Default for PlayerBundle {
             chunk_loader: Default::default(),
             player: Default::default(),
             sprite: Sprite {
-                color: Color::srgb(0.0, 0.77, 0.33),
+                color: Color::srgba(0.0, 0.77, 0.33, 0.0),
                 rect: Some(Rect::new(-half_player_size, -half_player_size, half_player_size, half_player_size)),
                 ..Default::default()
             },

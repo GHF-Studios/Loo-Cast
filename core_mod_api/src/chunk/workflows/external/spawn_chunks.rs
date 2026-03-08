@@ -5,7 +5,6 @@ use crate::chunk::{
     components::{Chunk, ChunkLoader},
     resources::ChunkManager,
 };
-use crate::bevy::camera::visibility::RenderLayers;
 use crate::config::statics::CONFIG;
 use crate::render::{
     components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision},
@@ -152,7 +151,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
                         Mesh3d(dev_cube_mesh.clone().expect("dev cube mesh must exist when cube proxies are enabled")),
                         MeshMaterial3d(dev_cube_material.clone()),
                         Transform::from_translation(local_offset),
-                        RenderLayers::layer(2),
                     ));
                 }
             });

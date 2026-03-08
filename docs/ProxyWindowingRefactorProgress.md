@@ -91,7 +91,7 @@ Acceptance:
 3. Full span supports near target `100,000` z range.
 
 ### M3 - Camera/Projection Refactor (Fixed 2.5D Behavior)
-Status: `pending`
+Status: `in_progress`
 Goal: Move main world camera to perspective while preserving fixed-view interaction semantics.
 Acceptance:
 1. Main game camera uses perspective.
@@ -192,6 +192,10 @@ Acceptance:
 20. Marked M8 as `completed`; M10 moved to `in_progress`.
 21. Added config toggle `render/use_chunk_cube_proxies` and restored legacy sprite-proxy spawning path behind the toggle.
 22. Marked M0 as `in_progress` (feature-gating started).
+23. Unified world rendering path around `MainCamera` (now `Camera3d` + orthographic projection) so chunk cubes and player visuals share one camera semantics again.
+24. Added player 3D visual linkage (`PlayerVisual3dLink`) and automatic 3D mesh visual spawn; legacy sprite kept but hidden for compatibility.
+25. Removed dedicated chunk-cube render-layer dependency in spawned chunk cube visuals to avoid split-camera composition artifacts.
+26. Marked M3 as `in_progress` (camera refactor active, perspective acceptance still pending).
 
 ## Open Questions (Must Resolve During Implementation)
 1. Exact near/far projection values after z remap and camera pose lock.

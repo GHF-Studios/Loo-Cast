@@ -2,6 +2,9 @@
 default_zoom = 0.15
 min_zoom = 0.001
 max_zoom = 1000.0
+default_fov_degrees = 55.0
+min_fov_degrees = 8.0
+max_fov_degrees = 100.0
 base_zoom_speed = 10.0
 default_dev_zoom = 1.0
 min_dev_zoom = 0.0005
@@ -41,7 +44,7 @@ workgroups_y = 16
 enabled = true
 
 [player]
-base_size = 32.0
+base_size = 128.0
 base_movement_speed = 500.0
 sprint_multiplier = 2.5
 z_offset = 10.0 # For good measure, we pretty much always want gizmos on top of everything else.

@@ -18,3 +18,9 @@ impl InsertComponentFromDynamic for Player {
         entity.insert(Player);
     }
 }
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct PlayerVisual3dLink {
+    pub entity: Entity,
+}
