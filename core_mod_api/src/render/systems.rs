@@ -262,6 +262,12 @@ pub(super) fn apply_usf_player_pivots_system(
     let intent_translation_delta = player_motion_intent.translation_delta;
     let intent_rotation_delta = player_motion_intent.rotation_delta;
     player_motion_intent.clear();
+    let world_space_translation_delta = if intent_translation_delta == Vec2::ZERO {
+        Vec2::ZERO
+    } else {
+        // Input is authored in player-local XY; convert to world-space using current heading.
+        (chunk_loader.world_rotation_quat().inverse() * intent_translation_delta.extend(0.0)).truncate()
+    };
 
     let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
     let mut gate_locked = chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked());
@@ -293,7 +299,7 @@ pub(super) fn apply_usf_player_pivots_system(
         chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
         chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
     } else {
-        let candidate_translation = player_transform.translation + intent_translation_delta.extend(0.0);
+        let candidate_translation = player_transform.translation + world_space_translation_delta.extend(0.0);
 
         let would_cross_scale_boundary = zoom_factor.0 <= scale_commit_min || zoom_factor.0 >= scale_commit_max;
         let would_cross_translation_boundary = candidate_translation.x <= translation_commit_min
@@ -321,8 +327,8 @@ pub(super) fn apply_usf_player_pivots_system(
             chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
             chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
         } else {
-            if intent_translation_delta != Vec2::ZERO {
-                player_transform.translation += intent_translation_delta.extend(0.0);
+            if world_space_translation_delta != Vec2::ZERO {
+                player_transform.translation += world_space_translation_delta.extend(0.0);
             }
             if intent_rotation_delta != Vec3::ZERO {
                 chunk_loader.rotate_world_local(intent_rotation_delta);

@@ -89,10 +89,10 @@ pub(super) fn update_player_system(
 
         let mut delta_rotation = Vec3::ZERO;
         if keys.pressed(KeyCode::KeyQ) {
-            delta_rotation.z += *world_rotation_speed * time.delta_secs();
+            delta_rotation.z -= *world_rotation_speed * time.delta_secs();
         }
         if keys.pressed(KeyCode::KeyE) {
-            delta_rotation.z -= *world_rotation_speed * time.delta_secs();
+            delta_rotation.z += *world_rotation_speed * time.delta_secs();
         }
         player_motion_intent.rotation_delta = delta_rotation;
     }
