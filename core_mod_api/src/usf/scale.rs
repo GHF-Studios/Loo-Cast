@@ -725,6 +725,22 @@ impl Scale {
     pub fn compute_z(self) -> f32 {
         self.canonical_z()
     }
+
+    /// Continuous scale index based on local multiplicative zoom.
+    /// Keeps depth changes smooth across scale pivot commits.
+    #[inline]
+    pub fn continuous_index_from_local_zoom(self, local_zoom: f32) -> f32 {
+        let discrete = self.index_from_top() as f32;
+        let zoom = local_zoom.max(f32::EPSILON);
+        let idx = discrete - zoom.log10();
+        idx.clamp(0.0, (Self::SCALE_LEVEL_COUNT - 1) as f32)
+    }
+
+    /// Continuous canonical depth based on scale + local zoom.
+    #[inline]
+    pub fn continuous_z_from_local_zoom(self, local_zoom: f32) -> f32 {
+        Self::CANONICAL_Z_BASE + self.continuous_index_from_local_zoom(local_zoom) * Self::CANONICAL_Z_SPACING
+    }
 }
 
 pub trait ConstScale: 'static + Send + Sync + Clone + Copy + Default + Debug + Reflect + PartialOrd + Ord + PartialEq + Eq + Hash {
@@ -940,5 +956,31 @@ mod tests {
 
         assert!(spacing >= 1000.0, "adjacent spacing was {spacing}");
         assert!((95_000.0..=105_000.0).contains(&span), "span was {span}");
+    }
+
+    #[test]
+    fn continuous_index_is_boundary_continuous_for_zoom_in_fold() {
+        let before_scale = Scale::ScaleMeter1;
+        let before_zoom = 0.089_f32; // below commit_min => folds once to finer scale with *10 local zoom
+        let before_idx = before_scale.continuous_index_from_local_zoom(before_zoom);
+
+        let after_scale = before_scale.zoomed_in();
+        let after_zoom = before_zoom * 10.0;
+        let after_idx = after_scale.continuous_index_from_local_zoom(after_zoom);
+
+        assert!((before_idx - after_idx).abs() < 1e-5);
+    }
+
+    #[test]
+    fn continuous_index_is_boundary_continuous_for_zoom_out_fold() {
+        let before_scale = Scale::ScaleMeter1;
+        let before_zoom = 11.0_f32; // above commit_max => folds once to coarser scale with /10 local zoom
+        let before_idx = before_scale.continuous_index_from_local_zoom(before_zoom);
+
+        let after_scale = before_scale.zoomed_out();
+        let after_zoom = before_zoom / 10.0;
+        let after_idx = after_scale.continuous_index_from_local_zoom(after_zoom);
+
+        assert!((before_idx - after_idx).abs() < 1e-5);
     }
 }

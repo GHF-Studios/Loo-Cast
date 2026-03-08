@@ -16,6 +16,8 @@ follow_smoothness = 0.15
 z_offset = -10
 texture_generator_shader = "texture_generators/example_dev_v2"
 dev_cube_count = 8
+dev_cube_depth_layers = 10
+dev_surface_cube_count = 24
 
 [render]
 use_chunk_cube_proxies = true

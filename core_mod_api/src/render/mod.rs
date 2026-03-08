@@ -13,8 +13,8 @@ use components::{ChunkCubeCamera, EntityProxyLink, LogicProxy, MainCamera, Proxy
 use resources::{DevZoomFactor, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor};
 use systems::{
     apply_usf_player_pivots_system, despawn_orphaned_render_proxies, enforce_chunk_cube_camera_depth_contract_system,
-    enforce_main_camera_depth_contract_system, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system,
-    resize_render_texture, update_render_proxies, update_view_scale_from_zoom,
+    enforce_main_camera_depth_contract_system, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system, resize_render_texture,
+    update_render_proxies, update_view_scale_from_zoom,
 };
 
 use crate::core::{components::Meta, orchestration::AppSet, run_conditions::run_after_startup_finished};

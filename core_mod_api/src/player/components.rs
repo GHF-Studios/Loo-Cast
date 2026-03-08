@@ -24,3 +24,9 @@ impl InsertComponentFromDynamic for Player {
 pub struct PlayerVisual3dLink {
     pub entity: Entity,
 }
+
+#[derive(Component, Reflect, Default)]
+#[reflect(Component)]
+pub struct PlayerDepthOffset {
+    pub local_z: f32,
+}
