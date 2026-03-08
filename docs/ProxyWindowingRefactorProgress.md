@@ -204,6 +204,7 @@ Acceptance:
 30. Upgraded chunk dev cube generation from `10x10x1` to deterministic `10x10xN` volumetric placement (`chunk/dev_cube_depth_layers`).
 31. Added deterministic recursive surface micro-cube generation (`chunk/dev_surface_cube_count`) on each dev cube for hierarchical visual read.
 32. Runtime-validated outside sandbox with `./build.sh dev` and `./run.sh dev`; startup and chunk workflows remain stable after query-conflict fix.
+33. Fixed scale-boundary anchor mismatch in `ChunkLoader::zoom_in` (`origin_offset` now folds with the same logical anchor as `coord`) to prevent cross-border drift/jump accumulation; added regression tests.
 
 ## Open Questions (Must Resolve During Implementation)
 1. Exact near/far projection values after z remap and camera pose lock.

@@ -9,12 +9,15 @@ base_zoom_speed = 10.0
 default_dev_zoom = 1.0
 min_dev_zoom = 0.0005
 max_dev_zoom = 2000.0
+min_dev_zoom_projection = 0.1
+max_dev_zoom_projection = 10.0
 dev_zoom_speed = 25.0
 follow_smoothness = 0.15
 
 [chunk]
 z_offset = -10
 texture_generator_shader = "texture_generators/example_dev_v2"
+top_level_only = true
 dev_cube_count = 8
 dev_cube_depth_layers = 10
 dev_surface_cube_count = 24

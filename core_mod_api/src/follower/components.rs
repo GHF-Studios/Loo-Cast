@@ -13,6 +13,7 @@ use super::hooks::{hook_on_add_follower_target, hook_on_remove_follower_target};
 pub struct Follower {
     pub follow_id: String,
     pub offset: Vec2,
+    pub z_offset: f32,
     pub smoothness: f32,
     followed_entity: Option<Entity>,
 }
@@ -21,9 +22,15 @@ impl Follower {
         Self {
             follow_id,
             offset,
+            z_offset: 0.0,
             smoothness,
             followed_entity: None,
         }
+    }
+
+    pub fn with_z_offset(mut self, z_offset: f32) -> Self {
+        self.z_offset = z_offset;
+        self
     }
 
     pub fn get_followed_entity(&self) -> &Option<Entity> {

@@ -143,49 +143,53 @@ pub(crate) fn chunk_detection_system(
     let mut despawn_chunk_inputs = Vec::new();
     let radius = chunk_manager.load_radius;
     let current_chunks = chunk_manager.chunks.clone();
-    // Use render origin as chunk cone anchor so loading stays aligned with
-    // the coordinate frame used by render proxy transforms.
-    let mut chunk_loader_grid_coord_cursor = &chunk_loader.origin_offset;
-    let mut target_chunk_cone = Vec::new();
+    let top_level_only = CONFIG().get::<bool>("chunk/top_level_only");
 
-    // warn!("Starting Chunk Detection with current Chunks: {:?}", current_chunks);
+    let final_target_chunks: HashSet<GridVec> = if top_level_only {
+        // Top-level-only mode: keep chunk entities at Scale::MAX and represent detail via child cubes.
+        let mut top_cursor = chunk_loader.origin_offset.clone();
+        while top_cursor.scale != Scale::MAX {
+            let Some(parent) = top_cursor.parent.as_ref() else {
+                break;
+            };
+            top_cursor = parent.as_ref().clone();
+        }
+        top_cursor.query_grid_radius(radius).into_iter().collect()
+    } else {
+        // Multi-scale cone mode (legacy behavior).
+        let mut chunk_loader_grid_coord_cursor = &chunk_loader.origin_offset;
+        let mut target_chunk_cone = Vec::new();
 
-    loop {
-        let current_scale = chunk_loader_grid_coord_cursor.scale;
-        let scale_diff = current_scale as i8 - chunk_loader.origin_offset.scale as i8;
-        if scale_diff > Scale::MAX_DIFF_SCALE_EXP {
-            break;
+        loop {
+            let current_scale = chunk_loader_grid_coord_cursor.scale;
+            let scale_diff = current_scale as i8 - chunk_loader.origin_offset.scale as i8;
+            if scale_diff > Scale::MAX_DIFF_SCALE_EXP {
+                break;
+            }
+
+            let coords_in_radius = chunk_loader_grid_coord_cursor
+                .query_grid_radius(radius)
+                .into_iter()
+                .collect::<HashSet<GridVec>>();
+            target_chunk_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
+
+            if current_scale == Scale::MAX {
+                break;
+            }
+
+            let Some(parent) = chunk_loader_grid_coord_cursor.parent.as_ref() else {
+                break;
+            };
+            chunk_loader_grid_coord_cursor = parent;
         }
 
-        // warn!("Chunk Detection at scale: {:?}", current_scale);
-        let coords_in_radius = chunk_loader_grid_coord_cursor
-            .query_grid_radius(radius)
-            .into_iter()
-            .collect::<HashSet<GridVec>>();
-        // warn!("Detected Chunks: {:?}", coords_in_radius);
-        target_chunk_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
-
-        if current_scale == Scale::MAX {
-            break;
+        target_chunk_cone.reverse();
+        let mut target_chunks: HashSet<GridVec> = HashSet::new();
+        for (_coord, coords) in &target_chunk_cone {
+            target_chunks.extend(coords.iter().cloned());
         }
-
-        let Some(parent) = chunk_loader_grid_coord_cursor.parent.as_ref() else {
-            break;
-        };
-        chunk_loader_grid_coord_cursor = parent;
-    }
-
-    target_chunk_cone.reverse();
-
-    // for (chunk_loader_grid_coord, target_chunks) in &target_chunk_cone {
-    //     warn!("Target Chunks at scale: {:?} => {{{}}} {:?}", chunk_loader_grid_coord.scale, target_chunks.len(), target_chunks);
-    // }
-
-    let mut final_target_chunks: HashSet<GridVec> = HashSet::new();
-
-    for (_coord, target_chunks) in &target_chunk_cone {
-        final_target_chunks.extend(target_chunks.iter().cloned());
-    }
+        target_chunks
+    };
 
     let chunks_to_load = final_target_chunks.difference(&current_chunks).cloned();
 

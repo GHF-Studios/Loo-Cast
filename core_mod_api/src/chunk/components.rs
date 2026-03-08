@@ -47,7 +47,8 @@ impl ChunkLoader {
         self.scale.zoom_in();
         self.zoom_state = ZoomState::ZoomIn;
         let new_logical_world_pos = self.coord.zoom_in(logical_world_pos);
-        self.origin_offset.zoom_in(Vec2::ZERO);
+        // Keep origin and player anchor in the same child-space convention across scale folds.
+        self.origin_offset.zoom_in(logical_world_pos);
         new_logical_world_pos
     }
 
@@ -227,5 +228,35 @@ impl ChunkLoader {
 
     pub fn world_rotation_quat(&self) -> Quat {
         self.usf_transform.rotation.local_quat()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn zoom_in_uses_same_anchor_for_coord_and_origin_offset() {
+        let mut loader = ChunkLoader::default();
+        loader.coord = GridVec::new_root(IVec2::ZERO);
+        loader.origin_offset = GridVec::new_root(IVec2::ZERO);
+
+        let _ = loader.zoom_in(Vec2::new(420.0, -320.0));
+
+        assert_eq!(loader.coord, loader.origin_offset);
+    }
+
+    #[test]
+    fn scale_pivot_keeps_coord_and_origin_offset_aligned_on_zoom_in_crossing() {
+        let mut loader = ChunkLoader::default();
+        loader.coord = GridVec::new_root(IVec2::ZERO);
+        loader.origin_offset = GridVec::new_root(IVec2::ZERO);
+
+        let mut local_zoom = 0.08_f32; // commit_min is 0.09 with default config
+        let mut logical_world_pos = Vec3::new(420.0, -320.0, 0.0);
+        let pivot = loader.apply_scale_pivot(&mut local_zoom, &mut logical_world_pos);
+
+        assert_eq!(pivot.lower_crossings, 1);
+        assert_eq!(loader.coord, loader.origin_offset);
     }
 }
